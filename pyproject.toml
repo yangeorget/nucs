@@ -1,0 +1,13 @@
+[project]
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+]
+
+[tool.black]
+line-length = 120
+
