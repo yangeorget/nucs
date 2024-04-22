@@ -1,2 +1,0 @@
-# TODO: simple solver
-# TODO: cp in solver

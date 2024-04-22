@@ -3,24 +3,37 @@ from typing import List
 import numpy as np
 from numpy.typing import NDArray
 
-from ncs.constraints.constraint import Constraint
+MIN = 0
+MAX = 1
 
 
 class Problem:
-    def __init__(self, domains: NDArray, constraints: List[Constraint] = []):
+    def __init__(self, domains: NDArray):
         self.domains = domains
-        self.constraints = constraints
+        self.constraints: List = []
 
-    def add_constraint(self, constraint: Constraint) -> None:
-        self.constraints.append(constraint)
-        constraint.problem = self
-
-    def update_domains(self, new_domains: NDArray) -> NDArray:
+    def update_domains(self, variables: NDArray, new_domains: NDArray) -> NDArray:
+        print(f"update_domains({variables}, {new_domains})")
         changes = np.full((len(new_domains), 2), False)
-        new_minimums = np.maximum(new_domains[:, 0], self.domains[:, 0])
-        np.greater(new_minimums, self.domains[:, 0], out=changes[:, 0])
-        self.domains[:, 0] = new_minimums
-        new_maximums = np.minimum(new_domains[:, 1], self.domains[:, 1])
-        np.less(new_maximums, self.domains[:, 1], out=changes[:, 1])
-        self.domains[:, 1] = new_maximums
+        new_minimums = np.maximum(new_domains[:, MIN], self.domains[variables, MIN])
+        np.greater(new_minimums, self.domains[variables, MIN], out=changes[:, MIN])
+        self.domains[variables, MIN] = new_minimums
+        new_maximums = np.minimum(new_domains[:, MAX], self.domains[variables, MAX])
+        np.less(new_maximums, self.domains[variables, MAX], out=changes[:, MAX])
+        self.domains[variables, MAX] = new_maximums
         return changes
+
+    def is_instantiated(self, idx: int) -> bool:
+        print("is_instantiated()")
+        return self.domains[idx, MIN] == self.domains[idx, MAX]
+
+    def is_inconsistent(self) -> bool:
+        print("is_inconsistent()")
+        return np.any(np.greater(self.domains[:, MIN], self.domains[:, MAX]))  # type: ignore
+
+    def is_solved(self) -> bool:
+        print("is_solved()")
+        return np.all(np.equal(self.domains[:, MIN], self.domains[:, MAX]))  # type: ignore
+
+    def __str__(self) -> str:
+        return f"domains={self.domains}, constraints={self.constraints}"

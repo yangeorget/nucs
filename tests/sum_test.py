@@ -5,8 +5,8 @@ from ncs.problem import Problem
 from ncs.solvers.simple_solver import SimpleSolver
 
 
-class MatrixTest:
-    def test_matrix(self) -> None:
+class SumTest:
+    def test_sum(self) -> None:
         domains = np.array(
             [
                 [0, 2],
@@ -17,11 +17,11 @@ class MatrixTest:
             ]
         )
         problem = Problem(domains)
-        problem.add_constraint(Sum(np.array([4, 0, 1, 2, 3])))
+        problem.constraints.append(Sum(np.array([4, 0, 1, 2, 3])))
         solver = SimpleSolver(problem)
         solver.solve()
         print(domains)
 
 
 if __name__ == "__main__":
-    MatrixTest().test_matrix()
+    SumTest().test_sum()
