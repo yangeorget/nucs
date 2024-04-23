@@ -12,6 +12,19 @@ class Problem:
         self.domains = domains
         self.constraints: List = []
 
+    def filter(self) -> bool:
+        print("filter()")
+        changes = True
+        while changes:
+            changes = False
+            for constraint in self.constraints:
+                constraint_changes = constraint.filter(self)
+                print(f"constraint_changes={constraint_changes}")
+                if self.is_inconsistent():
+                    return False
+                changes |= np.any(constraint_changes)  # type: ignore
+        return True
+
     def update_domains(self, variables: NDArray, new_domains: NDArray) -> NDArray:
         print(f"update_domains({variables}, {new_domains})")
         changes = np.full((len(new_domains), 2), False)

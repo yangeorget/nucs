@@ -14,10 +14,10 @@ class SimpleSolver(Solver):
 
     def solve(self) -> Optional[NDArray]:
         print("solve()")
-        if self.filter():
+        if self.problem.filter():
             while self.choice() >= 0:
                 # a choice could be made
-                while not self.filter():
+                while not self.problem.filter():
                     # the choice was not consistent
                     if not self.backtrack():
                         return None

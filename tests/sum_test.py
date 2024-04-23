@@ -2,26 +2,47 @@ import numpy as np
 
 from ncs.constraints.sum import Sum
 from ncs.problem import Problem
-from ncs.solvers.simple_solver import SimpleSolver
 
 
 class SumTest:
-    def test_sum(self) -> None:
+    def test_compute_domains(self) -> None:
         domains = np.array(
             [
                 [0, 2],
                 [0, 2],
-                [0, 2],
-                [0, 2],
-                [8, 12],
+                [4, 6],
             ]
         )
         problem = Problem(domains)
-        problem.constraints.append(Sum(np.array([4, 0, 1, 2, 3])))
-        solver = SimpleSolver(problem)
-        solver.solve()
-        print(domains)
+        sum = Sum(np.array([2, 0, 1]))
+        assert np.all(
+            sum.compute_domains(problem)
+            == np.array(
+                [
+                    [2, 2],
+                    [2, 2],
+                    [4, 4],
+                ]
+            )
+        )
 
-
-if __name__ == "__main__":
-    SumTest().test_sum()
+    def test_filter(self) -> None:
+        domains = np.array(
+            [
+                [0, 2],
+                [0, 2],
+                [4, 6],
+            ]
+        )
+        problem = Problem(domains)
+        sum = Sum(np.array([2, 0, 1]))
+        assert np.all(
+            sum.filter(problem)
+            == np.array(
+                [
+                    [2, 2],
+                    [2, 2],
+                    [4, 4],
+                ]
+            )
+        )
