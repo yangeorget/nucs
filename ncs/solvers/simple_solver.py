@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Iterator
 
 import numpy as np
 from numpy.typing import NDArray
@@ -12,21 +12,22 @@ class SimpleSolver(Solver):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
 
-    def solve(self) -> Optional[NDArray]:
-        print("solve()")
+    def solve(self) -> Iterator[NDArray]:
+        # TODO: rewrite to backtrack after each solution is found
+        # print("solve()")
         if self.problem.filter():
             while self.choice() >= 0:
                 # a choice could be made
                 while not self.problem.filter():
                     # the choice was not consistent
                     if not self.backtrack():
-                        return None
+                        return
             if self.problem.is_solved():
-                return self.problem.domains
-        return None
+                print(f"domains={self.problem.domains}")
+                yield self.problem.domains
 
     def backtrack(self) -> bool:
-        print("backtrack()")
+        # print("backtrack()")
         if len(self.choice_points) == 0:
             return False
         domains = self.choice_points.pop()
@@ -34,7 +35,7 @@ class SimpleSolver(Solver):
         return True
 
     def choice(self) -> int:
-        print("choice()")
+        # print("choice()")
         for idx in range(self.problem.domains.shape[0]):
             if not self.problem.is_instantiated(idx):
                 domains = np.copy(self.problem.domains)

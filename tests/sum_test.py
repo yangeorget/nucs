@@ -1,32 +1,30 @@
 import numpy as np
 
 from ncs.constraints.sum import Sum
-from ncs.problem import Problem
 
 
-class SumTest:
-    def test_compute_domains(self) -> None:
+class TestSum:
+    def test_compute_domains_1(self) -> None:
         domains = np.array(
             [
-                [0, 2],
-                [0, 2],
-                [4, 6],
+                [0, 1],
+                [0, 1],
+                [0, 1],
             ]
         )
-        problem = Problem(domains)
-        sum = Sum(np.array([2, 0, 1]))
+        variables = np.array([2, 0, 1])
         assert np.all(
-            sum.compute_domains(problem)
+            Sum(variables).compute_domains(domains)
             == np.array(
                 [
-                    [2, 2],
-                    [2, 2],
-                    [4, 4],
+                    [0, 2],
+                    [-1, 1],
+                    [-1, 1],
                 ]
             )
         )
 
-    def test_filter(self) -> None:
+    def test_compute_domains_2(self) -> None:
         domains = np.array(
             [
                 [0, 2],
@@ -34,15 +32,14 @@ class SumTest:
                 [4, 6],
             ]
         )
-        problem = Problem(domains)
-        sum = Sum(np.array([2, 0, 1]))
+        variables = np.array([2, 0, 1])
         assert np.all(
-            sum.filter(problem)
+            Sum(variables).compute_domains(domains)
             == np.array(
                 [
-                    [2, 2],
-                    [2, 2],
-                    [4, 4],
+                    [0, 4],
+                    [2, 6],
+                    [2, 6],
                 ]
             )
         )

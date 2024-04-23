@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Iterator
 
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 
 from ncs.problem import Problem
 
@@ -9,5 +9,5 @@ class Solver:
     def __init__(self, problem: Problem):
         self.problem = problem
 
-    def solve(self) -> Optional[NDArray]:  # type: ignore
+    def solve(self) -> Iterator[NDArray]:  # type: ignore
         pass
