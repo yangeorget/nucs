@@ -13,6 +13,10 @@ class Problem:
         self.constraints: List = []
 
     def filter(self) -> bool:
+        """
+        Filters the problem's domains by applying the constraints until a fix point is reached
+        :return: false if the problem is not consistent
+        """
         # print("filter()")
         changes = True
         while changes:
