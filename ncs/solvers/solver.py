@@ -10,4 +10,8 @@ class Solver:
         self.problem = problem
 
     def solve(self) -> Iterator[NDArray]:  # type: ignore
+        """
+        Returns an iterator over the solutions.
+        :return: an iterator
+        """
         pass

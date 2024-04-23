@@ -16,10 +16,8 @@ class SimpleSolver(Solver):
         # TODO: rewrite to backtrack after each solution is found
         # print("solve()")
         if self.problem.filter():
-            while self.choice() >= 0:
-                # a choice could be made
-                while not self.problem.filter():
-                    # the choice was not consistent
+            while self.choice() >= 0:  # a choice could be made
+                while not self.problem.filter():  # the choice was not consistent
                     if not self.backtrack():
                         return
             if self.problem.is_solved():
@@ -27,6 +25,10 @@ class SimpleSolver(Solver):
                 yield self.problem.domains
 
     def backtrack(self) -> bool:
+        """
+        Backtracks and updates the problem's domains
+        :return: true iff it is possible to backtrack
+        """
         # print("backtrack()")
         if len(self.choice_points) == 0:
             return False
@@ -35,6 +37,10 @@ class SimpleSolver(Solver):
         return True
 
     def choice(self) -> int:
+        """
+        Makes a choice by instantiating the first non instantiated variable to its first value
+        :return: the index of the variable
+        """
         # print("choice()")
         for idx in range(self.problem.domains.shape[0]):
             if not self.problem.is_instantiated(idx):
