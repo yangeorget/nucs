@@ -13,16 +13,17 @@ class SimpleSolver(Solver):
         self.choice_points = []  # type: ignore
 
     def solve(self) -> Iterator[NDArray]:
-        # TODO: rewrite to backtrack after each solution is found
         # print("solve()")
         if self.problem.filter():
-            while self.choice() >= 0:  # a choice could be made
-                while not self.problem.filter():  # the choice was not consistent
+            while not self.problem.is_solved():
+                self.choice()  # let's make a choice
+                if not self.problem.filter():  # the choice was not consistent
                     if not self.backtrack():
                         return
-            if self.problem.is_solved():
-                print(f"domains={self.problem.domains}")
                 yield self.problem.domains
+                if not self.backtrack():
+                    return
+        # inconsistent problem
 
     def backtrack(self) -> bool:
         """
@@ -30,11 +31,12 @@ class SimpleSolver(Solver):
         :return: true iff it is possible to backtrack
         """
         # print("backtrack()")
-        if len(self.choice_points) == 0:
-            return False
-        domains = self.choice_points.pop()
-        self.problem.domains = domains
-        return True
+        while len(self.choice_points) > 0:
+            domains = self.choice_points.pop()
+            self.problem.domains = domains
+            if self.problem.filter():
+                return True
+        return False
 
     def choice(self) -> int:
         """
