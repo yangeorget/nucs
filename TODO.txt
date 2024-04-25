@@ -1,0 +1,3 @@
+replace Sun by weighted sum = cst
+implement alldiff
+heuristics
