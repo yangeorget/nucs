@@ -1,4 +1,4 @@
-from typing import Iterator
+from typing import Iterator, Optional
 
 import numpy as np
 from numpy.typing import NDArray
@@ -14,16 +14,24 @@ class SimpleSolver(Solver):
 
     def solve(self) -> Iterator[NDArray]:
         # print("solve()")
-        if self.problem.filter():
-            while not self.problem.is_solved():
-                self.choice()  # let's make a choice
-                if not self.problem.filter():  # the choice was not consistent
-                    if not self.backtrack():
-                        return
-                yield self.problem.domains
+        while True:
+            solution = self.solveOne()
+            if solution is None:
+                break
+            yield solution
+            if not self.backtrack():
+                break
+
+    def solveOne(self) -> Optional[NDArray]:
+        if not self.problem.filter():
+            return None
+        while not self.problem.is_solved():
+            self.choice()  # let's make a choice
+            while not self.problem.filter():  # the choice was not consistent
                 if not self.backtrack():
-                    return
-        # inconsistent problem
+                    return None
+        return self.problem.domains
+
 
     def backtrack(self) -> bool:
         """
@@ -31,12 +39,10 @@ class SimpleSolver(Solver):
         :return: true iff it is possible to backtrack
         """
         # print("backtrack()")
-        while len(self.choice_points) > 0:
-            domains = self.choice_points.pop()
-            self.problem.domains = domains
-            if self.problem.filter():
-                return True
-        return False
+        if len(self.choice_points) == 0:
+            return False
+        self.problem.domains = self.choice_points.pop()
+        return True
 
     def choice(self) -> int:
         """
