@@ -2,14 +2,15 @@ from typing import Iterator, Optional
 
 from numpy.typing import NDArray
 
+from ncs.heuristics.first_variable_heuristic import FirstVariableHeuristic
 from ncs.heuristics.heuristic import Heuristic
-from ncs.heuristics.min_variable_heuristic import MinVariableHeuristic
+from ncs.heuristics.min_value_heuristic import MinValueHeuristic
 from ncs.problem import Problem
 from ncs.solvers.solver import Solver
 
 
 class BacktrackSolver(Solver):
-    def __init__(self, problem: Problem, heuristic: Heuristic = MinVariableHeuristic()):
+    def __init__(self, problem: Problem, heuristic: Heuristic = FirstVariableHeuristic(MinValueHeuristic())):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
         self.heuristic = heuristic
@@ -17,18 +18,18 @@ class BacktrackSolver(Solver):
     def solve(self) -> Iterator[NDArray]:
         # print("solve()")
         while True:
-            solution = self.solveOne()
+            solution = self.solve_one()
             if solution is None:
                 break
             yield solution
             if not self.backtrack():
                 break
 
-    def solveOne(self) -> Optional[NDArray]:
+    def solve_one(self) -> Optional[NDArray]:
         if not self.problem.filter():
             return None
         while not self.problem.is_solved():
-            self.heuristic.makeChoice(self.choice_points, self.problem)  # let's make a choice
+            self.heuristic.make_choice(self.choice_points, self.problem)  # let's make a choice
             while not self.problem.filter():  # the choice was not consistent
                 if not self.backtrack():
                     return None
