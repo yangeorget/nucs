@@ -7,12 +7,7 @@ from ncs.solvers.simple_solver import SimpleSolver
 
 class TestSimpleSolver:
     def test_solve_and_count(self) -> None:
-        domains = np.array(
-            [
-                [0, 99],
-                [0, 99]
-            ]
-        )
+        domains = np.array([[0, 99], [0, 99]])
         problem = Problem(domains)
         solver = SimpleSolver(problem)
         counter = 0

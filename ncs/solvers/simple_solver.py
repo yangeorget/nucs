@@ -26,12 +26,11 @@ class SimpleSolver(Solver):
         if not self.problem.filter():
             return None
         while not self.problem.is_solved():
-            self.choice()  # let's make a choice
+            self.makeChoice()  # let's make a choice
             while not self.problem.filter():  # the choice was not consistent
                 if not self.backtrack():
                     return None
         return self.problem.domains
-
 
     def backtrack(self) -> bool:
         """
@@ -44,17 +43,22 @@ class SimpleSolver(Solver):
         self.problem.domains = self.choice_points.pop()
         return True
 
-    def choice(self) -> int:
+    def makeChoice(self) -> bool:
         """
-        Makes a choice by instantiating the first non instantiated variable to its first value
-        :return: the index of the variable
+        Makes a choice.
+        :return: True iff it is possible to make a choice
         """
-        # print("choice()")
+        # print("makeChoice()")
         for idx in range(self.problem.domains.shape[0]):
             if not self.problem.is_instantiated(idx):
-                domains = np.copy(self.problem.domains)
-                self.problem.domains[idx, MAX] = domains[idx, MIN]
-                domains[idx, MIN] += 1
+                domains = self.makeVariableChoice(idx)
                 self.choice_points.append(domains)
-                return idx
-        return -1  # all variables are instantiated
+                return True
+        return False
+
+    def makeVariableChoice(self, idx: int) -> NDArray:
+        # print("makeVariableChoice()")
+        domains = np.copy(self.problem.domains)
+        self.problem.domains[idx, MAX] = self.problem.domains[idx, MIN]
+        domains[idx, MIN] += 1
+        return domains
