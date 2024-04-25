@@ -2,14 +2,14 @@ import numpy as np
 
 from ncs.constraints.sum import Sum
 from ncs.problem import Problem
-from ncs.solvers.simple_solver import SimpleSolver
+from ncs.solvers.backtrack_solver import BacktrackSolver
 
 
-class TestSimpleSolver:
+class TestBacktrackSolver:
     def test_solve_and_count(self) -> None:
         domains = np.array([[0, 99], [0, 99]])
         problem = Problem(domains)
-        solver = SimpleSolver(problem)
+        solver = BacktrackSolver(problem)
         counter = 0
         for _ in solver.solve():
             counter += 1
@@ -23,7 +23,7 @@ class TestSimpleSolver:
             ]
         )
         problem = Problem(domains)
-        solver = SimpleSolver(problem)
+        solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 4
         assert np.all(solutions[0] == np.array([[0, 0], [0, 0]]))
@@ -41,7 +41,7 @@ class TestSimpleSolver:
         )
         problem = Problem(domains)
         problem.constraints.append(Sum(np.array([2, 0, 1])))
-        solver = SimpleSolver(problem)
+        solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert np.all(solutions == np.array([[2, 2], [2, 2], [4, 4]]))
 
@@ -55,7 +55,7 @@ class TestSimpleSolver:
         )
         problem = Problem(domains)
         problem.constraints.append(Sum(np.array([2, 0, 1])))
-        solver = SimpleSolver(problem)
+        solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 3
         assert np.all(solutions[0] == np.array([[0, 0], [0, 0], [0, 0]]))
@@ -72,6 +72,6 @@ class TestSimpleSolver:
         )
         problem = Problem(domains)
         problem.constraints.append(Sum(np.array([2, 0, 1])))
-        solver = SimpleSolver(problem)
+        solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 0

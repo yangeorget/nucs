@@ -1,16 +1,18 @@
 from typing import Iterator, Optional
 
-import numpy as np
 from numpy.typing import NDArray
 
-from ncs.problem import MAX, MIN, Problem
+from ncs.heuristics.heuristic import Heuristic
+from ncs.heuristics.min_variable_heuristic import MinVariableHeuristic
+from ncs.problem import Problem
 from ncs.solvers.solver import Solver
 
 
-class SimpleSolver(Solver):
-    def __init__(self, problem: Problem):
+class BacktrackSolver(Solver):
+    def __init__(self, problem: Problem, heuristic: Heuristic = MinVariableHeuristic()):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
+        self.heuristic = heuristic
 
     def solve(self) -> Iterator[NDArray]:
         # print("solve()")
@@ -26,7 +28,7 @@ class SimpleSolver(Solver):
         if not self.problem.filter():
             return None
         while not self.problem.is_solved():
-            self.makeChoice()  # let's make a choice
+            self.heuristic.makeChoice(self.choice_points, self.problem)  # let's make a choice
             while not self.problem.filter():  # the choice was not consistent
                 if not self.backtrack():
                     return None
@@ -42,23 +44,3 @@ class SimpleSolver(Solver):
             return False
         self.problem.domains = self.choice_points.pop()
         return True
-
-    def makeChoice(self) -> bool:
-        """
-        Makes a choice.
-        :return: True iff it is possible to make a choice
-        """
-        # print("makeChoice()")
-        for idx in range(self.problem.domains.shape[0]):
-            if not self.problem.is_instantiated(idx):
-                domains = self.makeVariableChoice(idx)
-                self.choice_points.append(domains)
-                return True
-        return False
-
-    def makeVariableChoice(self, idx: int) -> NDArray:
-        # print("makeVariableChoice()")
-        domains = np.copy(self.problem.domains)
-        self.problem.domains[idx, MAX] = self.problem.domains[idx, MIN]
-        domains[idx, MIN] += 1
-        return domains
