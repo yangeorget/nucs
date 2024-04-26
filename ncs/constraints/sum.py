@@ -6,10 +6,9 @@ from ncs.problem import MAX, MIN
 
 
 class Sum(Constraint):
-
     def compute_domains(self, domains: NDArray) -> NDArray:
         # print(f"compute_domains{domains})")
-        new_domains = np.full((len(self.variables), 2), 0)
+        new_domains = np.zeros((len(self.variables), 2), dtype=int)
         x = self.variables[0]
         y = self.variables[1:]
         new_domains[0] = np.sum(domains[y], axis=0)
