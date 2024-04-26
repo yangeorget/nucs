@@ -1,2 +1,2 @@
-replace Sun by weighted sum = cst
-implement alldiff
+implement Mul
+implement AllDifferent

@@ -10,10 +10,9 @@ class TestBacktrackSolver:
         domains = np.array([[0, 99], [0, 99]])
         problem = Problem(domains)
         solver = BacktrackSolver(problem)
-        counter = 0
         for _ in solver.solve():
-            counter += 1
-        assert counter == 10000
+            pass
+        assert solver.statistics["solver.solutions.nb"] == 10000
 
     def test_solve(self) -> None:
         domains = np.array(
@@ -30,6 +29,7 @@ class TestBacktrackSolver:
         assert np.all(solutions[1] == np.array([[0, 0], [1, 1]]))
         assert np.all(solutions[2] == np.array([[1, 1], [0, 0]]))
         assert np.all(solutions[3] == np.array([[1, 1], [1, 1]]))
+        print(solver.statistics)
 
     def test_solve_sum_1(self) -> None:
         domains = np.array(
@@ -73,5 +73,5 @@ class TestBacktrackSolver:
         problem = Problem(domains)
         problem.constraints.append(Sum(np.array([2, 0, 1])))
         solver = BacktrackSolver(problem)
-        solutions = [solution for solution in solver.solve()]
-        assert len(solutions) == 0
+        solver.solve()
+        assert solver.statistics["solver.solutions.nb"] == 0

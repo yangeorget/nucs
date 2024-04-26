@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List, Optional
 
 import numpy as np
 from numpy.typing import NDArray
@@ -12,12 +12,14 @@ class Problem:
         self.domains = domains
         self.constraints: List = []
 
-    def filter(self) -> bool:
+    def filter(self, statistics: Optional[Dict] = None) -> bool:
         """
         Filters the problem's domains by applying the constraints until a fix point is reached
         :return: false if the problem is not consistent
         """
         # print("filter()")
+        if statistics is not None:
+            statistics["problem.filters.nb"] += 1
         changes = True
         while changes:
             changes = False
