@@ -24,6 +24,7 @@ class Problem:
             for constraint in self.constraints:
                 new_domains = constraint.compute_domains(self.domains)
                 constraint_changes = self.update_domains(constraint.variables, new_domains)
+                # TODO: take into account changes to filter a subset of all constraints
                 # print(f"constraint_changes={constraint_changes}")
                 if self.is_inconsistent():
                     return False
