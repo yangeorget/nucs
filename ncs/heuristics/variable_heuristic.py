@@ -8,6 +8,10 @@ from ncs.problem import Problem
 
 
 class VariableHeuristic(Heuristic):
+    """
+    Chooses a variable and a value for this variable.
+    """
+
     def __init__(self, value_heuristic: ValueHeuristic):
         self.value_heuristic = value_heuristic
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-from ncs.constraints.sum import Sum
+from ncs.propagators.sum import Sum
 
 
 class TestSum:

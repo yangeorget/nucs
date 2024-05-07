@@ -1,7 +1,7 @@
 import numpy as np
 
-from ncs.constraints.sum import Sum
 from ncs.problem import Problem
+from ncs.propagators.sum import Sum
 
 
 class TestProblem:
@@ -14,7 +14,7 @@ class TestProblem:
             ]
         )
         problem = Problem(domains)
-        problem.constraints.append(Sum(np.array([2, 0, 1])))
+        problem.propagators.append(Sum(np.array([2, 0, 1])))
         assert problem.filter()
         assert problem.is_solved()
         assert np.all(problem.domains == np.array([[2, 2], [2, 2], [4, 4]]))

@@ -1,2 +1,4 @@
 implement Mul
 implement AllDifferent
+implement MinDom heuristic
+compare NQueens with choco (all solution, n=13)

@@ -6,6 +6,10 @@ from ncs.problem import Problem
 
 
 class Heuristic:
+    """
+    Makes a choice.
+    """
+
     def make_choice(self, choice_points: List[NDArray], problem: Problem) -> bool:  # type: ignore
         """
         Makes a choice.

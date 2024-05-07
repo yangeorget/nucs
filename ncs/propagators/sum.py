@@ -1,11 +1,11 @@
 import numpy as np
 from numpy.typing import NDArray
 
-from ncs.constraints.constraint import Constraint
 from ncs.problem import MAX, MIN
+from ncs.propagators.propagator import Propagator
 
 
-class Sum(Constraint):
+class Sum(Propagator):
     def compute_domains(self, domains: NDArray) -> NDArray:
         # print(f"compute_domains{domains})")
         new_domains = np.zeros((len(self.variables), 2), dtype=int)

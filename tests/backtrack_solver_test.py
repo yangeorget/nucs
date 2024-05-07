@@ -1,7 +1,7 @@
 import numpy as np
 
-from ncs.constraints.sum import Sum
 from ncs.problem import Problem
+from ncs.propagators.sum import Sum
 from ncs.solvers.backtrack_solver import BacktrackSolver
 
 
@@ -42,7 +42,7 @@ class TestBacktrackSolver:
             ]
         )
         problem = Problem(domains)
-        problem.constraints.append(Sum(np.array([2, 0, 1])))
+        problem.propagators.append(Sum(np.array([2, 0, 1])))
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert np.all(solutions == np.array([[2, 2], [2, 2], [4, 4]]))
@@ -61,7 +61,7 @@ class TestBacktrackSolver:
             ]
         )
         problem = Problem(domains)
-        problem.constraints.append(Sum(np.array([2, 0, 1])))
+        problem.propagators.append(Sum(np.array([2, 0, 1])))
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 3
@@ -80,7 +80,7 @@ class TestBacktrackSolver:
             ]
         )
         problem = Problem(domains)
-        problem.constraints.append(Sum(np.array([2, 0, 1])))
+        problem.propagators.append(Sum(np.array([2, 0, 1])))
         solver = BacktrackSolver(problem)
         for _ in solver.solve():
             pass

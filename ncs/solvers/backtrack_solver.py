@@ -29,13 +29,14 @@ class BacktrackSolver(Solver):
                 break
 
     def solve_one(self) -> Optional[NDArray]:
-        if not self.problem.filter(self.statistics):
+        if not self.problem.filter(self.statistics):  # TODO: filter on everything
             return None
         while not self.problem.is_solved():
             if self.heuristic.make_choice(self.choice_points, self.problem):  # let's make a choice
                 if len(self.choice_points) >= self.statistics["backtracksolver.choicepoints.max"]:
                     self.statistics["backtracksolver.choicepoints.max"] = len(self.choice_points)
             while not self.problem.filter(self.statistics):  # the choice was not consistent
+                # TODO: filter on everything or on choice
                 if not self.backtrack():
                     return None
         return self.problem.domains

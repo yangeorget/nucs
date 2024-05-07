@@ -10,11 +10,11 @@ MAX = 1
 class Problem:
     def __init__(self, domains: NDArray):
         self.domains = domains
-        self.constraints: List = []
+        self.propagators: List = []
 
     def filter(self, statistics: Optional[Dict] = None) -> bool:
         """
-        Filters the problem's domains by applying the constraints until a fix point is reached
+        Filters the problem's domains by applying the propagators until a fix point is reached
         :return: false if the problem is not consistent
         """
         # print("filter()")
@@ -23,14 +23,13 @@ class Problem:
         changes = True
         while changes:
             changes = False
-            for constraint in self.constraints:
-                new_domains = constraint.compute_domains(self.domains)
-                constraint_changes = self.update_domains(constraint.variables, new_domains)
-                # TODO: take into account changes to filter a subset of all constraints
-                # print(f"constraint_changes={constraint_changes}")
+            for propagator in self.propagators:
+                new_domains = propagator.compute_domains(self.domains)
+                propagator_changes = self.update_domains(propagator.variables, new_domains)
+                # TODO: take into account changes to filter a subset of all propagators
                 if self.is_inconsistent():
                     return False
-                changes |= np.any(constraint_changes)  # type: ignore
+                changes |= np.any(propagator_changes)  # type: ignore
         return True
 
     def update_domains(self, variables: NDArray, new_domains: NDArray) -> NDArray:
@@ -76,4 +75,4 @@ class Problem:
         return np.all(np.equal(self.domains[:, MIN], self.domains[:, MAX]))  # type: ignore
 
     def __str__(self) -> str:
-        return f"domains={self.domains}, constraints={self.constraints}"
+        return f"domains={self.domains}, propagators={self.propagators}"
