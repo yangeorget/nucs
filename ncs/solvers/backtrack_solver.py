@@ -18,7 +18,6 @@ class BacktrackSolver(Solver):
         self.statistics["backtracksolver.choicepoints.max"] = 0
 
     def solve(self) -> Iterator[NDArray]:
-        # print("solve()")
         while True:
             solution = self.solve_one()
             if solution is None:
@@ -29,14 +28,16 @@ class BacktrackSolver(Solver):
                 break
 
     def solve_one(self) -> Optional[NDArray]:
-        if not self.problem.filter(self.statistics):  # TODO: filter on everything
+        if not self.problem.filter(None, self.statistics):
             return None
         while not self.problem.is_solved():
-            if self.heuristic.make_choice(self.choice_points, self.problem):  # let's make a choice
-                if len(self.choice_points) >= self.statistics["backtracksolver.choicepoints.max"]:
-                    self.statistics["backtracksolver.choicepoints.max"] = len(self.choice_points)
-            while not self.problem.filter(self.statistics):  # the choice was not consistent
-                # TODO: filter on everything or on choice
+            changes = None
+            self.heuristic.make_choice(self.choice_points, self.problem)  # let's make a choice
+            # TODO: make choice should update changes
+            self.statistics["backtracksolver.choicepoints.max"] = max(
+                len(self.choice_points), self.statistics["backtracksolver.choicepoints.max"]
+            )
+            while not self.problem.filter(changes, self.statistics):  # the choice was not consistent
                 if not self.backtrack():
                     return None
         return self.problem.domains
@@ -46,7 +47,6 @@ class BacktrackSolver(Solver):
         Backtracks and updates the problem's domains
         :return: true iff it is possible to backtrack
         """
-        # print("backtrack()")
         if len(self.choice_points) == 0:
             return False
         self.statistics["backtracksolver.backtracks.nb"] += 1

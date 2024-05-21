@@ -16,12 +16,7 @@ class TestBacktrackSolver:
         assert solver.statistics["backtracksolver.choicepoints.max"] == 2
 
     def test_solve(self) -> None:
-        domains = np.array(
-            [
-                [0, 1],
-                [0, 1],
-            ]
-        )
+        domains = np.array([[0, 1], [0, 1]])
         problem = Problem(domains)
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
@@ -34,13 +29,7 @@ class TestBacktrackSolver:
         assert solver.statistics["backtracksolver.choicepoints.max"] == 2
 
     def test_solve_sum_1(self) -> None:
-        domains = np.array(
-            [
-                [0, 2],
-                [0, 2],
-                [4, 6],
-            ]
-        )
+        domains = np.array([[0, 2], [0, 2], [4, 6]])
         problem = Problem(domains)
         problem.propagators.append(Sum(np.array([2, 0, 1])))
         solver = BacktrackSolver(problem)
@@ -53,13 +42,7 @@ class TestBacktrackSolver:
         assert solver.statistics["backtracksolver.backtracks.nb"] == 0
 
     def test_solve_sum_3(self) -> None:
-        domains = np.array(
-            [
-                [0, 1],
-                [0, 1],
-                [0, 1],
-            ]
-        )
+        domains = np.array([[0, 1], [0, 1], [0, 1]])
         problem = Problem(domains)
         problem.propagators.append(Sum(np.array([2, 0, 1])))
         solver = BacktrackSolver(problem)
@@ -72,13 +55,7 @@ class TestBacktrackSolver:
         assert solver.statistics["backtracksolver.choicepoints.max"] == 2
 
     def test_solve_sum_ko(self) -> None:
-        domains = np.array(
-            [
-                [1, 2],
-                [1, 2],
-                [0, 1],
-            ]
-        )
+        domains = np.array([[1, 2], [1, 2], [0, 1]])
         problem = Problem(domains)
         problem.propagators.append(Sum(np.array([2, 0, 1])))
         solver = BacktrackSolver(problem)

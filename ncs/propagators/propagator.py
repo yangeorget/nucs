@@ -1,4 +1,3 @@
-import numpy as np
 from numpy.typing import NDArray
 
 
@@ -9,7 +8,6 @@ class Propagator:
 
     def __init__(self, variables: NDArray):
         self.variables = variables
-        self.mask = np.ones((len(self.variables), 2), dtype=bool)
 
     def compute_domains(self, domains: NDArray) -> NDArray:  # type: ignore
         """

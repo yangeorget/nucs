@@ -12,7 +12,7 @@ class Solver:
 
     def solve(self) -> Iterator[NDArray]:  # type: ignore
         """
-        Returns an iterator over the solutions
+        Returns an iterator over the solutions.
         :return: an iterator
         """
         pass
