@@ -10,7 +10,7 @@ class TestProblem:
         problem = Problem(domains)
         problem.propagators.append(Sum(np.array([2, 0, 1])))
         assert problem.filter(None)
-        assert problem.is_solved()
+        assert not problem.is_not_solved()
         assert np.all(problem.domains == np.array([[2, 2], [2, 2], [4, 4]]))
 
     def test_update_domains(self) -> None:

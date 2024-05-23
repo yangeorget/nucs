@@ -30,9 +30,9 @@ class BacktrackSolver(Solver):
     def solve_one(self) -> Optional[NDArray]:
         if not self.problem.filter(None, self.statistics):
             return None
-        while not self.problem.is_solved():
+        while self.problem.is_not_solved():
             changes = None
-            self.heuristic.make_choice(self.choice_points, self.problem)  # let's make a choice
+            self.heuristic.choose(self.choice_points, self.problem)  # let's make a choice
             # TODO: make choice should update changes
             self.statistics["backtracksolver.choicepoints.max"] = max(
                 len(self.choice_points), self.statistics["backtracksolver.choicepoints.max"]

@@ -10,7 +10,7 @@ class MinValueHeuristic(ValueHeuristic):
     Chooses the first value of the domain of the variable.
     """
 
-    def make_value_choice(self, problem: Problem, idx: int) -> NDArray:
+    def choose(self, problem: Problem, idx: int) -> NDArray:
         domains = np.copy(problem.domains)
         problem.domains[idx, MAX] = problem.domains[idx, MIN]
         domains[idx, MIN] += 1

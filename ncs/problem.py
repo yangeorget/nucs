@@ -57,16 +57,6 @@ class Problem:
         self.domains[propagator.variables, MAX] = new_maximums
         changes[propagator.variables] |= local_changes
 
-
-    def is_instantiated(self, idx: int) -> bool:
-        """
-        Returns true iff the ith variable is instantiated.
-        :param idx: the index of the variable
-        :return: a boolean
-        """
-        # print("is_instantiated()")
-        return self.domains[idx, MIN] == self.domains[idx, MAX]
-
     def is_inconsistent(self) -> bool:
         """
         Returns true iff the problem is consistent.
@@ -75,13 +65,13 @@ class Problem:
         # print("is_inconsistent()")
         return np.any(np.greater(self.domains[:, MIN], self.domains[:, MAX]))  # type: ignore
 
-    def is_solved(self) -> bool:
+    def is_not_solved(self) -> bool:
         """
-        Returns true iff the problem is solved.
+        Returns true iff the problem is not solved.
         :return: a boolean
         """
         # print("is_solved()")
-        return np.all(np.equal(self.domains[:, MIN], self.domains[:, MAX]))  # type: ignore
+        return np.any(np.not_equal(self.domains[:, MIN], self.domains[:, MAX]))  # type: ignore
 
     def __str__(self) -> str:
         return f"domains={self.domains}, propagators={self.propagators}"
