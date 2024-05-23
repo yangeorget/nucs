@@ -55,7 +55,8 @@ class Problem:
         new_maximums = np.minimum(new_domains[:, MAX], self.domains[propagator.variables, MAX])
         np.less(new_maximums, self.domains[propagator.variables, MAX], out=local_changes[:, MAX])
         self.domains[propagator.variables, MAX] = new_maximums
-        changes[propagator.variables] &= local_changes
+        changes[propagator.variables] |= local_changes
+
 
     def is_instantiated(self, idx: int) -> bool:
         """

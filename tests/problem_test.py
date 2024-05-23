@@ -13,6 +13,16 @@ class TestProblem:
         assert problem.is_solved()
         assert np.all(problem.domains == np.array([[2, 2], [2, 2], [4, 4]]))
 
-    def test_update_domaines(self) -> None:
-        # TODO: test changes
-        pass
+    def test_update_domains(self) -> None:
+        domains = np.array([[0, 2], [0, 2], [4, 6]])
+        problem = Problem(domains)
+        changes = np.zeros((3, 2), dtype=bool)
+        propagator = Sum(np.array([2, 0, 1]))
+        problem.update_domains(propagator, changes)
+        assert changes[0][0]
+        assert not changes[0][1]
+        assert changes[1][0]
+        assert not changes[1][1]
+        assert not changes[2][0]
+        assert changes[2][1]
+        assert np.all(problem.domains == np.array([[2, 2], [2, 2], [4, 4]]))
