@@ -25,7 +25,6 @@ class Problem:
         :param statistics: where to record the statistics of the computation
         :return: false if the problem is not consistent
         """
-        # print("filter()")
         if changes is None:
             changes = np.ones((len(self.domains), 2), dtype=bool)
         if statistics is not None:
@@ -46,7 +45,6 @@ class Problem:
         :param changes: where to record the domain changes
         :return: the nx2 matrix of changes
         """
-        # print(f"update_domains({variables}, {new_domains})")
         new_domains = propagator.compute_domains(self.domains)
         local_changes = np.full((len(new_domains), 2), False)
         new_minimums = np.maximum(new_domains[:, MIN], self.domains[propagator.variables, MIN])
@@ -62,7 +60,6 @@ class Problem:
         Returns true iff the problem is consistent.
         :return: a boolean
         """
-        # print("is_inconsistent()")
         return np.any(np.greater(self.domains[:, MIN], self.domains[:, MAX]))  # type: ignore
 
     def is_not_solved(self) -> bool:
@@ -70,7 +67,6 @@ class Problem:
         Returns true iff the problem is not solved.
         :return: a boolean
         """
-        # print("is_solved()")
         return np.any(np.not_equal(self.domains[:, MIN], self.domains[:, MAX]))  # type: ignore
 
     def __str__(self) -> str:

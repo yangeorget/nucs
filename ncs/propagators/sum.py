@@ -7,11 +7,11 @@ from ncs.propagators.propagator import Propagator
 
 class Sum(Propagator):
     """
-    Propagator for constraint x = sum(y).
+    Propagator for constraint x_0 = sum(x_i) where i > 0.
     """
 
     def compute_domains(self, domains: NDArray) -> NDArray:
-        new_domains = np.zeros((len(self.variables), 2), dtype=int)
+        new_domains = np.zeros((self.variables.size, 2), dtype=int)
         x = self.variables[0]
         y = self.variables[1:]
         new_domains[0] = np.sum(domains[y], axis=0)

@@ -1,3 +1,2 @@
-implement Mul
 implement AllDifferent
 compare NQueens with choco (all solutions, n=13)
