@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 from ncs.propagators.propagator import Propagator
 
 
-class AlldifferentPuget(Propagator):
+class AlldifferentPugetN3(Propagator):
     """
     JF Puget's bound consistency algorithm for the alldifferent constraint.
     """
@@ -14,4 +14,4 @@ class AlldifferentPuget(Propagator):
         return new_domains
 
     def __str__(self) -> str:
-        return f"alldifferent({self.variables})"
+        return f"alldifferent_puget_n3({self.variables})"
