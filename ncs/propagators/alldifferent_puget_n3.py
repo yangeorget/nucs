@@ -20,13 +20,12 @@ class AlldifferentPugetN3(Propagator):
             return None
         return new_domains
 
-    def update_new_domains_min(self, domains: NDArray) -> bool:
-        sorted_vars = np.argsort(domains[:, MIN])
-        mins = domains[sorted_vars, MIN]
-        maxs = domains[sorted_vars, MAX]
+    def update_new_domains_min(self, new_domains: NDArray) -> bool:
+        sorted_vars = np.argsort(new_domains[:, MIN])
+        sorted_domains = new_domains[sorted_vars]
         u = np.zeros(self.variables.size, dtype=int)
         for i in range(0, self.variables.size):
-            if not self.insert_min(i, mins, maxs, u, domains, sorted_vars):
+            if not self.insert_min(new_domains, i, u, sorted_domains, sorted_vars):
                 return False
         return True
 
@@ -35,28 +34,34 @@ class AlldifferentPugetN3(Propagator):
         return True
 
     def insert_min(
-        self, i: int, mins: NDArray, maxs: NDArray, u: NDArray, domains: NDArray, sorted_vars: NDArray
+        self, new_domains: NDArray, i: int, u: NDArray, sorted_domains: NDArray, sorted_vars: NDArray
     ) -> bool:
-        u[i] = mins[i]
+        u[i] = sorted_domains[i, MIN]
         for j in range(0, i):
-            if mins[j] < mins[i]:
+            if sorted_domains[j, MIN] < sorted_domains[i, MIN]:
                 u[j] += 1
-                if u[j] > maxs[i]:
+                if u[j] > sorted_domains[i, MAX]:
                     return False
-                if u[j] == maxs[i]:
-                    self.increment_min(mins, mins[j], maxs[i], i, domains, sorted_vars)
+                if u[j] == sorted_domains[i, MAX]:
+                    self.increment_min(
+                        new_domains, i, sorted_domains[j, MIN], sorted_domains[i, MAX], sorted_domains, sorted_vars
+                    )
             else:
                 u[i] += 1
-        if u[i] > maxs[i]:
+        if u[i] > sorted_domains[i, MAX]:
             return False
-        if u[i] == maxs[i]:
-            self.increment_min(mins, mins[i], maxs[i], i, domains, sorted_vars)
+        if u[i] == sorted_domains[i, MAX]:
+            self.increment_min(
+                new_domains, i, sorted_domains[i, MIN], sorted_domains[i, MAX], sorted_domains, sorted_vars
+            )
         return True
 
-    def increment_min(self, mins: NDArray, a: int, b: int, i: int, domains: NDArray, sorted_vars: NDArray) -> None:
+    def increment_min(
+        self, new_domains: NDArray, i: int, a: int, b: int, sorted_domains: NDArray, sorted_vars: NDArray
+    ) -> None:
         for j in range(i + 1, self.variables.size):
-            if mins[j] >= a:
-                domains[sorted_vars[j], MIN] = np.max(domains[sorted_vars[j], MIN], b + 1)
+            if sorted_domains[j, MIN] >= a:
+                new_domains[sorted_vars[j], MIN] = np.max(sorted_domains[j, MIN], b + 1)
 
     def __str__(self) -> str:
         return f"alldifferent_puget_n3({self.variables})"
