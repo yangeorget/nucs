@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -13,7 +15,7 @@ class Shift(Propagator):
         super().__init__(variables)
         self.constants = constants.reshape(variables.shape[0], 1)
 
-    def compute_domains(self, domains: NDArray) -> NDArray:
+    def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
         new_domains = np.zeros((self.variables.size, 2), dtype=int)
         new_domains[self.variables[:, 0]] = domains[self.variables[:, 1]] + self.constants
         new_domains[self.variables[:, 1]] = domains[self.variables[:, 0]] - self.constants

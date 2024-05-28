@@ -33,27 +33,33 @@ class Problem:
             propagators = self.propagators  # TODO get from changes
             changes = np.zeros((len(self.domains), 2), dtype=bool)
             for propagator in propagators:
-                self.update_domains(propagator, changes)
-                if self.is_inconsistent():
+                if not self.update_domains(propagator, changes):
                     return False
         return True
 
-    def update_domains(self, propagator: Propagator, changes: NDArray) -> None:
+    def update_domains(self, propagator: Propagator, changes: NDArray) -> bool:
         """
         Updates the problem's domains.
-        :param propagator: a propagato
+        :param propagator: a propagator
         :param changes: where to record the domain changes
-        :return: the nx2 matrix of changes
+        :return: false if the problem is not consistent
         """
         new_domains = propagator.compute_domains(self.domains)
+        if new_domains is None:
+            return False
         local_changes = np.full((len(new_domains), 2), False)
         new_minimums = np.maximum(new_domains[:, MIN], self.domains[propagator.variables, MIN])
         np.greater(new_minimums, self.domains[propagator.variables, MIN], out=local_changes[:, MIN])
         self.domains[propagator.variables, MIN] = new_minimums
+        if self.is_inconsistent():
+            return False
         new_maximums = np.minimum(new_domains[:, MAX], self.domains[propagator.variables, MAX])
         np.less(new_maximums, self.domains[propagator.variables, MAX], out=local_changes[:, MAX])
         self.domains[propagator.variables, MAX] = new_maximums
         changes[propagator.variables] |= local_changes
+        if self.is_inconsistent():
+            return False
+        return True
 
     def is_inconsistent(self) -> bool:
         """

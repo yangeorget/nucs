@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -10,7 +12,7 @@ class Sum(Propagator):
     Propagator for constraint x_0 = sum(x_i) where i > 0.
     """
 
-    def compute_domains(self, domains: NDArray) -> NDArray:
+    def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
         new_domains = np.zeros((self.variables.size, 2), dtype=int)
         x = self.variables[0]
         y = self.variables[1:]
