@@ -3,7 +3,7 @@ from typing import Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from ncs.problem import MAX, MIN
+from ncs.problems.problem import MAX, MIN
 from ncs.propagators.propagator import Propagator
 
 

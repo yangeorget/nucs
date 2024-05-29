@@ -9,5 +9,5 @@ class TestAlldiffentPugetN3:
         variables = np.array([0, 1, 2, 3, 4, 5])
         assert np.all(
             AlldifferentPugetN3(variables).compute_domains(domains)
-            == np.array([[3, 6], [3, 4], [2, 5], [2, 4], [3, 4], [1, 6]])
+            == np.array([[6, 6], [3, 4], [5, 5], [2, 2], [3, 4], [1, 1]])
         )

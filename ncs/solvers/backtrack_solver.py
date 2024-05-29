@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 from ncs.heuristics.first_variable_heuristic import FirstVariableHeuristic
 from ncs.heuristics.heuristic import Heuristic
 from ncs.heuristics.min_value_heuristic import MinValueHeuristic
-from ncs.problem import Problem
+from ncs.problems.problem import Problem
 from ncs.solvers.solver import Solver
 
 

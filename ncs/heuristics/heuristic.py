@@ -2,7 +2,7 @@ from typing import List
 
 from numpy.typing import NDArray
 
-from ncs.problem import Problem
+from ncs.problems.problem import Problem
 
 
 class Heuristic:

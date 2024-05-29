@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 
 from ncs.heuristics.heuristic import Heuristic
 from ncs.heuristics.value_heuristic import ValueHeuristic
-from ncs.problem import Problem
+from ncs.problems.problem import Problem
 
 
 class VariableHeuristic(Heuristic):

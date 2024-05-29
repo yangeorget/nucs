@@ -1,6 +1,6 @@
 import numpy as np
 
-from ncs.problem import Problem
+from ncs.problems.problem import Problem
 from ncs.propagators.sum import Sum
 
 

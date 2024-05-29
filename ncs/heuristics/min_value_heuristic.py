@@ -2,7 +2,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ncs.heuristics.value_heuristic import ValueHeuristic
-from ncs.problem import MAX, MIN, Problem
+from ncs.problems.problem import MAX, MIN, Problem
 
 
 class MinValueHeuristic(ValueHeuristic):

@@ -3,65 +3,57 @@ from typing import Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from ncs.problem import MAX, MIN
+from ncs.problems.problem import MAX, MIN
 from ncs.propagators.propagator import Propagator
 
 
 class AlldifferentPugetN3(Propagator):
     """
-    JF Puget's bound consistency algorithm for the alldifferent constraint.
+    JF Puget's bound consistency algorithm for the alldifferent constraint with cubic complexity.
     """
 
     def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
-        new_domains = domains.copy()
-        if not self.update_new_domains_min(new_domains):
+        new_domains = domains[self.variables]
+        if not self.update_mins(new_domains):
             return None
-        if not self.update_new_domains_max(new_domains):
+        new_domains[:, [MIN, MAX]] = -new_domains[:, [MAX, MIN]]
+        if not self.update_mins(new_domains):
             return None
+        new_domains[:, [MIN, MAX]] = -new_domains[:, [MAX, MIN]]
         return new_domains
 
-    def update_new_domains_min(self, new_domains: NDArray) -> bool:
-        sorted_vars = np.argsort(new_domains[:, MIN])
+    def update_mins(self, new_domains: NDArray) -> bool:
+        sorted_vars = np.argsort(new_domains[:, MAX])
         sorted_domains = new_domains[sorted_vars]
         u = np.zeros(self.variables.size, dtype=int)
         for i in range(0, self.variables.size):
-            if not self.insert_min(new_domains, i, u, sorted_domains, sorted_vars):
+            if not self.insert(new_domains, i, u, sorted_domains, sorted_vars):
                 return False
         return True
 
-    def update_new_domains_max(self, domains: NDArray) -> bool:
-        # TODO
-        return True
-
-    def insert_min(
-        self, new_domains: NDArray, i: int, u: NDArray, sorted_domains: NDArray, sorted_vars: NDArray
-    ) -> bool:
-        u[i] = sorted_domains[i, MIN]
+    def insert(self, new_doms: NDArray, i: int, u: NDArray, sorted_doms: NDArray, sorted_vars: NDArray) -> bool:
+        u[i] = sorted_doms[i, MIN]
         for j in range(0, i):
-            if sorted_domains[j, MIN] < sorted_domains[i, MIN]:
+            if sorted_doms[j, MIN] < sorted_doms[i, MIN]:
                 u[j] += 1
-                if u[j] > sorted_domains[i, MAX]:
+                if u[j] > sorted_doms[i, MAX]:
                     return False
-                if u[j] == sorted_domains[i, MAX]:
-                    self.increment_min(
-                        new_domains, i, sorted_domains[j, MIN], sorted_domains[i, MAX], sorted_domains, sorted_vars
-                    )
+                if u[j] == sorted_doms[i, MAX]:
+                    self.increment_min(new_doms, i, sorted_doms[j, MIN], sorted_doms[i, MAX], sorted_doms, sorted_vars)
             else:
                 u[i] += 1
-        if u[i] > sorted_domains[i, MAX]:
+        if u[i] > sorted_doms[i, MAX]:
             return False
-        if u[i] == sorted_domains[i, MAX]:
-            self.increment_min(
-                new_domains, i, sorted_domains[i, MIN], sorted_domains[i, MAX], sorted_domains, sorted_vars
-            )
+        if u[i] == sorted_doms[i, MAX]:
+            self.increment_min(new_doms, i, sorted_doms[i, MIN], sorted_doms[i, MAX], sorted_doms, sorted_vars)
         return True
 
     def increment_min(
-        self, new_domains: NDArray, i: int, a: int, b: int, sorted_domains: NDArray, sorted_vars: NDArray
+        self, new_doms: NDArray, i: int, a: int, b: int, sorted_doms: NDArray, sorted_vars: NDArray
     ) -> None:
         for j in range(i + 1, self.variables.size):
-            if sorted_domains[j, MIN] >= a:
-                new_domains[sorted_vars[j], MIN] = np.max(sorted_domains[j, MIN], b + 1)
+            if sorted_doms[j, MIN] >= a:
+                new_doms[sorted_vars[j], MIN] = b + 1
 
     def __str__(self) -> str:
         return f"alldifferent_puget_n3({self.variables})"

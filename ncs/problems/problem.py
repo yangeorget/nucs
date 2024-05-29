@@ -18,7 +18,7 @@ class Problem:
         self.domains = domains
         self.propagators: List = []
 
-    def filter(self, changes: Optional[NDArray], statistics: Optional[Dict] = None) -> bool:
+    def filter(self, changes: Optional[NDArray] = None, statistics: Optional[Dict] = None) -> bool:
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
         :param changes: some initial domain changes

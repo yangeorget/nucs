@@ -1,7 +1,7 @@
 import numpy as np
 
 from ncs.heuristics.min_value_heuristic import MinValueHeuristic
-from ncs.problem import Problem
+from ncs.problems.problem import Problem
 
 
 class TestMinValueHeuristic:

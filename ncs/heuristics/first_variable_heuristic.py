@@ -1,5 +1,5 @@
 from ncs.heuristics.variable_heuristic import VariableHeuristic
-from ncs.problem import MAX, MIN, Problem
+from ncs.problems.problem import MAX, MIN, Problem
 
 
 class FirstVariableHeuristic(VariableHeuristic):

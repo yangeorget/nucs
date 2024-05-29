@@ -1,2 +1,2 @@
-implement AllDifferent
+fix shape of variables in shift : it is simpler if it is flat
 compare NQueens with choco (all solutions, n=13)
