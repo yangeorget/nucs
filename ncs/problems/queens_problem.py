@@ -14,9 +14,9 @@ class QueensProblem(Problem):
         xp = list(range(n, 2 * n))
         xm = list(range(2 * n, 3 * n))
         self.propagators = [
-            AlldifferentPugetN3(np.array(x)),
-            AlldifferentPugetN3(np.array(xp)),
-            AlldifferentPugetN3(np.array(xm)),
-            Shift(np.array(xp + x).reshape(n, 2, order="F"), np.array(list(range(0, n)))),
-            Shift(np.array(xm + x).reshape(n, 2, order="F"), -np.array(list(range(0, n)))),
+            AlldifferentPugetN3(x),
+            AlldifferentPugetN3(xp),
+            AlldifferentPugetN3(xm),
+            Shift(xp + x, list(range(0, n))),
+            Shift(x + xm, list(range(0, n))),
         ]

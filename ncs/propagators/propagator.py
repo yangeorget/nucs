@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import List, Optional
 
+import numpy as np
 from numpy.typing import NDArray
 
 
@@ -8,8 +9,12 @@ class Propagator:
     Abstraction for a bound-consistency algorithm.
     """
 
-    def __init__(self, variables: NDArray):
-        self.variables = variables
+    def __init__(self, variables: List[int]):
+        self.size = len(variables)
+        self.variables = np.array(variables)
+
+    def init_domains(self) -> NDArray:
+        return np.zeros((self.size, 2), dtype=int)
 
     def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
         """

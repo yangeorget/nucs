@@ -25,8 +25,8 @@ class AlldifferentPugetN3(Propagator):
     def update_mins(self, new_domains: NDArray) -> bool:
         sorted_vars = np.argsort(new_domains[:, MAX])
         sorted_domains = new_domains[sorted_vars]
-        u = np.zeros(self.variables.size, dtype=int)
-        for i in range(0, self.variables.size):
+        u = np.zeros(self.size, dtype=int)
+        for i in range(0, self.size):
             if not self.insert(new_domains, i, u, sorted_domains, sorted_vars):
                 return False
         return True
@@ -51,9 +51,9 @@ class AlldifferentPugetN3(Propagator):
     def increment_min(
         self, new_doms: NDArray, i: int, a: int, b: int, sorted_doms: NDArray, sorted_vars: NDArray
     ) -> None:
-        for j in range(i + 1, self.variables.size):
+        for j in range(i + 1, self.size):
             if sorted_doms[j, MIN] >= a:
-                new_doms[sorted_vars[j], MIN] = b + 1
+                new_doms[sorted_vars[j], MIN] = max(b + 1, new_doms[sorted_vars[j], MIN])
 
     def __str__(self) -> str:
         return f"alldifferent_puget_n3({self.variables})"
