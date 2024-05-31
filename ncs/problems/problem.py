@@ -14,9 +14,10 @@ class Problem:
     A problem is defined by a set of variable domains and a set of propagators.
     """
 
-    def __init__(self, domains: NDArray):
+    def __init__(self, domains: NDArray, propagators: List = []):
         self.domains = domains
-        self.propagators: List = []
+        self.size = self.domains.shape[0]
+        self.propagators = propagators
 
     def filter(self, changes: Optional[NDArray] = None, statistics: Optional[Dict] = None) -> bool:
         """
@@ -26,12 +27,12 @@ class Problem:
         :return: false if the problem is not consistent
         """
         if changes is None:
-            changes = np.ones((len(self.domains), 2), dtype=bool)
+            changes = np.ones((self.size, 2), dtype=bool)
         if statistics is not None:
             statistics["problem.filters.nb"] += 1
         while np.any(changes):
             propagators = self.propagators  # TODO get from changes
-            changes = np.zeros((len(self.domains), 2), dtype=bool)
+            changes = np.zeros((self.size, 2), dtype=bool)
             for propagator in propagators:
                 if not self.update_domains(propagator, changes):
                     return False

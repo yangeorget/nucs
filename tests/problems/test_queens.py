@@ -1,7 +1,7 @@
-import numpy as np
-
 from ncs.heuristics.min_value_heuristic import MinValueHeuristic
-from ncs.heuristics.smallest_domain_variable_heuristic import SmallestDomainVariableHeuristic
+from ncs.heuristics.smallest_domain_variable_heuristic import (
+    SmallestDomainVariableHeuristic,
+)
 from ncs.problems.queens_problem import QueensProblem
 from ncs.solvers.backtrack_solver import BacktrackSolver
 
@@ -40,7 +40,6 @@ class TestQueens:
         for _ in solver.solve():
             pass
         assert solver.statistics["solver.solutions.nb"] == 92
-
 
     def test_queens_9_solve_ff(self) -> None:
         problem = QueensProblem(9)

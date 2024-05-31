@@ -15,12 +15,11 @@ class Shift(Propagator):
         super().__init__(variables)
         self.n = self.size // 2
         self.constants = np.array(constants).reshape(self.n, 1)
+        self.swapped_variables = np.concatenate((self.variables[self.n :], self.variables[: self.n]))
+        self.all_constants = np.concatenate((self.constants, -self.constants))
 
     def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
-        new_domains = self.init_domains()
-        new_domains[0 : self.n] = domains[self.variables[self.n : self.size]] + self.constants
-        new_domains[self.n : self.size] = domains[self.variables[0 : self.n]] - self.constants
-        return new_domains
+        return domains[self.swapped_variables] + self.all_constants
 
     def __str__(self) -> str:
         return f"{self.variables[0 : self.n]}={self.variables[self.n : self.size]}+{self.constants.flatten()}"

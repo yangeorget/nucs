@@ -31,8 +31,7 @@ class TestBacktrackSolver:
 
     def test_solve_sum_1(self) -> None:
         domains = np.array([[0, 2], [0, 2], [4, 6]])
-        problem = Problem(domains)
-        problem.propagators.append(Sum([2, 0, 1]))
+        problem = Problem(domains, [Sum([2, 0, 1])])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert np.all(solutions == np.array([[2, 2], [2, 2], [4, 4]]))
@@ -43,8 +42,7 @@ class TestBacktrackSolver:
 
     def test_solve_sum_3(self) -> None:
         domains = np.array([[0, 1], [0, 1], [0, 1]])
-        problem = Problem(domains)
-        problem.propagators.append(Sum([2, 0, 1]))
+        problem = Problem(domains, [Sum([2, 0, 1])])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 3
@@ -56,8 +54,7 @@ class TestBacktrackSolver:
 
     def test_solve_sum_ko(self) -> None:
         domains = np.array([[1, 2], [1, 2], [0, 1]])
-        problem = Problem(domains)
-        problem.propagators.append(Sum([2, 0, 1]))
+        problem = Problem(domains, [Sum([2, 0, 1])])
         solver = BacktrackSolver(problem)
         for _ in solver.solve():
             pass
@@ -67,8 +64,7 @@ class TestBacktrackSolver:
 
     def test_solve_alldifferent(self) -> None:
         domains = np.array([[0, 2], [0, 2], [0, 2]])
-        problem = Problem(domains)
-        problem.propagators.append(AlldifferentPugetN3([0, 1, 2]))
+        problem = Problem(domains, [AlldifferentPugetN3([0, 1, 2])])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 6

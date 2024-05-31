@@ -12,6 +12,7 @@ class Propagator:
     def __init__(self, variables: List[int]):
         self.size = len(variables)
         self.variables = np.array(variables)
+        self.triggers = np.ones((self.size, 2), dtype=bool)
 
     def init_domains(self) -> NDArray:
         return np.zeros((self.size, 2), dtype=int)

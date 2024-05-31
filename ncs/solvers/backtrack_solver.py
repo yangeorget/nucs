@@ -13,7 +13,7 @@ class BacktrackSolver(Solver):
     def __init__(self, problem: Problem, heuristic: Heuristic = FirstVariableHeuristic(MinValueHeuristic())):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
-        self.heuristic = heuristic  # TODO: make it easy to define FF
+        self.heuristic = heuristic
         self.statistics["backtracksolver.backtracks.nb"] = 0
         self.statistics["backtracksolver.choicepoints.max"] = 0
 
