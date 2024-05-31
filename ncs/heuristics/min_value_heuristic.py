@@ -12,6 +12,6 @@ class MinValueHeuristic(ValueHeuristic):
 
     def choose(self, problem: Problem, idx: int) -> NDArray:
         domains = np.copy(problem.domains)
-        problem.domains[idx, MAX] = problem.domains[idx, MIN]
         domains[idx, MIN] += 1
+        problem.domains[idx, MAX] = problem.domains[idx, MIN]
         return domains

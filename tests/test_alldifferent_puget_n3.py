@@ -20,4 +20,7 @@ class TestAlldiffentPugetN3:
     def test_compute_domains_3(self) -> None:
         domains = np.array([[0, 0], [0, 4], [0, 4], [0, 4], [0, 4]])
         variables = [0, 1, 2, 3, 4]
-        assert np.all(AlldifferentPugetN3(variables).compute_domains(domains) == np.array([[0, 0], [1, 4], [1, 4], [1, 4], [1, 4]]))
+        assert np.all(
+            AlldifferentPugetN3(variables).compute_domains(domains)
+            == np.array([[0, 0], [1, 4], [1, 4], [1, 4], [1, 4]])
+        )

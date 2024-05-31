@@ -53,7 +53,7 @@ class AlldifferentPugetN3(Propagator):
     ) -> None:
         for j in range(i + 1, self.size):
             if sorted_doms[j, MIN] >= a:
-                new_doms[sorted_vars[j], MIN] = max(b + 1, new_doms[sorted_vars[j], MIN])
+                new_doms[sorted_vars[j], MIN] = max(b + 1, sorted_doms[j, MIN])
 
     def __str__(self) -> str:
         return f"alldifferent_puget_n3({self.variables})"

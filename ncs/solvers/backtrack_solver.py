@@ -28,18 +28,23 @@ class BacktrackSolver(Solver):
                 break
 
     def solve_one(self) -> Optional[NDArray]:
-        if not self.problem.filter(None, self.statistics):
-            return None
+        while not self.problem.filter(None, self.statistics):
+            # filtering has detected an inconsistency
+            if not self.backtrack():
+                # backtracking is not feasible
+                return None
         while self.problem.is_not_solved():
             changes = None
-            self.heuristic.choose(self.choice_points, self.problem)  # let's make a choice
-            # TODO: make choice should update changes
+            self.heuristic.choose(self.choice_points, self.problem)  # TODO: make choice should update changes
             self.statistics["backtracksolver.choicepoints.max"] = max(
                 len(self.choice_points), self.statistics["backtracksolver.choicepoints.max"]
             )
-            while not self.problem.filter(changes, self.statistics):  # the choice was not consistent
+            while not self.problem.filter(changes, self.statistics):
+                # filtering has detected an inconsistency
                 if not self.backtrack():
+                    # backtracking is not feasible
                     return None
+        # problem is solved
         return self.problem.domains
 
     def backtrack(self) -> bool:

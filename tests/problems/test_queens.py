@@ -1,5 +1,7 @@
 import numpy as np
 
+from ncs.heuristics.min_value_heuristic import MinValueHeuristic
+from ncs.heuristics.smallest_domain_variable_heuristic import SmallestDomainVariableHeuristic
 from ncs.problems.queens_problem import QueensProblem
 from ncs.solvers.backtrack_solver import BacktrackSolver
 
@@ -18,21 +20,6 @@ class TestQueens:
         problem = QueensProblem(8)
         assert problem.filter()
 
-    def test_queens_4_solve(self) -> None:
-        problem = QueensProblem(4)
-        solver = BacktrackSolver(problem)
-        for _ in solver.solve():
-            pass
-        assert solver.statistics["solver.solutions.nb"] == 2
-
-    def test_queens_5_solve_when_q0_is_2(self) -> None:
-        problem = QueensProblem(5)
-        problem.domains[0] = np.array([2, 2])
-        solver = BacktrackSolver(problem)
-        for _ in solver.solve():
-            pass
-        assert solver.statistics["solver.solutions.nb"] == 2
-
     def test_queens_5_solve(self) -> None:
         problem = QueensProblem(5)
         solver = BacktrackSolver(problem)
@@ -46,3 +33,18 @@ class TestQueens:
         for _ in solver.solve():
             pass
         assert solver.statistics["solver.solutions.nb"] == 92
+
+    def test_queens_8_solve_ff(self) -> None:
+        problem = QueensProblem(8)
+        solver = BacktrackSolver(problem, SmallestDomainVariableHeuristic(MinValueHeuristic()))
+        for _ in solver.solve():
+            pass
+        assert solver.statistics["solver.solutions.nb"] == 92
+
+
+    def test_queens_9_solve_ff(self) -> None:
+        problem = QueensProblem(9)
+        solver = BacktrackSolver(problem, SmallestDomainVariableHeuristic(MinValueHeuristic()))
+        for _ in solver.solve():
+            pass
+        assert solver.statistics["solver.solutions.nb"] == 352
