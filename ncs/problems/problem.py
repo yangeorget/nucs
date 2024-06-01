@@ -31,11 +31,12 @@ class Problem:
         if statistics is not None:
             statistics["problem.filters.nb"] += 1
         while np.any(changes):
-            propagators = self.propagators  # TODO get from changes
-            changes = np.zeros((self.size, 2), dtype=bool)
-            for propagator in propagators:
-                if not self.update_domains(propagator, changes):
-                    return False
+            new_changes = np.zeros((self.size, 2), dtype=bool)
+            for propagator in self.propagators:
+                if np.any(changes[propagator.variables] & propagator.triggers):
+                    if not self.update_domains(propagator, new_changes):
+                        return False
+            changes = new_changes
         return True
 
     def update_domains(self, propagator: Propagator, changes: NDArray) -> bool:
