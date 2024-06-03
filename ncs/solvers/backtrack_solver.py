@@ -1,4 +1,4 @@
-from typing import Iterator, List, Optional
+from typing import Iterator, Optional
 
 from numpy.typing import NDArray
 
@@ -16,9 +16,6 @@ class BacktrackSolver(Solver):
         self.heuristic = heuristic
         self.statistics["backtracksolver.backtracks.nb"] = 0
         self.statistics["backtracksolver.choicepoints.max"] = 0
-
-    def solve_all(self) -> List[NDArray]:
-        return [s for s in self.solve()]
 
     def solve(self) -> Iterator[NDArray]:
         while True:

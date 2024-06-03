@@ -1,4 +1,4 @@
-from typing import Iterator
+from typing import Iterator, List
 
 from numpy.typing import NDArray
 
@@ -16,3 +16,6 @@ class Solver:
         :return: an iterator
         """
         pass
+
+    def solve_all(self) -> List[NDArray]:
+        return [s for s in self.solve()]
