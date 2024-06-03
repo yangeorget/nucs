@@ -1,2 +1,3 @@
-# TODO: profile
-# TODO: schedule constraint filtering
+# get rid of shift
+# schedule constraint filtering
+# variable offsets
