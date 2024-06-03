@@ -1,7 +1,7 @@
 import numpy as np
 
 from ncs.problems.problem import Problem
-from ncs.propagators.alldifferent_puget_n3 import AlldifferentPugetN3
+from ncs.propagators.alldifferent_puget_n2 import AlldifferentPugetN2
 from ncs.propagators.sum import Sum
 from ncs.solvers.backtrack_solver import BacktrackSolver
 
@@ -64,7 +64,7 @@ class TestBacktrackSolver:
 
     def test_solve_alldifferent(self) -> None:
         domains = np.array([[0, 2], [0, 2], [0, 2]])
-        problem = Problem(domains, [AlldifferentPugetN3([0, 1, 2])])
+        problem = Problem(domains, [AlldifferentPugetN2([0, 1, 2])])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 6

@@ -1,10 +1,10 @@
 #!/bin/bash
 
 echo "Running isort" && \
-isort --trailing-comma ncs tests scripts/python && \
+isort --trailing-comma ncs tests && \
 echo "Running black" && \
-black ncs tests scripts/python && \
+black ncs tests && \
 echo "Running flake8" && \
-flake8 ncs tests scripts/python && \
+flake8 ncs tests && \
 echo "Running mypy" && \
-mypy --disallow-untyped-defs --ignore-missing-imports ncs tests scripts/python
+mypy --disallow-untyped-defs --ignore-missing-imports ncs tests

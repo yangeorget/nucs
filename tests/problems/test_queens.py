@@ -47,3 +47,7 @@ class TestQueens:
         for _ in solver.solve():
             pass
         assert solver.statistics["solver.solutions.nb"] == 352
+
+
+if __name__ == "__main__":
+    BacktrackSolver(QueensProblem(8)).solve_all()
