@@ -3,7 +3,7 @@ import numpy as np
 from ncs.propagators.alldifferent_puget_n2 import AlldifferentPugetN2
 
 
-class TestAlldiffentPugetN2:
+class TestAlldifferentPugetN2:
     def test_compute_domains_1(self) -> None:
         domains = np.array([[3, 6], [3, 4], [2, 5], [2, 4], [3, 4], [1, 6]])
         variables = [0, 1, 2, 3, 4, 5]

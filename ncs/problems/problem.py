@@ -28,6 +28,7 @@ class Problem:
 
     def set_lcl_mins(self, variables: NDArray, lcl_mins: NDArray) -> None:
         self.shr_domains[self.dom_indices[variables], MIN] = lcl_mins - self.dom_offsets[variables]
+
     def set_lcl_maxs(self, variables: NDArray, lcl_maxs: NDArray) -> None:
         self.shr_domains[self.dom_indices[variables], MAX] = lcl_maxs - self.dom_offsets[variables]
 
