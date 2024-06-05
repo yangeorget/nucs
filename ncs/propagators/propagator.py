@@ -36,13 +36,15 @@ class Propagator:
         if new_domains is None:
             return False
         lcl_changes = np.full((len(new_domains), 2), False)
-        new_minimums = np.maximum(new_domains[:, MIN], lcl_domains[MIN])
-        np.greater(new_minimums, lcl_domains[MIN], out=lcl_changes[:, MIN])
+        lcl_mins = lcl_domains[:, MIN]
+        new_minimums = np.maximum(new_domains[:, MIN], lcl_mins)
+        np.greater(new_minimums, lcl_mins, out=lcl_changes[:, MIN])
         problem.set_lcl_mins(self.variables, new_minimums)
         if problem.is_inconsistent():
             return False
-        new_maximums = np.minimum(new_domains[:, MAX], lcl_domains[MAX])
-        np.less(new_maximums, lcl_domains[MAX], out=lcl_changes[:, MAX])
+        lcl_maxs = lcl_domains[:, MAX]
+        new_maximums = np.minimum(new_domains[:, MAX], lcl_maxs)
+        np.less(new_maximums, lcl_maxs, out=lcl_changes[:, MAX])
         problem.set_lcl_maxs(self.variables, new_maximums)
         changes[self.variables] |= lcl_changes
         if problem.is_inconsistent():
