@@ -7,15 +7,6 @@ from ncs.solvers.backtrack_solver import BacktrackSolver
 
 
 class TestQueens:
-    def test_queens_8_problem(self) -> None:
-        problem = QueensProblem(8)
-        assert problem.domains.shape == (24, 2)
-        assert problem.propagators[0].variables.shape == (8,)
-        assert problem.propagators[1].variables.shape == (8,)
-        assert problem.propagators[2].variables.shape == (8,)
-        assert problem.propagators[3].variables.shape == (16,)
-        assert problem.propagators[4].variables.shape == (16,)
-
     def test_queens_8_filter(self) -> None:
         problem = QueensProblem(8)
         assert problem.filter()

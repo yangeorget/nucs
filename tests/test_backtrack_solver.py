@@ -8,8 +8,10 @@ from ncs.solvers.backtrack_solver import BacktrackSolver
 
 class TestBacktrackSolver:
     def test_solve_and_count(self) -> None:
-        domains = np.array([[0, 99], [0, 99]])
-        problem = Problem(domains)
+        shr_domains = np.array([[0, 99], [0, 99]])
+        dom_indices = [0, 1]
+        dom_offsets = [0, 0]
+        problem = Problem(shr_domains, dom_indices, dom_offsets)
         solver = BacktrackSolver(problem)
         for _ in solver.solve():
             pass
@@ -17,8 +19,10 @@ class TestBacktrackSolver:
         assert solver.statistics["backtracksolver.choicepoints.max"] == 2
 
     def test_solve(self) -> None:
-        domains = np.array([[0, 1], [0, 1]])
-        problem = Problem(domains)
+        shr_domains = np.array([[0, 1], [0, 1]])
+        dom_indices = [0, 1]
+        dom_offsets = [0, 0]
+        problem = Problem(shr_domains, dom_indices, dom_offsets)
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 4
@@ -30,8 +34,10 @@ class TestBacktrackSolver:
         assert solver.statistics["backtracksolver.choicepoints.max"] == 2
 
     def test_solve_sum_1(self) -> None:
-        domains = np.array([[0, 2], [0, 2], [4, 6]])
-        problem = Problem(domains, [Sum([2, 0, 1])])
+        shr_domains = np.array([[0, 2], [0, 2], [4, 6]])
+        dom_indices = [0, 1, 2]
+        dom_offsets = [0, 0, 0]
+        problem = Problem(shr_domains, dom_indices, dom_offsets, [Sum([2, 0, 1])])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert np.all(solutions == np.array([[2, 2], [2, 2], [4, 4]]))
@@ -41,8 +47,10 @@ class TestBacktrackSolver:
         assert solver.statistics["backtracksolver.backtracks.nb"] == 0
 
     def test_solve_sum_3(self) -> None:
-        domains = np.array([[0, 1], [0, 1], [0, 1]])
-        problem = Problem(domains, [Sum([2, 0, 1])])
+        shr_domains = np.array([[0, 1], [0, 1], [0, 1]])
+        dom_indices = [0, 1, 2]
+        dom_offsets = [0, 0, 0]
+        problem = Problem(shr_domains, dom_indices, dom_offsets, [Sum([2, 0, 1])])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 3
@@ -53,8 +61,10 @@ class TestBacktrackSolver:
         assert solver.statistics["backtracksolver.choicepoints.max"] == 2
 
     def test_solve_sum_ko(self) -> None:
-        domains = np.array([[1, 2], [1, 2], [0, 1]])
-        problem = Problem(domains, [Sum([2, 0, 1])])
+        shr_domains = np.array([[1, 2], [1, 2], [0, 1]])
+        dom_indices = [0, 1, 2]
+        dom_offsets = [0, 0, 0]
+        problem = Problem(shr_domains, dom_indices, dom_offsets, [Sum([2, 0, 1])])
         solver = BacktrackSolver(problem)
         for _ in solver.solve():
             pass
@@ -63,8 +73,10 @@ class TestBacktrackSolver:
         assert solver.statistics["backtracksolver.choicepoints.max"] == 0
 
     def test_solve_alldifferent(self) -> None:
-        domains = np.array([[0, 2], [0, 2], [0, 2]])
-        problem = Problem(domains, [AlldifferentPugetN2([0, 1, 2])])
+        shr_domains = np.array([[0, 2], [0, 2], [0, 2]])
+        dom_indices = [0, 1, 2]
+        dom_offsets = [0, 0, 0]
+        problem = Problem(shr_domains, dom_indices, dom_offsets, [AlldifferentPugetN2([0, 1, 2])])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 6

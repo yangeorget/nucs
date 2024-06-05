@@ -45,7 +45,7 @@ class BacktrackSolver(Solver):
                     # backtracking is not feasible
                     return None
         # problem is solved
-        return self.problem.domains
+        return self.problem.get_var_domains()
 
     def backtrack(self) -> bool:
         """
@@ -55,5 +55,5 @@ class BacktrackSolver(Solver):
         if len(self.choice_points) == 0:
             return False
         self.statistics["backtracksolver.backtracks.nb"] += 1
-        self.problem.domains = self.choice_points.pop()
+        self.problem.shr_domains = self.choice_points.pop()
         return True

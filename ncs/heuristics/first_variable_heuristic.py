@@ -1,5 +1,5 @@
 from ncs.heuristics.variable_heuristic import VariableHeuristic
-from ncs.problems.problem import MAX, MIN, Problem
+from ncs.problems.problem import Problem
 
 
 class FirstVariableHeuristic(VariableHeuristic):
@@ -8,7 +8,7 @@ class FirstVariableHeuristic(VariableHeuristic):
     """
 
     def choose_variable(self, problem: Problem) -> int:
-        for idx in range(problem.domains.shape[0]):
-            if problem.domains[idx, MIN] < problem.domains[idx, MAX]:
-                return idx
+        for var_idx in range(problem.size):
+            if problem.is_not_instantiated(var_idx):
+                return var_idx
         return -1

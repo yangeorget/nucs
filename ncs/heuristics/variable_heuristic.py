@@ -22,11 +22,10 @@ class VariableHeuristic(Heuristic):
         :param problem: the problem
         :return: True iff it is possible to make a choice
         """
-        idx = self.choose_variable(problem)
-        if idx == -1:
+        var_idx = self.choose_variable(problem)
+        if var_idx == -1:
             return False
-        domains = self.value_heuristic.choose(problem, idx)
-        choice_points.append(domains)
+        self.value_heuristic.choose(choice_points, problem, var_idx)
         return True
 
     def choose_variable(self, problem: Problem) -> int:  # type: ignore

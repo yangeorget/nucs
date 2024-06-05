@@ -13,13 +13,8 @@ class Sum(Propagator):
     """
 
     def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
-        new_domains = self.init_domains()
-        x = self.variables[0]
-        y = self.variables[1:]
-        new_domains[0] = np.sum(domains[y], axis=0)
-        new_domains[1:, MIN] = domains[x, MIN] + domains[y, MAX] - new_domains[0, MAX]
-        new_domains[1:, MAX] = domains[x, MAX] + domains[y, MIN] - new_domains[0, MIN]
+        new_domains = np.zeros((self.size, 2), dtype=int)
+        new_domains[0] = np.sum(domains[1:], axis=0)
+        new_domains[1:, MIN] = domains[0, MIN] + domains[1:, MAX] - new_domains[0, MAX]
+        new_domains[1:, MAX] = domains[0, MAX] + domains[1:, MIN] - new_domains[0, MIN]
         return new_domains
-
-    def __str__(self) -> str:
-        return f"{self.variables[0]}=sum({self.variables[1:]})"

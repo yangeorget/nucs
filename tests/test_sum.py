@@ -4,9 +4,6 @@ from ncs.propagators.sum import Sum
 
 
 class TestSum:
-    def test___str__(self) -> None:
-        assert str(Sum([2, 0, 1])) == "2=sum([0 1])"
-
     def test_compute_domains_1(self) -> None:
         domains = np.array([[0, 1], [0, 1], [0, 1]])
         variables = [2, 0, 1]

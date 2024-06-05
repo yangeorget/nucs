@@ -12,13 +12,17 @@ from ncs.problems.problem import Problem
 
 class TestSmallestDomainVariableHeuristic:
     def test_choose_variable(self) -> None:
-        domains = np.array([[0, 4], [0, 0], [0, 2]])
-        problem = Problem(domains)
+        shr_domains = np.array([[0, 4], [0, 0], [0, 2]])
+        dom_indices = [0, 1, 2]
+        dom_offsets = [0, 0, 0]
+        problem = Problem(shr_domains, dom_indices, dom_offsets)
         assert SmallestDomainVariableHeuristic(MinValueHeuristic()).choose_variable(problem) == 2
 
     def test_choose(self) -> None:
-        domains = np.array([[0, 4], [0, 0], [0, 2]])
-        problem = Problem(domains)
+        shr_domains = np.array([[0, 4], [0, 0], [0, 2]])
+        dom_indices = [0, 1, 2]
+        dom_offsets = [0, 0, 0]
+        problem = Problem(shr_domains, dom_indices, dom_offsets)
         choice_points: List[NDArray] = []
         assert SmallestDomainVariableHeuristic(MinValueHeuristic()).choose(choice_points, problem)
         assert len(choice_points) == 1

@@ -12,8 +12,7 @@ class AlldifferentPugetN2(Propagator):
     JF Puget's bound consistency algorithm for the alldifferent constraint with quadratic complexity.
     """
 
-    def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
-        new_domains = domains[self.variables]
+    def compute_domains(self, new_domains: NDArray) -> Optional[NDArray]:
         if not self.update_mins(new_domains):
             return None
         new_domains[:, [MIN, MAX]] = -new_domains[:, [MAX, MIN]]
@@ -57,6 +56,3 @@ class AlldifferentPugetN2(Propagator):
         for j in range(i + 1, self.size):
             if sorted_doms[j, MIN] >= a:
                 new_doms[sorted_vars[j], MIN] = max(b + 1, sorted_doms[j, MIN])
-
-    def __str__(self) -> str:
-        return f"alldifferent_puget_n3({self.variables})"

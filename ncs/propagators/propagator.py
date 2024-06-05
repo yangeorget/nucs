@@ -3,6 +3,8 @@ from typing import List, Optional
 import numpy as np
 from numpy.typing import NDArray
 
+from ncs.problems.problem import MAX, MIN, Problem
+
 
 class Propagator:
     """
@@ -13,10 +15,6 @@ class Propagator:
         self.size = len(variables)
         self.variables = np.array(variables)
         self.triggers = np.ones((self.size, 2), dtype=bool)
-        # TODO : idempotence
-
-    def init_domains(self) -> NDArray:
-        return np.zeros((self.size, 2), dtype=int)
 
     def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
         """
@@ -25,3 +23,28 @@ class Propagator:
         :return: the new domains or None if there is an inconsistency
         """
         pass
+
+    def update_domains(self, problem: Problem, changes: NDArray) -> bool:
+        """
+        Updates problem variable domains.
+        :param problem: a problem
+        :param changes: where to record the domain changes
+        :return: false if the problem is not consistent
+        """
+        lcl_domains = problem.get_lcl_domains(self.variables)
+        new_domains = self.compute_domains(lcl_domains)
+        if new_domains is None:
+            return False
+        lcl_changes = np.full((len(new_domains), 2), False)
+        new_minimums = np.maximum(new_domains[:, MIN], lcl_domains[MIN])
+        np.greater(new_minimums, lcl_domains[MIN], out=lcl_changes[:, MIN])
+        problem.set_lcl_mins(self.variables, new_minimums)
+        if problem.is_inconsistent():
+            return False
+        new_maximums = np.minimum(new_domains[:, MAX], lcl_domains[MAX])
+        np.less(new_maximums, lcl_domains[MAX], out=lcl_changes[:, MAX])
+        problem.set_lcl_maxs(self.variables, new_maximums)
+        changes[self.variables] |= lcl_changes
+        if problem.is_inconsistent():
+            return False
+        return True

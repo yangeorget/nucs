@@ -1,3 +1,2 @@
-# get rid of shift
 # schedule constraint filtering
-# variable offsets
+# TODO : idempotence of propagators
