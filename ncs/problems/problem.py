@@ -19,18 +19,8 @@ class Problem:
         self.size = len(self.dom_indices)
         self.propagators = propagators
 
-    def get_var_domains(self) -> NDArray:
+    def get_domains(self) -> NDArray:
         return self.shr_domains[self.dom_indices] + self.dom_offsets.reshape(self.size, 1)
-
-    def get_lcl_domains(self, variables: NDArray) -> NDArray:
-        # TODO: optimize
-        return self.get_var_domains()[variables]
-
-    def set_lcl_mins(self, variables: NDArray, lcl_mins: NDArray) -> None:
-        self.shr_domains[self.dom_indices[variables], MIN] = lcl_mins - self.dom_offsets[variables]
-
-    def set_lcl_maxs(self, variables: NDArray, lcl_maxs: NDArray) -> None:
-        self.shr_domains[self.dom_indices[variables], MAX] = lcl_maxs - self.dom_offsets[variables]
 
     def is_not_instantiated(self, idx: int) -> bool:
         var_domain = self.dom_indices[idx]

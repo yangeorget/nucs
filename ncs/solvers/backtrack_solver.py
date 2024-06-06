@@ -45,7 +45,7 @@ class BacktrackSolver(Solver):
                     # backtracking is not feasible
                     return None
         # problem is solved
-        return self.problem.get_var_domains()
+        return self.problem.get_domains()
 
     def backtrack(self) -> bool:
         """

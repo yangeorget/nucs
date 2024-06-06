@@ -1,2 +1,3 @@
+# test numba
 # schedule constraint filtering
 # TODO : idempotence of propagators

@@ -31,22 +31,21 @@ class Propagator:
         :param changes: where to record the domain changes
         :return: false if the problem is not consistent
         """
-        lcl_domains = problem.get_lcl_domains(self.variables)
-        new_domains = self.compute_domains(lcl_domains)
+        domains = problem.get_domains()  # TODO: optimize ?
+        var_domains = domains[self.variables]
+        new_domains = self.compute_domains(var_domains)
         if new_domains is None:
             return False
-        lcl_changes = np.full((len(new_domains), 2), False)
-        lcl_mins = lcl_domains[:, MIN]
-        new_minimums = np.maximum(new_domains[:, MIN], lcl_mins)
-        np.greater(new_minimums, lcl_mins, out=lcl_changes[:, MIN])
-        problem.set_lcl_mins(self.variables, new_minimums)
+        var_changes = np.full((len(new_domains), 2), False)
+        var_offsets = problem.dom_offsets[self.variables]  # TODO: could be computed at init time
+        var_indices = problem.dom_indices[self.variables]  # TODO: could be computed at init time
+        np.greater(new_domains[:, MIN], var_domains[:, MIN], out=var_changes[:, MIN])
+        problem.shr_domains[var_indices, MIN] = np.maximum(new_domains[:, MIN], var_domains[:, MIN]) - var_offsets
         if problem.is_inconsistent():
             return False
-        lcl_maxs = lcl_domains[:, MAX]
-        new_maximums = np.minimum(new_domains[:, MAX], lcl_maxs)
-        np.less(new_maximums, lcl_maxs, out=lcl_changes[:, MAX])
-        problem.set_lcl_maxs(self.variables, new_maximums)
-        changes[self.variables] |= lcl_changes
+        np.less(new_domains[:, MAX], var_domains[:, MAX], out=var_changes[:, MAX])
+        problem.shr_domains[var_indices, MAX] = np.minimum(new_domains[:, MAX], var_domains[:, MAX]) - var_offsets
         if problem.is_inconsistent():
             return False
+        changes |= var_changes[problem.dom_indices]
         return True
