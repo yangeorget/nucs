@@ -28,22 +28,16 @@ class BacktrackSolver(Solver):
                 break
 
     def solve_one(self) -> Optional[NDArray]:
-        while not self.problem.filter(None, self.statistics):
-            # filtering has detected an inconsistency
-            if not self.backtrack():
-                # backtracking is not feasible
-                return None
+        if not self.filter():
+            return None
         while self.problem.is_not_solved():
             changes = None
             self.heuristic.choose(self.choice_points, self.problem)  # TODO: make choice should update changes
             self.statistics["backtracksolver.choicepoints.max"] = max(
                 len(self.choice_points), self.statistics["backtracksolver.choicepoints.max"]
             )
-            while not self.problem.filter(changes, self.statistics):
-                # filtering has detected an inconsistency
-                if not self.backtrack():
-                    # backtracking is not feasible
-                    return None
+            if not self.filter(changes):
+                return None
         # problem is solved
         return self.problem.get_domains()
 
@@ -56,4 +50,12 @@ class BacktrackSolver(Solver):
             return False
         self.statistics["backtracksolver.backtracks.nb"] += 1
         self.problem.shr_domains = self.choice_points.pop()
+        return True
+
+    def filter(self, changes: Optional[NDArray] = None) -> bool:
+        while not self.problem.filter(changes, self.statistics):
+            # filtering has detected an inconsistency
+            if not self.backtrack():
+                # backtracking is not feasible
+                return False
         return True

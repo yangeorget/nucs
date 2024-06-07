@@ -18,12 +18,13 @@ class Problem:
         self.dom_offsets = np.array(dom_offsets)
         self.size = len(self.dom_indices)
         self.propagators = propagators
+        self.last_propagator = None
 
     def get_domains(self) -> NDArray:
         return self.shr_domains[self.dom_indices] + self.dom_offsets.reshape(self.size, 1)
 
-    def is_not_instantiated(self, idx: int) -> bool:
-        var_domain = self.dom_indices[idx]
+    def is_not_instantiated(self, var_idx: int) -> bool:
+        var_domain = self.dom_indices[var_idx]
         return self.shr_domains[var_domain, MIN] < self.shr_domains[var_domain, MAX]
 
     def is_inconsistent(self) -> bool:
@@ -50,14 +51,18 @@ class Problem:
         :param statistics: where to record the statistics of the computation
         :return: false if the problem is not consistent
         """
-        if changes is None:
-            changes = np.ones((self.size, 2), dtype=bool)
         if statistics is not None:
             statistics["problem.filters.nb"] += 1
+        if changes is None:
+            changes = np.ones((self.size, 2), dtype=bool)
+        self.last_propagator = None
         while np.any(changes):
             new_changes = np.zeros((self.size, 2), dtype=bool)
             for propagator in self.propagators:
-                if np.any(changes[propagator.variables] & propagator.triggers):
+                if self.last_propagator != propagator and propagator.should_update(changes):
+                    self.last_propagator = propagator
+                    if statistics is not None:
+                        statistics["problem.propagators.filters.nb"] += 1
                     if not propagator.update_domains(self, new_changes):
                         return False
             changes = new_changes

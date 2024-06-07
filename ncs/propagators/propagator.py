@@ -47,5 +47,9 @@ class Propagator:
         problem.shr_domains[var_indices, MAX] = np.minimum(new_domains[:, MAX], var_domains[:, MAX]) - var_offsets
         if problem.is_inconsistent():
             return False
+        # TODO: test changes
         changes |= var_changes[problem.dom_indices]
         return True
+
+    def should_update(self, changes: NDArray) -> bool:
+        return bool(np.any(changes[self.variables] & self.triggers))
