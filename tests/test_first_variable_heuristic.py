@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 
 from ncs.heuristics.first_variable_heuristic import FirstVariableHeuristic
 from ncs.heuristics.min_value_heuristic import MinValueHeuristic
-from ncs.problems.problem import Problem
+from ncs.problems.problem import MAX, Problem
 
 
 class TestFirstVariableHeuristic:
@@ -22,6 +22,8 @@ class TestFirstVariableHeuristic:
         dom_offsets = [0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
         choice_points: List[NDArray] = []
-        assert FirstVariableHeuristic(MinValueHeuristic()).choose(choice_points, problem)
+        changes = np.zeros((2, 2), dtype=bool)
+        assert FirstVariableHeuristic(MinValueHeuristic()).choose(changes, choice_points, problem)
         assert len(choice_points) == 1
         assert np.all(choice_points[0] == np.array([[0, 0], [1, 2]]))
+        assert changes[1, MAX]

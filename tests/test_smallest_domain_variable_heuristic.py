@@ -7,7 +7,7 @@ from ncs.heuristics.min_value_heuristic import MinValueHeuristic
 from ncs.heuristics.smallest_domain_variable_heuristic import (
     SmallestDomainVariableHeuristic,
 )
-from ncs.problems.problem import Problem
+from ncs.problems.problem import MAX, Problem
 
 
 class TestSmallestDomainVariableHeuristic:
@@ -24,6 +24,8 @@ class TestSmallestDomainVariableHeuristic:
         dom_offsets = [0, 0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
         choice_points: List[NDArray] = []
-        assert SmallestDomainVariableHeuristic(MinValueHeuristic()).choose(choice_points, problem)
+        changes = np.zeros((3, 2), dtype=bool)
+        assert SmallestDomainVariableHeuristic(MinValueHeuristic()).choose(changes, choice_points, problem)
         assert len(choice_points) == 1
         assert np.all(choice_points[0] == np.array([[0, 4], [0, 0], [1, 2]]))
+        assert changes[2, MAX]

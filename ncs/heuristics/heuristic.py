@@ -10,7 +10,7 @@ class Heuristic:
     Makes a choice.
     """
 
-    def choose(self, choice_points: List[NDArray], problem: Problem) -> bool:  # type: ignore
+    def choose(self, changes: NDArray, choice_points: List[NDArray], problem: Problem) -> bool:  # type: ignore
         """
         Makes a choice.
         :return: True iff it is possible to make a choice

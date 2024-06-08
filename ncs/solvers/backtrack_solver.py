@@ -1,5 +1,6 @@
 from typing import Iterator, Optional
 
+import numpy as np
 from numpy.typing import NDArray
 
 from ncs.heuristics.first_variable_heuristic import FirstVariableHeuristic
@@ -14,8 +15,8 @@ class BacktrackSolver(Solver):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
         self.heuristic = heuristic
-        self.statistics["backtracksolver.backtracks.nb"] = 0
-        self.statistics["backtracksolver.choicepoints.max"] = 0
+        self.statistics["solver.backtracks.nb"] = 0
+        self.statistics["solver.cp.max"] = 0
 
     def solve(self) -> Iterator[NDArray]:
         while True:
@@ -31,15 +32,12 @@ class BacktrackSolver(Solver):
         if not self.filter():
             return None
         while self.problem.is_not_solved():
-            changes = None
-            self.heuristic.choose(self.choice_points, self.problem)  # TODO: make choice should update changes
-            self.statistics["backtracksolver.choicepoints.max"] = max(
-                len(self.choice_points), self.statistics["backtracksolver.choicepoints.max"]
-            )
+            changes = np.zeros((self.problem.size, 2), dtype=bool)
+            self.heuristic.choose(changes, self.choice_points, self.problem)
+            self.statistics["solver.cp.max"] = max(len(self.choice_points), self.statistics["solver.cp.max"])
             if not self.filter(changes):
                 return None
-        # problem is solved
-        return self.problem.get_domains()
+        return self.problem.get_domains()  # problem is solved
 
     def backtrack(self) -> bool:
         """
@@ -48,14 +46,12 @@ class BacktrackSolver(Solver):
         """
         if len(self.choice_points) == 0:
             return False
-        self.statistics["backtracksolver.backtracks.nb"] += 1
+        self.statistics["solver.backtracks.nb"] += 1
         self.problem.shr_domains = self.choice_points.pop()
         return True
 
     def filter(self, changes: Optional[NDArray] = None) -> bool:
         while not self.problem.filter(changes, self.statistics):
-            # filtering has detected an inconsistency
             if not self.backtrack():
-                # backtracking is not feasible
                 return False
         return True

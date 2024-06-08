@@ -15,7 +15,7 @@ class VariableHeuristic(Heuristic):
     def __init__(self, value_heuristic: ValueHeuristic):
         self.value_heuristic = value_heuristic
 
-    def choose(self, choice_points: List[NDArray], problem: Problem) -> bool:
+    def choose(self, changes: NDArray, choice_points: List[NDArray], problem: Problem) -> bool:
         """
         Chooses a variable and a value for this variable.
         :param choice_points: the choice point list
@@ -25,7 +25,7 @@ class VariableHeuristic(Heuristic):
         var_idx = self.choose_variable(problem)
         if var_idx == -1:
             return False
-        self.value_heuristic.choose(choice_points, problem, var_idx)
+        self.value_heuristic.choose(changes, choice_points, problem, var_idx)
         return True
 
     def choose_variable(self, problem: Problem) -> int:  # type: ignore
