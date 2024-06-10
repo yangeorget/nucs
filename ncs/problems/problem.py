@@ -66,13 +66,13 @@ class Problem:
             propagator = propagators_to_filter.pop()
             if statistics is not None:
                 statistics["problem.propagators.filters.nb"] += 1
-            new_changes = np.zeros((self.size, 2), dtype=bool)
-            if not self.update_domains(propagator, new_changes):
+            new_changes = self.update_domains(propagator)
+            if new_changes is None:
                 return False
             self.update_propagators_to_filter(propagators_to_filter, new_changes, propagator)
         return True
 
-    def update_domains(self, propagator: Propagator, changes: NDArray) -> bool:
+    def update_domains(self, propagator: Propagator) -> Optional[NDArray]:
         """
         Updates problem variable domains.
         :param problem: a problem
@@ -83,21 +83,19 @@ class Problem:
         var_domains = domains[propagator.variables]
         new_domains = propagator.compute_domains(var_domains)
         if new_domains is None:
-            return False
+            return None
         var_changes = np.full((len(new_domains), 2), False)
         var_offsets = self.dom_offsets[propagator.variables]  # TODO: could be computed at init time
         var_indices = self.dom_indices[propagator.variables]  # TODO: could be computed at init time
         np.greater(new_domains[:, MIN], var_domains[:, MIN], out=var_changes[:, MIN])
         self.shr_domains[var_indices, MIN] = np.maximum(new_domains[:, MIN], var_domains[:, MIN]) - var_offsets
         if self.is_inconsistent():
-            return False
+            return None
         np.less(new_domains[:, MAX], var_domains[:, MAX], out=var_changes[:, MAX])
         self.shr_domains[var_indices, MAX] = np.minimum(new_domains[:, MAX], var_domains[:, MAX]) - var_offsets
         if self.is_inconsistent():
-            return False
-        # TODO: test changes
-        changes |= var_changes[self.dom_indices]
-        return True
+            return None
+        return var_changes[self.dom_indices]
 
     def update_propagators_to_filter(
         self, propagators_to_filter: Set[Propagator], changes: Optional[NDArray], last_propagator: Optional[Propagator]
