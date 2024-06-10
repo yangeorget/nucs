@@ -22,8 +22,8 @@ class TestFirstVariableHeuristic:
         dom_offsets = [0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
         choice_points: List[NDArray] = []
-        changes = np.zeros((2, 2), dtype=bool)
-        assert FirstVariableHeuristic(MinValueHeuristic()).choose(changes, choice_points, problem)
+        changes = FirstVariableHeuristic(MinValueHeuristic()).choose(choice_points, problem)
         assert len(choice_points) == 1
         assert np.all(choice_points[0] == np.array([[0, 0], [1, 2]]))
+        assert changes is not None
         assert changes[1, MAX]

@@ -1,6 +1,5 @@
 from typing import Iterator, Optional
 
-import numpy as np
 from numpy.typing import NDArray
 
 from ncs.heuristics.first_variable_heuristic import FirstVariableHeuristic
@@ -32,8 +31,7 @@ class BacktrackSolver(Solver):
         if not self.filter():
             return None
         while self.problem.is_not_solved():
-            changes = np.zeros((self.problem.size, 2), dtype=bool)
-            self.heuristic.choose(changes, self.choice_points, self.problem)
+            changes = self.heuristic.choose(self.choice_points, self.problem)
             self.statistics["solver.cp.max"] = max(len(self.choice_points), self.statistics["solver.cp.max"])
             if not self.filter(changes):
                 return None

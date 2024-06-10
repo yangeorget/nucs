@@ -24,8 +24,8 @@ class TestSmallestDomainVariableHeuristic:
         dom_offsets = [0, 0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
         choice_points: List[NDArray] = []
-        changes = np.zeros((3, 2), dtype=bool)
-        assert SmallestDomainVariableHeuristic(MinValueHeuristic()).choose(changes, choice_points, problem)
+        changes = SmallestDomainVariableHeuristic(MinValueHeuristic()).choose(choice_points, problem)
         assert len(choice_points) == 1
         assert np.all(choice_points[0] == np.array([[0, 4], [0, 0], [1, 2]]))
+        assert changes is not None
         assert changes[2, MAX]

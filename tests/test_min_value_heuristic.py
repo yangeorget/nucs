@@ -14,7 +14,7 @@ class TestMinValueHeuristic:
         dom_offsets = [0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
         choice_points: List[NDArray] = []
-        changes = np.zeros((2, 2), dtype=bool)
-        MinValueHeuristic().choose(changes, choice_points, problem, 1)
+        changes = MinValueHeuristic().choose(choice_points, problem, 1)
         assert np.all(choice_points == np.array([[0, 0], [1, 2]]))
+        assert changes is not None
         assert changes[1, MAX]

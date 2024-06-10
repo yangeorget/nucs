@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from numpy.typing import NDArray
 
@@ -10,7 +10,7 @@ class ValueHeuristic:
     Chooses one or several values for a domain.
     """
 
-    def choose(self, changes: NDArray, choice_points: List[NDArray], problem: Problem, var_idx: int) -> None:
+    def choose(self, choice_points: List[NDArray], problem: Problem, var_idx: int) -> Optional[NDArray]:
         """
         Chooses one or several values for a domain.
         :param choice_points: the choice point list

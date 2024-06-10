@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from numpy.typing import NDArray
 
@@ -10,9 +10,8 @@ class Heuristic:
     Makes a choice.
     """
 
-    def choose(self, changes: NDArray, choice_points: List[NDArray], problem: Problem) -> bool:  # type: ignore
+    def choose(self, choice_points: List[NDArray], problem: Problem) -> Optional[NDArray]:
         """
         Makes a choice.
-        :return: True iff it is possible to make a choice
         """
         pass
