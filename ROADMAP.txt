@@ -1,3 +1,2 @@
-# schedule constraints
 # rewrite alldiff
 # test numba

@@ -1,7 +1,9 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Sequence, Set
 
 import numpy as np
 from numpy.typing import NDArray
+
+from ncs.propagators.propagator import Propagator
 
 MIN = 0
 MAX = 1
@@ -12,13 +14,18 @@ class Problem:
     A problem is defined by a set of variable domains and a set of propagators.
     """
 
-    def __init__(self, shr_domains: NDArray, dom_indices: List[int], dom_offsets: List[int], propagators: List = []):
+    def __init__(
+        self,
+        shr_domains: NDArray,
+        dom_indices: List[int],
+        dom_offsets: List[int],
+        propagators: Sequence[Propagator] = [],
+    ):
         self.shr_domains = shr_domains
         self.dom_indices = np.array(dom_indices)
         self.dom_offsets = np.array(dom_offsets)
         self.size = len(self.dom_indices)
         self.propagators = propagators
-        self.last_propagator = None
 
     def get_domains(self) -> NDArray:
         return self.shr_domains[self.dom_indices] + self.dom_offsets.reshape(self.size, 1)
@@ -53,17 +60,51 @@ class Problem:
         """
         if statistics is not None:
             statistics["problem.filters.nb"] += 1
-        if changes is None:
-            changes = np.ones((self.size, 2), dtype=bool)
-        self.last_propagator = None
-        while np.any(changes):
+        propagators_to_filter: Set[Propagator] = set()
+        self.update_propagators_to_filter(propagators_to_filter, changes, None)
+        while len(propagators_to_filter) > 0:
+            propagator = propagators_to_filter.pop()
+            if statistics is not None:
+                statistics["problem.propagators.filters.nb"] += 1
             new_changes = np.zeros((self.size, 2), dtype=bool)
-            for propagator in self.propagators:
-                if self.last_propagator != propagator and propagator.should_update(changes):
-                    self.last_propagator = propagator
-                    if statistics is not None:
-                        statistics["problem.propagators.filters.nb"] += 1
-                    if not propagator.update_domains(self, new_changes):
-                        return False
-            changes = new_changes
+            if not self.update_domains(propagator, new_changes):
+                return False
+            self.update_propagators_to_filter(propagators_to_filter, new_changes, propagator)
         return True
+
+    def update_domains(self, propagator: Propagator, changes: NDArray) -> bool:
+        """
+        Updates problem variable domains.
+        :param problem: a problem
+        :param changes: where to record the domain changes
+        :return: false if the problem is not consistent
+        """
+        domains = self.get_domains()  # TODO: optimize ?
+        var_domains = domains[propagator.variables]
+        new_domains = propagator.compute_domains(var_domains)
+        if new_domains is None:
+            return False
+        var_changes = np.full((len(new_domains), 2), False)
+        var_offsets = self.dom_offsets[propagator.variables]  # TODO: could be computed at init time
+        var_indices = self.dom_indices[propagator.variables]  # TODO: could be computed at init time
+        np.greater(new_domains[:, MIN], var_domains[:, MIN], out=var_changes[:, MIN])
+        self.shr_domains[var_indices, MIN] = np.maximum(new_domains[:, MIN], var_domains[:, MIN]) - var_offsets
+        if self.is_inconsistent():
+            return False
+        np.less(new_domains[:, MAX], var_domains[:, MAX], out=var_changes[:, MAX])
+        self.shr_domains[var_indices, MAX] = np.minimum(new_domains[:, MAX], var_domains[:, MAX]) - var_offsets
+        if self.is_inconsistent():
+            return False
+        # TODO: test changes
+        changes |= var_changes[self.dom_indices]
+        return True
+
+    def update_propagators_to_filter(
+        self, propagators_to_filter: Set[Propagator], changes: Optional[NDArray], last_propagator: Optional[Propagator]
+    ) -> None:
+        for propagator in self.propagators:
+            if last_propagator and propagator == last_propagator:
+                continue
+            if changes is not None and not propagator.should_update(changes):
+                continue
+            propagators_to_filter.add(propagator)
