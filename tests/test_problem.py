@@ -1,7 +1,7 @@
 import numpy as np
 
 from ncs.problems.problem import Problem
-from ncs.propagators.alldifferent_puget_n2 import AlldifferentPugetN2
+from ncs.propagators.alldifferent import Alldifferent
 from ncs.propagators.sum import Sum
 
 
@@ -63,7 +63,7 @@ class TestProblem:
         shr_domains = np.array([[0, 0], [2, 2], [0, 2]])
         dom_indices = [0, 1, 2, 0, 1, 2]
         dom_offsets = [0, 0, 0, 0, 1, 2]
-        propagators = [AlldifferentPugetN2([0, 1, 2]), AlldifferentPugetN2([3, 4, 5])]
+        propagators = [Alldifferent([0, 1, 2]), Alldifferent([3, 4, 5])]
         problem = Problem(
             shr_domains=shr_domains, dom_indices=dom_indices, dom_offsets=dom_offsets, propagators=propagators
         )

@@ -1,7 +1,7 @@
 import numpy as np
 
 from ncs.problems.problem import Problem
-from ncs.propagators.alldifferent_puget_n2 import AlldifferentPugetN2
+from ncs.propagators.alldifferent import Alldifferent
 
 
 class QueensProblem(Problem):
@@ -12,8 +12,8 @@ class QueensProblem(Problem):
         dom_indices = list(range(0, n)) * 3
         dom_offsets = [0] * n + list(range(0, n)) + list(range(0, -n, -1))
         propagators = [
-            AlldifferentPugetN2(list(range(0, n))),
-            AlldifferentPugetN2(list(range(n, 2 * n))),
-            AlldifferentPugetN2(list(range(2 * n, 3 * n))),
+            Alldifferent(list(range(0, n))),
+            Alldifferent(list(range(n, 2 * n))),
+            Alldifferent(list(range(2 * n, 3 * n))),
         ]
         super().__init__(shr_domains, dom_indices, dom_offsets, propagators)
