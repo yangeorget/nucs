@@ -11,10 +11,7 @@ MAX_RANK = 3
 
 
 class AlldifferentLopezOrtiz(Propagator):
-    def __init__(self, variables: List[int]):
-        super().__init__(variables)
-
-    def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
+    def compute_domains(self, domains: NDArray) -> Optional[NDArray]:  # TODO refactor
         self.nb = 0
         self.bounds = [0] * (2 * self.size + 2)
         self.t = [0] * (2 * self.size + 2)
@@ -53,8 +50,10 @@ class AlldifferentLopezOrtiz(Propagator):
                 max = self.iv[self.max_sorted_vars[j], MAX] + 1
         self.nb = nb
         self.bounds[nb + 1] = self.bounds[nb] + 2
-        self.filter_lower()
-        self.filter_upper()
+        if not self.filter_lower():
+            return None
+        if not self.filter_upper():
+            return None
         return self.iv[:, [MIN, MAX]]
 
     def filter_lower(self) -> bool:

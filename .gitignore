@@ -2,3 +2,4 @@
 clustering_algorithms.egg-info/
 __pycache__/
 dist/
+venv*/
