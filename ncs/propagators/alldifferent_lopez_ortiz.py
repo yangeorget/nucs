@@ -120,12 +120,11 @@ class AlldifferentLopezOrtiz(Propagator):
         return True
 
     def path_set(self, t: List[int], start: int, end: int, to: int) -> None:
-        n = start
-        p = n
+        p = start
         while p != end:
-            n = t[p]
+            tmp = t[p]
             t[p] = to
-            p = n
+            p = tmp
 
     def path_min(self, t: List[int], i: int) -> int:
         while t[i] < i:
