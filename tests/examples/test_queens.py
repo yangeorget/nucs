@@ -58,4 +58,4 @@ class TestQueens:
 
 
 if __name__ == "__main__":
-    BacktrackSolver(QueensProblem(10)).solve_all()
+    BacktrackSolver(QueensProblem(8)).solve_all()
