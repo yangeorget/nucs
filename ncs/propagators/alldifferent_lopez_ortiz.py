@@ -56,15 +56,15 @@ class AlldifferentLopezOrtiz(Propagator):
         d: List[int],
         h: List[int],
         bounds: List[int],
-        iv: NDArray,
+        rank_domains: NDArray,
         max_sorted_vars: NDArray,
     ) -> bool:
         for i in range(0, nb + 1):
             t[i + 1] = h[i + 1] = i
             d[i + 1] = bounds[i + 1] - bounds[i]
         for i in range(0, self.size):
-            x = iv[max_sorted_vars[i], MIN_RANK]
-            y = iv[max_sorted_vars[i], MAX_RANK]
+            x = rank_domains[max_sorted_vars[i], MIN_RANK]
+            y = rank_domains[max_sorted_vars[i], MAX_RANK]
             z = self.path_max(t, x + 1)
             j = t[z]
             d[z] -= 1
@@ -77,7 +77,7 @@ class AlldifferentLopezOrtiz(Propagator):
                 return False
             if h[x] > x:
                 w = self.path_max(h, h[x])
-                iv[max_sorted_vars[i], MIN] = bounds[w]
+                rank_domains[max_sorted_vars[i], MIN] = bounds[w]
                 self.path_set(h, x, w, w)  # path compression
             if d[z] == bounds[z] - bounds[y]:
                 self.path_set(h, h[y], j - 1, y)  # mark hall interval
@@ -91,15 +91,15 @@ class AlldifferentLopezOrtiz(Propagator):
         d: List[int],
         h: List[int],
         bounds: List[int],
-        iv: NDArray,
+        rank_domains: NDArray,
         min_sorted_vars: NDArray,
     ) -> bool:
         for i in range(0, nb + 1):
             t[i] = h[i] = i + 1
             d[i] = bounds[i + 1] - bounds[i]
         for i in range(self.size - 1, -1, -1):
-            x = iv[min_sorted_vars[i], MAX_RANK]
-            y = iv[min_sorted_vars[i], MIN_RANK]
+            x = rank_domains[min_sorted_vars[i], MAX_RANK]
+            y = rank_domains[min_sorted_vars[i], MIN_RANK]
             z = self.path_min(t, x - 1)
             j = t[z]
             d[z] -= 1
@@ -112,7 +112,7 @@ class AlldifferentLopezOrtiz(Propagator):
                 return False
             if h[x] < x:
                 w = self.path_min(h, h[x])
-                iv[min_sorted_vars[i], MAX] = bounds[w] - 1
+                rank_domains[min_sorted_vars[i], MAX] = bounds[w] - 1
                 self.path_set(h, x, w, w)  # path compression
             if d[z] == bounds[y] - bounds[z]:
                 self.path_set(h, h[y], j + 1, y)  # mark hall interval
