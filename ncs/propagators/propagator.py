@@ -20,7 +20,7 @@ class Propagator:
         :param domains: the initial domains
         :return: the new domains or None if there is an inconsistency
         """
-        pass
+        return None
 
     def should_update(self, changes: NDArray) -> bool:
         return bool(np.any(changes[self.variables] & self.triggers))

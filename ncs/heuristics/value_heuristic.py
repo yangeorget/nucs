@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import List, Optional
 
 from numpy.typing import NDArray
@@ -10,6 +11,7 @@ class ValueHeuristic:
     Chooses one or several values for a domain.
     """
 
+    @abstractmethod
     def choose(self, choice_points: List[NDArray], problem: Problem, var_idx: int) -> Optional[NDArray]:
         """
         Chooses one or several values for a domain.

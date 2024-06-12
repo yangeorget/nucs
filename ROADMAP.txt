@@ -1,2 +1,1 @@
-# rewrite alldiff
 # test numba
