@@ -22,20 +22,6 @@ class TestProblem:
         assert problem.is_not_instantiated(1)
         assert not problem.is_not_instantiated(2)
 
-    def test_is_inconsistent_ko(self) -> None:
-        shr_domains = np.array([[0, 2], [0, 2], [4, 6]])
-        dom_indices = [0, 1, 2]
-        dom_offsets = [0, 0, 0]
-        problem = Problem(shr_domains, dom_indices, dom_offsets)
-        assert not problem.is_inconsistent()
-
-    def test_is_inconsistent_ok(self) -> None:
-        shr_domains = np.array([[0, 2], [2, 0], [4, 6]])
-        dom_indices = [0, 1, 2]
-        dom_offsets = [0, 0, 0]
-        problem = Problem(shr_domains, dom_indices, dom_offsets)
-        assert problem.is_inconsistent()
-
     def test_is_not_solved_ok(self) -> None:
         shr_domains = np.array([[0, 2], [0, 2], [4, 6]])
         dom_indices = [0, 1, 2]

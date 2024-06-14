@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 import numpy as np
 from numpy.typing import NDArray
@@ -14,7 +14,13 @@ class Problem:
     A problem is defined by a list of variable domains and a list of propagators.
     """
 
-    def __init__(self, shr_domains: NDArray, dom_indices: List[int], dom_offsets: List[int], propagators=None):
+    def __init__(
+        self,
+        shr_domains: NDArray,
+        dom_indices: List[int],
+        dom_offsets: List[int],
+        propagators: Optional[List[Any]] = None,
+    ):
         self.shr_domains = shr_domains
         self.size = len(dom_indices)
         self.dom_indices = np.array(dom_indices)
@@ -36,13 +42,6 @@ class Problem:
         """
         var_domain = self.dom_indices[var_idx]
         return bool(self.shr_domains[var_domain, MIN] < self.shr_domains[var_domain, MAX])
-
-    def is_inconsistent(self) -> bool:
-        """
-        Returns true iff the problem is consistent.
-        :return: a boolean
-        """
-        return np.any(np.greater(self.shr_domains[:, MIN], self.shr_domains[:, MAX]))  # type: ignore
 
     def is_not_solved(self) -> bool:
         """
@@ -85,24 +84,26 @@ class Problem:
         prop_indices = self.dom_indices[propagator.variables]  # TODO: could be computed at init time
         prop_domains = self.shr_domains[prop_indices] + prop_offsets.reshape(propagator.size, 1)
         new_prop_domains = propagator.compute_domains(prop_domains)
-
         if new_prop_domains is None:
             return None
-        # TODO: compute changes here
-        self.shr_domains[prop_indices, MIN] = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN]) - prop_offsets
-        self.shr_domains[prop_indices, MAX] = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX]) - prop_offsets
-        if self.is_inconsistent():
+        new_shr_domains = np.zeros((len(self.shr_domains), 2), dtype=int)
+        new_shr_domains[prop_indices, MIN] = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN]) - prop_offsets
+        new_shr_domains[prop_indices, MAX] = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX]) - prop_offsets
+        if np.any(np.greater(new_shr_domains[:, MIN], new_shr_domains[:, MAX])):
             return None
-        prop_changes = np.full((propagator.size, 2), False)
-        np.greater(new_prop_domains[:, MIN], prop_domains[:, MIN], out=prop_changes[:, MIN])
-        np.less(new_prop_domains[:, MAX], prop_domains[:, MAX], out=prop_changes[:, MAX])
-        shr_changes = np.full((len(self.shr_domains), 2), False)
-        shr_changes[prop_indices] = prop_changes
+        shr_changes = np.not_equal(new_shr_domains, self.shr_domains)
+        self.shr_domains = new_shr_domains
         return shr_changes[self.dom_indices]
 
     def update_propagators_to_filter(
         self, propagators_to_filter: Set[Propagator], changes: Optional[NDArray], last_propagator: Optional[Propagator]
     ) -> None:
+        """
+        Updates the list of propagators that need to be filtered.
+        :param propagators_to_filter: the list of propagators
+        :param changes: an array of changes
+        :param last_propagator: the last propagator that has been filtered
+        """
         for propagator in self.propagators:
             if last_propagator and propagator == last_propagator:
                 continue
