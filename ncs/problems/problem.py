@@ -11,7 +11,7 @@ MAX = 1
 
 class Problem:
     """
-    A problem is defined by a set of variable domains and a set of propagators.
+    A problem is defined by a list of variable domains and a list of propagators.
     """
 
     def __init__(
@@ -28,9 +28,18 @@ class Problem:
         self.propagators = propagators
 
     def get_domains(self) -> NDArray:
+        """
+        Returns the domains of the problem variables.
+        :return: an NDArray
+        """
         return self.shr_domains[self.dom_indices] + self.dom_offsets.reshape(self.size, 1)
 
     def is_not_instantiated(self, var_idx: int) -> bool:
+        """
+        Returns a boolean indicating if a variable is not instantiated.
+        :param var_idx: the index of the variable
+        :return: True iff the variable is not instantiated
+        """
         var_domain = self.dom_indices[var_idx]
         return self.shr_domains[var_domain, MIN] < self.shr_domains[var_domain, MAX]
 
@@ -54,7 +63,7 @@ class Problem:
     def filter(self, changes: Optional[NDArray] = None, statistics: Optional[Dict] = None) -> bool:
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
-        :param changes: some initial domain changes
+        :param changes: an array of boolean describing the variable domain changes
         :param statistics: where to record the statistics of the computation
         :return: false if the problem is not consistent
         """

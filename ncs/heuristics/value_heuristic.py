@@ -18,5 +18,6 @@ class ValueHeuristic:
         :param choice_points: the choice point list
         :param problem: the problem
         :param var_idx: the index of the variable
+        :return: the boolean array of variable changes or None if no choice can be made
         """
         pass
