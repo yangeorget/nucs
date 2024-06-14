@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Sequence, Set
+from typing import Dict, List, Optional, Set
 
 import numpy as np
 from numpy.typing import NDArray
@@ -14,18 +14,12 @@ class Problem:
     A problem is defined by a list of variable domains and a list of propagators.
     """
 
-    def __init__(
-        self,
-        shr_domains: NDArray,
-        dom_indices: List[int],
-        dom_offsets: List[int],
-        propagators: Sequence[Propagator] = [],
-    ):
+    def __init__(self, shr_domains: NDArray, dom_indices: List[int], dom_offsets: List[int], propagators=None):
         self.shr_domains = shr_domains
+        self.size = len(dom_indices)
         self.dom_indices = np.array(dom_indices)
         self.dom_offsets = np.array(dom_offsets)
-        self.size = len(self.dom_indices)
-        self.propagators = propagators
+        self.propagators = propagators if propagators is not None else []
 
     def get_domains(self) -> NDArray:
         """
@@ -41,7 +35,7 @@ class Problem:
         :return: True iff the variable is not instantiated
         """
         var_domain = self.dom_indices[var_idx]
-        return self.shr_domains[var_domain, MIN] < self.shr_domains[var_domain, MAX]
+        return bool(self.shr_domains[var_domain, MIN] < self.shr_domains[var_domain, MAX])
 
     def is_inconsistent(self) -> bool:
         """
@@ -65,7 +59,7 @@ class Problem:
         Filters the problem's domains by applying the propagators until a fix point is reached.
         :param changes: an array of boolean describing the variable domain changes
         :param statistics: where to record the statistics of the computation
-        :return: false if the problem is not consistent
+        :return: False if the problem is not consistent
         """
         if statistics is not None:
             statistics["problem.filters.nb"] += 1
@@ -84,27 +78,27 @@ class Problem:
     def update_domains(self, propagator: Propagator) -> Optional[NDArray]:
         """
         Updates problem variable domains.
-        :param problem: a problem
-        :param changes: where to record the domain changes
-        :return: false if the problem is not consistent
+        :param propagator: a propagator
+        :return: a boolean array of variable changes
         """
-        domains = self.get_domains()  # TODO: optimize ?
-        var_domains = domains[propagator.variables]
-        new_domains = propagator.compute_domains(var_domains)
-        if new_domains is None:
+        prop_offsets = self.dom_offsets[propagator.variables]  # TODO: could be computed at init time
+        prop_indices = self.dom_indices[propagator.variables]  # TODO: could be computed at init time
+        prop_domains = self.shr_domains[prop_indices] + prop_offsets.reshape(propagator.size, 1)
+        new_prop_domains = propagator.compute_domains(prop_domains)
+
+        if new_prop_domains is None:
             return None
-        var_changes = np.full((len(new_domains), 2), False)
-        var_offsets = self.dom_offsets[propagator.variables]  # TODO: could be computed at init time
-        var_indices = self.dom_indices[propagator.variables]  # TODO: could be computed at init time
-        np.greater(new_domains[:, MIN], var_domains[:, MIN], out=var_changes[:, MIN])
-        self.shr_domains[var_indices, MIN] = np.maximum(new_domains[:, MIN], var_domains[:, MIN]) - var_offsets
+        # TODO: compute changes here
+        self.shr_domains[prop_indices, MIN] = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN]) - prop_offsets
+        self.shr_domains[prop_indices, MAX] = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX]) - prop_offsets
         if self.is_inconsistent():
             return None
-        np.less(new_domains[:, MAX], var_domains[:, MAX], out=var_changes[:, MAX])
-        self.shr_domains[var_indices, MAX] = np.minimum(new_domains[:, MAX], var_domains[:, MAX]) - var_offsets
-        if self.is_inconsistent():
-            return None
-        return var_changes[self.dom_indices]
+        prop_changes = np.full((propagator.size, 2), False)
+        np.greater(new_prop_domains[:, MIN], prop_domains[:, MIN], out=prop_changes[:, MIN])
+        np.less(new_prop_domains[:, MAX], prop_domains[:, MAX], out=prop_changes[:, MAX])
+        shr_changes = np.full((len(self.shr_domains), 2), False)
+        shr_changes[prop_indices] = prop_changes
+        return shr_changes[self.dom_indices]
 
     def update_propagators_to_filter(
         self, propagators_to_filter: Set[Propagator], changes: Optional[NDArray], last_propagator: Optional[Propagator]
