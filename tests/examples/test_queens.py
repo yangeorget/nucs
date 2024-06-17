@@ -1,4 +1,3 @@
-from ncs.heuristics.first_variable_heuristic import FirstVariableHeuristic
 from ncs.heuristics.min_value_heuristic import MinValueHeuristic
 from ncs.heuristics.smallest_domain_variable_heuristic import (
     SmallestDomainVariableHeuristic,
@@ -59,4 +58,6 @@ class TestQueens:
 
 
 if __name__ == "__main__":
-    BacktrackSolver(QueensProblem(10), FirstVariableHeuristic(MinValueHeuristic())).solve_all()
+    solver = BacktrackSolver(QueensProblem(10), SmallestDomainVariableHeuristic(MinValueHeuristic()))
+    solver.solve_all()
+    print(solver.statistics)

@@ -16,6 +16,7 @@ class BacktrackSolver(Solver):
         self.heuristic = heuristic
         self.statistics["solver.backtracks.nb"] = 0
         self.statistics["solver.cp.max"] = 0
+        self.statistics["solver.choices.nb"] = 0
 
     def solve(self) -> Iterator[NDArray]:
         while True:
@@ -32,6 +33,7 @@ class BacktrackSolver(Solver):
             return None
         while self.problem.is_not_solved():
             changes = self.heuristic.choose(self.choice_points, self.problem)
+            self.statistics["solver.choices.nb"] += 1
             self.statistics["solver.cp.max"] = max(len(self.choice_points), self.statistics["solver.cp.max"])
             if not self.filter(changes):
                 return None
