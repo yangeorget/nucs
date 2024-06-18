@@ -1,3 +1,2 @@
-# test numba
 # test pypy
 # test cython
