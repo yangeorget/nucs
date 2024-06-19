@@ -1,7 +1,7 @@
-from typing import Optional, List
-from numba import jit
+from typing import List, Optional
 
 import numpy as np
+from numba import jit
 from numpy.typing import NDArray
 
 from ncs.problems.problem import MAX, MIN
@@ -10,9 +10,10 @@ from ncs.propagators.propagator import Propagator
 MIN_RANK = 2
 MAX_RANK = 3
 
+
 @jit(nopython=True)
 def compute_nb(
-    size, rank_domains: NDArray, min_sorted_vars: NDArray, max_sorted_vars: NDArray, bounds: List[int]
+    size: int, rank_domains: NDArray, min_sorted_vars: NDArray, max_sorted_vars: NDArray, bounds: List[int]
 ) -> int:
     min = rank_domains[min_sorted_vars[0], MIN]
     max = rank_domains[max_sorted_vars[0], MAX] + 1
@@ -38,6 +39,7 @@ def compute_nb(
             max = rank_domains[max_sorted_vars[j], MAX] + 1
     bounds[nb + 1] = bounds[nb] + 2
     return nb
+
 
 @jit(nopython=True)
 def filter_lower(
@@ -76,6 +78,7 @@ def filter_lower(
             h[y] = j - 1  # hall interval[bounds[j], bounds[y]]
     return True
 
+
 @jit(nopython=True)
 def filter_upper(
     size: int,
@@ -113,6 +116,7 @@ def filter_upper(
             h[y] = j + 1  # hall interval[bounds[j], bounds[y]]
     return True
 
+
 @jit(nopython=True)
 def path_set(t: NDArray, start: int, end: int, to: int) -> None:
     p = start
@@ -121,11 +125,13 @@ def path_set(t: NDArray, start: int, end: int, to: int) -> None:
         t[p] = to
         p = tmp
 
+
 @jit(nopython=True)
 def path_min(t: NDArray, i: int) -> int:
     while t[i] < i:
         i = t[i]
     return i
+
 
 @jit(nopython=True)
 def path_max(t: NDArray, i: int) -> int:
@@ -134,25 +140,28 @@ def path_max(t: NDArray, i: int) -> int:
     return i
 
 
-# TODO: compile
-def compute_domains(size: int, domains: NDArray) -> Optional[NDArray]:
-    bound_len = 2 * size + 2
-    bounds = np.zeros(bound_len, dtype=int)
-    t = np.zeros(bound_len, dtype=int)
-    d = np.zeros(bound_len, dtype=int)
-    h = np.zeros(bound_len, dtype=int)
-    rank_domains = np.zeros((size, 4), dtype=int)
-    rank_domains[:, [MIN, MAX]] = domains.copy()
+@jit(nopython=True)
+def update_rank_domains(size: int, t: NDArray, d: NDArray, h: NDArray, bounds: NDArray, rank_domains: NDArray) -> bool:
     min_sorted_vars = np.argsort(rank_domains[:, MIN])
     max_sorted_vars = np.argsort(rank_domains[:, MAX])
     nb = compute_nb(size, rank_domains, min_sorted_vars, max_sorted_vars, bounds)
-    if not filter_lower(size,nb, t, d, h, bounds, rank_domains, max_sorted_vars):
-        return None
-    if not filter_upper(size,nb, t, d, h, bounds, rank_domains, min_sorted_vars):
-        return None
-    return rank_domains[:, [MIN, MAX]]
+    if not filter_lower(size, nb, t, d, h, bounds, rank_domains, max_sorted_vars):
+        return False
+    if not filter_upper(size, nb, t, d, h, bounds, rank_domains, min_sorted_vars):
+        return False
+    return True
+
 
 class AlldifferentLopezOrtiz(Propagator):
     def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
-        return compute_domains(self.size, domains)
-
+        bound_len = 2 * self.size + 2
+        bounds = np.zeros(bound_len, dtype=int)
+        t = np.zeros(bound_len, dtype=int)
+        d = np.zeros(bound_len, dtype=int)
+        h = np.zeros(bound_len, dtype=int)
+        rank_domains = np.zeros((self.size, 4), dtype=int)
+        rank_domains[:, [MIN, MAX]] = domains.copy()
+        if update_rank_domains(self.size, t, d, h, bounds, rank_domains):
+            return rank_domains[:, [MIN, MAX]]
+        else:
+            return None
