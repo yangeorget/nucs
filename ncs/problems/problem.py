@@ -1,5 +1,6 @@
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
+import numba
 import numpy as np
 from numba import jit
 from numpy.typing import NDArray
@@ -22,13 +23,13 @@ def compute_shr_changes(
     prop_domains: NDArray,
     new_prop_domains: NDArray,
     shr_domains: NDArray,
-    new_shr_domains: NDArray,
-) -> Optional[NDArray]:
+) -> Tuple[Optional[NDArray], Optional[NDArray]]:
+    new_shr_domains = np.zeros((len(shr_domains), 2), dtype=numba.int32)
     new_shr_domains[prop_indices, MIN] = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN]) - prop_offsets
     new_shr_domains[prop_indices, MAX] = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX]) - prop_offsets
     if np.any(np.greater(new_shr_domains[:, MIN], new_shr_domains[:, MAX])):
-        return None
-    return np.not_equal(new_shr_domains, shr_domains)
+        return None, None
+    return new_shr_domains, np.not_equal(new_shr_domains, shr_domains)
 
 
 class Problem:
@@ -108,9 +109,8 @@ class Problem:
         new_prop_domains = propagator.compute_domains(prop_domains)
         if new_prop_domains is None:
             return None
-        new_shr_domains = np.zeros((len(self.shr_domains), 2), dtype=int)
-        shr_changes = compute_shr_changes(
-            prop_indices, prop_offsets, prop_domains, new_prop_domains, self.shr_domains, new_shr_domains
+        new_shr_domains, shr_changes = compute_shr_changes(
+            prop_indices, prop_offsets, prop_domains, new_prop_domains, self.shr_domains
         )
         if shr_changes is None:
             return None
