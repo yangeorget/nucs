@@ -13,6 +13,8 @@ MAX = 1
 
 @jit(nopython=True)
 def should_update(variables: NDArray, triggers: NDArray, changes: NDArray) -> bool:
+    if changes is None:
+        return True
     return bool(np.any(changes[variables] & triggers))
 
 
@@ -126,9 +128,9 @@ class Problem:
         :param changes: an array of changes
         :param last_propagator: the last propagator that has been filtered
         """
-        for propagator in self.propagators:
-            if last_propagator and propagator == last_propagator:
-                continue
-            if changes is not None and not should_update(propagator.variables, propagator.triggers, changes):
-                continue
-            propagators_to_filter.add(propagator)
+        propagators_to_filter.update(
+            propagator
+            for propagator in self.propagators
+            if (last_propagator is None or propagator != last_propagator)
+            and should_update(propagator.variables, propagator.triggers, changes)
+        )

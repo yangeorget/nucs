@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 import numba
+import numpy
 import numpy as np
 from numba import jit
 from numpy.typing import NDArray
@@ -161,8 +162,5 @@ def update_rank_domains(size: int, rank_domains: NDArray) -> bool:
 class AlldifferentLopezOrtiz(Propagator):
     def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
         rank_domains = np.zeros((self.size, 4), dtype=int)
-        rank_domains[:, [MIN, MAX]] = domains.copy()
-        if update_rank_domains(self.size, rank_domains):
-            return rank_domains[:, [MIN, MAX]]
-        else:
-            return None
+        rank_domains[:, [MIN, MAX]] = domains.copy()  # TODO: optimize ?
+        return rank_domains[:, [MIN, MAX]] if update_rank_domains(self.size, rank_domains) else None
