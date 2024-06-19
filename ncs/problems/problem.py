@@ -15,6 +15,22 @@ def should_update(variables: NDArray, triggers: NDArray, changes: NDArray) -> bo
     return bool(np.any(changes[variables] & triggers))
 
 
+@jit(nopython=True)
+def compute_shr_changes(
+    prop_indices: NDArray,
+    prop_offsets: NDArray,
+    prop_domains: NDArray,
+    new_prop_domains: NDArray,
+    shr_domains: NDArray,
+    new_shr_domains: NDArray,
+) -> Optional[NDArray]:
+    new_shr_domains[prop_indices, MIN] = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN]) - prop_offsets
+    new_shr_domains[prop_indices, MAX] = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX]) - prop_offsets
+    if np.any(np.greater(new_shr_domains[:, MIN], new_shr_domains[:, MAX])):
+        return None
+    return np.not_equal(new_shr_domains, shr_domains)
+
+
 class Problem:
     """
     A problem is defined by a list of variable domains and a list of propagators.
@@ -93,11 +109,11 @@ class Problem:
         if new_prop_domains is None:
             return None
         new_shr_domains = np.zeros((len(self.shr_domains), 2), dtype=int)
-        new_shr_domains[prop_indices, MIN] = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN]) - prop_offsets
-        new_shr_domains[prop_indices, MAX] = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX]) - prop_offsets
-        if np.any(np.greater(new_shr_domains[:, MIN], new_shr_domains[:, MAX])):
+        shr_changes = compute_shr_changes(
+            prop_indices, prop_offsets, prop_domains, new_prop_domains, self.shr_domains, new_shr_domains
+        )
+        if shr_changes is None:
             return None
-        shr_changes = np.not_equal(new_shr_domains, self.shr_domains)
         self.shr_domains = new_shr_domains
         return shr_changes[self.dom_indices]
 
