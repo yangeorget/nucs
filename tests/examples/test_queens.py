@@ -58,6 +58,6 @@ class TestQueens:
 
 
 if __name__ == "__main__":
-    solver = BacktrackSolver(QueensProblem(10), SmallestDomainVariableHeuristic(MinValueHeuristic()))
+    solver = BacktrackSolver(QueensProblem(11), SmallestDomainVariableHeuristic(MinValueHeuristic()))
     solver.solve_all()
     print(solver.statistics)
