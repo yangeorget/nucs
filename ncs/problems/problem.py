@@ -1,12 +1,18 @@
 from typing import Any, Dict, List, Optional, Set
 
 import numpy as np
+from numba import jit
 from numpy.typing import NDArray
 
 from ncs.propagators.propagator import Propagator
 
 MIN = 0
 MAX = 1
+
+
+@jit(nopython=True)
+def should_update(variables: NDArray, triggers: NDArray, changes: NDArray) -> bool:
+    return bool(np.any(changes[variables] & triggers))
 
 
 class Problem:
@@ -107,6 +113,6 @@ class Problem:
         for propagator in self.propagators:
             if last_propagator and propagator == last_propagator:
                 continue
-            if changes is not None and not propagator.should_update(changes):
+            if changes is not None and not should_update(propagator.variables, propagator.triggers, changes):
                 continue
             propagators_to_filter.add(propagator)
