@@ -13,9 +13,7 @@ MAX = 1
 
 @jit(nopython=True)
 def should_update(variables: NDArray, triggers: NDArray, changes: NDArray) -> bool:
-    if changes is None:
-        return True
-    return bool(np.any(changes[variables] & triggers))
+    return True if changes is None else bool(np.any(changes[variables] & triggers))
 
 
 @jit(nopython=True)

@@ -143,19 +143,17 @@ def path_max(t: NDArray, i: int) -> int:
 
 @jit(nopython=True)
 def update_rank_domains(size: int, rank_domains: NDArray) -> bool:
-    bound_len = 2 * size + 2
-    bounds = np.zeros(bound_len, dtype=numba.int32)
-    t = np.zeros(bound_len, dtype=numba.int32)
-    d = np.zeros(bound_len, dtype=numba.int32)
-    h = np.zeros(bound_len, dtype=numba.int32)
+    bounds_nb = 2 * size + 2
+    bounds = np.zeros(bounds_nb, dtype=numba.int32)
+    t = np.zeros(bounds_nb, dtype=numba.int32)
+    d = np.zeros(bounds_nb, dtype=numba.int32)
+    h = np.zeros(bounds_nb, dtype=numba.int32)
     min_sorted_vars = np.argsort(rank_domains[:, MIN])
     max_sorted_vars = np.argsort(rank_domains[:, MAX])
     nb = compute_nb(size, rank_domains, min_sorted_vars, max_sorted_vars, bounds)
-    if not filter_lower(size, nb, t, d, h, bounds, rank_domains, max_sorted_vars):
-        return False
-    if not filter_upper(size, nb, t, d, h, bounds, rank_domains, min_sorted_vars):
-        return False
-    return True
+    return filter_lower(size, nb, t, d, h, bounds, rank_domains, max_sorted_vars) and filter_upper(
+        size, nb, t, d, h, bounds, rank_domains, min_sorted_vars
+    )
 
 
 class AlldifferentLopezOrtiz(Propagator):
