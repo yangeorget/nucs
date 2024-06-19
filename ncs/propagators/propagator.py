@@ -13,6 +13,8 @@ class Propagator:
         self.size = len(variables)
         self.variables = np.array(variables)
         self.triggers = np.ones((self.size, 2), dtype=bool)
+        self.offsets = None
+        self.indices = None
 
     def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
         """

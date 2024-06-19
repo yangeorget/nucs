@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 import numba
 import numpy as np
@@ -14,7 +14,7 @@ MAX_RANK = 3
 
 @jit(nopython=True)
 def compute_nb(
-    size: int, rank_domains: NDArray, min_sorted_vars: NDArray, max_sorted_vars: NDArray, bounds: List[int]
+    size: int, rank_domains: NDArray, min_sorted_vars: NDArray, max_sorted_vars: NDArray, bounds: NDArray
 ) -> int:
     min = rank_domains[min_sorted_vars[0], MIN]
     max = rank_domains[max_sorted_vars[0], MAX] + 1

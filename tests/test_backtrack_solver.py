@@ -37,7 +37,8 @@ class TestBacktrackSolver:
         shr_domains = np.array([[0, 2], [0, 2], [4, 6]])
         dom_indices = [0, 1, 2]
         dom_offsets = [0, 0, 0]
-        problem = Problem(shr_domains, dom_indices, dom_offsets, [Sum([2, 0, 1])])
+        problem = Problem(shr_domains, dom_indices, dom_offsets)
+        problem.add_propagator(Sum([2, 0, 1]))
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert np.all(solutions == np.array([[2, 2], [2, 2], [4, 4]]))
@@ -50,7 +51,8 @@ class TestBacktrackSolver:
         shr_domains = np.array([[0, 1], [0, 1], [0, 1]])
         dom_indices = [0, 1, 2]
         dom_offsets = [0, 0, 0]
-        problem = Problem(shr_domains, dom_indices, dom_offsets, [Sum([2, 0, 1])])
+        problem = Problem(shr_domains, dom_indices, dom_offsets)
+        problem.add_propagator(Sum([2, 0, 1]))
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 3
@@ -64,7 +66,8 @@ class TestBacktrackSolver:
         shr_domains = np.array([[1, 2], [1, 2], [0, 1]])
         dom_indices = [0, 1, 2]
         dom_offsets = [0, 0, 0]
-        problem = Problem(shr_domains, dom_indices, dom_offsets, [Sum([2, 0, 1])])
+        problem = Problem(shr_domains, dom_indices, dom_offsets)
+        problem.add_propagator(Sum([2, 0, 1]))
         solver = BacktrackSolver(problem)
         for _ in solver.solve():
             pass
@@ -76,7 +79,8 @@ class TestBacktrackSolver:
         shr_domains = np.array([[0, 2], [0, 2], [0, 2]])
         dom_indices = [0, 1, 2]
         dom_offsets = [0, 0, 0]
-        problem = Problem(shr_domains, dom_indices, dom_offsets, [Alldifferent([0, 1, 2])])
+        problem = Problem(shr_domains, dom_indices, dom_offsets)
+        problem.add_propagator(Alldifferent([0, 1, 2]))
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 6

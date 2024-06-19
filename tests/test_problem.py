@@ -37,20 +37,18 @@ class TestProblem:
         assert not problem.is_not_solved()
 
     def test_filter_1(self) -> None:
-        shr_domains = np.array([[0, 2], [0, 2], [4, 6]])
-        dom_indices = [0, 1, 2]
-        dom_offsets = [0, 0, 0]
-        problem = Problem(shr_domains, dom_indices, dom_offsets, [Sum([2, 0, 1])])
+        problem = Problem(shr_domains=np.array([[0, 2], [0, 2], [4, 6]]), dom_indices=[0, 1, 2], dom_offsets=[0, 0, 0])
+        problem.add_propagator(Sum([2, 0, 1]))
         assert problem.filter()
         assert not problem.is_not_solved()
         assert np.all(problem.shr_domains == np.array([[2, 2], [2, 2], [4, 4]]))
 
     def test_filter_2(self) -> None:
-        shr_domains = np.array([[0, 0], [2, 2], [0, 2]])
-        dom_indices = [0, 1, 2, 0, 1, 2]
-        dom_offsets = [0, 0, 0, 0, 1, 2]
-        propagators = [Alldifferent([0, 1, 2]), Alldifferent([3, 4, 5])]
         problem = Problem(
-            shr_domains=shr_domains, dom_indices=dom_indices, dom_offsets=dom_offsets, propagators=propagators
+            shr_domains=np.array([[0, 0], [2, 2], [0, 2]]),
+            dom_indices=[0, 1, 2, 0, 1, 2],
+            dom_offsets=[0, 0, 0, 0, 1, 2],
         )
+        problem.add_propagator(Alldifferent([0, 1, 2]))
+        problem.add_propagator(Alldifferent([3, 4, 5]))
         assert not problem.filter()

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import numba
 import numpy as np
@@ -13,7 +13,7 @@ MAX = 1
 
 @jit(nopython=True)
 def should_update(variables: NDArray, triggers: NDArray, changes: NDArray) -> bool:
-    return True if changes is None else bool(np.any(changes[variables] & triggers))
+    return changes is None or bool(np.any(changes[variables] & triggers))
 
 
 @jit(nopython=True)
@@ -37,18 +37,17 @@ class Problem:
     A problem is defined by a list of variable domains and a list of propagators.
     """
 
-    def __init__(
-        self,
-        shr_domains: NDArray,
-        dom_indices: List[int],
-        dom_offsets: List[int],
-        propagators: Optional[List[Any]] = None,
-    ):
+    def __init__(self, shr_domains: NDArray, dom_indices: List[int], dom_offsets: List[int]):
         self.shr_domains = shr_domains
         self.size = len(dom_indices)
         self.dom_indices = np.array(dom_indices)
         self.dom_offsets = np.array(dom_offsets)
-        self.propagators = propagators if propagators is not None else []
+        self.propagators: List[Propagator] = []
+
+    def add_propagator(self, propagator: Propagator) -> None:
+        propagator.offsets = self.dom_offsets[propagator.variables]
+        propagator.indices = self.dom_indices[propagator.variables]
+        self.propagators.append(propagator)
 
     def get_domains(self) -> NDArray:
         """
@@ -103,14 +102,12 @@ class Problem:
         :param propagator: a propagator
         :return: a boolean array of variable changes
         """
-        prop_offsets = self.dom_offsets[propagator.variables]  # TODO: could be computed at init time
-        prop_indices = self.dom_indices[propagator.variables]  # TODO: could be computed at init time
-        prop_domains = self.shr_domains[prop_indices] + prop_offsets.reshape(propagator.size, 1)
+        prop_domains = self.shr_domains[propagator.indices] + propagator.offsets.reshape(propagator.size, 1)
         new_prop_domains = propagator.compute_domains(prop_domains)
         if new_prop_domains is None:
             return None
         new_shr_domains, shr_changes = compute_shr_changes(
-            prop_indices, prop_offsets, prop_domains, new_prop_domains, self.shr_domains
+            propagator.indices, propagator.offsets, prop_domains, new_prop_domains, self.shr_domains
         )
         if shr_changes is None:
             return None
