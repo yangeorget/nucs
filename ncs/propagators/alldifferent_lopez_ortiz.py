@@ -1,4 +1,5 @@
-from typing import List, Optional
+from typing import Optional, List
+from numba import jit
 
 import numpy as np
 from numpy.typing import NDArray
@@ -70,8 +71,9 @@ class AlldifferentLopezOrtiz(Propagator):
             t[i + 1] = h[i + 1] = i
             d[i + 1] = bounds[i + 1] - bounds[i]
         for i in range(0, self.size):
-            x = rank_domains[max_sorted_vars[i], MIN_RANK]
-            y = rank_domains[max_sorted_vars[i], MAX_RANK]
+            max_sorted_vars_i = max_sorted_vars[i]
+            x = rank_domains[max_sorted_vars_i, MIN_RANK]
+            y = rank_domains[max_sorted_vars_i, MAX_RANK]
             z = self.path_max(t, x + 1)
             j = t[z]
             d[z] -= 1
@@ -84,7 +86,7 @@ class AlldifferentLopezOrtiz(Propagator):
                 return False
             if h[x] > x:
                 w = self.path_max(h, h[x])
-                rank_domains[max_sorted_vars[i], MIN] = bounds[w]
+                rank_domains[max_sorted_vars_i, MIN] = bounds[w]
                 self.path_set(h, x, w, w)  # path compression
             if d[z] == bounds[z] - bounds[y]:
                 self.path_set(h, h[y], j - 1, y)  # mark hall interval
@@ -105,8 +107,9 @@ class AlldifferentLopezOrtiz(Propagator):
             t[i] = h[i] = i + 1
             d[i] = bounds[i + 1] - bounds[i]
         for i in range(self.size - 1, -1, -1):
-            x = rank_domains[min_sorted_vars[i], MAX_RANK]
-            y = rank_domains[min_sorted_vars[i], MIN_RANK]
+            min_sorted_vars_i = min_sorted_vars[i]
+            x = rank_domains[min_sorted_vars_i, MAX_RANK]
+            y = rank_domains[min_sorted_vars_i, MIN_RANK]
             z = self.path_min(t, x - 1)
             j = t[z]
             d[z] -= 1
@@ -119,26 +122,32 @@ class AlldifferentLopezOrtiz(Propagator):
                 return False
             if h[x] < x:
                 w = self.path_min(h, h[x])
-                rank_domains[min_sorted_vars[i], MAX] = bounds[w] - 1
+                rank_domains[min_sorted_vars_i, MAX] = bounds[w] - 1
                 self.path_set(h, x, w, w)  # path compression
             if d[z] == bounds[y] - bounds[z]:
                 self.path_set(h, h[y], j + 1, y)  # mark hall interval
                 h[y] = j + 1  # hall interval[bounds[j], bounds[y]]
         return True
 
-    def path_set(self, t: List[int], start: int, end: int, to: int) -> None:
+    @staticmethod
+    #@jit(nopython=True)
+    def path_set(t: List[int], start: int, end: int, to: int) -> None:
         p = start
         while p != end:
             tmp = t[p]
             t[p] = to
             p = tmp
 
-    def path_min(self, t: List[int], i: int) -> int:
+    @staticmethod
+    #@jit(nopython=True)
+    def path_min(t: List[int], i: int) -> int:
         while t[i] < i:
             i = t[i]
         return i
 
-    def path_max(self, t: List[int], i: int) -> int:
+    @staticmethod
+    #@jit(nopython=True)
+    def path_max(t: List[int], i: int) -> int:
         while t[i] > i:
             i = t[i]
         return i
