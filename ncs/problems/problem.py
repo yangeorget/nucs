@@ -12,8 +12,15 @@ MAX = 1
 
 
 @jit(nopython=True)
-def should_update(variables: NDArray, triggers: NDArray, changes: NDArray) -> bool:
-    return changes is None or bool(np.any(changes[variables] & triggers))
+def should_be_filtered(triggers: NDArray, indices: NDArray, shr_changes: NDArray) -> bool:
+    """
+    Return a boolean indicating if a propagator should be added to the set of propagators to be filtered.
+    :param triggers: the triggers of the propagator
+    :param indices: the shared domain indices of the propagator
+    :param shr_changes: the shared domain changes
+    :return: a boolean
+    """
+    return shr_changes is None or bool(np.any(shr_changes[indices] & triggers))
 
 
 @jit(nopython=True)
@@ -24,11 +31,17 @@ def compute_shr_changes(
     new_prop_domains: NDArray,
     shr_domains: NDArray,
 ) -> Tuple[Optional[NDArray], Optional[NDArray]]:
-    new_shr_domains = np.zeros((len(shr_domains), 2), dtype=numba.int32)
-    new_shr_domains[prop_indices, MIN] = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN]) - prop_offsets
-    new_shr_domains[prop_indices, MAX] = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX]) - prop_offsets
-    if np.any(np.greater(new_shr_domains[:, MIN], new_shr_domains[:, MAX])):
+    if new_prop_domains is None:
         return None, None
+    new_shr_mins = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN])
+    new_shr_maxs = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX])
+    if np.any(np.greater(new_shr_mins, new_shr_maxs)):
+        return None, None
+    new_shr_mins -= prop_offsets
+    new_shr_maxs -= prop_offsets
+    new_shr_domains = np.empty((len(shr_domains), 2), dtype=numba.int32)
+    new_shr_domains[prop_indices, MIN] = new_shr_mins
+    new_shr_domains[prop_indices, MAX] = new_shr_maxs
     return new_shr_domains, np.not_equal(new_shr_domains, shr_domains)
 
 
@@ -78,7 +91,6 @@ class Problem:
     def filter(self, changes: Optional[NDArray] = None, statistics: Optional[Dict] = None) -> bool:
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
-        :param changes: an array of boolean describing the variable domain changes
         :param statistics: where to record the statistics of the computation
         :return: False if the problem is not consistent
         """
@@ -90,10 +102,10 @@ class Problem:
             propagator = propagators_to_filter.pop()
             if statistics is not None:
                 statistics["problem.propagators.filters.nb"] += 1
-            new_changes = self.update_domains(propagator)
-            if new_changes is None:
+            shr_changes = self.update_domains(propagator)
+            if shr_changes is None:
                 return False
-            self.update_propagators_to_filter(propagators_to_filter, new_changes, propagator)
+            self.update_propagators_to_filter(propagators_to_filter, shr_changes, propagator)
         return True
 
     def update_domains(self, prop: Propagator) -> Optional[NDArray]:
@@ -102,28 +114,30 @@ class Problem:
         :param prop: a propagator
         :return: a boolean array of variable changes
         """
-        prop_domains = self.shr_domains[prop.indices] + prop.offsets.reshape(prop.size, 1)
-        prop_ndomains = prop.compute_domains(prop_domains)
-        if prop_ndomains is None:
-            return None
-        new_shr_domains, shr_changes = compute_shr_changes(prop.indices, prop.offsets, prop_domains, prop_ndomains, self.shr_domains)
-        if shr_changes is None:
-            return None
+        prop_domains = self.shr_domains[prop.indices]
+        prop_domains += prop.offsets.reshape(prop.size, 1)
+        new_prop_domains = prop.compute_domains(prop_domains)
+        new_shr_domains, shr_changes = compute_shr_changes(
+            prop.indices, prop.offsets, prop_domains, new_prop_domains, self.shr_domains
+        )
         self.shr_domains = new_shr_domains
-        return shr_changes[self.dom_indices]
+        return shr_changes
 
     def update_propagators_to_filter(
-        self, propagators_to_filter: Set[Propagator], changes: Optional[NDArray], last_propagator: Optional[Propagator]
+        self,
+        propagators_to_filter: Set[Propagator],
+        shr_changes: Optional[NDArray],
+        last_propagator: Optional[Propagator],
     ) -> None:
         """
         Updates the list of propagators that need to be filtered.
         :param propagators_to_filter: the list of propagators
-        :param changes: an array of changes
+        :param shr_changes: an array of changes
         :param last_propagator: the last propagator that has been filtered
         """
         propagators_to_filter.update(
             propagator
             for propagator in self.propagators
             if (last_propagator is None or propagator != last_propagator)
-            and should_update(propagator.variables, propagator.triggers, changes)
+            and should_be_filtered(propagator.triggers, propagator.indices, shr_changes)
         )

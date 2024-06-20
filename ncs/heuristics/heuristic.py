@@ -18,6 +18,6 @@ class Heuristic:
         Makes a choice.
         :param choice_points: the choice points
         :param problem: the problem
-        :return: the boolean array of variable changes or None if no choice can be made
+        :return: the boolean array of shared domain changes or None if no choice can be made
         """
         pass

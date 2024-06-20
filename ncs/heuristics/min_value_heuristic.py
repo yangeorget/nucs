@@ -17,7 +17,7 @@ class MinValueHeuristic(ValueHeuristic):
         domains = np.copy(problem.shr_domains)
         domains[domain_idx, MIN] += 1
         choice_points.append(domains)
-        problem.shr_domains[domain_idx, MAX] = problem.shr_domains[domain_idx, MIN]  # we update THE shared domain
-        changes = np.zeros((problem.size, 2), dtype=bool)
-        changes[:, MAX] = problem.dom_indices == domain_idx  # we changed the max of all variables sharing that domain
-        return changes
+        problem.shr_domains[domain_idx, MAX] = problem.shr_domains[domain_idx, MIN]
+        shr_changes = np.zeros((len(problem.shr_domains), 2), dtype=bool)
+        shr_changes[domain_idx, MAX] = True
+        return shr_changes

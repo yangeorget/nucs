@@ -1,1 +1,1 @@
-# optimize the use of numpy (fancy indexing)
+# optimize the use of numpy (fancy indexing, ...)
