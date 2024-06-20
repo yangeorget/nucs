@@ -158,6 +158,5 @@ def update_rank_domains(size: int, rank_domains: NDArray) -> bool:
 
 class AlldifferentLopezOrtiz(Propagator):
     def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
-        rank_domains = np.zeros((self.size, 4), dtype=int)
-        rank_domains[:, [MIN, MAX]] = domains.copy()  # TODO: optimize ?
-        return rank_domains[:, [MIN, MAX]] if update_rank_domains(self.size, rank_domains) else None
+        rank_domains = np.hstack((domains, np.zeros((self.size, 2), dtype=int)))
+        return rank_domains[:, :2] if update_rank_domains(self.size, rank_domains) else None

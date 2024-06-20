@@ -1,1 +1,1 @@
-# optimize the use of numba
+# optimize the use of numpy (fancy indexing)
