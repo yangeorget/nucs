@@ -142,7 +142,8 @@ def path_max(t: NDArray, i: int) -> int:
 
 
 @jit(nopython=True)
-def update_rank_domains(size: int, rank_domains: NDArray) -> bool:
+def compute_domains(size: int, domains: NDArray) -> Optional[NDArray]:
+    rank_domains = np.hstack((domains, np.zeros((size, 2), dtype=numba.int32)))
     bounds_nb = 2 * size + 2
     bounds = np.zeros(bounds_nb, dtype=numba.int32)
     t = np.zeros(bounds_nb, dtype=numba.int32)
@@ -151,12 +152,14 @@ def update_rank_domains(size: int, rank_domains: NDArray) -> bool:
     min_sorted_vars = np.argsort(rank_domains[:, MIN])
     max_sorted_vars = np.argsort(rank_domains[:, MAX])
     nb = compute_nb(size, rank_domains, min_sorted_vars, max_sorted_vars, bounds)
-    return filter_lower(size, nb, t, d, h, bounds, rank_domains, max_sorted_vars) and filter_upper(
-        size, nb, t, d, h, bounds, rank_domains, min_sorted_vars
+    return (
+        rank_domains[:, :2]
+        if filter_lower(size, nb, t, d, h, bounds, rank_domains, max_sorted_vars)
+        and filter_upper(size, nb, t, d, h, bounds, rank_domains, min_sorted_vars)
+        else None
     )
 
 
 class AlldifferentLopezOrtiz(Propagator):
     def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
-        rank_domains = np.hstack((domains, np.zeros((self.size, 2), dtype=int)))
-        return rank_domains[:, :2] if update_rank_domains(self.size, rank_domains) else None
+        return compute_domains(self.size, domains)

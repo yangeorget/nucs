@@ -24,6 +24,13 @@ def should_be_filtered(triggers: NDArray, indices: NDArray, shr_changes: NDArray
 
 
 @jit(nopython=True)
+def compute_prop_domains(shr_domains: NDArray, prop_indices: NDArray, prop_offsets: NDArray) -> NDArray:
+    prop_domains = shr_domains[prop_indices]
+    prop_domains += prop_offsets.reshape(prop_indices.shape[0], 1)
+    return prop_domains
+
+
+@jit(nopython=True)
 def compute_shr_changes(
     prop_indices: NDArray,
     prop_offsets: NDArray,
@@ -114,8 +121,7 @@ class Problem:
         :param prop: a propagator
         :return: a boolean array of variable changes
         """
-        prop_domains = self.shr_domains[prop.indices]
-        prop_domains += prop.offsets.reshape(prop.size, 1)
+        prop_domains = compute_prop_domains(self.shr_domains, prop.indices, prop.offsets)
         new_prop_domains = prop.compute_domains(prop_domains)
         new_shr_domains, shr_changes = compute_shr_changes(
             prop.indices, prop.offsets, prop_domains, new_prop_domains, self.shr_domains
