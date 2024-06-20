@@ -96,19 +96,17 @@ class Problem:
             self.update_propagators_to_filter(propagators_to_filter, new_changes, propagator)
         return True
 
-    def update_domains(self, propagator: Propagator) -> Optional[NDArray]:
+    def update_domains(self, prop: Propagator) -> Optional[NDArray]:
         """
         Updates problem variable domains.
-        :param propagator: a propagator
+        :param prop: a propagator
         :return: a boolean array of variable changes
         """
-        prop_domains = self.shr_domains[propagator.indices] + propagator.offsets.reshape(propagator.size, 1)
-        new_prop_domains = propagator.compute_domains(prop_domains)
-        if new_prop_domains is None:
+        prop_domains = self.shr_domains[prop.indices] + prop.offsets.reshape(prop.size, 1)
+        prop_ndomains = prop.compute_domains(prop_domains)
+        if prop_ndomains is None:
             return None
-        new_shr_domains, shr_changes = compute_shr_changes(
-            propagator.indices, propagator.offsets, prop_domains, new_prop_domains, self.shr_domains
-        )
+        new_shr_domains, shr_changes = compute_shr_changes(prop.indices, prop.offsets, prop_domains, prop_ndomains, self.shr_domains)
         if shr_changes is None:
             return None
         self.shr_domains = new_shr_domains
