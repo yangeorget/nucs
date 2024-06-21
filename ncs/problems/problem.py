@@ -40,20 +40,15 @@ def compute_shr_changes(
 ) -> Tuple[Optional[NDArray], Optional[NDArray]]:
     if new_prop_domains is None:
         return None, None
-    new_prop_mins = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN])
-    new_prop_maxs = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX])
     new_prop_bounds = np.empty((len(prop_domains),2), dtype=numba.int32)
-
-    new_prop_bounds[:, MIN] = new_prop_mins
-    new_prop_bounds[:, MAX] = new_prop_maxs
-
-    if np.any(np.greater(new_prop_mins, new_prop_maxs)):
+    new_prop_bounds[:, MIN] = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN])
+    new_prop_bounds[:, MAX] = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX])
+    if np.any(np.greater(new_prop_bounds[:, MIN], new_prop_bounds[:, MAX])):
         return None, None
-    new_prop_mins -= prop_offsets
-    new_prop_maxs -= prop_offsets
+    new_prop_bounds[:, MIN] -= prop_offsets
+    new_prop_bounds[:, MAX] -= prop_offsets
     new_shr_domains = shr_domains.copy()
-    new_shr_domains[prop_indices, MIN] = new_prop_mins
-    new_shr_domains[prop_indices, MAX] = new_prop_maxs
+    new_shr_domains[prop_indices] = new_prop_bounds
     return new_shr_domains, np.not_equal(new_shr_domains, shr_domains)
 
 
