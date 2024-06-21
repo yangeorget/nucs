@@ -11,7 +11,7 @@ MIN = 0
 MAX = 1
 
 
-@jit(nopython=True)
+@jit(nopython=True, nogil=True)
 def should_be_filtered(triggers: NDArray, indices: NDArray, shr_changes: NDArray) -> bool:
     """
     Return a boolean indicating if a propagator should be added to the set of propagators to be filtered.
@@ -23,14 +23,14 @@ def should_be_filtered(triggers: NDArray, indices: NDArray, shr_changes: NDArray
     return shr_changes is None or bool(np.any(shr_changes[indices] & triggers))
 
 
-@jit(nopython=True)
+@jit(nopython=True, nogil=True)
 def compute_prop_domains(shr_domains: NDArray, prop_indices: NDArray, prop_offsets: NDArray) -> NDArray:
     prop_domains = shr_domains[prop_indices]
     prop_domains += prop_offsets.reshape(prop_indices.shape[0], 1)
     return prop_domains
 
 
-@jit(nopython=True)
+@jit(nopython=True, nogil=True)
 def compute_shr_changes(
     prop_indices: NDArray,
     prop_offsets: NDArray,
@@ -40,15 +40,20 @@ def compute_shr_changes(
 ) -> Tuple[Optional[NDArray], Optional[NDArray]]:
     if new_prop_domains is None:
         return None, None
-    new_shr_mins = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN])
-    new_shr_maxs = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX])
-    if np.any(np.greater(new_shr_mins, new_shr_maxs)):
+    new_prop_mins = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN])
+    new_prop_maxs = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX])
+    new_prop_bounds = np.empty((len(prop_domains),2), dtype=numba.int32)
+
+    new_prop_bounds[:, MIN] = new_prop_mins
+    new_prop_bounds[:, MAX] = new_prop_maxs
+
+    if np.any(np.greater(new_prop_mins, new_prop_maxs)):
         return None, None
-    new_shr_mins -= prop_offsets
-    new_shr_maxs -= prop_offsets
-    new_shr_domains = np.empty((len(shr_domains), 2), dtype=numba.int32)
-    new_shr_domains[prop_indices, MIN] = new_shr_mins
-    new_shr_domains[prop_indices, MAX] = new_shr_maxs
+    new_prop_mins -= prop_offsets
+    new_prop_maxs -= prop_offsets
+    new_shr_domains = shr_domains.copy()
+    new_shr_domains[prop_indices, MIN] = new_prop_mins
+    new_shr_domains[prop_indices, MAX] = new_prop_maxs
     return new_shr_domains, np.not_equal(new_shr_domains, shr_domains)
 
 
