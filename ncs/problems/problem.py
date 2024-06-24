@@ -24,23 +24,39 @@ def should_be_filtered(triggers: NDArray, indices: NDArray, shr_changes: NDArray
 
 
 @jit(nopython=True, nogil=True)
-def compute_prop_domains(shr_domains: NDArray, prop_indices: NDArray, prop_offsets: NDArray) -> NDArray:
+def compute_propagator_domains(shr_domains: NDArray, prop_indices: NDArray, prop_offsets: NDArray) -> NDArray:
+    """
+    Computes the domains of the variables of a propagator.
+    :param shr_domains: the shared domains
+    :param prop_indices: the indices
+    :param prop_offsets: the offsets
+    :return: a NDArray of domains
+    """
     prop_domains = shr_domains[prop_indices]
     prop_domains += prop_offsets.reshape(prop_indices.shape[0], 1)
     return prop_domains
 
 
 @jit(nopython=True, nogil=True)
-def compute_shr_changes(
+def compute_shared_domains_changes(
     prop_indices: NDArray,
     prop_offsets: NDArray,
     prop_domains: NDArray,
     new_prop_domains: NDArray,
     shr_domains: NDArray,
 ) -> Tuple[Optional[NDArray], Optional[NDArray]]:
+    """
+    Computes the changes of the shared domains when a propagator is applied.
+    :param prop_indices: the indices for the propagator variables
+    :param prop_offsets: the offsets for the propagator variables
+    :param prop_domains: the domains of the propagator variables
+    :param new_prop_domains: the new domains of the propagator variables
+    :param shr_domains: the shared domains
+    :return: two elements: the new shared domains and None if an inconsistency is detected or an NDArray of changes
+    """
     if new_prop_domains is None:
         return None, None
-    new_prop_bounds = np.empty((len(prop_domains),2), dtype=numba.int32)
+    new_prop_bounds = np.empty((len(prop_domains), 2), dtype=numba.int32)
     new_prop_bounds[:, MIN] = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN])
     new_prop_bounds[:, MAX] = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX])
     if np.any(np.greater(new_prop_bounds[:, MIN], new_prop_bounds[:, MAX])):
@@ -74,7 +90,9 @@ class Problem:
         Returns the domains of the problem variables.
         :return: an NDArray
         """
-        return self.shr_domains[self.dom_indices] + self.dom_offsets.reshape(self.size, 1)
+        domains = self.shr_domains[self.dom_indices]
+        domains += self.dom_offsets.reshape(self.size, 1)
+        return domains
 
     def is_not_instantiated(self, var_idx: int) -> bool:
         """
@@ -119,11 +137,11 @@ class Problem:
         """
         Updates problem variable domains.
         :param prop: a propagator
-        :return: a boolean array of variable changes
+        :return: a boolean array of shared domain changes
         """
-        prop_domains = compute_prop_domains(self.shr_domains, prop.indices, prop.offsets)
+        prop_domains = compute_propagator_domains(self.shr_domains, prop.indices, prop.offsets)
         new_prop_domains = prop.compute_domains(prop_domains)
-        new_shr_domains, shr_changes = compute_shr_changes(
+        new_shr_domains, shr_changes = compute_shared_domains_changes(
             prop.indices, prop.offsets, prop_domains, new_prop_domains, self.shr_domains
         )
         self.shr_domains = new_shr_domains
@@ -141,6 +159,7 @@ class Problem:
         :param shr_changes: an array of changes
         :param last_propagator: the last propagator that has been filtered
         """
+        # TODO : jit
         propagators_to_filter.update(
             propagator
             for propagator in self.propagators
