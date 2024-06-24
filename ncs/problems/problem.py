@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Tuple, Set
 
 import numba
 import numpy as np
@@ -79,6 +79,7 @@ class Problem:
         self.dom_indices = np.array(dom_indices)
         self.dom_offsets = np.array(dom_offsets)
         self.propagators: List[Propagator] = []
+        self.propagators_to_filter: Set[Propagator] = set()
 
     def add_propagator(self, propagator: Propagator) -> None:
         propagator.offsets = self.dom_offsets[propagator.variables]
@@ -121,16 +122,15 @@ class Problem:
         """
         if statistics is not None:
             statistics["problem.filters.nb"] += 1
-        propagators_to_filter: Set[Propagator] = set()
-        self.update_propagators_to_filter(propagators_to_filter, changes, None)
-        while len(propagators_to_filter) > 0:
-            propagator = propagators_to_filter.pop()
+        self.init_propagators_to_filter(changes)
+        while len(self.propagators_to_filter) > 0:
+            propagator = self.propagators_to_filter.pop()
             if statistics is not None:
                 statistics["problem.propagators.filters.nb"] += 1
             shr_changes = self.update_domains(propagator)
             if shr_changes is None:
                 return False
-            self.update_propagators_to_filter(propagators_to_filter, shr_changes, propagator)
+            self.update_propagators_to_filter(shr_changes, propagator)
         return True
 
     def update_domains(self, prop: Propagator) -> Optional[NDArray]:
@@ -147,22 +147,27 @@ class Problem:
         self.shr_domains = new_shr_domains
         return shr_changes
 
+    def init_propagators_to_filter(self, shr_changes: Optional[NDArray]) -> None:
+        self.propagators_to_filter.clear()
+        self.propagators_to_filter.update(
+            propagator
+            for propagator in self.propagators
+            if should_be_filtered(propagator.triggers, propagator.indices, shr_changes)
+        )
+
     def update_propagators_to_filter(
         self,
-        propagators_to_filter: Set[Propagator],
         shr_changes: Optional[NDArray],
         last_propagator: Optional[Propagator],
     ) -> None:
         """
         Updates the list of propagators that need to be filtered.
-        :param propagators_to_filter: the list of propagators
         :param shr_changes: an array of changes
         :param last_propagator: the last propagator that has been filtered
         """
-        # TODO : jit
-        propagators_to_filter.update(
+        self.propagators_to_filter.update(
             propagator
             for propagator in self.propagators
-            if (last_propagator is None or propagator != last_propagator)
+            if propagator != last_propagator
             and should_be_filtered(propagator.triggers, propagator.indices, shr_changes)
         )
