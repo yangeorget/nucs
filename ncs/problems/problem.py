@@ -101,8 +101,8 @@ class Problem:
         :param var_idx: the index of the variable
         :return: True iff the variable is not instantiated
         """
-        var_domain = self.dom_indices[var_idx]
-        return bool(self.shr_domains[var_domain, MIN] < self.shr_domains[var_domain, MAX])
+        domain = self.shr_domains[self.dom_indices[var_idx]]
+        return bool(domain[MIN] < domain[MAX])
 
     def is_not_solved(self) -> bool:
         """
@@ -123,7 +123,7 @@ class Problem:
         if statistics is not None:
             statistics["problem.filters.nb"] += 1
         self.init_propagators_to_filter(changes)
-        while len(self.propagators_to_filter) > 0:
+        while bool(self.propagators_to_filter):
             propagator = self.propagators_to_filter.pop()
             if statistics is not None:
                 statistics["problem.propagators.filters.nb"] += 1
