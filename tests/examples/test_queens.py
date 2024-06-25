@@ -2,7 +2,7 @@ from ncs.heuristics.min_value_heuristic import MinValueHeuristic
 from ncs.heuristics.smallest_domain_variable_heuristic import (
     SmallestDomainVariableHeuristic,
 )
-from ncs.problems.queens_problem import QueensProblem
+from ncs.problems.queens.queens_problem import QueensProblem
 from ncs.solvers.backtrack_solver import BacktrackSolver
 
 
