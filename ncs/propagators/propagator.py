@@ -11,7 +11,7 @@ class Propagator:
 
     def __init__(self, variables: List[int]):
         self.size = len(variables)
-        self.variables = np.array(variables)
+        self.variables = np.array(variables, dtype=np.uint16)
         self.triggers = np.ones((self.size, 2), dtype=bool)
         self.offsets = np.empty((self.size, 1), dtype=int)
         self.indices = np.empty((self.size, 1), dtype=int)

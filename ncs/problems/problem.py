@@ -1,6 +1,5 @@
 from typing import Dict, List, Optional, Set, Tuple
 
-import numba
 import numpy as np
 from numba import jit
 from numpy.typing import NDArray
@@ -56,7 +55,7 @@ def compute_shared_domains_changes(
     """
     if new_prop_domains is None:
         return None, None
-    new_prop_bounds = np.empty((len(prop_domains), 2), dtype=numba.int32)
+    new_prop_bounds = np.empty((len(prop_domains), 2), dtype=np.int32)
     new_prop_bounds[:, MIN] = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN])
     new_prop_bounds[:, MAX] = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX])
     if np.any(np.greater(new_prop_bounds[:, MIN], new_prop_bounds[:, MAX])):
@@ -75,9 +74,9 @@ class Problem:
 
     def __init__(self, shr_domains: List[Tuple[int, int]], dom_indices: List[int], dom_offsets: List[int]):
         self.size = len(dom_indices)
-        self.shr_domains = np.array(shr_domains).reshape(len(shr_domains), 2)
-        self.dom_indices = np.array(dom_indices)
-        self.dom_offsets = np.array(dom_offsets)
+        self.shr_domains = np.array(shr_domains, dtype=np.int32).reshape(len(shr_domains), 2)
+        self.dom_indices = np.array(dom_indices, dtype=np.uint16)
+        self.dom_offsets = np.array(dom_offsets, dtype=np.int32)
         self.propagators: List[Propagator] = []
         self.propagators_to_filter: Set[Propagator] = set()
 
