@@ -1,4 +1,4 @@
-from typing import Iterator, Optional
+from typing import Iterator, List, Optional
 
 from numpy.typing import NDArray
 
@@ -18,7 +18,7 @@ class BacktrackSolver(Solver):
         self.statistics["solver.cp.max"] = 0
         self.statistics["solver.choices.nb"] = 0
 
-    def solve(self) -> Iterator[NDArray]:
+    def solve(self) -> Iterator[List[int]]:
         while True:
             solution = self.solve_one()
             if solution is None:
@@ -28,7 +28,7 @@ class BacktrackSolver(Solver):
             if not self.backtrack():
                 break
 
-    def solve_one(self) -> Optional[NDArray]:
+    def solve_one(self) -> Optional[List[int]]:
         if not self.filter():
             return None
         while self.problem.is_not_solved():
@@ -37,7 +37,7 @@ class BacktrackSolver(Solver):
             self.statistics["solver.cp.max"] = max(len(self.choice_points), self.statistics["solver.cp.max"])
             if not self.filter(changes):
                 return None
-        return self.problem.get_domains()  # problem is solved
+        return self.problem.get_values()  # problem is solved
 
     def backtrack(self) -> bool:
         """

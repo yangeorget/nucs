@@ -9,7 +9,7 @@ from ncs.problems.problem import MAX, Problem
 
 class TestMinValueHeuristic:
     def test_choose(self) -> None:
-        shr_domains = np.array([[0, 0], [0, 2]])
+        shr_domains = [(0, 0), (0, 2)]
         dom_indices = [0, 1]
         dom_offsets = [0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)

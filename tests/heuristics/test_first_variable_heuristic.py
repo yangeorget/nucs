@@ -10,14 +10,14 @@ from ncs.problems.problem import MAX, Problem
 
 class TestFirstVariableHeuristic:
     def test_choose_variable(self) -> None:
-        shr_domains = np.array([[0, 0], [0, 2]])
+        shr_domains = [(0, 0), (0, 2)]
         dom_indices = [0, 1]
         dom_offsets = [0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
         assert FirstVariableHeuristic(MinValueHeuristic()).choose_variable(problem) == 1
 
     def test_choose(self) -> None:
-        shr_domains = np.array([[0, 0], [0, 2]])
+        shr_domains = [(0, 0), (0, 2)]
         dom_indices = [0, 1]
         dom_offsets = [0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)

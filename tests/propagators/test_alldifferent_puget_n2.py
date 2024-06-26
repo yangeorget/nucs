@@ -2,7 +2,7 @@ from typing import List
 
 from ncs.propagators.alldifferent_puget_n2 import AlldifferentPugetN2
 from ncs.propagators.propagator import Propagator
-from tests.alldifferent_abstract_test import AlldifferentAbstractTest
+from tests.propagators.alldifferent_abstract_test import AlldifferentAbstractTest
 
 
 class TestAlldifferentPugetN2(AlldifferentAbstractTest):

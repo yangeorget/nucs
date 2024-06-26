@@ -1,5 +1,4 @@
-import numpy as np
-from numpy.typing import NDArray
+from typing import List
 
 from ncs.problems.problem import Problem
 from ncs.propagators.alldifferent import Alldifferent
@@ -7,15 +6,14 @@ from ncs.propagators.alldifferent import Alldifferent
 
 class SudokuProblem(Problem):
 
-    def __init__(self, givens: NDArray):
-        super().__init__(
-            np.array(self.build_domains(givens)).reshape(9, 2),
-            #list(range(0, 81)),
-            #list(range(0, 81)),
-        )
+    def __init__(self, givens: List[List[int]]):
+        shr_domains = [(1, 9) if given == 0 else (given, given) for line in givens for given in line]
+        indices = list(range(0, 81))
+        offsets = [0] * 81
+        super().__init__(shr_domains, indices, offsets)
         for i in range(0, 9):
             self.add_propagator(Alldifferent(list(range(0 + i * 9, 9 + i * 9))))
-            self.add_propagator(Alldifferent(list(range(0 + i, 72 + i, 9))))
+            self.add_propagator(Alldifferent(list(range(0 + i, 81 + i, 9))))
         for i in range(0, 3):
             for j in range(0, 3):
                 self.add_propagator(
@@ -34,5 +32,6 @@ class SudokuProblem(Problem):
                     )
                 )
 
-    def build_domains(self, givens: NDArray):
-        pass
+    def pretty_print(self, solution: List[int]) -> None:
+        for i in range(0, 81, 9):
+            print(solution[i : i + 9])

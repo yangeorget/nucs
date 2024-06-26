@@ -2,7 +2,7 @@ from typing import List
 
 from ncs.propagators.alldifferent_lopez_ortiz import AlldifferentLopezOrtiz
 from ncs.propagators.propagator import Propagator
-from tests.alldifferent_abstract_test import AlldifferentAbstractTest
+from tests.propagators.alldifferent_abstract_test import AlldifferentAbstractTest
 
 
 class TestAlldifferentLopezOrtiz(AlldifferentAbstractTest):

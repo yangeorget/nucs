@@ -12,15 +12,15 @@ MAX = 1
 
 
 @jit(nopython=True, nogil=True)
-def should_be_filtered(triggers: NDArray, indices: NDArray, shr_changes: NDArray) -> bool:
+def should_be_filtered(prop_triggers: NDArray, prop_indices: NDArray, shr_changes: NDArray) -> bool:
     """
     Return a boolean indicating if a propagator should be added to the set of propagators to be filtered.
-    :param triggers: the triggers of the propagator
-    :param indices: the shared domain indices of the propagator
+    :param prop_triggers: the triggers of the propagator
+    :param prop_indices: the shared domain indices of the propagator
     :param shr_changes: the shared domain changes
     :return: a boolean
     """
-    return shr_changes is None or bool(np.any(shr_changes[indices] & triggers))
+    return shr_changes is None or bool(np.any(shr_changes[prop_indices] & prop_triggers))
 
 
 @jit(nopython=True, nogil=True)
@@ -73,9 +73,9 @@ class Problem:
     A problem is defined by a list of variable domains and a list of propagators.
     """
 
-    def __init__(self, shr_domains: NDArray, dom_indices: List[int], dom_offsets: List[int]):
-        self.shr_domains = shr_domains
+    def __init__(self, shr_domains: List[Tuple[int, int]], dom_indices: List[int], dom_offsets: List[int]):
         self.size = len(dom_indices)
+        self.shr_domains = np.array(shr_domains).reshape(len(shr_domains), 2)
         self.dom_indices = np.array(dom_indices)
         self.dom_offsets = np.array(dom_offsets)
         self.propagators: List[Propagator] = []
@@ -95,6 +95,11 @@ class Problem:
         domains += self.dom_offsets.reshape(self.size, 1)
         return domains
 
+    def get_values(self) -> List[int]:
+        assert not self.is_not_solved()
+        domains = self.get_domains()
+        return domains[:, MIN].tolist()
+
     def is_not_instantiated(self, var_idx: int) -> bool:
         """
         Returns a boolean indicating if a variable is not instantiated.
@@ -109,7 +114,7 @@ class Problem:
         Returns true iff the problem is not solved.
         :return: a boolean
         """
-        return np.any(np.not_equal(self.shr_domains[:, MIN], self.shr_domains[:, MAX]))  # type: ignore
+        return bool(np.any(np.not_equal(self.shr_domains[:, MIN], self.shr_domains[:, MAX])))
 
     def __str__(self) -> str:
         return f"domains={self.shr_domains}, propagators={self.propagators}"
@@ -171,3 +176,6 @@ class Problem:
             if propagator != last_propagator
             and should_be_filtered(propagator.triggers, propagator.indices, shr_changes)
         )
+
+    def pretty_print(self, solution: List[int]) -> None:
+        print(solution)
