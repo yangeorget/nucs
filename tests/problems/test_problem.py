@@ -59,12 +59,11 @@ class TestProblem:
             dom_indices=[0, 1, 2],
             dom_offsets=[0, 0, 0],
         )
-        new_shr_domains, shr_domain_changes = compute_shared_domains_changes(
+        shr_domain_changes = compute_shared_domains_changes(
             prop_indices=np.array([0, 1]),
             prop_offsets=np.array([0, 0]),
             prop_domains=np.array([(0, 2), (0, 2)]),
             new_prop_domains=np.array([(0, 1), (1, 2)]),
             shr_domains=problem.shr_domains,
         )
-        assert np.all(np.equal(new_shr_domains, np.array([(0, 1), (1, 2), (0, 2)])))
         assert np.all(np.equal(shr_domain_changes, np.array([(False, True), (True, False), (False, False)])))

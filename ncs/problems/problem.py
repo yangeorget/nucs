@@ -10,6 +10,23 @@ MIN = 0
 MAX = 1
 
 
+def update_propagators_to_filter(
+    propagators_to_filter: Set[Propagator],
+    propagators: List[Propagator],
+    last_propagator: Optional[Propagator],
+    shr_changes: Optional[NDArray],
+) -> None:
+    if shr_changes is None:
+        propagators_to_filter.update(propagator for propagator in propagators if propagator != last_propagator)
+    else:
+        propagators_to_filter.update(
+            propagator
+            for propagator in propagators
+            if propagator != last_propagator
+            and should_be_filtered(propagator.triggers, propagator.indices, shr_changes)
+        )
+
+
 @jit(nopython=True, nogil=True)
 def should_be_filtered(prop_triggers: NDArray, prop_indices: NDArray, shr_changes: NDArray) -> bool:
     """
@@ -43,7 +60,7 @@ def compute_shared_domains_changes(
     prop_domains: NDArray,
     new_prop_domains: NDArray,
     shr_domains: NDArray,
-) -> Tuple[Optional[NDArray], Optional[NDArray]]:
+) -> Optional[NDArray]:
     """
     Computes the changes of the shared domains when a propagator is applied.
     :param prop_indices: the indices for the propagator variables
@@ -51,20 +68,20 @@ def compute_shared_domains_changes(
     :param prop_domains: the domains of the propagator variables
     :param new_prop_domains: the new domains of the propagator variables
     :param shr_domains: the shared domains
-    :return: two elements: the new shared domains and None if an inconsistency is detected or an NDArray of changes
+    :return: None if an inconsistency is detected or an NDArray of changes
     """
     if new_prop_domains is None:
-        return None, None
-    new_prop_bounds = np.empty((len(prop_domains), 2), dtype=np.int32)
-    new_prop_bounds[:, MIN] = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN])
-    new_prop_bounds[:, MAX] = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX])
-    if np.any(np.greater(new_prop_bounds[:, MIN], new_prop_bounds[:, MAX])):
-        return None, None
-    new_prop_bounds[:, MIN] -= prop_offsets
-    new_prop_bounds[:, MAX] -= prop_offsets
-    new_shr_domains = shr_domains.copy()
-    new_shr_domains[prop_indices] = new_prop_bounds
-    return new_shr_domains, np.not_equal(new_shr_domains, shr_domains)
+        return None
+    size = len(prop_indices)
+    new_prop_mins = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN])
+    new_prop_maxs = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX])
+    if np.any(np.greater(new_prop_mins, new_prop_maxs)):
+        return None
+    old_shr_domains = shr_domains.copy()
+    shr_domains[prop_indices] = np.hstack(
+        (new_prop_mins.reshape(size, 1), new_prop_maxs.reshape(size, 1))
+    ) - prop_offsets.reshape(size, 1)
+    return np.not_equal(old_shr_domains, shr_domains)
 
 
 class Problem:
@@ -126,55 +143,21 @@ class Problem:
         """
         if statistics is not None:
             statistics["problem.filters.nb"] += 1
-        self.init_propagators_to_filter(changes)
+        self.propagators_to_filter.clear()
+        update_propagators_to_filter(self.propagators_to_filter, self.propagators, None, changes)
         while bool(self.propagators_to_filter):
             propagator = self.propagators_to_filter.pop()
             if statistics is not None:
                 statistics["problem.propagators.filters.nb"] += 1
-            shr_changes = self.update_domains(propagator)
+            prop_domains = compute_propagator_domains(self.shr_domains, propagator.indices, propagator.offsets)
+            new_prop_domains = propagator.compute_domains(prop_domains)
+            shr_changes = compute_shared_domains_changes(
+                propagator.indices, propagator.offsets, prop_domains, new_prop_domains, self.shr_domains
+            )
             if shr_changes is None:
                 return False
-            self.update_propagators_to_filter(shr_changes, propagator)
+            update_propagators_to_filter(self.propagators_to_filter, self.propagators, propagator, shr_changes)
         return True
-
-    def update_domains(self, prop: Propagator) -> Optional[NDArray]:
-        """
-        Updates problem variable domains.
-        :param prop: a propagator
-        :return: a boolean array of shared domain changes
-        """
-        prop_domains = compute_propagator_domains(self.shr_domains, prop.indices, prop.offsets)
-        new_prop_domains = prop.compute_domains(prop_domains)
-        new_shr_domains, shr_changes = compute_shared_domains_changes(
-            prop.indices, prop.offsets, prop_domains, new_prop_domains, self.shr_domains
-        )
-        self.shr_domains = new_shr_domains
-        return shr_changes
-
-    def init_propagators_to_filter(self, shr_changes: Optional[NDArray]) -> None:
-        self.propagators_to_filter.clear()
-        self.propagators_to_filter.update(
-            propagator
-            for propagator in self.propagators
-            if should_be_filtered(propagator.triggers, propagator.indices, shr_changes)
-        )
-
-    def update_propagators_to_filter(
-        self,
-        shr_changes: Optional[NDArray],
-        last_propagator: Optional[Propagator],
-    ) -> None:
-        """
-        Updates the list of propagators that need to be filtered.
-        :param shr_changes: an array of changes
-        :param last_propagator: the last propagator that has been filtered
-        """
-        self.propagators_to_filter.update(
-            propagator
-            for propagator in self.propagators
-            if propagator != last_propagator
-            and should_be_filtered(propagator.triggers, propagator.indices, shr_changes)
-        )
 
     def pretty_print(self, solution: List[int]) -> None:
         print(solution)
