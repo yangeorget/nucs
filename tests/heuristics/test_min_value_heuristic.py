@@ -4,7 +4,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ncs.heuristics.min_value_heuristic import MinValueHeuristic
-from ncs.problems.problem import MAX, Problem
+from ncs.problems.problem import Problem
+from ncs.utils import MAX
 
 
 class TestMinValueHeuristic:

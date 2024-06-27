@@ -4,8 +4,7 @@ import numpy as np
 from numba import jit
 from numpy.typing import NDArray
 
-from ncs.problems.problem import MAX, MIN
-from ncs.propagators.propagator import Propagator
+from ncs.utils import MAX, MIN
 
 MIN_RANK = 2
 MAX_RANK = 3
@@ -141,7 +140,8 @@ def path_max(t: NDArray, i: int) -> int:
 
 
 @jit(nopython=True, nogil=True)
-def compute_domains(size: int, domains: NDArray) -> Optional[NDArray]:
+def compute_domains(domains: NDArray) -> Optional[NDArray]:
+    size = len(domains)
     rank_domains = np.hstack((domains, np.zeros((size, 2), dtype=np.uint16)))
     bounds_nb = 2 * size + 2
     bounds = np.zeros(bounds_nb, dtype=np.int32)
@@ -157,8 +157,3 @@ def compute_domains(size: int, domains: NDArray) -> Optional[NDArray]:
         and filter_upper(size, nb, t, d, h, bounds, rank_domains, min_sorted_vars)
         else None
     )
-
-
-class AlldifferentLopezOrtiz(Propagator):
-    def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
-        return compute_domains(self.size, domains)

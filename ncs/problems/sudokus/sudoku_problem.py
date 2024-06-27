@@ -1,7 +1,7 @@
 from typing import List
 
 from ncs.problems.problem import Problem
-from ncs.propagators.alldifferent import Alldifferent
+from ncs.propagators.propagator import Propagator
 
 
 class SudokuProblem(Problem):
@@ -12,12 +12,12 @@ class SudokuProblem(Problem):
         offsets = [0] * 81
         super().__init__(shr_domains, indices, offsets)
         for i in range(0, 9):
-            self.add_propagator(Alldifferent(list(range(0 + i * 9, 9 + i * 9))))
-            self.add_propagator(Alldifferent(list(range(0 + i, 81 + i, 9))))
+            self.add_propagator(Propagator(list(range(0 + i * 9, 9 + i * 9)), "alldifferent_lopez_ortiz"))
+            self.add_propagator(Propagator(list(range(0 + i, 81 + i, 9)), "alldifferent_lopez_ortiz"))
         for i in range(0, 3):
             for j in range(0, 3):
                 self.add_propagator(
-                    Alldifferent(
+                    Propagator(
                         [
                             0 + i * 27 + j * 3,
                             1 + i * 27 + j * 3,
@@ -28,7 +28,8 @@ class SudokuProblem(Problem):
                             18 + i * 27 + j * 3,
                             19 + i * 27 + j * 3,
                             20 + i * 27 + j * 3,
-                        ]
+                        ],
+                        "alldifferent_lopez_ortiz",
                     )
                 )
 

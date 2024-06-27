@@ -1,8 +1,7 @@
 import numpy as np
 
 from ncs.problems.problem import Problem, compute_shared_domains_changes
-from ncs.propagators.alldifferent import Alldifferent
-from ncs.propagators.sum import Sum
+from ncs.propagators.propagator import Propagator
 
 
 class TestProblem:
@@ -38,7 +37,7 @@ class TestProblem:
 
     def test_filter_1(self) -> None:
         problem = Problem(shr_domains=[(0, 2), (0, 2), (4, 6)], dom_indices=[0, 1, 2], dom_offsets=[0, 0, 0])
-        problem.add_propagator(Sum([2, 0, 1]))
+        problem.add_propagator(Propagator([2, 0, 1], "sum"))
         assert problem.filter()
         assert not problem.is_not_solved()
         assert np.all(problem.shr_domains == np.array([[2, 2], [2, 2], [4, 4]]))
@@ -49,8 +48,8 @@ class TestProblem:
             dom_indices=[0, 1, 2, 0, 1, 2],
             dom_offsets=[0, 0, 0, 0, 1, 2],
         )
-        problem.add_propagator(Alldifferent([0, 1, 2]))
-        problem.add_propagator(Alldifferent([3, 4, 5]))
+        problem.add_propagator(Propagator([0, 1, 2], "alldifferent_lopez_ortiz"))
+        problem.add_propagator(Propagator([3, 4, 5], "alldifferent_lopez_ortiz"))
         assert not problem.filter()
 
     def test_compute_shr_domain_changes(self) -> None:

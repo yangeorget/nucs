@@ -1,6 +1,5 @@
 from ncs.problems.problem import Problem
-from ncs.propagators.alldifferent import Alldifferent
-from ncs.propagators.sum import Sum
+from ncs.propagators.propagator import Propagator
 from ncs.solvers.backtrack_solver import BacktrackSolver
 
 
@@ -36,7 +35,7 @@ class TestBacktrackSolver:
         dom_indices = [0, 1, 2]
         dom_offsets = [0, 0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
-        problem.add_propagator(Sum([2, 0, 1]))
+        problem.add_propagator(Propagator([2, 0, 1], "sum"))
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert solutions == [[2, 2, 4]]
@@ -50,7 +49,7 @@ class TestBacktrackSolver:
         dom_indices = [0, 1, 2]
         dom_offsets = [0, 0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
-        problem.add_propagator(Sum([2, 0, 1]))
+        problem.add_propagator(Propagator([2, 0, 1], "sum"))
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 3
@@ -65,7 +64,7 @@ class TestBacktrackSolver:
         dom_indices = [0, 1, 2]
         dom_offsets = [0, 0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
-        problem.add_propagator(Sum([2, 0, 1]))
+        problem.add_propagator(Propagator([2, 0, 1], "sum"))
         solver = BacktrackSolver(problem)
         for _ in solver.solve():
             pass
@@ -78,7 +77,7 @@ class TestBacktrackSolver:
         dom_indices = [0, 1, 2]
         dom_offsets = [0, 0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
-        problem.add_propagator(Alldifferent([0, 1, 2]))
+        problem.add_propagator(Propagator([0, 1, 2], "alldifferent_lopez_ortiz"))
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 6

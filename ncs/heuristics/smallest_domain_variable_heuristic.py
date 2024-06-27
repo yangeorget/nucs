@@ -1,7 +1,8 @@
 import numpy as np
 
 from ncs.heuristics.variable_heuristic import VariableHeuristic
-from ncs.problems.problem import MAX, MIN, Problem
+from ncs.problems.problem import Problem
+from ncs.utils import MAX, MIN
 
 
 class SmallestDomainVariableHeuristic(VariableHeuristic):

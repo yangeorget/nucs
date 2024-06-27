@@ -5,7 +5,8 @@ from numpy.typing import NDArray
 
 from ncs.heuristics.first_variable_heuristic import FirstVariableHeuristic
 from ncs.heuristics.min_value_heuristic import MinValueHeuristic
-from ncs.problems.problem import MAX, Problem
+from ncs.problems.problem import Problem
+from ncs.utils import MAX
 
 
 class TestFirstVariableHeuristic:

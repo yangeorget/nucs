@@ -7,7 +7,8 @@ from ncs.heuristics.min_value_heuristic import MinValueHeuristic
 from ncs.heuristics.smallest_domain_variable_heuristic import (
     SmallestDomainVariableHeuristic,
 )
-from ncs.problems.problem import MAX, Problem
+from ncs.problems.problem import Problem
+from ncs.utils import MAX
 
 
 class TestSmallestDomainVariableHeuristic:

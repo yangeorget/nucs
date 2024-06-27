@@ -1,25 +1,33 @@
 from typing import List, Optional
 
+import numba
 import numpy as np
+from numba.experimental import jitclass
 from numpy.typing import NDArray
 
+from ncs.propagators import alldifferent_lopez_ortiz, sum
 
+
+@jitclass([
+    ('size', numba.uint16),
+    ('variables', numba.uint16[:]),
+    ('triggers', numba.boolean[:,:]),
+    ('offsets', numba.int32[:]),
+    ('indices', numba.uint16[:]),
+    ('name', numba.types.string)
+])
 class Propagator:
-    """
-    Abstraction for a bound-consistency algorithm.
-    """
-
-    def __init__(self, variables: List[int]):
-        self.size = len(variables)
-        self.variables = np.array(variables, dtype=np.uint16)
-        self.triggers = np.ones((self.size, 2), dtype=bool)
-        self.offsets = np.empty((self.size, 1), dtype=int)
-        self.indices = np.empty((self.size, 1), dtype=int)
+    def __init__(self, vars: List[int], name: str):
+        self.size = len(vars)
+        self.variables = np.array(vars, dtype=np.uint16)
+        self.triggers = np.full((self.size, 2), True, dtype=bool)
+        self.offsets = np.full((self.size, 1), 0, dtype=np.int32)
+        self.indices = np.full((self.size, 1), 0, dtype=np.uint16)
+        self.name = name
 
     def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
-        """
-        Computes new domains for the variables
-        :param domains: the initial domains
-        :return: the new domains or None if there is an inconsistency
-        """
+        if self.name == "alldifferent_lopez_ortiz":
+            return alldifferent_lopez_ortiz.compute_domains(domains)
+        if self.name == "sum":
+            return sum.compute_domains(domains)
         return None

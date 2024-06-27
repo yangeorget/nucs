@@ -1,30 +1,52 @@
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, Optional, Tuple, List
 
 import numpy as np
 from numba import jit
 from numpy.typing import NDArray
 
 from ncs.propagators.propagator import Propagator
-
-MIN = 0
-MAX = 1
+from ncs.utils import MAX, MIN
 
 
-def update_propagators_to_filter(
-    propagators_to_filter: Set[Propagator],
-    propagators: List[Propagator],
-    last_propagator: Optional[Propagator],
-    shr_changes: Optional[NDArray],
-) -> None:
-    if shr_changes is None:
-        propagators_to_filter.update(propagator for propagator in propagators if propagator != last_propagator)
+def filter(
+    propagators: List[Propagator], shr_domains: NDArray, changes: Optional[NDArray], statistics: Optional[Dict]
+) -> bool:
+    if statistics is not None:
+        statistics["problem.filters.nb"] += 1
+    if changes is None:  # this is an initialization
+        propagators_to_filter = np.ones(len(propagators), dtype=bool)
     else:
-        propagators_to_filter.update(
-            propagator
-            for propagator in propagators
-            if propagator != last_propagator
-            and should_be_filtered(propagator.triggers, propagator.indices, shr_changes)
+        propagators_to_filter = np.zeros(len(propagators), dtype=bool)
+        update_propagators_to_filter(propagators_to_filter, propagators, -1, changes)
+    while np.any(propagators_to_filter):
+        propagator_idx = int(np.argmax(propagators_to_filter))
+        propagators_to_filter[propagator_idx] = False
+        if statistics is not None:
+            statistics["problem.propagators.filters.nb"] += 1
+        propagator = propagators[propagator_idx]
+        prop_domains = compute_propagator_domains(shr_domains, propagator.indices, propagator.offsets)
+        new_prop_domains = propagator.compute_domains(prop_domains)
+        shr_changes = compute_shared_domains_changes(
+            propagator.indices, propagator.offsets, prop_domains, new_prop_domains, shr_domains
         )
+        if shr_changes is None:
+            return False
+        update_propagators_to_filter(propagators_to_filter, propagators, propagator_idx, shr_changes)
+    return True
+
+
+#@jit(nopython=True, nogil=True)
+def update_propagators_to_filter(
+    propagators_to_filter: NDArray,
+    propagators: List[Propagator],
+    last_propagator_idx: int,
+    shr_changes: NDArray,
+) -> None:
+    for propagator_idx, propagator in enumerate(propagators):
+        if propagator_idx != last_propagator_idx and should_be_filtered(
+            propagator.triggers, propagator.indices, shr_changes
+        ):
+            propagators_to_filter[propagator_idx] = True
 
 
 @jit(nopython=True, nogil=True)
@@ -95,7 +117,6 @@ class Problem:
         self.dom_indices = np.array(dom_indices, dtype=np.uint16)
         self.dom_offsets = np.array(dom_offsets, dtype=np.int32)
         self.propagators: List[Propagator] = []
-        self.propagators_to_filter: Set[Propagator] = set()
 
     def add_propagator(self, propagator: Propagator) -> None:
         propagator.offsets = self.dom_offsets[propagator.variables]
@@ -141,23 +162,7 @@ class Problem:
         :param statistics: where to record the statistics of the computation
         :return: False if the problem is not consistent
         """
-        if statistics is not None:
-            statistics["problem.filters.nb"] += 1
-        self.propagators_to_filter.clear()
-        update_propagators_to_filter(self.propagators_to_filter, self.propagators, None, changes)
-        while bool(self.propagators_to_filter):
-            propagator = self.propagators_to_filter.pop()
-            if statistics is not None:
-                statistics["problem.propagators.filters.nb"] += 1
-            prop_domains = compute_propagator_domains(self.shr_domains, propagator.indices, propagator.offsets)
-            new_prop_domains = propagator.compute_domains(prop_domains)
-            shr_changes = compute_shared_domains_changes(
-                propagator.indices, propagator.offsets, prop_domains, new_prop_domains, self.shr_domains
-            )
-            if shr_changes is None:
-                return False
-            update_propagators_to_filter(self.propagators_to_filter, self.propagators, propagator, shr_changes)
-        return True
+        return filter(self.propagators, self.shr_domains, changes, statistics)
 
     def pretty_print(self, solution: List[int]) -> None:
         print(solution)
