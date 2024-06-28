@@ -13,14 +13,6 @@ STATS_SOLVER_CP_MAX = 4
 STATS_SOLVER_SOLUTIONS_NB = 5
 
 
-def stats_inc(stats: NDArray, key: int) -> None:
-    stats[key] += 1
-
-
-def stats_max(stats: NDArray, key: int, value: int) -> None:
-    stats[key] = max(stats[key], value)
-
-
 def stats_init() -> NDArray:
     return np.array([0] * STATS_MAX, dtype=np.int32)
 

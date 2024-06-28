@@ -12,8 +12,6 @@ from ncs.utils import (
     STATS_SOLVER_CHOICES_NB,
     STATS_SOLVER_CP_MAX,
     STATS_SOLVER_SOLUTIONS_NB,
-    stats_inc,
-    stats_max,
 )
 
 
@@ -28,7 +26,7 @@ class BacktrackSolver(Solver):
             solution = self.solve_one()
             if solution is None:
                 break
-            stats_inc(self.statistics, STATS_SOLVER_SOLUTIONS_NB)
+            self.statistics[STATS_SOLVER_SOLUTIONS_NB] += 1
             yield solution
             if not self.backtrack():
                 break
@@ -38,8 +36,9 @@ class BacktrackSolver(Solver):
             return None
         while self.problem.is_not_solved():
             changes = self.heuristic.choose(self.choice_points, self.problem)
-            stats_inc(self.statistics, STATS_SOLVER_CHOICES_NB)
-            stats_max(self.statistics, STATS_SOLVER_CP_MAX, len(self.choice_points))
+            self.statistics[STATS_SOLVER_CHOICES_NB] += 1
+            value = len(self.choice_points)
+            self.statistics[STATS_SOLVER_CP_MAX] = max(self.statistics[STATS_SOLVER_CP_MAX], value)
             if not self.filter(changes):
                 return None
         return self.problem.get_values()  # problem is solved
@@ -51,7 +50,7 @@ class BacktrackSolver(Solver):
         """
         if len(self.choice_points) == 0:
             return False
-        stats_inc(self.statistics, STATS_SOLVER_BACKTRACKS_NB)
+        self.statistics[STATS_SOLVER_BACKTRACKS_NB] += 1
         self.problem.shr_domains = self.choice_points.pop()
         return True
 

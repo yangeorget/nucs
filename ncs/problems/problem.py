@@ -11,7 +11,6 @@ from ncs.utils import (
     MIN,
     STATS_PROBLEM_FILTERS_NB,
     STATS_PROBLEM_PROPAGATORS_FILTERS_NB,
-    stats_inc,
     stats_init,
 )
 
@@ -24,7 +23,7 @@ def filter(
     :param statistics: where to record the statistics of the computation
     :return: False if the problem is not consistent
     """
-    stats_inc(statistics, STATS_PROBLEM_FILTERS_NB)
+    statistics[STATS_PROBLEM_FILTERS_NB] += 1
     if changes is None:  # this is an initialization
         propagators_to_filter = np.ones(len(propagators), dtype=np.bool)  # TODO: create once
     else:
@@ -32,11 +31,11 @@ def filter(
         update_propagators_to_filter(propagators_to_filter, propagators, -1, changes)
     while (propagator_idx := pop_propagator_to_filter(propagators_to_filter)) != -1:
         propagator = propagators[propagator_idx]
-        stats_inc(statistics, STATS_PROBLEM_PROPAGATORS_FILTERS_NB)
-        prop_domains = compute_propagator_domains(shr_domains, propagator.indices, propagator.offsets)
+        statistics[STATS_PROBLEM_PROPAGATORS_FILTERS_NB] += 1
+        prop_domains = compute_propagator_domains(shr_domains, propagator.indices, propagator.offsets)  # TODO: include in propagator
         new_prop_domains = propagator.compute_domains(prop_domains)
         shr_changes = compute_shared_domains_changes(
-            propagator.indices, propagator.offsets, prop_domains, new_prop_domains, shr_domains
+            propagator.indices, propagator.offsets, prop_domains, new_prop_domains, shr_domains  # TODO: include in propagator
         )
         if shr_changes is None:
             return False
