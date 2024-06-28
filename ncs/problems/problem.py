@@ -1,29 +1,28 @@
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 from numba import jit
+from numba.typed import List
 from numpy.typing import NDArray
 
 from ncs.propagators.propagator import Propagator
 from ncs.utils import MAX, MIN
 
-
+#@jit(nopython=True, nogil=True)
 def filter(
     propagators: List[Propagator], shr_domains: NDArray, changes: Optional[NDArray], statistics: Optional[Dict]
 ) -> bool:
     if statistics is not None:
         statistics["problem.filters.nb"] += 1
     if changes is None:  # this is an initialization
-        propagators_to_filter = np.ones(len(propagators), dtype=bool)
+        propagators_to_filter = np.ones(len(propagators), dtype=np.bool)
     else:
-        propagators_to_filter = np.zeros(len(propagators), dtype=bool)
+        propagators_to_filter = np.zeros(len(propagators), dtype=np.bool)
         update_propagators_to_filter(propagators_to_filter, propagators, -1, changes)
-    while np.any(propagators_to_filter):
-        propagator_idx = int(np.argmax(propagators_to_filter))
-        propagators_to_filter[propagator_idx] = False
+    while (propagator_idx := pop_propagator_to_filter(propagators_to_filter)) != -1:
+        propagator = propagators[propagator_idx]
         if statistics is not None:
             statistics["problem.propagators.filters.nb"] += 1
-        propagator = propagators[propagator_idx]
         prop_domains = compute_propagator_domains(shr_domains, propagator.indices, propagator.offsets)
         new_prop_domains = propagator.compute_domains(prop_domains)
         shr_changes = compute_shared_domains_changes(
@@ -34,8 +33,16 @@ def filter(
         update_propagators_to_filter(propagators_to_filter, propagators, propagator_idx, shr_changes)
     return True
 
+@jit(nopython=True, nogil=True)
+def pop_propagator_to_filter(propagators_to_filter: NDArray) -> int:
+    if np.any(propagators_to_filter):
+        propagator_idx = int(np.argmax(propagators_to_filter))
+        propagators_to_filter[propagator_idx] = False
+        return propagator_idx
+    else:
+        return -1
 
-#@jit(nopython=True, nogil=True)
+# @jit(nopython=True, nogil=True)
 def update_propagators_to_filter(
     propagators_to_filter: NDArray,
     propagators: List[Propagator],
@@ -71,7 +78,7 @@ def compute_propagator_domains(shr_domains: NDArray, prop_indices: NDArray, prop
     :return: a NDArray of domains
     """
     prop_domains = shr_domains[prop_indices]
-    prop_domains += prop_offsets.reshape(prop_indices.shape[0], 1)
+    prop_domains += prop_offsets.reshape((-1, 1))
     return prop_domains
 
 
@@ -94,15 +101,14 @@ def compute_shared_domains_changes(
     """
     if new_prop_domains is None:
         return None
-    size = len(prop_indices)
     new_prop_mins = np.maximum(new_prop_domains[:, MIN], prop_domains[:, MIN])
     new_prop_maxs = np.minimum(new_prop_domains[:, MAX], prop_domains[:, MAX])
     if np.any(np.greater(new_prop_mins, new_prop_maxs)):
         return None
     old_shr_domains = shr_domains.copy()
     shr_domains[prop_indices] = np.hstack(
-        (new_prop_mins.reshape(size, 1), new_prop_maxs.reshape(size, 1))
-    ) - prop_offsets.reshape(size, 1)
+        (new_prop_mins.reshape((-1, 1)), new_prop_maxs.reshape((-1, 1)))
+    ) - prop_offsets.reshape((-1, 1))
     return np.not_equal(old_shr_domains, shr_domains)
 
 
@@ -113,14 +119,14 @@ class Problem:
 
     def __init__(self, shr_domains: List[Tuple[int, int]], dom_indices: List[int], dom_offsets: List[int]):
         self.size = len(dom_indices)
-        self.shr_domains = np.array(shr_domains, dtype=np.int32).reshape(len(shr_domains), 2)
-        self.dom_indices = np.array(dom_indices, dtype=np.uint16)
+        self.shr_domains = np.array(shr_domains, dtype=np.int32).reshape((len(shr_domains), 2))
+        self.dom_indices = np.array(dom_indices, dtype=np.int32)
         self.dom_offsets = np.array(dom_offsets, dtype=np.int32)
         self.propagators: List[Propagator] = []
 
     def add_propagator(self, propagator: Propagator) -> None:
-        propagator.offsets = self.dom_offsets[propagator.variables]
-        propagator.indices = self.dom_indices[propagator.variables]
+        propagator.offsets = self.dom_offsets[propagator.variables].reshape(-1)
+        propagator.indices = self.dom_indices[propagator.variables].reshape(-1)
         self.propagators.append(propagator)
 
     def get_domains(self) -> NDArray:
@@ -129,7 +135,7 @@ class Problem:
         :return: an NDArray
         """
         domains = self.shr_domains[self.dom_indices]
-        domains += self.dom_offsets.reshape(self.size, 1)
+        domains += self.dom_offsets.reshape((-1, 1))
         return domains
 
     def get_values(self) -> List[int]:

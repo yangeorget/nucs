@@ -1,5 +1,7 @@
 from typing import List
 
+import numpy as np
+
 from ncs.problems.problem import Problem
 from ncs.propagators.propagator import Propagator
 
@@ -12,23 +14,30 @@ class SudokuProblem(Problem):
         offsets = [0] * 81
         super().__init__(shr_domains, indices, offsets)
         for i in range(0, 9):
-            self.add_propagator(Propagator(list(range(0 + i * 9, 9 + i * 9)), "alldifferent_lopez_ortiz"))
-            self.add_propagator(Propagator(list(range(0 + i, 81 + i, 9)), "alldifferent_lopez_ortiz"))
+            self.add_propagator(
+                Propagator(np.array(list(range(0 + i * 9, 9 + i * 9)), dtype=np.int32), "alldifferent_lopez_ortiz")
+            )
+            self.add_propagator(
+                Propagator(np.array(list(range(0 + i, 81 + i, 9)), dtype=np.int32), "alldifferent_lopez_ortiz")
+            )
         for i in range(0, 3):
             for j in range(0, 3):
                 self.add_propagator(
                     Propagator(
-                        [
-                            0 + i * 27 + j * 3,
-                            1 + i * 27 + j * 3,
-                            2 + i * 27 + j * 3,
-                            9 + i * 27 + j * 3,
-                            10 + i * 27 + j * 3,
-                            11 + i * 27 + j * 3,
-                            18 + i * 27 + j * 3,
-                            19 + i * 27 + j * 3,
-                            20 + i * 27 + j * 3,
-                        ],
+                        np.array(
+                            [
+                                0 + i * 27 + j * 3,
+                                1 + i * 27 + j * 3,
+                                2 + i * 27 + j * 3,
+                                9 + i * 27 + j * 3,
+                                10 + i * 27 + j * 3,
+                                11 + i * 27 + j * 3,
+                                18 + i * 27 + j * 3,
+                                19 + i * 27 + j * 3,
+                                20 + i * 27 + j * 3,
+                            ],
+                            dtype=np.int32,
+                        ),
                         "alldifferent_lopez_ortiz",
                     )
                 )

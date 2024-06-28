@@ -1,33 +1,35 @@
-from typing import List, Optional
+from typing import Optional
 
-import numba
 import numpy as np
-from numba.experimental import jitclass
 from numpy.typing import NDArray
 
-from ncs.propagators import alldifferent_lopez_ortiz, sum
+from ncs.propagators import alldifferent_lopez_ortiz_propagator, sum_propagator, dummy_propagator
 
 
-@jitclass([
-    ('size', numba.uint16),
-    ('variables', numba.uint16[:]),
-    ('triggers', numba.boolean[:,:]),
-    ('offsets', numba.int32[:]),
-    ('indices', numba.uint16[:]),
-    ('name', numba.types.string)
-])
+# @jitclass(
+#     [
+#         ("size", numba.int32),
+#         ("variables", numba.int32[:]),
+#         ("triggers", numba.boolean[:, :]),
+#         ("offsets", numba.int32[:]),
+#         ("indices", numba.int32[:]),
+#         ("name", numba.types.string),
+#     ]
+# )
 class Propagator:
-    def __init__(self, vars: List[int], name: str):
-        self.size = len(vars)
-        self.variables = np.array(vars, dtype=np.uint16)
-        self.triggers = np.full((self.size, 2), True, dtype=bool)
-        self.offsets = np.full((self.size, 1), 0, dtype=np.int32)
-        self.indices = np.full((self.size, 1), 0, dtype=np.uint16)
+    def __init__(self, variables: NDArray, name: str):
+        self.size = len(variables)
+        self.variables = variables
+        self.triggers = np.ones((self.size, 2), dtype=np.bool)
+        self.offsets = np.empty(self.size, dtype=np.int32)
+        self.indices = np.empty(self.size, dtype=np.int32)
         self.name = name
 
     def compute_domains(self, domains: NDArray) -> Optional[NDArray]:
         if self.name == "alldifferent_lopez_ortiz":
-            return alldifferent_lopez_ortiz.compute_domains(domains)
+            return alldifferent_lopez_ortiz_propagator.compute_domains(domains)
         if self.name == "sum":
-            return sum.compute_domains(domains)
+            return sum_propagator.compute_domains(domains)
+        if self.name == "dummy":
+            return dummy_propagator.compute_domains(domains)
         return None

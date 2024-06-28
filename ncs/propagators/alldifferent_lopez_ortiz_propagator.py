@@ -142,7 +142,7 @@ def path_max(t: NDArray, i: int) -> int:
 @jit(nopython=True, nogil=True)
 def compute_domains(domains: NDArray) -> Optional[NDArray]:
     size = len(domains)
-    rank_domains = np.hstack((domains, np.zeros((size, 2), dtype=np.uint16)))
+    rank_domains = np.hstack((domains, np.zeros((size, 2), dtype=np.int32)))
     bounds_nb = 2 * size + 2
     bounds = np.zeros(bounds_nb, dtype=np.int32)
     t = np.zeros(bounds_nb, dtype=np.int32)
