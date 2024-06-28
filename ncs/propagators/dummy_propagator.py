@@ -1,6 +1,6 @@
 from typing import Optional
 
-from numba import jit
+from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
 

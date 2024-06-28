@@ -1,14 +1,15 @@
 from typing import Dict, Optional, Tuple
 
 import numpy as np
-from numba import jit
+from numba import jit  # type: ignore
 from numba.typed import List
 from numpy.typing import NDArray
 
 from ncs.propagators.propagator import Propagator
 from ncs.utils import MAX, MIN
 
-#@jit(nopython=True, nogil=True)
+
+# @jit(nopython=True, nogil=True)
 def filter(
     propagators: List[Propagator], shr_domains: NDArray, changes: Optional[NDArray], statistics: Optional[Dict]
 ) -> bool:
@@ -33,6 +34,7 @@ def filter(
         update_propagators_to_filter(propagators_to_filter, propagators, propagator_idx, shr_changes)
     return True
 
+
 @jit(nopython=True, nogil=True)
 def pop_propagator_to_filter(propagators_to_filter: NDArray) -> int:
     if np.any(propagators_to_filter):
@@ -41,6 +43,7 @@ def pop_propagator_to_filter(propagators_to_filter: NDArray) -> int:
         return propagator_idx
     else:
         return -1
+
 
 # @jit(nopython=True, nogil=True)
 def update_propagators_to_filter(
@@ -119,7 +122,7 @@ class Problem:
 
     def __init__(self, shr_domains: List[Tuple[int, int]], dom_indices: List[int], dom_offsets: List[int]):
         self.size = len(dom_indices)
-        self.shr_domains = np.array(shr_domains, dtype=np.int32).reshape((len(shr_domains), 2))
+        self.shr_domains = np.array(shr_domains, dtype=np.int32).reshape((-1, 2))
         self.dom_indices = np.array(dom_indices, dtype=np.int32)
         self.dom_offsets = np.array(dom_offsets, dtype=np.int32)
         self.propagators: List[Propagator] = []

@@ -1,6 +1,6 @@
 import numpy as np
 
-from ncs.propagators.propagator import Propagator
+from ncs.propagators.propagator import ALLDIFFERENT_LOPEZ_ORTIZ, Propagator
 
 
 class TestAlldifferentLopezOrtiz:
@@ -9,7 +9,7 @@ class TestAlldifferentLopezOrtiz:
         domains = np.array([[3, 6], [3, 4], [2, 5], [2, 4], [3, 4], [1, 6]], dtype=np.int32)
         variables = np.array([0, 1, 2, 3, 4, 5], dtype=np.int32)
         assert np.all(
-            Propagator(variables, "alldifferent_lopez_ortiz").compute_domains(domains)
+            Propagator(variables, ALLDIFFERENT_LOPEZ_ORTIZ).compute_domains(domains)
             == np.array([[6, 6], [3, 4], [5, 5], [2, 2], [3, 4], [1, 1]])
         )
 
@@ -17,7 +17,7 @@ class TestAlldifferentLopezOrtiz:
         domains = np.array([[0, 0], [2, 2], [1, 2]], dtype=np.int32)
         variables = np.array([0, 1, 2], dtype=np.int32)
         assert np.all(
-            Propagator(variables, "alldifferent_lopez_ortiz").compute_domains(domains)
+            Propagator(variables, ALLDIFFERENT_LOPEZ_ORTIZ).compute_domains(domains)
             == np.array([[0, 0], [2, 2], [1, 1]])
         )
 
@@ -25,6 +25,6 @@ class TestAlldifferentLopezOrtiz:
         domains = np.array([[0, 0], [0, 4], [0, 4], [0, 4], [0, 4]], dtype=np.int32)
         variables = np.array([0, 1, 2, 3, 4], dtype=np.int32)
         assert np.all(
-            Propagator(variables, "alldifferent_lopez_ortiz").compute_domains(domains)
+            Propagator(variables, ALLDIFFERENT_LOPEZ_ORTIZ).compute_domains(domains)
             == np.array([[0, 0], [1, 4], [1, 4], [1, 4], [1, 4]])
         )

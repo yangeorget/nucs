@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 
 from ncs.problems.problem import Problem
-from ncs.propagators.propagator import Propagator
+from ncs.propagators.propagator import ALLDIFFERENT_LOPEZ_ORTIZ, Propagator
 
 
 class SudokuProblem(Problem):
@@ -15,10 +15,10 @@ class SudokuProblem(Problem):
         super().__init__(shr_domains, indices, offsets)
         for i in range(0, 9):
             self.add_propagator(
-                Propagator(np.array(list(range(0 + i * 9, 9 + i * 9)), dtype=np.int32), "alldifferent_lopez_ortiz")
+                Propagator(np.array(list(range(0 + i * 9, 9 + i * 9)), dtype=np.int32), ALLDIFFERENT_LOPEZ_ORTIZ)
             )
             self.add_propagator(
-                Propagator(np.array(list(range(0 + i, 81 + i, 9)), dtype=np.int32), "alldifferent_lopez_ortiz")
+                Propagator(np.array(list(range(0 + i, 81 + i, 9)), dtype=np.int32), ALLDIFFERENT_LOPEZ_ORTIZ)
             )
         for i in range(0, 3):
             for j in range(0, 3):
@@ -38,7 +38,7 @@ class SudokuProblem(Problem):
                             ],
                             dtype=np.int32,
                         ),
-                        "alldifferent_lopez_ortiz",
+                        ALLDIFFERENT_LOPEZ_ORTIZ,
                     )
                 )
 

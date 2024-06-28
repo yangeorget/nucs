@@ -1,7 +1,7 @@
 import numpy as np
 
 from ncs.problems.problem import Problem, compute_shared_domains_changes
-from ncs.propagators.propagator import Propagator
+from ncs.propagators.propagator import ALLDIFFERENT_LOPEZ_ORTIZ, SUM, Propagator
 
 
 class TestProblem:
@@ -37,7 +37,7 @@ class TestProblem:
 
     def test_filter_1(self) -> None:
         problem = Problem(shr_domains=[(0, 2), (0, 2), (4, 6)], dom_indices=[0, 1, 2], dom_offsets=[0, 0, 0])
-        problem.add_propagator(Propagator(np.array([2, 0, 1], dtype=np.int32), "sum"))
+        problem.add_propagator(Propagator(np.array([2, 0, 1], dtype=np.int32), SUM))
         assert problem.filter()
         assert not problem.is_not_solved()
         assert np.all(problem.shr_domains == np.array([[2, 2], [2, 2], [4, 4]]))
@@ -48,8 +48,8 @@ class TestProblem:
             dom_indices=[0, 1, 2, 0, 1, 2],
             dom_offsets=[0, 0, 0, 0, 1, 2],
         )
-        problem.add_propagator(Propagator(np.array([0, 1, 2], dtype=np.int32), "alldifferent_lopez_ortiz"))
-        problem.add_propagator(Propagator(np.array([3, 4, 5], dtype=np.int32), "alldifferent_lopez_ortiz"))
+        problem.add_propagator(Propagator(np.array([0, 1, 2], dtype=np.int32), ALLDIFFERENT_LOPEZ_ORTIZ))
+        problem.add_propagator(Propagator(np.array([3, 4, 5], dtype=np.int32), ALLDIFFERENT_LOPEZ_ORTIZ))
         assert not problem.filter()
 
     def test_compute_shr_domain_changes(self) -> None:
