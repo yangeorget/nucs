@@ -3,6 +3,7 @@ import numpy as np
 from ncs.problems.problem import Problem
 from ncs.propagators.propagator import SUM, Propagator
 from ncs.solvers.solver import Solver
+from ncs.utils import STATS_PROBLEM_PROPAGATORS_FILTERS_NB
 
 
 class TestSolver:
@@ -13,5 +14,5 @@ class TestSolver:
         problem = Problem(shr_domains, dom_indices, dom_offsets)
         problem.add_propagator(Propagator(np.array([2, 0, 1], dtype=np.int32), SUM))
         solver = Solver(problem)
-        problem.filter(None, solver.statistics)
-        assert solver.statistics["problem.propagators.filters.nb"] == 1
+        problem.filter(solver.statistics)
+        assert solver.statistics[STATS_PROBLEM_PROPAGATORS_FILTERS_NB] == 1

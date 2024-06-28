@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 from ncs.utils import MAX, MIN
 
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True, cache=True)
 def compute_domains(domains: NDArray) -> Optional[NDArray]:
     size = len(domains)
     new_domains = np.zeros((size, 2), dtype=np.int32)

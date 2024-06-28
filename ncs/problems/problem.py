@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 from numba import jit  # type: ignore
@@ -6,24 +6,33 @@ from numba.typed import List
 from numpy.typing import NDArray
 
 from ncs.propagators.propagator import Propagator
-from ncs.utils import MAX, MIN
+from ncs.utils import (
+    MAX,
+    MIN,
+    STATS_PROBLEM_FILTERS_NB,
+    STATS_PROBLEM_PROPAGATORS_FILTERS_NB,
+    stats_inc,
+    stats_init,
+)
 
 
-# @jit(nopython=True, nogil=True)
 def filter(
-    propagators: List[Propagator], shr_domains: NDArray, changes: Optional[NDArray], statistics: Optional[Dict]
+    propagators: List[Propagator], shr_domains: NDArray, statistics: NDArray, changes: Optional[NDArray]
 ) -> bool:
-    if statistics is not None:
-        statistics["problem.filters.nb"] += 1
+    """
+    Filters the problem's domains by applying the propagators until a fix point is reached.
+    :param statistics: where to record the statistics of the computation
+    :return: False if the problem is not consistent
+    """
+    stats_inc(statistics, STATS_PROBLEM_FILTERS_NB)
     if changes is None:  # this is an initialization
-        propagators_to_filter = np.ones(len(propagators), dtype=np.bool)
+        propagators_to_filter = np.ones(len(propagators), dtype=np.bool)  # TODO: create once
     else:
         propagators_to_filter = np.zeros(len(propagators), dtype=np.bool)
         update_propagators_to_filter(propagators_to_filter, propagators, -1, changes)
     while (propagator_idx := pop_propagator_to_filter(propagators_to_filter)) != -1:
         propagator = propagators[propagator_idx]
-        if statistics is not None:
-            statistics["problem.propagators.filters.nb"] += 1
+        stats_inc(statistics, STATS_PROBLEM_PROPAGATORS_FILTERS_NB)
         prop_domains = compute_propagator_domains(shr_domains, propagator.indices, propagator.offsets)
         new_prop_domains = propagator.compute_domains(prop_domains)
         shr_changes = compute_shared_domains_changes(
@@ -35,17 +44,6 @@ def filter(
     return True
 
 
-@jit(nopython=True, nogil=True)
-def pop_propagator_to_filter(propagators_to_filter: NDArray) -> int:
-    if np.any(propagators_to_filter):
-        propagator_idx = int(np.argmax(propagators_to_filter))
-        propagators_to_filter[propagator_idx] = False
-        return propagator_idx
-    else:
-        return -1
-
-
-# @jit(nopython=True, nogil=True)
 def update_propagators_to_filter(
     propagators_to_filter: NDArray,
     propagators: List[Propagator],
@@ -59,7 +57,17 @@ def update_propagators_to_filter(
             propagators_to_filter[propagator_idx] = True
 
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True, cache=True)
+def pop_propagator_to_filter(propagators_to_filter: NDArray) -> int:
+    if np.any(propagators_to_filter):
+        propagator_idx = int(np.argmax(propagators_to_filter))
+        propagators_to_filter[propagator_idx] = False
+        return propagator_idx
+    else:
+        return -1
+
+
+@jit(nopython=True, nogil=True, cache=True)
 def should_be_filtered(prop_triggers: NDArray, prop_indices: NDArray, shr_changes: NDArray) -> bool:
     """
     Return a boolean indicating if a propagator should be added to the set of propagators to be filtered.
@@ -71,7 +79,7 @@ def should_be_filtered(prop_triggers: NDArray, prop_indices: NDArray, shr_change
     return shr_changes is None or bool(np.any(shr_changes[prop_indices] & prop_triggers))
 
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True, cache=True)
 def compute_propagator_domains(shr_domains: NDArray, prop_indices: NDArray, prop_offsets: NDArray) -> NDArray:
     """
     Computes the domains of the variables of a propagator.
@@ -85,7 +93,7 @@ def compute_propagator_domains(shr_domains: NDArray, prop_indices: NDArray, prop
     return prop_domains
 
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True, cache=True)
 def compute_shared_domains_changes(
     prop_indices: NDArray,
     prop_offsets: NDArray,
@@ -165,13 +173,13 @@ class Problem:
     def __str__(self) -> str:
         return f"domains={self.shr_domains}, propagators={self.propagators}"
 
-    def filter(self, changes: Optional[NDArray] = None, statistics: Optional[Dict] = None) -> bool:
+    def filter(self, statistics: NDArray = stats_init(), changes: Optional[NDArray] = None) -> bool:
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
         :param statistics: where to record the statistics of the computation
         :return: False if the problem is not consistent
         """
-        return filter(self.propagators, self.shr_domains, changes, statistics)
+        return filter(self.propagators, self.shr_domains, statistics, changes)
 
     def pretty_print(self, solution: List[int]) -> None:
         print(solution)

@@ -10,7 +10,7 @@ MIN_RANK = 2
 MAX_RANK = 3
 
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True, cache=True)
 def compute_nb(
     size: int, rank_domains: NDArray, min_sorted_vars: NDArray, max_sorted_vars: NDArray, bounds: NDArray
 ) -> int:
@@ -40,7 +40,7 @@ def compute_nb(
     return nb
 
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True, cache=True)
 def filter_lower(
     size: int,
     nb: int,
@@ -78,7 +78,7 @@ def filter_lower(
     return True
 
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True, cache=True)
 def filter_upper(
     size: int,
     nb: int,
@@ -116,7 +116,7 @@ def filter_upper(
     return True
 
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True, cache=True)
 def path_set(t: NDArray, start: int, end: int, to: int) -> None:
     p = start
     while p != end:
@@ -125,21 +125,21 @@ def path_set(t: NDArray, start: int, end: int, to: int) -> None:
         p = tmp
 
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True, cache=True)
 def path_min(t: NDArray, i: int) -> int:
     while t[i] < i:
         i = t[i]
     return i
 
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True, cache=True)
 def path_max(t: NDArray, i: int) -> int:
     while t[i] > i:
         i = t[i]
     return i
 
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True, cache=True)
 def compute_domains(domains: NDArray) -> Optional[NDArray]:
     size = len(domains)
     rank_domains = np.hstack((domains, np.zeros((size, 2), dtype=np.int32)))

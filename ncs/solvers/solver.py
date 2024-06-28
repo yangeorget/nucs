@@ -1,12 +1,13 @@
 from typing import Iterator, List
 
 from ncs.problems.problem import Problem
+from ncs.utils import stats_init
 
 
 class Solver:
     def __init__(self, problem: Problem):
         self.problem = problem
-        self.statistics = {"solver.solutions.nb": 0, "problem.filters.nb": 0, "problem.propagators.filters.nb": 0}
+        self.statistics = stats_init()
 
     def solve(self) -> Iterator[List[int]]:  # type: ignore
         """
