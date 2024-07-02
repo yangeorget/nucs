@@ -6,7 +6,6 @@ from ncs.problems.problem import (
     Problem,
     compute_shared_domains_changes,
 )
-from ncs.propagators.propagator import Propagator
 
 
 class TestProblem:
@@ -68,10 +67,10 @@ class TestProblem:
             domain_offsets=[0, 0, 0],
         )
         shr_domain_changes = compute_shared_domains_changes(
-            prop_indices=np.array([0, 1]),
-            prop_offsets=np.array([0, 0]),
-            prop_domains=np.array([(0, 2), (0, 2)]),
-            new_prop_domains=np.array([(0, 1), (1, 2)]),
-            shr_domains=problem.shared_domains,
+            propagator_indices=np.array([0, 1]),
+            propagator_offsets=np.array([0, 0]),
+            propagator_domains=np.array([(0, 2), (0, 2)]),
+            new_propagator_domains=np.array([(0, 1), (1, 2)]),
+            shared_domains=problem.shared_domains,
         )
         assert np.all(np.equal(shr_domain_changes, np.array([(False, True), (True, False), (False, False)])))

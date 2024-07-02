@@ -1,7 +1,4 @@
-import numpy as np
-
 from ncs.problems.problem import ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, Problem
-from ncs.propagators.propagator import Propagator
 
 
 class QueensProblem(Problem):

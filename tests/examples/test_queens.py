@@ -4,7 +4,7 @@ from ncs.heuristics.smallest_domain_variable_heuristic import (
 )
 from ncs.problems.queens.queens_problem import QueensProblem
 from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.utils import STATS_SOLVER_SOLUTIONS_NB, stats_print
+from ncs.utils import STATS_SOLVER_SOLUTIONS_NB, statistics_print
 
 
 class TestQueens:
@@ -61,4 +61,4 @@ class TestQueens:
 if __name__ == "__main__":
     solver = BacktrackSolver(QueensProblem(11))
     solver.solve_all()
-    stats_print(solver.statistics)
+    statistics_print(solver.statistics)

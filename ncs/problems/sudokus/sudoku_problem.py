@@ -1,9 +1,6 @@
 from typing import List
 
-import numpy as np
-
 from ncs.problems.problem import ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, Problem
-from ncs.propagators.propagator import Propagator
 
 
 class SudokuProblem(Problem):
@@ -16,27 +13,23 @@ class SudokuProblem(Problem):
         )
         propagators = []
         for i in range(0, 9):
-            propagators.append(
-                (list(range(0 + i * 9, 9 + i * 9)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ)
-            )
-            propagators.append(
-                (list(range(0 + i, 81 + i, 9)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ)
-            )
+            propagators.append((list(range(0 + i * 9, 9 + i * 9)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ))
+            propagators.append((list(range(0 + i, 81 + i, 9)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ))
         for i in range(0, 3):
             for j in range(0, 3):
                 propagators.append(
                     (
-                            [
-                                0 + i * 27 + j * 3,
-                                1 + i * 27 + j * 3,
-                                2 + i * 27 + j * 3,
-                                9 + i * 27 + j * 3,
-                                10 + i * 27 + j * 3,
-                                11 + i * 27 + j * 3,
-                                18 + i * 27 + j * 3,
-                                19 + i * 27 + j * 3,
-                                20 + i * 27 + j * 3,
-                            ],
+                        [
+                            0 + i * 27 + j * 3,
+                            1 + i * 27 + j * 3,
+                            2 + i * 27 + j * 3,
+                            9 + i * 27 + j * 3,
+                            10 + i * 27 + j * 3,
+                            11 + i * 27 + j * 3,
+                            18 + i * 27 + j * 3,
+                            19 + i * 27 + j * 3,
+                            20 + i * 27 + j * 3,
+                        ],
                         ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ,
                     )
                 )

@@ -1,12 +1,9 @@
-import numpy as np
-
 from ncs.problems.problem import (
     ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ,
     ALGORITHM_DUMMY,
     ALGORITHM_SUM,
     Problem,
 )
-from ncs.propagators.propagator import Propagator
 from ncs.solvers.backtrack_solver import BacktrackSolver
 from ncs.utils import (
     STATS_PROBLEM_FILTERS_NB,

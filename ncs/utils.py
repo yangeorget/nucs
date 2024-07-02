@@ -13,11 +13,11 @@ STATS_SOLVER_CP_MAX = 4
 STATS_SOLVER_SOLUTIONS_NB = 5
 
 
-def stats_init() -> NDArray:
+def statistics_init() -> NDArray:
     return np.array([0] * STATS_MAX, dtype=np.int32)
 
 
-def stats_print(stats: NDArray) -> None:
+def statistics_print(stats: NDArray) -> None:
     print(
         {
             "PROBLEM_FILTERS_NB": int(stats[STATS_PROBLEM_FILTERS_NB]),
