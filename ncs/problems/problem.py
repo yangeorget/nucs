@@ -30,14 +30,28 @@ class Problem:
     """
 
     def __init__(self, shared_domains: List[Tuple[int, int]], domain_indices: List[int], domain_offsets: List[int]):
-        self.size = len(domain_indices)
+        self.variable_nb = len(domain_indices)
         self.shared_domains = np.array(shared_domains, dtype=np.int32).reshape((-1, 2))
         self.domain_indices = np.array(domain_indices, dtype=np.int32)
         self.domain_offsets = np.array(domain_offsets, dtype=np.int32)
-        self.propagators: List[Propagator] = []  # TODO: remove
 
-    def set_propagators(self, propagators: List[Propagator]) -> None:
-        self.propagators = propagators
+
+    def set_propagators(self, propagators: List[Tuple[List[int], int]]) -> None:
+        self.propagator_nb = len(propagators)
+        self.propagator_algorithms = []
+        self.propagator_sizes = []
+        self.propagator_variables = []
+        for propagator in propagators:
+            prop_variables = propagator[0]
+            self.propagator_variables.append(prop_variables)
+            self.propagator_sizes.append(len(prop_variables))
+            self.propagator_algorithms.append(propagator[1])
+        self.propagator_total_size = sum(self.propagator_sizes)
+
+        self.propagator_indices = []
+        self.propagator_offsets = []
+        self.propagator_triggers = None
+        self.propagator_starts
 
     def get_domains(self) -> NDArray:
         """

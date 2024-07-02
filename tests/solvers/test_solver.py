@@ -8,11 +8,8 @@ from ncs.utils import STATS_PROBLEM_PROPAGATORS_FILTERS_NB
 
 class TestSolver:
     def test_problem_filter(self) -> None:
-        shr_domains = [(0, 2), (0, 2), (0, 6)]
-        dom_indices = [0, 1, 2]
-        dom_offsets = [0, 0, 0]
-        problem = Problem(shr_domains, dom_indices, dom_offsets)
-        problem.set_propagators([Propagator(np.array([2, 0, 1], dtype=np.int32), ALGORITHM_SUM)])
+        problem = Problem(shared_domains = [(0, 2), (0, 2), (0, 6)], domain_indices = [0, 1, 2], domain_offsets = [0, 0, 0])
+        problem.set_propagators([([2, 0, 1], ALGORITHM_SUM)])
         solver = Solver(problem)
         problem.filter(solver.statistics)
         assert solver.statistics[STATS_PROBLEM_PROPAGATORS_FILTERS_NB] == 1

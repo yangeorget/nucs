@@ -14,8 +14,8 @@ class QueensProblem(Problem):
         )
         self.set_propagators(
             [
-                Propagator(np.array(list(range(0, n)), dtype=np.int32), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ),
-                Propagator(np.array(list(range(n, 2 * n)), dtype=np.int32), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ),
-                Propagator(np.array(list(range(2 * n, 3 * n)), dtype=np.int32), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ),
+                (list(range(0, n)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ),
+                (list(range(n, 2 * n)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ),
+                (list(range(2 * n, 3 * n)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ),
             ]
         )

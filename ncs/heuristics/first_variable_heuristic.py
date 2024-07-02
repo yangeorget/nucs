@@ -8,7 +8,7 @@ class FirstVariableHeuristic(VariableHeuristic):
     """
 
     def choose_variable(self, problem: Problem) -> int:
-        for var_idx in range(problem.size):
+        for var_idx in range(problem.variable_nb):
             if problem.is_not_instantiated(var_idx):
                 return var_idx
         return -1

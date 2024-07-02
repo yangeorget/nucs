@@ -17,18 +17,15 @@ class SudokuProblem(Problem):
         propagators = []
         for i in range(0, 9):
             propagators.append(
-                Propagator(
-                    np.array(list(range(0 + i * 9, 9 + i * 9)), dtype=np.int32), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ
-                )
+                (list(range(0 + i * 9, 9 + i * 9)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ)
             )
             propagators.append(
-                Propagator(np.array(list(range(0 + i, 81 + i, 9)), dtype=np.int32), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ)
+                (list(range(0 + i, 81 + i, 9)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ)
             )
         for i in range(0, 3):
             for j in range(0, 3):
                 propagators.append(
-                    Propagator(
-                        np.array(
+                    (
                             [
                                 0 + i * 27 + j * 3,
                                 1 + i * 27 + j * 3,
@@ -40,8 +37,6 @@ class SudokuProblem(Problem):
                                 19 + i * 27 + j * 3,
                                 20 + i * 27 + j * 3,
                             ],
-                            dtype=np.int32,
-                        ),
                         ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ,
                     )
                 )
