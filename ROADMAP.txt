@@ -1,3 +1,0 @@
-# optimize the use of numpy (fancy indexing, ...)
-# implement other problems
-# get rid of Sets
