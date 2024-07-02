@@ -59,6 +59,6 @@ class TestQueens:
 
 
 if __name__ == "__main__":
-    solver = BacktrackSolver(QueensProblem(11))
+    solver = BacktrackSolver(QueensProblem(12))
     solver.solve_all()
     statistics_print(solver.statistics)
