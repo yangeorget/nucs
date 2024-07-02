@@ -5,6 +5,11 @@ from numba import jit  # type: ignore
 from numba.typed import List
 from numpy.typing import NDArray
 
+from ncs.propagators import (
+    alldifferent_lopez_ortiz_propagator,
+    dummy_propagator,
+    sum_propagator,
+)
 from ncs.propagators.propagator import Propagator
 from ncs.utils import (
     MAX,
@@ -14,56 +19,9 @@ from ncs.utils import (
     stats_init,
 )
 
-
-def filter(
-    propagators: List[Propagator], shr_domains: NDArray, statistics: NDArray, changes: Optional[NDArray]
-) -> bool:
-    """
-    Filters the problem's domains by applying the propagators until a fix point is reached.
-    :param statistics: where to record the statistics of the computation
-    :return: False if the problem is not consistent
-    """
-    statistics[STATS_PROBLEM_FILTERS_NB] += 1
-    if changes is None:  # this is an initialization
-        propagators_to_filter = np.ones(len(propagators), dtype=np.bool)  # TODO: create once
-    else:
-        propagators_to_filter = np.zeros(len(propagators), dtype=np.bool)
-        update_propagators_to_filter(propagators_to_filter, propagators, -1, changes)
-    while (propagator_idx := pop_propagator_to_filter(propagators_to_filter)) != -1:
-        propagator = propagators[propagator_idx]
-        statistics[STATS_PROBLEM_PROPAGATORS_FILTERS_NB] += 1
-        prop_domains = compute_propagator_domains(shr_domains, propagator.indices, propagator.offsets)  # TODO: include in propagator
-        new_prop_domains = propagator.compute_domains(prop_domains)
-        shr_changes = compute_shared_domains_changes(
-            propagator.indices, propagator.offsets, prop_domains, new_prop_domains, shr_domains  # TODO: include in propagator
-        )
-        if shr_changes is None:
-            return False
-        update_propagators_to_filter(propagators_to_filter, propagators, propagator_idx, shr_changes)
-    return True
-
-
-def update_propagators_to_filter(
-    propagators_to_filter: NDArray,
-    propagators: List[Propagator],
-    last_propagator_idx: int,
-    shr_changes: NDArray,
-) -> None:
-    for propagator_idx, propagator in enumerate(propagators):
-        if propagator_idx != last_propagator_idx and should_be_filtered(
-            propagator.triggers, propagator.indices, shr_changes
-        ):
-            propagators_to_filter[propagator_idx] = True
-
-
-@jit(nopython=True, nogil=True, cache=True)
-def pop_propagator_to_filter(propagators_to_filter: NDArray) -> int:
-    if np.any(propagators_to_filter):
-        propagator_idx = int(np.argmax(propagators_to_filter))
-        propagators_to_filter[propagator_idx] = False
-        return propagator_idx
-    else:
-        return -1
+ALLDIFFERENT_LOPEZ_ORTIZ = 0
+DUMMY = 1
+SUM = 2
 
 
 @jit(nopython=True, nogil=True, cache=True)
@@ -134,10 +92,8 @@ class Problem:
         self.dom_offsets = np.array(dom_offsets, dtype=np.int32)
         self.propagators: List[Propagator] = []
 
-    def add_propagator(self, propagator: Propagator) -> None:
-        propagator.offsets = self.dom_offsets[propagator.variables].reshape(-1)
-        propagator.indices = self.dom_indices[propagator.variables].reshape(-1)
-        self.propagators.append(propagator)
+    def set_propagators(self, propagators: List[Propagator]) -> None:
+        self.propagators = propagators
 
     def get_domains(self) -> NDArray:
         """
@@ -178,7 +134,74 @@ class Problem:
         :param statistics: where to record the statistics of the computation
         :return: False if the problem is not consistent
         """
-        return filter(self.propagators, self.shr_domains, statistics, changes)
+        return filter(self, self.shr_domains, statistics, changes)
 
     def pretty_print(self, solution: List[int]) -> None:
         print(solution)
+
+
+def filter(problem: Problem, shr_domains: NDArray, statistics: NDArray, changes: Optional[NDArray]) -> bool:
+    """
+    Filters the problem's domains by applying the propagators until a fix point is reached.
+    :param statistics: where to record the statistics of the computation
+    :return: False if the problem is not consistent
+    """
+    statistics[STATS_PROBLEM_FILTERS_NB] += 1
+    if changes is None:  # this is an initialization
+        propagators_to_filter = np.ones(len(problem.propagators), dtype=np.bool)  # TODO: create once
+    else:
+        propagators_to_filter = np.zeros(len(problem.propagators), dtype=np.bool)
+        update_propagators_to_filter(propagators_to_filter, problem, -1, changes)
+    while (propagator_idx := pop_propagator_to_filter(propagators_to_filter)) != -1:
+        propagator = problem.propagators[propagator_idx]
+        statistics[STATS_PROBLEM_PROPAGATORS_FILTERS_NB] += 1
+        prop_domains = compute_propagator_domains(
+            shr_domains,
+            problem.dom_indices[propagator.variables].reshape(-1),
+            problem.dom_offsets[propagator.variables].reshape(-1),
+        )  # TODO: include in propagator
+        new_prop_domains = compute_domains(propagator.algorithm, prop_domains)
+        shr_changes = compute_shared_domains_changes(
+            problem.dom_indices[propagator.variables].reshape(-1),
+            problem.dom_offsets[propagator.variables].reshape(-1),
+            prop_domains,
+            new_prop_domains,
+            shr_domains,  # TODO: include in propagator
+        )
+        if shr_changes is None:
+            return False
+        update_propagators_to_filter(propagators_to_filter, problem, propagator_idx, shr_changes)
+    return True
+
+
+def update_propagators_to_filter(
+    propagators_to_filter: NDArray,
+    problem: Problem,
+    last_propagator_idx: int,
+    shr_changes: NDArray,
+) -> None:
+    for propagator_idx, propagator in enumerate(problem.propagators):
+        if propagator_idx != last_propagator_idx and should_be_filtered(
+            propagator.triggers, problem.dom_indices[propagator.variables].reshape(-1), shr_changes
+        ):
+            propagators_to_filter[propagator_idx] = True
+
+
+@jit(nopython=True, nogil=True, cache=True)
+def pop_propagator_to_filter(propagators_to_filter: NDArray) -> int:
+    if np.any(propagators_to_filter):
+        propagator_idx = int(np.argmax(propagators_to_filter))
+        propagators_to_filter[propagator_idx] = False
+        return propagator_idx
+    else:
+        return -1
+
+
+def compute_domains(algorithm: int, domains: NDArray) -> Optional[NDArray]:
+    if algorithm == ALLDIFFERENT_LOPEZ_ORTIZ:
+        return alldifferent_lopez_ortiz_propagator.compute_domains(domains)
+    if algorithm == SUM:
+        return sum_propagator.compute_domains(domains)
+    if algorithm == DUMMY:
+        return dummy_propagator.compute_domains(domains)
+    return None
