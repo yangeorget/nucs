@@ -12,7 +12,9 @@ class SmallestDomainVariableHeuristic(VariableHeuristic):
 
     def choose_variable(self, problem: Problem) -> int:
         valid_domain_sizes = np.ma.masked_equal(
-            problem.shr_domains[problem.dom_indices, MAX] - problem.shr_domains[problem.dom_indices, MIN], 0, copy=False
+            problem.shared_domains[problem.domain_indices, MAX] - problem.shared_domains[problem.domain_indices, MIN],
+            0,
+            copy=False,
         )
         if valid_domain_sizes.count() == 0:
             return -1

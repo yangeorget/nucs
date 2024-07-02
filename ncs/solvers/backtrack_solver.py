@@ -51,7 +51,7 @@ class BacktrackSolver(Solver):
         if len(self.choice_points) == 0:
             return False
         self.statistics[STATS_SOLVER_BACKTRACKS_NB] += 1
-        self.problem.shr_domains = self.choice_points.pop()
+        self.problem.shared_domains = self.choice_points.pop()
         return True
 
     def filter(self, changes: Optional[NDArray] = None) -> bool:

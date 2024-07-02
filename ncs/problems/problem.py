@@ -19,9 +19,136 @@ from ncs.utils import (
     stats_init,
 )
 
-ALLDIFFERENT_LOPEZ_ORTIZ = 0
-DUMMY = 1
-SUM = 2
+ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ = 0
+ALGORITHM_DUMMY = 1
+ALGORITHM_SUM = 2
+
+
+class Problem:
+    """
+    A problem is defined by a list of variable domains and a list of propagators.
+    """
+
+    def __init__(self, shared_domains: List[Tuple[int, int]], domain_indices: List[int], domain_offsets: List[int]):
+        self.size = len(domain_indices)
+        self.shared_domains = np.array(shared_domains, dtype=np.int32).reshape((-1, 2))
+        self.domain_indices = np.array(domain_indices, dtype=np.int32)
+        self.domain_offsets = np.array(domain_offsets, dtype=np.int32)
+        self.propagators: List[Propagator] = []  # TODO: remove
+
+    def set_propagators(self, propagators: List[Propagator]) -> None:
+        self.propagators = propagators
+
+    def get_domains(self) -> NDArray:
+        """
+        Returns the domains of the problem variables.
+        :return: an NDArray
+        """
+        domains = self.shared_domains[self.domain_indices]
+        domains += self.domain_offsets.reshape((-1, 1))
+        return domains
+
+    def get_values(self) -> List[int]:
+        assert not self.is_not_solved()
+        domains = self.get_domains()
+        return domains[:, MIN].tolist()
+
+    def is_not_instantiated(self, var_idx: int) -> bool:
+        """
+        Returns a boolean indicating if a variable is not instantiated.
+        :param var_idx: the index of the variable
+        :return: True iff the variable is not instantiated
+        """
+        domain = self.shared_domains[self.domain_indices[var_idx]]
+        return bool(domain[MIN] < domain[MAX])
+
+    def is_not_solved(self) -> bool:
+        """
+        Returns true iff the problem is not solved.
+        :return: a boolean
+        """
+        return bool(np.any(np.not_equal(self.shared_domains[:, MIN], self.shared_domains[:, MAX])))
+
+    def __str__(self) -> str:
+        return f"domains={self.shared_domains}, propagators={self.propagators}"
+
+    def filter(self, statistics: NDArray = stats_init(), changes: Optional[NDArray] = None) -> bool:
+        """
+        Filters the problem's domains by applying the propagators until a fix point is reached.
+        :param statistics: where to record the statistics of the computation
+        :return: False if the problem is not consistent
+        """
+        return filter(self, self.shared_domains, statistics, changes)
+
+    def pretty_print(self, solution: List[int]) -> None:
+        print(solution)
+
+
+def filter(problem: Problem, shr_domains: NDArray, statistics: NDArray, changes: Optional[NDArray]) -> bool:
+    """
+    Filters the problem's domains by applying the propagators until a fix point is reached.
+    :param statistics: where to record the statistics of the computation
+    :return: False if the problem is not consistent
+    """
+    statistics[STATS_PROBLEM_FILTERS_NB] += 1
+    if changes is None:  # this is an initialization
+        propagators_to_filter = np.ones(len(problem.propagators), dtype=np.bool)  # TODO: create once
+    else:
+        propagators_to_filter = np.zeros(len(problem.propagators), dtype=np.bool)
+        update_propagators_to_filter(propagators_to_filter, problem, -1, changes)
+    while (propagator_idx := pop_propagator_to_filter(propagators_to_filter)) != -1:
+        propagator = problem.propagators[propagator_idx]
+        statistics[STATS_PROBLEM_PROPAGATORS_FILTERS_NB] += 1
+        prop_domains = compute_propagator_domains(
+            shr_domains,
+            problem.domain_indices[propagator.variables].reshape(-1),
+            problem.domain_offsets[propagator.variables].reshape(-1),
+        )  # TODO: include in propagator
+        new_prop_domains = compute_domains(propagator.algorithm, prop_domains)
+        shr_changes = compute_shared_domains_changes(
+            problem.domain_indices[propagator.variables].reshape(-1),
+            problem.domain_offsets[propagator.variables].reshape(-1),
+            prop_domains,
+            new_prop_domains,
+            shr_domains,  # TODO: include in propagator
+        )
+        if shr_changes is None:
+            return False
+        update_propagators_to_filter(propagators_to_filter, problem, propagator_idx, shr_changes)
+    return True
+
+
+def update_propagators_to_filter(
+    propagators_to_filter: NDArray,
+    problem: Problem,
+    last_propagator_idx: int,
+    shr_changes: NDArray,
+) -> None:
+    for propagator_idx, propagator in enumerate(problem.propagators):
+        if propagator_idx != last_propagator_idx and should_be_filtered(
+            propagator.triggers, problem.domain_indices[propagator.variables].reshape(-1), shr_changes
+        ):
+            propagators_to_filter[propagator_idx] = True
+
+
+@jit(nopython=True, nogil=True, cache=True)
+def pop_propagator_to_filter(propagators_to_filter: NDArray) -> int:
+    if np.any(propagators_to_filter):
+        propagator_idx = int(np.argmax(propagators_to_filter))
+        propagators_to_filter[propagator_idx] = False
+        return propagator_idx
+    else:
+        return -1
+
+
+def compute_domains(algorithm: int, domains: NDArray) -> Optional[NDArray]:
+    if algorithm == ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ:
+        return alldifferent_lopez_ortiz_propagator.compute_domains(domains)
+    if algorithm == ALGORITHM_SUM:
+        return sum_propagator.compute_domains(domains)
+    if algorithm == ALGORITHM_DUMMY:
+        return dummy_propagator.compute_domains(domains)
+    return None
 
 
 @jit(nopython=True, nogil=True, cache=True)
@@ -78,130 +205,3 @@ def compute_shared_domains_changes(
         (new_prop_mins.reshape((-1, 1)), new_prop_maxs.reshape((-1, 1)))
     ) - prop_offsets.reshape((-1, 1))
     return np.not_equal(old_shr_domains, shr_domains)
-
-
-class Problem:
-    """
-    A problem is defined by a list of variable domains and a list of propagators.
-    """
-
-    def __init__(self, shr_domains: List[Tuple[int, int]], dom_indices: List[int], dom_offsets: List[int]):
-        self.size = len(dom_indices)
-        self.shr_domains = np.array(shr_domains, dtype=np.int32).reshape((-1, 2))
-        self.dom_indices = np.array(dom_indices, dtype=np.int32)
-        self.dom_offsets = np.array(dom_offsets, dtype=np.int32)
-        self.propagators: List[Propagator] = []
-
-    def set_propagators(self, propagators: List[Propagator]) -> None:
-        self.propagators = propagators
-
-    def get_domains(self) -> NDArray:
-        """
-        Returns the domains of the problem variables.
-        :return: an NDArray
-        """
-        domains = self.shr_domains[self.dom_indices]
-        domains += self.dom_offsets.reshape((-1, 1))
-        return domains
-
-    def get_values(self) -> List[int]:
-        assert not self.is_not_solved()
-        domains = self.get_domains()
-        return domains[:, MIN].tolist()
-
-    def is_not_instantiated(self, var_idx: int) -> bool:
-        """
-        Returns a boolean indicating if a variable is not instantiated.
-        :param var_idx: the index of the variable
-        :return: True iff the variable is not instantiated
-        """
-        domain = self.shr_domains[self.dom_indices[var_idx]]
-        return bool(domain[MIN] < domain[MAX])
-
-    def is_not_solved(self) -> bool:
-        """
-        Returns true iff the problem is not solved.
-        :return: a boolean
-        """
-        return bool(np.any(np.not_equal(self.shr_domains[:, MIN], self.shr_domains[:, MAX])))
-
-    def __str__(self) -> str:
-        return f"domains={self.shr_domains}, propagators={self.propagators}"
-
-    def filter(self, statistics: NDArray = stats_init(), changes: Optional[NDArray] = None) -> bool:
-        """
-        Filters the problem's domains by applying the propagators until a fix point is reached.
-        :param statistics: where to record the statistics of the computation
-        :return: False if the problem is not consistent
-        """
-        return filter(self, self.shr_domains, statistics, changes)
-
-    def pretty_print(self, solution: List[int]) -> None:
-        print(solution)
-
-
-def filter(problem: Problem, shr_domains: NDArray, statistics: NDArray, changes: Optional[NDArray]) -> bool:
-    """
-    Filters the problem's domains by applying the propagators until a fix point is reached.
-    :param statistics: where to record the statistics of the computation
-    :return: False if the problem is not consistent
-    """
-    statistics[STATS_PROBLEM_FILTERS_NB] += 1
-    if changes is None:  # this is an initialization
-        propagators_to_filter = np.ones(len(problem.propagators), dtype=np.bool)  # TODO: create once
-    else:
-        propagators_to_filter = np.zeros(len(problem.propagators), dtype=np.bool)
-        update_propagators_to_filter(propagators_to_filter, problem, -1, changes)
-    while (propagator_idx := pop_propagator_to_filter(propagators_to_filter)) != -1:
-        propagator = problem.propagators[propagator_idx]
-        statistics[STATS_PROBLEM_PROPAGATORS_FILTERS_NB] += 1
-        prop_domains = compute_propagator_domains(
-            shr_domains,
-            problem.dom_indices[propagator.variables].reshape(-1),
-            problem.dom_offsets[propagator.variables].reshape(-1),
-        )  # TODO: include in propagator
-        new_prop_domains = compute_domains(propagator.algorithm, prop_domains)
-        shr_changes = compute_shared_domains_changes(
-            problem.dom_indices[propagator.variables].reshape(-1),
-            problem.dom_offsets[propagator.variables].reshape(-1),
-            prop_domains,
-            new_prop_domains,
-            shr_domains,  # TODO: include in propagator
-        )
-        if shr_changes is None:
-            return False
-        update_propagators_to_filter(propagators_to_filter, problem, propagator_idx, shr_changes)
-    return True
-
-
-def update_propagators_to_filter(
-    propagators_to_filter: NDArray,
-    problem: Problem,
-    last_propagator_idx: int,
-    shr_changes: NDArray,
-) -> None:
-    for propagator_idx, propagator in enumerate(problem.propagators):
-        if propagator_idx != last_propagator_idx and should_be_filtered(
-            propagator.triggers, problem.dom_indices[propagator.variables].reshape(-1), shr_changes
-        ):
-            propagators_to_filter[propagator_idx] = True
-
-
-@jit(nopython=True, nogil=True, cache=True)
-def pop_propagator_to_filter(propagators_to_filter: NDArray) -> int:
-    if np.any(propagators_to_filter):
-        propagator_idx = int(np.argmax(propagators_to_filter))
-        propagators_to_filter[propagator_idx] = False
-        return propagator_idx
-    else:
-        return -1
-
-
-def compute_domains(algorithm: int, domains: NDArray) -> Optional[NDArray]:
-    if algorithm == ALLDIFFERENT_LOPEZ_ORTIZ:
-        return alldifferent_lopez_ortiz_propagator.compute_domains(domains)
-    if algorithm == SUM:
-        return sum_propagator.compute_domains(domains)
-    if algorithm == DUMMY:
-        return dummy_propagator.compute_domains(domains)
-    return None

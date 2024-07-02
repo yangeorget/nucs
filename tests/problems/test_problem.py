@@ -1,8 +1,8 @@
 import numpy as np
 
 from ncs.problems.problem import (
-    ALLDIFFERENT_LOPEZ_ORTIZ,
-    SUM,
+    ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ,
+    ALGORITHM_SUM,
     Problem,
     compute_shared_domains_changes,
 )
@@ -41,37 +41,37 @@ class TestProblem:
         assert not problem.is_not_solved()
 
     def test_filter_1(self) -> None:
-        problem = Problem(shr_domains=[(0, 2), (0, 2), (4, 6)], dom_indices=[0, 1, 2], dom_offsets=[0, 0, 0])
-        problem.set_propagators([Propagator(np.array([2, 0, 1], dtype=np.int32), SUM)])
+        problem = Problem(shared_domains=[(0, 2), (0, 2), (4, 6)], domain_indices=[0, 1, 2], domain_offsets=[0, 0, 0])
+        problem.set_propagators([Propagator(np.array([2, 0, 1], dtype=np.int32), ALGORITHM_SUM)])
         assert problem.filter()
         assert not problem.is_not_solved()
-        assert np.all(problem.shr_domains == np.array([[2, 2], [2, 2], [4, 4]]))
+        assert np.all(problem.shared_domains == np.array([[2, 2], [2, 2], [4, 4]]))
 
     def test_filter_2(self) -> None:
         problem = Problem(
-            shr_domains=[(0, 0), (2, 2), (0, 2)],
-            dom_indices=[0, 1, 2, 0, 1, 2],
-            dom_offsets=[0, 0, 0, 0, 1, 2],
+            shared_domains=[(0, 0), (2, 2), (0, 2)],
+            domain_indices=[0, 1, 2, 0, 1, 2],
+            domain_offsets=[0, 0, 0, 0, 1, 2],
         )
         problem.set_propagators(
             [
-                Propagator(np.array([0, 1, 2], dtype=np.int32), ALLDIFFERENT_LOPEZ_ORTIZ),
-                Propagator(np.array([3, 4, 5], dtype=np.int32), ALLDIFFERENT_LOPEZ_ORTIZ),
+                Propagator(np.array([0, 1, 2], dtype=np.int32), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ),
+                Propagator(np.array([3, 4, 5], dtype=np.int32), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ),
             ]
         )
         assert not problem.filter()
 
     def test_compute_shr_domain_changes(self) -> None:
         problem = Problem(
-            shr_domains=[(0, 2), (0, 2), (0, 2)],
-            dom_indices=[0, 1, 2],
-            dom_offsets=[0, 0, 0],
+            shared_domains=[(0, 2), (0, 2), (0, 2)],
+            domain_indices=[0, 1, 2],
+            domain_offsets=[0, 0, 0],
         )
         shr_domain_changes = compute_shared_domains_changes(
             prop_indices=np.array([0, 1]),
             prop_offsets=np.array([0, 0]),
             prop_domains=np.array([(0, 2), (0, 2)]),
             new_prop_domains=np.array([(0, 1), (1, 2)]),
-            shr_domains=problem.shr_domains,
+            shr_domains=problem.shared_domains,
         )
         assert np.all(np.equal(shr_domain_changes, np.array([(False, True), (True, False), (False, False)])))

@@ -14,11 +14,11 @@ class MinValueHeuristic(ValueHeuristic):
     """
 
     def choose(self, choice_points: List[NDArray], problem: Problem, var_idx: int) -> Optional[NDArray]:
-        domain_idx = problem.dom_indices[var_idx]
-        domains = np.copy(problem.shr_domains)
+        domain_idx = problem.domain_indices[var_idx]
+        domains = np.copy(problem.shared_domains)
         domains[domain_idx, MIN] += 1
-        choice_points.append(domains)
-        problem.shr_domains[domain_idx, MAX] = problem.shr_domains[domain_idx, MIN]
-        shr_changes = np.zeros((len(problem.shr_domains), 2), dtype=np.bool)
+        choice_points.append(domains)  # TODO: optimize
+        problem.shared_domains[domain_idx, MAX] = problem.shared_domains[domain_idx, MIN]
+        shr_changes = np.zeros((len(problem.shared_domains), 2), dtype=np.bool)
         shr_changes[domain_idx, MAX] = True
         return shr_changes

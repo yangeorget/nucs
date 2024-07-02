@@ -1,6 +1,11 @@
 import numpy as np
 
-from ncs.problems.problem import ALLDIFFERENT_LOPEZ_ORTIZ, DUMMY, SUM, Problem
+from ncs.problems.problem import (
+    ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ,
+    ALGORITHM_DUMMY,
+    ALGORITHM_SUM,
+    Problem,
+)
 from ncs.propagators.propagator import Propagator
 from ncs.solvers.backtrack_solver import BacktrackSolver
 from ncs.utils import (
@@ -17,7 +22,7 @@ class TestBacktrackSolver:
         dom_indices = [0, 1]
         dom_offsets = [0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
-        problem.set_propagators([Propagator(np.array([], dtype=np.int32), DUMMY)])
+        problem.set_propagators([Propagator(np.array([], dtype=np.int32), ALGORITHM_DUMMY)])
         solver = BacktrackSolver(problem)
         for _ in solver.solve():
             pass
@@ -29,7 +34,7 @@ class TestBacktrackSolver:
         dom_indices = [0, 1]
         dom_offsets = [0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
-        problem.set_propagators([Propagator(np.array([], dtype=np.int32), DUMMY)])
+        problem.set_propagators([Propagator(np.array([], dtype=np.int32), ALGORITHM_DUMMY)])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 4
@@ -45,7 +50,7 @@ class TestBacktrackSolver:
         dom_indices = [0, 1, 2]
         dom_offsets = [0, 0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
-        problem.set_propagators([Propagator(np.array([2, 0, 1], dtype=np.int32), SUM)])
+        problem.set_propagators([Propagator(np.array([2, 0, 1], dtype=np.int32), ALGORITHM_SUM)])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert solutions == [[2, 2, 4]]
@@ -59,7 +64,7 @@ class TestBacktrackSolver:
         dom_indices = [0, 1, 2]
         dom_offsets = [0, 0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
-        problem.set_propagators([Propagator(np.array([2, 0, 1], dtype=np.int32), SUM)])
+        problem.set_propagators([Propagator(np.array([2, 0, 1], dtype=np.int32), ALGORITHM_SUM)])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 3
@@ -74,7 +79,7 @@ class TestBacktrackSolver:
         dom_indices = [0, 1, 2]
         dom_offsets = [0, 0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
-        problem.set_propagators([Propagator(np.array([2, 0, 1], dtype=np.int32), SUM)])
+        problem.set_propagators([Propagator(np.array([2, 0, 1], dtype=np.int32), ALGORITHM_SUM)])
         solver = BacktrackSolver(problem)
         for _ in solver.solve():
             pass
@@ -87,7 +92,7 @@ class TestBacktrackSolver:
         dom_indices = [0, 1, 2]
         dom_offsets = [0, 0, 0]
         problem = Problem(shr_domains, dom_indices, dom_offsets)
-        problem.set_propagators([Propagator(np.array([0, 1, 2], dtype=np.int32), ALLDIFFERENT_LOPEZ_ORTIZ)])
+        problem.set_propagators([Propagator(np.array([0, 1, 2], dtype=np.int32), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ)])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 6
