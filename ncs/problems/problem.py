@@ -31,12 +31,12 @@ class Problem:
     def __init__(self, shared_domains: List[Tuple[int, int]], domain_indices: List[int], domain_offsets: List[int]):
         self.variable_nb = len(domain_indices)
         self.shared_domains = np.array(shared_domains, dtype=np.int32).reshape((-1, 2))
-        self.domain_indices = np.array(domain_indices, dtype=np.int32)
+        self.domain_indices = np.array(domain_indices, dtype=np.int16)
         self.domain_offsets = np.array(domain_offsets, dtype=np.int32)
 
     def set_propagators(self, propagators: List[Tuple[List[int], int]]) -> None:
         self.propagator_nb = len(propagators)
-        self.propagator_algorithms = np.empty(self.propagator_nb, dtype=np.int16)
+        self.propagator_algorithms = np.empty(self.propagator_nb, dtype=np.int8)
         propagator_variables = []
         self.propagator_sizes = np.empty(self.propagator_nb, dtype=np.int16)
         self.propagator_starts = np.empty(self.propagator_nb, dtype=np.int16)
@@ -144,92 +144,83 @@ def filter(
     if changes is None:  # this is an initialization
         propagators_to_filter = np.ones(propagator_nb, dtype=np.bool)  # TODO: create once
     else:
-        propagators_to_filter = np.zeros(propagator_nb, dtype=np.bool)
-        update_propagators_to_filter(
-            propagators_to_filter, propagator_nb, propagator_triggers, propagator_indices, -1, changes
-        )
+        propagators_to_filter = np.zeros(propagator_nb, dtype=np.bool)  # TODO: create once
+        for propagator_idx in range(0, propagator_nb):
+            propagator_start = propagator_starts[propagator_idx]
+            propagator_end = propagator_ends[propagator_idx]
+            if np.any(
+                changes[propagator_indices[propagator_start:propagator_end]]
+                & propagator_triggers[propagator_start:propagator_end]
+            ):
+                propagators_to_filter[propagator_idx] = True
     while np.any(propagators_to_filter):
         propagator_idx = int(np.argmax(propagators_to_filter))
         propagators_to_filter[propagator_idx] = False
         statistics[STATS_PROBLEM_PROPAGATORS_FILTERS_NB] += 1
         propagator_start = propagator_starts[propagator_idx]
         propagator_end = propagator_ends[propagator_idx]
-        prop_indices = propagator_indices[propagator_start : propagator_end]
-        prop_offsets = propagator_offsets[propagator_start : propagator_end]
-        propagator_domains = shared_domains[prop_indices] + prop_offsets.reshape((-1, 1))
-        new_propagator_domains = compute_domains(propagator_algorithms[propagator_idx], propagator_domains)
+        prop_indices = propagator_indices[propagator_start:propagator_end]
+        prop_offsets = propagator_offsets[propagator_start:propagator_end]
+        prop_domains = shared_domains[prop_indices] + prop_offsets.reshape((-1, 1))
+        algorithm = propagator_algorithms[propagator_idx]
+        new_prop_domains = compute_domains(algorithm, prop_domains)
         shared_changes = compute_shared_domains_changes(
             prop_indices,
             prop_offsets,
-            propagator_domains,
-            new_propagator_domains,
+            prop_domains,
+            new_prop_domains,
             shared_domains,
         )
         if shared_changes is None:
             return False
-        update_propagators_to_filter(
-            propagators_to_filter,
-            propagator_nb,
-            propagator_triggers,
-            propagator_indices,
-            propagator_idx,
-            shared_changes,
-        )
+        for prop_idx in range(0, propagator_nb):
+            if prop_idx != propagator_idx:
+                propagator_start = propagator_starts[prop_idx]
+                propagator_end = propagator_ends[prop_idx]
+                if np.any(
+                    shared_changes[propagator_indices[propagator_start:propagator_end]]
+                    & propagator_triggers[propagator_start:propagator_end]
+                ):
+                    propagators_to_filter[prop_idx] = True
     return True
 
 
 @jit(nopython=True, nogil=True, cache=True)
-def update_propagators_to_filter(
-    propagators_to_filter: NDArray,
-    propagator_nb: int,
-    propagator_triggers: NDArray,
-    propagator_indices: NDArray,
-    last_propagator_idx: int,
-    shared_changes: NDArray,
-) -> None:
-    for propagator_idx in range(0, propagator_nb):
-        if propagator_idx != last_propagator_idx and (
-            shared_changes is None or bool(np.any(shared_changes[propagator_indices] & propagator_triggers))
-        ):
-            propagators_to_filter[propagator_idx] = True
-
-
-@jit(nopython=True, nogil=True, cache=True)
-def compute_domains(algorithm: int, domains: NDArray) -> Optional[NDArray]:
+def compute_domains(algorithm: int, propagator_domains: NDArray) -> Optional[NDArray]:
     if algorithm == ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ:
-        return alldifferent_lopez_ortiz_propagator.compute_domains(domains)
-    if algorithm == ALGORITHM_SUM:
-        return sum_propagator.compute_domains(domains)
-    if algorithm == ALGORITHM_DUMMY:
-        return dummy_propagator.compute_domains(domains)
+        return alldifferent_lopez_ortiz_propagator.compute_domains(propagator_domains)
+    elif algorithm == ALGORITHM_SUM:
+        return sum_propagator.compute_domains(propagator_domains)
+    elif algorithm == ALGORITHM_DUMMY:
+        return dummy_propagator.compute_domains(propagator_domains)
     return None
 
 
 @jit(nopython=True, nogil=True, cache=True)
 def compute_shared_domains_changes(  # TODO: inline ?
-    propagator_indices: NDArray,
-    propagator_offsets: NDArray,
-    propagator_domains: NDArray,
+    prop_indices: NDArray,
+    prop_offsets: NDArray,
+    prop_domains: NDArray,
     new_propagator_domains: NDArray,
     shared_domains: NDArray,
 ) -> Optional[NDArray]:
     """
     Computes the changes of the shared domains when a propagator is applied.
-    :param propagator_indices: the indices for the propagator variables
-    :param propagator_offsets: the offsets for the propagator variables
-    :param propagator_domains: the domains of the propagator variables
+    :param prop_indices: the indices for the propagator variables
+    :param prop_offsets: the offsets for the propagator variables
+    :param prop_domains: the domains of the propagator variables
     :param new_propagator_domains: the new domains of the propagator variables
     :param shared_domains: the shared domains
     :return: None if an inconsistency is detected or an NDArray of changes
     """
     if new_propagator_domains is None:
         return None
-    new_prop_mins = np.maximum(new_propagator_domains[:, MIN], propagator_domains[:, MIN])
-    new_prop_maxs = np.minimum(new_propagator_domains[:, MAX], propagator_domains[:, MAX])
+    new_prop_mins = np.maximum(new_propagator_domains[:, MIN], prop_domains[:, MIN])
+    new_prop_maxs = np.minimum(new_propagator_domains[:, MAX], prop_domains[:, MAX])
     if np.any(np.greater(new_prop_mins, new_prop_maxs)):
         return None
     old_shared_domains = shared_domains.copy()
-    shared_domains[propagator_indices] = np.hstack(
+    shared_domains[prop_indices] = np.hstack(
         (new_prop_mins.reshape((-1, 1)), new_prop_maxs.reshape((-1, 1)))
-    ) - propagator_offsets.reshape((-1, 1))
+    ) - prop_offsets.reshape((-1, 1))
     return np.not_equal(old_shared_domains, shared_domains)
