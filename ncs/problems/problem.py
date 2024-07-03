@@ -36,6 +36,7 @@ class Problem:
 
     def set_propagators(self, propagators: List[Tuple[List[int], int]]) -> None:
         self.propagator_nb = len(propagators)
+        self.propagators_to_filter = np.zeros(self.propagator_nb, dtype=np.bool)
         self.propagator_algorithms = np.empty(self.propagator_nb, dtype=np.int8)
         propagator_variables = []
         self.propagator_sizes = np.empty(self.propagator_nb, dtype=np.int16)
@@ -107,6 +108,7 @@ class Problem:
         """
         return filter(
             self.propagator_nb,
+            self.propagators_to_filter,
             self.propagator_algorithms,
             self.propagator_starts,
             self.propagator_ends,
@@ -125,6 +127,7 @@ class Problem:
 @jit(nopython=True, nogil=True, cache=True)
 def filter(
     propagator_nb: int,
+    propagators_to_filter: NDArray,
     propagator_algorithms: NDArray,
     propagator_starts: NDArray,
     propagator_ends: NDArray,
@@ -142,16 +145,14 @@ def filter(
     """
     statistics[STATS_PROBLEM_FILTERS_NB] += 1
     if changes is None:  # this is an initialization
-        propagators_to_filter = np.ones(propagator_nb, dtype=np.bool)  # TODO: create once
+        propagators_to_filter.fill(True)
     else:
-        propagators_to_filter = np.zeros(propagator_nb, dtype=np.bool)  # TODO: create once
         for propagator_idx in range(0, propagator_nb):
             prop_start = propagator_starts[propagator_idx]
             prop_end = propagator_ends[propagator_idx]
-            if np.any(changes[propagator_indices[prop_start:prop_end]] & propagator_triggers[prop_start:prop_end]):
-                propagators_to_filter[propagator_idx] = True
+            propagators_to_filter[propagator_idx] = np.any(changes[propagator_indices[prop_start:prop_end]] & propagator_triggers[prop_start:prop_end])
     while np.any(propagators_to_filter):
-        propagator_idx = int(np.argmax(propagators_to_filter))
+        propagator_idx = int(np.argmax(propagators_to_filter))  # TODO: optimize
         propagators_to_filter[propagator_idx] = False
         statistics[STATS_PROBLEM_PROPAGATORS_FILTERS_NB] += 1
         prop_start = propagator_starts[propagator_idx]
@@ -169,7 +170,7 @@ def filter(
         old_shared_domains = shared_domains.copy()
         shared_domains[prop_indices] = np.hstack(
             (prop_new_mins.reshape((-1, 1)), prop_new_maxs.reshape((-1, 1)))
-        ) - prop_offsets.reshape((-1, 1))
+        ) - prop_offsets.reshape((-1, 1))  # TODO: optimize
         shared_changes = np.not_equal(old_shared_domains, shared_domains)
         for prop_idx in range(0, propagator_nb):
             if prop_idx != propagator_idx:
