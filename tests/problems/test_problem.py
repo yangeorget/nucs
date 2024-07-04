@@ -9,13 +9,6 @@ from ncs.problems.problem import (
 
 
 class TestProblem:
-    def test_domains(self) -> None:
-        shr_domains = [(0, 2), (4, 6)]
-        dom_indices = [0, 0, 1]
-        dom_offsets = [0, 1, 2]
-        problem = Problem(shr_domains, dom_indices, dom_offsets)
-        assert np.all(problem.get_domains() == np.array([[0, 2], [1, 3], [6, 8]]))
-
     def test_is_not_solved_ok(self) -> None:
         shr_domains = [(0, 2), (0, 2), (4, 6)]
         dom_indices = [0, 1, 2]

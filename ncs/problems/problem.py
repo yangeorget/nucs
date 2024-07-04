@@ -31,55 +31,39 @@ class Problem:
     def __init__(self, shared_domains: List[Tuple[int, int]], domain_indices: List[int], domain_offsets: List[int]):
         self.variable_nb = len(domain_indices)
         self.shared_domains = np.array(shared_domains, dtype=np.int32).reshape((-1, 2))
-        self.domain_indices = np.array(domain_indices, dtype=np.int16)
+        self.domain_indices = np.array(domain_indices, dtype=np.uint16)
         self.domain_offsets = np.array(domain_offsets, dtype=np.int32)
 
     def set_propagators(self, propagators: List[Tuple[List[int], int]]) -> None:
         self.propagator_nb = len(propagators)
-        self.propagators_to_filter = np.zeros(self.propagator_nb, dtype=np.bool)
-        self.propagator_algorithms = np.empty(self.propagator_nb, dtype=np.int8)
-        propagator_variables = []
-        self.propagator_sizes = np.empty(self.propagator_nb, dtype=np.int16)
-        self.propagator_starts = np.empty(self.propagator_nb, dtype=np.int16)
-        self.propagator_ends = np.empty(self.propagator_nb, dtype=np.int16)
+        propagator_total_size = 0
+        self.propagators_to_filter = np.empty(self.propagator_nb, dtype=np.bool)
+        self.propagator_algorithms = np.empty(self.propagator_nb, dtype=np.uint8)
+        self.propagator_starts = np.empty(self.propagator_nb, dtype=np.uint16)  # TODO : group with ends
+        self.propagator_ends = np.empty(self.propagator_nb, dtype=np.uint16)
         self.propagator_starts[0] = 0
-        for propagator_idx, propagator in enumerate(propagators):
+        for prop_idx, propagator in enumerate(propagators):
+            propagator_size = len(propagator[0])
+            self.propagator_algorithms[prop_idx] = propagator[1]
+            if prop_idx > 0:
+                self.propagator_starts[prop_idx] = self.propagator_ends[prop_idx - 1]
+            self.propagator_ends[prop_idx] = self.propagator_starts[prop_idx] + propagator_size
+            propagator_total_size += propagator_size
+        self.propagator_indices = np.empty(propagator_total_size, dtype=np.uint16)
+        self.propagator_offsets = np.empty(propagator_total_size, dtype=np.int32)
+        for prop_idx, propagator in enumerate(propagators):
             prop_variables = propagator[0]
-            prop_algorithm = propagator[1]
-            propagator_size = len(prop_variables)
-            propagator_variables.append(prop_variables)
-            self.propagator_sizes[propagator_idx] = propagator_size
-            self.propagator_algorithms[propagator_idx] = prop_algorithm
-            if propagator_idx > 0:
-                self.propagator_starts[propagator_idx] = self.propagator_ends[propagator_idx - 1]
-            self.propagator_ends[propagator_idx] = self.propagator_starts[propagator_idx] + propagator_size
-        self.propagator_total_size = sum(self.propagator_sizes)
-        self.propagator_variables = np.array(propagator_variables, dtype=np.int16)
-        self.propagator_indices = np.empty(self.propagator_total_size, dtype=np.int16)
-        self.propagator_offsets = np.empty(self.propagator_total_size, dtype=np.int32)
-        for propagator_idx, propagator in enumerate(propagators):
-            prop_variables = propagator[0]
-            self.propagator_indices[self.propagator_starts[propagator_idx] : self.propagator_ends[propagator_idx]] = (
+            self.propagator_indices[self.propagator_starts[prop_idx] : self.propagator_ends[prop_idx]] = (
                 self.domain_indices[prop_variables]
             )
-            self.propagator_offsets[self.propagator_starts[propagator_idx] : self.propagator_ends[propagator_idx]] = (
+            self.propagator_offsets[self.propagator_starts[prop_idx] : self.propagator_ends[prop_idx]] = (
                 self.domain_offsets[prop_variables]
             )
-        self.propagator_triggers = np.ones((self.propagator_total_size, 2), dtype=np.bool)
-
-    def get_domains(self) -> NDArray:
-        """
-        Returns the domains of the problem variables.
-        :return: an NDArray
-        """
-        domains = self.shared_domains[self.domain_indices]
-        domains += self.domain_offsets.reshape((-1, 1))
-        return domains
 
     def get_values(self) -> List[int]:
-        assert is_solved(self.shared_domains)
-        domains = self.get_domains()
-        return domains[:, MIN].tolist()
+        mins = self.shared_domains[self.domain_indices, MIN]
+        mins += self.domain_offsets
+        return mins.tolist()
 
     def __str__(self) -> str:
         return f"domains={self.shared_domains}"
@@ -98,7 +82,6 @@ class Problem:
             self.propagator_ends,
             self.propagator_indices,
             self.propagator_offsets,
-            self.propagator_triggers,
             self.shared_domains,
             statistics,
             changes,
@@ -108,7 +91,7 @@ class Problem:
         print(solution)
 
 
-@jit(nopython=True, nogil=True, cache=True)
+@jit(nopython=True, cache=True)
 def filter(
     propagator_nb: int,
     propagators_to_filter: NDArray,
@@ -117,7 +100,6 @@ def filter(
     propagator_ends: NDArray,
     propagator_indices: NDArray,
     propagator_offsets: NDArray,
-    propagator_triggers: NDArray,
     shared_domains: NDArray,
     statistics: NDArray,
     changes: Optional[NDArray],
@@ -129,13 +111,7 @@ def filter(
     """
     statistics[STATS_PROBLEM_FILTERS_NB] += 1
     init_propagators_to_filter(
-        propagators_to_filter,
-        changes,
-        propagator_nb,
-        propagator_starts,
-        propagator_ends,
-        propagator_indices,
-        propagator_triggers,
+        propagators_to_filter, changes, propagator_nb, propagator_starts, propagator_ends, propagator_indices
     )
     while True:
         none = True
@@ -165,12 +141,11 @@ def filter(
             propagator_starts,
             propagator_ends,
             propagator_indices,
-            propagator_triggers,
             prop_idx,
         )
 
 
-@jit(nopython=True, nogil=True, cache=True)
+@jit(nopython=True, cache=True)
 def init_propagators_to_filter(
     propagators_to_filter: NDArray,
     changes: NDArray,
@@ -178,20 +153,17 @@ def init_propagators_to_filter(
     propagator_starts: NDArray,
     propagator_ends: NDArray,
     propagator_indices: NDArray,
-    propagator_triggers: NDArray,
 ) -> None:
     if changes is None:  # this is an initialization
         propagators_to_filter.fill(True)
     else:
         for prop_idx in range(propagator_nb):
-            prop_start = propagator_starts[prop_idx]
-            prop_end = propagator_ends[prop_idx]
             propagators_to_filter[prop_idx] = np.any(
-                changes[propagator_indices[prop_start:prop_end]] & propagator_triggers[prop_start:prop_end]
+                changes[propagator_indices[propagator_starts[prop_idx] : propagator_ends[prop_idx]]]
             )
 
 
-@jit(nopython=True, nogil=True, cache=True)
+@jit(nopython=True, cache=True)
 def update_propagators_to_filter(
     propagators_to_filter: NDArray,
     changes: NDArray,
@@ -199,18 +171,16 @@ def update_propagators_to_filter(
     propagator_starts: NDArray,
     propagator_ends: NDArray,
     propagator_indices: NDArray,
-    propagator_triggers: NDArray,
     propagator_idx: int,
 ) -> None:
     for prop_idx in range(propagator_nb):
-        if prop_idx != propagator_idx:
-            prop_start = propagator_starts[prop_idx]
-            prop_end = propagator_ends[prop_idx]
-            if np.any(changes[propagator_indices[prop_start:prop_end]] & propagator_triggers[prop_start:prop_end]):
-                propagators_to_filter[prop_idx] = True
+        if prop_idx != propagator_idx and np.any(
+            changes[propagator_indices[propagator_starts[prop_idx] : propagator_ends[prop_idx]]]
+        ):
+            propagators_to_filter[prop_idx] = True
 
 
-@jit(nopython=True, nogil=True, cache=True)
+@jit(nopython=True, cache=True)
 def compute_domains(algorithm: int, propagator_domains: NDArray) -> Optional[NDArray]:
     if algorithm == ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ:
         return alldifferent_lopez_ortiz_propagator.compute_domains(propagator_domains)
@@ -221,7 +191,7 @@ def compute_domains(algorithm: int, propagator_domains: NDArray) -> Optional[NDA
     return None
 
 
-@jit(nopython=True, nogil=True, cache=True)
+@jit(nopython=True, cache=True)
 def is_solved(shared_domains: NDArray) -> bool:
     """
     Returns true iff the problem is solved.

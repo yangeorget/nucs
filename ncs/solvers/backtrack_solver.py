@@ -3,8 +3,11 @@ from typing import Iterator, List, Optional
 from numpy.typing import NDArray
 
 from ncs.heuristics.heuristic import Heuristic
-from ncs.heuristics.variable_heuristic import VariableHeuristic, first_not_instantiated_variable_heuristic, \
-    min_value_domain_heuristic
+from ncs.heuristics.variable_heuristic import (
+    VariableHeuristic,
+    first_not_instantiated_variable_heuristic,
+    min_value_domain_heuristic,
+)
 from ncs.problems.problem import Problem, is_solved
 from ncs.solvers.solver import Solver
 from ncs.utils import (
@@ -16,7 +19,11 @@ from ncs.utils import (
 
 
 class BacktrackSolver(Solver):
-    def __init__(self, problem: Problem, heuristic: Heuristic = VariableHeuristic(first_not_instantiated_variable_heuristic, min_value_domain_heuristic)):
+    def __init__(
+        self,
+        problem: Problem,
+        heuristic: Heuristic = VariableHeuristic(first_not_instantiated_variable_heuristic, min_value_domain_heuristic),
+    ):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
         self.heuristic = heuristic
@@ -36,7 +43,8 @@ class BacktrackSolver(Solver):
         while self.filter(changes):
             if is_solved(self.problem.shared_domains):
                 return self.problem.get_values()  # problem is solved
-            changes = self.heuristic.choose(self.choice_points, self.problem)
+            domains, changes = self.heuristic.choose(self.problem.shared_domains, self.problem.domain_indices)
+            self.choice_points.append(domains)
             self.statistics[STATS_SOLVER_CHOICES_NB] += 1
             self.statistics[STATS_SOLVER_CP_MAX] = max(self.statistics[STATS_SOLVER_CP_MAX], len(self.choice_points))
         return None
