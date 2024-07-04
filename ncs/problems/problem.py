@@ -77,25 +77,10 @@ class Problem:
         return domains
 
     def get_values(self) -> List[int]:
-        assert not self.is_not_solved()
+        assert not is_not_solved(self.shared_domains)
         domains = self.get_domains()
         return domains[:, MIN].tolist()
 
-    def is_not_instantiated(self, var_idx: int) -> bool:
-        """
-        Returns a boolean indicating if a variable is not instantiated.
-        :param var_idx: the index of the variable
-        :return: True iff the variable is not instantiated
-        """
-        domain = self.shared_domains[self.domain_indices[var_idx]]
-        return bool(domain[MIN] < domain[MAX])
-
-    def is_not_solved(self) -> bool:
-        """
-        Returns true iff the problem is not solved.
-        :return: a boolean
-        """
-        return bool(np.any(np.not_equal(self.shared_domains[:, MIN], self.shared_domains[:, MAX])))
 
     def __str__(self) -> str:
         return f"domains={self.shared_domains}"
@@ -155,7 +140,7 @@ def filter(
     )
     while True:
         found = False
-        for prop_idx in range(0, propagator_nb):
+        for prop_idx in range(propagator_nb):
             if propagators_to_filter[prop_idx]:
                 propagators_to_filter[prop_idx] = False
                 found = True
@@ -197,7 +182,7 @@ def init_propagators_to_filter(
     if changes is None:  # this is an initialization
         propagators_to_filter.fill(True)
     else:
-        for prop_idx in range(0, propagator_nb):
+        for prop_idx in range(propagator_nb):
             prop_start = propagator_starts[prop_idx]
             prop_end = propagator_ends[prop_idx]
             propagators_to_filter[prop_idx] = np.any(
@@ -216,7 +201,7 @@ def update_propagators_to_filter(
     propagator_triggers,
     propagator_idx,
 ):
-    for prop_idx in range(0, propagator_nb):
+    for prop_idx in range(propagator_nb):
         if prop_idx != propagator_idx:
             prop_start = propagator_starts[prop_idx]
             prop_end = propagator_ends[prop_idx]
@@ -233,3 +218,20 @@ def compute_domains(algorithm: int, propagator_domains: NDArray) -> Optional[NDA
     elif algorithm == ALGORITHM_DUMMY:
         return dummy_propagator.compute_domains(propagator_domains)
     return None
+
+@jit(nopython=True, nogil=True, cache=True)
+def is_not_solved(shared_domains: NDArray) -> bool:
+    """
+    Returns true iff the problem is not solved.
+    :return: a boolean
+    """
+    return bool(np.any(np.not_equal(shared_domains[:, MIN], shared_domains[:, MAX])))
+
+@jit(nopython=True, nogil=True, cache=True)
+def not_instantiated_index(variable_nb: int, shared_domains: NDArray, domain_indices: NDArray) -> int:
+    for var_idx in range(variable_nb):
+        domain = shared_domains[domain_indices[var_idx]]
+        if domain[MIN] < domain[MAX]:
+            return var_idx
+    return -1
+

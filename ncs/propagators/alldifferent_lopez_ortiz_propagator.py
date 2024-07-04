@@ -51,10 +51,10 @@ def filter_lower(
     rank_domains: NDArray,
     max_sorted_vars: NDArray,
 ) -> bool:
-    for i in range(0, nb + 1):
+    for i in range(nb + 1):
         t[i + 1] = h[i + 1] = i
         d[i + 1] = bounds[i + 1] - bounds[i]
-    for i in range(0, size):
+    for i in range(size):
         max_sorted_vars_i = max_sorted_vars[i]
         x = rank_domains[max_sorted_vars_i, MIN_RANK]
         y = rank_domains[max_sorted_vars_i, MAX_RANK]
@@ -89,7 +89,7 @@ def filter_upper(
     rank_domains: NDArray,
     min_sorted_vars: NDArray,
 ) -> bool:
-    for i in range(0, nb + 1):
+    for i in range(nb + 1):
         t[i] = h[i] = i + 1
         d[i] = bounds[i + 1] - bounds[i]
     for i in range(size - 1, -1, -1):

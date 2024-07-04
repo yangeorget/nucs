@@ -8,15 +8,15 @@ class SudokuProblem(Problem):
     def __init__(self, givens: List[List[int]]):
         super().__init__(
             shared_domains=[(1, 9) if given == 0 else (given, given) for line in givens for given in line],
-            domain_indices=list(range(0, 81)),
+            domain_indices=list(range(81)),
             domain_offsets=[0] * 81,
         )
         propagators = []
-        for i in range(0, 9):
+        for i in range(9):
             propagators.append((list(range(0 + i * 9, 9 + i * 9)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ))
             propagators.append((list(range(0 + i, 81 + i, 9)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ))
-        for i in range(0, 3):
-            for j in range(0, 3):
+        for i in range(3):
+            for j in range(3):
                 propagators.append(
                     (
                         [

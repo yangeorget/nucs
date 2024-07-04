@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 from ncs.heuristics.first_variable_heuristic import FirstVariableHeuristic
 from ncs.heuristics.heuristic import Heuristic
 from ncs.heuristics.min_value_heuristic import MinValueHeuristic
-from ncs.problems.problem import Problem
+from ncs.problems.problem import Problem, is_not_solved
 from ncs.solvers.solver import Solver
 from ncs.utils import (
     STATS_SOLVER_BACKTRACKS_NB,
@@ -34,7 +34,7 @@ class BacktrackSolver(Solver):
     def solve_one(self) -> Optional[List[int]]:
         if not self.filter():
             return None
-        while self.problem.is_not_solved():
+        while is_not_solved(self.problem.shared_domains):
             changes = self.heuristic.choose(self.choice_points, self.problem)
             self.statistics[STATS_SOLVER_CHOICES_NB] += 1
             value = len(self.choice_points)

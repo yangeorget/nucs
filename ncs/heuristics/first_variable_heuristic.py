@@ -1,5 +1,5 @@
 from ncs.heuristics.variable_heuristic import VariableHeuristic
-from ncs.problems.problem import Problem
+from ncs.problems.problem import Problem, not_instantiated_index
 
 
 class FirstVariableHeuristic(VariableHeuristic):
@@ -8,7 +8,4 @@ class FirstVariableHeuristic(VariableHeuristic):
     """
 
     def choose_variable(self, problem: Problem) -> int:
-        for var_idx in range(problem.variable_nb):
-            if problem.is_not_instantiated(var_idx):
-                return var_idx
-        return -1
+        return not_instantiated_index(problem.variable_nb, problem.shared_domains, problem.domain_indices)
