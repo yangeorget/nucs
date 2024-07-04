@@ -151,9 +151,15 @@ def filter(
             prop_start = propagator_starts[propagator_idx]
             prop_end = propagator_ends[propagator_idx]
             propagators_to_filter[propagator_idx] = np.any(changes[propagator_indices[prop_start:prop_end]] & propagator_triggers[prop_start:prop_end])
-    while np.any(propagators_to_filter):
-        propagator_idx = int(np.argmax(propagators_to_filter))  # TODO: optimize
-        propagators_to_filter[propagator_idx] = False
+    while True:
+        found = False
+        for propagator_idx in range(0, propagator_nb):
+            if propagators_to_filter[propagator_idx]:
+                propagators_to_filter[propagator_idx] = False
+                found = True
+                break
+        if not found:
+            return True
         statistics[STATS_PROBLEM_PROPAGATORS_FILTERS_NB] += 1
         prop_start = propagator_starts[propagator_idx]
         prop_end = propagator_ends[propagator_idx]
@@ -168,9 +174,7 @@ def filter(
         if np.any(np.greater(prop_new_mins, prop_new_maxs)):
             return False
         old_shared_domains = shared_domains.copy()
-        shared_domains[prop_indices] = np.hstack(
-            (prop_new_mins.reshape((-1, 1)), prop_new_maxs.reshape((-1, 1)))
-        ) - prop_offsets.reshape((-1, 1))  # TODO: optimize
+        shared_domains[prop_indices] = (np.vstack((prop_new_mins, prop_new_maxs)) - prop_offsets).transpose()
         shared_changes = np.not_equal(old_shared_domains, shared_domains)
         for prop_idx in range(0, propagator_nb):
             if prop_idx != propagator_idx:
@@ -180,7 +184,6 @@ def filter(
                     shared_changes[propagator_indices[prop_start:prop_end]] & propagator_triggers[prop_start:prop_end]
                 ):
                     propagators_to_filter[prop_idx] = True
-    return True
 
 
 @jit(nopython=True, nogil=True, cache=True)
