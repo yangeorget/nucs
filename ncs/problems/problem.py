@@ -144,46 +144,84 @@ def filter(
     :return: False if the problem is not consistent
     """
     statistics[STATS_PROBLEM_FILTERS_NB] += 1
-    if changes is None:  # this is an initialization
-        propagators_to_filter.fill(True)
-    else:
-        for propagator_idx in range(0, propagator_nb):
-            prop_start = propagator_starts[propagator_idx]
-            prop_end = propagator_ends[propagator_idx]
-            propagators_to_filter[propagator_idx] = np.any(changes[propagator_indices[prop_start:prop_end]] & propagator_triggers[prop_start:prop_end])
+    init_propagators_to_filter(
+        propagators_to_filter,
+        changes,
+        propagator_nb,
+        propagator_starts,
+        propagator_ends,
+        propagator_indices,
+        propagator_triggers,
+    )
     while True:
         found = False
-        for propagator_idx in range(0, propagator_nb):
-            if propagators_to_filter[propagator_idx]:
-                propagators_to_filter[propagator_idx] = False
+        for prop_idx in range(0, propagator_nb):
+            if propagators_to_filter[prop_idx]:
+                propagators_to_filter[prop_idx] = False
                 found = True
                 break
         if not found:
             return True
         statistics[STATS_PROBLEM_PROPAGATORS_FILTERS_NB] += 1
-        prop_start = propagator_starts[propagator_idx]
-        prop_end = propagator_ends[propagator_idx]
+        prop_start = propagator_starts[prop_idx]
+        prop_end = propagator_ends[prop_idx]
         prop_indices = propagator_indices[prop_start:prop_end]
-        prop_offsets = propagator_offsets[prop_start:prop_end]
-        prop_domains = shared_domains[prop_indices] + prop_offsets.reshape((-1, 1))
-        prop_new_domains = compute_domains(propagator_algorithms[propagator_idx], prop_domains)
+        prop_offsets = propagator_offsets[prop_start:prop_end].reshape((-1, 1))
+        prop_new_domains = compute_domains(propagator_algorithms[prop_idx], shared_domains[prop_indices] + prop_offsets)
         if prop_new_domains is None:
             return False
-        prop_new_mins = np.maximum(prop_new_domains[:, MIN], prop_domains[:, MIN])
-        prop_new_maxs = np.minimum(prop_new_domains[:, MAX], prop_domains[:, MAX])
-        if np.any(np.greater(prop_new_mins, prop_new_maxs)):
-            return False
         old_shared_domains = shared_domains.copy()
-        shared_domains[prop_indices] = (np.vstack((prop_new_mins, prop_new_maxs)) - prop_offsets).transpose()
-        shared_changes = np.not_equal(old_shared_domains, shared_domains)
+        shared_domains[prop_indices] = prop_new_domains - prop_offsets
+        update_propagators_to_filter(
+            propagators_to_filter,
+            np.not_equal(old_shared_domains, shared_domains),
+            propagator_nb,
+            propagator_starts,
+            propagator_ends,
+            propagator_indices,
+            propagator_triggers,
+            prop_idx,
+        )
+
+
+@jit(nopython=True, nogil=True, cache=True)
+def init_propagators_to_filter(
+    propagators_to_filter,
+    changes,
+    propagator_nb,
+    propagator_starts,
+    propagator_ends,
+    propagator_indices,
+    propagator_triggers,
+):
+    if changes is None:  # this is an initialization
+        propagators_to_filter.fill(True)
+    else:
         for prop_idx in range(0, propagator_nb):
-            if prop_idx != propagator_idx:
-                prop_start = propagator_starts[prop_idx]
-                prop_end = propagator_ends[prop_idx]
-                if np.any(
-                    shared_changes[propagator_indices[prop_start:prop_end]] & propagator_triggers[prop_start:prop_end]
-                ):
-                    propagators_to_filter[prop_idx] = True
+            prop_start = propagator_starts[prop_idx]
+            prop_end = propagator_ends[prop_idx]
+            propagators_to_filter[prop_idx] = np.any(
+                changes[propagator_indices[prop_start:prop_end]] & propagator_triggers[prop_start:prop_end]
+            )
+
+
+@jit(nopython=True, nogil=True, cache=True)
+def update_propagators_to_filter(
+    propagators_to_filter,
+    changes,
+    propagator_nb,
+    propagator_starts,
+    propagator_ends,
+    propagator_indices,
+    propagator_triggers,
+    propagator_idx,
+):
+    for prop_idx in range(0, propagator_nb):
+        if prop_idx != propagator_idx:
+            prop_start = propagator_starts[prop_idx]
+            prop_end = propagator_ends[prop_idx]
+            if np.any(changes[propagator_indices[prop_start:prop_end]] & propagator_triggers[prop_start:prop_end]):
+                propagators_to_filter[prop_idx] = True
 
 
 @jit(nopython=True, nogil=True, cache=True)
