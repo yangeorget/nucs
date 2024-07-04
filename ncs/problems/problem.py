@@ -77,10 +77,9 @@ class Problem:
         return domains
 
     def get_values(self) -> List[int]:
-        assert not is_not_solved(self.shared_domains)
+        assert is_solved(self.shared_domains)
         domains = self.get_domains()
         return domains[:, MIN].tolist()
-
 
     def __str__(self) -> str:
         return f"domains={self.shared_domains}"
@@ -139,24 +138,26 @@ def filter(
         propagator_triggers,
     )
     while True:
-        found = False
+        none = True
         for prop_idx in range(propagator_nb):
             if propagators_to_filter[prop_idx]:
-                propagators_to_filter[prop_idx] = False
-                found = True
+                propagators_to_filter[prop_idx] = none = False
                 break
-        if not found:
+        if none:
             return True
         statistics[STATS_PROBLEM_PROPAGATORS_FILTERS_NB] += 1
         prop_start = propagator_starts[prop_idx]
         prop_end = propagator_ends[prop_idx]
         prop_indices = propagator_indices[prop_start:prop_end]
         prop_offsets = propagator_offsets[prop_start:prop_end].reshape((-1, 1))
-        prop_new_domains = compute_domains(propagator_algorithms[prop_idx], shared_domains[prop_indices] + prop_offsets)
+        prop_domains = shared_domains[prop_indices]
+        np.add(prop_domains, prop_offsets, prop_domains)
+        prop_new_domains = compute_domains(propagator_algorithms[prop_idx], prop_domains)
         if prop_new_domains is None:
             return False
         old_shared_domains = shared_domains.copy()
-        shared_domains[prop_indices] = prop_new_domains - prop_offsets
+        np.subtract(prop_new_domains, prop_offsets, prop_new_domains)
+        shared_domains[prop_indices] = prop_new_domains
         update_propagators_to_filter(
             propagators_to_filter,
             np.not_equal(old_shared_domains, shared_domains),
@@ -171,14 +172,14 @@ def filter(
 
 @jit(nopython=True, nogil=True, cache=True)
 def init_propagators_to_filter(
-    propagators_to_filter,
-    changes,
-    propagator_nb,
-    propagator_starts,
-    propagator_ends,
-    propagator_indices,
-    propagator_triggers,
-):
+    propagators_to_filter: NDArray,
+    changes: NDArray,
+    propagator_nb: int,
+    propagator_starts: NDArray,
+    propagator_ends: NDArray,
+    propagator_indices: NDArray,
+    propagator_triggers: NDArray,
+) -> None:
     if changes is None:  # this is an initialization
         propagators_to_filter.fill(True)
     else:
@@ -192,15 +193,15 @@ def init_propagators_to_filter(
 
 @jit(nopython=True, nogil=True, cache=True)
 def update_propagators_to_filter(
-    propagators_to_filter,
-    changes,
-    propagator_nb,
-    propagator_starts,
-    propagator_ends,
-    propagator_indices,
-    propagator_triggers,
-    propagator_idx,
-):
+    propagators_to_filter: NDArray,
+    changes: NDArray,
+    propagator_nb: int,
+    propagator_starts: NDArray,
+    propagator_ends: NDArray,
+    propagator_indices: NDArray,
+    propagator_triggers: NDArray,
+    propagator_idx: int,
+) -> None:
     for prop_idx in range(propagator_nb):
         if prop_idx != propagator_idx:
             prop_start = propagator_starts[prop_idx]
@@ -219,19 +220,11 @@ def compute_domains(algorithm: int, propagator_domains: NDArray) -> Optional[NDA
         return dummy_propagator.compute_domains(propagator_domains)
     return None
 
+
 @jit(nopython=True, nogil=True, cache=True)
-def is_not_solved(shared_domains: NDArray) -> bool:
+def is_solved(shared_domains: NDArray) -> bool:
     """
-    Returns true iff the problem is not solved.
+    Returns true iff the problem is solved.
     :return: a boolean
     """
-    return bool(np.any(np.not_equal(shared_domains[:, MIN], shared_domains[:, MAX])))
-
-@jit(nopython=True, nogil=True, cache=True)
-def not_instantiated_index(variable_nb: int, shared_domains: NDArray, domain_indices: NDArray) -> int:
-    for var_idx in range(variable_nb):
-        domain = shared_domains[domain_indices[var_idx]]
-        if domain[MIN] < domain[MAX]:
-            return var_idx
-    return -1
-
+    return bool(np.all(np.equal(shared_domains[:, MIN], shared_domains[:, MAX])))

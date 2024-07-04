@@ -2,10 +2,10 @@ from typing import Iterator, List, Optional
 
 from numpy.typing import NDArray
 
-from ncs.heuristics.first_variable_heuristic import FirstVariableHeuristic
 from ncs.heuristics.heuristic import Heuristic
-from ncs.heuristics.min_value_heuristic import MinValueHeuristic
-from ncs.problems.problem import Problem, is_not_solved
+from ncs.heuristics.variable_heuristic import VariableHeuristic, first_not_instantiated_variable_heuristic, \
+    min_value_domain_heuristic
+from ncs.problems.problem import Problem, is_solved
 from ncs.solvers.solver import Solver
 from ncs.utils import (
     STATS_SOLVER_BACKTRACKS_NB,
@@ -16,7 +16,7 @@ from ncs.utils import (
 
 
 class BacktrackSolver(Solver):
-    def __init__(self, problem: Problem, heuristic: Heuristic = FirstVariableHeuristic(MinValueHeuristic())):
+    def __init__(self, problem: Problem, heuristic: Heuristic = VariableHeuristic(first_not_instantiated_variable_heuristic, min_value_domain_heuristic)):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
         self.heuristic = heuristic
@@ -32,16 +32,14 @@ class BacktrackSolver(Solver):
                 break
 
     def solve_one(self) -> Optional[List[int]]:
-        if not self.filter():
-            return None
-        while is_not_solved(self.problem.shared_domains):
+        changes = None
+        while self.filter(changes):
+            if is_solved(self.problem.shared_domains):
+                return self.problem.get_values()  # problem is solved
             changes = self.heuristic.choose(self.choice_points, self.problem)
             self.statistics[STATS_SOLVER_CHOICES_NB] += 1
-            value = len(self.choice_points)
-            self.statistics[STATS_SOLVER_CP_MAX] = max(self.statistics[STATS_SOLVER_CP_MAX], value)
-            if not self.filter(changes):
-                return None
-        return self.problem.get_values()  # problem is solved
+            self.statistics[STATS_SOLVER_CP_MAX] = max(self.statistics[STATS_SOLVER_CP_MAX], len(self.choice_points))
+        return None
 
     def backtrack(self) -> bool:
         """
