@@ -33,9 +33,7 @@ class Problem:
 
     def __init__(self, shared_domains: List[Tuple[int, int]], domain_indices: List[int], domain_offsets: List[int]):
         self.variable_nb = len(domain_indices)
-        self.shared_domains = np.array(shared_domains, dtype=np.int32).reshape(
-            (-1, 2)
-        )  # TODO cp = array of shared domains ?
+        self.shared_domains = np.array(shared_domains, dtype=np.int32).reshape((-1, 2))
         self.domain_indices = np.array(domain_indices, dtype=np.uint16)
         self.domain_offsets = np.array(domain_offsets, dtype=np.int32)
 
@@ -174,7 +172,6 @@ def update_propagators_to_filter(
 
 @jit(nopython=True, cache=True)
 def compute_domains(algorithm: int, propagator_domains: NDArray) -> Optional[NDArray]:
-    # TODO: improve the following
     if algorithm == ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ:
         return alldifferent_lopez_ortiz_propagator.compute_domains(propagator_domains)
     elif algorithm == ALGORITHM_SUM:
