@@ -25,6 +25,7 @@ ALGORITHM_SUM = 2
 START = 0
 END = 1
 
+
 class Problem:
     """
     A problem is defined by a list of variable domains and a list of propagators.
@@ -32,7 +33,9 @@ class Problem:
 
     def __init__(self, shared_domains: List[Tuple[int, int]], domain_indices: List[int], domain_offsets: List[int]):
         self.variable_nb = len(domain_indices)
-        self.shared_domains = np.array(shared_domains, dtype=np.int32).reshape((-1, 2))
+        self.shared_domains = np.array(shared_domains, dtype=np.int32).reshape(
+            (-1, 2)
+        )  # TODO cp = array of shared domains ?
         self.domain_indices = np.array(domain_indices, dtype=np.uint16)
         self.domain_offsets = np.array(domain_offsets, dtype=np.int32)
 

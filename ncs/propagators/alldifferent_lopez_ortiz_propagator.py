@@ -148,7 +148,9 @@ def compute_domains(domains: NDArray) -> Optional[NDArray]:
     t = np.zeros(bounds_nb, dtype=np.int32)
     d = np.zeros(bounds_nb, dtype=np.int32)
     h = np.zeros(bounds_nb, dtype=np.int32)
-    min_sorted_vars = np.argsort(rank_domains[:, MIN])
+    min_sorted_vars = np.argsort(
+        rank_domains[:, MIN]
+    )  # TODO: merge min_sorted_vars and max_sorted_vars into a single array
     max_sorted_vars = np.argsort(rank_domains[:, MAX])
     nb = compute_nb(size, rank_domains, min_sorted_vars, max_sorted_vars, bounds)
     return (

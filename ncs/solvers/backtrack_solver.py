@@ -25,6 +25,7 @@ class BacktrackSolver(Solver):
         heuristic: Heuristic = VariableHeuristic(first_not_instantiated_variable_heuristic, min_value_domain_heuristic),
     ):
         super().__init__(problem)
+        #  TODO: preallocate
         self.choice_points = []  # type: ignore
         self.heuristic = heuristic
 
