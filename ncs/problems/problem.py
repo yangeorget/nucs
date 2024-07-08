@@ -28,21 +28,25 @@ END = 1
 
 class Problem:
     """
-    A problem is defined by a list of variable domains and a list of propagators.
+    A problem is conceptually defined by a list of domains, a list of variables and a list of propagators.
     """
 
     def __init__(self, shared_domains: List[Tuple[int, int]], domain_indices: List[int], domain_offsets: List[int]):
         self.variable_nb = len(domain_indices)
-        self.shared_domains = np.array(shared_domains, dtype=np.int32).reshape((-1, 2))
+        self.shared_domains = np.array(shared_domains, dtype=np.int32, order="C")
         self.domain_indices = np.array(domain_indices, dtype=np.uint16)
         self.domain_offsets = np.array(domain_offsets, dtype=np.int32)
 
     def set_propagators(self, propagators: List[Tuple[List[int], int]]) -> None:
+        """
+        Sets the propagators for the problem.
+        :param propagators: the list of propagators as tuples of the form (list of variables, algorithm).
+        """
         self.propagator_nb = len(propagators)
         propagator_total_size = 0
         self.propagators_to_filter = np.empty(self.propagator_nb, dtype=np.bool)
         self.propagator_algorithms = np.empty(self.propagator_nb, dtype=np.uint8)
-        self.propagator_bounds = np.empty((self.propagator_nb, 2), dtype=np.uint16)
+        self.propagator_bounds = np.empty((self.propagator_nb, 2), dtype=np.uint16, order="C")
         self.propagator_bounds[0, START] = 0
         for prop_idx, propagator in enumerate(propagators):
             propagator_size = len(propagator[0])
@@ -60,6 +64,10 @@ class Problem:
             self.propagator_offsets[prop_bounds[START] : prop_bounds[END]] = self.domain_offsets[prop_variables]
 
     def get_values(self) -> List[int]:
+        """
+        Gets the values for the variables (when instantiated).
+        :return: a list of integers
+        """
         mins = self.shared_domains[self.domain_indices, MIN]
         mins += self.domain_offsets
         return mins.tolist()
@@ -71,6 +79,7 @@ class Problem:
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
         :param statistics: where to record the statistics of the computation
+        :param changes: an optional array of shared domain changes
         :return: False if the problem is not consistent
         """
         return filter(
@@ -86,6 +95,10 @@ class Problem:
         )
 
     def pretty_print(self, solution: List[int]) -> None:
+        """
+        Pretty prints a solution to the problem.
+        :param solution: a list of integers
+        """
         print(solution)
 
 
@@ -104,6 +117,7 @@ def filter(
     """
     Filters the problem's domains by applying the propagators until a fix point is reached.
     :param statistics: where to record the statistics of the computation
+    :param changes: an optional array of shared domain changes
     :return: False if the problem is not consistent
     """
     statistics[STATS_PROBLEM_FILTERS_NB] += 1
@@ -130,7 +144,7 @@ def filter(
         shared_domains[prop_indices] = prop_new_domains
         update_propagators_to_filter(
             propagators_to_filter,
-            np.not_equal(old_shared_domains, shared_domains),
+            old_shared_domains != shared_domains,
             propagator_nb,
             propagator_bounds,
             propagator_indices,
@@ -141,7 +155,7 @@ def filter(
 @jit(nopython=True, cache=True)
 def init_propagators_to_filter(
     propagators_to_filter: NDArray,
-    changes: NDArray,
+    changes: Optional[NDArray],
     propagator_nb: int,
     propagator_bounds: NDArray,
     propagator_indices: NDArray,
@@ -171,13 +185,18 @@ def update_propagators_to_filter(
 
 
 @jit(nopython=True, cache=True)
-def compute_domains(algorithm: int, propagator_domains: NDArray) -> Optional[NDArray]:
+def compute_domains(algorithm: int, domains: NDArray) -> Optional[NDArray]:
+    """
+    Computes the new domains for the variables.
+    :param domains: the initial domains of the variables
+    :return: the new domains or None if an inconsistency is detected
+    """
     if algorithm == ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ:
-        return alldifferent_lopez_ortiz_propagator.compute_domains(propagator_domains)
+        return alldifferent_lopez_ortiz_propagator.compute_domains(domains)
     elif algorithm == ALGORITHM_SUM:
-        return sum_propagator.compute_domains(propagator_domains)
+        return sum_propagator.compute_domains(domains)
     elif algorithm == ALGORITHM_DUMMY:
-        return dummy_propagator.compute_domains(propagator_domains)
+        return dummy_propagator.compute_domains(domains)
     return None
 
 

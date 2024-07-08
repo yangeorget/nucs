@@ -15,10 +15,7 @@ from ncs.utils import (
 
 class TestBacktrackSolver:
     def test_solve_and_count(self) -> None:
-        shr_domains = [(0, 99), (0, 99)]
-        dom_indices = [0, 1]
-        dom_offsets = [0, 0]
-        problem = Problem(shr_domains, dom_indices, dom_offsets)
+        problem = Problem(shared_domains=[(0, 99), (0, 99)], domain_indices=[0, 1], domain_offsets=[0, 0])
         problem.set_propagators([([], ALGORITHM_DUMMY)])
         solver = BacktrackSolver(problem)
         for _ in solver.solve():
@@ -27,10 +24,7 @@ class TestBacktrackSolver:
         assert solver.statistics[STATS_SOLVER_CP_MAX] == 2
 
     def test_solve(self) -> None:
-        shr_domains = [(0, 1), (0, 1)]
-        dom_indices = [0, 1]
-        dom_offsets = [0, 0]
-        problem = Problem(shr_domains, dom_indices, dom_offsets)
+        problem = Problem(shared_domains=[(0, 1), (0, 1)], domain_indices=[0, 1], domain_offsets=[0, 0])
         problem.set_propagators([([], ALGORITHM_DUMMY)])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
@@ -43,10 +37,7 @@ class TestBacktrackSolver:
         assert solver.statistics[STATS_SOLVER_CP_MAX] == 2
 
     def test_solve_sum_1(self) -> None:
-        shr_domains = [(0, 2), (0, 2), (4, 6)]
-        dom_indices = [0, 1, 2]
-        dom_offsets = [0, 0, 0]
-        problem = Problem(shr_domains, dom_indices, dom_offsets)
+        problem = Problem(shared_domains=[(0, 2), (0, 2), (4, 6)], domain_indices=[0, 1, 2], domain_offsets=[0, 0, 0])
         problem.set_propagators([([2, 0, 1], ALGORITHM_SUM)])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
@@ -57,10 +48,7 @@ class TestBacktrackSolver:
         assert solver.statistics[STATS_SOLVER_BACKTRACKS_NB] == 0
 
     def test_solve_sum_3(self) -> None:
-        shr_domains = [(0, 1), (0, 1), (0, 1)]
-        dom_indices = [0, 1, 2]
-        dom_offsets = [0, 0, 0]
-        problem = Problem(shr_domains, dom_indices, dom_offsets)
+        problem = Problem(shared_domains=[(0, 1), (0, 1), (0, 1)], domain_indices=[0, 1, 2], domain_offsets=[0, 0, 0])
         problem.set_propagators([([2, 0, 1], ALGORITHM_SUM)])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
@@ -72,10 +60,7 @@ class TestBacktrackSolver:
         assert solver.statistics[STATS_SOLVER_CP_MAX] == 2
 
     def test_solve_sum_ko(self) -> None:
-        shr_domains = [(1, 2), (1, 2), (0, 1)]
-        dom_indices = [0, 1, 2]
-        dom_offsets = [0, 0, 0]
-        problem = Problem(shr_domains, dom_indices, dom_offsets)
+        problem = Problem(shared_domains=[(1, 2), (1, 2), (0, 1)], domain_indices=[0, 1, 2], domain_offsets=[0, 0, 0])
         problem.set_propagators([([2, 0, 1], ALGORITHM_SUM)])
         solver = BacktrackSolver(problem)
         for _ in solver.solve():
@@ -85,10 +70,7 @@ class TestBacktrackSolver:
         assert solver.statistics[STATS_SOLVER_CP_MAX] == 0
 
     def test_solve_alldifferent(self) -> None:
-        shr_domains = [(0, 2), (0, 2), (0, 2)]
-        dom_indices = [0, 1, 2]
-        dom_offsets = [0, 0, 0]
-        problem = Problem(shr_domains, dom_indices, dom_offsets)
+        problem = Problem(shared_domains=[(0, 2), (0, 2), (0, 2)], domain_indices=[0, 1, 2], domain_offsets=[0, 0, 0])
         problem.set_propagators([([0, 1, 2], ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ)])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]

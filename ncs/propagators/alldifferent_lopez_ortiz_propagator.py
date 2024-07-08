@@ -141,13 +141,18 @@ def path_max(t: NDArray, i: int) -> int:
 
 @jit(nopython=True, cache=True)
 def compute_domains(domains: NDArray) -> Optional[NDArray]:
+    """
+    Adapted from "A fast and simple algorithm for bounds conistency of the alldifferent constraint".
+    :param domains: the domains of the variables
+    :return: the new domains or None if an inconsistency is detected
+    """
     size = len(domains)
     rank_domains = np.hstack((domains, np.zeros((size, 2), dtype=np.int32)))
     bounds_nb = 2 * size + 2
     bounds = np.zeros(bounds_nb, dtype=np.int32)
-    t = np.zeros(bounds_nb, dtype=np.int32)
-    d = np.zeros(bounds_nb, dtype=np.int32)
-    h = np.zeros(bounds_nb, dtype=np.int32)
+    t = np.zeros(bounds_nb, dtype=np.int32)  # critical capacity pointers
+    d = np.zeros(bounds_nb, dtype=np.int32)  # differences between critical capacities
+    h = np.zeros(bounds_nb, dtype=np.int32)  # Hall interval pointers
     min_sorted_vars = np.argsort(rank_domains[:, MIN])
     max_sorted_vars = np.argsort(rank_domains[:, MAX])
     nb = compute_nb(size, rank_domains, min_sorted_vars, max_sorted_vars, bounds)

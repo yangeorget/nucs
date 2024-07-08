@@ -19,6 +19,10 @@ from ncs.utils import (
 
 
 class BacktrackSolver(Solver):
+    """
+    A solver relying on a backtracking mechanism.
+    """
+
     def __init__(
         self,
         problem: Problem,

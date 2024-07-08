@@ -1,5 +1,6 @@
 from ncs.heuristics.variable_heuristic import (
     VariableHeuristic,
+    first_not_instantiated_variable_heuristic,
     min_value_domain_heuristic,
     smallest_domain_variable_heuristic,
 )
@@ -64,6 +65,8 @@ class TestQueens:
 
 
 if __name__ == "__main__":
-    solver = BacktrackSolver(QueensProblem(12))
+    solver = BacktrackSolver(
+        QueensProblem(12), VariableHeuristic(first_not_instantiated_variable_heuristic, min_value_domain_heuristic)
+    )
     solver.solve_all()
     statistics_print(solver.statistics)

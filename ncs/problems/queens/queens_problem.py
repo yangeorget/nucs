@@ -2,6 +2,9 @@ from ncs.problems.problem import ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, Problem
 
 
 class QueensProblem(Problem):
+    """
+    A simple model for the queens' problem.
+    """
 
     def __init__(self, n: int):
         super().__init__(

@@ -4,6 +4,9 @@ from ncs.problems.problem import ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, Problem
 
 
 class SudokuProblem(Problem):
+    """
+    A simple model for the sudoku problem.
+    """
 
     def __init__(self, givens: List[List[int]]):
         super().__init__(
