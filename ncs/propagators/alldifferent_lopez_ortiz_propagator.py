@@ -142,7 +142,7 @@ def path_max(t: NDArray, i: int) -> int:
 @jit(nopython=True, cache=True)
 def compute_domains(domains: NDArray) -> Optional[NDArray]:
     """
-    Adapted from "A fast and simple algorithm for bounds conistency of the alldifferent constraint".
+    Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
     :param domains: the domains of the variables
     :return: the new domains or None if an inconsistency is detected
     """
