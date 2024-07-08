@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 from ncs.problems.problem import ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, Problem
 
@@ -14,26 +14,28 @@ class SudokuProblem(Problem):
             domain_indices=list(range(81)),
             domain_offsets=[0] * 81,
         )
-        propagators = []
+        propagators: List[Tuple[List[int], int, List[int]]] = []
         for i in range(9):
-            propagators.append((list(range(0 + i * 9, 9 + i * 9)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ))
-            propagators.append((list(range(0 + i, 81 + i, 9)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ))
+            propagators.append((list(range(0 + i * 9, 9 + i * 9)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, []))
+            propagators.append((list(range(0 + i, 81 + i, 9)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, []))
         for i in range(3):
             for j in range(3):
+                offset = i * 27 + j * 3
                 propagators.append(
                     (
                         [
-                            0 + i * 27 + j * 3,
-                            1 + i * 27 + j * 3,
-                            2 + i * 27 + j * 3,
-                            9 + i * 27 + j * 3,
-                            10 + i * 27 + j * 3,
-                            11 + i * 27 + j * 3,
-                            18 + i * 27 + j * 3,
-                            19 + i * 27 + j * 3,
-                            20 + i * 27 + j * 3,
+                            0 + offset,
+                            1 + offset,
+                            2 + offset,
+                            9 + offset,
+                            10 + offset,
+                            11 + offset,
+                            18 + offset,
+                            19 + offset,
+                            20 + offset,
                         ],
                         ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ,
+                        [],
                     )
                 )
         self.set_propagators(propagators)

@@ -14,8 +14,8 @@ class QueensProblem(Problem):
         )
         self.set_propagators(
             [
-                (list(range(n)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ),
-                (list(range(n, 2 * n)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ),
-                (list(range(2 * n, 3 * n)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ),
+                (list(range(n)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, []),
+                (list(range(n, 2 * n)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, []),
+                (list(range(2 * n, 3 * n)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, []),
             ]
         )

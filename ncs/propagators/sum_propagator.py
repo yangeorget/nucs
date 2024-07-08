@@ -8,7 +8,12 @@ from ncs.utils import MAX, MIN
 
 
 @jit(nopython=True, cache=True)
-def compute_domains(domains: NDArray) -> Optional[NDArray]:
+def compute_domains(domains: NDArray, data: Optional[NDArray] = None) -> Optional[NDArray]:
+    """
+    Enforces x_0 = Sigma_i>0 x_i
+    :param domains: the domains of the variables
+    :return: the new domains or None if an inconsistency is detected
+    """
     size = len(domains)
     new_domains = np.zeros((size, 2), dtype=np.int32)
     new_domains[0] = np.sum(domains[1:], axis=0)

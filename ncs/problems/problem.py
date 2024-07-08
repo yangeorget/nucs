@@ -8,6 +8,7 @@ from numpy.typing import NDArray
 from ncs.propagators import (
     alldifferent_lopez_ortiz_propagator,
     dummy_propagator,
+    mul_propagator,
     sum_propagator,
 )
 from ncs.utils import (
@@ -20,7 +21,8 @@ from ncs.utils import (
 
 ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ = 0
 ALGORITHM_DUMMY = 1
-ALGORITHM_SUM = 2
+ALGORITHM_MUL = 2
+ALGORITHM_SUM = 3
 
 START = 0
 END = 1
@@ -37,31 +39,50 @@ class Problem:
         self.domain_indices = np.array(domain_indices, dtype=np.uint16)
         self.domain_offsets = np.array(domain_offsets, dtype=np.int32)
 
-    def set_propagators(self, propagators: List[Tuple[List[int], int]]) -> None:
+    def set_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
         """
         Sets the propagators for the problem.
-        :param propagators: the list of propagators as tuples of the form (list of variables, algorithm).
+        :param propagators: the list of propagators as tuples of the form (list of variables, algorithm, data).
         """
         self.propagator_nb = len(propagators)
-        propagator_total_size = 0
+        propagator_variable_total_size = 0
+        propagator_data_total_size = 0
+        self.propagators_to_filter = np.empty(self.propagator_nb, dtype=np.bool)
         self.propagators_to_filter = np.empty(self.propagator_nb, dtype=np.bool)
         self.propagator_algorithms = np.empty(self.propagator_nb, dtype=np.uint8)
-        self.propagator_bounds = np.empty((self.propagator_nb, 2), dtype=np.uint16, order="C")
-        self.propagator_bounds[0, START] = 0
+        self.propagator_variable_bounds = np.empty((self.propagator_nb, 2), dtype=np.uint16, order="C")
+        self.propagator_data_bounds = np.empty((self.propagator_nb, 2), dtype=np.uint16, order="C")
+        self.propagator_variable_bounds[0, START] = 0
+        self.propagator_data_bounds[0, START] = 0
         for prop_idx, propagator in enumerate(propagators):
-            propagator_size = len(propagator[0])
+            propagator_variable_size = len(propagator[0])
+            propagator_data_size = len(propagator[2])
             self.propagator_algorithms[prop_idx] = propagator[1]
             if prop_idx > 0:
-                self.propagator_bounds[prop_idx, START] = self.propagator_bounds[prop_idx - 1, END]
-            self.propagator_bounds[prop_idx, END] = self.propagator_bounds[prop_idx, START] + propagator_size
-            propagator_total_size += propagator_size
-        self.propagator_indices = np.empty(propagator_total_size, dtype=np.uint16)
-        self.propagator_offsets = np.empty(propagator_total_size, dtype=np.int32)
+                self.propagator_variable_bounds[prop_idx, START] = self.propagator_variable_bounds[prop_idx - 1, END]
+                self.propagator_data_bounds[prop_idx, START] = self.propagator_data_bounds[prop_idx - 1, END]
+            self.propagator_variable_bounds[prop_idx, END] = (
+                self.propagator_variable_bounds[prop_idx, START] + propagator_variable_size
+            )
+            self.propagator_data_bounds[prop_idx, END] = (
+                self.propagator_data_bounds[prop_idx, START] + propagator_data_size
+            )
+            propagator_variable_total_size += propagator_variable_size
+            propagator_data_total_size += propagator_data_size
+        self.propagator_indices = np.empty(propagator_variable_total_size, dtype=np.uint16)
+        self.propagator_offsets = np.empty(propagator_variable_total_size, dtype=np.int32)
+        self.propagator_data = np.empty(propagator_data_total_size, dtype=np.int32)
         for prop_idx, propagator in enumerate(propagators):
             prop_variables = propagator[0]
-            prop_bounds = self.propagator_bounds[prop_idx]
-            self.propagator_indices[prop_bounds[START] : prop_bounds[END]] = self.domain_indices[prop_variables]
-            self.propagator_offsets[prop_bounds[START] : prop_bounds[END]] = self.domain_offsets[prop_variables]
+            prop_variable_bounds = self.propagator_variable_bounds[prop_idx]
+            self.propagator_indices[prop_variable_bounds[START] : prop_variable_bounds[END]] = self.domain_indices[
+                prop_variables
+            ]
+            self.propagator_offsets[prop_variable_bounds[START] : prop_variable_bounds[END]] = self.domain_offsets[
+                prop_variables
+            ]
+            prop_data_bounds = self.propagator_data_bounds[prop_idx]
+            self.propagator_data[prop_data_bounds[START] : prop_data_bounds[END]] = propagator[2]
 
     def get_values(self) -> List[int]:
         """
@@ -86,9 +107,11 @@ class Problem:
             self.propagator_nb,
             self.propagators_to_filter,
             self.propagator_algorithms,
-            self.propagator_bounds,
+            self.propagator_variable_bounds,
+            self.propagator_data_bounds,
             self.propagator_indices,
             self.propagator_offsets,
+            self.propagator_data,
             self.shared_domains,
             statistics,
             changes,
@@ -107,9 +130,11 @@ def filter(
     propagator_nb: int,
     propagators_to_filter: NDArray,
     propagator_algorithms: NDArray,
-    propagator_bounds: NDArray,
+    propagator_variable_bounds: NDArray,
+    propagator_data_bounds: NDArray,
     propagator_indices: NDArray,
     propagator_offsets: NDArray,
+    propagator_data: NDArray,
     shared_domains: NDArray,
     statistics: NDArray,
     changes: Optional[NDArray],
@@ -121,7 +146,9 @@ def filter(
     :return: False if the problem is not consistent
     """
     statistics[STATS_PROBLEM_FILTERS_NB] += 1
-    init_propagators_to_filter(propagators_to_filter, changes, propagator_nb, propagator_bounds, propagator_indices)
+    init_propagators_to_filter(
+        propagators_to_filter, changes, propagator_nb, propagator_variable_bounds, propagator_indices
+    )
     while True:
         none = True
         for prop_idx in range(propagator_nb):
@@ -131,12 +158,14 @@ def filter(
         if none:
             return True
         statistics[STATS_PROBLEM_PROPAGATORS_FILTERS_NB] += 1
-        prop_bounds = propagator_bounds[prop_idx]
-        prop_indices = propagator_indices[prop_bounds[START] : prop_bounds[END]]
-        prop_offsets = propagator_offsets[prop_bounds[START] : prop_bounds[END]].reshape((-1, 1))
+        prop_variable_bounds = propagator_variable_bounds[prop_idx]
+        prop_data_bounds = propagator_data_bounds[prop_idx]
+        prop_indices = propagator_indices[prop_variable_bounds[START] : prop_variable_bounds[END]]
+        prop_offsets = propagator_offsets[prop_variable_bounds[START] : prop_variable_bounds[END]].reshape((-1, 1))
         prop_domains = shared_domains[prop_indices]
         np.add(prop_domains, prop_offsets, prop_domains)
-        prop_new_domains = compute_domains(propagator_algorithms[prop_idx], prop_domains)
+        prop_data = propagator_data[prop_data_bounds[START] : prop_data_bounds[END]]
+        prop_new_domains = compute_domains(propagator_algorithms[prop_idx], prop_domains, prop_data)
         if prop_new_domains is None:
             return False
         old_shared_domains = shared_domains.copy()
@@ -146,7 +175,7 @@ def filter(
             propagators_to_filter,
             old_shared_domains != shared_domains,
             propagator_nb,
-            propagator_bounds,
+            propagator_variable_bounds,
             propagator_indices,
             prop_idx,
         )
@@ -185,18 +214,20 @@ def update_propagators_to_filter(
 
 
 @jit(nopython=True, cache=True)
-def compute_domains(algorithm: int, domains: NDArray) -> Optional[NDArray]:
+def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> Optional[NDArray]:
     """
     Computes the new domains for the variables.
     :param domains: the initial domains of the variables
     :return: the new domains or None if an inconsistency is detected
     """
     if algorithm == ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ:
-        return alldifferent_lopez_ortiz_propagator.compute_domains(domains)
-    elif algorithm == ALGORITHM_SUM:
-        return sum_propagator.compute_domains(domains)
+        return alldifferent_lopez_ortiz_propagator.compute_domains(domains, data)
     elif algorithm == ALGORITHM_DUMMY:
-        return dummy_propagator.compute_domains(domains)
+        return dummy_propagator.compute_domains(domains, data)
+    elif algorithm == ALGORITHM_MUL:
+        return mul_propagator.compute_domains(domains, data)
+    elif algorithm == ALGORITHM_SUM:
+        return sum_propagator.compute_domains(domains, data)
     return None
 
 

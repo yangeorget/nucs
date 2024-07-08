@@ -5,5 +5,5 @@ from numpy.typing import NDArray
 
 
 @jit(nopython=True, cache=True)
-def compute_domains(domains: NDArray) -> Optional[NDArray]:
-    return domains.copy()
+def compute_domains(domains: NDArray, data: Optional[NDArray] = None) -> Optional[NDArray]:
+    return domains
