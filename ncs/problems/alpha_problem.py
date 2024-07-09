@@ -1,6 +1,9 @@
+from typing import List
+
 from ncs.problems.problem import (
     ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ,
     ALGORITHM_CONSTANT_SUM,
+    ALGORITHM_MUL,
     Problem,
 )
 
@@ -68,6 +71,14 @@ class AlphaProblem(Problem):
                     ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ,
                     [],
                 ),
+                ([CC, C], ALGORITHM_MUL, [2]),
+                ([EE, E], ALGORITHM_MUL, [2]),
+                ([II, I], ALGORITHM_MUL, [2]),
+                ([LL, L], ALGORITHM_MUL, [2]),
+                ([OO, O], ALGORITHM_MUL, [2]),
+                ([TT, T], ALGORITHM_MUL, [2]),
+                ([UU, U], ALGORITHM_MUL, [2]),
+                ([ZZ, Z], ALGORITHM_MUL, [2]),
                 ([A, B, E, T, LL], ALGORITHM_CONSTANT_SUM, [45]),
                 ([C, E, O, LL], ALGORITHM_CONSTANT_SUM, [43]),
                 ([E, O, N, R, T, CC], ALGORITHM_CONSTANT_SUM, [74]),
@@ -89,4 +100,36 @@ class AlphaProblem(Problem):
                 ([L, N, O, V, II], ALGORITHM_CONSTANT_SUM, [100]),
                 ([A, L, T, W, Z], ALGORITHM_CONSTANT_SUM, [34]),
             ]
+        )
+
+    def pretty_print(self, solution: List[int]) -> None:
+        print(
+            {
+                "A": solution[A],
+                "B": solution[B],
+                "C": solution[C],
+                "D": solution[D],
+                "E": solution[E],
+                "F": solution[F],
+                "G": solution[G],
+                "H": solution[H],
+                "I": solution[I],
+                "J": solution[J],
+                "K": solution[K],
+                "L": solution[L],
+                "M": solution[M],
+                "N": solution[N],
+                "O": solution[O],
+                "P": solution[P],
+                "Q": solution[Q],
+                "R": solution[R],
+                "S": solution[S],
+                "T": solution[T],
+                "U": solution[U],
+                "V": solution[V],
+                "W": solution[W],
+                "X": solution[X],
+                "Y": solution[Y],
+                "Z": solution[Z],
+            }
         )

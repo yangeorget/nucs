@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import numpy as np
 from numba import jit  # type: ignore
@@ -35,11 +35,16 @@ class Problem:
     A problem is conceptually defined by a list of domains, a list of variables and a list of propagators.
     """
 
-    def __init__(self, shared_domains: List[Tuple[int, int]], domain_indices: List[int], domain_offsets: List[int]):
+    def __init__(
+        self, shared_domains: List[Union[int, Tuple[int, int]]], domain_indices: List[int], domain_offsets: List[int]
+    ):
         self.variable_nb = len(domain_indices)
-        self.shared_domains = np.array(shared_domains, dtype=np.int32, order="C")
+        self.shared_domains = np.array(self.build_domains(shared_domains), dtype=np.int32, order="C")
         self.domain_indices = np.array(domain_indices, dtype=np.uint16)
         self.domain_offsets = np.array(domain_offsets, dtype=np.int32)
+
+    def build_domains(self, domains: List[Union[int, Tuple[int, int]]]) -> List[Tuple[int, int]]:
+        return [[domain, domain] if isinstance(domain, int) else domain for domain in domains]
 
     def set_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
         """
