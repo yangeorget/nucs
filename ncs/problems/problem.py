@@ -20,11 +20,11 @@ from ncs.utils import (
     statistics_init,
 )
 
-ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ = 0
-ALGORITHM_CONSTANT_SUM = 1
-ALGORITHM_DUMMY = 2
-ALGORITHM_MUL = 3
-ALGORITHM_SUM = 4
+ALG_ALLDIFFERENT = 0
+ALG_CONSTANT_SUM = 1
+ALG_DUMMY = 2
+ALG_MUL = 3
+ALG_SUM = 4
 
 START = 0
 END = 1
@@ -227,15 +227,15 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> Optional
     :param domains: the initial domains of the variables
     :return: the new domains or None if an inconsistency is detected
     """
-    if algorithm == ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ:
+    if algorithm == ALG_ALLDIFFERENT:
         return alldifferent_lopez_ortiz_propagator.compute_domains(domains, data)
-    elif algorithm == ALGORITHM_CONSTANT_SUM:
+    elif algorithm == ALG_CONSTANT_SUM:
         return constant_sum_propagator.compute_domains(domains, data)
-    elif algorithm == ALGORITHM_DUMMY:
+    elif algorithm == ALG_DUMMY:
         return dummy_propagator.compute_domains(domains, data)
-    elif algorithm == ALGORITHM_MUL:
+    elif algorithm == ALG_MUL:
         return mul_propagator.compute_domains(domains, data)
-    elif algorithm == ALGORITHM_SUM:
+    elif algorithm == ALG_SUM:
         return sum_propagator.compute_domains(domains, data)
     return None
 

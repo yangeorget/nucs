@@ -1,11 +1,6 @@
 from typing import List
 
-from ncs.problems.problem import (
-    ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ,
-    ALGORITHM_CONSTANT_SUM,
-    ALGORITHM_MUL,
-    Problem,
-)
+from ncs.problems.problem import ALG_ALLDIFFERENT, ALG_CONSTANT_SUM, ALG_MUL, Problem
 
 A = 0
 B = 1
@@ -66,39 +61,35 @@ class AlphaProblem(Problem):
         )
         self.set_propagators(
             [
-                (
-                    [A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z],
-                    ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ,
-                    [],
-                ),
-                ([CC, C], ALGORITHM_MUL, [2]),
-                ([EE, E], ALGORITHM_MUL, [2]),
-                ([II, I], ALGORITHM_MUL, [2]),
-                ([LL, L], ALGORITHM_MUL, [2]),
-                ([OO, O], ALGORITHM_MUL, [2]),
-                ([TT, T], ALGORITHM_MUL, [2]),
-                ([UU, U], ALGORITHM_MUL, [2]),
-                ([ZZ, Z], ALGORITHM_MUL, [2]),
-                ([A, B, E, T, LL], ALGORITHM_CONSTANT_SUM, [45]),
-                ([C, E, O, LL], ALGORITHM_CONSTANT_SUM, [43]),
-                ([E, O, N, R, T, CC], ALGORITHM_CONSTANT_SUM, [74]),
-                ([E, F, L, U, T], ALGORITHM_CONSTANT_SUM, [30]),
-                ([E, F, G, UU], ALGORITHM_CONSTANT_SUM, [50]),
-                ([G, L, EE], ALGORITHM_CONSTANT_SUM, [66]),
-                ([A, J, ZZ], ALGORITHM_CONSTANT_SUM, [58]),
-                ([E, L, R, Y], ALGORITHM_CONSTANT_SUM, [47]),
-                ([E, B, OO], ALGORITHM_CONSTANT_SUM, [53]),
-                ([A, E, P, O, R], ALGORITHM_CONSTANT_SUM, [65]),
-                ([A, K, L, O, P], ALGORITHM_CONSTANT_SUM, [59]),
-                ([A, E, Q, R, U, TT], ALGORITHM_CONSTANT_SUM, [50]),
-                ([A, E, H, N, P, S, X, OO], ALGORITHM_CONSTANT_SUM, [134]),
-                ([A, C, E, L, S], ALGORITHM_CONSTANT_SUM, [51]),
-                ([L, S, OO], ALGORITHM_CONSTANT_SUM, [37]),
-                ([G, N, O, S], ALGORITHM_CONSTANT_SUM, [61]),
-                ([A, N, P, R, S, OO], ALGORITHM_CONSTANT_SUM, [82]),
-                ([H, M, T, EE], ALGORITHM_CONSTANT_SUM, [72]),
-                ([L, N, O, V, II], ALGORITHM_CONSTANT_SUM, [100]),
-                ([A, L, T, W, Z], ALGORITHM_CONSTANT_SUM, [34]),
+                ([A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z], ALG_ALLDIFFERENT, []),
+                ([CC, C], ALG_MUL, [2]),
+                ([EE, E], ALG_MUL, [2]),
+                ([II, I], ALG_MUL, [2]),
+                ([LL, L], ALG_MUL, [2]),
+                ([OO, O], ALG_MUL, [2]),
+                ([TT, T], ALG_MUL, [2]),
+                ([UU, U], ALG_MUL, [2]),
+                ([ZZ, Z], ALG_MUL, [2]),
+                ([A, B, E, T, LL], ALG_CONSTANT_SUM, [45]),
+                ([C, E, O, LL], ALG_CONSTANT_SUM, [43]),
+                ([E, O, N, R, T, CC], ALG_CONSTANT_SUM, [74]),
+                ([E, F, L, U, T], ALG_CONSTANT_SUM, [30]),
+                ([E, F, G, UU], ALG_CONSTANT_SUM, [50]),
+                ([G, L, EE], ALG_CONSTANT_SUM, [66]),
+                ([A, J, ZZ], ALG_CONSTANT_SUM, [58]),
+                ([E, L, R, Y], ALG_CONSTANT_SUM, [47]),
+                ([E, B, OO], ALG_CONSTANT_SUM, [53]),
+                ([A, E, P, O, R], ALG_CONSTANT_SUM, [65]),
+                ([A, K, L, O, P], ALG_CONSTANT_SUM, [59]),
+                ([A, E, Q, R, U, TT], ALG_CONSTANT_SUM, [50]),
+                ([A, E, H, N, P, S, X, OO], ALG_CONSTANT_SUM, [134]),
+                ([A, C, E, L, S], ALG_CONSTANT_SUM, [51]),
+                ([L, S, OO], ALG_CONSTANT_SUM, [37]),
+                ([G, N, O, S], ALG_CONSTANT_SUM, [61]),
+                ([A, N, P, R, S, OO], ALG_CONSTANT_SUM, [82]),
+                ([H, M, T, EE], ALG_CONSTANT_SUM, [72]),
+                ([L, N, O, V, II], ALG_CONSTANT_SUM, [100]),
+                ([A, L, T, W, Z], ALG_CONSTANT_SUM, [34]),
             ]
         )
 

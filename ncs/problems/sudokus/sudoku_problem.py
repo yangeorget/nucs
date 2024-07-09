@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-from ncs.problems.problem import ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, Problem
+from ncs.problems.problem import ALG_ALLDIFFERENT, Problem
 
 
 class SudokuProblem(Problem):
@@ -16,8 +16,8 @@ class SudokuProblem(Problem):
         )
         propagators: List[Tuple[List[int], int, List[int]]] = []
         for i in range(9):
-            propagators.append((list(range(0 + i * 9, 9 + i * 9)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, []))
-            propagators.append((list(range(0 + i, 81 + i, 9)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, []))
+            propagators.append((list(range(0 + i * 9, 9 + i * 9)), ALG_ALLDIFFERENT, []))
+            propagators.append((list(range(0 + i, 81 + i, 9)), ALG_ALLDIFFERENT, []))
         for i in range(3):
             for j in range(3):
                 offset = i * 27 + j * 3
@@ -34,7 +34,7 @@ class SudokuProblem(Problem):
                             19 + offset,
                             20 + offset,
                         ],
-                        ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ,
+                        ALG_ALLDIFFERENT,
                         [],
                     )
                 )

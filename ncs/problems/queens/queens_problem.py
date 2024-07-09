@@ -1,4 +1,4 @@
-from ncs.problems.problem import ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, Problem
+from ncs.problems.problem import ALG_ALLDIFFERENT, Problem
 
 
 class QueensProblem(Problem):
@@ -14,8 +14,8 @@ class QueensProblem(Problem):
         )
         self.set_propagators(
             [
-                (list(range(n)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, []),
-                (list(range(n, 2 * n)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, []),
-                (list(range(2 * n, 3 * n)), ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, []),
+                (list(range(n)), ALG_ALLDIFFERENT, []),
+                (list(range(n, 2 * n)), ALG_ALLDIFFERENT, []),
+                (list(range(2 * n, 3 * n)), ALG_ALLDIFFERENT, []),
             ]
         )

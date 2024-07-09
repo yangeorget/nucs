@@ -1,11 +1,6 @@
 import numpy as np
 
-from ncs.problems.problem import (
-    ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ,
-    ALGORITHM_SUM,
-    Problem,
-    is_solved,
-)
+from ncs.problems.problem import ALG_ALLDIFFERENT, ALG_SUM, Problem, is_solved
 
 
 class TestProblem:
@@ -19,7 +14,7 @@ class TestProblem:
 
     def test_filter_1(self) -> None:
         problem = Problem(shared_domains=[(0, 2), (0, 2), (4, 6)], domain_indices=[0, 1, 2], domain_offsets=[0, 0, 0])
-        problem.set_propagators([([2, 0, 1], ALGORITHM_SUM, [])])
+        problem.set_propagators([([2, 0, 1], ALG_SUM, [])])
         assert problem.filter()
         assert is_solved(problem.shared_domains)
         assert np.all(problem.shared_domains == np.array([[2, 2], [2, 2], [4, 4]]))
@@ -32,8 +27,8 @@ class TestProblem:
         )
         problem.set_propagators(
             [
-                ([0, 1, 2], ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, []),
-                ([3, 4, 5], ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ, []),
+                ([0, 1, 2], ALG_ALLDIFFERENT, []),
+                ([3, 4, 5], ALG_ALLDIFFERENT, []),
             ]
         )
         assert not problem.filter()

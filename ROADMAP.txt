@@ -1,2 +1,1 @@
-implement https://github.com/yangeorget/koalog-jcs/blob/main/java/com/koalog/jcs/examples/AlphaProblem.java
 implement https://github.com/yangeorget/koalog-jcs/blob/main/java/com/koalog/jcs/examples/GolombProblem.java
