@@ -7,6 +7,7 @@ from numpy.typing import NDArray
 
 from ncs.propagators import (
     alldifferent_lopez_ortiz_propagator,
+    constant_sum_propagator,
     dummy_propagator,
     mul_propagator,
     sum_propagator,
@@ -20,9 +21,10 @@ from ncs.utils import (
 )
 
 ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ = 0
-ALGORITHM_DUMMY = 1
-ALGORITHM_MUL = 2
-ALGORITHM_SUM = 3
+ALGORITHM_CONSTANT_SUM = 1
+ALGORITHM_DUMMY = 2
+ALGORITHM_MUL = 3
+ALGORITHM_SUM = 4
 
 START = 0
 END = 1
@@ -222,6 +224,8 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> Optional
     """
     if algorithm == ALGORITHM_ALLDIFFERENT_LOPEZ_ORTIZ:
         return alldifferent_lopez_ortiz_propagator.compute_domains(domains, data)
+    elif algorithm == ALGORITHM_CONSTANT_SUM:
+        return constant_sum_propagator.compute_domains(domains, data)
     elif algorithm == ALGORITHM_DUMMY:
         return dummy_propagator.compute_domains(domains, data)
     elif algorithm == ALGORITHM_MUL:

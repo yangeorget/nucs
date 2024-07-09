@@ -37,7 +37,6 @@ class BacktrackSolver(Solver):
             solution = self.solve_one()
             if solution is None:
                 break
-            self.statistics[STATS_SOLVER_SOLUTIONS_NB] += 1
             yield solution
             if not self.backtrack():
                 break
@@ -46,6 +45,7 @@ class BacktrackSolver(Solver):
         changes = None
         while self.filter(changes):
             if is_solved(self.problem.shared_domains):
+                self.statistics[STATS_SOLVER_SOLUTIONS_NB] += 1
                 return self.problem.get_values()  # problem is solved
             domains, changes = self.heuristic.choose(self.problem.shared_domains, self.problem.domain_indices)
             self.choice_points.append(domains)
