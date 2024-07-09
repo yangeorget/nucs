@@ -58,7 +58,7 @@ class AlphaProblem(Problem):
     FUGUE   50     OPERA 65     SOLO       37     WALTZ    34
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             shared_domains=[(1, 26)] * 26 + [(2, 52)] * 8,
             domain_indices=list(range(34)),
