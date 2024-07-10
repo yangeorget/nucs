@@ -1,1 +1,3 @@
-implement https://github.com/yangeorget/koalog-jcs/blob/main/java/com/koalog/jcs/examples/GolombProblem.java
+implementer https://github.com/yangeorget/koalog-jcs/blob/main/java/com/koalog/jcs/examples/GolombProblem.java
+exploiter au maximum l'idee des shared domains
+exploiter les u-functions

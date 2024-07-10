@@ -10,7 +10,6 @@ from ncs.propagators import (
     constant_sum_propagator,
     dummy_propagator,
     mul_propagator,
-    sum_propagator,
 )
 from ncs.utils import (
     MAX,
@@ -24,7 +23,6 @@ ALG_ALLDIFFERENT = 0
 ALG_CONSTANT_SUM = 1
 ALG_DUMMY = 2
 ALG_MUL = 3
-ALG_SUM = 4
 
 START = 0
 END = 1
@@ -235,8 +233,6 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> Optional
         return dummy_propagator.compute_domains(domains, data)
     elif algorithm == ALG_MUL:
         return mul_propagator.compute_domains(domains, data)
-    elif algorithm == ALG_SUM:
-        return sum_propagator.compute_domains(domains, data)
     return None
 
 
