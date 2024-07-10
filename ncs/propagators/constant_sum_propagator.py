@@ -13,16 +13,13 @@ def compute_domains(domains: NDArray, data: NDArray) -> Optional[NDArray]:
     :param domains: the domains of the variables
     :return: the new domains or None if an inconsistency is detected
     """
-    size = len(domains)
-    new_domains = np.zeros((size, 2), dtype=np.int32)
     c = data.item()
-    domain_sum = np.sum(domains, axis=0)
-    new_domains[:, MIN] = domains[:, MAX] + (c - domain_sum[MAX])
-    if np.any(np.greater(new_domains[:, MIN], domains[:, MAX])):
+    new_domains = domains - (np.sum(domains, axis=0) - c)  # MIN and MAX are swapped
+    if np.any(np.greater(new_domains[:, MAX], domains[:, MAX])) or np.any(
+        np.less(new_domains[:, MIN], domains[:, MIN])
+    ):
         return None
-    new_domains[:, MAX] = domains[:, MIN] + (c - domain_sum[MIN])
-    if np.any(np.less(new_domains[:, MAX], domains[:, MIN])):
-        return None
-    new_domains[:, MIN] = np.maximum(new_domains[:, MIN], domains[:, MIN])  # TODO: optimize ?
-    new_domains[:, MAX] = np.minimum(new_domains[:, MAX], domains[:, MAX])
+    tmp = np.maximum(new_domains[:, MAX], domains[:, MIN])
+    new_domains[:, MAX] = np.minimum(new_domains[:, MIN], domains[:, MAX])
+    new_domains[:, MIN] = tmp
     return new_domains
