@@ -6,10 +6,9 @@ from numba.typed import List
 from numpy.typing import NDArray
 
 from ncs.propagators import (
+    affine_propagator,
     alldifferent_lopez_ortiz_propagator,
-    constant_sum_propagator,
     dummy_propagator,
-    mul_propagator,
 )
 from ncs.utils import (
     MAX,
@@ -19,10 +18,9 @@ from ncs.utils import (
     statistics_init,
 )
 
-ALG_ALLDIFFERENT = 0
-ALG_CONSTANT_SUM = 1
+ALG_AFFINE = 0
+ALG_ALLDIFFERENT = 1
 ALG_DUMMY = 2
-ALG_MUL = 3
 
 START = 0
 END = 1
@@ -227,12 +225,10 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> Optional
     """
     if algorithm == ALG_ALLDIFFERENT:
         return alldifferent_lopez_ortiz_propagator.compute_domains(domains, data)
-    elif algorithm == ALG_CONSTANT_SUM:
-        return constant_sum_propagator.compute_domains(domains, data)
+    elif algorithm == ALG_AFFINE:
+        return affine_propagator.compute_domains(domains, data)
     elif algorithm == ALG_DUMMY:
         return dummy_propagator.compute_domains(domains, data)
-    elif algorithm == ALG_MUL:
-        return mul_propagator.compute_domains(domains, data)
     return None
 
 

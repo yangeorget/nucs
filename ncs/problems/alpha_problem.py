@@ -1,6 +1,6 @@
 from typing import List
 
-from ncs.problems.problem import ALG_ALLDIFFERENT, ALG_CONSTANT_SUM, ALG_MUL, Problem
+from ncs.problems.problem import ALG_AFFINE, ALG_ALLDIFFERENT, Problem
 
 A = 0
 B = 1
@@ -28,14 +28,6 @@ W = 22
 X = 23
 Y = 24
 Z = 25
-CC = 26
-EE = 27
-II = 28
-LL = 29
-OO = 30
-TT = 31
-UU = 32
-ZZ = 33
 
 
 class AlphaProblem(Problem):
@@ -54,42 +46,30 @@ class AlphaProblem(Problem):
     """
 
     def __init__(self) -> None:
-        super().__init__(
-            shared_domains=[(1, 26)] * 26 + [(2, 52)] * 8,
-            domain_indices=list(range(34)),
-            domain_offsets=[0] * 34,
-        )
+        super().__init__(shared_domains=[(1, 26)] * 26, domain_indices=list(range(26)), domain_offsets=[0] * 26)
         self.set_propagators(
             [
                 ([A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z], ALG_ALLDIFFERENT, []),
-                ([CC, C], ALG_MUL, [2]),
-                ([EE, E], ALG_MUL, [2]),
-                ([II, I], ALG_MUL, [2]),
-                ([LL, L], ALG_MUL, [2]),
-                ([OO, O], ALG_MUL, [2]),
-                ([TT, T], ALG_MUL, [2]),
-                ([UU, U], ALG_MUL, [2]),
-                ([ZZ, Z], ALG_MUL, [2]),
-                ([A, B, E, T, LL], ALG_CONSTANT_SUM, [45]),
-                ([C, E, O, LL], ALG_CONSTANT_SUM, [43]),
-                ([E, O, N, R, T, CC], ALG_CONSTANT_SUM, [74]),
-                ([E, F, L, U, T], ALG_CONSTANT_SUM, [30]),
-                ([E, F, G, UU], ALG_CONSTANT_SUM, [50]),
-                ([G, L, EE], ALG_CONSTANT_SUM, [66]),
-                ([A, J, ZZ], ALG_CONSTANT_SUM, [58]),
-                ([E, L, R, Y], ALG_CONSTANT_SUM, [47]),
-                ([E, B, OO], ALG_CONSTANT_SUM, [53]),
-                ([A, E, P, O, R], ALG_CONSTANT_SUM, [65]),
-                ([A, K, L, O, P], ALG_CONSTANT_SUM, [59]),
-                ([A, E, Q, R, U, TT], ALG_CONSTANT_SUM, [50]),
-                ([A, E, H, N, P, S, X, OO], ALG_CONSTANT_SUM, [134]),
-                ([A, C, E, L, S], ALG_CONSTANT_SUM, [51]),
-                ([L, S, OO], ALG_CONSTANT_SUM, [37]),
-                ([G, N, O, S], ALG_CONSTANT_SUM, [61]),
-                ([A, N, P, R, S, OO], ALG_CONSTANT_SUM, [82]),
-                ([H, M, T, EE], ALG_CONSTANT_SUM, [72]),
-                ([L, N, O, V, II], ALG_CONSTANT_SUM, [100]),
-                ([A, L, T, W, Z], ALG_CONSTANT_SUM, [34]),
+                ([A, B, E, T, L], ALG_AFFINE, [45, 1, 1, 1, 1, 2]),
+                ([C, E, O, L], ALG_AFFINE, [43, 1, 1, 1, 2]),
+                ([E, O, N, R, T, C], ALG_AFFINE, [74, 1, 1, 1, 1, 1, 2]),
+                ([E, F, L, U, T], ALG_AFFINE, [30, 1, 1, 1, 1, 1]),
+                ([E, F, G, U], ALG_AFFINE, [50, 1, 1, 1, 2]),
+                ([G, L, E], ALG_AFFINE, [66, 1, 1, 2]),
+                ([A, J, Z], ALG_AFFINE, [58, 1, 1, 2]),
+                ([E, L, R, Y], ALG_AFFINE, [47, 1, 1, 1, 1]),
+                ([E, B, O], ALG_AFFINE, [53, 1, 1, 2]),
+                ([A, E, P, O, R], ALG_AFFINE, [65, 1, 1, 1, 1, 1]),
+                ([A, K, L, O, P], ALG_AFFINE, [59, 1, 1, 1, 1, 1]),
+                ([A, E, Q, R, U, T], ALG_AFFINE, [50, 1, 1, 1, 1, 1, 2]),
+                ([A, E, H, N, P, S, X, O], ALG_AFFINE, [134, 1, 1, 1, 1, 1, 1, 1, 2]),
+                ([A, C, E, L, S], ALG_AFFINE, [51, 1, 1, 1, 1, 1]),
+                ([L, S, O], ALG_AFFINE, [37, 1, 1, 2]),
+                ([G, N, O, S], ALG_AFFINE, [61, 1, 1, 1, 1]),
+                ([A, N, P, R, S, O], ALG_AFFINE, [82, 1, 1, 1, 1, 1, 2]),
+                ([H, M, T, E], ALG_AFFINE, [72, 1, 1, 1, 2]),
+                ([L, N, O, V, I], ALG_AFFINE, [100, 1, 1, 1, 1, 2]),
+                ([A, L, T, W, Z], ALG_AFFINE, [34, 1, 1, 1, 1, 1]),
             ]
         )
 
