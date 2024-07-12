@@ -47,7 +47,8 @@ class TestGolomb:
 
 
 if __name__ == "__main__":
-    problem = GolombProblem(10)
+    problem = GolombProblem(4)
     solver = BacktrackSolver(problem)
     solution = solver.minimize(problem.length)
+    print(solution)
     print(solution[problem.length])  # type: ignore

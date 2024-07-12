@@ -1,6 +1,7 @@
 from typing import List
 
 from ncs.problems.problem import ALG_AFFINE, ALG_ALLDIFFERENT, Problem
+from ncs.propagators.affine_propagator import OPERATOR_EQ
 
 A = 0
 B = 1
@@ -50,26 +51,26 @@ class AlphaProblem(Problem):
         self.set_propagators(
             [
                 ([A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z], ALG_ALLDIFFERENT, []),
-                ([A, B, E, T, L], ALG_AFFINE, [45, 1, 1, 1, 1, 2]),
-                ([C, E, O, L], ALG_AFFINE, [43, 1, 1, 1, 2]),
-                ([E, O, N, R, T, C], ALG_AFFINE, [74, 1, 1, 1, 1, 1, 2]),
-                ([E, F, L, U, T], ALG_AFFINE, [30, 1, 1, 1, 1, 1]),
-                ([E, F, G, U], ALG_AFFINE, [50, 1, 1, 1, 2]),
-                ([G, L, E], ALG_AFFINE, [66, 1, 1, 2]),
-                ([A, J, Z], ALG_AFFINE, [58, 1, 1, 2]),
-                ([E, L, R, Y], ALG_AFFINE, [47, 1, 1, 1, 1]),
-                ([E, B, O], ALG_AFFINE, [53, 1, 1, 2]),
-                ([A, E, P, O, R], ALG_AFFINE, [65, 1, 1, 1, 1, 1]),
-                ([A, K, L, O, P], ALG_AFFINE, [59, 1, 1, 1, 1, 1]),
-                ([A, E, Q, R, U, T], ALG_AFFINE, [50, 1, 1, 1, 1, 1, 2]),
-                ([A, E, H, N, P, S, X, O], ALG_AFFINE, [134, 1, 1, 1, 1, 1, 1, 1, 2]),
-                ([A, C, E, L, S], ALG_AFFINE, [51, 1, 1, 1, 1, 1]),
-                ([L, S, O], ALG_AFFINE, [37, 1, 1, 2]),
-                ([G, N, O, S], ALG_AFFINE, [61, 1, 1, 1, 1]),
-                ([A, N, P, R, S, O], ALG_AFFINE, [82, 1, 1, 1, 1, 1, 2]),
-                ([H, M, T, E], ALG_AFFINE, [72, 1, 1, 1, 2]),
-                ([L, N, O, V, I], ALG_AFFINE, [100, 1, 1, 1, 1, 2]),
-                ([A, L, T, W, Z], ALG_AFFINE, [34, 1, 1, 1, 1, 1]),
+                ([A, B, E, T, L], ALG_AFFINE, [45, 1, 1, 1, 1, 2, OPERATOR_EQ]),
+                ([C, E, O, L], ALG_AFFINE, [43, 1, 1, 1, 2, OPERATOR_EQ]),
+                ([E, O, N, R, T, C], ALG_AFFINE, [74, 1, 1, 1, 1, 1, 2, OPERATOR_EQ]),
+                ([E, F, L, U, T], ALG_AFFINE, [30, 1, 1, 1, 1, 1, OPERATOR_EQ]),
+                ([E, F, G, U], ALG_AFFINE, [50, 1, 1, 1, 2, OPERATOR_EQ]),
+                ([G, L, E], ALG_AFFINE, [66, 1, 1, 2, OPERATOR_EQ]),
+                ([A, J, Z], ALG_AFFINE, [58, 1, 1, 2, OPERATOR_EQ]),
+                ([E, L, R, Y], ALG_AFFINE, [47, 1, 1, 1, 1, OPERATOR_EQ]),
+                ([E, B, O], ALG_AFFINE, [53, 1, 1, 2, OPERATOR_EQ]),
+                ([A, E, P, O, R], ALG_AFFINE, [65, 1, 1, 1, 1, 1, OPERATOR_EQ]),
+                ([A, K, L, O, P], ALG_AFFINE, [59, 1, 1, 1, 1, 1, OPERATOR_EQ]),
+                ([A, E, Q, R, U, T], ALG_AFFINE, [50, 1, 1, 1, 1, 1, 2, OPERATOR_EQ]),
+                ([A, E, H, N, P, S, X, O], ALG_AFFINE, [134, 1, 1, 1, 1, 1, 1, 1, 2, OPERATOR_EQ]),
+                ([A, C, E, L, S], ALG_AFFINE, [51, 1, 1, 1, 1, 1, OPERATOR_EQ]),
+                ([L, S, O], ALG_AFFINE, [37, 1, 1, 2, OPERATOR_EQ]),
+                ([G, N, O, S], ALG_AFFINE, [61, 1, 1, 1, 1, OPERATOR_EQ]),
+                ([A, N, P, R, S, O], ALG_AFFINE, [82, 1, 1, 1, 1, 1, 2, OPERATOR_EQ]),
+                ([H, M, T, E], ALG_AFFINE, [72, 1, 1, 1, 2, OPERATOR_EQ]),
+                ([L, N, O, V, I], ALG_AFFINE, [100, 1, 1, 1, 1, 2, OPERATOR_EQ]),
+                ([A, L, T, W, Z], ALG_AFFINE, [34, 1, 1, 1, 1, 1, OPERATOR_EQ]),
             ]
         )
 

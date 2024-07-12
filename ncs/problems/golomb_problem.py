@@ -4,6 +4,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ncs.problems.problem import ALG_AFFINE, ALG_ALLDIFFERENT, Problem
+from ncs.propagators.affine_propagator import OPERATOR_EQ, OPERATOR_LEQ
 from ncs.utils import MAX, MIN
 
 GOLOMB_LENGTHS = [0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127]
@@ -50,10 +51,24 @@ class GolombProblem(Problem):
         for i in range(1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
                 propagators.append(
-                    ([index(mark_nb, 0, j), index(mark_nb, 0, i), index(mark_nb, i, j)], ALG_AFFINE, [0, 1, -1, -1])
+                    (
+                        [index(mark_nb, 0, j), index(mark_nb, 0, i), index(mark_nb, i, j)],
+                        ALG_AFFINE,
+                        [0, 1, -1, -1, OPERATOR_EQ],
+                    )
                 )
-                # TODO add redundant constraints:
-                #  if j-i < n-1 dist_ij <= dist_0(n-1) - sum of n-1-j+i distinct integers
+        # redundant constraints TODO: fix
+        # for i in range(mark_nb - 1):
+        #     for j in range(i + 1, mark_nb):
+        #         if j - i < mark_nb - 1:
+        #             print(j, i, mark_nb)
+        #             print(
+        #                 (
+        #                     [index(mark_nb, i, j), index(mark_nb, 0, mark_nb - 1)],
+        #                     ALG_AFFINE,
+        #                     [-sum_first(mark_nb - 1 - j + i), 1, -1, OPERATOR_LEQ],
+        #                 )
+        #             )
         propagators.append((list(range(var_nb)), ALG_ALLDIFFERENT, []))
         # TODO break symmetries
         self.set_propagators(propagators)
