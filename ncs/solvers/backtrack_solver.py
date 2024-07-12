@@ -53,6 +53,14 @@ class BacktrackSolver(Solver):
             self.statistics[STATS_SOLVER_CP_MAX] = max(self.statistics[STATS_SOLVER_CP_MAX], len(self.choice_points))
         return None
 
+    def minimize(self, variable_idx: int) -> Optional[List[int]]:
+        solution = None
+        while (new_solution := self.solve_one()) is not None:
+            solution = new_solution
+            self.reset()
+            self.problem.set_max_value(variable_idx, solution[variable_idx] - 1)
+        return solution
+
     def backtrack(self) -> bool:
         """
         Backtracks and updates the problem's domains
@@ -69,3 +77,7 @@ class BacktrackSolver(Solver):
             if not self.backtrack():
                 return False
         return True
+
+    def reset(self) -> None:
+        self.choice_points = []
+        self.problem.reset()

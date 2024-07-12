@@ -31,16 +31,28 @@ class Problem:
     A problem is conceptually defined by a list of domains, a list of variables and a list of propagators.
     """
 
-    def __init__(
-        self, shared_domains: List[Union[int, Tuple[int, int]]], domain_indices: List[int], domain_offsets: List[int]
-    ):
-        self.variable_nb = len(domain_indices)
-        self.shared_domains = np.array(self.build_domains(shared_domains), dtype=np.int32, order="C")
-        self.domain_indices = np.array(domain_indices, dtype=np.uint16)
-        self.domain_offsets = np.array(domain_offsets, dtype=np.int32)
+    def __init__(self, shr_domains: List[Union[int, Tuple[int, int]]], dom_indices: List[int], dom_offsets: List[int]):
+        self.variable_nb = len(dom_indices)
+        self.shr_domains = shr_domains
+        self.shared_domains = self.build_shared_domains(shr_domains)
+        self.domain_indices = self.build_domain_indices(dom_indices)
+        self.domain_offsets = self.build_domain_offsets(dom_offsets)
 
-    def build_domains(self, domains: List[Union[int, Tuple[int, int]]]) -> List[Tuple[int, int]]:
-        return [[domain, domain] if isinstance(domain, int) else domain for domain in domains]
+    def reset(self) -> None:
+        self.shared_domains = self.build_shared_domains(self.shr_domains)
+
+    def build_shared_domains(self, shr_domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
+        return np.array(
+            [(shr_domain, shr_domain) if isinstance(shr_domain, int) else shr_domain for shr_domain in shr_domains],
+            dtype=np.int32,
+            order="C",
+        )
+
+    def build_domain_indices(self, dom_indices: List[int]) -> NDArray:
+        return np.array(dom_indices, dtype=np.uint16)
+
+    def build_domain_offsets(self, dom_offsets: List[int]) -> NDArray:
+        return np.array(dom_offsets, dtype=np.int32)
 
     def set_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
         """
@@ -96,6 +108,16 @@ class Problem:
         mins += self.domain_offsets
         return mins.tolist()
 
+    def set_min_value(self, variable_idx: int, min_value: int) -> None:
+        domain_idx = self.domain_indices[variable_idx]
+        domain_offset = self.domain_offsets[variable_idx]
+        self.shared_domains[domain_idx, MIN] = min_value - domain_offset
+
+    def set_max_value(self, variable_idx: int, max_value: int) -> None:
+        domain_idx = self.domain_indices[variable_idx]
+        domain_offset = self.domain_offsets[variable_idx]
+        self.shared_domains[domain_idx, MAX] = max_value - domain_offset
+
     def __str__(self) -> str:
         return f"domains={self.shared_domains}"
 
@@ -120,7 +142,7 @@ class Problem:
             changes,
         )
 
-    def pretty_print(self, solution: List[int]) -> None:
+    def pretty_print_solution(self, solution: List[int]) -> None:
         """
         Pretty prints a solution to the problem.
         :param solution: a list of integers

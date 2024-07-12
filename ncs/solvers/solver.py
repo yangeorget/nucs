@@ -1,4 +1,4 @@
-from typing import Iterator, List
+from typing import Iterator, List, Optional
 
 from ncs.problems.problem import Problem
 from ncs.utils import statistics_init
@@ -26,3 +26,6 @@ class Solver:
         :return: a list of list of integers
         """
         return [s for s in self.solve()]
+
+    def minimize(self, var_idx: int) -> Optional[List[int]]:  # type: ignore
+        pass

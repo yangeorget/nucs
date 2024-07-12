@@ -1,3 +1,4 @@
-implementer https://github.com/yangeorget/koalog-jcs/blob/main/java/com/koalog/jcs/examples/GolombProblem.java
-exploiter au maximum l'idee des shared domains
+exploiter au maximum l'idee des shared domains (-, mul ?)
 exploiter les u-functions
+s'assurer que les contraintes de plus haute complexite sont filtrees en dernier (dynamiquement ou bien ajout en fin de liste)
+

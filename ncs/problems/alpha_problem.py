@@ -46,7 +46,7 @@ class AlphaProblem(Problem):
     """
 
     def __init__(self) -> None:
-        super().__init__(shared_domains=[(1, 26)] * 26, domain_indices=list(range(26)), domain_offsets=[0] * 26)
+        super().__init__(shr_domains=[(1, 26)] * 26, dom_indices=list(range(26)), dom_offsets=[0] * 26)
         self.set_propagators(
             [
                 ([A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z], ALG_ALLDIFFERENT, []),
@@ -73,7 +73,7 @@ class AlphaProblem(Problem):
             ]
         )
 
-    def pretty_print(self, solution: List[int]) -> None:
+    def pretty_print_solution(self, solution: List[int]) -> None:
         print(
             {
                 "A": solution[A],

@@ -10,9 +10,9 @@ class SudokuProblem(Problem):
 
     def __init__(self, givens: List[List[int]]):
         super().__init__(
-            shared_domains=[(1, 9) if given == 0 else (given, given) for line in givens for given in line],
-            domain_indices=list(range(81)),
-            domain_offsets=[0] * 81,
+            shr_domains=[(1, 9) if given == 0 else (given, given) for line in givens for given in line],
+            dom_indices=list(range(81)),
+            dom_offsets=[0] * 81,
         )
         propagators: List[Tuple[List[int], int, List[int]]] = []
         for i in range(9):
@@ -40,6 +40,6 @@ class SudokuProblem(Problem):
                 )
         self.set_propagators(propagators)
 
-    def pretty_print(self, solution: List[int]) -> None:
+    def pretty_print_solution(self, solution: List[int]) -> None:
         for i in range(0, 81, 9):
             print(solution[i : i + 9])
