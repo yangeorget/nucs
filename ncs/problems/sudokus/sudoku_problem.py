@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
-from ncs.problems.problem import ALG_ALLDIFFERENT, Problem
+from ncs.problems.problem import Problem
+from ncs.propagators.propagators import ALG_ALLDIFFERENT
 
 
 class SudokuProblem(Problem):

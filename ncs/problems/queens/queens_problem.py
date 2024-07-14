@@ -1,4 +1,5 @@
-from ncs.problems.problem import ALG_ALLDIFFERENT, Problem
+from ncs.problems.problem import Problem
+from ncs.propagators.propagators import ALG_ALLDIFFERENT
 
 
 class QueensProblem(Problem):

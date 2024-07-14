@@ -1,6 +1,9 @@
 import numpy as np
 from numpy.typing import NDArray
 
+START = 0
+END = 1
+
 MIN = 0
 MAX = 1
 

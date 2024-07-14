@@ -1,4 +1,5 @@
-from ncs.problems.problem import ALG_ALLDIFFERENT, ALG_DUMMY, Problem
+from ncs.problems.problem import Problem
+from ncs.propagators.propagators import ALG_ALLDIFFERENT, ALG_DUMMY
 from ncs.solvers.backtrack_solver import BacktrackSolver
 from ncs.utils import STATS_SOLVER_CHOICE_DEPTH, STATS_SOLVER_SOLUTION_NB
 

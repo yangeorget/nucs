@@ -1,4 +1,5 @@
-from ncs.problems.problem import ALG_ALLDIFFERENT, Problem, is_solved
+from ncs.problems.problem import Problem, is_solved
+from ncs.propagators.propagators import ALG_ALLDIFFERENT
 from ncs.utils import MAX, MIN
 
 

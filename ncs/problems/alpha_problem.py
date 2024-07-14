@@ -1,6 +1,7 @@
 from typing import List
 
-from ncs.problems.problem import ALG_AFFINE_EQ, ALG_ALLDIFFERENT, Problem
+from ncs.problems.problem import Problem
+from ncs.propagators.propagators import ALG_AFFINE_EQ, ALG_ALLDIFFERENT
 
 A = 0
 B = 1
