@@ -1,6 +1,6 @@
 from ncs.problems.golomb_problem import GolombProblem, index, init_domains
 from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.utils import MIN
+from ncs.utils import MIN, statistics_print
 
 
 class TestGolomb:
@@ -16,6 +16,16 @@ class TestGolomb:
     def test_init_domains(self) -> None:
         domains = init_domains(6, 4)
         assert domains[:, MIN].tolist() == [1, 3, 6, 1, 3, 1]
+
+    def test_golomb_4_filter(self) -> None:
+        problem = GolombProblem(4)
+        problem.shared_domains[0] = 1
+        problem.shared_domains[1] = 4
+        problem.shared_domains[2] = 6
+        problem.shared_domains[3] = 3
+        problem.shared_domains[4] = 5
+        problem.shared_domains[5] = 2
+        assert problem.filter()
 
     def test_golomb_4(self) -> None:
         problem = GolombProblem(4)
@@ -47,8 +57,9 @@ class TestGolomb:
 
 
 if __name__ == "__main__":
-    problem = GolombProblem(4)
+    problem = GolombProblem(10)
     solver = BacktrackSolver(problem)
     solution = solver.minimize(problem.length)
+    statistics_print(solver.statistics)
     print(solution)
     print(solution[problem.length])  # type: ignore

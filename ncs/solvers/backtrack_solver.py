@@ -11,10 +11,11 @@ from ncs.heuristics.variable_heuristic import (
 from ncs.problems.problem import Problem, is_solved
 from ncs.solvers.solver import Solver
 from ncs.utils import (
-    STATS_SOLVER_BACKTRACKS_NB,
-    STATS_SOLVER_CHOICES_NB,
-    STATS_SOLVER_CP_MAX,
-    STATS_SOLVER_SOLUTIONS_NB,
+    STATS_OPTIMIZER_SOLUTION_NB,
+    STATS_SOLVER_BACKTRACK_NB,
+    STATS_SOLVER_CHOICE_DEPTH,
+    STATS_SOLVER_CHOICE_NB,
+    STATS_SOLVER_SOLUTION_NB,
 )
 
 
@@ -45,18 +46,21 @@ class BacktrackSolver(Solver):
         changes = None
         while self.filter(changes):
             if is_solved(self.problem.shared_domains):
-                self.statistics[STATS_SOLVER_SOLUTIONS_NB] += 1
+                self.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 return self.problem.get_values()  # problem is solved
             domains, changes = self.heuristic.choose(self.problem.shared_domains, self.problem.domain_indices)
             self.choice_points.append(domains)
-            self.statistics[STATS_SOLVER_CHOICES_NB] += 1
-            self.statistics[STATS_SOLVER_CP_MAX] = max(self.statistics[STATS_SOLVER_CP_MAX], len(self.choice_points))
+            self.statistics[STATS_SOLVER_CHOICE_NB] += 1
+            self.statistics[STATS_SOLVER_CHOICE_DEPTH] = max(
+                self.statistics[STATS_SOLVER_CHOICE_DEPTH], len(self.choice_points)
+            )
         return None
 
     def minimize(self, variable_idx: int) -> Optional[List[int]]:
         solution = None
         while (new_solution := self.solve_one()) is not None:
             solution = new_solution
+            self.statistics[STATS_OPTIMIZER_SOLUTION_NB] += 1
             self.reset()
             self.problem.set_max_value(variable_idx, solution[variable_idx] - 1)
         return solution
@@ -68,7 +72,7 @@ class BacktrackSolver(Solver):
         """
         if len(self.choice_points) == 0:
             return False
-        self.statistics[STATS_SOLVER_BACKTRACKS_NB] += 1
+        self.statistics[STATS_SOLVER_BACKTRACK_NB] += 1
         self.problem.shared_domains = self.choice_points.pop()
         return True
 

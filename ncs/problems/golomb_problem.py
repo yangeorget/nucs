@@ -3,8 +3,7 @@ from typing import List, Tuple
 import numpy as np
 from numpy.typing import NDArray
 
-from ncs.problems.problem import ALG_AFFINE, ALG_ALLDIFFERENT, Problem
-from ncs.propagators.affine_propagator import OPERATOR_EQ, OPERATOR_LEQ
+from ncs.problems.problem import ALG_AFFINE_EQ, ALG_ALLDIFFERENT, Problem
 from ncs.utils import MAX, MIN
 
 GOLOMB_LENGTHS = [0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127]
@@ -48,27 +47,27 @@ class GolombProblem(Problem):
             shr_domains=init_domains(var_nb, mark_nb), dom_indices=list(range(var_nb)), dom_offsets=[0] * var_nb
         )
         propagators: List[Tuple[List[int], int, List[int]]] = []
+        # redundant constraints
+        # for i in range(mark_nb - 1):
+        #     for j in range(i + 1, mark_nb):
+        #         if j - i < mark_nb - 1:
+        #             propagators.append(
+        #                 (
+        #                     [index(mark_nb, i, j), self.length],
+        #                     ALG_AFFINE_LEQ,
+        #                     [-sum_first(mark_nb - 1 - (j - i)), 1, -1],
+        #                 )
+        #             )
+        # main constraints
         for i in range(1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
                 propagators.append(
                     (
                         [index(mark_nb, 0, j), index(mark_nb, 0, i), index(mark_nb, i, j)],
-                        ALG_AFFINE,
-                        [0, 1, -1, -1, OPERATOR_EQ],
+                        ALG_AFFINE_EQ,
+                        [0, 1, -1, -1],
                     )
                 )
-        # redundant constraints TODO: fix
-        # for i in range(mark_nb - 1):
-        #     for j in range(i + 1, mark_nb):
-        #         if j - i < mark_nb - 1:
-        #             print(j, i, mark_nb)
-        #             print(
-        #                 (
-        #                     [index(mark_nb, i, j), index(mark_nb, 0, mark_nb - 1)],
-        #                     ALG_AFFINE,
-        #                     [-sum_first(mark_nb - 1 - j + i), 1, -1, OPERATOR_LEQ],
-        #                 )
-        #             )
         propagators.append((list(range(var_nb)), ALG_ALLDIFFERENT, []))
         # TODO break symmetries
         self.set_propagators(propagators)

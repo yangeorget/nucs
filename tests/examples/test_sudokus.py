@@ -1,6 +1,6 @@
 from ncs.problems.sudokus.sudoku_problem import SudokuProblem
 from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.utils import STATS_SOLVER_SOLUTIONS_NB
+from ncs.utils import STATS_SOLVER_SOLUTION_NB
 
 
 class TestSudokus:
@@ -20,7 +20,7 @@ class TestSudokus:
         )
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_SOLVER_SOLUTIONS_NB] == 1
+        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1
 
     def test_sudokus_2(self) -> None:
         problem = SudokuProblem(
@@ -38,4 +38,4 @@ class TestSudokus:
         )
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_SOLVER_SOLUTIONS_NB] == 1
+        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1

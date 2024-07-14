@@ -6,21 +6,25 @@ from numba.typed import List
 from numpy.typing import NDArray
 
 from ncs.propagators import (
-    affine_propagator,
+    affine_eq_propagator,
+    affine_geq_propagator,
+    affine_leq_propagator,
     alldifferent_lopez_ortiz_propagator,
     dummy_propagator,
 )
 from ncs.utils import (
     MAX,
     MIN,
-    STATS_PROBLEM_FILTERS_NB,
-    STATS_PROBLEM_PROPAGATORS_FILTERS_NB,
+    STATS_PROBLEM_FILTER_NB,
+    STATS_PROPAGATOR_FILTER_NB,
     statistics_init,
 )
 
-ALG_AFFINE = 0
-ALG_ALLDIFFERENT = 1
-ALG_DUMMY = 2
+ALG_AFFINE_EQ = 0
+ALG_AFFINE_GEQ = 1
+ALG_AFFINE_LEQ = 2
+ALG_ALLDIFFERENT = 3
+ALG_DUMMY = 4
 
 START = 0
 END = 1
@@ -170,7 +174,7 @@ def filter(
     :param changes: an optional array of shared domain changes
     :return: False if the problem is not consistent
     """
-    statistics[STATS_PROBLEM_FILTERS_NB] += 1
+    statistics[STATS_PROBLEM_FILTER_NB] += 1
     init_propagators_to_filter(
         propagators_to_filter, changes, propagator_nb, propagator_variable_bounds, propagator_indices
     )
@@ -182,7 +186,7 @@ def filter(
                 break
         if none:
             return True
-        statistics[STATS_PROBLEM_PROPAGATORS_FILTERS_NB] += 1
+        statistics[STATS_PROPAGATOR_FILTER_NB] += 1
         prop_variable_bounds = propagator_variable_bounds[prop_idx]
         prop_data_bounds = propagator_data_bounds[prop_idx]
         prop_indices = propagator_indices[prop_variable_bounds[START] : prop_variable_bounds[END]]
@@ -245,10 +249,14 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> Optional
     :param domains: the initial domains of the variables
     :return: the new domains or None if an inconsistency is detected
     """
-    if algorithm == ALG_ALLDIFFERENT:
+    if algorithm == ALG_AFFINE_EQ:
+        return affine_eq_propagator.compute_domains(domains, data)
+    elif algorithm == ALG_AFFINE_GEQ:
+        return affine_geq_propagator.compute_domains(domains, data)
+    elif algorithm == ALG_AFFINE_LEQ:
+        return affine_leq_propagator.compute_domains(domains, data)
+    elif algorithm == ALG_ALLDIFFERENT:
         return alldifferent_lopez_ortiz_propagator.compute_domains(domains, data)
-    elif algorithm == ALG_AFFINE:
-        return affine_propagator.compute_domains(domains, data)
     elif algorithm == ALG_DUMMY:
         return dummy_propagator.compute_domains(domains, data)
     return None
