@@ -29,7 +29,7 @@ class VariableHeuristic(Heuristic):
 
 
 @jit(nopython=True, cache=True)
-def first_not_instantiated_variable_heuristic(shared_domains: NDArray, domain_indices: NDArray) -> int:
+def first_not_instantiated_var_heuristic(shared_domains: NDArray, domain_indices: NDArray) -> int:
     """
     Chooses the first non instantiated variable.
     :param shared_domains: the shared domains of the problem
@@ -44,7 +44,7 @@ def first_not_instantiated_variable_heuristic(shared_domains: NDArray, domain_in
 
 
 @jit(nopython=True, cache=True)
-def smallest_domain_variable_heuristic(shared_domains: NDArray, domain_indices: NDArray) -> int:
+def smallest_domain_var_heuristic(shared_domains: NDArray, domain_indices: NDArray) -> int:
     """
     Chooses the variable with the smallest domain and which is not instantiated.
     :param shared_domains: the shared domains of the problem
@@ -63,7 +63,7 @@ def smallest_domain_variable_heuristic(shared_domains: NDArray, domain_indices: 
 
 
 @jit(nopython=True, cache=True)
-def min_value_domain_heuristic(shared_domains: NDArray, domain_idx: int) -> Tuple[NDArray, NDArray]:
+def min_value_dom_heuristic(shared_domains: NDArray, domain_idx: int) -> Tuple[NDArray, NDArray]:
     """
     Chooses the first value of the domain
     :param shared_domains: the shared domains of the problem
@@ -80,7 +80,7 @@ def min_value_domain_heuristic(shared_domains: NDArray, domain_idx: int) -> Tupl
 
 
 @jit(nopython=True, cache=True)
-def split_low_domain_heuristic(shared_domains: NDArray, domain_idx: int) -> Tuple[NDArray, NDArray]:
+def split_low_dom_heuristic(shared_domains: NDArray, domain_idx: int) -> Tuple[NDArray, NDArray]:
     """
     Chooses the first half of the domain
     :param shared_domains: the shared domains of the problem

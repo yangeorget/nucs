@@ -17,7 +17,7 @@ from ncs.utils import (
     START,
     STATS_PROBLEM_FILTER_NB,
     STATS_PROPAGATOR_FILTER_NB,
-    statistics_init,
+    stats_init,
 )
 
 
@@ -34,6 +34,9 @@ class Problem:
         self.domain_offsets = self.build_domain_offsets(dom_offsets)
 
     def reset(self) -> None:
+        """
+        Resets the shared domains to their initial values.
+        """
         self.shared_domains = self.build_shared_domains(self.shr_domains)
 
     def build_shared_domains(self, shr_domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
@@ -55,43 +58,33 @@ class Problem:
         :param propagators: the list of propagators as tuples of the form (list of variables, algorithm, data).
         """
         self.propagator_nb = len(propagators)
-        propagator_variable_total_size = 0
-        propagator_data_total_size = 0
-        self.propagators_to_filter = np.empty(self.propagator_nb, dtype=np.bool)
+        prop_var_total_size = prop_data_total_size = 0
         self.propagators_to_filter = np.empty(self.propagator_nb, dtype=np.bool)
         self.propagator_algorithms = np.empty(self.propagator_nb, dtype=np.uint8)
         self.propagator_variable_bounds = np.empty((self.propagator_nb, 2), dtype=np.uint16, order="C")
         self.propagator_data_bounds = np.empty((self.propagator_nb, 2), dtype=np.uint16, order="C")
         self.propagator_variable_bounds[0, START] = 0
         self.propagator_data_bounds[0, START] = 0
-        for prop_idx, propagator in enumerate(propagators):
-            propagator_variable_size = len(propagator[0])
-            propagator_data_size = len(propagator[2])
-            self.propagator_algorithms[prop_idx] = propagator[1]
-            if prop_idx > 0:
-                self.propagator_variable_bounds[prop_idx, START] = self.propagator_variable_bounds[prop_idx - 1, END]
-                self.propagator_data_bounds[prop_idx, START] = self.propagator_data_bounds[prop_idx - 1, END]
-            self.propagator_variable_bounds[prop_idx, END] = (
-                self.propagator_variable_bounds[prop_idx, START] + propagator_variable_size
-            )
-            self.propagator_data_bounds[prop_idx, END] = (
-                self.propagator_data_bounds[prop_idx, START] + propagator_data_size
-            )
-            propagator_variable_total_size += propagator_variable_size
-            propagator_data_total_size += propagator_data_size
-        self.propagator_indices = np.empty(propagator_variable_total_size, dtype=np.uint16)
-        self.propagator_offsets = np.empty(propagator_variable_total_size, dtype=np.int32)
-        self.propagator_data = np.empty(propagator_data_total_size, dtype=np.int32)
-        for prop_idx, propagator in enumerate(propagators):
-            prop_variables = propagator[0]
-            prop_variable_bounds = self.propagator_variable_bounds[prop_idx]
-            self.propagator_indices[prop_variable_bounds[START] : prop_variable_bounds[END]] = self.domain_indices[
-                prop_variables
-            ]
-            self.propagator_offsets[prop_variable_bounds[START] : prop_variable_bounds[END]] = self.domain_offsets[
-                prop_variables
-            ]
-            prop_data_bounds = self.propagator_data_bounds[prop_idx]
+        for pidx, propagator in enumerate(propagators):
+            prop_var_size = len(propagator[0])
+            prop_data_size = len(propagator[2])
+            self.propagator_algorithms[pidx] = propagator[1]
+            if pidx > 0:
+                self.propagator_variable_bounds[pidx, START] = self.propagator_variable_bounds[pidx - 1, END]
+                self.propagator_data_bounds[pidx, START] = self.propagator_data_bounds[pidx - 1, END]
+            self.propagator_variable_bounds[pidx, END] = self.propagator_variable_bounds[pidx, START] + prop_var_size
+            self.propagator_data_bounds[pidx, END] = self.propagator_data_bounds[pidx, START] + prop_data_size
+            prop_var_total_size += prop_var_size
+            prop_data_total_size += prop_data_size
+        self.propagator_indices = np.empty(prop_var_total_size, dtype=np.uint16)
+        self.propagator_offsets = np.empty(prop_var_total_size, dtype=np.int32)
+        self.propagator_data = np.empty(prop_data_total_size, dtype=np.int32)
+        for pidx, propagator in enumerate(propagators):
+            prop_vars = propagator[0]
+            prop_var_bounds = self.propagator_variable_bounds[pidx]
+            self.propagator_indices[prop_var_bounds[START] : prop_var_bounds[END]] = self.domain_indices[prop_vars]
+            self.propagator_offsets[prop_var_bounds[START] : prop_var_bounds[END]] = self.domain_offsets[prop_vars]
+            prop_data_bounds = self.propagator_data_bounds[pidx]
             self.propagator_data[prop_data_bounds[START] : prop_data_bounds[END]] = propagator[2]
 
     def get_values(self) -> List[int]:
@@ -116,7 +109,7 @@ class Problem:
     def __str__(self) -> str:
         return f"domains={self.shared_domains}"
 
-    def filter(self, statistics: NDArray = statistics_init(), changes: Optional[NDArray] = None) -> bool:
+    def filter(self, statistics: NDArray = stats_init(), changes: Optional[NDArray] = None) -> bool:
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
         :param statistics: where to record the statistics of the computation

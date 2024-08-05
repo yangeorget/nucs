@@ -52,17 +52,7 @@ class AlphaProblem(Problem):
             [
                 ([A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z], ALG_ALLDIFFERENT, []),
                 ([A, B, E, T, L], ALG_AFFINE_EQ, [45, 1, 1, 1, 1, 2]),
-                (
-                    [C, E, O, L],
-                    ALG_AFFINE_EQ,
-                    [
-                        43,
-                        1,
-                        1,
-                        1,
-                        2,
-                    ],
-                ),
+                ([C, E, O, L], ALG_AFFINE_EQ, [43, 1, 1, 1, 2]),
                 ([E, O, N, R, T, C], ALG_AFFINE_EQ, [74, 1, 1, 1, 1, 1, 2]),
                 ([E, F, L, U, T], ALG_AFFINE_EQ, [30, 1, 1, 1, 1, 1]),
                 ([E, F, G, U], ALG_AFFINE_EQ, [50, 1, 1, 1, 2]),

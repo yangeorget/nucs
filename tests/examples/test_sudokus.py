@@ -1,4 +1,4 @@
-from ncs.problems.sudokus.sudoku_problem import SudokuProblem
+from ncs.problems.sudoku_problem import SudokuProblem
 from ncs.solvers.backtrack_solver import BacktrackSolver
 from ncs.utils import STATS_SOLVER_SOLUTION_NB
 

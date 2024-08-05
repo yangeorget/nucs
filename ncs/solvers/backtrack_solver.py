@@ -5,8 +5,8 @@ from numpy.typing import NDArray
 from ncs.heuristics.heuristic import Heuristic
 from ncs.heuristics.variable_heuristic import (
     VariableHeuristic,
-    first_not_instantiated_variable_heuristic,
-    min_value_domain_heuristic,
+    first_not_instantiated_var_heuristic,
+    min_value_dom_heuristic,
 )
 from ncs.problems.problem import Problem, is_solved
 from ncs.solvers.solver import Solver
@@ -27,7 +27,7 @@ class BacktrackSolver(Solver):
     def __init__(
         self,
         problem: Problem,
-        heuristic: Heuristic = VariableHeuristic(first_not_instantiated_variable_heuristic, min_value_domain_heuristic),
+        heuristic: Heuristic = VariableHeuristic(first_not_instantiated_var_heuristic, min_value_dom_heuristic),
     ):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
@@ -83,5 +83,8 @@ class BacktrackSolver(Solver):
         return True
 
     def reset(self) -> None:
-        self.choice_points = []
+        """
+        Resets the solver by resetting the problem and the choice points.
+        """
+        self.choice_points.clear()
         self.problem.reset()

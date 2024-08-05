@@ -1,17 +1,17 @@
+import pytest
+
 from ncs.problems.golomb_problem import GolombProblem, index, init_domains
 from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.utils import MIN, statistics_print
+from ncs.utils import MIN, stats_print
 
 
 class TestGolomb:
 
-    def test_index(self) -> None:
-        assert index(4, 0, 1) == 0
-        assert index(4, 0, 2) == 1
-        assert index(4, 0, 3) == 2
-        assert index(4, 1, 2) == 3
-        assert index(4, 1, 3) == 4
-        assert index(4, 2, 3) == 5
+    @pytest.mark.parametrize(
+        "mark_nb,i,j,idx", [(4, 0, 1, 0), (4, 0, 2, 1), (4, 0, 3, 2), (4, 1, 2, 3), (4, 1, 3, 4), (4, 2, 3, 5)]
+    )
+    def test_index(self, mark_nb: int, i: int, j: int, idx: int) -> None:
+        assert index(mark_nb, i, j) == idx
 
     def test_init_domains(self) -> None:
         domains = init_domains(6, 4)
@@ -27,39 +27,19 @@ class TestGolomb:
         problem.shared_domains[5] = 2
         assert problem.filter()
 
-    def test_golomb_4(self) -> None:
-        problem = GolombProblem(4)
+    @pytest.mark.parametrize("mark_nb,solution_nb", [(4, 6), (5, 11), (6, 17), (7, 25)])
+    def test_golomb_4(self, mark_nb: int, solution_nb: int) -> None:
+        problem = GolombProblem(mark_nb)
         solver = BacktrackSolver(problem)
         solution = solver.minimize(problem.length)
         assert solution
-        assert solution[problem.length] == 6
-
-    def test_golomb_5(self) -> None:
-        problem = GolombProblem(5)
-        solver = BacktrackSolver(problem)
-        solution = solver.minimize(problem.length)
-        assert solution
-        assert solution[problem.length] == 11
-
-    def test_golomb_6(self) -> None:
-        problem = GolombProblem(6)
-        solver = BacktrackSolver(problem)
-        solution = solver.minimize(problem.length)
-        assert solution
-        assert solution[problem.length] == 17
-
-    def test_golomb_7(self) -> None:
-        problem = GolombProblem(7)
-        solver = BacktrackSolver(problem)
-        solution = solver.minimize(problem.length)
-        assert solution
-        assert solution[problem.length] == 25
+        assert solution[problem.length] == solution_nb
 
 
 if __name__ == "__main__":
     problem = GolombProblem(10)
     solver = BacktrackSolver(problem)
     solution = solver.minimize(problem.length)
-    statistics_print(solver.statistics)
+    stats_print(solver.statistics)
     print(solution)
     print(solution[problem.length])  # type: ignore

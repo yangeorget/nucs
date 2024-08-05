@@ -10,6 +10,7 @@ from ncs.utils import MAX, MIN
 @jit(nopython=True, cache=True)
 def compute_domains(domains: NDArray, data: NDArray) -> Optional[NDArray]:
     """
+    Implements Sigma_i a_{i+1} * x_i >= a_0.
     :param domains: the domains of the variables
     :return: the new domains or None if an inconsistency is detected
     """
