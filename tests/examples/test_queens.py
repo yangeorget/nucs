@@ -32,7 +32,7 @@ class TestQueens:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-n', type=int, default=10)
+    parser.add_argument("-n", type=int, default=10)
     args = parser.parse_args()
     solver = BacktrackSolver(
         QueensProblem(args.n), VariableHeuristic(first_not_instantiated_var_heuristic, min_value_dom_heuristic)

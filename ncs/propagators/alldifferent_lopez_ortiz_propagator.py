@@ -66,13 +66,13 @@ def filter_lower(
             z = path_max(t, t[z])
             t[z] = j
         path_set(t, x + 1, z, z)  # path compression
-        if d[z] < bounds[z] - bounds[y]:
+        if d[z] + bounds[y] < bounds[z]:
             return False
         if h[x] > x:
             w = path_max(h, h[x])
             rank_domains[max_sorted_vars_i, MIN] = bounds[w]
             path_set(h, x, w, w)  # path compression
-        if d[z] == bounds[z] - bounds[y]:
+        if d[z] + bounds[y] == bounds[z]:
             path_set(h, h[y], j - 1, y)  # mark hall interval
             h[y] = j - 1  # hall interval[bounds[j], bounds[y]]
     return True
@@ -104,13 +104,13 @@ def filter_upper(
             z = path_min(t, t[z])
             t[z] = j
         path_set(t, x - 1, z, z)  # path compression
-        if d[z] < bounds[y] - bounds[z]:
+        if d[z] + bounds[z] < bounds[y]:
             return False
         if h[x] < x:
             w = path_min(h, h[x])
             rank_domains[min_sorted_vars_i, MAX] = bounds[w] - 1
             path_set(h, x, w, w)  # path compression
-        if d[z] == bounds[y] - bounds[z]:
+        if d[z] + bounds[z] == bounds[y]:
             path_set(h, h[y], j + 1, y)  # mark hall interval
             h[y] = j + 1  # hall interval[bounds[j], bounds[y]]
     return True
@@ -118,11 +118,9 @@ def filter_upper(
 
 @jit(nopython=True, cache=True)
 def path_set(t: NDArray, start: int, end: int, to: int) -> None:
-    p = start
-    while p != end:
-        tmp = t[p]
+    while (p := start) != end:
+        start = t[p]
         t[p] = to
-        p = tmp
 
 
 @jit(nopython=True, cache=True)
@@ -150,12 +148,12 @@ def compute_domains(domains: NDArray, data: Optional[NDArray] = None) -> Optiona
     rank_domains = np.hstack((domains, np.zeros((size, 2), dtype=np.int32)))
     bounds_nb = 2 * size + 2
     bounds = np.zeros(bounds_nb, dtype=np.int32)
-    t = np.zeros(bounds_nb, dtype=np.int32)  # critical capacity pointers
-    d = np.zeros(bounds_nb, dtype=np.int32)  # differences between critical capacities
-    h = np.zeros(bounds_nb, dtype=np.int32)  # Hall interval pointers
     min_sorted_vars = np.argsort(rank_domains[:, MIN])
     max_sorted_vars = np.argsort(rank_domains[:, MAX])
     nb = compute_nb(size, rank_domains, min_sorted_vars, max_sorted_vars, bounds)
+    t = np.zeros(bounds_nb, dtype=np.int32)  # critical capacity pointers
+    d = np.zeros(bounds_nb, dtype=np.int32)  # differences between critical capacities
+    h = np.zeros(bounds_nb, dtype=np.int32)  # Hall interval pointers
     return (
         rank_domains[:, :2]
         if filter_lower(size, nb, t, d, h, bounds, rank_domains, max_sorted_vars)
