@@ -24,6 +24,7 @@ from ncs.utils import (
 class Problem:
     """
     A problem is conceptually defined by a list of domains, a list of variables and a list of propagators.
+    A domain can be computed by applying an offset to a shared damain.
     """
 
     def __init__(self, shr_domains: List[Union[int, Tuple[int, int]]], dom_indices: List[int], dom_offsets: List[int]):
@@ -61,8 +62,12 @@ class Problem:
         prop_var_total_size = prop_data_total_size = 0
         self.propagators_to_filter = np.empty(self.propagator_nb, dtype=np.bool)
         self.propagator_algorithms = np.empty(self.propagator_nb, dtype=np.uint8)
-        self.propagator_variable_bounds = np.empty((self.propagator_nb, 2), dtype=np.uint16, order="C")
-        self.propagator_data_bounds = np.empty((self.propagator_nb, 2), dtype=np.uint16, order="C")
+        self.propagator_variable_bounds = np.empty(
+            (self.propagator_nb, 2), dtype=np.uint16, order="C"
+        )  # there is a bit of redundancy here for faster access to the bounds
+        self.propagator_data_bounds = np.empty(
+            (self.propagator_nb, 2), dtype=np.uint16, order="C"
+        )  # there is a bit of redundancy here for faster access to the bounds
         self.propagator_variable_bounds[0, START] = 0
         self.propagator_data_bounds[0, START] = 0
         for pidx, propagator in enumerate(propagators):
@@ -81,11 +86,15 @@ class Problem:
         self.propagator_data = np.empty(prop_data_total_size, dtype=np.int32)
         for pidx, propagator in enumerate(propagators):
             prop_vars = propagator[0]
-            prop_var_bounds = self.propagator_variable_bounds[pidx]
-            self.propagator_indices[prop_var_bounds[START] : prop_var_bounds[END]] = self.domain_indices[prop_vars]
-            self.propagator_offsets[prop_var_bounds[START] : prop_var_bounds[END]] = self.domain_offsets[prop_vars]
-            prop_data_bounds = self.propagator_data_bounds[pidx]
-            self.propagator_data[prop_data_bounds[START] : prop_data_bounds[END]] = propagator[2]
+            self.propagator_indices[
+                self.propagator_variable_bounds[pidx, START] : self.propagator_variable_bounds[pidx, END]
+            ] = self.domain_indices[prop_vars]
+            self.propagator_offsets[
+                self.propagator_variable_bounds[pidx, START] : self.propagator_variable_bounds[pidx, END]
+            ] = self.domain_offsets[prop_vars]
+            self.propagator_data[self.propagator_data_bounds[pidx, START] : self.propagator_data_bounds[pidx, END]] = (
+                propagator[2]
+            )
 
     def get_values(self) -> List[int]:
         """
@@ -163,22 +172,29 @@ def filter(
         propagators_to_filter, changes, propagator_nb, propagator_variable_bounds, propagator_indices
     )
     while True:
+        # is there a propagator to filter ?
         none = True
-        for prop_idx in range(propagator_nb):
-            if propagators_to_filter[prop_idx]:
-                propagators_to_filter[prop_idx] = none = False
+        for pidx in range(propagator_nb):
+            if propagators_to_filter[pidx]:
+                propagators_to_filter[pidx] = none = False
                 break
         if none:
             return True
+        # there is a propagator to filter
         statistics[STATS_PROPAGATOR_FILTER_NB] += 1
-        prop_variable_bounds = propagator_variable_bounds[prop_idx]
-        prop_data_bounds = propagator_data_bounds[prop_idx]
-        prop_indices = propagator_indices[prop_variable_bounds[START] : prop_variable_bounds[END]]
-        prop_offsets = propagator_offsets[prop_variable_bounds[START] : prop_variable_bounds[END]].reshape((-1, 1))
+        prop_indices = propagator_indices[
+            propagator_variable_bounds[pidx, START] : propagator_variable_bounds[pidx, END]
+        ]
+        prop_offsets = propagator_offsets[
+            propagator_variable_bounds[pidx, START] : propagator_variable_bounds[pidx, END]
+        ].reshape((-1, 1))
         prop_domains = shared_domains[prop_indices]
         np.add(prop_domains, prop_offsets, prop_domains)
-        prop_data = propagator_data[prop_data_bounds[START] : prop_data_bounds[END]]
-        prop_new_domains = compute_domains(propagator_algorithms[prop_idx], prop_domains, prop_data)
+        prop_new_domains = compute_domains(
+            propagator_algorithms[pidx],
+            prop_domains,
+            propagator_data[propagator_data_bounds[pidx, START] : propagator_data_bounds[pidx, END]],
+        )
         if prop_new_domains is None:
             return False
         old_shared_domains = shared_domains.copy()
@@ -190,7 +206,7 @@ def filter(
             propagator_nb,
             propagator_variable_bounds,
             propagator_indices,
-            prop_idx,
+            pidx,
         )
 
 

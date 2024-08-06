@@ -51,9 +51,10 @@ def init_propagators_to_filter(
     if changes is None:  # this is an initialization
         propagators_to_filter.fill(True)
     else:
-        for prop_idx in range(propagator_nb):
-            prop_bounds = propagator_bounds[prop_idx]
-            propagators_to_filter[prop_idx] = np.any(changes[propagator_indices[prop_bounds[START] : prop_bounds[END]]])
+        for pidx in range(propagator_nb):
+            propagators_to_filter[pidx] = np.any(
+                changes[propagator_indices[propagator_bounds[pidx, START] : propagator_bounds[pidx, END]]]
+            )
 
 
 @jit(nopython=True, cache=True)
@@ -65,8 +66,7 @@ def update_propagators_to_filter(
     propagator_indices: NDArray,
     propagator_idx: int,
 ) -> None:
-    for prop_idx in range(propagator_nb):
-        if prop_idx != propagator_idx:
-            prop_bounds = propagator_bounds[prop_idx]
-            if np.any(changes[propagator_indices[prop_bounds[START] : prop_bounds[END]]]):
-                propagators_to_filter[prop_idx] = True
+    for pidx in range(propagator_nb):
+        if pidx != propagator_idx:
+            if np.any(changes[propagator_indices[propagator_bounds[pidx, START] : propagator_bounds[pidx, END]]]):
+                propagators_to_filter[pidx] = True
