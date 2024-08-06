@@ -1,7 +1,7 @@
 from typing import Optional
 
 import numpy as np
-from numba import jit
+from numba import jit  # type: ignore
 from numpy._typing import NDArray
 
 from ncs.propagators import (

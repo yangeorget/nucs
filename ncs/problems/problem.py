@@ -58,84 +58,77 @@ class Problem:
         Sets the propagators for the problem.
         :param propagators: the list of propagators as tuples of the form (list of variables, algorithm, data).
         """
-        self.propagator_nb = len(propagators)
+        self.prop_nb = len(propagators)
         prop_var_total_size = prop_data_total_size = 0
-        self.propagators_to_filter = np.empty(self.propagator_nb, dtype=np.bool)
-        self.propagator_algorithms = np.empty(self.propagator_nb, dtype=np.uint8)
-        self.propagator_variable_bounds = np.empty(
-            (self.propagator_nb, 2), dtype=np.uint16, order="C"
+        self.prop_to_filter = np.empty(self.prop_nb, dtype=np.bool)
+        self.prop_algorithms = np.empty(self.prop_nb, dtype=np.uint8)
+        self.prop_var_bounds = np.empty(
+            (self.prop_nb, 2), dtype=np.uint16, order="C"
         )  # there is a bit of redundancy here for faster access to the bounds
-        self.propagator_data_bounds = np.empty(
-            (self.propagator_nb, 2), dtype=np.uint16, order="C"
+        self.prop_data_bounds = np.empty(
+            (self.prop_nb, 2), dtype=np.uint16, order="C"
         )  # there is a bit of redundancy here for faster access to the bounds
-        self.propagator_variable_bounds[0, START] = 0
-        self.propagator_data_bounds[0, START] = 0
+        self.prop_var_bounds[0, START] = 0
+        self.prop_data_bounds[0, START] = 0
         for pidx, propagator in enumerate(propagators):
             prop_var_size = len(propagator[0])
             prop_data_size = len(propagator[2])
-            self.propagator_algorithms[pidx] = propagator[1]
+            self.prop_algorithms[pidx] = propagator[1]
             if pidx > 0:
-                self.propagator_variable_bounds[pidx, START] = self.propagator_variable_bounds[pidx - 1, END]
-                self.propagator_data_bounds[pidx, START] = self.propagator_data_bounds[pidx - 1, END]
-            self.propagator_variable_bounds[pidx, END] = self.propagator_variable_bounds[pidx, START] + prop_var_size
-            self.propagator_data_bounds[pidx, END] = self.propagator_data_bounds[pidx, START] + prop_data_size
+                self.prop_var_bounds[pidx, START] = self.prop_var_bounds[pidx - 1, END]
+                self.prop_data_bounds[pidx, START] = self.prop_data_bounds[pidx - 1, END]
+            self.prop_var_bounds[pidx, END] = self.prop_var_bounds[pidx, START] + prop_var_size
+            self.prop_data_bounds[pidx, END] = self.prop_data_bounds[pidx, START] + prop_data_size
             prop_var_total_size += prop_var_size
             prop_data_total_size += prop_data_size
-        self.propagator_indices = np.empty(prop_var_total_size, dtype=np.uint16)
-        self.propagator_offsets = np.empty(prop_var_total_size, dtype=np.int32)
-        self.propagator_data = np.empty(prop_data_total_size, dtype=np.int32)
+        self.prop_indices = np.empty(prop_var_total_size, dtype=np.uint16)
+        self.prop_offsets = np.empty(prop_var_total_size, dtype=np.int32)
+        self.prop_data = np.empty(prop_data_total_size, dtype=np.int32)
         for pidx, propagator in enumerate(propagators):
             prop_vars = propagator[0]
-            self.propagator_indices[
-                self.propagator_variable_bounds[pidx, START] : self.propagator_variable_bounds[pidx, END]
-            ] = self.domain_indices[prop_vars]
-            self.propagator_offsets[
-                self.propagator_variable_bounds[pidx, START] : self.propagator_variable_bounds[pidx, END]
-            ] = self.domain_offsets[prop_vars]
-            self.propagator_data[self.propagator_data_bounds[pidx, START] : self.propagator_data_bounds[pidx, END]] = (
-                propagator[2]
+            self.prop_indices[self.prop_var_bounds[pidx, START] : self.prop_var_bounds[pidx, END]] = (
+                self.domain_indices[prop_vars]
             )
+            self.prop_offsets[self.prop_var_bounds[pidx, START] : self.prop_var_bounds[pidx, END]] = (
+                self.domain_offsets[prop_vars]
+            )
+            self.prop_data[self.prop_data_bounds[pidx, START] : self.prop_data_bounds[pidx, END]] = propagator[2]
 
     def get_values(self) -> List[int]:
         """
         Gets the values for the variables (when instantiated).
         :return: a list of integers
         """
-        mins = self.shared_domains[self.domain_indices, MIN]
-        mins += self.domain_offsets
+        mins = self.shared_domains[self.domain_indices, MIN] + self.domain_offsets
         return mins.tolist()
 
-    def set_min_value(self, variable_idx: int, min_value: int) -> None:
-        domain_idx = self.domain_indices[variable_idx]
-        domain_offset = self.domain_offsets[variable_idx]
-        self.shared_domains[domain_idx, MIN] = min_value - domain_offset
+    def set_min_value(self, var_idx: int, min_value: int) -> None:
+        self.shared_domains[(self.domain_indices[var_idx]), MIN] = min_value - self.domain_offsets[var_idx]
 
-    def set_max_value(self, variable_idx: int, max_value: int) -> None:
-        domain_idx = self.domain_indices[variable_idx]
-        domain_offset = self.domain_offsets[variable_idx]
-        self.shared_domains[domain_idx, MAX] = max_value - domain_offset
+    def set_max_value(self, var_idx: int, max_value: int) -> None:
+        self.shared_domains[(self.domain_indices[var_idx]), MAX] = max_value - self.domain_offsets[var_idx]
 
     def __str__(self) -> str:
         return f"domains={self.shared_domains}"
 
-    def filter(self, statistics: NDArray = stats_init(), changes: Optional[NDArray] = None) -> bool:
+    def filter(self, stats: NDArray = stats_init(), changes: Optional[NDArray] = None) -> bool:
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
-        :param statistics: where to record the statistics of the computation
+        :param stats: where to record the statistics of the computation
         :param changes: an optional array of shared domain changes
         :return: False if the problem is not consistent
         """
         return filter(
-            self.propagator_nb,
-            self.propagators_to_filter,
-            self.propagator_algorithms,
-            self.propagator_variable_bounds,
-            self.propagator_data_bounds,
-            self.propagator_indices,
-            self.propagator_offsets,
-            self.propagator_data,
+            self.prop_nb,
+            self.prop_to_filter,
+            self.prop_algorithms,
+            self.prop_var_bounds,
+            self.prop_data_bounds,
+            self.prop_indices,
+            self.prop_offsets,
+            self.prop_data,
             self.shared_domains,
-            statistics,
+            stats,
             changes,
         )
 
@@ -149,64 +142,50 @@ class Problem:
 
 @jit(nopython=True, cache=True)
 def filter(
-    propagator_nb: int,
-    propagators_to_filter: NDArray,
-    propagator_algorithms: NDArray,
-    propagator_variable_bounds: NDArray,
-    propagator_data_bounds: NDArray,
-    propagator_indices: NDArray,
-    propagator_offsets: NDArray,
-    propagator_data: NDArray,
+    prop_nb: int,
+    prop_to_filter: NDArray,
+    prop_algorithms: NDArray,
+    prop_var_bounds: NDArray,
+    prop_data_bounds: NDArray,
+    prop_indices: NDArray,
+    prop_offsets: NDArray,
+    prop_data: NDArray,
     shared_domains: NDArray,
-    statistics: NDArray,
+    stats: NDArray,
     changes: Optional[NDArray],
 ) -> bool:
     """
     Filters the problem's domains by applying the propagators until a fix point is reached.
-    :param statistics: where to record the statistics of the computation
+    :param stats: where to record the statistics of the computation
     :param changes: an optional array of shared domain changes
     :return: False if the problem is not consistent
     """
-    statistics[STATS_PROBLEM_FILTER_NB] += 1
-    init_propagators_to_filter(
-        propagators_to_filter, changes, propagator_nb, propagator_variable_bounds, propagator_indices
-    )
+    stats[STATS_PROBLEM_FILTER_NB] += 1
+    init_propagators_to_filter(prop_to_filter, changes, prop_nb, prop_var_bounds, prop_indices)
     while True:
         # is there a propagator to filter ?
         none = True
-        for pidx in range(propagator_nb):
-            if propagators_to_filter[pidx]:
-                propagators_to_filter[pidx] = none = False
+        for pidx in range(prop_nb):
+            if prop_to_filter[pidx]:
+                prop_to_filter[pidx] = none = False
                 break
         if none:
             return True
         # there is a propagator to filter
-        statistics[STATS_PROPAGATOR_FILTER_NB] += 1
-        prop_indices = propagator_indices[
-            propagator_variable_bounds[pidx, START] : propagator_variable_bounds[pidx, END]
-        ]
-        prop_offsets = propagator_offsets[
-            propagator_variable_bounds[pidx, START] : propagator_variable_bounds[pidx, END]
-        ].reshape((-1, 1))
-        prop_domains = shared_domains[prop_indices]
-        np.add(prop_domains, prop_offsets, prop_domains)
-        prop_new_domains = compute_domains(
-            propagator_algorithms[pidx],
-            prop_domains,
-            propagator_data[propagator_data_bounds[pidx, START] : propagator_data_bounds[pidx, END]],
+        stats[STATS_PROPAGATOR_FILTER_NB] += 1
+        indices = prop_indices[prop_var_bounds[pidx, START] : prop_var_bounds[pidx, END]]
+        offsets = prop_offsets[prop_var_bounds[pidx, START] : prop_var_bounds[pidx, END]].reshape((-1, 1))
+        prop_domains = compute_domains(
+            prop_algorithms[pidx],
+            shared_domains[indices] + offsets,
+            prop_data[prop_data_bounds[pidx, START] : prop_data_bounds[pidx, END]],
         )
-        if prop_new_domains is None:
+        if prop_domains is None:
             return False
         old_shared_domains = shared_domains.copy()
-        np.subtract(prop_new_domains, prop_offsets, prop_new_domains)
-        shared_domains[prop_indices] = prop_new_domains
+        shared_domains[indices] = prop_domains - offsets
         update_propagators_to_filter(
-            propagators_to_filter,
-            old_shared_domains != shared_domains,
-            propagator_nb,
-            propagator_variable_bounds,
-            propagator_indices,
-            pidx,
+            prop_to_filter, old_shared_domains != shared_domains, prop_nb, prop_var_bounds, prop_indices, pidx
         )
 
 

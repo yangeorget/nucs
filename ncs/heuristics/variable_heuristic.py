@@ -2,7 +2,7 @@ import sys
 from typing import Callable, Tuple
 
 import numpy as np
-from numba import jit
+from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
 from ncs.heuristics.heuristic import Heuristic
@@ -37,8 +37,7 @@ def first_not_instantiated_var_heuristic(shared_domains: NDArray, domain_indices
     :return: the index of the variable
     """
     for var_idx, domain_index in enumerate(domain_indices):
-        domain = shared_domains[domain_index]
-        if domain[MIN] < domain[MAX]:
+        if shared_domains[domain_index, MIN] < shared_domains[domain_index, MAX]:
             return var_idx
     return -1  # cannot happen
 
@@ -54,8 +53,7 @@ def smallest_domain_var_heuristic(shared_domains: NDArray, domain_indices: NDArr
     min_size = sys.maxsize
     min_idx = -1
     for var_idx, domain_index in enumerate(domain_indices):
-        domain = shared_domains[domain_index]
-        size = domain[MAX] - domain[MIN]  # actually this is size - 1
+        size = shared_domains[domain_index, MAX] - shared_domains[domain_index, MIN]  # actually this is size - 1
         if 0 < size < min_size:
             min_idx = var_idx
             min_size = size
