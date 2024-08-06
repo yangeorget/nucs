@@ -167,7 +167,7 @@ def filter(
         none = True
         for pidx in range(prop_nb):
             if prop_to_filter[pidx]:
-                prop_to_filter[pidx] = none = False
+                none = prop_to_filter[pidx] = False
                 break
         if none:
             return True
