@@ -6,4 +6,3 @@ remettre en place les triggers (utile pour leq)
 reverifier les contraintes redondantes de golomb (elles ne marchaient pas ... elles marchent !!!)
 etudier le pruning du cp dans le cas de l'optimization
 passer un parametre a queens, golomb
-reduire les noms de variables trop longs
