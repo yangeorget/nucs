@@ -1,3 +1,5 @@
+import argparse
+
 import pytest
 
 from ncs.problems.golomb_problem import GolombProblem, index, init_domains
@@ -37,7 +39,10 @@ class TestGolomb:
 
 
 if __name__ == "__main__":
-    problem = GolombProblem(10)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-n', type=int, default=10)
+    args = parser.parse_args()
+    problem = GolombProblem(args.n)
     solver = BacktrackSolver(problem)
     solution = solver.minimize(problem.length)
     stats_print(solver.statistics)
