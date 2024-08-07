@@ -1,6 +1,5 @@
 from typing import Optional
 
-import numpy as np
 from numba import jit  # type: ignore
 from numpy._typing import NDArray
 
@@ -11,7 +10,7 @@ from ncs.propagators import (
     alldifferent_lopez_ortiz_propagator,
     dummy_propagator,
 )
-from ncs.utils import END, START
+from ncs.utils import END, MAX, MIN, START
 
 ALG_AFFINE_EQ = 0
 ALG_AFFINE_GEQ = 1
@@ -42,36 +41,43 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> Optional
 
 @jit(nopython=True, cache=True)
 def init_propagators_to_filter(
-    propagators_to_filter: NDArray,
+    prop_to_filter: NDArray,
     changes: Optional[NDArray],
-    propagator_nb: int,
-    propagator_bounds: NDArray,
-    propagator_indices: NDArray,
-    propagator_triggers: NDArray,
+    prop_nb: int,
+    prop_var_bounds: NDArray,
+    prop_dom_indices: NDArray,
+    prop_triggers: NDArray,
 ) -> None:
     if changes is None:  # this is an initialization
-        propagators_to_filter.fill(True)
+        prop_to_filter.fill(True)
     else:
-        for pidx in range(propagator_nb):
-            propagators_to_filter[pidx] = np.any(
-                changes[propagator_indices[propagator_bounds[pidx, START] : propagator_bounds[pidx, END]]] & propagator_triggers[propagator_bounds[pidx, START] : propagator_bounds[pidx, END]]
-            )
+        prop_to_filter.fill(False)
+        for pidx in range(prop_nb):
+            for var_idx in range(prop_var_bounds[pidx, START], prop_var_bounds[pidx, END]):
+                dom_idx = prop_dom_indices[var_idx]
+                if (changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
+                    changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
+                ):
+                    prop_to_filter[pidx] = True
+                    break
 
 
 @jit(nopython=True, cache=True)
 def update_propagators_to_filter(
-    propagators_to_filter: NDArray,
+    prop_to_filter: NDArray,
     changes: NDArray,
-    propagator_nb: int,
-    propagator_bounds: NDArray,
-    propagator_indices: NDArray,
-    propagator_triggers: NDArray,
-    propagator_idx: int,
+    prop_nb: int,
+    prop_var_bounds: NDArray,
+    prop_dom_indices: NDArray,
+    prop_triggers: NDArray,
+    prop_idx: int,
 ) -> None:
-    for pidx in range(propagator_nb):
-        if pidx != propagator_idx:
-            if np.any(
-                    changes[propagator_indices[propagator_bounds[pidx, START] : propagator_bounds[pidx, END]]] & propagator_triggers[propagator_bounds[pidx, START] : propagator_bounds[pidx, END]]
-
-            ):
-                propagators_to_filter[pidx] = True
+    for pidx in range(prop_nb):
+        if pidx != prop_idx:
+            for var_idx in range(prop_var_bounds[pidx, START], prop_var_bounds[pidx, END]):
+                dom_idx = prop_dom_indices[var_idx]
+                if (changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
+                    changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
+                ):
+                    prop_to_filter[pidx] = True
+                    break

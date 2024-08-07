@@ -86,19 +86,19 @@ class Problem:
             prop_data_total_size += prop_data_size
         # Bounds have been computed and can now be used.
         # The global arrays are the following:
-        self.prop_indices = np.empty(prop_var_total_size, dtype=np.uint16)
-        self.prop_offsets = np.empty(prop_var_total_size, dtype=np.int32)
+        self.prop_dom_indices = np.empty(prop_var_total_size, dtype=np.uint16)
+        self.prop_dom_offsets = np.empty(prop_var_total_size, dtype=np.int32)
         self.prop_triggers = np.ones((prop_var_total_size, 2), dtype=bool)
         self.prop_data = np.empty(prop_data_total_size, dtype=np.int32)
         # Let's init the global arrays.
         for pidx, propagator in enumerate(propagators):
             prop_vars = propagator[0]
-            self.prop_indices[self.prop_var_bounds[pidx, START] : self.prop_var_bounds[pidx, END]] = (
+            self.prop_dom_indices[self.prop_var_bounds[pidx, START] : self.prop_var_bounds[pidx, END]] = (
                 self.domain_indices[prop_vars]
-            )  # this is a cached for faster access
-            self.prop_offsets[self.prop_var_bounds[pidx, START] : self.prop_var_bounds[pidx, END]] = (
+            )  # this is cached for faster access
+            self.prop_dom_offsets[self.prop_var_bounds[pidx, START] : self.prop_var_bounds[pidx, END]] = (
                 self.domain_offsets[prop_vars]
-            )  # this is a cached for faster access
+            )  # this is cached for faster access
             self.prop_data[self.prop_data_bounds[pidx, START] : self.prop_data_bounds[pidx, END]] = propagator[2]
             # TODO : init the triggers
 
@@ -132,8 +132,8 @@ class Problem:
             self.prop_algorithms,
             self.prop_var_bounds,
             self.prop_data_bounds,
-            self.prop_indices,
-            self.prop_offsets,
+            self.prop_dom_indices,
+            self.prop_dom_offsets,
             self.prop_triggers,
             self.prop_data,
             self.shared_domains,
