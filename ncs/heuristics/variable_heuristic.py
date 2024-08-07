@@ -72,9 +72,9 @@ def min_value_dom_heuristic(shared_domains: NDArray, domain_idx: int) -> Tuple[N
     min_value = shared_domains[domain_idx, MIN]
     domains[domain_idx, MIN] = min_value + 1
     shared_domains[domain_idx, MAX] = min_value
-    shr_changes = np.zeros((len(shared_domains), 2), dtype=np.bool)
-    shr_changes[domain_idx, MAX] = True
-    return domains, shr_changes
+    shr_dom_changes = np.zeros((len(shared_domains), 2), dtype=np.bool)
+    shr_dom_changes[domain_idx, MAX] = True
+    return domains, shr_dom_changes
 
 
 @jit(nopython=True, cache=True)
@@ -89,6 +89,6 @@ def split_low_dom_heuristic(shared_domains: NDArray, domain_idx: int) -> Tuple[N
     mid_value = (shared_domains[domain_idx, MIN] + shared_domains[domain_idx, MAX]) // 2
     domains[domain_idx, MIN] = mid_value + 1
     shared_domains[domain_idx, MAX] = mid_value
-    shr_changes = np.zeros((len(shared_domains), 2), dtype=np.bool)
-    shr_changes[domain_idx, MAX] = True
-    return domains, shr_changes
+    shr_dom_changes = np.zeros((len(shared_domains), 2), dtype=np.bool)
+    shr_dom_changes[domain_idx, MAX] = True
+    return domains, shr_dom_changes

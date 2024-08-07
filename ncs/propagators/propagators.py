@@ -42,21 +42,21 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> Optional
 @jit(nopython=True, cache=True)
 def init_propagators_to_filter(
     prop_to_filter: NDArray,
-    changes: Optional[NDArray],
+    shr_dom_changes: Optional[NDArray],
     prop_nb: int,
     prop_var_bounds: NDArray,
     prop_dom_indices: NDArray,
     prop_triggers: NDArray,
 ) -> None:
-    if changes is None:  # this is an initialization
+    if shr_dom_changes is None:  # this is an initialization
         prop_to_filter.fill(True)
     else:
         prop_to_filter.fill(False)
         for pidx in range(prop_nb):
             for var_idx in range(prop_var_bounds[pidx, START], prop_var_bounds[pidx, END]):
                 dom_idx = prop_dom_indices[var_idx]
-                if (changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
-                    changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
+                if (shr_dom_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
+                    shr_dom_changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
                 ):
                     prop_to_filter[pidx] = True
                     break
@@ -65,7 +65,7 @@ def init_propagators_to_filter(
 @jit(nopython=True, cache=True)
 def update_propagators_to_filter(
     prop_to_filter: NDArray,
-    changes: NDArray,
+    shr_dom_changes: NDArray,
     prop_nb: int,
     prop_var_bounds: NDArray,
     prop_dom_indices: NDArray,
@@ -76,8 +76,8 @@ def update_propagators_to_filter(
         if pidx != prop_idx:
             for var_idx in range(prop_var_bounds[pidx, START], prop_var_bounds[pidx, END]):
                 dom_idx = prop_dom_indices[var_idx]
-                if (changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
-                    changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
+                if (shr_dom_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
+                    shr_dom_changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
                 ):
                     prop_to_filter[pidx] = True
                     break

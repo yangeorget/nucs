@@ -119,11 +119,11 @@ class Problem:
     def __str__(self) -> str:
         return f"domains={self.shared_domains}"
 
-    def filter(self, stats: NDArray = stats_init(), changes: Optional[NDArray] = None) -> bool:
+    def filter(self, stats: NDArray = stats_init(), shr_dom_changes: Optional[NDArray] = None) -> bool:
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
         :param stats: where to record the statistics of the computation
-        :param changes: an optional array of shared domain changes
+        :param shr_dom_changes: an optional array of shared domain changes
         :return: False if the problem is not consistent
         """
         return filter(
@@ -138,7 +138,7 @@ class Problem:
             self.prop_data,
             self.shared_domains,
             stats,
-            changes,
+            shr_dom_changes,
         )
 
     def pretty_print_solution(self, solution: List[int]) -> None:
@@ -162,16 +162,16 @@ def filter(
     prop_data: NDArray,
     shared_domains: NDArray,
     stats: NDArray,
-    changes: Optional[NDArray],
+    shr_dom_changes: Optional[NDArray],
 ) -> bool:
     """
     Filters the problem's domains by applying the propagators until a fix point is reached.
     :param stats: where to record the statistics of the computation
-    :param changes: an optional array of shared domain changes
+    :param shr_dom_changes: an optional array of shared domain changes
     :return: False if the problem is not consistent
     """
     stats[STATS_PROBLEM_FILTER_NB] += 1
-    init_propagators_to_filter(prop_to_filter, changes, prop_nb, prop_var_bounds, prop_indices, prop_triggers)
+    init_propagators_to_filter(prop_to_filter, shr_dom_changes, prop_nb, prop_var_bounds, prop_indices, prop_triggers)
     while True:
         # is there a propagator to filter ?
         none = True
