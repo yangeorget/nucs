@@ -30,7 +30,7 @@ class TestGolomb:
         assert problem.filter()
 
     @pytest.mark.parametrize("mark_nb,solution_nb", [(4, 6), (5, 11), (6, 17), (7, 25)])
-    def test_golomb_4(self, mark_nb: int, solution_nb: int) -> None:
+    def test_golomb(self, mark_nb: int, solution_nb: int) -> None:
         problem = GolombProblem(mark_nb)
         solver = BacktrackSolver(problem)
         solution = solver.minimize(problem.length)

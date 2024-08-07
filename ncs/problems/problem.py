@@ -24,7 +24,7 @@ from ncs.utils import (
 class Problem:
     """
     A problem is conceptually defined by a list of domains, a list of variables and a list of propagators.
-    A domain can be computed by applying an offset to a shared damain.
+    A domain can be computed by applying an offset to a shared domain.
     """
 
     def __init__(self, shr_domains: List[Union[int, Tuple[int, int]]], dom_indices: List[int], dom_offsets: List[int]):
@@ -56,6 +56,8 @@ class Problem:
     def set_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
         """
         Sets the propagators for the problem.
+        The order of the propagators has an impact on the global speed of the resolution:
+        it is recommended to put the more costly propagators at the end of the list.
         :param propagators: the list of propagators as tuples of the form (list of variables, algorithm, data).
         """
         self.prop_nb = len(propagators)

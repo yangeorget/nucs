@@ -59,6 +59,7 @@ class GolombProblem(Problem):
         #                     [-sum_first(mark_nb - 1 - (j - i)), 1, -1],
         #                 )
         #             )
+        # TODO break symmetries
         # main constraints
         for i in range(1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
@@ -70,5 +71,4 @@ class GolombProblem(Problem):
                     )
                 )
         propagators.append((list(range(var_nb)), ALG_ALLDIFFERENT, []))
-        # TODO break symmetries
         self.set_propagators(propagators)

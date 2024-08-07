@@ -5,7 +5,7 @@ from ncs.heuristics.variable_heuristic import (
 )
 from ncs.problems.alpha_problem import AlphaProblem
 from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.utils import STATS_SOLVER_SOLUTION_NB
+from ncs.utils import STATS_SOLVER_SOLUTION_NB, stats_print
 
 
 class TestAlpha:
@@ -42,3 +42,11 @@ class TestAlpha:
             14,
             18,
         ]
+
+
+if __name__ == "__main__":
+    problem = AlphaProblem()
+    solver = BacktrackSolver(problem, VariableHeuristic(smallest_domain_var_heuristic, min_value_dom_heuristic))
+    solutions = solver.solve_all()
+    stats_print(solver.statistics)
+    print(solutions[0])

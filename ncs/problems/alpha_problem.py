@@ -50,7 +50,6 @@ class AlphaProblem(Problem):
         super().__init__(shr_domains=[(1, 26)] * 26, dom_indices=list(range(26)), dom_offsets=[0] * 26)
         self.set_propagators(
             [
-                ([A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z], ALG_ALLDIFFERENT, []),
                 ([A, B, E, T, L], ALG_AFFINE_EQ, [45, 1, 1, 1, 1, 2]),
                 ([C, E, O, L], ALG_AFFINE_EQ, [43, 1, 1, 1, 2]),
                 ([E, O, N, R, T, C], ALG_AFFINE_EQ, [74, 1, 1, 1, 1, 1, 2]),
@@ -71,6 +70,7 @@ class AlphaProblem(Problem):
                 ([H, M, T, E], ALG_AFFINE_EQ, [72, 1, 1, 1, 2]),
                 ([L, N, O, V, I], ALG_AFFINE_EQ, [100, 1, 1, 1, 1, 2]),
                 ([A, L, T, W, Z], ALG_AFFINE_EQ, [34, 1, 1, 1, 1, 1]),
+                ([A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z], ALG_ALLDIFFERENT, []),
             ]
         )
 
