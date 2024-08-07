@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ncs.problems.problem import Problem
-from ncs.propagators.propagators import ALG_AFFINE_EQ, ALG_ALLDIFFERENT
+from ncs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLDIFFERENT
 from ncs.utils import MAX, MIN
 
 GOLOMB_LENGTHS = [0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127]
@@ -49,16 +49,16 @@ class GolombProblem(Problem):
         )
         propagators: List[Tuple[List[int], int, List[int]]] = []
         # redundant constraints
-        # for i in range(mark_nb - 1):
-        #     for j in range(i + 1, mark_nb):
-        #         if j - i < mark_nb - 1:
-        #             propagators.append(
-        #                 (
-        #                     [index(mark_nb, i, j), self.length],
-        #                     ALG_AFFINE_LEQ,
-        #                     [-sum_first(mark_nb - 1 - (j - i)), 1, -1],
-        #                 )
-        #             )
+        for i in range(mark_nb - 1):
+            for j in range(i + 1, mark_nb):
+                if j - i < mark_nb - 1:
+                    propagators.append(
+                        (
+                            [index(mark_nb, i, j), self.length],
+                            ALG_AFFINE_LEQ,
+                            [-sum_first(mark_nb - 1 - (j - i)), 1, -1],
+                        )
+                    )
         # TODO break symmetries
         # main constraints
         for i in range(1, mark_nb - 1):

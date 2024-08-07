@@ -7,6 +7,14 @@ from numpy.typing import NDArray
 from ncs.utils import MAX, MIN
 
 
+def get_triggers(n: int, data: NDArray) -> NDArray:
+    triggers = np.zeros((n, 2), dtype=bool)
+    for i in range(n):
+        triggers[i, MIN] = data[i + 1] > 0
+        triggers[i, MAX] = data[i + 1] < 0
+    return triggers
+
+
 @jit(nopython=True, cache=True)
 def compute_domains(domains: NDArray, data: NDArray) -> Optional[NDArray]:
     """

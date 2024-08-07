@@ -10,6 +10,10 @@ MIN_RANK = 2
 MAX_RANK = 3
 
 
+def get_triggers(n: int, data: NDArray) -> NDArray:
+    return np.ones((n, 2), dtype=bool)
+
+
 @jit(nopython=True, cache=True)
 def compute_nb(
     size: int, rank_domains: NDArray, min_sorted_vars: NDArray, max_sorted_vars: NDArray, bounds: NDArray

@@ -19,6 +19,19 @@ ALG_ALLDIFFERENT = 3
 ALG_DUMMY = 4
 
 
+def get_triggers(algorithm: int, size: int, data: NDArray) -> NDArray:
+    if algorithm == ALG_AFFINE_EQ:
+        return affine_eq_propagator.get_triggers(size, data)
+    elif algorithm == ALG_AFFINE_GEQ:
+        return affine_geq_propagator.get_triggers(size, data)
+    elif algorithm == ALG_AFFINE_LEQ:
+        return affine_leq_propagator.get_triggers(size, data)
+    elif algorithm == ALG_ALLDIFFERENT:
+        return alldifferent_lopez_ortiz_propagator.get_triggers(size, data)
+    else:
+        return dummy_propagator.get_triggers(size, data)
+
+
 @jit(nopython=True, cache=True)
 def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> Optional[NDArray]:
     """
@@ -34,9 +47,8 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> Optional
         return affine_leq_propagator.compute_domains(domains, data)
     elif algorithm == ALG_ALLDIFFERENT:
         return alldifferent_lopez_ortiz_propagator.compute_domains(domains, data)
-    elif algorithm == ALG_DUMMY:
+    else:
         return dummy_propagator.compute_domains(domains, data)
-    return None
 
 
 @jit(nopython=True, cache=True)

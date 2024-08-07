@@ -1,5 +1,5 @@
 from ncs.problems.problem import Problem, is_solved
-from ncs.propagators.propagators import ALG_ALLDIFFERENT
+from ncs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT
 from ncs.utils import MAX, MIN
 
 
@@ -18,7 +18,7 @@ class TestProblem:
         problem = Problem(shr_domains=[(2, 2), (2, 2), (6, 6)], dom_indices=[0, 1, 2], dom_offsets=[0, 0, 0])
         assert is_solved(problem.shared_domains)
 
-    def test_filter(self) -> None:
+    def test_filter_1(self) -> None:
         problem = Problem(
             shr_domains=[(0, 0), (2, 2), (0, 2)],
             dom_indices=[0, 1, 2, 0, 1, 2],
@@ -28,6 +28,21 @@ class TestProblem:
             [
                 ([0, 1, 2], ALG_ALLDIFFERENT, []),
                 ([3, 4, 5], ALG_ALLDIFFERENT, []),
+            ]
+        )
+        assert not problem.filter()
+
+    def test_filter_2(self) -> None:
+        problem = Problem(
+            shr_domains=[(0, 2), (0, 2), (0, 2)],
+            dom_indices=[0, 1, 2],
+            dom_offsets=[0, 0, 0],
+        )
+        problem.set_propagators(
+            [
+                ([0, 1], ALG_AFFINE_LEQ, [-1, 1, -1]),
+                ([1, 2], ALG_AFFINE_LEQ, [-1, 1, -1]),
+                ([2, 0], ALG_AFFINE_LEQ, [-1, 1, -1]),
             ]
         )
         assert not problem.filter()

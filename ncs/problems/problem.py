@@ -7,6 +7,7 @@ from numpy.typing import NDArray
 
 from ncs.propagators.propagators import (
     compute_domains,
+    get_triggers,
     init_propagators_to_filter,
     update_propagators_to_filter,
 )
@@ -88,7 +89,7 @@ class Problem:
         # The global arrays are the following:
         self.prop_dom_indices = np.empty(prop_var_total_size, dtype=np.uint16)
         self.prop_dom_offsets = np.empty(prop_var_total_size, dtype=np.int32)
-        self.prop_triggers = np.ones((prop_var_total_size, 2), dtype=bool)
+        self.prop_triggers = np.empty((prop_var_total_size, 2), dtype=bool)
         self.prop_data = np.empty(prop_data_total_size, dtype=np.int32)
         # Let's init the global arrays.
         for pidx, propagator in enumerate(propagators):
@@ -100,7 +101,9 @@ class Problem:
                 self.domain_offsets[prop_vars]
             )  # this is cached for faster access
             self.prop_data[self.prop_data_bounds[pidx, START] : self.prop_data_bounds[pidx, END]] = propagator[2]
-            # TODO : init the triggers
+            self.prop_triggers[self.prop_var_bounds[pidx, START] : self.prop_var_bounds[pidx, END]] = get_triggers(
+                propagator[1], len(propagator[0]), propagator[2]
+            )
 
     def get_values(self) -> List[int]:
         """
