@@ -1,3 +1,2 @@
-reverifier les contraintes redondantes de golomb (elles ne marchaient pas ... elles marchent !!!)
 etudier le pruning du cp dans le cas de l'optimization
 
