@@ -85,7 +85,7 @@ def update_propagators_to_filter(
     prop_idx: int,
 ) -> None:
     for pidx in range(prop_nb):
-        if pidx != prop_idx:
+        if pidx != prop_idx and not prop_to_filter[pidx]:
             for var_idx in range(prop_var_bounds[pidx, START], prop_var_bounds[pidx, END]):
                 dom_idx = prop_dom_indices[var_idx]
                 if (shr_dom_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
