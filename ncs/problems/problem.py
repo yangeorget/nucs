@@ -64,6 +64,7 @@ class Problem:
         prop_var_total_size = prop_data_total_size = 0
         self.prop_to_filter = np.empty(self.prop_nb, dtype=np.bool)
         self.prop_algorithms = np.empty(self.prop_nb, dtype=np.uint8)
+        # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
         self.prop_var_bounds = np.empty(
             (self.prop_nb, 2), dtype=np.uint16, order="C"
         )  # there is a bit of redundancy here for faster access to the bounds
@@ -83,18 +84,23 @@ class Problem:
             self.prop_data_bounds[pidx, END] = self.prop_data_bounds[pidx, START] + prop_data_size
             prop_var_total_size += prop_var_size
             prop_data_total_size += prop_data_size
+        # Bounds have been computed and can now be used.
+        # The global arrays are the following:
         self.prop_indices = np.empty(prop_var_total_size, dtype=np.uint16)
         self.prop_offsets = np.empty(prop_var_total_size, dtype=np.int32)
+        self.prop_triggers = np.ones((prop_var_total_size, 2), dtype=bool)
         self.prop_data = np.empty(prop_data_total_size, dtype=np.int32)
+        # Let's init the global arrays.
         for pidx, propagator in enumerate(propagators):
             prop_vars = propagator[0]
             self.prop_indices[self.prop_var_bounds[pidx, START] : self.prop_var_bounds[pidx, END]] = (
                 self.domain_indices[prop_vars]
-            )
+            )  # this is a cached for faster access
             self.prop_offsets[self.prop_var_bounds[pidx, START] : self.prop_var_bounds[pidx, END]] = (
                 self.domain_offsets[prop_vars]
-            )
+            )  # this is a cached for faster access
             self.prop_data[self.prop_data_bounds[pidx, START] : self.prop_data_bounds[pidx, END]] = propagator[2]
+            # TODO : init the triggers
 
     def get_values(self) -> List[int]:
         """
@@ -128,6 +134,7 @@ class Problem:
             self.prop_data_bounds,
             self.prop_indices,
             self.prop_offsets,
+            self.prop_triggers,
             self.prop_data,
             self.shared_domains,
             stats,
@@ -151,6 +158,7 @@ def filter(
     prop_data_bounds: NDArray,
     prop_indices: NDArray,
     prop_offsets: NDArray,
+    prop_triggers: NDArray,
     prop_data: NDArray,
     shared_domains: NDArray,
     stats: NDArray,
@@ -163,7 +171,7 @@ def filter(
     :return: False if the problem is not consistent
     """
     stats[STATS_PROBLEM_FILTER_NB] += 1
-    init_propagators_to_filter(prop_to_filter, changes, prop_nb, prop_var_bounds, prop_indices)
+    init_propagators_to_filter(prop_to_filter, changes, prop_nb, prop_var_bounds, prop_indices, prop_triggers)
     while True:
         # is there a propagator to filter ?
         none = True
@@ -187,7 +195,13 @@ def filter(
         old_shared_domains = shared_domains.copy()
         shared_domains[indices] = prop_domains - offsets
         update_propagators_to_filter(
-            prop_to_filter, old_shared_domains != shared_domains, prop_nb, prop_var_bounds, prop_indices, pidx
+            prop_to_filter,
+            old_shared_domains != shared_domains,
+            prop_nb,
+            prop_var_bounds,
+            prop_indices,
+            prop_triggers,
+            pidx,
         )
 
 
