@@ -52,44 +52,44 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> Optional
 
 
 @jit(nopython=True, cache=True)
-def init_propagators_to_filter(
-    prop_to_filter: NDArray,
-    shr_dom_changes: Optional[NDArray],
-    prop_nb: int,
+def init_propagator_queue(
+    propagator_queue: NDArray,
+    shr_domain_changes: Optional[NDArray],
+    propagator_nb: int,
     prop_var_bounds: NDArray,
     prop_dom_indices: NDArray,
     prop_triggers: NDArray,
 ) -> None:
-    if shr_dom_changes is None:  # this is an initialization
-        prop_to_filter.fill(True)
+    if shr_domain_changes is None:  # this is an initialization
+        propagator_queue.fill(True)
     else:
-        prop_to_filter.fill(False)
-        for pidx in range(prop_nb):
-            for var_idx in range(prop_var_bounds[pidx, START], prop_var_bounds[pidx, END]):
+        propagator_queue.fill(False)
+        for prop_idx in range(propagator_nb):
+            for var_idx in range(prop_var_bounds[prop_idx, START], prop_var_bounds[prop_idx, END]):
                 dom_idx = prop_dom_indices[var_idx]
-                if (shr_dom_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
-                    shr_dom_changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
+                if (shr_domain_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
+                    shr_domain_changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
                 ):
-                    prop_to_filter[pidx] = True
+                    propagator_queue[prop_idx] = True
                     break
 
 
 @jit(nopython=True, cache=True)
 def update_propagators_to_filter(
-    prop_to_filter: NDArray,
-    shr_dom_changes: NDArray,
-    prop_nb: int,
+    propagator_queue: NDArray,
+    shr_domain_changes: NDArray,
+    propagator_nb: int,
     prop_var_bounds: NDArray,
     prop_dom_indices: NDArray,
     prop_triggers: NDArray,
-    prop_idx: int,
+    previous_prop_idx: int,
 ) -> None:
-    for pidx in range(prop_nb):
-        if pidx != prop_idx and not prop_to_filter[pidx]:
-            for var_idx in range(prop_var_bounds[pidx, START], prop_var_bounds[pidx, END]):
+    for prop_idx in range(propagator_nb):
+        if prop_idx != previous_prop_idx and not propagator_queue[prop_idx]:
+            for var_idx in range(prop_var_bounds[prop_idx, START], prop_var_bounds[prop_idx, END]):
                 dom_idx = prop_dom_indices[var_idx]
-                if (shr_dom_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
-                    shr_dom_changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
+                if (shr_domain_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
+                    shr_domain_changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
                 ):
-                    prop_to_filter[pidx] = True
+                    propagator_queue[prop_idx] = True
                     break

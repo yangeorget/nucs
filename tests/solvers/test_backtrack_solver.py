@@ -6,7 +6,7 @@ from ncs.utils import STATS_SOLVER_CHOICE_DEPTH, STATS_SOLVER_SOLUTION_NB
 
 class TestBacktrackSolver:
     def test_solve_and_count(self) -> None:
-        problem = Problem(shr_domains=[(0, 99), (0, 99)], dom_indices=[0, 1], dom_offsets=[0, 0])
+        problem = Problem(usr_shr_domains=[(0, 99), (0, 99)], usr_dom_indices=[0, 1], usr_dom_offsets=[0, 0])
         problem.set_propagators([([], ALG_DUMMY, [])])
         solver = BacktrackSolver(problem)
         for _ in solver.solve():
@@ -15,7 +15,7 @@ class TestBacktrackSolver:
         assert solver.statistics[STATS_SOLVER_CHOICE_DEPTH] == 2
 
     def test_solve(self) -> None:
-        problem = Problem(shr_domains=[(0, 1), (0, 1)], dom_indices=[0, 1], dom_offsets=[0, 0])
+        problem = Problem(usr_shr_domains=[(0, 1), (0, 1)], usr_dom_indices=[0, 1], usr_dom_offsets=[0, 0])
         problem.set_propagators([([], ALG_DUMMY, [])])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
@@ -28,7 +28,9 @@ class TestBacktrackSolver:
         assert solver.statistics[STATS_SOLVER_CHOICE_DEPTH] == 2
 
     def test_solve_alldifferent(self) -> None:
-        problem = Problem(shr_domains=[(0, 2), (0, 2), (0, 2)], dom_indices=[0, 1, 2], dom_offsets=[0, 0, 0])
+        problem = Problem(
+            usr_shr_domains=[(0, 2), (0, 2), (0, 2)], usr_dom_indices=[0, 1, 2], usr_dom_offsets=[0, 0, 0]
+        )
         problem.set_propagators([([0, 1, 2], ALG_ALLDIFFERENT, [])])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]

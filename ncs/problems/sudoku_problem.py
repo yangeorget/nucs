@@ -11,9 +11,9 @@ class SudokuProblem(Problem):
 
     def __init__(self, givens: List[List[int]]):
         super().__init__(
-            shr_domains=[(1, 9) if given == 0 else (given, given) for line in givens for given in line],
-            dom_indices=list(range(81)),
-            dom_offsets=[0] * 81,
+            usr_shr_domains=[(1, 9) if given == 0 else (given, given) for line in givens for given in line],
+            usr_dom_indices=list(range(81)),
+            usr_dom_offsets=[0] * 81,
         )
         propagators: List[Tuple[List[int], int, List[int]]] = []
         for i in range(9):

@@ -1,3 +1,2 @@
 etudier le pruning du cp dans le cas de l'optimization
-revoir le nommage des variables
 mettre des stats sur les problems (nb de vars, ...)

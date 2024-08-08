@@ -21,12 +21,12 @@ class TestGolomb:
 
     def test_golomb_4_filter(self) -> None:
         problem = GolombProblem(4)
-        problem.shared_domains[0] = 1
-        problem.shared_domains[1] = 4
-        problem.shared_domains[2] = 6
-        problem.shared_domains[3] = 3
-        problem.shared_domains[4] = 5
-        problem.shared_domains[5] = 2
+        problem.shr_domains[0] = 1
+        problem.shr_domains[1] = 4
+        problem.shr_domains[2] = 6
+        problem.shr_domains[3] = 3
+        problem.shr_domains[4] = 5
+        problem.shr_domains[5] = 2
         assert problem.filter()
 
     @pytest.mark.parametrize("mark_nb,solution_nb", [(4, 6), (5, 11), (6, 17), (7, 25)])

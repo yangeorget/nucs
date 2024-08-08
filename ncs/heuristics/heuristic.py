@@ -11,11 +11,11 @@ class Heuristic:
     """
 
     @abstractmethod
-    def choose(self, shared_domains: NDArray, domain_indices: NDArray) -> Tuple[NDArray, NDArray]:
+    def choose(self, shr_domains: NDArray, dom_indices: NDArray) -> Tuple[NDArray, NDArray]:
         """
         Makes a choice.
-        :param shared_domains: the shared domains of the problem
-        :param domain_indices: the domain indices of the problem variables
+        :param shr_domains: the shared domains of the problem
+        :param dom_indices: the domain indices of the problem variables
         :return: the new shared domain to be added to the choice point and the changes to the actual domains
         """
         pass

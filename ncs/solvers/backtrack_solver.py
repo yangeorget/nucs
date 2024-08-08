@@ -45,10 +45,10 @@ class BacktrackSolver(Solver):
     def solve_one(self) -> Optional[List[int]]:
         shr_dom_changes = None
         while self.filter(shr_dom_changes):
-            if is_solved(self.problem.shared_domains):
+            if is_solved(self.problem.shr_domains):
                 self.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 return self.problem.get_values()  # problem is solved
-            domains, shr_dom_changes = self.heuristic.choose(self.problem.shared_domains, self.problem.domain_indices)
+            domains, shr_dom_changes = self.heuristic.choose(self.problem.shr_domains, self.problem.dom_indices)
             self.choice_points.append(domains)
             self.statistics[STATS_SOLVER_CHOICE_NB] += 1
             self.statistics[STATS_SOLVER_CHOICE_DEPTH] = max(
@@ -73,7 +73,7 @@ class BacktrackSolver(Solver):
         if len(self.choice_points) == 0:
             return False
         self.statistics[STATS_SOLVER_BACKTRACK_NB] += 1
-        self.problem.shared_domains = self.choice_points.pop()
+        self.problem.shr_domains = self.choice_points.pop()
         return True
 
     def filter(self, shr_dom_changes: Optional[NDArray] = None) -> bool:

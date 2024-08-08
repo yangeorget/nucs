@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 from ncs.propagators.propagators import (
     compute_domains,
     get_triggers,
-    init_propagators_to_filter,
+    init_propagator_queue,
     update_propagators_to_filter,
 )
 from ncs.utils import (
@@ -18,7 +18,8 @@ from ncs.utils import (
     START,
     STATS_PROBLEM_FILTER_NB,
     STATS_PROPAGATOR_FILTER_NB,
-    stats_init, STATS_PROPAGATOR_FILTER_NO_CHANGE,
+    STATS_PROPAGATOR_FILTER_NO_CHANGE,
+    stats_init,
 )
 
 
@@ -28,18 +29,20 @@ class Problem:
     A domain can be computed by applying an offset to a shared domain.
     """
 
-    def __init__(self, shr_domains: List[Union[int, Tuple[int, int]]], dom_indices: List[int], dom_offsets: List[int]):
-        self.variable_nb = len(dom_indices)
-        self.shr_domains = shr_domains
-        self.shared_domains = self.build_shared_domains(shr_domains)
-        self.domain_indices = self.build_domain_indices(dom_indices)
-        self.domain_offsets = self.build_domain_offsets(dom_offsets)
+    def __init__(
+        self, usr_shr_domains: List[Union[int, Tuple[int, int]]], usr_dom_indices: List[int], usr_dom_offsets: List[int]
+    ):
+        self.variable_nb = len(usr_dom_indices)
+        self.usr_shr_domains = usr_shr_domains
+        self.shr_domains = self.build_shared_domains(usr_shr_domains)
+        self.dom_indices = self.build_domain_indices(usr_dom_indices)
+        self.dom_offsets = self.build_domain_offsets(usr_dom_offsets)
 
     def reset(self) -> None:
         """
         Resets the shared domains to their initial values.
         """
-        self.shared_domains = self.build_shared_domains(self.shr_domains)
+        self.shr_domains = self.build_shared_domains(self.usr_shr_domains)
 
     def build_shared_domains(self, shr_domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
         return np.array(
@@ -61,47 +64,46 @@ class Problem:
         it is recommended to put the more costly propagators at the end of the list.
         :param propagators: the list of propagators as tuples of the form (list of variables, algorithm, data).
         """
-        self.prop_nb = len(propagators)
-        prop_var_total_size = prop_data_total_size = 0
-        self.prop_to_filter = np.empty(self.prop_nb, dtype=np.bool)
-        self.prop_algorithms = np.empty(self.prop_nb, dtype=np.uint8)
+        self.propagator_nb = len(propagators)
+        props_var_total_size = props_data_total_size = 0
+        self.propagator_queue = np.empty(self.propagator_nb, dtype=np.bool)
+        self.algorithms = np.empty(self.propagator_nb, dtype=np.uint8)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
-        self.prop_var_bounds = np.empty(
-            (self.prop_nb, 2), dtype=np.uint16, order="C"
+        self.var_bounds = np.empty(
+            (self.propagator_nb, 2), dtype=np.uint16, order="C"
         )  # there is a bit of redundancy here for faster access to the bounds
-        self.prop_data_bounds = np.empty(
-            (self.prop_nb, 2), dtype=np.uint16, order="C"
+        self.data_bounds = np.empty(
+            (self.propagator_nb, 2), dtype=np.uint16, order="C"
         )  # there is a bit of redundancy here for faster access to the bounds
-        self.prop_var_bounds[0, START] = 0
-        self.prop_data_bounds[0, START] = 0
+        self.var_bounds[0, START] = self.data_bounds[0, START] = 0
         for pidx, propagator in enumerate(propagators):
             prop_var_size = len(propagator[0])
             prop_data_size = len(propagator[2])
-            self.prop_algorithms[pidx] = propagator[1]
+            self.algorithms[pidx] = propagator[1]
             if pidx > 0:
-                self.prop_var_bounds[pidx, START] = self.prop_var_bounds[pidx - 1, END]
-                self.prop_data_bounds[pidx, START] = self.prop_data_bounds[pidx - 1, END]
-            self.prop_var_bounds[pidx, END] = self.prop_var_bounds[pidx, START] + prop_var_size
-            self.prop_data_bounds[pidx, END] = self.prop_data_bounds[pidx, START] + prop_data_size
-            prop_var_total_size += prop_var_size
-            prop_data_total_size += prop_data_size
+                self.var_bounds[pidx, START] = self.var_bounds[pidx - 1, END]
+                self.data_bounds[pidx, START] = self.data_bounds[pidx - 1, END]
+            self.var_bounds[pidx, END] = self.var_bounds[pidx, START] + prop_var_size
+            self.data_bounds[pidx, END] = self.data_bounds[pidx, START] + prop_data_size
+            props_var_total_size += prop_var_size
+            props_data_total_size += prop_data_size
         # Bounds have been computed and can now be used.
         # The global arrays are the following:
-        self.prop_dom_indices = np.empty(prop_var_total_size, dtype=np.uint16)
-        self.prop_dom_offsets = np.empty(prop_var_total_size, dtype=np.int32)
-        self.prop_triggers = np.empty((prop_var_total_size, 2), dtype=bool)
-        self.prop_data = np.empty(prop_data_total_size, dtype=np.int32)
+        self.props_dom_indices = np.empty(props_var_total_size, dtype=np.uint16)
+        self.props_dom_offsets = np.empty(props_var_total_size, dtype=np.int32)
+        self.props_triggers = np.empty((props_var_total_size, 2), dtype=bool)
+        self.props_data = np.empty(props_data_total_size, dtype=np.int32)
         # Let's init the global arrays.
         for pidx, propagator in enumerate(propagators):
             prop_vars = propagator[0]
-            self.prop_dom_indices[self.prop_var_bounds[pidx, START] : self.prop_var_bounds[pidx, END]] = (
-                self.domain_indices[prop_vars]
-            )  # this is cached for faster access
-            self.prop_dom_offsets[self.prop_var_bounds[pidx, START] : self.prop_var_bounds[pidx, END]] = (
-                self.domain_offsets[prop_vars]
-            )  # this is cached for faster access
-            self.prop_data[self.prop_data_bounds[pidx, START] : self.prop_data_bounds[pidx, END]] = propagator[2]
-            self.prop_triggers[self.prop_var_bounds[pidx, START] : self.prop_var_bounds[pidx, END]] = get_triggers(
+            self.props_dom_indices[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = self.dom_indices[
+                prop_vars
+            ]  # this is cached for faster access
+            self.props_dom_offsets[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = self.dom_offsets[
+                prop_vars
+            ]  # this is cached for faster access
+            self.props_data[self.data_bounds[pidx, START] : self.data_bounds[pidx, END]] = propagator[2]
+            self.props_triggers[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = get_triggers(
                 propagator[1], len(propagator[0]), propagator[2]
             )
 
@@ -110,38 +112,38 @@ class Problem:
         Gets the values for the variables (when instantiated).
         :return: a list of integers
         """
-        mins = self.shared_domains[self.domain_indices, MIN] + self.domain_offsets
+        mins = self.shr_domains[self.dom_indices, MIN] + self.dom_offsets
         return mins.tolist()
 
     def set_min_value(self, var_idx: int, min_value: int) -> None:
-        self.shared_domains[(self.domain_indices[var_idx]), MIN] = min_value - self.domain_offsets[var_idx]
+        self.shr_domains[(self.dom_indices[var_idx]), MIN] = min_value - self.dom_offsets[var_idx]
 
     def set_max_value(self, var_idx: int, max_value: int) -> None:
-        self.shared_domains[(self.domain_indices[var_idx]), MAX] = max_value - self.domain_offsets[var_idx]
+        self.shr_domains[(self.dom_indices[var_idx]), MAX] = max_value - self.dom_offsets[var_idx]
 
     def __str__(self) -> str:
-        return f"domains={self.shared_domains}"
+        return f"domains={self.shr_domains}"
 
-    def filter(self, stats: NDArray = stats_init(), shr_dom_changes: Optional[NDArray] = None) -> bool:
+    def filter(self, stats: NDArray = stats_init(), shr_domain_changes: Optional[NDArray] = None) -> bool:
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
         :param stats: where to record the statistics of the computation
-        :param shr_dom_changes: an optional array of shared domain changes
+        :param shr_domain_changes: an optional array of shared domain changes
         :return: False if the problem is not consistent
         """
         return filter(
-            self.prop_nb,
-            self.prop_to_filter,
-            self.prop_algorithms,
-            self.prop_var_bounds,
-            self.prop_data_bounds,
-            self.prop_dom_indices,
-            self.prop_dom_offsets,
-            self.prop_triggers,
-            self.prop_data,
-            self.shared_domains,
+            self.propagator_nb,
+            self.propagator_queue,
+            self.algorithms,
+            self.var_bounds,
+            self.data_bounds,
+            self.props_dom_indices,
+            self.props_dom_offsets,
+            self.props_triggers,
+            self.props_data,
+            self.shr_domains,
             stats,
-            shr_dom_changes,
+            shr_domain_changes,
         )
 
     def pretty_print_solution(self, solution: List[int]) -> None:
@@ -154,64 +156,67 @@ class Problem:
 
 @jit(nopython=True, cache=True)
 def filter(
-    prop_nb: int,
-    prop_to_filter: NDArray,
-    prop_algs: NDArray,
-    prop_var_bounds: NDArray,
-    prop_data_bounds: NDArray,
-    prop_indices: NDArray,
-    prop_offsets: NDArray,
-    prop_triggers: NDArray,
-    prop_data: NDArray,
+    propagator_nb: int,
+    propagator_queue: NDArray,
+    algorithms: NDArray,
+    var_bounds: NDArray,
+    data_bounds: NDArray,
+    props_indices: NDArray,
+    props_offsets: NDArray,
+    props_triggers: NDArray,
+    props_data: NDArray,
     shr_domains: NDArray,
     stats: NDArray,
-    shr_dom_changes: Optional[NDArray],
+    shr_domain_changes: Optional[NDArray],
 ) -> bool:
     """
     Filters the problem's domains by applying the propagators until a fix point is reached.
     :param stats: where to record the statistics of the computation
-    :param shr_dom_changes: an optional array of shared domain changes
+    :param shr_domain_changes: an optional array of shared domain changes
     :return: False if the problem is not consistent
     """
     stats[STATS_PROBLEM_FILTER_NB] += 1
-    init_propagators_to_filter(prop_to_filter, shr_dom_changes, prop_nb, prop_var_bounds, prop_indices, prop_triggers)
+    init_propagator_queue(
+        propagator_queue, shr_domain_changes, propagator_nb, var_bounds, props_indices, props_triggers
+    )
     while True:
         # is there a propagator to filter ?
-        none = True
-        for pidx in range(prop_nb):
-            if prop_to_filter[pidx]:
-                none = prop_to_filter[pidx] = False
+        empty_queue = True
+        for prop_idx in range(propagator_nb):
+            if propagator_queue[prop_idx]:
+                empty_queue = propagator_queue[prop_idx] = False
                 break
-        if none:
+        if empty_queue:
             return True
         # there is a propagator to filter
         stats[STATS_PROPAGATOR_FILTER_NB] += 1
-        prop_var_start = prop_var_bounds[pidx, START]
-        prop_var_end = prop_var_bounds[pidx, END]
-        indices = prop_indices[prop_var_start:prop_var_end]
-        offsets = prop_offsets[prop_var_start:prop_var_end].reshape((-1, 1))
-        prop_data_start = prop_data_bounds[pidx, START]
-        prop_data_end = prop_data_bounds[pidx, END]
+        prop_var_start = var_bounds[prop_idx, START]
+        prop_var_end = var_bounds[prop_idx, END]
+        prop_indices = props_indices[prop_var_start:prop_var_end]
+        prop_offsets = props_offsets[prop_var_start:prop_var_end].reshape((-1, 1))
+        prop_data_start = data_bounds[prop_idx, START]
+        prop_data_end = data_bounds[prop_idx, END]
         prop_domains = compute_domains(
-            prop_algs[pidx], shr_domains[indices] + offsets, prop_data[prop_data_start:prop_data_end]
+            algorithms[prop_idx], shr_domains[prop_indices] + prop_offsets, props_data[prop_data_start:prop_data_end]
         )
         if prop_domains is None:
             return False
-        old_shared_domains = shr_domains.copy()
-        shr_domains[indices] = prop_domains - offsets
-        shr_domain_changes = old_shared_domains != shr_domains
-        if np.any(shr_domain_changes):
+        shr_domains_copy = shr_domains.copy()
+        shr_domains[prop_indices] = prop_domains - prop_offsets
+        shr_domain_changes = shr_domains_copy != shr_domains
+        if np.any(shr_domain_changes):  # type: ignore
             update_propagators_to_filter(
-                prop_to_filter,
+                propagator_queue,
                 shr_domain_changes,
-                prop_nb,
-                prop_var_bounds,
-                prop_indices,
-                prop_triggers,
-                pidx,
+                propagator_nb,
+                var_bounds,
+                props_indices,
+                props_triggers,
+                prop_idx,
             )
         else:
             stats[STATS_PROPAGATOR_FILTER_NO_CHANGE] += 1
+
 
 @jit(nopython=True, cache=True)
 def is_solved(shared_domains: NDArray) -> bool:
