@@ -55,9 +55,9 @@ def filter_lower(
     rank_domains: NDArray,
     max_sorted_vars: NDArray,
 ) -> bool:
-    for i in range(nb + 1):
-        t[i + 1] = h[i + 1] = i
-        d[i + 1] = bounds[i + 1] - bounds[i]
+    for i in range(1, nb + 2):
+        t[i] = h[i] = i -1
+        d[i] = bounds[i] - bounds[i-1]
     for i in range(size):
         max_sorted_vars_i = max_sorted_vars[i]
         x = rank_domains[max_sorted_vars_i, MIN_RANK]
@@ -69,9 +69,9 @@ def filter_lower(
             t[z] = z + 1
             z = path_max(t, t[z])
             t[z] = j
-        path_set(t, x + 1, z, z)  # path compression
-        if d[z] + bounds[y] < bounds[z]:
+        if d[z] + bounds[y] < bounds[z]:  # moved above the path compression which is not the case in the paper
             return False
+        path_set(t, x + 1, z, z)  # path compression
         if h[x] > x:
             w = path_max(h, h[x])
             rank_domains[max_sorted_vars_i, MIN] = bounds[w]
@@ -107,9 +107,9 @@ def filter_upper(
             t[z] = z - 1
             z = path_min(t, t[z])
             t[z] = j
-        path_set(t, x - 1, z, z)  # path compression
-        if d[z] + bounds[z] < bounds[y]:
+        if d[z] + bounds[z] < bounds[y]:  # moved above the path compression which is not the case in the paper
             return False
+        path_set(t, x - 1, z, z)  # path compression
         if h[x] < x:
             w = path_min(h, h[x])
             rank_domains[min_sorted_vars_i, MAX] = bounds[w] - 1
