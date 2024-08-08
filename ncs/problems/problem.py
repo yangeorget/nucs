@@ -49,8 +49,7 @@ class Problem:
     def build_shared_domains(self, shr_domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
         return np.array(
             [(shr_domain, shr_domain) if isinstance(shr_domain, int) else shr_domain for shr_domain in shr_domains],
-            dtype=np.int32,
-            order="C",
+            dtype=np.int32
         )
 
     def build_domain_indices(self, dom_indices: List[int]) -> NDArray:
@@ -72,10 +71,10 @@ class Problem:
         self.algorithms = np.empty(self.propagator_nb, dtype=np.uint8)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
         self.var_bounds = np.empty(
-            (self.propagator_nb, 2), dtype=np.uint16, order="C"
+            (self.propagator_nb, 2), dtype=np.uint16
         )  # there is a bit of redundancy here for faster access to the bounds
         self.data_bounds = np.empty(
-            (self.propagator_nb, 2), dtype=np.uint16, order="C"
+            (self.propagator_nb, 2), dtype=np.uint16
         )  # there is a bit of redundancy here for faster access to the bounds
         self.var_bounds[0, START] = self.data_bounds[0, START] = 0
         for pidx, propagator in enumerate(propagators):
