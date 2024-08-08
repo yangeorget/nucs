@@ -155,6 +155,16 @@ class Problem:
 
 
 @jit(nopython=True, cache=True)
+def pop_propagator(statistics: NDArray, propagator_nb: int, propagator_queue: NDArray) -> int:
+    for prop_idx in range(propagator_nb):
+        if propagator_queue[prop_idx]:
+            propagator_queue[prop_idx] = False
+            statistics[STATS_PROPAGATOR_FILTER_NB] += 1
+            return prop_idx
+    return -1
+
+
+@jit(nopython=True, cache=True)
 def filter(
     statistics: NDArray,
     propagator_nb: int,
@@ -179,16 +189,9 @@ def filter(
         propagator_queue, shr_domain_changes, propagator_nb, var_bounds, props_indices, props_triggers
     )
     while True:
-        # is there a propagator to filter ?
-        empty_queue = True
-        for prop_idx in range(propagator_nb):
-            if propagator_queue[prop_idx]:
-                empty_queue = propagator_queue[prop_idx] = False
-                break
-        if empty_queue:
+        prop_idx = pop_propagator(statistics, propagator_nb, propagator_queue)
+        if prop_idx == -1:
             return True
-        # there is a propagator to filter
-        statistics[STATS_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = var_bounds[prop_idx, START]
         prop_var_end = var_bounds[prop_idx, END]
         prop_indices = props_indices[prop_var_start:prop_var_end]
@@ -218,9 +221,9 @@ def filter(
 
 
 @jit(nopython=True, cache=True)
-def is_solved(shared_domains: NDArray) -> bool:
+def is_solved(shr_domains: NDArray) -> bool:
     """
     Returns true iff the problem is solved.
     :return: a boolean
     """
-    return bool(np.all(np.equal(shared_domains[:, MIN], shared_domains[:, MAX])))
+    return bool(np.all(np.equal(shr_domains[:, MIN], shr_domains[:, MAX])))
