@@ -4,7 +4,7 @@ import pytest
 
 from ncs.problems.golomb_problem import GolombProblem, index, init_domains
 from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.utils import MIN, stats_print
+from ncs.utils import MIN, statistics_print
 
 
 class TestGolomb:
@@ -45,6 +45,6 @@ if __name__ == "__main__":
     problem = GolombProblem(args.n)
     solver = BacktrackSolver(problem)
     solution = solver.minimize(problem.length)
-    stats_print(solver.statistics)
+    statistics_print(problem.statistics)
     print(solution)
     print(solution[problem.length])  # type: ignore

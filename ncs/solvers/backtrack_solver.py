@@ -43,16 +43,16 @@ class BacktrackSolver(Solver):
                 break
 
     def solve_one(self) -> Optional[List[int]]:
-        shr_dom_changes = None
-        while self.filter(shr_dom_changes):
+        shr_domain_changes = None
+        while self.filter(shr_domain_changes):
             if is_solved(self.problem.shr_domains):
-                self.statistics[STATS_SOLVER_SOLUTION_NB] += 1
+                self.problem.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 return self.problem.get_values()  # problem is solved
-            domains, shr_dom_changes = self.heuristic.choose(self.problem.shr_domains, self.problem.dom_indices)
-            self.choice_points.append(domains)
-            self.statistics[STATS_SOLVER_CHOICE_NB] += 1
-            self.statistics[STATS_SOLVER_CHOICE_DEPTH] = max(
-                self.statistics[STATS_SOLVER_CHOICE_DEPTH], len(self.choice_points)
+            shr_domains, shr_domain_changes = self.heuristic.choose(self.problem.shr_domains, self.problem.dom_indices)
+            self.choice_points.append(shr_domains)
+            self.problem.statistics[STATS_SOLVER_CHOICE_NB] += 1
+            self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH] = max(
+                self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH], len(self.choice_points)
             )
         return None
 
@@ -60,7 +60,7 @@ class BacktrackSolver(Solver):
         solution = None
         while (new_solution := self.solve_one()) is not None:
             solution = new_solution
-            self.statistics[STATS_OPTIMIZER_SOLUTION_NB] += 1
+            self.problem.statistics[STATS_OPTIMIZER_SOLUTION_NB] += 1
             self.reset()
             self.problem.set_max_value(variable_idx, solution[variable_idx] - 1)
         return solution
@@ -72,12 +72,12 @@ class BacktrackSolver(Solver):
         """
         if len(self.choice_points) == 0:
             return False
-        self.statistics[STATS_SOLVER_BACKTRACK_NB] += 1
+        self.problem.statistics[STATS_SOLVER_BACKTRACK_NB] += 1
         self.problem.shr_domains = self.choice_points.pop()
         return True
 
     def filter(self, shr_dom_changes: Optional[NDArray] = None) -> bool:
-        while not self.problem.filter(self.statistics, shr_dom_changes):
+        while not self.problem.filter(shr_dom_changes):
             if not self.backtrack():
                 return False
         return True

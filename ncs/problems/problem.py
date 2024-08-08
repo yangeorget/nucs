@@ -19,7 +19,7 @@ from ncs.utils import (
     STATS_PROBLEM_FILTER_NB,
     STATS_PROPAGATOR_FILTER_NB,
     STATS_PROPAGATOR_FILTER_NO_CHANGE,
-    stats_init,
+    statistics_init,
 )
 
 
@@ -37,6 +37,7 @@ class Problem:
         self.shr_domains = self.build_shared_domains(usr_shr_domains)
         self.dom_indices = self.build_domain_indices(usr_dom_indices)
         self.dom_offsets = self.build_domain_offsets(usr_dom_offsets)
+        self.statistics = statistics_init()
 
     def reset(self) -> None:
         """
@@ -124,14 +125,14 @@ class Problem:
     def __str__(self) -> str:
         return f"domains={self.shr_domains}"
 
-    def filter(self, stats: NDArray = stats_init(), shr_domain_changes: Optional[NDArray] = None) -> bool:
+    def filter(self, shr_domain_changes: Optional[NDArray] = None) -> bool:
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
-        :param stats: where to record the statistics of the computation
         :param shr_domain_changes: an optional array of shared domain changes
         :return: False if the problem is not consistent
         """
         return filter(
+            self.statistics,
             self.propagator_nb,
             self.propagator_queue,
             self.algorithms,
@@ -142,7 +143,6 @@ class Problem:
             self.props_triggers,
             self.props_data,
             self.shr_domains,
-            stats,
             shr_domain_changes,
         )
 
@@ -156,6 +156,7 @@ class Problem:
 
 @jit(nopython=True, cache=True)
 def filter(
+    statistics: NDArray,
     propagator_nb: int,
     propagator_queue: NDArray,
     algorithms: NDArray,
@@ -166,16 +167,14 @@ def filter(
     props_triggers: NDArray,
     props_data: NDArray,
     shr_domains: NDArray,
-    stats: NDArray,
     shr_domain_changes: Optional[NDArray],
 ) -> bool:
     """
     Filters the problem's domains by applying the propagators until a fix point is reached.
-    :param stats: where to record the statistics of the computation
     :param shr_domain_changes: an optional array of shared domain changes
     :return: False if the problem is not consistent
     """
-    stats[STATS_PROBLEM_FILTER_NB] += 1
+    statistics[STATS_PROBLEM_FILTER_NB] += 1
     init_propagator_queue(
         propagator_queue, shr_domain_changes, propagator_nb, var_bounds, props_indices, props_triggers
     )
@@ -189,7 +188,7 @@ def filter(
         if empty_queue:
             return True
         # there is a propagator to filter
-        stats[STATS_PROPAGATOR_FILTER_NB] += 1
+        statistics[STATS_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = var_bounds[prop_idx, START]
         prop_var_end = var_bounds[prop_idx, END]
         prop_indices = props_indices[prop_var_start:prop_var_end]
@@ -215,7 +214,7 @@ def filter(
                 prop_idx,
             )
         else:
-            stats[STATS_PROPAGATOR_FILTER_NO_CHANGE] += 1
+            statistics[STATS_PROPAGATOR_FILTER_NO_CHANGE] += 1
 
 
 @jit(nopython=True, cache=True)

@@ -1,7 +1,6 @@
 from typing import Iterator, List, Optional
 
 from ncs.problems.problem import Problem
-from ncs.utils import stats_init
 
 
 class Solver:
@@ -11,7 +10,6 @@ class Solver:
 
     def __init__(self, problem: Problem):
         self.problem = problem
-        self.statistics = stats_init()
 
     def solve(self) -> Iterator[List[int]]:  # type: ignore
         """

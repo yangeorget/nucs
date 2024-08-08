@@ -18,7 +18,7 @@ STATS_SOLVER_CHOICE_DEPTH = 6
 STATS_SOLVER_SOLUTION_NB = 7
 
 
-def stats_init() -> NDArray:
+def statistics_init() -> NDArray:
     """
     Inits a Numpy array for storing the statistics.
     :return: a Numpy array
@@ -26,7 +26,7 @@ def stats_init() -> NDArray:
     return np.array([0] * STATS_MAX, dtype=np.int32)
 
 
-def stats_print(stats: NDArray) -> None:
+def statistics_print(stats: NDArray) -> None:
     """
     Pretty-prints an array of statistics.
     :param stats: a Numpy array of statistics
