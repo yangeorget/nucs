@@ -56,8 +56,8 @@ def filter_lower(
     max_sorted_vars: NDArray,
 ) -> bool:
     for i in range(1, nb + 2):
-        t[i] = h[i] = i -1
-        d[i] = bounds[i] - bounds[i-1]
+        t[i] = h[i] = i - 1
+        d[i] = bounds[i] - bounds[i - 1]
     for i in range(size):
         max_sorted_vars_i = max_sorted_vars[i]
         x = rank_domains[max_sorted_vars_i, MIN_RANK]

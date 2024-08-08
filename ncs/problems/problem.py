@@ -18,7 +18,7 @@ from ncs.utils import (
     START,
     STATS_PROBLEM_FILTER_NB,
     STATS_PROPAGATOR_FILTER_NB,
-    stats_init,
+    stats_init, STATS_PROPAGATOR_FILTER_NO_CHANGE,
 )
 
 
@@ -156,14 +156,14 @@ class Problem:
 def filter(
     prop_nb: int,
     prop_to_filter: NDArray,
-    prop_algorithms: NDArray,
+    prop_algs: NDArray,
     prop_var_bounds: NDArray,
     prop_data_bounds: NDArray,
     prop_indices: NDArray,
     prop_offsets: NDArray,
     prop_triggers: NDArray,
     prop_data: NDArray,
-    shared_domains: NDArray,
+    shr_domains: NDArray,
     stats: NDArray,
     shr_dom_changes: Optional[NDArray],
 ) -> bool:
@@ -186,27 +186,32 @@ def filter(
             return True
         # there is a propagator to filter
         stats[STATS_PROPAGATOR_FILTER_NB] += 1
-        indices = prop_indices[prop_var_bounds[pidx, START] : prop_var_bounds[pidx, END]]
-        offsets = prop_offsets[prop_var_bounds[pidx, START] : prop_var_bounds[pidx, END]].reshape((-1, 1))
+        prop_var_start = prop_var_bounds[pidx, START]
+        prop_var_end = prop_var_bounds[pidx, END]
+        indices = prop_indices[prop_var_start:prop_var_end]
+        offsets = prop_offsets[prop_var_start:prop_var_end].reshape((-1, 1))
+        prop_data_start = prop_data_bounds[pidx, START]
+        prop_data_end = prop_data_bounds[pidx, END]
         prop_domains = compute_domains(
-            prop_algorithms[pidx],
-            shared_domains[indices] + offsets,
-            prop_data[prop_data_bounds[pidx, START] : prop_data_bounds[pidx, END]],
+            prop_algs[pidx], shr_domains[indices] + offsets, prop_data[prop_data_start:prop_data_end]
         )
         if prop_domains is None:
             return False
-        old_shared_domains = shared_domains.copy()
-        shared_domains[indices] = prop_domains - offsets
-        update_propagators_to_filter(
-            prop_to_filter,
-            old_shared_domains != shared_domains,
-            prop_nb,
-            prop_var_bounds,
-            prop_indices,
-            prop_triggers,
-            pidx,
-        )
-
+        old_shared_domains = shr_domains.copy()
+        shr_domains[indices] = prop_domains - offsets
+        shr_domain_changes = old_shared_domains != shr_domains
+        if np.any(shr_domain_changes):
+            update_propagators_to_filter(
+                prop_to_filter,
+                shr_domain_changes,
+                prop_nb,
+                prop_var_bounds,
+                prop_indices,
+                prop_triggers,
+                pidx,
+            )
+        else:
+            stats[STATS_PROPAGATOR_FILTER_NO_CHANGE] += 1
 
 @jit(nopython=True, cache=True)
 def is_solved(shared_domains: NDArray) -> bool:
