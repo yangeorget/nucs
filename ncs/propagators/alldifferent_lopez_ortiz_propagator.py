@@ -158,9 +158,9 @@ def compute_domains(domains: NDArray, data: Optional[NDArray] = None) -> Optiona
     t = np.zeros(bounds_nb, dtype=np.int32)  # critical capacity pointers
     d = np.zeros(bounds_nb, dtype=np.int32)  # differences between critical capacities
     h = np.zeros(bounds_nb, dtype=np.int32)  # Hall interval pointers
-    return (
-        rank_domains[:, :2]
-        if filter_lower(size, nb, t, d, h, bounds, rank_domains, max_sorted_vars)
-        and filter_upper(size, nb, t, d, h, bounds, rank_domains, min_sorted_vars)
-        else None
-    )
+    if filter_lower(size, nb, t, d, h, bounds, rank_domains, max_sorted_vars) and filter_upper(
+        size, nb, t, d, h, bounds, rank_domains, min_sorted_vars
+    ):
+        return rank_domains[:, :2]
+    else:
+        return None

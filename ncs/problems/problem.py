@@ -18,7 +18,8 @@ from ncs.utils import (
     START,
     STATS_PROBLEM_FILTER_NB,
     STATS_PROPAGATOR_FILTER_NB,
-    STATS_PROPAGATOR_FILTER_NO_CHANGE,
+    STATS_PROPAGATOR_FILTER_NO_CHANGE_NB,
+    STATS_PROPAGATOR_INCONSISTENCY_NB,
     statistics_init,
 )
 
@@ -155,11 +156,10 @@ class Problem:
 
 
 @jit(nopython=True, cache=True)
-def pop_propagator(statistics: NDArray, propagator_nb: int, propagator_queue: NDArray) -> int:
+def pop_propagator(propagator_nb: int, propagator_queue: NDArray) -> int:
     for prop_idx in range(propagator_nb):
         if propagator_queue[prop_idx]:
             propagator_queue[prop_idx] = False
-            statistics[STATS_PROPAGATOR_FILTER_NB] += 1
             return prop_idx
     return -1
 
@@ -189,9 +189,10 @@ def filter(
         propagator_queue, shr_domain_changes, propagator_nb, var_bounds, props_indices, props_triggers
     )
     while True:
-        prop_idx = pop_propagator(statistics, propagator_nb, propagator_queue)
+        prop_idx = pop_propagator(propagator_nb, propagator_queue)
         if prop_idx == -1:
             return True
+        statistics[STATS_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = var_bounds[prop_idx, START]
         prop_var_end = var_bounds[prop_idx, END]
         prop_indices = props_indices[prop_var_start:prop_var_end]
@@ -202,6 +203,7 @@ def filter(
             algorithms[prop_idx], shr_domains[prop_indices] + prop_offsets, props_data[prop_data_start:prop_data_end]
         )
         if prop_domains is None:
+            statistics[STATS_PROPAGATOR_INCONSISTENCY_NB] += 1
             return False
         shr_domains_copy = shr_domains.copy()
         shr_domains[prop_indices] = prop_domains - prop_offsets
@@ -217,7 +219,7 @@ def filter(
                 prop_idx,
             )
         else:
-            statistics[STATS_PROPAGATOR_FILTER_NO_CHANGE] += 1
+            statistics[STATS_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
 
 
 @jit(nopython=True, cache=True)
