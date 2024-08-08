@@ -9,7 +9,7 @@ from ncs.propagators.propagators import (
     compute_domains,
     get_triggers,
     init_propagator_queue,
-    update_propagators_to_filter,
+    update_propagator_queue,
 )
 from ncs.utils import (
     END,
@@ -209,7 +209,7 @@ def filter(
         shr_domains[prop_indices] = prop_domains - prop_offsets
         shr_domain_changes = shr_domains_copy != shr_domains
         if np.any(shr_domain_changes):  # type: ignore
-            update_propagators_to_filter(
+            update_propagator_queue(
                 propagator_queue,
                 shr_domain_changes,
                 propagator_nb,

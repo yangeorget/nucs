@@ -75,7 +75,7 @@ def init_propagator_queue(
 
 
 @jit(nopython=True, cache=True)
-def update_propagators_to_filter(
+def update_propagator_queue(
     propagator_queue: NDArray,
     shr_domain_changes: NDArray,
     propagator_nb: int,
