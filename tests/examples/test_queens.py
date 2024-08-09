@@ -20,13 +20,13 @@ class TestQueens:
     def test_queens_solve(self, queen_nb: int, solution_nb: int) -> None:
         problem = QueensProblem(queen_nb)
         solver = BacktrackSolver(problem)
-        solver.solve_all()
+        solver.find_all()
         assert problem.statistics[STATS_SOLVER_SOLUTION_NB] == solution_nb
 
     def test_queens_8_solve_ff(self) -> None:
         problem = QueensProblem(8)
         solver = BacktrackSolver(problem, VariableHeuristic(smallest_domain_var_heuristic, min_value_dom_heuristic))
-        solver.solve_all()
+        solver.find_all()
         assert problem.statistics[STATS_SOLVER_SOLUTION_NB] == 92
 
 
@@ -36,5 +36,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     problem = QueensProblem(args.n)
     solver = BacktrackSolver(problem, VariableHeuristic(first_not_instantiated_var_heuristic, min_value_dom_heuristic))
-    solver.solve_all()
+    solver.find_all()
     statistics_print(problem.statistics)

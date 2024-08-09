@@ -25,6 +25,13 @@ class Solver:
         """
         return [s for s in self.solve()]
 
+    def find_all(self) -> None:
+        """
+        Find all solutions.
+        """
+        for _ in self.solve():
+            pass
+
     def minimize(self, var_idx: int) -> Optional[List[int]]:  # type: ignore
         """
         Returns the solution that minimizes the given variable.

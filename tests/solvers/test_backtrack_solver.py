@@ -28,9 +28,7 @@ class TestBacktrackSolver:
         assert problem.statistics[STATS_SOLVER_CHOICE_DEPTH] == 2
 
     def test_solve_alldifferent(self) -> None:
-        problem = Problem(
-            shr_domains=[(0, 2), (0, 2), (0, 2)], dom_indices=[0, 1, 2], dom_offsets=[0, 0, 0]
-        )
+        problem = Problem(shr_domains=[(0, 2), (0, 2), (0, 2)], dom_indices=[0, 1, 2], dom_offsets=[0, 0, 0])
         problem.set_propagators([([0, 1, 2], ALG_ALLDIFFERENT, [])])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
