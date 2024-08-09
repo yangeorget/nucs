@@ -1,1 +1,13 @@
 etudier le pruning du cp dans le cas de l'optimization
+dispatch de fonctions avec Numba
+
+Problèmes:
+BIBD problem
+Car sequencing problem
+Crypto multiplication problem
+Golfers problem
+Job-shop problem
+Knapsack problem
+MagicSquare problem
+QG problem
+Round-robin problem
