@@ -6,7 +6,7 @@ from ncs.utils import MAX, MIN
 class TestProblem:
     def test_set_min_value(self) -> None:
         problem = Problem(
-            usr_shr_domains=[(0, 2), (0, 2), (0, 2)], usr_dom_indices=[0, 1, 2], usr_dom_offsets=[1, 1, 1]
+            shr_domains=[(0, 2), (0, 2), (0, 2)], dom_indices=[0, 1, 2], dom_offsets=[1, 1, 1]
         )
         problem.set_min_value(1, 2)
         assert problem.shr_domains[1, MIN] == 1
@@ -14,21 +14,21 @@ class TestProblem:
 
     def test_is_not_solved_ok(self) -> None:
         problem = Problem(
-            usr_shr_domains=[(0, 2), (0, 2), (4, 6)], usr_dom_indices=[0, 1, 2], usr_dom_offsets=[0, 0, 0]
+            shr_domains=[(0, 2), (0, 2), (4, 6)], dom_indices=[0, 1, 2], dom_offsets=[0, 0, 0]
         )
         assert not is_solved(problem.shr_domains)
 
     def test_is_not_solved_ko(self) -> None:
         problem = Problem(
-            usr_shr_domains=[(2, 2), (2, 2), (6, 6)], usr_dom_indices=[0, 1, 2], usr_dom_offsets=[0, 0, 0]
+            shr_domains=[(2, 2), (2, 2), (6, 6)], dom_indices=[0, 1, 2], dom_offsets=[0, 0, 0]
         )
         assert is_solved(problem.shr_domains)
 
     def test_filter_1(self) -> None:
         problem = Problem(
-            usr_shr_domains=[(0, 0), (2, 2), (0, 2)],
-            usr_dom_indices=[0, 1, 2, 0, 1, 2],
-            usr_dom_offsets=[0, 0, 0, 0, 1, 2],
+            shr_domains=[(0, 0), (2, 2), (0, 2)],
+            dom_indices=[0, 1, 2, 0, 1, 2],
+            dom_offsets=[0, 0, 0, 0, 1, 2],
         )
         problem.set_propagators(
             [
@@ -40,9 +40,9 @@ class TestProblem:
 
     def test_filter_2(self) -> None:
         problem = Problem(
-            usr_shr_domains=[(0, 2), (0, 2), (0, 2)],
-            usr_dom_indices=[0, 1, 2],
-            usr_dom_offsets=[0, 0, 0],
+            shr_domains=[(0, 2), (0, 2), (0, 2)],
+            dom_indices=[0, 1, 2],
+            dom_offsets=[0, 0, 0],
         )
         problem.set_propagators(
             [

@@ -31,20 +31,20 @@ class Problem:
     """
 
     def __init__(
-        self, usr_shr_domains: List[Union[int, Tuple[int, int]]], usr_dom_indices: List[int], usr_dom_offsets: List[int]
+        self, shr_domains: List[Union[int, Tuple[int, int]]], dom_indices: List[int], dom_offsets: List[int]
     ):
-        self.variable_nb = len(usr_dom_indices)
-        self.usr_shr_domains = usr_shr_domains
-        self.shr_domains = self.build_shared_domains(usr_shr_domains)
-        self.dom_indices = self.build_domain_indices(usr_dom_indices)
-        self.dom_offsets = self.build_domain_offsets(usr_dom_offsets)
+        self.variable_nb = len(dom_indices)
+        self.shr_domains_backup = shr_domains
+        self.shr_domains = self.build_shared_domains(shr_domains)
+        self.dom_indices = self.build_domain_indices(dom_indices)
+        self.dom_offsets = self.build_domain_offsets(dom_offsets)
         self.statistics = statistics_init()
 
     def reset(self) -> None:
         """
         Resets the shared domains to their initial values.
         """
-        self.shr_domains = self.build_shared_domains(self.usr_shr_domains)
+        self.shr_domains = self.build_shared_domains(self.shr_domains_backup)
 
     def build_shared_domains(self, shr_domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
         return np.array(

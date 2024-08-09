@@ -45,9 +45,9 @@ class GolombProblem(Problem):
         self.length = mark_nb - 2
         var_nb = sum_first(mark_nb - 1)  # this the number of distances
         super().__init__(
-            usr_shr_domains=init_domains(var_nb, mark_nb),
-            usr_dom_indices=list(range(var_nb)),
-            usr_dom_offsets=[0] * var_nb,
+            shr_domains=init_domains(var_nb, mark_nb),
+            dom_indices=list(range(var_nb)),
+            dom_offsets=[0] * var_nb,
         )
         propagators: List[Tuple[List[int], int, List[int]]] = []
         # redundant constraints
