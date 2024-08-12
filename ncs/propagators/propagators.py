@@ -54,24 +54,21 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> Optional
 @jit(nopython=True, cache=True)
 def init_propagator_queue(
     propagator_queue: NDArray,
-    shr_domain_changes: Optional[NDArray],
+    shr_domain_changes: NDArray,
     propagator_nb: int,
     prop_var_bounds: NDArray,
     prop_dom_indices: NDArray,
     prop_triggers: NDArray,
 ) -> None:
-    if shr_domain_changes is None:  # this is an initialization
-        propagator_queue.fill(True)
-    else:
-        propagator_queue.fill(False)
-        for prop_idx in range(propagator_nb):
-            for var_idx in range(prop_var_bounds[prop_idx, START], prop_var_bounds[prop_idx, END]):
-                dom_idx = prop_dom_indices[var_idx]
-                if (shr_domain_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
-                    shr_domain_changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
-                ):
-                    propagator_queue[prop_idx] = True
-                    break
+    propagator_queue.fill(False)
+    for prop_idx in range(propagator_nb):
+        for var_idx in range(prop_var_bounds[prop_idx, START], prop_var_bounds[prop_idx, END]):
+            dom_idx = prop_dom_indices[var_idx]
+            if (shr_domain_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
+                shr_domain_changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
+            ):
+                propagator_queue[prop_idx] = True
+                break
 
 
 @jit(nopython=True, cache=True)

@@ -1,5 +1,6 @@
 from typing import Iterator, List, Optional
 
+import numpy as np
 from numpy.typing import NDArray
 
 from ncs.heuristics.heuristic import Heuristic
@@ -43,13 +44,15 @@ class BacktrackSolver(Solver):
                 break
 
     def solve_one(self) -> Optional[List[int]]:
-        shr_domain_changes = None
+        shr_domain_changes = np.ones((len(self.problem.shr_domains), 2), dtype=bool)
         while self.filter(shr_domain_changes):
             if is_solved(self.problem.shr_domains):
                 self.problem.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 return self.problem.get_values()  # problem is solved
-            shr_domains, shr_domain_changes = self.heuristic.choose(self.problem.shr_domains, self.problem.dom_indices)
-            self.choice_points.append(shr_domains)
+            shr_domains_copy = self.heuristic.choose(
+                self.problem.shr_domains, shr_domain_changes, self.problem.dom_indices
+            )
+            self.choice_points.append(shr_domains_copy)
             self.problem.statistics[STATS_SOLVER_CHOICE_NB] += 1
             self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH] = max(
                 self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH], len(self.choice_points)
@@ -76,10 +79,11 @@ class BacktrackSolver(Solver):
         self.problem.shr_domains = self.choice_points.pop()
         return True
 
-    def filter(self, shr_dom_changes: Optional[NDArray] = None) -> bool:
+    def filter(self, shr_dom_changes: NDArray) -> bool:
         while not self.problem.filter(shr_dom_changes):
             if not self.backtrack():
                 return False
+            shr_dom_changes[:, :] = True
         return True
 
     def reset(self) -> None:

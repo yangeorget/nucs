@@ -1,5 +1,6 @@
 import argparse
 
+import numpy as np
 import pytest
 
 from ncs.problems.golomb_problem import GolombProblem, index, init_domains
@@ -27,7 +28,7 @@ class TestGolomb:
         problem.shr_domains[3] = 3
         problem.shr_domains[4] = 5
         problem.shr_domains[5] = 2
-        assert problem.filter()
+        assert problem.filter(np.ones((6, 2), dtype=bool))
 
     @pytest.mark.parametrize("mark_nb,solution_nb", [(4, 6), (5, 11), (6, 17), (7, 25)])
     def test_golomb(self, mark_nb: int, solution_nb: int) -> None:

@@ -1,3 +1,5 @@
+import numpy as np
+
 from ncs.problems.problem import Problem, is_solved
 from ncs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT
 from ncs.utils import MAX, MIN
@@ -30,7 +32,7 @@ class TestProblem:
                 ([3, 4, 5], ALG_ALLDIFFERENT, []),
             ]
         )
-        assert not problem.filter()
+        assert not problem.filter(np.ones((3, 2), dtype=bool))
 
     def test_filter_2(self) -> None:
         problem = Problem(
@@ -45,4 +47,4 @@ class TestProblem:
                 ([2, 0], ALG_AFFINE_LEQ, [-1, 1, -1]),
             ]
         )
-        assert not problem.filter()
+        assert not problem.filter(np.ones((3, 2), dtype=bool))

@@ -1,7 +1,6 @@
 import sys
-from typing import Callable, Tuple
+from typing import Callable
 
-import numpy as np
 from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
@@ -23,12 +22,12 @@ class VariableHeuristic(Heuristic):
         self.variable_heuristic = variable_heuristic
         self.domain_heuristic = domain_heuristic
 
-    def choose(self, shr_domains: NDArray, dom_indices: NDArray) -> Tuple[NDArray, NDArray]:
+    def choose(self, shr_domains: NDArray, shr_domain_changes: NDArray, dom_indices: NDArray) -> NDArray:
         var_idx = self.variable_heuristic(shr_domains, dom_indices)
-        return self.domain_heuristic(shr_domains, dom_indices[var_idx])
+        return self.domain_heuristic(shr_domains, shr_domain_changes, dom_indices[var_idx])
 
 
-@jit(nopython=True, cache=True)
+@jit(nopython=True, cache=True)  # "int32(int32[::1, :], uint16[:])",
 def first_not_instantiated_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) -> int:
     """
     Chooses the first non instantiated variable.
@@ -42,7 +41,7 @@ def first_not_instantiated_var_heuristic(shr_domains: NDArray, dom_indices: NDAr
     return -1  # cannot happen
 
 
-@jit(nopython=True, cache=True)
+@jit(nopython=True, cache=True)  # "int32(int32[::1, :], uint16[:])",
 def smallest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) -> int:
     """
     Chooses the variable with the smallest domain and which is not instantiated.
@@ -61,34 +60,32 @@ def smallest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) ->
 
 
 @jit(nopython=True, cache=True)
-def min_value_dom_heuristic(shr_domains: NDArray, domain_idx: int) -> Tuple[NDArray, NDArray]:
+def min_value_dom_heuristic(shr_domains: NDArray, shr_domain_changes: NDArray, domain_idx: int) -> NDArray:
     """
     Chooses the first value of the domain
     :param shr_domains: the shared domains of the problem
     :param domain_idx: the index of the domain
-    :return: the new shared domain to be added to the choice point and the changes to the actual domains
+    :return: the new shared domain to be added to the choice point
     """
     shr_domains_copy = shr_domains.copy()
     min_value = shr_domains[domain_idx, MIN]
     shr_domains_copy[domain_idx, MIN] = min_value + 1
     shr_domains[domain_idx, MAX] = min_value
-    shr_domain_changes = np.zeros((len(shr_domains), 2), dtype=np.bool)
     shr_domain_changes[domain_idx, MAX] = True
-    return shr_domains_copy, shr_domain_changes
+    return shr_domains_copy
 
 
 @jit(nopython=True, cache=True)
-def split_low_dom_heuristic(shr_domains: NDArray, domain_idx: int) -> Tuple[NDArray, NDArray]:
+def split_low_dom_heuristic(shr_domains: NDArray, shr_domain_changes: NDArray, domain_idx: int) -> NDArray:
     """
     Chooses the first half of the domain
     :param shr_domains: the shared domains of the problem
     :param domain_idx: the index of the domain
-    :return: the new shared domain to be added to the choice point and the changes to the actual domains
+    :return: the new shared domain to be added to the choice point
     """
     shr_domains_copy = shr_domains.copy()
     mid_value = (shr_domains[domain_idx, MIN] + shr_domains[domain_idx, MAX]) // 2
     shr_domains_copy[domain_idx, MIN] = mid_value + 1
     shr_domains[domain_idx, MAX] = mid_value
-    shr_domain_changes = np.zeros((len(shr_domains), 2), dtype=np.bool)
     shr_domain_changes[domain_idx, MAX] = True
-    return shr_domains_copy, shr_domain_changes
+    return shr_domains_copy

@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Union
+from typing import Tuple, Union
 
 import numpy as np
 from numba import jit  # type: ignore
@@ -30,9 +30,7 @@ class Problem:
     A domain can be computed by applying an offset to a shared domain.
     """
 
-    def __init__(
-        self, shr_domains: List[Union[int, Tuple[int, int]]], dom_indices: List[int], dom_offsets: List[int]
-    ):
+    def __init__(self, shr_domains: List[Union[int, Tuple[int, int]]], dom_indices: List[int], dom_offsets: List[int]):
         self.variable_nb = len(dom_indices)
         self.shr_domains_backup = shr_domains
         self.shr_domains = self.build_shared_domains(shr_domains)
@@ -50,7 +48,7 @@ class Problem:
         return np.array(
             [(shr_domain, shr_domain) if isinstance(shr_domain, int) else shr_domain for shr_domain in shr_domains],
             dtype=np.int32,
-            order='F'
+            order="F",
         )
 
     def build_domain_indices(self, dom_indices: List[int]) -> NDArray:
@@ -126,10 +124,10 @@ class Problem:
     def __str__(self) -> str:
         return f"domains={self.shr_domains}"
 
-    def filter(self, shr_domain_changes: Optional[NDArray] = None) -> bool:
+    def filter(self, shr_domain_changes: NDArray) -> bool:
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
-        :param shr_domain_changes: an optional array of shared domain changes
+        :param shr_domain_changes: an array of shared domain changes
         :return: False if the problem is not consistent
         """
         return filter(
@@ -177,11 +175,11 @@ def filter(
     props_triggers: NDArray,
     props_data: NDArray,
     shr_domains: NDArray,
-    shr_domain_changes: Optional[NDArray],
+    shr_domain_changes: NDArray,
 ) -> bool:
     """
     Filters the problem's domains by applying the propagators until a fix point is reached.
-    :param shr_domain_changes: an optional array of shared domain changes
+    :param shr_domain_changes: an array of shared domain changes
     :return: False if the problem is not consistent
     """
     statistics[STATS_PROBLEM_FILTER_NB] += 1
@@ -197,17 +195,18 @@ def filter(
         prop_var_end = var_bounds[prop_idx, END]
         prop_indices = props_indices[prop_var_start:prop_var_end]
         prop_offsets = props_offsets[prop_var_start:prop_var_end].reshape((-1, 1))
+        prop_domains_cur = shr_domains[prop_indices] + prop_offsets
         prop_domains = compute_domains(
             algorithms[prop_idx],
-            shr_domains[prop_indices] + prop_offsets,
+            prop_domains_cur,
             props_data[data_bounds[prop_idx, START] : data_bounds[prop_idx, END]],
         )
         if prop_domains is None:
             statistics[STATS_PROPAGATOR_INCONSISTENCY_NB] += 1
             return False
-        shr_domains_copy = shr_domains.copy()
+        shr_domains_cur = shr_domains.copy()
         shr_domains[prop_indices] = prop_domains - prop_offsets
-        shr_domain_changes = shr_domains_copy != shr_domains
+        shr_domain_changes[:, :] = shr_domains_cur != shr_domains
         if np.any(shr_domain_changes):  # type: ignore
             update_propagator_queue(
                 propagator_queue,
