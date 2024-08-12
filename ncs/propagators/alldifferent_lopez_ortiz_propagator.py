@@ -4,14 +4,14 @@ import numpy as np
 from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
-from ncs.utils import MAX, MIN
+from ncs.utils import MAX, MIN, init_triggers
 
 MIN_RANK = 2
 MAX_RANK = 3
 
 
 def get_triggers(n: int, data: NDArray) -> NDArray:
-    return np.ones((n, 2), dtype=bool)
+    return init_triggers(n, True)
 
 
 @jit(nopython=True, cache=True)

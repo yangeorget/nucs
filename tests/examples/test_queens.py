@@ -10,10 +10,18 @@ from ncs.heuristics.variable_heuristic import (
 )
 from ncs.problems.queens_problem import QueensProblem
 from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.utils import STATS_SOLVER_SOLUTION_NB, statistics_print
+from ncs.statistics import statistics_print, STATS_SOLVER_SOLUTION_NB
+from ncs.utils import init_domain_changes
 
 
 class TestQueens:
+
+    def test_queens_4(self) -> None:
+        problem = QueensProblem(4)
+        shr_domain_changes = init_domain_changes(4, True)
+        assert problem.filter(shr_domain_changes)
+
+
     @pytest.mark.parametrize(
         "queen_nb,solution_nb", [(1, 1), (2, 0), (3, 0), (4, 2), (5, 10), (6, 4), (8, 92), (9, 352)]
     )

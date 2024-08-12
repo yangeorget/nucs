@@ -1,12 +1,13 @@
 from typing import Optional
 
-import numpy as np
 from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
+from ncs.utils import init_triggers
+
 
 def get_triggers(n: int, data: NDArray) -> NDArray:
-    return np.ones((n, 2), dtype=bool)
+    return init_triggers(n, True)
 
 
 @jit(nopython=True, cache=True)

@@ -16,12 +16,19 @@ from ncs.utils import (
     MAX,
     MIN,
     START,
-    STATS_PROBLEM_FILTER_NB,
-    STATS_PROPAGATOR_FILTER_NB,
-    STATS_PROPAGATOR_FILTER_NO_CHANGE_NB,
-    STATS_PROPAGATOR_INCONSISTENCY_NB,
-    statistics_init,
+    init_algorithms,
+    init_bounds,
+    init_data,
+    init_indices_by_values,
+    init_domain_offsets_by_values,
+    init_domains_by_values,
+    init_indices,
+    init_offsets,
+    init_queue,
+    init_triggers,
 )
+from ncs.statistics import statistics_init, STATS_PROBLEM_FILTER_NB, STATS_PROPAGATOR_FILTER_NB, \
+    STATS_PROPAGATOR_FILTER_NO_CHANGE_NB, STATS_PROPAGATOR_INCONSISTENCY_NB
 
 
 class Problem:
@@ -33,29 +40,16 @@ class Problem:
     def __init__(self, shr_domains: List[Union[int, Tuple[int, int]]], dom_indices: List[int], dom_offsets: List[int]):
         self.variable_nb = len(dom_indices)
         self.shr_domains_backup = shr_domains
-        self.shr_domains = self.build_shared_domains(shr_domains)
-        self.dom_indices = self.build_domain_indices(dom_indices)
-        self.dom_offsets = self.build_domain_offsets(dom_offsets)
+        self.shr_domains = init_domains_by_values(shr_domains)
+        self.dom_indices = init_indices_by_values(dom_indices)
+        self.dom_offsets = init_domain_offsets_by_values(dom_offsets)
         self.statistics = statistics_init()
 
     def reset(self) -> None:
         """
         Resets the shared domains to their initial values.
         """
-        self.shr_domains = self.build_shared_domains(self.shr_domains_backup)
-
-    def build_shared_domains(self, shr_domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
-        return np.array(
-            [(shr_domain, shr_domain) if isinstance(shr_domain, int) else shr_domain for shr_domain in shr_domains],
-            dtype=np.int32,
-            order="F",
-        )
-
-    def build_domain_indices(self, dom_indices: List[int]) -> NDArray:
-        return np.array(dom_indices, dtype=np.uint16)
-
-    def build_domain_offsets(self, dom_offsets: List[int]) -> NDArray:
-        return np.array(dom_offsets, dtype=np.int32)
+        self.shr_domains = init_domains_by_values(self.shr_domains_backup)
 
     def set_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
         """
@@ -66,14 +60,14 @@ class Problem:
         """
         self.propagator_nb = len(propagators)
         props_var_total_size = props_data_total_size = 0
-        self.propagator_queue = np.empty(self.propagator_nb, dtype=np.bool)
-        self.algorithms = np.empty(self.propagator_nb, dtype=np.uint8)
+        self.propagator_queue = init_queue(self.propagator_nb)
+        self.algorithms = init_algorithms(self.propagator_nb)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
-        self.var_bounds = np.empty(
-            (self.propagator_nb, 2), dtype=np.uint16
+        self.var_bounds = init_bounds(
+            self.propagator_nb
         )  # there is a bit of redundancy here for faster access to the bounds
-        self.data_bounds = np.empty(
-            (self.propagator_nb, 2), dtype=np.uint16
+        self.data_bounds = init_bounds(
+            self.propagator_nb
         )  # there is a bit of redundancy here for faster access to the bounds
         self.var_bounds[0, START] = self.data_bounds[0, START] = 0
         for pidx, propagator in enumerate(propagators):
@@ -89,10 +83,10 @@ class Problem:
             props_data_total_size += prop_data_size
         # Bounds have been computed and can now be used.
         # The global arrays are the following:
-        self.props_dom_indices = np.empty(props_var_total_size, dtype=np.uint16)
-        self.props_dom_offsets = np.empty(props_var_total_size, dtype=np.int32)
-        self.props_triggers = np.empty((props_var_total_size, 2), dtype=bool)
-        self.props_data = np.empty(props_data_total_size, dtype=np.int32)
+        self.props_dom_indices = init_indices(props_var_total_size)
+        self.props_dom_offsets = init_offsets(props_var_total_size)
+        self.props_triggers = init_triggers(props_var_total_size, False)
+        self.props_data = init_data(props_data_total_size)
         # Let's init the global arrays.
         for pidx, propagator in enumerate(propagators):
             prop_vars = propagator[0]

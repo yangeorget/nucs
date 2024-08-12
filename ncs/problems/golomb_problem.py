@@ -19,7 +19,7 @@ def index(mark_nb: int, i: int, j: int) -> int:
 
 
 def init_domains(var_nb: int, mark_nb: int) -> NDArray:
-    domains = np.empty((var_nb, 2), dtype=np.int32)
+    domains = np.empty((var_nb, 2), dtype=np.int32, order="F")
     for i in range(0, mark_nb - 1):
         for j in range(i + 1, mark_nb):
             domains[index(mark_nb, i, j), MIN] = GOLOMB_LENGTHS[j - i + 1] if j - i + 1 < mark_nb else sum_first(j - i)

@@ -1,3 +1,5 @@
+from typing import List, Tuple, Union
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -7,41 +9,60 @@ END = 1
 MIN = 0
 MAX = 1
 
-STATS_MAX = 9
-STATS_OPTIMIZER_SOLUTION_NB = 0
-STATS_PROBLEM_FILTER_NB = 1
-STATS_PROPAGATOR_FILTER_NB = 2
-STATS_PROPAGATOR_FILTER_NO_CHANGE_NB = 3
-STATS_PROPAGATOR_INCONSISTENCY_NB = 4
-STATS_SOLVER_BACKTRACK_NB = 5
-STATS_SOLVER_CHOICE_NB = 6
-STATS_SOLVER_CHOICE_DEPTH = 7
-STATS_SOLVER_SOLUTION_NB = 8
 
-
-def statistics_init() -> NDArray:
-    """
-    Inits a Numpy array for storing the statistics.
-    :return: a Numpy array
-    """
-    return np.array([0] * STATS_MAX, dtype=np.int32)
-
-
-def statistics_print(stats: NDArray) -> None:
-    """
-    Pretty-prints an array of statistics.
-    :param stats: a Numpy array of statistics
-    """
-    print(
-        {
-            "OPTIMIZER_SOLUTION_NB": int(stats[STATS_OPTIMIZER_SOLUTION_NB]),
-            "PROBLEM_FILTERS_NB": int(stats[STATS_PROBLEM_FILTER_NB]),
-            "PROPAGATOR_FILTERS_NB": int(stats[STATS_PROPAGATOR_FILTER_NB]),
-            "PROPAGATOR_FILTERS_NO_CHANGE_NB": int(stats[STATS_PROPAGATOR_FILTER_NO_CHANGE_NB]),
-            "PROPAGATOR_INCONSISTENCY_NB": int(stats[STATS_PROPAGATOR_INCONSISTENCY_NB]),
-            "SOLVER_BACKTRACK_NB": int(stats[STATS_SOLVER_BACKTRACK_NB]),
-            "SOLVER_CHOICE_NB": int(stats[STATS_SOLVER_CHOICE_NB]),
-            "SOLVER_CHOICE_DEPTH": int(stats[STATS_SOLVER_CHOICE_DEPTH]),
-            "SOLVER_SOLUTION_NB": int(stats[STATS_SOLVER_SOLUTION_NB]),
-        }
+def init_domains_by_values(domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
+    return np.array(
+        [(domain, domain) if isinstance(domain, int) else domain for domain in domains],
+        dtype=np.int32,
+        # order="F",
     )
+
+
+def init_indices_by_values(dom_indices: List[int]) -> NDArray:
+    return np.array(dom_indices, dtype=np.uint16, order="C")
+
+
+def init_indices(n: int) -> NDArray:
+    return np.empty(n, dtype=np.uint16, order="C")
+
+
+def init_domain_offsets_by_values(dom_offsets: List[int]) -> NDArray:
+    return np.array(dom_offsets, dtype=np.int32, order="C")
+
+
+def init_offsets(n: int) -> NDArray:
+    return np.empty(n, dtype=np.int32, order="C")
+
+
+def init_data_by_values(data: List[int]) -> NDArray:
+    return np.array(data, dtype=np.int32, order="C")
+
+
+def init_data(n: int) -> NDArray:
+    return np.empty(n, dtype=np.int32, order="C")
+
+
+def init_domain_changes(n: int, init_value: bool) -> NDArray:
+    if init_value:
+        return np.ones((n, 2), dtype=bool, order="F")
+    else:
+        return np.zeros((n, 2), dtype=bool, order="F")
+
+
+def init_triggers(n: int, init_value: bool) -> NDArray:
+    if init_value:
+        return np.ones((n, 2), dtype=bool, order="F")
+    else:
+        return np.zeros((n, 2), dtype=bool, order="F")
+
+
+def init_queue(n: int) -> NDArray:
+    return np.empty(n, dtype=np.bool, order="C")
+
+
+def init_algorithms(n: int) -> NDArray:
+    return np.empty(n, dtype=np.int8, order="C")
+
+
+def init_bounds(n: int) -> NDArray:
+    return np.empty((n, 2), dtype=np.int32)

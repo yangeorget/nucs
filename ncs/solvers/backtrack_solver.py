@@ -1,6 +1,5 @@
 from typing import Iterator, List, Optional
 
-import numpy as np
 from numpy.typing import NDArray
 
 from ncs.heuristics.heuristic import Heuristic
@@ -12,12 +11,10 @@ from ncs.heuristics.variable_heuristic import (
 from ncs.problems.problem import Problem, is_solved
 from ncs.solvers.solver import Solver
 from ncs.utils import (
-    STATS_OPTIMIZER_SOLUTION_NB,
-    STATS_SOLVER_BACKTRACK_NB,
-    STATS_SOLVER_CHOICE_DEPTH,
-    STATS_SOLVER_CHOICE_NB,
-    STATS_SOLVER_SOLUTION_NB,
+    init_domain_changes,
 )
+from ncs.statistics import STATS_OPTIMIZER_SOLUTION_NB, STATS_SOLVER_BACKTRACK_NB, STATS_SOLVER_CHOICE_NB, \
+    STATS_SOLVER_CHOICE_DEPTH, STATS_SOLVER_SOLUTION_NB
 
 
 class BacktrackSolver(Solver):
@@ -44,7 +41,7 @@ class BacktrackSolver(Solver):
                 break
 
     def solve_one(self) -> Optional[List[int]]:
-        shr_domain_changes = np.ones((len(self.problem.shr_domains), 2), dtype=bool)
+        shr_domain_changes = init_domain_changes(len(self.problem.shr_domains), True)
         while self.filter(shr_domain_changes):
             if is_solved(self.problem.shr_domains):
                 self.problem.statistics[STATS_SOLVER_SOLUTION_NB] += 1
