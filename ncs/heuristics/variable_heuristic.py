@@ -24,7 +24,9 @@ class VariableHeuristic(Heuristic):
 
     def choose(self, shr_domains: NDArray, shr_domain_changes: NDArray, dom_indices: NDArray) -> NDArray:
         var_idx = self.variable_heuristic(shr_domains, dom_indices)
-        return self.domain_heuristic(shr_domains, shr_domain_changes, dom_indices[var_idx])
+        shr_domains_copy = shr_domains.copy()
+        self.domain_heuristic(shr_domains, shr_domain_changes, shr_domains_copy, dom_indices[var_idx])
+        return shr_domains_copy
 
 
 @jit(nopython=True, cache=True)  # "int32(int32[::1, :], uint16[:])",
@@ -59,33 +61,33 @@ def smallest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) ->
     return min_idx
 
 
-@jit(nopython=True, cache=True)
-def min_value_dom_heuristic(shr_domains: NDArray, shr_domain_changes: NDArray, domain_idx: int) -> NDArray:
+@jit(#"int32[::1, :](int32[::1, :], bool[::1, :], int64)",
+     nopython=True, cache=True)
+def min_value_dom_heuristic(shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int) -> None:
     """
     Chooses the first value of the domain
     :param shr_domains: the shared domains of the problem
+    :param: shr_domain_changes: the changes to the shared domains
+    :param: shr_domains_copy: the shared domains to be added to the choice point
     :param domain_idx: the index of the domain
-    :return: the new shared domain to be added to the choice point
     """
-    shr_domains_copy = shr_domains.copy()
-    min_value = shr_domains[domain_idx, MIN]
-    shr_domains_copy[domain_idx, MIN] = min_value + 1
-    shr_domains[domain_idx, MAX] = min_value
+
+    value = shr_domains[domain_idx, MIN]
+    shr_domains_copy[domain_idx, MIN] = value + 1
+    shr_domains[domain_idx, MAX] = value
     shr_domain_changes[domain_idx, MAX] = True
-    return shr_domains_copy
 
 
 @jit(nopython=True, cache=True)
-def split_low_dom_heuristic(shr_domains: NDArray, shr_domain_changes: NDArray, domain_idx: int) -> NDArray:
+def split_low_dom_heuristic(shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int) -> None:
     """
     Chooses the first half of the domain
     :param shr_domains: the shared domains of the problem
+    :param: shr_domain_changes: the changes to the shared domains
+    :param: shr_domains_copy: the shared domains to be added to the choice point
     :param domain_idx: the index of the domain
-    :return: the new shared domain to be added to the choice point
     """
-    shr_domains_copy = shr_domains.copy()
-    mid_value = (shr_domains[domain_idx, MIN] + shr_domains[domain_idx, MAX]) // 2
-    shr_domains_copy[domain_idx, MIN] = mid_value + 1
-    shr_domains[domain_idx, MAX] = mid_value
+    value = (shr_domains[domain_idx, MIN] + shr_domains[domain_idx, MAX]) // 2
+    shr_domains_copy[domain_idx, MIN] = value + 1
+    shr_domains[domain_idx, MAX] = value
     shr_domain_changes[domain_idx, MAX] = True
-    return shr_domains_copy
