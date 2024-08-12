@@ -10,7 +10,7 @@ from ncs.propagators import (
     alldifferent_lopez_ortiz_propagator,
     dummy_propagator,
 )
-from ncs.utils import END, MAX, MIN, START
+from ncs.memory import END, MAX, MIN, START
 
 ALG_AFFINE_EQ = 0
 ALG_AFFINE_GEQ = 1

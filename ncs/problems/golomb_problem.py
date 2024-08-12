@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 
 from ncs.problems.problem import Problem
 from ncs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLDIFFERENT
-from ncs.utils import MAX, MIN
+from ncs.memory import MAX, MIN
 
 GOLOMB_LENGTHS = [0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127]
 

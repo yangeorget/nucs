@@ -3,7 +3,7 @@ from typing import Optional
 from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
-from ncs.utils import init_triggers
+from ncs.memory import init_triggers
 
 
 def get_triggers(n: int, data: NDArray) -> NDArray:

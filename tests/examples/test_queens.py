@@ -11,7 +11,7 @@ from ncs.heuristics.variable_heuristic import (
 from ncs.problems.queens_problem import QueensProblem
 from ncs.solvers.backtrack_solver import BacktrackSolver
 from ncs.statistics import statistics_print, STATS_SOLVER_SOLUTION_NB
-from ncs.utils import init_domain_changes
+from ncs.memory import init_domain_changes
 
 
 class TestQueens:

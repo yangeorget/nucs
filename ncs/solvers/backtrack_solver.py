@@ -10,7 +10,7 @@ from ncs.heuristics.variable_heuristic import (
 )
 from ncs.problems.problem import Problem, is_solved
 from ncs.solvers.solver import Solver
-from ncs.utils import (
+from ncs.memory import (
     init_domain_changes,
 )
 from ncs.statistics import STATS_OPTIMIZER_SOLUTION_NB, STATS_SOLVER_BACKTRACK_NB, STATS_SOLVER_CHOICE_NB, \

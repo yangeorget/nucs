@@ -14,7 +14,7 @@ def init_domains_by_values(domains: List[Union[int, Tuple[int, int]]]) -> NDArra
     return np.array(
         [(domain, domain) if isinstance(domain, int) else domain for domain in domains],
         dtype=np.int32,
-        # order="F",
+        order="F",
     )
 
 

@@ -4,7 +4,7 @@ import numpy as np
 from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
-from ncs.utils import MAX, MIN, init_triggers
+from ncs.memory import MAX, MIN, init_triggers
 
 MIN_RANK = 2
 MAX_RANK = 3

@@ -11,7 +11,7 @@ from ncs.propagators.propagators import (
     init_propagator_queue,
     update_propagator_queue,
 )
-from ncs.utils import (
+from ncs.memory import (
     END,
     MAX,
     MIN,

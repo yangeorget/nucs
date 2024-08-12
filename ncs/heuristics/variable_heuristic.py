@@ -5,7 +5,7 @@ from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
 from ncs.heuristics.heuristic import Heuristic
-from ncs.utils import MAX, MIN
+from ncs.memory import MAX, MIN
 
 
 class VariableHeuristic(Heuristic):

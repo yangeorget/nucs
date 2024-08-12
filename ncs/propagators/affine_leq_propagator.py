@@ -4,7 +4,7 @@ from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
 from ncs.propagators.affine_eq_propagator import compute_domain_sum
-from ncs.utils import MAX, MIN, init_triggers
+from ncs.memory import MAX, MIN, init_triggers
 
 
 def get_triggers(n: int, data: NDArray) -> NDArray:

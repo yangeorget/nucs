@@ -5,7 +5,7 @@ import pytest
 
 from ncs.problems.golomb_problem import GolombProblem, index, init_domains
 from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.utils import MIN
+from ncs.memory import MIN
 from ncs.statistics import statistics_print
 
 

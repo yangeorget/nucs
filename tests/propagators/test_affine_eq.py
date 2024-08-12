@@ -1,7 +1,7 @@
 import numpy as np
 
 from ncs.propagators.propagators import ALG_AFFINE_EQ, compute_domains, get_triggers
-from ncs.utils import init_data_by_values, init_domains_by_values
+from ncs.memory import init_data_by_values, init_domains_by_values
 
 
 class TestAffineEQ:

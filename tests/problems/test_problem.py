@@ -2,7 +2,7 @@ import numpy as np
 
 from ncs.problems.problem import Problem, is_solved
 from ncs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT
-from ncs.utils import MAX, MIN
+from ncs.memory import MAX, MIN
 
 
 class TestProblem:
