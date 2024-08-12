@@ -1,5 +1,4 @@
 ne pas retourner None mais un domain vide dans compute_domains
-revoir tous les memory layout C/F
 typer toutes les jitted methods
 
 

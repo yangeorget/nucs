@@ -49,7 +49,8 @@ class Problem:
     def build_shared_domains(self, shr_domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
         return np.array(
             [(shr_domain, shr_domain) if isinstance(shr_domain, int) else shr_domain for shr_domain in shr_domains],
-            dtype=np.int32
+            dtype=np.int32,
+            order='F'
         )
 
     def build_domain_indices(self, dom_indices: List[int]) -> NDArray:
