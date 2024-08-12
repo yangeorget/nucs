@@ -1,7 +1,7 @@
 import numpy as np
 
-from ncs.propagators.propagators import ALG_AFFINE_GEQ, compute_domains, get_triggers
 from ncs.memory import init_data_by_values, init_domains_by_values
+from ncs.propagators.propagators import ALG_AFFINE_GEQ, compute_domains, get_triggers
 
 
 class TestAffineGEQ:

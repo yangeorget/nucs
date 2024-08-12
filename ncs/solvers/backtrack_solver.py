@@ -8,13 +8,16 @@ from ncs.heuristics.variable_heuristic import (
     first_not_instantiated_var_heuristic,
     min_value_dom_heuristic,
 )
+from ncs.memory import init_domain_changes
 from ncs.problems.problem import Problem, is_solved
 from ncs.solvers.solver import Solver
-from ncs.memory import (
-    init_domain_changes,
+from ncs.statistics import (
+    STATS_OPTIMIZER_SOLUTION_NB,
+    STATS_SOLVER_BACKTRACK_NB,
+    STATS_SOLVER_CHOICE_DEPTH,
+    STATS_SOLVER_CHOICE_NB,
+    STATS_SOLVER_SOLUTION_NB,
 )
-from ncs.statistics import STATS_OPTIMIZER_SOLUTION_NB, STATS_SOLVER_BACKTRACK_NB, STATS_SOLVER_CHOICE_NB, \
-    STATS_SOLVER_CHOICE_DEPTH, STATS_SOLVER_SOLUTION_NB
 
 
 class BacktrackSolver(Solver):

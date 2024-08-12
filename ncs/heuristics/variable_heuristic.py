@@ -61,9 +61,10 @@ def smallest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) ->
     return min_idx
 
 
-@jit(#"int32[::1, :](int32[::1, :], bool[::1, :], int64)",
-     nopython=True, cache=True)
-def min_value_dom_heuristic(shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int) -> None:
+@jit(nopython=True, cache=True)  # "int32[::1, :](int32[::1, :], bool[::1, :], int64)",
+def min_value_dom_heuristic(
+    shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
+) -> None:
     """
     Chooses the first value of the domain
     :param shr_domains: the shared domains of the problem
@@ -79,7 +80,9 @@ def min_value_dom_heuristic(shr_domains: NDArray, shr_domain_changes: NDArray, s
 
 
 @jit(nopython=True, cache=True)
-def split_low_dom_heuristic(shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int) -> None:
+def split_low_dom_heuristic(
+    shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
+) -> None:
     """
     Chooses the first half of the domain
     :param shr_domains: the shared domains of the problem

@@ -1,8 +1,8 @@
 import numpy as np
 
+from ncs.memory import MAX, MIN
 from ncs.problems.problem import Problem, is_solved
 from ncs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT
-from ncs.memory import MAX, MIN
 
 
 class TestProblem:

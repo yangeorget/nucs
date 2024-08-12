@@ -164,4 +164,3 @@ def compute_domains(domains: NDArray, data: Optional[NDArray] = None) -> Optiona
         return rank_domains[:, :2]
     else:
         return None
-

@@ -5,7 +5,7 @@ from ncs.heuristics.variable_heuristic import (
 )
 from ncs.problems.alpha_problem import AlphaProblem
 from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.statistics import statistics_print, STATS_SOLVER_SOLUTION_NB
+from ncs.statistics import STATS_SOLVER_SOLUTION_NB, statistics_print
 
 
 class TestAlpha:

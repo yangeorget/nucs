@@ -3,6 +3,7 @@ from typing import Optional
 from numba import jit  # type: ignore
 from numpy._typing import NDArray
 
+from ncs.memory import END, MAX, MIN, START
 from ncs.propagators import (
     affine_eq_propagator,
     affine_geq_propagator,
@@ -10,7 +11,6 @@ from ncs.propagators import (
     alldifferent_lopez_ortiz_propagator,
     dummy_propagator,
 )
-from ncs.memory import END, MAX, MIN, START
 
 ALG_AFFINE_EQ = 0
 ALG_AFFINE_GEQ = 1

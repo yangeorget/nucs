@@ -5,12 +5,6 @@ from numba import jit  # type: ignore
 from numba.typed import List
 from numpy.typing import NDArray
 
-from ncs.propagators.propagators import (
-    compute_domains,
-    get_triggers,
-    init_propagator_queue,
-    update_propagator_queue,
-)
 from ncs.memory import (
     END,
     MAX,
@@ -19,16 +13,27 @@ from ncs.memory import (
     init_algorithms,
     init_bounds,
     init_data,
-    init_indices_by_values,
     init_domain_offsets_by_values,
     init_domains_by_values,
     init_indices,
+    init_indices_by_values,
     init_offsets,
     init_queue,
     init_triggers,
 )
-from ncs.statistics import statistics_init, STATS_PROBLEM_FILTER_NB, STATS_PROPAGATOR_FILTER_NB, \
-    STATS_PROPAGATOR_FILTER_NO_CHANGE_NB, STATS_PROPAGATOR_INCONSISTENCY_NB
+from ncs.propagators.propagators import (
+    compute_domains,
+    get_triggers,
+    init_propagator_queue,
+    update_propagator_queue,
+)
+from ncs.statistics import (
+    STATS_PROBLEM_FILTER_NB,
+    STATS_PROPAGATOR_FILTER_NB,
+    STATS_PROPAGATOR_FILTER_NO_CHANGE_NB,
+    STATS_PROPAGATOR_INCONSISTENCY_NB,
+    statistics_init,
+)
 
 
 class Problem:

@@ -1,7 +1,7 @@
 import numpy as np
 
-from ncs.propagators.alldifferent_lopez_ortiz_propagator import compute_domains
 from ncs.memory import init_domains_by_values
+from ncs.propagators.alldifferent_lopez_ortiz_propagator import compute_domains
 
 
 class TestAlldifferentLopezOrtiz:
