@@ -149,18 +149,19 @@ def compute_domains(domains: NDArray, data: Optional[NDArray] = None) -> Optiona
     :return: the new domains or None if an inconsistency is detected
     """
     size = len(domains)
-    rank_domains = np.hstack((domains, np.zeros((size, 2), dtype=np.int32)))
+    rank_domains = np.hstack((domains, np.zeros((size, 2), dtype=np.int16)))
     bounds_nb = 2 * size + 2
     bounds = np.zeros(bounds_nb, dtype=np.int32)
     min_sorted_vars = np.argsort(rank_domains[:, MIN])
     max_sorted_vars = np.argsort(rank_domains[:, MAX])
     nb = compute_nb(size, rank_domains, min_sorted_vars, max_sorted_vars, bounds)
-    t = np.zeros(bounds_nb, dtype=np.int32)  # critical capacity pointers
+    t = np.zeros(bounds_nb, dtype=np.uint16)  # critical capacity pointers
     d = np.zeros(bounds_nb, dtype=np.int32)  # differences between critical capacities
-    h = np.zeros(bounds_nb, dtype=np.int32)  # Hall interval pointers
+    h = np.zeros(bounds_nb, dtype=np.uint16)  # Hall interval pointers
     if filter_lower(size, nb, t, d, h, bounds, rank_domains, max_sorted_vars) and filter_upper(
         size, nb, t, d, h, bounds, rank_domains, min_sorted_vars
     ):
         return rank_domains[:, :2]
     else:
         return None
+

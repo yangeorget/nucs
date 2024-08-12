@@ -65,4 +65,4 @@ def init_algorithms(n: int) -> NDArray:
 
 
 def init_bounds(n: int) -> NDArray:
-    return np.empty((n, 2), dtype=np.int32)
+    return np.empty((n, 2), dtype=np.uint16)
