@@ -24,12 +24,12 @@ class VariableHeuristic(Heuristic):
 
     def choose(self, shr_domains: NDArray, shr_domain_changes: NDArray, dom_indices: NDArray) -> NDArray:
         var_idx = self.variable_heuristic(shr_domains, dom_indices)
-        shr_domains_copy = shr_domains.copy()
+        shr_domains_copy = shr_domains.copy(order="F")
         self.domain_heuristic(shr_domains, shr_domain_changes, shr_domains_copy, dom_indices[var_idx])
         return shr_domains_copy
 
 
-@jit(nopython=True, cache=True)  # "int32(int32[::1, :], uint16[:])",
+@jit("int16(int32[::1, :], uint16[:])", nopython=True, cache=True)
 def first_not_instantiated_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) -> int:
     """
     Chooses the first non instantiated variable.
@@ -43,7 +43,7 @@ def first_not_instantiated_var_heuristic(shr_domains: NDArray, dom_indices: NDAr
     return -1  # cannot happen
 
 
-@jit(nopython=True, cache=True)  # "int32(int32[::1, :], uint16[:])",
+@jit("int16(int32[::1, :], uint16[:])", nopython=True, cache=True)
 def smallest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) -> int:
     """
     Chooses the variable with the smallest domain and which is not instantiated.
@@ -61,7 +61,7 @@ def smallest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) ->
     return min_idx
 
 
-@jit(nopython=True, cache=True)  # "int32[::1, :](int32[::1, :], bool[::1, :], int64)",
+@jit("(int32[::1, :], bool[::1, :], int32[::1, :], uint16)", nopython=True, cache=True)
 def min_value_dom_heuristic(
     shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
 ) -> None:
@@ -79,7 +79,7 @@ def min_value_dom_heuristic(
     shr_domain_changes[domain_idx, MAX] = True
 
 
-@jit(nopython=True, cache=True)
+@jit("(int32[::1, :], bool[::1, :], int32[::1, :], uint16)", nopython=True, cache=True)
 def split_low_dom_heuristic(
     shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
 ) -> None:
