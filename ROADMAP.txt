@@ -1,7 +1,3 @@
-typer toutes les jitted methods
-
-compute_domains ne devrait pas renvoyer de domain
-
 etudier le pruning du cp dans le cas de l'optimization
 dispatch de fonctions avec Numba
 
