@@ -46,9 +46,9 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> Optional
     elif algorithm == ALG_AFFINE_LEQ:
         return affine_leq_propagator.compute_domains(domains, data)
     elif algorithm == ALG_ALLDIFFERENT:
-        return alldifferent_lopez_ortiz_propagator.compute_domains(domains, data)
+        return alldifferent_lopez_ortiz_propagator.compute_domains(domains)
     else:
-        return dummy_propagator.compute_domains(domains, data)
+        return dummy_propagator.compute_domains(domains)
 
 
 @jit(nopython=True, cache=True)

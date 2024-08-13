@@ -14,37 +14,59 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
     return init_triggers(n, True)
 
 
-@jit(nopython=True, cache=True)
+@jit("(uint16[:], uint16, uint16, uint16)", nopython=True, cache=True)
+def path_set(t: NDArray, start: int, end: int, to: int) -> None:
+    while (p := start) != end:
+        start = t[p]
+        t[p] = to
+
+
+@jit("uint16(uint16[:], uint16)", nopython=True, cache=True)
+def path_min(t: NDArray, i: int) -> int:
+    while t[i] < i:
+        i = t[i]
+    return i
+
+
+@jit("uint16(uint16[:], uint16)", nopython=True, cache=True)
+def path_max(t: NDArray, i: int) -> int:
+    while t[i] > i:
+        i = t[i]
+    return i
+
+
+@jit("uint16(int64, int32[:, :], int64[:], int64[:], int32[:])", nopython=True, cache=True)
 def compute_nb(
     size: int, rank_domains: NDArray, min_sorted_vars: NDArray, max_sorted_vars: NDArray, bounds: NDArray
 ) -> int:
-    min = rank_domains[min_sorted_vars[0], MIN]
-    max = rank_domains[max_sorted_vars[0], MAX] + 1
-    bounds[0] = last = min - 2
+    min_value = rank_domains[min_sorted_vars[0], MIN]
+    max_value = rank_domains[max_sorted_vars[0], MAX] + 1
+    last = min_value - 2
+    bounds[0] = last
     i = j = nb = 0
     while True:
-        if i < size and min <= max:
-            if min != last:
+        if i < size and min_value <= max_value:
+            if min_value != last:
                 nb += 1
-                bounds[nb] = last = min
+                bounds[nb] = last = min_value
             rank_domains[min_sorted_vars[i], MIN_RANK] = nb
             i += 1
             if i < size:
-                min = rank_domains[min_sorted_vars[i], MIN]
+                min_value = rank_domains[min_sorted_vars[i], MIN]
         else:
-            if max != last:
+            if max_value != last:
                 nb += 1
-                bounds[nb] = last = max
+                bounds[nb] = last = max_value
             rank_domains[max_sorted_vars[j], MAX_RANK] = nb
             j += 1
             if j == size:
                 break
-            max = rank_domains[max_sorted_vars[j], MAX] + 1
+            max_value = rank_domains[max_sorted_vars[j], MAX] + 1
     bounds[nb + 1] = bounds[nb] + 2
     return nb
 
 
-@jit(nopython=True, cache=True)
+@jit("bool(int64, int64, uint16[:], int32[:], uint16[:], int32[:], int32[:, :], int64[:])", nopython=True, cache=True)
 def filter_lower(
     size: int,
     nb: int,
@@ -82,7 +104,7 @@ def filter_lower(
     return True
 
 
-@jit(nopython=True, cache=True)
+@jit("bool(int64, int64, uint16[:], int32[:], uint16[:], int32[:], int32[:, :], int64[:])", nopython=True, cache=True)
 def filter_upper(
     size: int,
     nb: int,
@@ -120,36 +142,19 @@ def filter_upper(
     return True
 
 
-@jit(nopython=True, cache=True)
-def path_set(t: NDArray, start: int, end: int, to: int) -> None:
-    while (p := start) != end:
-        start = t[p]
-        t[p] = to
-
-
-@jit(nopython=True, cache=True)
-def path_min(t: NDArray, i: int) -> int:
-    while t[i] < i:
-        i = t[i]
-    return i
-
-
-@jit(nopython=True, cache=True)
-def path_max(t: NDArray, i: int) -> int:
-    while t[i] > i:
-        i = t[i]
-    return i
-
-
-@jit(nopython=True, cache=True)
-def compute_domains(domains: NDArray, data: Optional[NDArray] = None) -> Optional[NDArray]:
+@jit(
+    # "int32[:, :](int32[:, :])",
+    nopython=True,
+    cache=True,
+)
+def compute_domains(domains: NDArray) -> Optional[NDArray]:
     """
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
     :param domains: the domains of the variables
     :return: the new domains or None if an inconsistency is detected
     """
     size = len(domains)
-    rank_domains = np.hstack((domains, np.zeros((size, 2), dtype=np.int16)))
+    rank_domains = np.hstack((domains, np.zeros((size, 2), dtype=np.uint16)))
     bounds_nb = 2 * size + 2
     bounds = np.zeros(bounds_nb, dtype=np.int32)
     min_sorted_vars = np.argsort(rank_domains[:, MIN])
