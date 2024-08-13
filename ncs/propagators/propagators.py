@@ -1,5 +1,3 @@
-from typing import Optional
-
 from numba import jit  # type: ignore
 from numpy._typing import NDArray
 
@@ -32,8 +30,12 @@ def get_triggers(algorithm: int, size: int, data: NDArray) -> NDArray:
         return dummy_propagator.get_triggers(size, data)
 
 
-@jit(nopython=True, cache=True)
-def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> Optional[NDArray]:
+@jit(
+    "int32[::1,:](uint8, int32[::1,:], int32[:])",
+    nopython=True,
+    cache=True,
+)
+def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> NDArray:
     """
     Computes the new domains for the variables.
     :param domains: the initial domains of the variables

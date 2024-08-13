@@ -194,13 +194,14 @@ def filter(
         prop_var_end = var_bounds[prop_idx, END]
         prop_indices = props_indices[prop_var_start:prop_var_end]
         prop_offsets = props_offsets[prop_var_start:prop_var_end].reshape((-1, 1))
-        prop_domains_cur = shr_domains[prop_indices] + prop_offsets
+        prop_domains_cur = np.empty((2, len(prop_offsets)), dtype=np.int32).T  # trick for order=F
+        np.add(shr_domains[prop_indices], prop_offsets, prop_domains_cur)
         prop_domains = compute_domains(
             algorithms[prop_idx],
             prop_domains_cur,
             props_data[data_bounds[prop_idx, START] : data_bounds[prop_idx, END]],
         )
-        if prop_domains is None:
+        if prop_domains[0][MIN] > prop_domains[0][MAX]:  # convention for inconsistency
             statistics[STATS_PROPAGATOR_INCONSISTENCY_NB] += 1
             return False
         shr_domains_cur = shr_domains.copy()

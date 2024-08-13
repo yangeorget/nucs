@@ -1,6 +1,7 @@
 from typing import List, Tuple, Union
 
 import numpy as np
+from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
 START = 0
@@ -66,3 +67,8 @@ def init_algorithms(n: int) -> NDArray:
 
 def init_bounds(n: int) -> NDArray:
     return np.empty((n, 2), dtype=np.uint16)
+
+
+@jit("int32[::1, :]()", nopython=True, cache=True)
+def inconsistency() -> NDArray:
+    return np.array([[1], [0]], dtype=np.int32).T  # trick for order=F
