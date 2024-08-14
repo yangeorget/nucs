@@ -2,7 +2,7 @@ import numpy as np
 from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
-from ncs.memory import MAX, MIN, inconsistency, init_triggers
+from ncs.memory import MAX, MIN, init_triggers
 
 
 def get_triggers(n: int, data: NDArray) -> NDArray:
@@ -24,8 +24,8 @@ def compute_domain_sum(n: int, domains: NDArray, data: NDArray) -> NDArray:
     return domain_sum
 
 
-@jit("int32[::1,:](int32[::1,:], int32[:])", nopython=True, cache=True)
-def compute_domains(domains: NDArray, data: NDArray) -> NDArray:
+@jit("boolean(int32[::1,:], int32[:])", nopython=True, cache=True)
+def compute_domains(domains: NDArray, data: NDArray) -> bool:
     """
     Implements Sigma_i a_{i+1} * x_i >= a_0.
     :param domains: the domains of the variables
@@ -40,15 +40,16 @@ def compute_domains(domains: NDArray, data: NDArray) -> NDArray:
         if ai > 0:
             new_domains[i, MIN] = max(new_domains[i, MIN], domains[i, MAX] - (domain_sum[MIN] // -ai))
             if new_domains[i, MIN] > domains[i, MAX]:
-                return inconsistency()
+                return False
             new_domains[i, MAX] = min(new_domains[i, MAX], domains[i, MIN] + (domain_sum[MAX] // ai))
             if new_domains[i, MAX] < domains[i, MIN]:
-                return inconsistency()
+                return False
         elif ai < 0:
             new_domains[i, MIN] = max(new_domains[i, MIN], domains[i, MAX] - (-domain_sum[MAX] // ai))
             if new_domains[i, MIN] > domains[i, MAX]:
-                return inconsistency()
+                return True
             new_domains[i, MAX] = min(new_domains[i, MAX], domains[i, MIN] + (-domain_sum[MIN] // -ai))
             if new_domains[i, MAX] < domains[i, MIN]:
-                return inconsistency()
-    return new_domains
+                return True
+    domains[:] = new_domains[:]
+    return True

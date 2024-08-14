@@ -31,11 +31,11 @@ def get_triggers(algorithm: int, size: int, data: NDArray) -> NDArray:
 
 
 @jit(
-    "int32[::1,:](uint8, int32[::1,:], int32[:])",
+    "boolean(uint8, int32[::1,:], int32[:])",
     nopython=True,
     cache=True,
 )
-def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> NDArray:
+def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> bool:
     """
     Computes the new domains for the variables.
     :param domains: the initial domains of the variables
