@@ -38,17 +38,11 @@ def compute_domains(domains: NDArray, data: NDArray) -> bool:
         ai = data[i + 1]
         if ai > 0:
             new_domains[i, MIN] = max(domains[i, MIN], domains[i, MAX] - (domain_sum[MIN] // -ai))
-            if new_domains[i, MIN] > domains[i, MAX]:
-                return False
             new_domains[i, MAX] = min(domains[i, MAX], domains[i, MIN] + (domain_sum[MAX] // ai))
-            if new_domains[i, MAX] < domains[i, MIN]:
-                return False
         elif ai < 0:
             new_domains[i, MIN] = max(domains[i, MIN], domains[i, MAX] - (-domain_sum[MAX] // ai))
-            if new_domains[i, MIN] > domains[i, MAX]:
-                return True
             new_domains[i, MAX] = min(domains[i, MAX], domains[i, MIN] + (-domain_sum[MIN] // -ai))
-            if new_domains[i, MAX] < domains[i, MIN]:
-                return True
+        if new_domains[i, MIN] > domains[i, MAX]:
+            return False
     domains[:] = new_domains[:]
     return True
