@@ -205,7 +205,7 @@ def filter(
         if prop_domains[0][MIN] > prop_domains[0][MAX]:  # convention for inconsistency
             statistics[STATS_PROPAGATOR_INCONSISTENCY_NB] += 1
             return False
-        shr_domains_cur[:,:] = shr_domains
+        shr_domains_cur[:, :] = shr_domains
         shr_domains[prop_indices] = prop_domains - prop_offsets
         shr_domain_changes[:, :] = shr_domains_cur != shr_domains
         if np.any(shr_domain_changes):  # type: ignore

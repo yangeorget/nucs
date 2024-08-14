@@ -1,3 +1,7 @@
+revoir rank_domain/domain dans alldifferent
+changer signature de compute_domains
+refactor triggers
+refactor inconsistency
 dispatching de compute domain avec https://numba.readthedocs.io/en/0.55.0/user/generated-jit.html ?
 etudier le pruning du cp dans le cas de l'optimization
 
