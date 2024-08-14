@@ -23,16 +23,16 @@ def compute_domains(domains: NDArray, data: NDArray) -> bool:
     """
     n = len(domains)
     domain_sum = compute_domain_sum(n, domains, data)
-    new_domains = np.empty((2, len(domains)), dtype=np.int32).T
+    new_domains = np.empty_like(domains)
     new_domains[:] = domains[:]
     for i in range(n):
         ai = data[i + 1]
         if ai > 0:
-            new_domains[i, MAX] = min(new_domains[i, MAX], domains[i, MIN] + (domain_sum[MAX] // ai))
+            new_domains[i, MAX] = min(domains[i, MAX], domains[i, MIN] + (domain_sum[MAX] // ai))
             if new_domains[i, MAX] < domains[i, MIN]:
                 return False
         elif ai < 0:
-            new_domains[i, MIN] = max(new_domains[i, MIN], domains[i, MAX] - (-domain_sum[MAX] // ai))
+            new_domains[i, MIN] = max(domains[i, MIN], domains[i, MAX] - (-domain_sum[MAX] // ai))
             if new_domains[i, MIN] > domains[i, MAX]:
                 return False
     domains[:] = new_domains[:]

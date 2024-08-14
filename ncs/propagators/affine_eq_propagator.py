@@ -12,8 +12,7 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
 @jit(nopython=True, cache=True)
 def compute_domain_sum(n: int, domains: NDArray, data: NDArray) -> NDArray:
     domain_sum = np.empty(2, dtype=np.int32)
-    domain_sum[MIN] = data[0]
-    domain_sum[MAX] = data[0]
+    domain_sum[:] = data[0]
     for i in range(n):
         ai = data[i + 1]
         if ai > 0:
@@ -33,22 +32,22 @@ def compute_domains(domains: NDArray, data: NDArray) -> bool:
     """
     n = len(domains)
     domain_sum = compute_domain_sum(n, domains, data)
-    new_domains = np.empty((2, len(domains)), dtype=np.int32).T
+    new_domains = np.empty_like(domains)
     new_domains[:] = domains[:]
     for i in range(n):
         ai = data[i + 1]
         if ai > 0:
-            new_domains[i, MIN] = max(new_domains[i, MIN], domains[i, MAX] - (domain_sum[MIN] // -ai))
+            new_domains[i, MIN] = max(domains[i, MIN], domains[i, MAX] - (domain_sum[MIN] // -ai))
             if new_domains[i, MIN] > domains[i, MAX]:
                 return False
-            new_domains[i, MAX] = min(new_domains[i, MAX], domains[i, MIN] + (domain_sum[MAX] // ai))
+            new_domains[i, MAX] = min(domains[i, MAX], domains[i, MIN] + (domain_sum[MAX] // ai))
             if new_domains[i, MAX] < domains[i, MIN]:
                 return False
         elif ai < 0:
-            new_domains[i, MIN] = max(new_domains[i, MIN], domains[i, MAX] - (-domain_sum[MAX] // ai))
+            new_domains[i, MIN] = max(domains[i, MIN], domains[i, MAX] - (-domain_sum[MAX] // ai))
             if new_domains[i, MIN] > domains[i, MAX]:
                 return True
-            new_domains[i, MAX] = min(new_domains[i, MAX], domains[i, MIN] + (-domain_sum[MIN] // -ai))
+            new_domains[i, MAX] = min(domains[i, MAX], domains[i, MIN] + (-domain_sum[MIN] // -ai))
             if new_domains[i, MAX] < domains[i, MIN]:
                 return True
     domains[:] = new_domains[:]
