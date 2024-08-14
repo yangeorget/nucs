@@ -181,6 +181,7 @@ def filter(
     :param shr_domain_changes: an array of shared domain changes
     :return: False if the problem is not consistent
     """
+    shr_domains_cur = np.empty_like(shr_domains)
     statistics[STATS_PROBLEM_FILTER_NB] += 1
     init_propagator_queue(
         propagator_queue, shr_domain_changes, propagator_nb, var_bounds, props_indices, props_triggers
@@ -204,7 +205,7 @@ def filter(
         if prop_domains[0][MIN] > prop_domains[0][MAX]:  # convention for inconsistency
             statistics[STATS_PROPAGATOR_INCONSISTENCY_NB] += 1
             return False
-        shr_domains_cur = shr_domains.copy()
+        shr_domains_cur[:,:] = shr_domains
         shr_domains[prop_indices] = prop_domains - prop_offsets
         shr_domain_changes[:, :] = shr_domains_cur != shr_domains
         if np.any(shr_domain_changes):  # type: ignore
