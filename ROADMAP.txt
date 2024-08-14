@@ -1,5 +1,4 @@
 check numba profiler
-refactor triggers
 dispatching de compute domain avec https://numba.readthedocs.io/en/0.55.0/user/generated-jit.html ?
 etudier le pruning du cp dans le cas de l'optimization
 

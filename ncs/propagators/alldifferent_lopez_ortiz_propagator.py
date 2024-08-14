@@ -4,9 +4,6 @@ from numpy.typing import NDArray
 
 from ncs.memory import MAX, MIN, init_triggers
 
-MIN_RANK = 0
-MAX_RANK = 1
-
 
 def get_triggers(n: int, data: NDArray) -> NDArray:
     return init_triggers(n, True)
@@ -52,7 +49,7 @@ def compute_nb(
             if min_value != last:
                 nb += 1
                 bounds[nb] = last = min_value
-            rank_domains[min_sorted_vars[i], MIN_RANK] = nb
+            rank_domains[min_sorted_vars[i], MIN] = nb
             i += 1
             if i < size:
                 min_value = domains[min_sorted_vars[i], MIN]
@@ -60,7 +57,7 @@ def compute_nb(
             if max_value != last:
                 nb += 1
                 bounds[nb] = last = max_value
-            rank_domains[max_sorted_vars[j], MAX_RANK] = nb
+            rank_domains[max_sorted_vars[j], MAX] = nb
             j += 1
             if j == size:
                 break
@@ -90,8 +87,8 @@ def filter_lower(
         d[i] = bounds[i] - bounds[i - 1]
     for i in range(size):
         max_sorted_vars_i = max_sorted_vars[i]
-        x = rank_domains[max_sorted_vars_i, MIN_RANK]
-        y = rank_domains[max_sorted_vars_i, MAX_RANK]
+        x = rank_domains[max_sorted_vars_i, MIN]
+        y = rank_domains[max_sorted_vars_i, MAX]
         z = path_max(t, x + 1)
         j = t[z]
         d[z] -= 1
@@ -133,8 +130,8 @@ def filter_upper(
         d[i] = bounds[i + 1] - bounds[i]
     for i in range(size - 1, -1, -1):
         min_sorted_vars_i = min_sorted_vars[i]
-        x = rank_domains[min_sorted_vars_i, MAX_RANK]
-        y = rank_domains[min_sorted_vars_i, MIN_RANK]
+        x = rank_domains[min_sorted_vars_i, MAX]
+        y = rank_domains[min_sorted_vars_i, MIN]
         z = path_min(t, x - 1)
         j = t[z]
         d[z] -= 1
@@ -162,15 +159,15 @@ def compute_domains(domains: NDArray) -> bool:
     :param domains: the domains of the variables
     """
     size = len(domains)
-    rank_domains = np.zeros((size, 2), dtype=np.uint16)
+    ranks = np.zeros((size, 2), dtype=np.uint16)
     bounds_nb = 2 * size + 2
     bounds = np.zeros(bounds_nb, dtype=np.int32)
     min_sorted_vars = np.argsort(domains[:, MIN])
     max_sorted_vars = np.argsort(domains[:, MAX])
-    nb = compute_nb(size, domains, rank_domains, min_sorted_vars, max_sorted_vars, bounds)
+    nb = compute_nb(size, domains, ranks, min_sorted_vars, max_sorted_vars, bounds)
     t = np.zeros(bounds_nb, dtype=np.uint16)  # critical capacity pointers
     d = np.zeros(bounds_nb, dtype=np.int32)  # differences between critical capacities
     h = np.zeros(bounds_nb, dtype=np.uint16)  # Hall interval pointers
-    return filter_lower(size, nb, t, d, h, bounds, domains, rank_domains, max_sorted_vars) and filter_upper(
-        size, nb, t, d, h, bounds, domains, rank_domains, min_sorted_vars
+    return filter_lower(size, nb, t, d, h, bounds, domains, ranks, max_sorted_vars) and filter_upper(
+        size, nb, t, d, h, bounds, domains, ranks, min_sorted_vars
     )

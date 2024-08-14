@@ -17,17 +17,17 @@ ALG_ALLDIFFERENT = 3
 ALG_DUMMY = 4
 
 
+TRIGGER_MODULES = [
+    affine_eq_propagator,
+    affine_geq_propagator,
+    affine_leq_propagator,
+    alldifferent_lopez_ortiz_propagator,
+    dummy_propagator,
+]
+
+
 def get_triggers(algorithm: int, size: int, data: NDArray) -> NDArray:
-    if algorithm == ALG_AFFINE_EQ:
-        return affine_eq_propagator.get_triggers(size, data)
-    elif algorithm == ALG_AFFINE_GEQ:
-        return affine_geq_propagator.get_triggers(size, data)
-    elif algorithm == ALG_AFFINE_LEQ:
-        return affine_leq_propagator.get_triggers(size, data)
-    elif algorithm == ALG_ALLDIFFERENT:
-        return alldifferent_lopez_ortiz_propagator.get_triggers(size, data)
-    else:
-        return dummy_propagator.get_triggers(size, data)
+    return TRIGGER_MODULES[algorithm].get_triggers(size, data)
 
 
 @jit(
