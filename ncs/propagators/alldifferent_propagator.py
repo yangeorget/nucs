@@ -32,9 +32,9 @@ def path_max(t: NDArray, i: int) -> int:
 
 @jit("uint16(int64, int32[::1, :], uint16[:, :], int64[:], int64[:], int32[:])", nopython=True, cache=True)
 def compute_nb(
-    size: int,
+    n: int,
     domains: NDArray,
-    rank_domains: NDArray,
+    ranks: NDArray,
     min_sorted_vars: NDArray,
     max_sorted_vars: NDArray,
     bounds: NDArray,
@@ -45,21 +45,21 @@ def compute_nb(
     bounds[0] = last
     i = j = nb = 0
     while True:
-        if i < size and min_value <= max_value:
+        if i < n and min_value <= max_value:
             if min_value != last:
                 nb += 1
                 bounds[nb] = last = min_value
-            rank_domains[min_sorted_vars[i], MIN] = nb
+            ranks[min_sorted_vars[i], MIN] = nb
             i += 1
-            if i < size:
+            if i < n:
                 min_value = domains[min_sorted_vars[i], MIN]
         else:
             if max_value != last:
                 nb += 1
                 bounds[nb] = last = max_value
-            rank_domains[max_sorted_vars[j], MAX] = nb
+            ranks[max_sorted_vars[j], MAX] = nb
             j += 1
-            if j == size:
+            if j == n:
                 break
             max_value = domains[max_sorted_vars[j], MAX] + 1
     bounds[nb + 1] = bounds[nb] + 2
@@ -72,23 +72,23 @@ def compute_nb(
     cache=True,
 )
 def filter_lower(
-    size: int,
+    n: int,
     nb: int,
     t: NDArray,
     d: NDArray,
     h: NDArray,
     bounds: NDArray,
     domains: NDArray,
-    rank_domains: NDArray,
+    ranks: NDArray,
     max_sorted_vars: NDArray,
 ) -> bool:
     for i in range(1, nb + 2):
         t[i] = h[i] = i - 1
         d[i] = bounds[i] - bounds[i - 1]
-    for i in range(size):
+    for i in range(n):
         max_sorted_vars_i = max_sorted_vars[i]
-        x = rank_domains[max_sorted_vars_i, MIN]
-        y = rank_domains[max_sorted_vars_i, MAX]
+        x = ranks[max_sorted_vars_i, MIN]
+        y = ranks[max_sorted_vars_i, MAX]
         z = path_max(t, x + 1)
         j = t[z]
         d[z] -= 1
@@ -115,23 +115,23 @@ def filter_lower(
     cache=True,
 )
 def filter_upper(
-    size: int,
+    n: int,
     nb: int,
     t: NDArray,
     d: NDArray,
     h: NDArray,
     bounds: NDArray,
     domains: NDArray,
-    rank_domains: NDArray,
+    ranks: NDArray,
     min_sorted_vars: NDArray,
 ) -> bool:
     for i in range(nb + 1):
         t[i] = h[i] = i + 1
         d[i] = bounds[i + 1] - bounds[i]
-    for i in range(size - 1, -1, -1):
+    for i in range(n - 1, -1, -1):
         min_sorted_vars_i = min_sorted_vars[i]
-        x = rank_domains[min_sorted_vars_i, MAX]
-        y = rank_domains[min_sorted_vars_i, MIN]
+        x = ranks[min_sorted_vars_i, MAX]
+        y = ranks[min_sorted_vars_i, MIN]
         z = path_min(t, x - 1)
         j = t[z]
         d[z] -= 1
@@ -158,16 +158,16 @@ def compute_domains(domains: NDArray) -> bool:
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
     :param domains: the domains of the variables
     """
-    size = len(domains)
-    ranks = np.zeros((size, 2), dtype=np.uint16)
-    bounds_nb = 2 * size + 2
+    n = len(domains)
+    ranks = np.zeros((n, 2), dtype=np.uint16)
+    bounds_nb = 2 * n + 2
     bounds = np.zeros(bounds_nb, dtype=np.int32)
     min_sorted_vars = np.argsort(domains[:, MIN])
     max_sorted_vars = np.argsort(domains[:, MAX])
-    nb = compute_nb(size, domains, ranks, min_sorted_vars, max_sorted_vars, bounds)
+    nb = compute_nb(n, domains, ranks, min_sorted_vars, max_sorted_vars, bounds)
     t = np.zeros(bounds_nb, dtype=np.uint16)  # critical capacity pointers
     d = np.zeros(bounds_nb, dtype=np.int32)  # differences between critical capacities
     h = np.zeros(bounds_nb, dtype=np.uint16)  # Hall interval pointers
-    return filter_lower(size, nb, t, d, h, bounds, domains, ranks, max_sorted_vars) and filter_upper(
-        size, nb, t, d, h, bounds, domains, ranks, min_sorted_vars
+    return filter_lower(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars) and filter_upper(
+        n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars
     )

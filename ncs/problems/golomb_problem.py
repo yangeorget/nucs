@@ -58,7 +58,7 @@ class GolombProblem(Problem):
                         (
                             [index(mark_nb, i, j), self.length],
                             ALG_AFFINE_LEQ,
-                            [-sum_first(mark_nb - 1 - (j - i)), 1, -1],
+                            [1, -1, -sum_first(mark_nb - 1 - (j - i))],
                         )
                     )
         # TODO break symmetries
@@ -69,7 +69,7 @@ class GolombProblem(Problem):
                     (
                         [index(mark_nb, 0, j), index(mark_nb, 0, i), index(mark_nb, i, j)],
                         ALG_AFFINE_EQ,
-                        [0, 1, -1, -1],
+                        [1, -1, -1, 0],
                     )
                 )
         propagators.append((list(range(var_nb)), ALG_ALLDIFFERENT, []))

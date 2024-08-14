@@ -2,13 +2,20 @@ check numba profiler
 dispatching de compute domain avec https://numba.readthedocs.io/en/0.55.0/user/generated-jit.html ?
 etudier le pruning du cp dans le cas de l'optimization
 
+contraintes
+count_eq
+count_leq
+count_geq
+element
+
 Problèmes:
 BIBD problem
-Car sequencing problem
-Crypto multiplication problem
 Golfers problem
 Job-shop problem
 Knapsack problem
-MagicSquare problem
 QG problem
 Round-robin problem
+
+Car sequencing problem
+Crypto multiplication problem
+MagicSquare problem
