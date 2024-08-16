@@ -32,7 +32,8 @@ class BIBDProblem(Problem):
                     propagators.append(([(i1 * b + j), (i2 * b + j), conj_idx], ALG_MIN, []))
                     conj_vars.append(conj_idx)
                     conj_idx += 1
-                conj_vars.append(conj_idx)
                 propagators.append((conj_vars, ALG_EXACTLY_EQ, [1, l]))
         # remove symmetries
+        # lexleq on rows
+        # lexleq on columns
         self.set_propagators(propagators)

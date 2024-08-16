@@ -7,7 +7,7 @@ from ncs.memory import MAX, MIN, init_triggers
 
 def get_triggers(n: int, data: NDArray) -> NDArray:
     triggers = init_triggers(n, False)
-    for i in range(n-1):
+    for i in range(n - 1):
         triggers[i, MAX] = True
     triggers[-1, MIN] = True
     return triggers

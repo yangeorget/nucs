@@ -1,7 +1,7 @@
 import numpy as np
 
 from ncs.memory import init_data_by_values, init_domains_by_values
-from ncs.propagators.propagators import ALG_COUNT_EQ, compute_domains, ALG_EXACTLY_EQ
+from ncs.propagators.propagators import ALG_EXACTLY_EQ, compute_domains
 
 
 class TestExactlyEQ:

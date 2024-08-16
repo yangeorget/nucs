@@ -3,13 +3,10 @@ dispatching de compute domain avec https://numba.readthedocs.io/en/0.55.0/user/g
 etudier le pruning du cp dans le cas de l'optimization
 
 contraintes
-exactly
-min
-max
+lexleq
 element
 
 Problèmes:
-BIBD problem
 Golfers problem
 Job-shop problem
 Knapsack problem
