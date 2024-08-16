@@ -8,8 +8,8 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
     return init_triggers(n, True)
 
 
-@jit("boolean(int32[::1, :])", nopython=True, cache=True)
-def compute_domains(domains: NDArray) -> bool:
+@jit("boolean(int32[::1,:], int32[:])", nopython=True, cache=True)
+def compute_domains(domains: NDArray, data: NDArray) -> bool:
     """
     A propagator that does nothing.
     """

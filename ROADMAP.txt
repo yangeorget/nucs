@@ -3,9 +3,9 @@ dispatching de compute domain avec https://numba.readthedocs.io/en/0.55.0/user/g
 etudier le pruning du cp dans le cas de l'optimization
 
 contraintes
-count_eq
-count_leq
-count_geq
+exactly
+min
+max
 element
 
 Problèmes:

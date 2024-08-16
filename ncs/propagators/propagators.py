@@ -7,7 +7,11 @@ from ncs.propagators import (
     affine_geq_propagator,
     affine_leq_propagator,
     alldifferent_propagator,
-    dummy_propagator, count_eq_propagator,
+    count_eq_propagator,
+    dummy_propagator,
+    exactly_eq_propagator,
+    max_propagator,
+    min_propagator,
 )
 
 ALG_AFFINE_EQ = 0
@@ -15,9 +19,10 @@ ALG_AFFINE_GEQ = 1
 ALG_AFFINE_LEQ = 2
 ALG_ALLDIFFERENT = 3
 ALG_COUNT_EQ = 4
-ALG_COUNT_GEQ = 5
-ALG_COUNT_LEQ = 6
-ALG_DUMMY = 7
+ALG_DUMMY = 5
+ALG_EXACTLY_EQ = 6
+ALG_MAX = 7
+ALG_MIN = 8
 
 
 TRIGGER_MODULES = [
@@ -26,9 +31,10 @@ TRIGGER_MODULES = [
     affine_leq_propagator,
     alldifferent_propagator,
     count_eq_propagator,
-    None,
-    None,
     dummy_propagator,
+    exactly_eq_propagator,
+    max_propagator,
+    min_propagator,
 ]
 
 
@@ -54,14 +60,16 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> bool:
     if algorithm == ALG_AFFINE_LEQ:
         return affine_leq_propagator.compute_domains(domains, data)
     if algorithm == ALG_ALLDIFFERENT:
-        return alldifferent_propagator.compute_domains(domains)
+        return alldifferent_propagator.compute_domains(domains, data)
     if algorithm == ALG_COUNT_EQ:
         return count_eq_propagator.compute_domains(domains, data)
-    if algorithm == ALG_COUNT_GEQ:
-        return count_eq_propagator.compute_domains(domains, data)  # TODO: fix
-    if algorithm == ALG_COUNT_LEQ:
-        return count_eq_propagator.compute_domains(domains, data)  # TODO: fix
-    return dummy_propagator.compute_domains(domains)
+    if algorithm == ALG_DUMMY:
+        return dummy_propagator.compute_domains(domains, data)
+    if algorithm == ALG_EXACTLY_EQ:
+        return exactly_eq_propagator.compute_domains(domains, data)
+    if algorithm == ALG_MAX:
+        return max_propagator.compute_domains(domains, data)
+    return min_propagator.compute_domains(domains, data)
 
 
 @jit(nopython=True, cache=True)

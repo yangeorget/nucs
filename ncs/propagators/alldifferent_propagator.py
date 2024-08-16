@@ -152,8 +152,8 @@ def filter_upper(
     return True
 
 
-@jit("boolean(int32[::1,:])", nopython=True, cache=True)
-def compute_domains(domains: NDArray) -> bool:
+@jit("boolean(int32[::1,:], int32[:])", nopython=True, cache=True)
+def compute_domains(domains: NDArray, data: NDArray) -> bool:
     """
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
     :param domains: the domains of the variables

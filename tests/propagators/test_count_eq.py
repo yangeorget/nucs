@@ -1,7 +1,7 @@
 import numpy as np
 
 from ncs.memory import init_data_by_values, init_domains_by_values
-from ncs.propagators.propagators import ALG_AFFINE_EQ, compute_domains, get_triggers, ALG_COUNT_EQ
+from ncs.propagators.propagators import ALG_COUNT_EQ, compute_domains
 
 
 class TestCountEQ:
