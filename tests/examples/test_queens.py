@@ -22,7 +22,7 @@ class TestQueens:
         assert problem.filter(shr_domain_changes)
 
     @pytest.mark.parametrize(
-        "queen_nb,solution_nb", [(1, 1), (2, 0), (3, 0), (4, 2), (5, 10), (6, 4), (8, 92), (9, 352)]
+        "queen_nb,solution_nb", [(1, 1), (2, 0), (3, 0), (4, 2), (5, 10), (6, 4), (7, 40), (8, 92), (9, 352)]
     )
     def test_queens_solve(self, queen_nb: int, solution_nb: int) -> None:
         problem = QueensProblem(queen_nb)
