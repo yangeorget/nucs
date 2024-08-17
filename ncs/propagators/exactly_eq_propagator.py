@@ -6,6 +6,11 @@ from ncs.memory import MAX, MIN, init_triggers
 
 
 def get_triggers(n: int, data: NDArray) -> NDArray:
+    """
+    This propagator is triggered whenever there is a change in the domain of a variable.
+    :param n: the number of variables
+    :return: an array of triggers
+    """
     return init_triggers(n, True)
 
 
@@ -15,16 +20,15 @@ def compute_domains(x: NDArray, data: NDArray) -> bool:
     Implements Sigma_i (x_i == a_0) = a_1.
     :param domains: the domains of the variables
     """
-    n = len(x)
     value = data[0]
+    ok_count_max = len(x) - np.count_nonzero((x[:, MIN] > value) | (x[:, MAX] < value))
+    ok_count_min = np.count_nonzero((x[:, MIN] == value) & (x[:, MAX] == value))
     counter = data[1]
-    ko_count = np.count_nonzero((x[:, MIN] > value) | (x[:, MAX] < value))
-    ok_count = np.count_nonzero((x[:, MIN] == value) & (x[:, MAX] == value))
-    if ok_count > counter or n - ko_count < counter:
+    if ok_count_min > counter or ok_count_max < counter:
         return False
-    if ok_count == counter:  # we cannot have more domains equal to c
+    if ok_count_min == counter:  # we cannot have more domains equal to c
         x[(x[:, MIN] == value) & (x[:, MAX] > value), MIN] = value + 1
         x[(x[:, MIN] < value) & (x[:, MAX] == value), MAX] = value - 1
-    if n - ko_count == counter:  # we cannot have more domains different from c
+    if ok_count_max == counter:  # we cannot have more domains different from c
         x[(x[:, MIN] <= value) & (value <= x[:, MAX]), :] = value
     return True

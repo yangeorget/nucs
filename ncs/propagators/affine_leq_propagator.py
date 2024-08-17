@@ -7,6 +7,11 @@ from ncs.propagators.affine_eq_propagator import compute_domain_sum
 
 
 def get_triggers(n: int, data: NDArray) -> NDArray:
+    """
+    Returns the triggers for this propagator.
+    :param n: the number of variables
+    :return: an array of triggers
+    """
     triggers = init_triggers(n, False)
     for i in range(n):
         triggers[i, MIN] = data[i] > 0

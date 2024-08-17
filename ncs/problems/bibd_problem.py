@@ -5,7 +5,7 @@ from ncs.propagators.propagators import ALG_EXACTLY_EQ, ALG_MIN
 class BIBDProblem(Problem):
     """
     A simple model for the BIBD problem.
-    See https://www.csplib.org/Problems/prob028/.
+    See https://www.csplib.org/Problems/prob028/ for a complete description of the problem.
     """
 
     def __init__(self, v: int, b: int, r: int, k: int, l: int):

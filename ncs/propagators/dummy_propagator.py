@@ -5,6 +5,11 @@ from ncs.memory import init_triggers
 
 
 def get_triggers(n: int, data: NDArray) -> NDArray:
+    """
+    This propagator is triggered whenever there is a change in the domain of a variable.
+    :param n: the number of variables
+    :return: an array of triggers
+    """
     return init_triggers(n, True)
 
 

@@ -39,6 +39,12 @@ TRIGGER_MODULES = [
 
 
 def get_triggers(algorithm: int, size: int, data: NDArray) -> NDArray:
+    """
+    Returns the triggers for a propagator.
+    :param algorithm: the ordinal of the algorithm
+    :param n: the number of variables
+    :return: an array of triggers
+    """
     return TRIGGER_MODULES[algorithm].get_triggers(size, data)
 
 
