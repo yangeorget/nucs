@@ -2,7 +2,7 @@ import numpy as np
 from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
-from ncs.memory import MAX, MIN, init_triggers
+from ncs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY, new_triggers
 
 
 def get_triggers(n: int, data: NDArray) -> NDArray:
@@ -11,7 +11,7 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
     :param n: the number of variables
     :return: an array of triggers
     """
-    return init_triggers(n, True)
+    return new_triggers(n, True)
 
 
 @jit("(uint16[:], uint16, uint16, uint16)", nopython=True, cache=True)
@@ -157,8 +157,8 @@ def filter_upper(
     return True
 
 
-@jit("boolean(int32[::1,:], int32[:])", nopython=True, cache=True)
-def compute_domains(domains: NDArray, data: NDArray) -> bool:
+@jit("int8(int32[::1,:], int32[:])", nopython=True, cache=True)
+def compute_domains(domains: NDArray, data: NDArray) -> np.int8:
     """
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
     :param domains: the domains of the variables
@@ -173,6 +173,9 @@ def compute_domains(domains: NDArray, data: NDArray) -> bool:
     t = np.zeros(bounds_nb, dtype=np.uint16)  # critical capacity pointers
     d = np.zeros(bounds_nb, dtype=np.int32)  # differences between critical capacities
     h = np.zeros(bounds_nb, dtype=np.uint16)  # Hall interval pointers
-    return filter_lower(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars) and filter_upper(
-        n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars
+    return (
+        PROP_CONSISTENCY
+        if filter_lower(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars)
+        and filter_upper(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars)
+        else PROP_INCONSISTENCY
     )

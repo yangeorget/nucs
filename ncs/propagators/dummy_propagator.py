@@ -1,7 +1,8 @@
+import numpy as np
 from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
-from ncs.memory import init_triggers
+from ncs.memory import PROP_CONSISTENCY, new_triggers
 
 
 def get_triggers(n: int, data: NDArray) -> NDArray:
@@ -10,12 +11,12 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
     :param n: the number of variables
     :return: an array of triggers
     """
-    return init_triggers(n, True)
+    return new_triggers(n, True)
 
 
-@jit("boolean(int32[::1,:], int32[:])", nopython=True, cache=True)
-def compute_domains(domains: NDArray, data: NDArray) -> bool:
+@jit("int8(int32[::1,:], int32[:])", nopython=True, cache=True)
+def compute_domains(domains: NDArray, data: NDArray) -> np.int8:
     """
     A propagator that does nothing.
     """
-    return True
+    return PROP_CONSISTENCY

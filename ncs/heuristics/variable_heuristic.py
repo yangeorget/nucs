@@ -1,5 +1,5 @@
 import sys
-from typing import Callable
+from typing import Callable, List
 
 from numba import jit  # type: ignore
 from numpy.typing import NDArray
@@ -22,11 +22,13 @@ class VariableHeuristic(Heuristic):
         self.variable_heuristic = variable_heuristic
         self.domain_heuristic = domain_heuristic
 
-    def choose(self, shr_domains: NDArray, shr_domain_changes: NDArray, dom_indices: NDArray) -> NDArray:
+    def choose(
+        self, choice_points: List[NDArray], shr_domains: NDArray, shr_domain_changes: NDArray, dom_indices: NDArray
+    ) -> None:
         var_idx = self.variable_heuristic(shr_domains, dom_indices)
         shr_domains_copy = shr_domains.copy(order="F")
         self.domain_heuristic(shr_domains, shr_domain_changes, shr_domains_copy, dom_indices[var_idx])
-        return shr_domains_copy
+        choice_points.append(shr_domains_copy)
 
 
 @jit("int16(int32[::1, :], uint16[:])", nopython=True, cache=True)

@@ -1,14 +1,12 @@
 from typing import Iterator, List, Optional
 
-from numpy.typing import NDArray
-
 from ncs.heuristics.heuristic import Heuristic
 from ncs.heuristics.variable_heuristic import (
     VariableHeuristic,
     first_not_instantiated_var_heuristic,
     min_value_dom_heuristic,
 )
-from ncs.memory import init_domain_changes
+from ncs.memory import new_domain_changes
 from ncs.problems.problem import Problem, is_solved
 from ncs.solvers.solver import Solver
 from ncs.statistics import (
@@ -32,7 +30,7 @@ class BacktrackSolver(Solver):
     ):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
-        self.shr_domain_changes = init_domain_changes(len(self.problem.shr_domains))
+        self.shr_domain_changes = new_domain_changes(len(self.problem.shr_domains))
         self.heuristic = heuristic
 
     def solve(self) -> Iterator[List[int]]:
@@ -49,10 +47,12 @@ class BacktrackSolver(Solver):
             if is_solved(self.problem.shr_domains):
                 self.problem.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 return self.problem.get_values()  # problem is solved
-            shr_domains_copy = self.heuristic.choose(
-                self.problem.shr_domains, self.shr_domain_changes, self.problem.dom_indices
+            self.heuristic.choose(
+                self.choice_points,
+                self.problem.shr_domains,
+                self.shr_domain_changes,
+                self.problem.dom_indices,
             )
-            self.choice_points.append(shr_domains_copy)
             self.problem.statistics[STATS_SOLVER_CHOICE_NB] += 1
             self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH] = max(
                 self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH], len(self.choice_points)
@@ -76,8 +76,9 @@ class BacktrackSolver(Solver):
         if len(self.choice_points) == 0:
             return False
         self.problem.statistics[STATS_SOLVER_BACKTRACK_NB] += 1
-        self.problem.shr_domains = self.choice_points.pop()
         self.shr_domain_changes[:, :] = True
+        self.problem.shr_domains = self.choice_points.pop()
+        self.problem.reset_entailed_propagators()
         return True
 
     def filter(self) -> bool:
@@ -92,4 +93,5 @@ class BacktrackSolver(Solver):
         """
         self.choice_points.clear()
         self.shr_domain_changes[:, :] = True
-        self.problem.reset()
+        self.problem.reset_shr_domains()
+        self.problem.reset_entailed_propagators()
