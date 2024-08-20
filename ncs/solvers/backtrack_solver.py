@@ -32,6 +32,7 @@ class BacktrackSolver(Solver):
     ):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
+        self.shr_domain_changes = init_domain_changes(len(self.problem.shr_domains))
         self.heuristic = heuristic
 
     def solve(self) -> Iterator[List[int]]:
@@ -44,13 +45,12 @@ class BacktrackSolver(Solver):
                 break
 
     def solve_one(self) -> Optional[List[int]]:
-        shr_domain_changes = init_domain_changes(len(self.problem.shr_domains), True)
-        while self.filter(shr_domain_changes):
+        while self.filter():
             if is_solved(self.problem.shr_domains):
                 self.problem.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 return self.problem.get_values()  # problem is solved
             shr_domains_copy = self.heuristic.choose(
-                self.problem.shr_domains, shr_domain_changes, self.problem.dom_indices
+                self.problem.shr_domains, self.shr_domain_changes, self.problem.dom_indices
             )
             self.choice_points.append(shr_domains_copy)
             self.problem.statistics[STATS_SOLVER_CHOICE_NB] += 1
@@ -77,13 +77,13 @@ class BacktrackSolver(Solver):
             return False
         self.problem.statistics[STATS_SOLVER_BACKTRACK_NB] += 1
         self.problem.shr_domains = self.choice_points.pop()
+        self.shr_domain_changes[:, :] = True
         return True
 
-    def filter(self, shr_dom_changes: NDArray) -> bool:
-        while not self.problem.filter(shr_dom_changes):
+    def filter(self) -> bool:
+        while not self.problem.filter(self.shr_domain_changes):
             if not self.backtrack():
                 return False
-            shr_dom_changes[:, :] = True
         return True
 
     def reset(self) -> None:
@@ -91,4 +91,5 @@ class BacktrackSolver(Solver):
         Resets the solver by resetting the problem and the choice points.
         """
         self.choice_points.clear()
+        self.shr_domain_changes[:, :] = True
         self.problem.reset()

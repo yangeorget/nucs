@@ -42,11 +42,8 @@ def init_data(n: int) -> NDArray:
     return np.empty(n, dtype=np.int32, order="C")
 
 
-def init_domain_changes(n: int, init_value: bool) -> NDArray:
-    if init_value:
-        return np.ones((n, 2), dtype=bool, order="F")
-    else:
-        return np.zeros((n, 2), dtype=bool, order="F")
+def init_domain_changes(n: int) -> NDArray:
+    return np.ones((n, 2), dtype=bool, order="F")
 
 
 def init_triggers(n: int, init_value: bool) -> NDArray:
