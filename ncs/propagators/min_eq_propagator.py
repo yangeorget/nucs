@@ -24,7 +24,6 @@ def compute_domains(domains: NDArray, data: NDArray) -> np.int8:
     Implements Min_i x_i = x_{n-1}.
     :param domains: the domains of the variables
     """
-    # TODO: implement entailment ???
     x = domains[:-1]
     y = domains[-1]
     y[MIN] = max(y[MIN], np.min(x[:, MIN]))

@@ -2,7 +2,14 @@ import numpy as np
 from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
-from ncs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY, new_triggers, PROP_ENTAILMENT
+from ncs.memory import (
+    MAX,
+    MIN,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+    new_triggers,
+)
 
 
 def get_triggers(n: int, data: NDArray) -> NDArray:

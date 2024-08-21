@@ -1,6 +1,12 @@
 import numpy as np
 
-from ncs.memory import new_data_by_values, new_domains_by_values, PROP_INCONSISTENCY, PROP_CONSISTENCY, PROP_ENTAILMENT
+from ncs.memory import (
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+    new_data_by_values,
+    new_domains_by_values,
+)
 from ncs.propagators.propagators import ALG_COUNT_EQ, compute_domains
 
 

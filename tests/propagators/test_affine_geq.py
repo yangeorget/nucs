@@ -1,6 +1,11 @@
 import numpy as np
 
-from ncs.memory import new_data_by_values, new_domains_by_values, PROP_CONSISTENCY, PROP_ENTAILMENT
+from ncs.memory import (
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    new_data_by_values,
+    new_domains_by_values,
+)
 from ncs.propagators.propagators import ALG_AFFINE_GEQ, compute_domains, get_triggers
 
 

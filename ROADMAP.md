@@ -2,7 +2,6 @@
 Numba profiler
 
 # Engine
-- entailment: for all propagators, also write tests
 - compute_domains dispatch, see https://numba.readthedocs.io/en/0.55.0/user/generated-jit.html 
 - choice points pruning
 
