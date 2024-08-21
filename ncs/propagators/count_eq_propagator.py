@@ -21,8 +21,8 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
     return new_triggers(n, True)
 
 
-@jit("int8(int32[::1,:], int32[:])", nopython=True, cache=True)
-def compute_domains(domains: NDArray, data: NDArray) -> np.int8:
+@jit("int64(int32[::1,:], int32[:])", nopython=True, cache=True)
+def compute_domains(domains: NDArray, data: NDArray) -> int:
     """
     Implements Sigma_i (x_i == a) = x_{n-1}.
     :param domains: the domains of the variables

@@ -2,9 +2,10 @@ import numpy as np
 
 from ncs.memory import (
     PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
     new_data_by_values,
-    new_domains_by_values, PROP_ENTAILMENT,
+    new_domains_by_values,
 )
 from ncs.propagators.propagators import ALG_MIN_GEQ, compute_domains
 
@@ -37,5 +38,3 @@ class TestMinGEQ:
         data = new_data_by_values([])
         assert compute_domains(ALG_MIN_GEQ, domains, data) == PROP_CONSISTENCY
         assert np.all(domains == np.array([[1, 1], [1, 1], [1, 1]]))
-
-

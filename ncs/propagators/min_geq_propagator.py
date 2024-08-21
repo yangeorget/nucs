@@ -2,7 +2,14 @@ import numpy as np
 from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
-from ncs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY, new_triggers, PROP_ENTAILMENT
+from ncs.memory import (
+    MAX,
+    MIN,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+    new_triggers,
+)
 
 
 def get_triggers(n: int, data: NDArray) -> NDArray:
@@ -18,8 +25,8 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
     return triggers
 
 
-@jit("int8(int32[::1,:], int32[:])", nopython=True, cache=True)
-def compute_domains(domains: NDArray, data: NDArray) -> np.int8:
+@jit("int64(int32[::1,:], int32[:])", nopython=True, cache=True)
+def compute_domains(domains: NDArray, data: NDArray) -> int:
     """
     Implements Min_i x_i >= x_{n-1}.
     :param domains: the domains of the variables

@@ -6,6 +6,7 @@ from ncs.memory import (
     new_data_by_values,
     new_domains_by_values,
 )
+from ncs.problems.problem import Problem
 from ncs.propagators.propagators import ALG_AFFINE_LEQ, compute_domains, get_triggers
 
 
@@ -31,3 +32,18 @@ class TestAffineLEQ:
         data = new_data_by_values([1, 1, 5])
         assert compute_domains(ALG_AFFINE_LEQ, domains, data) == PROP_ENTAILMENT
         assert np.all(domains == np.array([[2, 3], [1, 2]]))
+
+    def test_filter(self) -> None:
+        problem = Problem(
+            shr_domains=[(0, 2), (0, 2), (0, 2)],
+            dom_indices=[0, 1, 2],
+            dom_offsets=[0, 0, 0],
+        )
+        problem.set_propagators(
+            [
+                ([0, 1], ALG_AFFINE_LEQ, [-1, 1, -1]),
+                ([1, 2], ALG_AFFINE_LEQ, [-1, 1, -1]),
+                ([2, 0], ALG_AFFINE_LEQ, [-1, 1, -1]),
+            ]
+        )
+        assert not problem.filter(np.ones((3, 2), dtype=bool))

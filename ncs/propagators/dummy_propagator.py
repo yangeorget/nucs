@@ -1,4 +1,3 @@
-import numpy as np
 from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
@@ -14,8 +13,8 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
     return new_triggers(n, True)
 
 
-@jit("int8(int32[::1,:], int32[:])", nopython=True, cache=True)
-def compute_domains(domains: NDArray, data: NDArray) -> np.int8:
+@jit("int64(int32[::1,:], int32[:])", nopython=True, cache=True)
+def compute_domains(domains: NDArray, data: NDArray) -> int:
     """
     A propagator that does nothing.
     """

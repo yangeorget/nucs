@@ -1,5 +1,9 @@
 from ncs.problems.problem import Problem
-from ncs.propagators.propagators import ALG_EXACTLY_EQ, ALG_MIN_EQ
+from ncs.propagators.propagators import (
+    ALG_EXACTLY_EQ,
+    ALG_LEXICOGRAPHIC_LEQ,
+    ALG_MIN_EQ,
+)
 
 
 class BIBDProblem(Problem):
@@ -21,8 +25,8 @@ class BIBDProblem(Problem):
         for i in range(0, v):
             propagators.append((list(range(i * b, (i + 1) * b)), ALG_EXACTLY_EQ, [1, r]))
         # columns: counts
-        for i in range(0, b):
-            propagators.append((list(range(i, v * b, b)), ALG_EXACTLY_EQ, [1, k]))
+        for j in range(0, b):
+            propagators.append((list(range(j, v * b, b)), ALG_EXACTLY_EQ, [1, k]))
         # scalar products: conjunctions and counts
         conj_idx = v * b
         for i1 in range(0, v - 1):
@@ -35,5 +39,9 @@ class BIBDProblem(Problem):
                 propagators.append((conj_vars, ALG_EXACTLY_EQ, [1, l]))
         # remove symmetries
         # lexleq on rows
+        for i in range(0, v - 1):
+            propagators.append((list(range(i * b, (i + 2) * b)), ALG_LEXICOGRAPHIC_LEQ, []))
         # lexleq on columns
+        for j in range(0, b - 1):
+            propagators.append((list(range(j, v * b, b)) + list(range(j + 1, v * b, b)), ALG_LEXICOGRAPHIC_LEQ, []))
         self.set_propagators(propagators)

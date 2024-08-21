@@ -2,9 +2,10 @@ import numpy as np
 
 from ncs.memory import (
     PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
     new_data_by_values,
-    new_domains_by_values, PROP_ENTAILMENT,
+    new_domains_by_values,
 )
 from ncs.propagators.propagators import ALG_MAX_LEQ, compute_domains
 
@@ -37,4 +38,3 @@ class TestMaxLEQ:
         data = new_data_by_values([])
         assert compute_domains(ALG_MAX_LEQ, domains, data) == PROP_CONSISTENCY
         assert np.all(domains == np.array([[0, 0], [0, 0], [0, 0]]))
-

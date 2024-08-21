@@ -6,7 +6,6 @@ Numba profiler
 - choice points pruning
 
 # Constraints
-- lexleq
 - element
 
 # Problems

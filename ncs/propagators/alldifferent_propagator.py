@@ -157,8 +157,8 @@ def filter_upper(
     return True
 
 
-@jit("int8(int32[::1,:], int32[:])", nopython=True, cache=True)
-def compute_domains(domains: NDArray, data: NDArray) -> np.int8:
+@jit("int64(int32[::1,:], int32[:])", nopython=True, cache=True)
+def compute_domains(domains: NDArray, data: NDArray) -> int:
     """
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
     :param domains: the domains of the variables

@@ -1,4 +1,3 @@
-import numpy as np
 from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
@@ -11,6 +10,7 @@ from ncs.propagators import (
     count_eq_propagator,
     dummy_propagator,
     exactly_eq_propagator,
+    lexicographic_leq_propagator,
     max_eq_propagator,
     max_leq_propagator,
     min_eq_propagator,
@@ -24,10 +24,11 @@ ALG_ALLDIFFERENT = 3
 ALG_COUNT_EQ = 4
 ALG_DUMMY = 5
 ALG_EXACTLY_EQ = 6
-ALG_MAX_EQ = 7
-ALG_MAX_LEQ = 8
-ALG_MIN_EQ = 9
-ALG_MIN_GEQ = 10
+ALG_LEXICOGRAPHIC_LEQ = 7
+ALG_MAX_EQ = 8
+ALG_MAX_LEQ = 9
+ALG_MIN_EQ = 10
+ALG_MIN_GEQ = 11
 
 TRIGGER_MODULES = [
     affine_eq_propagator,
@@ -37,6 +38,7 @@ TRIGGER_MODULES = [
     count_eq_propagator,
     dummy_propagator,
     exactly_eq_propagator,
+    lexicographic_leq_propagator,
     max_eq_propagator,
     max_leq_propagator,
     min_eq_propagator,
@@ -54,8 +56,8 @@ def get_triggers(algorithm: int, size: int, data: NDArray) -> NDArray:
     return TRIGGER_MODULES[algorithm].get_triggers(size, data)
 
 
-@jit("int8(uint8, int32[::1,:], int32[:])", nopython=True, cache=True)
-def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> np.int8:
+@jit("int64(uint8, int32[::1,:], int32[:])", nopython=True, cache=True)
+def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> int:
     """
     Computes the new domains for the variables.
     :param domains: the initial domains of the variables
@@ -75,6 +77,8 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> np.int8:
         return dummy_propagator.compute_domains(domains, data)
     if algorithm == ALG_EXACTLY_EQ:
         return exactly_eq_propagator.compute_domains(domains, data)
+    if algorithm == ALG_LEXICOGRAPHIC_LEQ:
+        return lexicographic_leq_propagator.compute_domains(domains, data)
     if algorithm == ALG_MAX_EQ:
         return max_eq_propagator.compute_domains(domains, data)
     if algorithm == ALG_MAX_LEQ:
