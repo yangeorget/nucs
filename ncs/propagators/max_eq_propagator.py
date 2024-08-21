@@ -24,6 +24,7 @@ def compute_domains(domains: NDArray, data: NDArray) -> int:
     """
     x = domains[:-1]
     y = domains[-1]
+    # TODO: check entailment
     y[MIN] = max(y[MIN], np.max(x[:, MIN]))
     y[MAX] = min(y[MAX], np.max(x[:, MAX]))
     if y[MIN] > y[MAX]:

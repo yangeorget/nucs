@@ -6,6 +6,7 @@ Numba profiler
 - choice points pruning
 
 # Constraints
+- GCC
 - element
 
 # Problems
