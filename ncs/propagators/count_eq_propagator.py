@@ -2,7 +2,7 @@ import numpy as np
 from numba import jit  # type: ignore
 from numpy.typing import NDArray
 
-from ncs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY, new_triggers
+from ncs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY, new_triggers, PROP_ENTAILMENT
 
 
 def get_triggers(n: int, data: NDArray) -> NDArray:
@@ -20,7 +20,6 @@ def compute_domains(domains: NDArray, data: NDArray) -> np.int8:
     Implements Sigma_i (x_i == a) = x_{n-1}.
     :param domains: the domains of the variables
     """
-    # TODO: implement entailment
     x = domains[:-1]
     value = data[0]
     ok_count_max = len(x) - np.count_nonzero((x[:, MIN] > value) | (x[:, MAX] < value))
@@ -30,6 +29,8 @@ def compute_domains(domains: NDArray, data: NDArray) -> np.int8:
     counter[MAX] = min(counter[MAX], ok_count_max)
     if counter[MIN] > counter[MAX]:
         return PROP_INCONSISTENCY
+    if ok_count_min == ok_count_max:
+        return PROP_ENTAILMENT
     if ok_count_min == counter[MAX]:  # we cannot have more domains equal to c
         x[(x[:, MIN] == value) & (x[:, MAX] > value), MIN] = value + 1
         x[(x[:, MIN] < value) & (x[:, MAX] == value), MAX] = value - 1

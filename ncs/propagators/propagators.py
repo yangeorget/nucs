@@ -11,8 +11,8 @@ from ncs.propagators import (
     count_eq_propagator,
     dummy_propagator,
     exactly_eq_propagator,
-    max_propagator,
-    min_propagator,
+    max_eq_propagator,
+    min_eq_propagator,
 )
 
 ALG_AFFINE_EQ = 0
@@ -22,8 +22,8 @@ ALG_ALLDIFFERENT = 3
 ALG_COUNT_EQ = 4
 ALG_DUMMY = 5
 ALG_EXACTLY_EQ = 6
-ALG_MAX = 7
-ALG_MIN = 8
+ALG_MAX_EQ = 7
+ALG_MIN_EQ = 8
 
 
 TRIGGER_MODULES = [
@@ -34,8 +34,8 @@ TRIGGER_MODULES = [
     count_eq_propagator,
     dummy_propagator,
     exactly_eq_propagator,
-    max_propagator,
-    min_propagator,
+    max_eq_propagator,
+    min_eq_propagator,
 ]
 
 
@@ -70,9 +70,9 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> np.int8:
         return dummy_propagator.compute_domains(domains, data)
     if algorithm == ALG_EXACTLY_EQ:
         return exactly_eq_propagator.compute_domains(domains, data)
-    if algorithm == ALG_MAX:
-        return max_propagator.compute_domains(domains, data)
-    return min_propagator.compute_domains(domains, data)
+    if algorithm == ALG_MAX_EQ:
+        return max_eq_propagator.compute_domains(domains, data)
+    return min_eq_propagator.compute_domains(domains, data)
 
 
 @jit(nopython=True, cache=True)

@@ -1,5 +1,5 @@
 from ncs.problems.problem import Problem
-from ncs.propagators.propagators import ALG_EXACTLY_EQ, ALG_MIN
+from ncs.propagators.propagators import ALG_EXACTLY_EQ, ALG_MIN_EQ
 
 
 class BIBDProblem(Problem):
@@ -29,7 +29,7 @@ class BIBDProblem(Problem):
             for i2 in range(i1 + 1, v):
                 conj_vars = []
                 for j in range(0, b):
-                    propagators.append(([(i1 * b + j), (i2 * b + j), conj_idx], ALG_MIN, []))
+                    propagators.append(([(i1 * b + j), (i2 * b + j), conj_idx], ALG_MIN_EQ, []))
                     conj_vars.append(conj_idx)
                     conj_idx += 1
                 propagators.append((conj_vars, ALG_EXACTLY_EQ, [1, l]))
