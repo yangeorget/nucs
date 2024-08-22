@@ -1,0 +1,7 @@
+black==24.2.0
+build==1.2.1
+flake8==7.0.0
+isort==5.13.2
+mypy==1.9.0
+pytest==8.2.2
+twine==5.1.1

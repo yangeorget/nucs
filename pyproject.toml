@@ -1,12 +1,12 @@
 [project]
 name="NUCS"
-version="0.1"
+version="0.1.1"
 authors = [
   { name="Yan Georget", email="yan.georget@gmail.com" },
 ]
 description="A Numpy and Numba based Python library for solving Constraint Satifaction Problems"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",

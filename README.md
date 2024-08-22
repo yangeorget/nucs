@@ -2,45 +2,45 @@
 
 ## TLDR
 NUCS is a Python library for solving Constraint Satisfaction and Optimization Problems.
-
 NUCS is powered by Numpy (https://numpy.org/) and Numba (https://numba.pydata.org/).
-
 NUCS is fast and easy to use.
 
 
 ## How to use NUCS ?
 It is very simple to get started with NUCS.
-Either clone the Github repository or install the package.
+Either clone the Github repository or install the Pip package.
 
 ### Clone the NUCS Github repository
 Let's install NUCS from the source:
-```
+```bash
 git clone https://github.com/yangeorget/nucs.git
 pip install -r requirements.txt
 ```
 
-From there, you can launch some NUCS examples.
-Note that the second run will be much faster since the Python code will have been compiled.
+From there, you can launch some NUCS examples.  
+
+> Note that the second run will be much faster since the Python code will have been compiled.
 
 #### Run the NUCS tests
-```
+```bash
+pip install -r requirements-dev.txt
 NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. pytest tests/
 ```
 
 #### Run some examples
 Find all solutions to the 12-queens problem:
-```
+```bash
 NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_queens.py -n 12
 ```
 
 Find the optimal solution to the Golomb ruler problem with 10 marks:
-```
+```bash
 NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_golomb.py -n 10
 ```
 
 ### Install the NUCS package
-```
-pip install nucs
+```bash
+pip3 install nucs
 ````
 
 ## Why Python ?
