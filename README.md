@@ -42,6 +42,7 @@ The first solution found is:
 ```bash
 [0, 4, 7, 5, 2, 6, 1, 3]
 ```
+> Note that the second run will always be much faster since the Python code will have been compiled by Numba.
 
 ### Install NUCS from the sources 
 Let's install NUCS from the sources by cloning the NUCS Github repository:
@@ -49,10 +50,7 @@ Let's install NUCS from the sources by cloning the NUCS Github repository:
 git clone https://github.com/yangeorget/nucs.git
 pip install -r requirements.txt
 ```
-
 From there, we will launch some NUCS examples.  
-
-> Note that the second run will always be much faster since the Python code will have been compiled by Numba.
 
 #### Run the NUCS test suite
 Let's run the NUCS test suite with Pytest:
@@ -61,7 +59,11 @@ pip install -r requirements-dev.txt
 NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. pytest tests/
 ```
 
+Have a look at the NUCS tests, they include models for common constraint satisfaction problems.
+
 #### Run some other examples
+Some of the examples come with a CLI and can be run without Pytest.
+
 Let's find all solutions to the [12-queens problem](https://www.csplib.org/Problems/prob054/):
 ```bash
 NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_queens.py -n 12
