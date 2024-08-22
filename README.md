@@ -47,7 +47,8 @@ Now you can write the following queens.py program:
 from nucs.problems.problem import Problem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.propagators.propagators import ALG_ALLDIFFERENT
-n = 8" >> queens.py
+
+n = 8
 problem = Problem(shr_domains=[(0, n - 1)] * n, dom_indices=list(range(n)) * 3, dom_offsets=[0] * n + list(range(n)) + list(range(0, -n, -1)))
 problem.set_propagators([(list(range(n)), ALG_ALLDIFFERENT, []), (list(range(n, 2 * n)), ALG_ALLDIFFERENT, []), (list(range(2 * n, 3 * n)), ALG_ALLDIFFERENT, [])])
 print(BacktrackSolver(problem).solve_one())
