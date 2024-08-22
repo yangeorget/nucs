@@ -8,11 +8,11 @@ NUCS is powered by Numpy (https://numpy.org/) and Numba (https://numba.pydata.or
 NUCS is fast and easy to use.
 
 
-## How to use NCS ?
+## How to use NUCS ?
 It is very simple to get started with NUCS.
 Either clone the Github repository or install the package.
 
-### Clone the NCS Github repository
+### Clone the NUCS Github repository
 Let's install NUCS from the source:
 ```
 git clone https://github.com/yangeorget/nucs.git
@@ -38,7 +38,7 @@ Find the optimal solution to the Golomb ruler problem with 10 marks:
 NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_golomb.py -n 10
 ```
 
-### Install the NCS package
+### Install the NUCS package
 ```
 pip install nucs
 ````
