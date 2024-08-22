@@ -8,36 +8,7 @@ NUCS is fast and easy to use.
 
 ## How to use NUCS ?
 It is very simple to get started with NUCS.
-You can either install NUCS from the sources or install the Pip package.
-
-### Install from the sources 
-Let's install NUCS from the sources by cloning the NUCS Github repository:
-```bash
-git clone https://github.com/yangeorget/nucs.git
-pip install -r requirements.txt
-```
-
-From there, we will launch some NUCS examples.  
-
-> Note that the second run will be much faster since the Python code will have been compiled by Numba.
-
-#### Run the NUCS test suite
-Let's run the NUCS test suite with Pytest:
-```bash
-pip install -r requirements-dev.txt
-NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. pytest tests/
-```
-
-#### Run some other examples
-Let's find all solutions to the [12-queens problem](https://www.csplib.org/Problems/prob054/):
-```bash
-NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_queens.py -n 12
-```
-
-Let's find the optimal solution to the [Golomb ruler problem](https://www.csplib.org/Problems/prob006/) with 10 marks:
-```bash
-NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_golomb.py -n 10
-```
+You can either install the Pip package or install NUCS from the sources.
 
 ### Install the NUCS package
 Let's install the Pip package for NUCS:
@@ -70,6 +41,35 @@ PYTHONPATH=. python3 queens.py
 The first solution found is:
 ```bash
 [0, 4, 7, 5, 2, 6, 1, 3]
+```
+
+### Install NUCS from the sources 
+Let's install NUCS from the sources by cloning the NUCS Github repository:
+```bash
+git clone https://github.com/yangeorget/nucs.git
+pip install -r requirements.txt
+```
+
+From there, we will launch some NUCS examples.  
+
+> Note that the second run will always be much faster since the Python code will have been compiled by Numba.
+
+#### Run the NUCS test suite
+Let's run the NUCS test suite with Pytest:
+```bash
+pip install -r requirements-dev.txt
+NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. pytest tests/
+```
+
+#### Run some other examples
+Let's find all solutions to the [12-queens problem](https://www.csplib.org/Problems/prob054/):
+```bash
+NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_queens.py -n 12
+```
+
+Let's find the optimal solution to the [Golomb ruler problem](https://www.csplib.org/Problems/prob006/) with 10 marks:
+```bash
+NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_golomb.py -n 10
 ```
 
 ## Why Python ?
