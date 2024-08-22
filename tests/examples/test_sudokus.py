@@ -1,6 +1,6 @@
-from ncs.problems.sudoku_problem import SudokuProblem
-from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.statistics import STATS_SOLVER_SOLUTION_NB
+from nucs.problems.sudoku_problem import SudokuProblem
+from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_SOLVER_SOLUTION_NB
 
 
 class TestSudokus:

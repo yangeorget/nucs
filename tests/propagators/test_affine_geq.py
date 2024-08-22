@@ -1,12 +1,12 @@
 import numpy as np
 
-from ncs.memory import (
+from nucs.memory import (
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     new_data_by_values,
     new_domains_by_values,
 )
-from ncs.propagators.propagators import ALG_AFFINE_GEQ, compute_domains, get_triggers
+from nucs.propagators.propagators import ALG_AFFINE_GEQ, compute_domains, get_triggers
 
 
 class TestAffineGEQ:

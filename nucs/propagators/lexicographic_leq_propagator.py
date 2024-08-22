@@ -1,7 +1,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from ncs.memory import (
+from nucs.memory import (
     MAX,
     MIN,
     PROP_CONSISTENCY,

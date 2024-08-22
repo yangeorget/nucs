@@ -1,15 +1,15 @@
 from typing import Iterator, List, Optional
 
-from ncs.heuristics.heuristic import Heuristic
-from ncs.heuristics.variable_heuristic import (
+from nucs.heuristics.heuristic import Heuristic
+from nucs.heuristics.variable_heuristic import (
     VariableHeuristic,
     first_not_instantiated_var_heuristic,
     min_value_dom_heuristic,
 )
-from ncs.memory import new_domain_changes
-from ncs.problems.problem import Problem, is_solved
-from ncs.solvers.solver import Solver
-from ncs.statistics import (
+from nucs.memory import new_domain_changes
+from nucs.problems.problem import Problem, is_solved
+from nucs.solvers.solver import Solver
+from nucs.statistics import (
     STATS_OPTIMIZER_SOLUTION_NB,
     STATS_SOLVER_BACKTRACK_NB,
     STATS_SOLVER_CHOICE_DEPTH,

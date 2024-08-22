@@ -1,13 +1,13 @@
 import numpy as np
 
-from ncs.memory import (
+from nucs.memory import (
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     new_data_by_values,
     new_domains_by_values,
 )
-from ncs.problems.problem import Problem
-from ncs.propagators.propagators import ALG_AFFINE_LEQ, compute_domains, get_triggers
+from nucs.problems.problem import Problem
+from nucs.propagators.propagators import ALG_AFFINE_LEQ, compute_domains, get_triggers
 
 
 class TestAffineLEQ:

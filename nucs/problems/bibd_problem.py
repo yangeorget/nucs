@@ -1,5 +1,5 @@
-from ncs.problems.problem import Problem
-from ncs.propagators.propagators import (
+from nucs.problems.problem import Problem
+from nucs.propagators.propagators import (
     ALG_EXACTLY_EQ,
     ALG_LEXICOGRAPHIC_LEQ,
     ALG_MIN_EQ,

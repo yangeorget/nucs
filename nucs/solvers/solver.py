@@ -1,6 +1,6 @@
 from typing import Iterator, List, Optional
 
-from ncs.problems.problem import Problem
+from nucs.problems.problem import Problem
 
 
 class Solver:

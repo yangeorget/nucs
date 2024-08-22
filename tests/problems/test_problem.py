@@ -1,5 +1,5 @@
-from ncs.memory import MAX, MIN
-from ncs.problems.problem import Problem, is_solved
+from nucs.memory import MAX, MIN
+from nucs.problems.problem import Problem, is_solved
 
 
 class TestProblem:

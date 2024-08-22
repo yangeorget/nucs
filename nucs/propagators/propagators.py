@@ -1,8 +1,8 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from ncs.memory import END, MAX, MIN, START
-from ncs.propagators import (
+from nucs.memory import END, MAX, MIN, START
+from nucs.propagators import (
     affine_eq_propagator,
     affine_geq_propagator,
     affine_leq_propagator,

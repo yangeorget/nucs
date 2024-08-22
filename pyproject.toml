@@ -1,5 +1,5 @@
 [project]
-name="NCS"
+name="NUCS"
 version="0.1"
 authors = [
   { name="Yan Georget", email="yan.georget@gmail.com" },
@@ -16,8 +16,8 @@ dependencies = [
     "numpy==2.0.1",
 ]
 [project.urls]
-Homepage = "https://github.com/yangeorget/ncs"
-Issues = "https://github.com/yangeorget/ncs"
+Homepage = "https://github.com/yangeorget/nucs"
+Issues = "https://github.com/yangeorget/nucs"
 
 [build-system]
 requires = ["setuptools>=61.0"]

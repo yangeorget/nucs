@@ -5,7 +5,7 @@ from numba import njit  # type: ignore
 from numba.typed import List
 from numpy.typing import NDArray
 
-from ncs.memory import (
+from nucs.memory import (
     END,
     MAX,
     MIN,
@@ -24,13 +24,13 @@ from ncs.memory import (
     new_triggered_propagators,
     new_triggers,
 )
-from ncs.propagators.propagators import (
+from nucs.propagators.propagators import (
     compute_domains,
     get_triggers,
     init_triggered_propagators,
     update_triggered_propagators,
 )
-from ncs.statistics import (
+from nucs.statistics import (
     STATS_PROBLEM_FILTER_NB,
     STATS_PROPAGATOR_ENTAILMENT_NB,
     STATS_PROPAGATOR_FILTER_NB,

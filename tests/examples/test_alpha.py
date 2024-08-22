@@ -1,11 +1,11 @@
-from ncs.heuristics.variable_heuristic import (
+from nucs.heuristics.variable_heuristic import (
     VariableHeuristic,
     min_value_dom_heuristic,
     smallest_domain_var_heuristic,
 )
-from ncs.problems.alpha_problem import AlphaProblem
-from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.statistics import STATS_SOLVER_SOLUTION_NB, statistics_print
+from nucs.problems.alpha_problem import AlphaProblem
+from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_SOLVER_SOLUTION_NB, statistics_print
 
 
 class TestAlpha:

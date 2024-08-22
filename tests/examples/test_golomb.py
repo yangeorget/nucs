@@ -3,10 +3,10 @@ import argparse
 import numpy as np
 import pytest
 
-from ncs.memory import MIN
-from ncs.problems.golomb_problem import GolombProblem, index, init_domains
-from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.statistics import statistics_print
+from nucs.memory import MIN
+from nucs.problems.golomb_problem import GolombProblem, index, init_domains
+from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import statistics_print
 
 
 class TestGolomb:

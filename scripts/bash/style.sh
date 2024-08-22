@@ -1,10 +1,10 @@
 #!/bin/bash
 
 echo "Running isort" && \
-isort --trailing-comma ncs tests && \
+isort --trailing-comma nucs tests && \
 echo "Running black" && \
-black ncs tests && \
+black nucs tests && \
 echo "Running flake8" && \
-flake8 ncs tests && \
+flake8 nucs tests && \
 echo "Running mypy" && \
-mypy --disallow-untyped-defs --ignore-missing-imports ncs tests
+mypy --disallow-untyped-defs --ignore-missing-imports nucs tests

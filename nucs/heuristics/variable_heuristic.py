@@ -4,8 +4,8 @@ from typing import Callable, List
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from ncs.heuristics.heuristic import Heuristic
-from ncs.memory import MAX, MIN
+from nucs.heuristics.heuristic import Heuristic
+from nucs.memory import MAX, MIN
 
 
 class VariableHeuristic(Heuristic):

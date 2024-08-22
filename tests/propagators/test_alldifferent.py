@@ -1,8 +1,8 @@
 import numpy as np
 
-from ncs.memory import PROP_CONSISTENCY, new_data_by_values, new_domains_by_values
-from ncs.problems.problem import Problem
-from ncs.propagators.propagators import ALG_ALLDIFFERENT, compute_domains
+from nucs.memory import PROP_CONSISTENCY, new_data_by_values, new_domains_by_values
+from nucs.problems.problem import Problem
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, compute_domains
 
 
 class TestAlldifferent:

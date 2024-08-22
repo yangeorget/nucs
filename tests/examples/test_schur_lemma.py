@@ -1,8 +1,8 @@
 import pytest
 
-from ncs.problems.schur_lemma_problem import SchurLemmaProblem
-from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.statistics import STATS_SOLVER_SOLUTION_NB
+from nucs.problems.schur_lemma_problem import SchurLemmaProblem
+from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_SOLVER_SOLUTION_NB
 
 
 class TestSchurLemma:

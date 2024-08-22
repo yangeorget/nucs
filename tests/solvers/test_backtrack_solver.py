@@ -1,7 +1,7 @@
-from ncs.problems.problem import Problem
-from ncs.propagators.propagators import ALG_ALLDIFFERENT, ALG_DUMMY
-from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.statistics import STATS_SOLVER_CHOICE_DEPTH, STATS_SOLVER_SOLUTION_NB
+from nucs.problems.problem import Problem
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_DUMMY
+from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_SOLVER_CHOICE_DEPTH, STATS_SOLVER_SOLUTION_NB
 
 
 class TestBacktrackSolver:

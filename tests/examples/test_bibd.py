@@ -1,6 +1,6 @@
-from ncs.problems.bibd_problem import BIBDProblem
-from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.statistics import STATS_SOLVER_SOLUTION_NB, statistics_print
+from nucs.problems.bibd_problem import BIBDProblem
+from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_SOLVER_SOLUTION_NB, statistics_print
 
 
 class TestBIBD:

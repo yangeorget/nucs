@@ -2,15 +2,15 @@ import argparse
 
 import pytest
 
-from ncs.heuristics.variable_heuristic import (
+from nucs.heuristics.variable_heuristic import (
     VariableHeuristic,
     first_not_instantiated_var_heuristic,
     min_value_dom_heuristic,
     smallest_domain_var_heuristic,
 )
-from ncs.problems.queens_problem import QueensProblem
-from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.statistics import STATS_SOLVER_SOLUTION_NB, statistics_print
+from nucs.problems.queens_problem import QueensProblem
+from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_SOLVER_SOLUTION_NB, statistics_print
 
 
 class TestQueens:

@@ -3,17 +3,17 @@ from typing import Any
 import numpy as np
 import pytest
 
-from ncs.memory import (
+from nucs.memory import (
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
     new_data_by_values,
     new_domains_by_values,
 )
-from ncs.problems.problem import Problem
-from ncs.propagators.propagators import ALG_LEXICOGRAPHIC_LEQ, compute_domains
-from ncs.solvers.backtrack_solver import BacktrackSolver
-from ncs.statistics import STATS_SOLVER_SOLUTION_NB
+from nucs.problems.problem import Problem
+from nucs.propagators.propagators import ALG_LEXICOGRAPHIC_LEQ, compute_domains
+from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_SOLVER_SOLUTION_NB
 
 
 class TestLexicographicLEQ:

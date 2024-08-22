@@ -1,7 +1,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from ncs.memory import PROP_CONSISTENCY, new_triggers
+from nucs.memory import PROP_CONSISTENCY, new_triggers
 
 
 def get_triggers(n: int, data: NDArray) -> NDArray:

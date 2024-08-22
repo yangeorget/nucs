@@ -1,28 +1,28 @@
-# NCS
+# NUCS
 
 ## TLDR
-NCS is a Python library for solving Constraint Satisfaction and Optimization Problems.
+NUCS is a Python library for solving Constraint Satisfaction and Optimization Problems.
 
-NCS is powered by Numpy (https://numpy.org/) and Numba (https://numba.pydata.org/).
+NUCS is powered by Numpy (https://numpy.org/) and Numba (https://numba.pydata.org/).
 
-NCS is fast and easy to use.
+NUCS is fast and easy to use.
 
 
 ## How to use NCS ?
-It is very simple to get started with NCS.
+It is very simple to get started with NUCS.
 Either clone the Github repository or install the package.
 
 ### Clone the NCS Github repository
-Let's install NCS from the source:
+Let's install NUCS from the source:
 ```
-git clone https://github.com/yangeorget/ncs.git
+git clone https://github.com/yangeorget/nucs.git
 pip install -r requirements.txt
 ```
 
-From there, you can launch some NCS examples.
+From there, you can launch some NUCS examples.
 Note that the second run will be much faster since the Python code will have been compiled.
 
-#### Run the NCS tests
+#### Run the NUCS tests
 ```
 NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. pytest tests/
 ```
@@ -40,11 +40,11 @@ NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_golomb.py 
 
 ### Install the NCS package
 ```
-pip install ncs
+pip install nucs
 ````
 
 ## Why Python ?
-NCS is a Python library leveraging Numpy and Numba.
+NUCS is a Python library leveraging Numpy and Numba.
 
 Python is a powerful and flexible programing language that allows to express complex problems in a few lines of code.
 

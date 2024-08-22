@@ -1,13 +1,13 @@
 import numpy as np
 
-from ncs.memory import (
+from nucs.memory import (
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
     new_data_by_values,
     new_domains_by_values,
 )
-from ncs.propagators.propagators import ALG_MAX_LEQ, compute_domains
+from nucs.propagators.propagators import ALG_MAX_LEQ, compute_domains
 
 
 class TestMaxLEQ:
