@@ -2,7 +2,7 @@
 
 ## TLDR
 NUCS is a Python library for solving Constraint Satisfaction and Optimization Problems.
-NUCS is powered by Numpy (https://numpy.org/) and Numba (https://numba.pydata.org/).
+NUCS is powered by [Numpy](https://numpy.org/) and [Numba](https://numba.pydata.org/).
 NUCS is fast and easy to use.
 
 

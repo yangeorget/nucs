@@ -1,5 +1,6 @@
 # Misc
 Numba profiler
+Fix docs of examples
 
 # Engine
 - compute_domains dispatch, see https://numba.readthedocs.io/en/0.55.0/user/generated-jit.html 
