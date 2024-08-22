@@ -42,7 +42,7 @@ NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_golomb.py 
 ```bash
 pip3 install nucs
 ````
-Now you can write the following queens.py program:
+Now you can write the following `queens.py` program:
 ```python
 from nucs.problems.problem import Problem
 from nucs.solvers.backtrack_solver import BacktrackSolver
