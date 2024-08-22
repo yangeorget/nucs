@@ -7,11 +7,13 @@ Numba profiler
 
 # Constraints
 - GCC
+- cycle
 - element
 
 # Problems
+- RoundRobin
+- Job-shop problem 
 - Golfers problem
-- Job-shop problem
 - Knapsack problem
 - QG problem
 - Round-robin problem

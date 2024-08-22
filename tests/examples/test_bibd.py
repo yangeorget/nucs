@@ -1,5 +1,3 @@
-import argparse
-
 from ncs.problems.bibd_problem import BIBDProblem
 from ncs.solvers.backtrack_solver import BacktrackSolver
 from ncs.statistics import STATS_SOLVER_SOLUTION_NB, statistics_print
@@ -17,6 +15,7 @@ class TestBIBD:
         solver = BacktrackSolver(problem)
         solver.find_all()
         assert problem.statistics[STATS_SOLVER_SOLUTION_NB] == 92
+
 
 if __name__ == "__main__":
     problem = BIBDProblem(8, 14, 7, 4, 3)

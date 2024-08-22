@@ -10,7 +10,7 @@ NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. pytest tests/
 
 # How to profile the code
 ```
-NUMBA_CACHE_DIR=.numba/cache NUMBA_DISABLE_JIT=1 ./scripts/bash/profile.sh tests/examples/test_queens.py | more
+NUMBA_DISABLE_JIT=1 ./scripts/bash/profile.sh tests/examples/test_queens.py | more
 ```
 
 # How to measure the performance
