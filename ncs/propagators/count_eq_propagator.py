@@ -1,5 +1,5 @@
 import numpy as np
-from numba import jit  # type: ignore
+from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from ncs.memory import (
@@ -21,7 +21,7 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
     return new_triggers(n, True)
 
 
-@jit("int64(int32[::1,:], int32[:])", nopython=True, cache=True)
+@njit("int64(int32[::1,:], int32[:])", cache=True)
 def compute_domains(domains: NDArray, data: NDArray) -> int:
     """
     Implements Sigma_i (x_i == a) = x_{n-1}.

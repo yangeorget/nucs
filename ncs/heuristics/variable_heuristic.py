@@ -1,7 +1,7 @@
 import sys
 from typing import Callable, List
 
-from numba import jit  # type: ignore
+from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from ncs.heuristics.heuristic import Heuristic
@@ -31,7 +31,7 @@ class VariableHeuristic(Heuristic):
         choice_points.append(shr_domains_copy)
 
 
-@jit("int16(int32[::1, :], uint16[:])", nopython=True, cache=True)
+@njit("int16(int32[::1, :], uint16[:])", cache=True)
 def first_not_instantiated_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) -> int:
     """
     Chooses the first non instantiated variable.
@@ -45,7 +45,7 @@ def first_not_instantiated_var_heuristic(shr_domains: NDArray, dom_indices: NDAr
     return -1  # cannot happen
 
 
-@jit("int16(int32[::1, :], uint16[:])", nopython=True, cache=True)
+@njit("int16(int32[::1, :], uint16[:])", cache=True)
 def smallest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) -> int:
     """
     Chooses the variable with the smallest domain and which is not instantiated.
@@ -63,7 +63,7 @@ def smallest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) ->
     return min_idx
 
 
-@jit("(int32[::1, :], bool[::1, :], int32[::1, :], uint16)", nopython=True, cache=True)
+@njit("(int32[::1, :], bool[::1, :], int32[::1, :], uint16)", cache=True)
 def min_value_dom_heuristic(
     shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
 ) -> None:
@@ -81,7 +81,7 @@ def min_value_dom_heuristic(
     shr_domain_changes[domain_idx, MAX] = True
 
 
-@jit("(int32[::1, :], bool[::1, :], int32[::1, :], uint16)", nopython=True, cache=True)
+@njit("(int32[::1, :], bool[::1, :], int32[::1, :], uint16)", cache=True)
 def split_low_dom_heuristic(
     shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
 ) -> None:

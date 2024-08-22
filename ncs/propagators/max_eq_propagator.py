@@ -1,5 +1,5 @@
 import numpy as np
-from numba import jit  # type: ignore
+from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from ncs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY, new_triggers
@@ -16,7 +16,7 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
     return triggers
 
 
-@jit("int64(int32[::1,:], int32[:])", nopython=True, cache=True)
+@njit("int64(int32[::1,:], int32[:])", cache=True)
 def compute_domains(domains: NDArray, data: NDArray) -> int:
     """
     Implements Max_i x_i = x_{n-1}.

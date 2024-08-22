@@ -1,4 +1,4 @@
-from numba import jit  # type: ignore
+from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from ncs.memory import END, MAX, MIN, START
@@ -57,7 +57,7 @@ def get_triggers(algorithm: int, size: int, data: NDArray) -> NDArray:
     return PROPAGATOR_MODULES[algorithm].get_triggers(size, data)
 
 
-@jit("int64(uint8, int32[::1,:], int32[:])", nopython=True, cache=True)
+@njit("int64(uint8, int32[::1,:], int32[:])", cache=True)
 def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> int:
     """
     Computes the new domains for the variables.
@@ -91,7 +91,7 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> int:
     return min_geq_propagator.compute_domains(domains, data)
 
 
-@jit(nopython=True, cache=True)
+@njit(cache=True)
 def init_triggered_propagators(
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,
@@ -113,7 +113,7 @@ def init_triggered_propagators(
                     break
 
 
-@jit(nopython=True, cache=True)
+@njit(cache=True)
 def update_triggered_propagators(
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,

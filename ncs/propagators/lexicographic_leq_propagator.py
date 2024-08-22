@@ -1,4 +1,4 @@
-from numba import jit  # type: ignore
+from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from ncs.memory import (
@@ -20,7 +20,7 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
     return new_triggers(n, True)
 
 
-@jit("int64(int32[:,:], int32[:,:], int64, int64, int64, int64, int64)", nopython=True, cache=True)
+@njit("int64(int32[:,:], int32[:,:], int64, int64, int64, int64, int64)", cache=True)
 def compute_domains_4(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
     while i < n and x[i, MIN] == y[i, MAX]:
         i += 1
@@ -38,7 +38,7 @@ def compute_domains_4(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
     return PROP_CONSISTENCY
 
 
-@jit("int64(int32[:,:], int32[:,:], int64, int64, int64, int64, int64)", nopython=True, cache=True)
+@njit("int64(int32[:,:], int32[:,:], int64, int64, int64, int64, int64)", cache=True)
 def compute_domains_3(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
     while i < n and x[i, MAX] == y[i, MIN]:
         i += 1
@@ -56,7 +56,7 @@ def compute_domains_3(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
     return PROP_CONSISTENCY
 
 
-@jit("int64(int32[:,:], int32[:,:], int64, int64, int64, int64, int64)", nopython=True, cache=True)
+@njit("int64(int32[:,:], int32[:,:], int64, int64, int64, int64, int64)", cache=True)
 def compute_domains_2(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
     while i < n and x[i, MIN] == x[i, MAX] == y[i, MIN] == y[i, MAX]:
         i += 1
@@ -97,7 +97,7 @@ def compute_domains_2(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
     return PROP_CONSISTENCY
 
 
-@jit("int64(int32[:,:], int32[:,:], int64, int64, int64, int64, int64)", nopython=True, cache=True)
+@njit("int64(int32[:,:], int32[:,:], int64, int64, int64, int64, int64)", cache=True)
 def compute_domains_1(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
     while i < n and x[i, MIN] == y[i, MAX]:
         # enforce xi = yi
@@ -126,7 +126,7 @@ def compute_domains_1(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
     return compute_domains_2(x, y, n, i, q, r, s)
 
 
-@jit("int64(int32[::1,:], int32[:])", nopython=True, cache=True)
+@njit("int64(int32[::1,:], int32[:])", cache=True)
 def compute_domains(domains: NDArray, data: NDArray) -> int:
     """
     Implements lexicographic leq.

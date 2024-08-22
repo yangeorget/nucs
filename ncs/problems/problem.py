@@ -1,7 +1,7 @@
 from typing import Tuple, Union
 
 import numpy as np
-from numba import jit  # type: ignore
+from numba import njit  # type: ignore
 from numba.typed import List
 from numpy.typing import NDArray
 
@@ -181,7 +181,7 @@ class Problem:
         print(solution)
 
 
-@jit(nopython=True, cache=True)
+@njit(cache=True)
 def pop_propagator(propagator_queue: NDArray) -> int:
     for prop_idx in range(len(propagator_queue)):
         if propagator_queue[prop_idx]:
@@ -190,7 +190,7 @@ def pop_propagator(propagator_queue: NDArray) -> int:
     return -1
 
 
-@jit(nopython=True, cache=True)
+@njit(cache=True)
 def filter(
     statistics: NDArray,
     propagator_nb: int,
@@ -262,7 +262,7 @@ def filter(
             statistics[STATS_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
 
 
-@jit(nopython=True, cache=True)
+@njit(cache=True)
 def is_solved(shr_domains: NDArray) -> bool:
     """
     Returns true iff the problem is solved.

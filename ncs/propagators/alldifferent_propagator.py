@@ -1,5 +1,5 @@
 import numpy as np
-from numba import jit  # type: ignore
+from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from ncs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY, new_triggers
@@ -14,28 +14,28 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
     return new_triggers(n, True)
 
 
-@jit("(uint16[:], uint16, uint16, uint16)", nopython=True, cache=True)
+@njit("(uint16[:], uint16, uint16, uint16)", cache=True)
 def path_set(t: NDArray, start: int, end: int, to: int) -> None:
     while (p := start) != end:
         start = t[p]
         t[p] = to
 
 
-@jit("uint16(uint16[:], uint16)", nopython=True, cache=True)
+@njit("uint16(uint16[:], uint16)", cache=True)
 def path_min(t: NDArray, i: int) -> int:
     while t[i] < i:
         i = t[i]
     return i
 
 
-@jit("uint16(uint16[:], uint16)", nopython=True, cache=True)
+@njit("uint16(uint16[:], uint16)", cache=True)
 def path_max(t: NDArray, i: int) -> int:
     while t[i] > i:
         i = t[i]
     return i
 
 
-@jit("uint16(int64, int32[::1, :], uint16[:, :], int64[:], int64[:], int32[:])", nopython=True, cache=True)
+@njit("uint16(int64, int32[::1, :], uint16[:, :], int64[:], int64[:], int32[:])", cache=True)
 def compute_nb(
     n: int,
     domains: NDArray,
@@ -71,9 +71,8 @@ def compute_nb(
     return nb
 
 
-@jit(
+@njit(
     "bool(int64, int64, uint16[:], int32[:], uint16[:], int32[:], int32[::1, :], uint16[:, :], int64[:])",
-    nopython=True,
     cache=True,
 )
 def filter_lower(
@@ -114,9 +113,8 @@ def filter_lower(
     return True
 
 
-@jit(
+@njit(
     "bool(int64, int64, uint16[:], int32[:], uint16[:], int32[:], int32[::1, :], uint16[:, :], int64[:])",
-    nopython=True,
     cache=True,
 )
 def filter_upper(
@@ -157,7 +155,7 @@ def filter_upper(
     return True
 
 
-@jit("int64(int32[::1,:], int32[:])", nopython=True, cache=True)
+@njit("int64(int32[::1,:], int32[:])", cache=True)
 def compute_domains(domains: NDArray, data: NDArray) -> int:
     """
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".

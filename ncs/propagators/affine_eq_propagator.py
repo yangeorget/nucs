@@ -1,5 +1,5 @@
 import numpy as np
-from numba import jit  # type: ignore
+from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from ncs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY, new_triggers
@@ -14,7 +14,7 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
     return new_triggers(n, True)
 
 
-@jit(nopython=True, cache=True)
+@njit(cache=True)
 def compute_domain_sum(n: int, domains: NDArray, data: NDArray) -> NDArray:
     domain_sum = np.empty(2, dtype=np.int32)
     domain_sum[:] = data[-1]
@@ -29,7 +29,7 @@ def compute_domain_sum(n: int, domains: NDArray, data: NDArray) -> NDArray:
     return domain_sum
 
 
-@jit("int64(int32[::1,:], int32[:])", nopython=True, cache=True)
+@njit("int64(int32[::1,:], int32[:])", cache=True)
 def compute_domains(domains: NDArray, a: NDArray) -> int:
     """
     Implements Sigma_i a_i * x_i = a_{n-1}.
