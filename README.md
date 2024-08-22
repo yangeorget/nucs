@@ -42,8 +42,7 @@ NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_golomb.py 
 ```bash
 pip3 install nucs
 ````
-From there, you can:
-- write the following queens.py program
+Now you can write the following queens.py program:
 ```python
 from nucs.problems.problem import Problem
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -52,12 +51,12 @@ n = 8" >> queens.py
 problem = Problem(shr_domains=[(0, n - 1)] * n, dom_indices=list(range(n)) * 3, dom_offsets=[0] * n + list(range(n)) + list(range(0, -n, -1)))
 problem.set_propagators([(list(range(n)), ALG_ALLDIFFERENT, []), (list(range(n, 2 * n)), ALG_ALLDIFFERENT, []), (list(range(2 * n, 3 * n)), ALG_ALLDIFFERENT, [])])
 print(BacktrackSolver(problem).solve_one())
-
-- run it
+```
+Run it with the command:
 ```bash
 PYTHONPATH=. python3 queens.py
 ```
-- and get
+You will get:
 ```bash
 [0, 4, 7, 5, 2, 6, 1, 3, 0, 5, 9, 8, 6, 11, 7, 10, 0, 3, 5, 2, -2, 1, -5, -4]
 ```
