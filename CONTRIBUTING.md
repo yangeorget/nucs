@@ -15,6 +15,6 @@ NUMBA_DISABLE_JIT=1 ./scripts/bash/profile.sh tests/examples/test_queens.py | mo
 
 # How to measure the performance
 ```
-time NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python tests/examples/test_queens.py -n 12
+time NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_queens.py -n 12
 ```
 

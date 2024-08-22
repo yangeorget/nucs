@@ -1,4 +1,4 @@
 #!/bin/bash
 
-python -m "cProfile" -s time "$1"
+python3 -m "cProfile" -s time "$1"
 
