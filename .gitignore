@@ -1,7 +1,6 @@
 .idea/
-clustering_algorithms.egg-info/
+.numba/
 __pycache__/
 dist/
 venv*/
 profile.pstats
-.numba

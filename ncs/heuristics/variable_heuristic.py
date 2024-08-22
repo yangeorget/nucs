@@ -74,7 +74,6 @@ def min_value_dom_heuristic(
     :param: shr_domains_copy: the shared domains to be added to the choice point
     :param domain_idx: the index of the domain
     """
-
     value = shr_domains[domain_idx, MIN]
     shr_domains_copy[domain_idx, MIN] = value + 1
     shr_domains[domain_idx, MAX] = value

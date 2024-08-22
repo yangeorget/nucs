@@ -1,12 +1,27 @@
 [project]
+name="NCS"
+version="0.1"
+authors = [
+  { name="Yan Georget", email="yan.georget@gmail.com" },
+]
+description="A Numpy and Numba based Python library for solving Constraint Satifaction Problems"
+readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "numpy",
+    "numba==0.60.0",
+    "numpy==2.0.1",
 ]
+[project.urls]
+Homepage = "https://github.com/yangeorget/ncs"
+Issues = "https://github.com/yangeorget/ncs"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
 
 [tool.isort]
 profile = "black"
