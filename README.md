@@ -8,47 +8,49 @@ NUCS is fast and easy to use.
 
 ## How to use NUCS ?
 It is very simple to get started with NUCS.
-Either clone the Github repository or install the Pip package.
+You can either install NUCS from the sources or install the Pip package.
 
-### Clone the NUCS Github repository
-Let's install NUCS from the source:
+### Install from the sources 
+Let's install NUCS from the sources by cloning the NUCS Github repository:
 ```bash
 git clone https://github.com/yangeorget/nucs.git
 pip install -r requirements.txt
 ```
 
-From there, you can launch some NUCS examples.  
+From there, we will launch some NUCS examples.  
 
-> Note that the second run will be much faster since the Python code will have been compiled.
+> Note that the second run will be much faster since the Python code will have been compiled by Numba.
 
-#### Run the NUCS tests
+#### Run the NUCS test suite
+Let's run the NUCS test suite with Pytest:
 ```bash
 pip install -r requirements-dev.txt
 NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. pytest tests/
 ```
 
-#### Run some examples
-Find all solutions to the 12-queens problem:
+#### Run some other examples
+Let's find all solutions to the [12-queens problem](https://www.csplib.org/Problems/prob054/):
 ```bash
 NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_queens.py -n 12
 ```
 
-Find the optimal solution to the Golomb ruler problem with 10 marks:
+Let's find the optimal solution to the [Golomb ruler problem](https://www.csplib.org/Problems/prob006/) with 10 marks:
 ```bash
 NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_golomb.py -n 10
 ```
 
 ### Install the NUCS package
+Let's install the Pip package for NUCS:
 ```bash
 pip3 install nucs
 ````
-Now you can write the following `queens.py` program:
+Now we can write the following `queens.py` program:
 ```python
 from nucs.problems.problem import Problem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.propagators.propagators import ALG_ALLDIFFERENT
 
-n = 8
+n = 8  # the number of queens
 problem = Problem(
     shr_domains=[(0, n - 1)] * n, 
     dom_indices=list(range(n)) * 3, 
@@ -59,15 +61,15 @@ problem.set_propagators([
     (list(range(n, 2 * n)), ALG_ALLDIFFERENT, []), 
     (list(range(2 * n, 3 * n)), ALG_ALLDIFFERENT, [])
 ])
-print(BacktrackSolver(problem).solve_one())
+print(BacktrackSolver(problem).solve_one()[:n])
 ```
-Run it with the command:
+Let's run this model with the following command:
 ```bash
 PYTHONPATH=. python3 queens.py
 ```
-You will get:
+The first solution found is:
 ```bash
-[0, 4, 7, 5, 2, 6, 1, 3, 0, 5, 9, 8, 6, 11, 7, 10, 0, 3, 5, 2, -2, 1, -5, -4]
+[0, 4, 7, 5, 2, 6, 1, 3]
 ```
 
 ## Why Python ?
@@ -83,6 +85,7 @@ Numba-compiled numerical algorithms in Python can approach the speeds of C or FO
 ## Architecture
 
 ## Speed matters
+TODO: give some examples of computations in a limited time
 
 ## Other constraint solvers in Python
 - python-constraint 
