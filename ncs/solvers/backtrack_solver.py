@@ -43,6 +43,10 @@ class BacktrackSolver(Solver):
                 break
 
     def solve_one(self) -> Optional[List[int]]:
+        """
+        Find at most one solution.
+        :return: the solution if it exists or None
+        """
         while self.filter():
             if is_solved(self.problem.shr_domains):
                 self.problem.statistics[STATS_SOLVER_SOLUTION_NB] += 1
@@ -82,6 +86,10 @@ class BacktrackSolver(Solver):
         return True
 
     def filter(self) -> bool:
+        """
+        Achieves bound consistency and backtracks if necessary.
+        :return: true iff bound consistency has been achieved
+        """
         while not self.problem.filter(self.shr_domain_changes):
             if not self.backtrack():
                 return False

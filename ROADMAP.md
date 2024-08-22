@@ -16,7 +16,6 @@ Numba profiler
 - Golfers problem
 - Knapsack problem
 - QG problem
-- Round-robin problem
 - Car sequencing problem
 - Crypto multiplication problem
 - MagicSquare problem

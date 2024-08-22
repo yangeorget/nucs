@@ -67,6 +67,9 @@ class Problem:
         self.shr_domains = new_domains_by_values(self.shr_domains_backup)
 
     def reset_entailed_propagators(self) -> None:
+        """
+        Marks all propagators as not entailed anymore.
+        """
         self.entailed_propagators[:] = False
 
     def set_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
@@ -129,12 +132,23 @@ class Problem:
         return mins.tolist()
 
     def set_min_value(self, var_idx: int, min_value: int) -> None:
+        """
+        Sets the minimal value of a variable.
+        :param var_idx: the index of the variable
+        :param min_value: the minimal value
+        """
         self.shr_domains[(self.dom_indices[var_idx]), MIN] = min_value - self.dom_offsets[var_idx]
 
     def set_max_value(self, var_idx: int, max_value: int) -> None:
+        """
+        Sets the maximal value of a variable.
+        :param var_idx: the index of the variable
+        :param min_value: the maximal value
+        """
         self.shr_domains[(self.dom_indices[var_idx]), MAX] = max_value - self.dom_offsets[var_idx]
 
     def __str__(self) -> str:
+        # TODO: fix this
         return f"domains={self.shr_domains}"
 
     def filter(self, shr_domain_changes: NDArray) -> bool:
@@ -168,8 +182,8 @@ class Problem:
 
 
 @jit(nopython=True, cache=True)
-def pop_propagator(propagator_nb: int, propagator_queue: NDArray) -> int:
-    for prop_idx in range(propagator_nb):
+def pop_propagator(propagator_queue: NDArray) -> int:
+    for prop_idx in range(len(propagator_queue)):
         if propagator_queue[prop_idx]:
             propagator_queue[prop_idx] = False
             return prop_idx
@@ -209,7 +223,7 @@ def filter(
         props_triggers,
     )
     while True:
-        prop_idx = pop_propagator(propagator_nb, triggered_propagators)
+        prop_idx = pop_propagator(triggered_propagators)
         if prop_idx == -1:
             return True
         statistics[STATS_PROPAGATOR_FILTER_NB] += 1

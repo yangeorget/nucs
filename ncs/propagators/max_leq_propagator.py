@@ -30,6 +30,7 @@ def compute_domains(domains: NDArray, data: NDArray) -> int:
     """
     Implements Max_i x_i <= x_{n-1}.
     :param domains: the domains of the variables
+    :param data: unused here
     """
     x = domains[:-1]
     y = domains[-1]

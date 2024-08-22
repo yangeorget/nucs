@@ -4,7 +4,7 @@ from ncs.propagators.propagators import ALG_ALLDIFFERENT
 
 class QueensProblem(Problem):
     """
-    A simple model for the queens' problem.
+    A simple model for the n-queens problem.
     """
 
     def __init__(self, n: int):

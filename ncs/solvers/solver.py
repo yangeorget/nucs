@@ -34,8 +34,8 @@ class Solver:
 
     def minimize(self, var_idx: int) -> Optional[List[int]]:  # type: ignore
         """
-        Returns the solution that minimizes the given variable.
-        :param var_idx: the index of the variable to minimize
-        :return: the solution that minimizes the variable if it exists or None
+        Finds, if it exists, the solution to the problem that minimizes a given variable.
+        :param variable_idx: the index of the variable
+        :return: the solution if it exists or None
         """
         pass

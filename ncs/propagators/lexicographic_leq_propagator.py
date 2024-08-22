@@ -132,6 +132,7 @@ def compute_domains(domains: NDArray, data: NDArray) -> int:
     Implements lexicographic leq.
     See https://www.diva-portal.org/smash/record.jsf?pid=diva2:1041533.
     :param domains: the domains of the variables
+    :param data: unused here
     """
     # TODO: make incremental
     n = len(domains) // 2

@@ -17,6 +17,7 @@ from ncs.propagators import (
     min_geq_propagator,
 )
 
+# The ordinals of the algorithms for all propagators (sorted by alphabetical ordering).
 ALG_AFFINE_EQ = 0
 ALG_AFFINE_GEQ = 1
 ALG_AFFINE_LEQ = 2
@@ -30,7 +31,7 @@ ALG_MAX_LEQ = 9
 ALG_MIN_EQ = 10
 ALG_MIN_GEQ = 11
 
-TRIGGER_MODULES = [
+PROPAGATOR_MODULES = [
     affine_eq_propagator,
     affine_geq_propagator,
     affine_leq_propagator,
@@ -53,15 +54,17 @@ def get_triggers(algorithm: int, size: int, data: NDArray) -> NDArray:
     :param size: the number of variables
     :return: an array of triggers
     """
-    return TRIGGER_MODULES[algorithm].get_triggers(size, data)
+    return PROPAGATOR_MODULES[algorithm].get_triggers(size, data)
 
 
 @jit("int64(uint8, int32[::1,:], int32[:])", nopython=True, cache=True)
 def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> int:
     """
     Computes the new domains for the variables.
+    :param algorithm: the ordinal of the algorithm
     :param domains: the initial domains of the variables
-    :return: the new domains or None if an inconsistency is detected
+    :param data: the parameters of the propagator
+    :return: a status as an integer (INCONSISTENCY, CONSISTENCY, ENTAILMENT)
     """
     if algorithm == ALG_AFFINE_EQ:
         return affine_eq_propagator.compute_domains(domains, data)

@@ -16,7 +16,9 @@ class Heuristic:
     ) -> None:
         """
         Makes a choice.
+        :param choice_points: the choice point stack
         :param shr_domains: the shared domains of the problem
+        :param shr_domain_changes: an array of shared domain changes
         :param dom_indices: the domain indices of the problem variables
         """
         pass

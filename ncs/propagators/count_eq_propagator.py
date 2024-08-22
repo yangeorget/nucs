@@ -26,6 +26,7 @@ def compute_domains(domains: NDArray, data: NDArray) -> int:
     """
     Implements Sigma_i (x_i == a) = x_{n-1}.
     :param domains: the domains of the variables
+    :param data: the parameters of the propagator
     """
     x = domains[:-1]
     value = data[0]

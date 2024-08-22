@@ -162,6 +162,7 @@ def compute_domains(domains: NDArray, data: NDArray) -> int:
     """
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
     :param domains: the domains of the variables
+    :param data: unused here
     """
     n = len(domains)
     ranks = np.zeros((n, 2), dtype=np.uint16)

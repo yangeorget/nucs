@@ -26,6 +26,7 @@ def compute_domains(x: NDArray, data: NDArray) -> int:
     """
     Implements Sigma_i (x_i == a_0) = a_1.
     :param domains: the domains of the variables
+    :param data: the parameters of the propagator
     """
     value = data[0]
     ok_count_max = len(x) - np.count_nonzero((x[:, MIN] > value) | (x[:, MAX] < value))
