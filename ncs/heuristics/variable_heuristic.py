@@ -63,7 +63,7 @@ def smallest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) ->
     return min_idx
 
 
-@njit("(int32[::1, :], bool[::1, :], int32[::1, :], uint16)", cache=True)
+@njit("(int32[::1, :], boolean[::1, :], int32[::1, :], uint16)", cache=True)
 def min_value_dom_heuristic(
     shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
 ) -> None:
@@ -81,7 +81,7 @@ def min_value_dom_heuristic(
     shr_domain_changes[domain_idx, MAX] = True
 
 
-@njit("(int32[::1, :], bool[::1, :], int32[::1, :], uint16)", cache=True)
+@njit("(int32[::1, :], boolean[::1, :], int32[::1, :], uint16)", cache=True)
 def split_low_dom_heuristic(
     shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
 ) -> None:

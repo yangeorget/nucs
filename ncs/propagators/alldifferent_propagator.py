@@ -72,7 +72,7 @@ def compute_nb(
 
 
 @njit(
-    "bool(int64, int64, uint16[:], int32[:], uint16[:], int32[:], int32[::1, :], uint16[:, :], int64[:])",
+    "boolean(int64, int64, uint16[:], int32[:], uint16[:], int32[:], int32[::1, :], uint16[:, :], int64[:])",
     cache=True,
 )
 def filter_lower(
@@ -114,7 +114,7 @@ def filter_lower(
 
 
 @njit(
-    "bool(int64, int64, uint16[:], int32[:], uint16[:], int32[:], int32[::1, :], uint16[:, :], int64[:])",
+    "boolean(int64, int64, uint16[:], int32[:], uint16[:], int32[:], int32[::1, :], uint16[:, :], int64[:])",
     cache=True,
 )
 def filter_upper(
