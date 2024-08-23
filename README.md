@@ -5,6 +5,8 @@ NUCS is a Python library for solving Constraint Satisfaction and Optimization Pr
 NUCS is powered by [Numpy](https://numpy.org/) and [Numba](https://numba.pydata.org/).
 NUCS is fast and easy to use.
 
+## Speed matters
+TODO: give some examples of computations in a limited time
 
 ## How to use NUCS ?
 It is very simple to get started with NUCS.
@@ -15,7 +17,8 @@ Let's install the Pip package for NUCS:
 ```bash
 pip3 install nucs
 ````
-Now we can write the following `queens.py` program:
+Now we can write the following `queens.py` program, 
+refer to [the technical documentation](DOCUMENTATION.md) to better understand how NUCS works under the hood:
 ```python
 from nucs.problems.problem import Problem
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -23,9 +26,9 @@ from nucs.propagators.propagators import ALG_ALLDIFFERENT
 
 n = 8  # the number of queens
 problem = Problem(
-    shr_domains=[(0, n - 1)] * n, 
-    dom_indices=list(range(n)) * 3, 
-    dom_offsets=[0] * n + list(range(n)) + list(range(0, -n, -1))
+    shr_domains=[(0, n - 1)] * n,  # these n domains are shared between 3n variables with different offsets
+    dom_indices=list(range(n)) * 3,  # fpr each variable, its domain
+    dom_offsets=[0] * n + list(range(n)) + list(range(0, -n, -1))  # for each variable, its offset
 )
 problem.set_propagators([
     (list(range(n)), ALG_ALLDIFFERENT, []), 
@@ -50,19 +53,10 @@ Let's install NUCS from the sources by cloning the NUCS Github repository:
 git clone https://github.com/yangeorget/nucs.git
 pip install -r requirements.txt
 ```
-From there, we will launch some NUCS examples.  
+From there, we will launch some NUCS examples.
 
-#### Run the NUCS test suite
-Let's run the NUCS test suite with Pytest:
-```bash
-pip install -r requirements-dev.txt
-NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. pytest tests/
-```
-
-Have a look at the NUCS tests, they include models for common constraint satisfaction problems.
-
-#### Run some other examples
-Some of the examples come with a CLI and can be run without Pytest.
+#### Run some examples
+Some of the examples come with a command line interface and can be run directly.
 
 Let's find all solutions to the [12-queens problem](https://www.csplib.org/Problems/prob054/):
 ```bash
@@ -73,21 +67,6 @@ Let's find the optimal solution to the [Golomb ruler problem](https://www.csplib
 ```bash
 NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_golomb.py -n 10
 ```
-
-## Why Python ?
-NUCS is a Python library leveraging Numpy and Numba.
-
-Python is a powerful and flexible programing language that allows to express complex problems in a few lines of code.
-
-Numpy brings the computational power of languages like C and Fortran to Python, a language much easier to learn and use.
-
-Numba translates Python functions to optimized machine code at runtime using the industry-standard LLVM compiler library. 
-Numba-compiled numerical algorithms in Python can approach the speeds of C or FORTRAN.
-
-## Architecture
-
-## Speed matters
-TODO: give some examples of computations in a limited time
 
 ## Other constraint solvers in Python
 - python-constraint 
