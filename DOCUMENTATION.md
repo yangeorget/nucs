@@ -1,12 +1,15 @@
 # NUCS
 
 ## Why Python ?
-NUCS is a Python library leveraging Numpy and Numba.
+NUCS is a 100% Python library leveraging Numpy and Numba.
 
+### Python
 Python is a powerful and flexible programing language that allows to express complex problems in a few lines of code.
 
-Numpy brings the computational power of languages like C and Fortran to Python, a language much easier to learn and use.
+### Numpy
+Numpy brings the computational power of languages like C and Fortran to Python, a language much easier to learn and use. 
 
+### Numba
 Numba translates Python functions to optimized machine code at runtime using the industry-standard LLVM compiler library. 
 Numba-compiled numerical algorithms in Python can approach the speeds of C or FORTRAN.
 
@@ -16,7 +19,7 @@ NUCS leverages Numpy arrays (`numpy.ndarray`) for storing most of its data.
 ### Variables
 Variables are simply integers used to reference domains. 
 
-> Variables are thus implicit.
+> In NUCS, variables are not reified but are implicit.
 
 Let's consider three variables with integer domains **[1, 10]**.
 
@@ -36,7 +39,8 @@ NUCS could represent these domains as a `numpy.ndarray` of shape `(3,2)`:
 ### Domains
 #### Shared domains
 Let's consider two variables with initial domains **[1, 10]** and the constraint **v_0 = v_1 + 4**.
-Because of bound consistency, the domain of **v_0** is **[5, 10]** and the domain of **v_1** is **[1, 6]**
+Because of bound consistency, the domain of **v_0** is **[5, 10]** and the domain of **v_1** is **[1, 6]**.
+
 There is a lot of overhead here: 
 - each time we update the domain of **v_0**, we also need to update the domain of **v_1** (and vice versa)
 - from the point of view of the variable choice heuristic, 
@@ -53,16 +57,9 @@ With:
 
 | Shared domain index | Shared domain |
 |---------------------|---------------|
-| **0**               | **[1, 6]**    | 
+| **0**               | **[1, 6]**    |
 
-Note that, if there was nothing to share, we would simply have :
-
-| Variable index | Offset | Shared domain index |
-|----------------|--------|---------------------|
-| **0**          | **0**  | **0**               | 
-| **1**          | **0**  | **1**               |
-
-> Domains are thus also implicit.
+> In NUCS, actual domains are computed on demand from shared domains and offsets.
 
 ##### The constructor of the `Problem` class
 Because of shared domains and offsets, the constructor of `Problem` accepts 3 arguments:
@@ -70,17 +67,19 @@ Because of shared domains and offsets, the constructor of `Problem` accepts 3 ar
 - `dom_indices`: a list of integers representing, for each variable, the index of its shared domain 
 - `dom_offsets`: a list of integers representing, for each variable, the offset of its shared domain
 
-Internally, shared domains, domain indices and offsets are stored using `numpy.ndarray`.
+Python with the help of lists and ranges makes construction of complex problems an easy task.
+Internally, for greater efficiency, shared domains, domain indices and offsets are stored using `numpy.ndarray`.
 
 ##### A concrete example: the 4-queens problem
-TODO: image
+![4-queens image](./assets/queens.png "4 non attacking queens")
 
 The 4-queens problem can be modelled as follows:
+- for **i** in **[0, 3]**, **v_i** is the vertical position of the queen in the **i**th column
 - **v_0, v_1, v_2, v_3** are all different
 - **v_0, v_1 + 1, v_2 + 2, v_3 + 3** are all different
 - **v_0, v_1 - 1, v_2 - 2, v_3 - 3** are all different
 
-This corresponds to the 12 variables **v_i** with the following relations, for **i** in **[0,3]**:
+This corresponds to the 12 variables **v_i** with the following relations, for **i** in **[0, 3]**:
 - **v_{i+4} = v_i + i**
 - **v_{i+8} = v_i - i**
 - all the **v_i** are different
@@ -142,9 +141,11 @@ Propagators are defined by two functions:
 - `get_triggers(size: int, data: NDArray) -> NDArray`:
 
 #### `compute_domains`
-This function updates the domains (the actual domains, not the shared ones) of the variables of the propagator. 
+This function takes as its first argument the actual domains (not the shared ones) of the variables of the propagator 
+and updates them. 
 
-It is expected to implement bound consistency and to be idempotent (a second consecutive run should not update the domains).
+It is expected to implement bound consistency and to be idempotent 
+(a second consecutive run should not update the domains).
 
 It returns a status:
 - `PROP_INCONSISTENCY`, 
@@ -154,7 +155,8 @@ It returns a status:
 #### `get_triggers`
 This function returns a `numpy.ndarray` of shape `(size, 2)`. 
 
-Let `triggers` be such an array, `triggers[i, MIN] == True` means that the propagator should be triggered whenever the minimum value of variable `ì` changes.
+Let `triggers` be such an array, 
+`triggers[i, MIN] == True` means that the propagator should be triggered whenever the minimum value of variable `ì` changes.
 
 ## Reference documentation
 ### Propagators
