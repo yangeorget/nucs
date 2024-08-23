@@ -113,7 +113,7 @@ With:
 | **3**               | **[0, 3]**    | 
 
 
-In NUCS, the n-queens problem thus is constructed as follows:
+In NUCS, the n-queens problem is indeed constructed as follows:
 ```python
 def __init__(self, n: int):
     super().__init__(
