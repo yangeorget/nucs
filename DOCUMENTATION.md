@@ -11,16 +11,44 @@ Numba translates Python functions to optimized machine code at runtime using the
 Numba-compiled numerical algorithms in Python can approach the speeds of C or FORTRAN.
 
 ## Architecture
-TODO
+### Variables
+Variables are simply integers used to reference domains.
+Here is the case of three variables with domains [1, 10].
 
-## Reference
+| Variable | Domain    |
+|----------|-----------|
+| 0        | $[1, 10]$ | 
+| 1        | [1, 10]   |
+| 2        | [1, 10]   |
+
+### Domains
+NUCS only support integer domains.
+
+### Propagators (aka Constraints)
+
+## Reference documentation
 ### Propagators
-
-### Solvers 
+NUCS currently provides the following propagators:
+- `affine_eq_propagator`
+- `affine_geq_propagator`
+- `affine_leq_propagator`
+- `alldifferent_propagator`
+- `count_eq_propagator`
+- `exactly_eq_propagator`
+- `lexicographic_leq_propagator`
+- `max_eq_propagator`
+- `max_leq_propagator`
+- `min_eq_propagator`
+- `min_geq_propagator`
 
 ### Heuristics
+NUCS currently provides the following heuristics:
+- `first_not_instantiated_var_heuristic`: selects the first non instantiated variable
+- `smallest_domain_var_heuristic`: selects the variable with the smallest domain which is not instantiated
+- `min_value_dom_heuristic`: selects the minimal value of the domain 
+- `split_low_dom_heuristic`: selects the first half of the domain
 
-## How to write a propagator
+
 
 
 
