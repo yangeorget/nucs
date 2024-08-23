@@ -5,6 +5,8 @@ from nucs.propagators.propagators import ALG_ALLDIFFERENT
 class QueensProblem(Problem):
     """
     A simple model for the n-queens problem.
+
+    This is problem #54 on CSPLIB (https://www.csplib.org/Problems/prob054/).
     """
 
     def __init__(self, n: int):

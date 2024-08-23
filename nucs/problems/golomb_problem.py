@@ -35,7 +35,8 @@ class GolombProblem(Problem):
     - mark_0 <...< mark_n-1,
     - for all i<j, mark_j-mark_i are different,
     - mark_n-1 is minimal.
-    Note: This is problem #6 in CSPLib.
+
+    This is problem #6 on CSPLIB (https://www.csplib.org/Problems/prob006/).
     """
 
     def __init__(self, mark_nb: int) -> None:

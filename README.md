@@ -91,7 +91,7 @@ The first solution found is:
 [0, 4, 7, 5, 2, 6, 1, 3]
 ```
 > [!TIP]
-> Note that the second run will always be much faster since the Python code will have been compiled by Numba.
+> Note that the second run will always be much faster since the Python code will already have been compiled and cached by Numba.
 
 ### Install NUCS from the sources 
 Let's install NUCS from the sources by cloning the NUCS Github repository:

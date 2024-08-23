@@ -2,6 +2,7 @@
 .numba/
 __pycache__/
 dist/
+private/
 venv*/
 .venv*/
 profile.pstats

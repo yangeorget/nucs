@@ -11,6 +11,17 @@ Numba translates Python functions to optimized machine code at runtime using the
 Numba-compiled numerical algorithms in Python can approach the speeds of C or FORTRAN.
 
 ## Architecture
+TODO
+
+## Reference
+### Propagators
+
+### Solvers 
+
+### Heuristics
+
+## How to write a propagator
+
 
 
 

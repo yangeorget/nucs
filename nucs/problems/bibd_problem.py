@@ -8,8 +8,7 @@ from nucs.propagators.propagators import (
 
 class BIBDProblem(Problem):
     """
-    A simple model for the BIBD problem.
-    See https://www.csplib.org/Problems/prob028/ for a complete description of the problem.
+    This is problem #28 on CSPLIB (https://www.csplib.org/Problems/prob028/).
     """
 
     def __init__(self, v: int, b: int, r: int, k: int, l: int):

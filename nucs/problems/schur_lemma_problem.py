@@ -8,7 +8,7 @@ from nucs.propagators.propagators import (
 
 class SchurLemmaProblem(Problem):
     """
-    See https://www.csplib.org/Problems/prob015/.
+    This is problem #15 on CSPLIB (https://www.csplib.org/Problems/prob015/).
     """
 
     def __init__(self, n: int) -> None:
