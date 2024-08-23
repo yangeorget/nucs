@@ -40,13 +40,14 @@ def compute_domains(domains: NDArray, a: NDArray) -> int:
     new_domains = np.empty_like(domains)
     new_domains[:] = domains[:]
     for i in range(n):
-        if a[i] > 0:
-            new_max = domains[i, MIN] + (domain_sum[MAX] // a[i])
-            new_domains[i, MAX] = min(domains[i, MAX], new_max)
-        elif a[i] < 0:
-            new_min = domains[i, MAX] - (-domain_sum[MAX] // a[i])
-            new_domains[i, MIN] = max(domains[i, MIN], new_min)
-        if new_domains[i, MIN] > new_domains[i, MAX]:
-            return PROP_INCONSISTENCY
+        if a[i] != 0:
+            if a[i] > 0:
+                new_max = domains[i, MIN] + (domain_sum[MAX] // a[i])
+                new_domains[i, MAX] = min(domains[i, MAX], new_max)
+            else:
+                new_min = domains[i, MAX] - (-domain_sum[MAX] // a[i])
+                new_domains[i, MIN] = max(domains[i, MIN], new_min)
+            if new_domains[i, MIN] > new_domains[i, MAX]:
+                return PROP_INCONSISTENCY
     domains[:] = new_domains[:]
     return PROP_CONSISTENCY
