@@ -12,19 +12,71 @@ Numba-compiled numerical algorithms in Python can approach the speeds of C or FO
 
 ## Architecture
 ### Variables
-Variables are simply integers used to reference domains.
-Here is the case of three variables with domains [1, 10].
+Variables are simply integers used to reference domains. 
 
-| Variable | Domain    |
-|----------|-----------|
-| 0        | $[1, 10]$ | 
-| 1        | [1, 10]   |
-| 2        | [1, 10]   |
+> Variables are thus implicit.
+
+Let's consider three variables with integer domains **[1, 10]**.
+
+| Variable index | Domain      |
+|----------------|-------------|
+| **0**          | **[1, 10]** | 
+| **1**          | **[1, 10]** |
+| **2**          | **[1, 10]** |
+
+NUCS could represent these domains as a `numpy.ndarray` of shape `(3,2)`: 
+- one row for each domain
+- the first column corresponds to the minimal values
+- the second column corresponds to the maximal values
+
+The reality is a bit more complex, as explained below.
 
 ### Domains
+#### Shared domains
+Let's consider two variables with initial domains **[1, 10]** and the constraint **v_0 = v_1 + 4**.
+Because of bound consistency, the domain of **v_0** is **[5, 10]** and the domain of **v_1** is **[1, 6]**
+There is a lot of overhead here: 
+- each time we update the domain of **v_0**, we also need to update the domain of **v_1** (and vice versa)
+- from the point of view of the variable choice heuristic, 
+the problem is made arbitrarily large and it makes no difference whether **v_0** or **v_1** is selected
+
+We can efficiently replace both domains by a single shared domain and two offsets **4** and **0**:
+
+| Variable index | Offset | Shared domain index |
+|----------------|--------|---------------------|
+| **0**          | **4**  | **0**               | 
+| **1**          | **0**  | **0**               |
+
+With:
+
+| Shared domain index | Shared domain |
+|---------------------|---------------|
+| **0**               | **[1, 6]**    | 
+
+Note that if there was nothing to share, we would simply have :
+
+| Variable index | Offset | Shared domain index |
+|----------------|--------|---------------------|
+| **0**          | **0**  | **0**               | 
+| **1**          | **0**  | **1**               |
+
+> Domains are also implicit.
+
+Because of shared domains and offsets, the constructor of `Problem` accepts 3 arguments:
+- `shr_domains`: the shared domains as a list of pairs of integers (if the minimal and maximal values of the pair are equal, the pair can be replaced by the value)
+- `dom_indices`: a list of integers representing, for each variable, the index of its shared domain 
+- `dom_offsets`: a list of integers representing, for each variable, the offset of its shared domain
+
+#### Integer domains
 NUCS only support integer domains.
 
+Boolean domains are simply integer domains of the form **[0, 1]**.
+
 ### Propagators (aka Constraints)
+Propagators are defined by two functions
+
+idempotent
+implement bound consistency
 
 ## Reference documentation
 ### Propagators
