@@ -5,8 +5,53 @@ NUCS is a Python library for solving Constraint Satisfaction and Optimization Pr
 NUCS is powered by [Numpy](https://numpy.org/) and [Numba](https://numba.pydata.org/).
 NUCS is fast and easy to use.
 
-## Speed matters
-TODO: give some examples of computations in a limited time
+Because speed matters, in a few seconds you can ...
+
+Compute the 92 solutions to the BIBD(8,14,7,4,3) problem:
+```python
+{
+    'OPTIMIZER_SOLUTION_NB': 0,
+    'PROBLEM_FILTERS_NB': 2797,
+    'PROPAGATOR_ENTAILMENT_NB': 36977,
+    'PROPAGATOR_FILTERS_NB': 564122,
+    'PROPAGATOR_FILTERS_NO_CHANGE_NB': 534436,
+    'PROPAGATOR_INCONSISTENCY_NB': 1307,
+    'SOLVER_BACKTRACK_NB': 1398,
+    'SOLVER_CHOICE_DEPTH': 41,
+    'SOLVER_CHOICE_NB': 1398,
+    'SOLVER_SOLUTION_NB': 92
+}
+```
+Demonstrate that the optimal 10-marks Golomb ruler length is 55:
+```python
+{
+    'OPTIMIZER_SOLUTION_NB': 10,
+    'PROBLEM_FILTERS_NB': 49623,
+    'PROPAGATOR_ENTAILMENT_NB': 855996,
+    'PROPAGATOR_FILTERS_NB': 5160649,
+    'PROPAGATOR_FILTERS_NO_CHANGE_NB': 2893864,
+    'PROPAGATOR_INCONSISTENCY_NB': 24773,
+    'SOLVER_BACKTRACK_NB': 24772,
+    'SOLVER_CHOICE_DEPTH': 9,
+    'SOLVER_CHOICE_NB': 24840,
+    'SOLVER_SOLUTION_NB': 10
+}
+```
+Find all 14200 solutions to the 12-queens problem:
+```python
+{
+    'OPTIMIZER_SOLUTION_NB': 0,
+    'PROBLEM_FILTERS_NB': 262011,
+    'PROPAGATOR_ENTAILMENT_NB': 0,
+    'PROPAGATOR_FILTERS_NB': 1910609,
+    'PROPAGATOR_FILTERS_NO_CHANGE_NB': 631079,
+    'PROPAGATOR_INCONSISTENCY_NB': 116806,
+    'SOLVER_BACKTRACK_NB': 131005,
+    'SOLVER_CHOICE_DEPTH': 10,
+    'SOLVER_CHOICE_NB': 131005,
+    'SOLVER_SOLUTION_NB': 14200
+}
+```
 
 ## How to use NUCS ?
 It is very simple to get started with NUCS.
@@ -15,7 +60,7 @@ You can either install the Pip package or install NUCS from the sources.
 ### Install the NUCS package
 Let's install the Pip package for NUCS:
 ```bash
-pip3 install nucs
+pip install nucs
 ````
 Now we can write the following `queens.py` program, 
 refer to [the technical documentation](DOCUMENTATION.md) to better understand how NUCS works under the hood:
@@ -39,7 +84,7 @@ print(BacktrackSolver(problem).solve_one()[:n])
 ```
 Let's run this model with the following command:
 ```bash
-PYTHONPATH=. python3 queens.py
+PYTHONPATH=. python queens.py
 ```
 The first solution found is:
 ```bash
@@ -60,12 +105,12 @@ Some of the examples come with a command line interface and can be run directly.
 
 Let's find all solutions to the [12-queens problem](https://www.csplib.org/Problems/prob054/):
 ```bash
-NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_queens.py -n 12
+NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python tests/examples/test_queens.py -n 12
 ```
 
 Let's find the optimal solution to the [Golomb ruler problem](https://www.csplib.org/Problems/prob006/) with 10 marks:
 ```bash
-NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python3 tests/examples/test_golomb.py -n 10
+NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python tests/examples/test_golomb.py -n 10
 ```
 
 ## Other constraint solvers in Python

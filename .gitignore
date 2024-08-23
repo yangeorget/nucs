@@ -3,5 +3,6 @@
 __pycache__/
 dist/
 venv*/
+.venv*/
 profile.pstats
 NUCS.egg-info/

@@ -36,7 +36,7 @@ from nucs.statistics import (
     STATS_PROPAGATOR_FILTER_NB,
     STATS_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_PROPAGATOR_INCONSISTENCY_NB,
-    statistics_init,
+    init_statistics,
 )
 
 
@@ -58,7 +58,7 @@ class Problem:
         self.shr_domains = new_domains_by_values(shr_domains)
         self.dom_indices = new_indices_by_values(dom_indices)
         self.dom_offsets = new_domain_offsets_by_values(dom_offsets)
-        self.statistics = statistics_init()
+        self.statistics = init_statistics()
 
     def reset_shr_domains(self) -> None:
         """

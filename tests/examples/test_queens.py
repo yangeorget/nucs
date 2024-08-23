@@ -1,4 +1,5 @@
 import argparse
+from pprint import pprint
 
 import pytest
 
@@ -10,7 +11,7 @@ from nucs.heuristics.variable_heuristic import (
 )
 from nucs.problems.queens_problem import QueensProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.statistics import STATS_SOLVER_SOLUTION_NB, statistics_print
+from nucs.statistics import STATS_SOLVER_SOLUTION_NB, get_statistics
 
 
 class TestQueens:
@@ -37,4 +38,4 @@ if __name__ == "__main__":
     problem = QueensProblem(args.n)
     solver = BacktrackSolver(problem, VariableHeuristic(first_not_instantiated_var_heuristic, min_value_dom_heuristic))
     solver.find_all()
-    statistics_print(problem.statistics)
+    pprint(get_statistics(problem.statistics))

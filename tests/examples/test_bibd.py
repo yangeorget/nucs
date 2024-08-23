@@ -1,6 +1,8 @@
+from pprint import pprint
+
 from nucs.problems.bibd_problem import BIBDProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.statistics import STATS_SOLVER_SOLUTION_NB, statistics_print
+from nucs.statistics import STATS_SOLVER_SOLUTION_NB, get_statistics
 
 
 class TestBIBD:
@@ -21,4 +23,4 @@ if __name__ == "__main__":
     problem = BIBDProblem(8, 14, 7, 4, 3)
     solver = BacktrackSolver(problem)
     solver.find_all()
-    statistics_print(problem.statistics)
+    pprint(get_statistics(problem.statistics))

@@ -1,4 +1,5 @@
 import argparse
+from pprint import pprint
 
 import numpy as np
 import pytest
@@ -6,7 +7,7 @@ import pytest
 from nucs.memory import MIN
 from nucs.problems.golomb_problem import GolombProblem, index, init_domains
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.statistics import statistics_print
+from nucs.statistics import get_statistics
 
 
 class TestGolomb:
@@ -47,6 +48,6 @@ if __name__ == "__main__":
     problem = GolombProblem(args.n)
     solver = BacktrackSolver(problem)
     solution = solver.minimize(problem.length)
-    statistics_print(problem.statistics)
+    pprint(get_statistics(problem.statistics))
     print(solution)
     print(solution[problem.length])  # type: ignore
