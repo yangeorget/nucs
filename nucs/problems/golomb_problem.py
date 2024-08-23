@@ -30,6 +30,7 @@ def init_domains(var_nb: int, mark_nb: int) -> NDArray:
 class GolombProblem(Problem):
     """
     This is the famous Golomb ruler problem.
+
     It consists in finding n integers mark_i such that:
     - mark_0 = 0,
     - mark_0 <...< mark_n-1,

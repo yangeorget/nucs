@@ -38,3 +38,8 @@ class TestAffineEQ:
         data = new_data_by_values([1, 3, 0])
         assert compute_domains(ALG_AFFINE_EQ, domains, data) == PROP_CONSISTENCY
         assert np.all(domains == np.array([[-14, 11], [-3, 4]]))
+
+    def test_compute_domains_6(self) -> None:
+        domains = new_domains_by_values([4, 3, 5, 9, 1, 8, 6, 2, 7, 0])
+        data = new_data_by_values([200, -1000, 100002, 9900, 100000, 20, 1000, 0, -99010, -1, 0])
+        assert compute_domains(ALG_AFFINE_EQ, domains, data) == PROP_CONSISTENCY

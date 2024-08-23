@@ -33,7 +33,6 @@ Z = 25
 
 class AlphaProblem(Problem):
     """
-    This problem comes from the newsgroup rec.puzzle.
     The numbers from 1 to 26 are assigned to the letters of the alphabet.
     The numbers beside each word are the total of the values assigned to the letters in the word
     (e.g for LYRE: L,Y,R,E might be to equal 5,9,20 and 13 or any other combination that add up to 47).
@@ -44,6 +43,8 @@ class AlphaProblem(Problem):
     CONCERT 74     LYRE  47     SAXOPHONE 134     THEME    72
     FLUTE   30     OBOE  53     SCALE      51     VIOLIN  100
     FUGUE   50     OPERA 65     SOLO       37     WALTZ    34
+
+    This problem comes from the newsgroup rec.puzzle.
     """
 
     def __init__(self) -> None:

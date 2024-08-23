@@ -136,9 +136,9 @@ NUCS only support integer domains.
 Boolean domains are simply integer domains of the form **[0, 1]**.
 
 ### Propagators (aka Constraints)
-Propagators are defined by two functions:
+Each ropagators is defined by two functions:
 - `compute_domains(domains: NDArray, data: NDArray) -> int`
-- `get_triggers(size: int, data: NDArray) -> NDArray`:
+- `get_triggers(size: int, data: NDArray) -> NDArray`
 
 #### `compute_domains`
 This function takes as its first argument the actual domains (not the shared ones) of the variables of the propagator 

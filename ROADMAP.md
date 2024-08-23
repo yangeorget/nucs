@@ -10,12 +10,13 @@
 - GCC
 - cycle
 - element
+- Product
 
 # Problems
+- Knapsack problem
 - RoundRobin
 - Job-shop problem 
 - Golfers problem
-- Knapsack problem
 - QG problem
 - Car sequencing problem
 - Crypto multiplication problem
