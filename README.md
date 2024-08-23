@@ -2,10 +2,10 @@
 
 ## TLDR
 NUCS is a Python library for solving Constraint Satisfaction and Optimization Problems.
-NUCS is powered by [Numpy](https://numpy.org/) and [Numba](https://numba.pydata.org/).
-NUCS is fast and easy to use.
+Because it is 100% written in Python, NUCS is easy to install and use.
+NUCS is also very fast because it is powered by [Numpy](https://numpy.org/) and [Numba](https://numba.pydata.org/).
 
-Because speed matters, in a few seconds you can ...
+With NUCS, in a few seconds you can ...
 
 Compute the 92 solutions to the BIBD(8,14,7,4,3) problem:
 ```python
@@ -72,7 +72,7 @@ from nucs.propagators.propagators import ALG_ALLDIFFERENT
 n = 8  # the number of queens
 problem = Problem(
     shr_domains=[(0, n - 1)] * n,  # these n domains are shared between 3n variables with different offsets
-    dom_indices=list(range(n)) * 3,  # fpr each variable, its domain
+    dom_indices=list(range(n)) * 3,  # for each variable, its domain
     dom_offsets=[0] * n + list(range(n)) + list(range(0, -n, -1))  # for each variable, its offset
 )
 problem.set_propagators([
@@ -90,6 +90,7 @@ The first solution found is:
 ```bash
 [0, 4, 7, 5, 2, 6, 1, 3]
 ```
+> [!TIP]
 > Note that the second run will always be much faster since the Python code will have been compiled by Numba.
 
 ### Install NUCS from the sources 
