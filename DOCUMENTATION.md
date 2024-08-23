@@ -67,16 +67,19 @@ Because of shared domains and offsets, the constructor of `Problem` accepts 3 ar
 - `dom_indices`: a list of integers representing, for each variable, the index of its shared domain 
 - `dom_offsets`: a list of integers representing, for each variable, the offset of its shared domain
 
+Internally, shared domains, domain indices and offsets are stored using `numpy.ndarray`.
 #### Integer domains
 NUCS only support integer domains.
 
 Boolean domains are simply integer domains of the form **[0, 1]**.
 
 ### Propagators (aka Constraints)
-Propagators are defined by two functions
-
-idempotent
-implement bound consistency
+Propagators are defined by two functions:
+- `compute_domains(domains: NDArray, data: NDArray) -> int`: this function updates the domains (the actual domains, not the shared ones) of the variables of the propagator. 
+It is expected to implement bound consistencyt and to be idempotent (a second consecutive run should not update the domains).
+It returns a status: `PROP_INCONSISTENCY`, `PROP_CONSISTENCY` or `PROP_ENTAILMENT`.
+- `get_triggers(size: int, data: NDArray) -> NDArray`: this function returns a `numpy.ndarray` of shape `(size, 2)`. 
+Let `triggers` be such an array, `triggers[i, MIN] == True` means that the propagator should be triggered whenever the minimum value of variable `ì` changes.
 
 ## Reference documentation
 ### Propagators
