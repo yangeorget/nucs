@@ -115,6 +115,11 @@ NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python tests/examples/test_golomb.py -
 ```
 
 ## Other constraint solvers in Python
-- python-constraint 
-- CCPMpy
-- PyCSP
+### python-constraint
+_The Python constraint module offers solvers for Constraint Solving Problems (CSPs) over finite domains in simple and pure Python._
+
+### CCPMpy
+_CPMpy is a Constraint Programming and Modeling library in Python, based on numpy, with direct solver access._
+
+### PyCSP
+_PyCSP3 is a Python library for developping models of combinatorial constrained problems in a declarative manner; you can write models of constraint satisfaction (CSP) and constraint optimization (COP) problems._
