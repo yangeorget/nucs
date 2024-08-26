@@ -13,7 +13,6 @@
 - Product
 
 # Problems
-- Knapsack problem
 - RoundRobin
 - Job-shop problem 
 - Golfers problem
