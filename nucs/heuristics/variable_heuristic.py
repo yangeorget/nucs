@@ -81,6 +81,23 @@ def min_value_dom_heuristic(
 
 
 @njit("(int32[::1, :], boolean[::1, :], int32[::1, :], uint16)", cache=True)
+def max_value_dom_heuristic(
+    shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
+) -> None:
+    """
+    Chooses the last value of the domain
+    :param shr_domains: the shared domains of the problem
+    :param: shr_domain_changes: the changes to the shared domains
+    :param: shr_domains_copy: the shared domains to be added to the choice point
+    :param domain_idx: the index of the domain
+    """
+    value = shr_domains[domain_idx, MAX]
+    shr_domains_copy[domain_idx, MAX] = value - 1
+    shr_domains[domain_idx, MIN] = value
+    shr_domain_changes[domain_idx, MIN] = True
+
+
+@njit("(int32[::1, :], boolean[::1, :], int32[::1, :], uint16)", cache=True)
 def split_low_dom_heuristic(
     shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
 ) -> None:
