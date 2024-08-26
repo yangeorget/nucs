@@ -137,7 +137,7 @@ class Problem:
         :param var_idx: the index of the variable
         :param min_value: the minimal value
         """
-        self.shr_domains[(self.dom_indices[var_idx]), MIN] = min_value - self.dom_offsets[var_idx]
+        self.shr_domains[self.dom_indices[var_idx], MIN] = min_value - self.dom_offsets[var_idx]
 
     def set_max_value(self, var_idx: int, max_value: int) -> None:
         """
@@ -145,7 +145,7 @@ class Problem:
         :param var_idx: the index of the variable
         :param min_value: the maximal value
         """
-        self.shr_domains[(self.dom_indices[var_idx]), MAX] = max_value - self.dom_offsets[var_idx]
+        self.shr_domains[self.dom_indices[var_idx], MAX] = max_value - self.dom_offsets[var_idx]
 
     def __str__(self) -> str:
         # TODO: fix this

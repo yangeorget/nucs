@@ -34,10 +34,7 @@ class BacktrackSolver(Solver):
         self.heuristic = heuristic
 
     def solve(self) -> Iterator[List[int]]:
-        while True:
-            solution = self.solve_one()
-            if solution is None:
-                break
+        while (solution := self.solve_one()) is not None:
             yield solution
             if not self.backtrack():
                 break
