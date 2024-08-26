@@ -89,7 +89,7 @@ class BacktrackSolver(Solver):
         if len(self.choice_points) == 0:
             return False
         self.problem.statistics[STATS_SOLVER_BACKTRACK_NB] += 1
-        self.shr_domain_changes[:, :] = True
+        self.shr_domain_changes.fill(True)
         self.problem.shr_domains = self.choice_points.pop()
         self.problem.reset_entailed_propagators()
         return True
@@ -109,6 +109,6 @@ class BacktrackSolver(Solver):
         Resets the solver by resetting the problem and the choice points.
         """
         self.choice_points.clear()
-        self.shr_domain_changes[:, :] = True
+        self.shr_domain_changes.fill(True)
         self.problem.reset_shr_domains()
         self.problem.reset_entailed_propagators()

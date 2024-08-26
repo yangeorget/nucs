@@ -20,9 +20,9 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
     :return: an array of triggers
     """
     triggers = new_triggers(n, False)
-    for i in range(n):
-        triggers[i, MIN] = data[i] > 0
-        triggers[i, MAX] = data[i] < 0
+    for i, c in enumerate(data[:-1]):
+        triggers[i, MIN] = c > 0
+        triggers[i, MAX] = c < 0
     return triggers
 
 
@@ -39,13 +39,13 @@ def compute_domains(domains: NDArray, a: NDArray) -> int:
         return PROP_ENTAILMENT
     new_domains = np.empty_like(domains)
     new_domains[:] = domains[:]
-    for i in range(n):
-        if a[i] != 0:
-            if a[i] > 0:
-                new_max = domains[i, MIN] + (domain_sum[MAX] // a[i])
+    for i, c in enumerate(a[:-1]):
+        if c != 0:
+            if c > 0:
+                new_max = domains[i, MIN] + (domain_sum[MAX] // c)
                 new_domains[i, MAX] = min(domains[i, MAX], new_max)
             else:
-                new_min = domains[i, MAX] - (-domain_sum[MAX] // a[i])
+                new_min = domains[i, MAX] - (-domain_sum[MAX] // c)
                 new_domains[i, MIN] = max(domains[i, MIN], new_min)
             if new_domains[i, MIN] > new_domains[i, MAX]:
                 return PROP_INCONSISTENCY

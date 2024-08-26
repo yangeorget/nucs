@@ -46,8 +46,7 @@ def compute_nb(
 ) -> int:
     min_value = domains[min_sorted_vars[0], MIN]
     max_value = domains[max_sorted_vars[0], MAX] + 1
-    last = min_value - 2
-    bounds[0] = last
+    bounds[0] = last = min_value - 2
     i = j = nb = 0
     while True:
         if i < n and min_value <= max_value:
@@ -89,8 +88,7 @@ def filter_lower(
     for i in range(1, nb + 2):
         t[i] = h[i] = i - 1
         d[i] = bounds[i] - bounds[i - 1]
-    for i in range(n):
-        max_sorted_vars_i = max_sorted_vars[i]
+    for i, max_sorted_vars_i in enumerate(max_sorted_vars):
         x = ranks[max_sorted_vars_i, MIN]
         y = ranks[max_sorted_vars_i, MAX]
         z = path_max(t, x + 1)

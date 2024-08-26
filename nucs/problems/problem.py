@@ -159,7 +159,6 @@ class Problem:
         """
         return filter(
             self.statistics,
-            self.propagator_nb,
             self.triggered_propagators,
             self.entailed_propagators,
             self.algorithms,
@@ -183,8 +182,8 @@ class Problem:
 
 @njit(cache=True)
 def pop_propagator(propagator_queue: NDArray) -> int:
-    for prop_idx in range(len(propagator_queue)):
-        if propagator_queue[prop_idx]:
+    for prop_idx, propagator in enumerate(propagator_queue):
+        if propagator:
             propagator_queue[prop_idx] = False
             return prop_idx
     return -1
@@ -193,7 +192,6 @@ def pop_propagator(propagator_queue: NDArray) -> int:
 @njit(cache=True)
 def filter(
     statistics: NDArray,
-    propagator_nb: int,
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,
     algorithms: NDArray,
@@ -217,7 +215,6 @@ def filter(
         triggered_propagators,
         entailed_propagators,
         shr_domain_changes,
-        propagator_nb,
         var_bounds,
         props_indices,
         props_triggers,
@@ -244,15 +241,14 @@ def filter(
         if status == PROP_ENTAILMENT:
             entailed_propagators[prop_idx] = True
             statistics[STATS_PROPAGATOR_ENTAILMENT_NB] += 1
-        shr_domains_cur[:, :] = shr_domains
+        shr_domains_cur = np.copy(shr_domains)
         shr_domains[prop_indices] = prop_domains - prop_offsets
-        shr_domain_changes[:, :] = shr_domains_cur != shr_domains
+        np.not_equal(shr_domains_cur, shr_domains, shr_domain_changes)
         if np.any(shr_domain_changes):  # type: ignore
             update_triggered_propagators(
                 triggered_propagators,
                 entailed_propagators,
                 shr_domain_changes,
-                propagator_nb,
                 var_bounds,
                 props_indices,
                 props_triggers,

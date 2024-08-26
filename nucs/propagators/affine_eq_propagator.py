@@ -18,8 +18,7 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
 def compute_domain_sum(n: int, domains: NDArray, data: NDArray) -> NDArray:
     domain_sum = np.empty(2, dtype=np.int32)
     domain_sum[:] = data[-1]
-    for i in range(n):
-        c = data[i]
+    for i, c in enumerate(data[:-1]):
         if c > 0:
             domain_sum[MIN] -= domains[i, MAX] * c
             domain_sum[MAX] -= domains[i, MIN] * c
@@ -40,14 +39,14 @@ def compute_domains(domains: NDArray, a: NDArray) -> int:
     domain_sum = compute_domain_sum(n, domains, a)
     new_domains = np.empty_like(domains)
     new_domains[:] = domains[:]
-    for i in range(n):
-        if a[i] != 0:
-            if a[i] > 0:
-                new_min = domains[i, MAX] - (domain_sum[MIN] // -a[i])
-                new_max = domains[i, MIN] + (domain_sum[MAX] // a[i])
+    for i, c in enumerate(a[:-1]):
+        if c != 0:
+            if c > 0:
+                new_min = domains[i, MAX] - (domain_sum[MIN] // -c)
+                new_max = domains[i, MIN] + (domain_sum[MAX] // c)
             else:
-                new_min = domains[i, MAX] - (-domain_sum[MAX] // a[i])
-                new_max = domains[i, MIN] + (-domain_sum[MIN] // -a[i])
+                new_min = domains[i, MAX] - (-domain_sum[MAX] // c)
+                new_max = domains[i, MIN] + (-domain_sum[MIN] // -c)
             new_domains[i, MIN] = max(domains[i, MIN], new_min)
             new_domains[i, MAX] = min(domains[i, MAX], new_max)
             if new_domains[i, MIN] > new_domains[i, MAX]:

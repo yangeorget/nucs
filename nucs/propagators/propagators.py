@@ -96,14 +96,13 @@ def init_triggered_propagators(
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,
     shr_domain_changes: NDArray,
-    propagator_nb: int,
     prop_var_bounds: NDArray,
     prop_dom_indices: NDArray,
     prop_triggers: NDArray,
 ) -> None:
     triggered_propagators.fill(False)
-    for prop_idx in range(propagator_nb):
-        if not entailed_propagators[prop_idx]:
+    for prop_idx, entailed_propagator in enumerate(entailed_propagators):
+        if not entailed_propagator:
             for var_idx in range(prop_var_bounds[prop_idx, START], prop_var_bounds[prop_idx, END]):
                 dom_idx = prop_dom_indices[var_idx]
                 if (shr_domain_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
@@ -118,14 +117,13 @@ def update_triggered_propagators(
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,
     shr_domain_changes: NDArray,
-    propagator_nb: int,
     prop_var_bounds: NDArray,
     prop_dom_indices: NDArray,
     prop_triggers: NDArray,
     previous_prop_idx: int,
 ) -> None:
-    for prop_idx in range(propagator_nb):
-        if not entailed_propagators[prop_idx] and prop_idx != previous_prop_idx and not triggered_propagators[prop_idx]:
+    for prop_idx, entailed_propagator in enumerate(entailed_propagators):
+        if not entailed_propagator and prop_idx != previous_prop_idx and not triggered_propagators[prop_idx]:
             for var_idx in range(prop_var_bounds[prop_idx, START], prop_var_bounds[prop_idx, END]):
                 dom_idx = prop_dom_indices[var_idx]
                 if (shr_domain_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
