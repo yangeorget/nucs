@@ -16,8 +16,7 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
 
 @njit(cache=True)
 def compute_domain_sum(n: int, domains: NDArray, data: NDArray) -> NDArray:
-    domain_sum = np.empty(2, dtype=np.int32)
-    domain_sum[:] = data[-1]
+    domain_sum = np.full(2, data[-1], dtype=np.int32)
     for i, c in enumerate(data[:-1]):
         if c > 0:
             domain_sum[MIN] -= domains[i, MAX] * c
@@ -37,8 +36,7 @@ def compute_domains(domains: NDArray, a: NDArray) -> int:
     """
     n = len(domains)
     domain_sum = compute_domain_sum(n, domains, a)
-    new_domains = np.empty_like(domains)
-    new_domains[:] = domains[:]
+    new_domains = np.copy(domains)
     for i, c in enumerate(a[:-1]):
         if c != 0:
             if c > 0:
@@ -51,5 +49,5 @@ def compute_domains(domains: NDArray, a: NDArray) -> int:
             new_domains[i, MAX] = min(domains[i, MAX], new_max)
             if new_domains[i, MIN] > new_domains[i, MAX]:
                 return PROP_INCONSISTENCY
-    domains[:] = new_domains[:]
+    domains[:] = new_domains[:]  # numba does not support copyto
     return PROP_CONSISTENCY

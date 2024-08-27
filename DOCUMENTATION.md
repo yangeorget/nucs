@@ -45,6 +45,7 @@ There is a lot of overhead here:
 - each time we update the domain of **v_0**, we also need to update the domain of **v_1** (and vice versa)
 - from the point of view of the variable choice heuristic, 
 the problem is made arbitrarily large and it makes no difference whether **v_0** or **v_1** is selected
+- from the point of view of the backtracking mechanism, there are two variables to store and restore
 
 We can efficiently replace both domains by a single shared domain and two offsets **4** and **0**:
 
@@ -67,7 +68,7 @@ Because of shared domains and offsets, the constructor of `Problem` accepts 3 ar
 - `dom_indices`: a list of integers representing, for each variable, the index of its shared domain 
 - `dom_offsets`: a list of integers representing, for each variable, the offset of its shared domain
 
-Python with the help of lists and ranges makes construction of complex problems an easy task.
+Python, with the help of lists and ranges, makes the construction of complex problems an easy task.
 Internally, for greater efficiency, shared domains, domain indices and offsets are stored using `numpy.ndarray`.
 
 ##### A concrete example: the 4-queens problem
@@ -136,7 +137,7 @@ NUCS only support integer domains.
 Boolean domains are simply integer domains of the form **[0, 1]**.
 
 ### Propagators (aka Constraints)
-Each ropagators is defined by two functions:
+Each propagator defines two functions:
 - `compute_domains(domains: NDArray, data: NDArray) -> int`
 - `get_triggers(size: int, data: NDArray) -> NDArray`
 

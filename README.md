@@ -62,8 +62,8 @@ Let's install the Pip package for NUCS:
 ```bash
 pip install nucs
 ````
-Now we can write the following `queens.py` program, 
-refer to [the technical documentation](DOCUMENTATION.md) to better understand how NUCS works under the hood:
+Now we can write the following `queens.py` program (please refer to [the technical documentation](DOCUMENTATION.md) 
+to better understand how NUCS works under the hood):
 ```python
 from nucs.problems.problem import Problem
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -84,7 +84,7 @@ print(BacktrackSolver(problem).solve_one()[:n])
 ```
 Let's run this model with the following command:
 ```bash
-PYTHONPATH=. python queens.py
+NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python queens.py
 ```
 The first solution found is:
 ```bash

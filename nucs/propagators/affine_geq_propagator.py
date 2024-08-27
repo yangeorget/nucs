@@ -37,8 +37,7 @@ def compute_domains(domains: NDArray, a: NDArray) -> int:
     domain_sum = compute_domain_sum(n, domains, a)
     if domain_sum[MAX] <= 0:
         return PROP_ENTAILMENT
-    new_domains = np.empty_like(domains)
-    new_domains[:] = domains[:]
+    new_domains = np.copy(domains)
     for i, c in enumerate(a[:-1]):
         if c != 0:
             if c > 0:
@@ -49,5 +48,5 @@ def compute_domains(domains: NDArray, a: NDArray) -> int:
                 new_domains[i, MAX] = min(domains[i, MAX], new_max)
                 if new_domains[i, MIN] > new_domains[i, MAX]:
                     return PROP_INCONSISTENCY
-    domains[:] = new_domains[:]
+    domains[:] = new_domains[:]  # numba does not support copyto
     return PROP_CONSISTENCY
