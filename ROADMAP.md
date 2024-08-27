@@ -1,5 +1,4 @@
 # Misc
-- Numba profiler
 - Read the docs
 
 # Engine

@@ -7,7 +7,7 @@ NUCS is also very fast because it is powered by [Numpy](https://numpy.org/) and 
 
 With NUCS, in a few seconds you can ...
 
-Compute the 92 solutions to the BIBD(8,14,7,4,3) problem:
+Compute the 92 solutions to the [BIBD(8,14,7,4,3) problem](https://www.csplib.org/Problems/prob028/):
 ```python
 {
     'OPTIMIZER_SOLUTION_NB': 0,
@@ -22,7 +22,7 @@ Compute the 92 solutions to the BIBD(8,14,7,4,3) problem:
     'SOLVER_SOLUTION_NB': 92
 }
 ```
-Demonstrate that the optimal 10-marks Golomb ruler length is 55:
+Demonstrate that the optimal [10-marks Golomb ruler](https://www.csplib.org/Problems/prob006/) length is 55:
 ```python
 {
     'OPTIMIZER_SOLUTION_NB': 10,
@@ -37,7 +37,7 @@ Demonstrate that the optimal 10-marks Golomb ruler length is 55:
     'SOLVER_SOLUTION_NB': 10
 }
 ```
-Find all 14200 solutions to the 12-queens problem:
+Find all 14200 solutions to the [12-queens problem](https://www.csplib.org/Problems/prob054/):
 ```python
 {
     'OPTIMIZER_SOLUTION_NB': 0,
