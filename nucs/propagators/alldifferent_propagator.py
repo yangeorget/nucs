@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 from nucs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY, new_triggers
 
 
-def get_triggers(n: int, data: NDArray) -> NDArray:
+def get_triggers_alldifferent(n: int, data: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
@@ -154,7 +154,7 @@ def filter_upper(
 
 
 @njit("int64(int32[::1,:], int32[:])", cache=True)
-def compute_domains(domains: NDArray, data: NDArray) -> int:
+def compute_domains_alldifferent(domains: NDArray, data: NDArray) -> int:
     """
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
     :param domains: the domains of the variables

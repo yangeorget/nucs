@@ -13,7 +13,7 @@ from nucs.memory import (
 from nucs.propagators.affine_eq_propagator import compute_domain_sum
 
 
-def get_triggers(n: int, data: NDArray) -> NDArray:
+def get_triggers_affine_geq(n: int, data: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.
     :param n: the number of variables
@@ -27,7 +27,7 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
 
 
 @njit("int64(int32[::1,:], int32[:])", cache=True)
-def compute_domains(domains: NDArray, a: NDArray) -> int:
+def compute_domains_affine_geq(domains: NDArray, a: NDArray) -> int:
     """
     Implements Sigma_i a_i * x_i >= a_{n-1}.
     :param domains: the domains of the variables

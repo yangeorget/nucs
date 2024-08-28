@@ -11,7 +11,7 @@ from nucs.memory import (
 )
 
 
-def get_triggers(n: int, data: NDArray) -> NDArray:
+def get_triggers_lexicographic_leq(n: int, data: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
@@ -127,7 +127,7 @@ def compute_domains_1(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
 
 
 @njit("int64(int32[::1,:], int32[:])", cache=True)
-def compute_domains(domains: NDArray, data: NDArray) -> int:
+def compute_domains_lexicographic_leq(domains: NDArray, data: NDArray) -> int:
     """
     Implements lexicographic leq.
     See https://www.diva-portal.org/smash/record.jsf?pid=diva2:1041533.

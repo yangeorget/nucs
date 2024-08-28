@@ -12,7 +12,7 @@ from nucs.memory import (
 )
 
 
-def get_triggers(n: int, data: NDArray) -> NDArray:
+def get_triggers_max_leq(n: int, data: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.
     :param n: the number of variables
@@ -26,7 +26,7 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
 
 
 @njit("int64(int32[::1,:], int32[:])", cache=True)
-def compute_domains(domains: NDArray, data: NDArray) -> int:
+def compute_domains_max_leq(domains: NDArray, data: NDArray) -> int:
     """
     Implements Max_i x_i <= x_{n-1}.
     :param domains: the domains of the variables

@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 from nucs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY, new_triggers
 
 
-def get_triggers(n: int, data: NDArray) -> NDArray:
+def get_triggers_affine_eq(n: int, data: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
@@ -28,7 +28,7 @@ def compute_domain_sum(n: int, domains: NDArray, data: NDArray) -> NDArray:
 
 
 @njit("int64(int32[::1,:], int32[:])", cache=True)
-def compute_domains(domains: NDArray, a: NDArray) -> int:
+def compute_domains_affine_eq(domains: NDArray, a: NDArray) -> int:
     """
     Implements Sigma_i a_i * x_i = a_{n-1}.
     :param domains: the domains of the variables

@@ -2,19 +2,50 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.memory import END, MAX, MIN, START
-from nucs.propagators import (
-    affine_eq_propagator,
-    affine_geq_propagator,
-    affine_leq_propagator,
-    alldifferent_propagator,
-    count_eq_propagator,
-    dummy_propagator,
-    exactly_eq_propagator,
-    lexicographic_leq_propagator,
-    max_eq_propagator,
-    max_leq_propagator,
-    min_eq_propagator,
-    min_geq_propagator,
+from nucs.propagators.affine_eq_propagator import (
+    compute_domains_affine_eq,
+    get_triggers_affine_eq,
+)
+from nucs.propagators.affine_geq_propagator import (
+    compute_domains_affine_geq,
+    get_triggers_affine_geq,
+)
+from nucs.propagators.affine_leq_propagator import (
+    compute_domains_affine_leq,
+    get_triggers_affine_leq,
+)
+from nucs.propagators.alldifferent_propagator import (
+    compute_domains_alldifferent,
+    get_triggers_alldifferent,
+)
+from nucs.propagators.count_eq_propagator import (
+    compute_domains_count_eq,
+    get_triggers_count_eq,
+)
+from nucs.propagators.dummy_propagator import compute_domains_dummy, get_triggers_dummy
+from nucs.propagators.exactly_eq_propagator import (
+    compute_domains_exactly_eq,
+    get_triggers_exactly_eq,
+)
+from nucs.propagators.lexicographic_leq_propagator import (
+    compute_domains_lexicographic_leq,
+    get_triggers_lexicographic_leq,
+)
+from nucs.propagators.max_eq_propagator import (
+    compute_domains_max_eq,
+    get_triggers_max_eq,
+)
+from nucs.propagators.max_leq_propagator import (
+    compute_domains_max_leq,
+    get_triggers_max_leq,
+)
+from nucs.propagators.min_eq_propagator import (
+    compute_domains_min_eq,
+    get_triggers_min_eq,
+)
+from nucs.propagators.min_geq_propagator import (
+    compute_domains_min_geq,
+    get_triggers_min_geq,
 )
 
 # The ordinals of the algorithms for all propagators (sorted by alphabetical ordering).
@@ -31,19 +62,19 @@ ALG_MAX_LEQ = 9
 ALG_MIN_EQ = 10
 ALG_MIN_GEQ = 11
 
-PROPAGATOR_MODULES = [
-    affine_eq_propagator,
-    affine_geq_propagator,
-    affine_leq_propagator,
-    alldifferent_propagator,
-    count_eq_propagator,
-    dummy_propagator,
-    exactly_eq_propagator,
-    lexicographic_leq_propagator,
-    max_eq_propagator,
-    max_leq_propagator,
-    min_eq_propagator,
-    min_geq_propagator,
+GET_TRIGGERS_FUNCTIONS = [
+    get_triggers_affine_eq,
+    get_triggers_affine_geq,
+    get_triggers_affine_leq,
+    get_triggers_alldifferent,
+    get_triggers_count_eq,
+    get_triggers_dummy,
+    get_triggers_exactly_eq,
+    get_triggers_lexicographic_leq,
+    get_triggers_max_eq,
+    get_triggers_max_leq,
+    get_triggers_min_eq,
+    get_triggers_min_geq,
 ]
 
 
@@ -54,7 +85,7 @@ def get_triggers(algorithm: int, size: int, data: NDArray) -> NDArray:
     :param size: the number of variables
     :return: an array of triggers
     """
-    return PROPAGATOR_MODULES[algorithm].get_triggers(size, data)
+    return GET_TRIGGERS_FUNCTIONS[algorithm](size, data)
 
 
 @njit("int64(uint8, int32[::1,:], int32[:])", cache=True)
@@ -67,28 +98,28 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> int:
     :return: a status as an integer (INCONSISTENCY, CONSISTENCY, ENTAILMENT)
     """
     if algorithm == ALG_AFFINE_EQ:
-        return affine_eq_propagator.compute_domains(domains, data)
+        return compute_domains_affine_eq(domains, data)
     if algorithm == ALG_AFFINE_GEQ:
-        return affine_geq_propagator.compute_domains(domains, data)
+        return compute_domains_affine_geq(domains, data)
     if algorithm == ALG_AFFINE_LEQ:
-        return affine_leq_propagator.compute_domains(domains, data)
+        return compute_domains_affine_leq(domains, data)
     if algorithm == ALG_ALLDIFFERENT:
-        return alldifferent_propagator.compute_domains(domains, data)
+        return compute_domains_alldifferent(domains, data)
     if algorithm == ALG_COUNT_EQ:
-        return count_eq_propagator.compute_domains(domains, data)
+        return compute_domains_count_eq(domains, data)
     if algorithm == ALG_DUMMY:
-        return dummy_propagator.compute_domains(domains, data)
+        return compute_domains_dummy(domains, data)
     if algorithm == ALG_EXACTLY_EQ:
-        return exactly_eq_propagator.compute_domains(domains, data)
+        return compute_domains_exactly_eq(domains, data)
     if algorithm == ALG_LEXICOGRAPHIC_LEQ:
-        return lexicographic_leq_propagator.compute_domains(domains, data)
+        return compute_domains_lexicographic_leq(domains, data)
     if algorithm == ALG_MAX_EQ:
-        return max_eq_propagator.compute_domains(domains, data)
+        return compute_domains_max_eq(domains, data)
     if algorithm == ALG_MAX_LEQ:
-        return max_leq_propagator.compute_domains(domains, data)
+        return compute_domains_max_leq(domains, data)
     if algorithm == ALG_MIN_EQ:
-        return min_eq_propagator.compute_domains(domains, data)
-    return min_geq_propagator.compute_domains(domains, data)
+        return compute_domains_min_eq(domains, data)
+    return compute_domains_min_geq(domains, data)
 
 
 @njit(cache=True)

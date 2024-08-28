@@ -11,7 +11,10 @@ from nucs.memory import (
     new_domains_by_values,
 )
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_LEXICOGRAPHIC_LEQ, compute_domains
+from nucs.propagators.lexicographic_leq_propagator import (
+    compute_domains_lexicographic_leq,
+)
+from nucs.propagators.propagators import ALG_LEXICOGRAPHIC_LEQ
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_SOLVER_SOLUTION_NB
 
@@ -20,13 +23,13 @@ class TestLexicographicLEQ:
     def test_compute_domains_1(self) -> None:
         domains = new_domains_by_values([(0, 1), 0, 1, 1])
         data = new_data_by_values([])
-        assert compute_domains(ALG_LEXICOGRAPHIC_LEQ, domains, data) == PROP_ENTAILMENT
+        assert compute_domains_lexicographic_leq(domains, data) == PROP_ENTAILMENT
         assert np.all(domains == np.array([[0, 1], [0, 0], [1, 1], [1, 1]]))
 
     def test_compute_domains_2(self) -> None:
         domains = new_domains_by_values([(0, 1), (0, 1), (0, 1), (0, 1)])
         data = new_data_by_values([])
-        assert compute_domains(ALG_LEXICOGRAPHIC_LEQ, domains, data) == PROP_CONSISTENCY
+        assert compute_domains_lexicographic_leq(domains, data) == PROP_CONSISTENCY
         assert np.all(domains == np.array([[0, 1], [0, 1], [0, 1], [0, 1]]))
 
     @pytest.mark.parametrize(
@@ -53,7 +56,7 @@ class TestLexicographicLEQ:
     def test_compute_domains_values(self, values: Any, state: int) -> None:
         domains = new_domains_by_values(values)
         data = new_data_by_values([])
-        assert compute_domains(ALG_LEXICOGRAPHIC_LEQ, domains, data) == state
+        assert compute_domains_lexicographic_leq(domains, data) == state
 
     def test_solve_1(self) -> None:
         problem = Problem(

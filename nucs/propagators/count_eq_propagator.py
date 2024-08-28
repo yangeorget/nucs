@@ -12,7 +12,7 @@ from nucs.memory import (
 )
 
 
-def get_triggers(n: int, data: NDArray) -> NDArray:
+def get_triggers_count_eq(n: int, data: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
@@ -22,7 +22,7 @@ def get_triggers(n: int, data: NDArray) -> NDArray:
 
 
 @njit("int64(int32[::1,:], int32[:])", cache=True)
-def compute_domains(domains: NDArray, data: NDArray) -> int:
+def compute_domains_count_eq(domains: NDArray, data: NDArray) -> int:
     """
     Implements Sigma_i (x_i == a) = x_{n-1}.
     :param domains: the domains of the variables
