@@ -141,12 +141,9 @@ class Problem:
                 prop_vars
             ]  # this is cached for faster access
             self.props_data[self.data_bounds[pidx, START] : self.data_bounds[pidx, END]] = propagator[2]
-            algorithm = propagator[1]
-            size = len(propagator[0])
-            data = propagator[2]
             self.props_triggers[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = GET_TRIGGERS_FUNCTIONS[
-                algorithm
-            ](size, data)
+                propagator[1]
+            ](len(propagator[0]), propagator[2])
 
     def get_values(self) -> List[int]:
         """

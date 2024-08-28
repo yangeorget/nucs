@@ -8,7 +8,6 @@
 # Constraints
 - GCC
 - Cycle
-- Element/Relation
 - Product
 
 # Problems
