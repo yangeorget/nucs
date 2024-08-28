@@ -209,7 +209,6 @@ def filter(
     :param shr_domain_changes: an array of shared domain changes
     :return: False if the problem is not consistent
     """
-    shr_domains_cur = np.empty_like(shr_domains)
     statistics[STATS_PROBLEM_FILTER_NB] += 1
     init_triggered_propagators(
         triggered_propagators,
