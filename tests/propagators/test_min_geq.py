@@ -1,12 +1,6 @@
 import numpy as np
 
-from nucs.memory import (
-    PROP_CONSISTENCY,
-    PROP_ENTAILMENT,
-    PROP_INCONSISTENCY,
-    new_data_by_values,
-    new_domains_by_values,
-)
+from nucs.memory import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY, new_data_by_values, new_domains_by_values
 from nucs.propagators.min_geq_propagator import compute_domains_min_geq
 
 

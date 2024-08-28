@@ -2,14 +2,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.memory import (
-    MAX,
-    MIN,
-    PROP_CONSISTENCY,
-    PROP_ENTAILMENT,
-    PROP_INCONSISTENCY,
-    new_triggers,
-)
+from nucs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY, new_triggers
 
 
 def get_triggers_count_eq(n: int, data: NDArray) -> NDArray:

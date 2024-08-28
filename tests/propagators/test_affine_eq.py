@@ -1,10 +1,7 @@
 import numpy as np
 
 from nucs.memory import PROP_CONSISTENCY, new_data_by_values, new_domains_by_values
-from nucs.propagators.affine_eq_propagator import (
-    compute_domains_affine_eq,
-    get_triggers_affine_eq,
-)
+from nucs.propagators.affine_eq_propagator import compute_domains_affine_eq, get_triggers_affine_eq
 
 
 class TestAffineEQ:

@@ -1,9 +1,5 @@
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import (
-    ALG_EXACTLY_EQ,
-    ALG_LEXICOGRAPHIC_LEQ,
-    ALG_MIN_EQ,
-)
+from nucs.propagators.propagators import ALG_EXACTLY_EQ, ALG_LEXICOGRAPHIC_LEQ, ALG_MIN_EQ
 
 
 class BIBDProblem(Problem):

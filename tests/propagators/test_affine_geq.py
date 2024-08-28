@@ -1,15 +1,7 @@
 import numpy as np
 
-from nucs.memory import (
-    PROP_CONSISTENCY,
-    PROP_ENTAILMENT,
-    new_data_by_values,
-    new_domains_by_values,
-)
-from nucs.propagators.affine_geq_propagator import (
-    compute_domains_affine_geq,
-    get_triggers_affine_geq,
-)
+from nucs.memory import PROP_CONSISTENCY, PROP_ENTAILMENT, new_data_by_values, new_domains_by_values
+from nucs.propagators.affine_geq_propagator import compute_domains_affine_geq, get_triggers_affine_geq
 
 
 class TestAffineGEQ:

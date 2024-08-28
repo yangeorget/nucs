@@ -1,9 +1,5 @@
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import (
-    ALG_AFFINE_LEQ,
-    ALG_EXACTLY_EQ,
-    ALG_LEXICOGRAPHIC_LEQ,
-)
+from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_EXACTLY_EQ, ALG_LEXICOGRAPHIC_LEQ
 
 
 class SchurLemmaProblem(Problem):

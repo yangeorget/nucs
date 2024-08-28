@@ -2,51 +2,18 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.memory import END, MAX, MIN, START
-from nucs.propagators.affine_eq_propagator import (
-    compute_domains_affine_eq,
-    get_triggers_affine_eq,
-)
-from nucs.propagators.affine_geq_propagator import (
-    compute_domains_affine_geq,
-    get_triggers_affine_geq,
-)
-from nucs.propagators.affine_leq_propagator import (
-    compute_domains_affine_leq,
-    get_triggers_affine_leq,
-)
-from nucs.propagators.alldifferent_propagator import (
-    compute_domains_alldifferent,
-    get_triggers_alldifferent,
-)
-from nucs.propagators.count_eq_propagator import (
-    compute_domains_count_eq,
-    get_triggers_count_eq,
-)
-from nucs.propagators.dummy_propagator import compute_domains_dummy, get_triggers_dummy
-from nucs.propagators.exactly_eq_propagator import (
-    compute_domains_exactly_eq,
-    get_triggers_exactly_eq,
-)
-from nucs.propagators.lexicographic_leq_propagator import (
-    compute_domains_lexicographic_leq,
-    get_triggers_lexicographic_leq,
-)
-from nucs.propagators.max_eq_propagator import (
-    compute_domains_max_eq,
-    get_triggers_max_eq,
-)
-from nucs.propagators.max_leq_propagator import (
-    compute_domains_max_leq,
-    get_triggers_max_leq,
-)
-from nucs.propagators.min_eq_propagator import (
-    compute_domains_min_eq,
-    get_triggers_min_eq,
-)
-from nucs.propagators.min_geq_propagator import (
-    compute_domains_min_geq,
-    get_triggers_min_geq,
-)
+from nucs.propagators.affine_eq_propagator import compute_domains_affine_eq
+from nucs.propagators.affine_geq_propagator import compute_domains_affine_geq
+from nucs.propagators.affine_leq_propagator import compute_domains_affine_leq
+from nucs.propagators.alldifferent_propagator import compute_domains_alldifferent
+from nucs.propagators.count_eq_propagator import compute_domains_count_eq
+from nucs.propagators.dummy_propagator import compute_domains_dummy
+from nucs.propagators.exactly_eq_propagator import compute_domains_exactly_eq
+from nucs.propagators.lexicographic_leq_propagator import compute_domains_lexicographic_leq
+from nucs.propagators.max_eq_propagator import compute_domains_max_eq
+from nucs.propagators.max_leq_propagator import compute_domains_max_leq
+from nucs.propagators.min_eq_propagator import compute_domains_min_eq
+from nucs.propagators.min_geq_propagator import compute_domains_min_geq
 
 # The ordinals of the algorithms for all propagators (sorted by alphabetical ordering).
 ALG_AFFINE_EQ = 0
@@ -61,31 +28,6 @@ ALG_MAX_EQ = 8
 ALG_MAX_LEQ = 9
 ALG_MIN_EQ = 10
 ALG_MIN_GEQ = 11
-
-GET_TRIGGERS_FUNCTIONS = [
-    get_triggers_affine_eq,
-    get_triggers_affine_geq,
-    get_triggers_affine_leq,
-    get_triggers_alldifferent,
-    get_triggers_count_eq,
-    get_triggers_dummy,
-    get_triggers_exactly_eq,
-    get_triggers_lexicographic_leq,
-    get_triggers_max_eq,
-    get_triggers_max_leq,
-    get_triggers_min_eq,
-    get_triggers_min_geq,
-]
-
-
-def get_triggers(algorithm: int, size: int, data: NDArray) -> NDArray:
-    """
-    Returns the triggers for a propagator.
-    :param algorithm: the ordinal of the algorithm
-    :param size: the number of variables
-    :return: an array of triggers
-    """
-    return GET_TRIGGERS_FUNCTIONS[algorithm](size, data)
 
 
 @njit("int64(uint8, int32[::1,:], int32[:])", cache=True)

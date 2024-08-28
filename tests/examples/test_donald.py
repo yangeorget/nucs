@@ -1,10 +1,6 @@
 from pprint import pprint
 
-from nucs.heuristics.variable_heuristic import (
-    VariableHeuristic,
-    min_value_dom_heuristic,
-    smallest_domain_var_heuristic,
-)
+from nucs.heuristics.variable_heuristic import VariableHeuristic, min_value_dom_heuristic, smallest_domain_var_heuristic
 from nucs.problems.donald_problem import DonaldProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_SOLVER_SOLUTION_NB, get_statistics
