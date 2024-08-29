@@ -8,6 +8,7 @@ from nucs.propagators.affine_leq_propagator import compute_domains_affine_leq
 from nucs.propagators.alldifferent_propagator import compute_domains_alldifferent
 from nucs.propagators.count_eq_propagator import compute_domains_count_eq
 from nucs.propagators.dummy_propagator import compute_domains_dummy
+from nucs.propagators.element_propagator import compute_domains_element
 from nucs.propagators.exactly_eq_propagator import compute_domains_exactly_eq
 from nucs.propagators.lexicographic_leq_propagator import compute_domains_lexicographic_leq
 from nucs.propagators.max_eq_propagator import compute_domains_max_eq
@@ -22,12 +23,13 @@ ALG_AFFINE_LEQ = 2
 ALG_ALLDIFFERENT = 3
 ALG_COUNT_EQ = 4
 ALG_DUMMY = 5
-ALG_EXACTLY_EQ = 6
-ALG_LEXICOGRAPHIC_LEQ = 7
-ALG_MAX_EQ = 8
-ALG_MAX_LEQ = 9
-ALG_MIN_EQ = 10
-ALG_MIN_GEQ = 11
+ALG_ELEMENT = 6
+ALG_EXACTLY_EQ = 7
+ALG_LEXICOGRAPHIC_LEQ = 8
+ALG_MAX_EQ = 9
+ALG_MAX_LEQ = 10
+ALG_MIN_EQ = 11
+ALG_MIN_GEQ = 12
 
 
 @njit("int64(uint8, int32[::1,:], int32[:])", cache=True)
@@ -51,6 +53,8 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> int:
         return compute_domains_count_eq(domains, data)
     if algorithm == ALG_DUMMY:
         return compute_domains_dummy(domains, data)
+    if algorithm == ALG_ELEMENT:
+        return compute_domains_element(domains, data)
     if algorithm == ALG_EXACTLY_EQ:
         return compute_domains_exactly_eq(domains, data)
     if algorithm == ALG_LEXICOGRAPHIC_LEQ:

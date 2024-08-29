@@ -30,6 +30,7 @@ from nucs.propagators.affine_leq_propagator import get_triggers_affine_leq
 from nucs.propagators.alldifferent_propagator import get_triggers_alldifferent
 from nucs.propagators.count_eq_propagator import get_triggers_count_eq
 from nucs.propagators.dummy_propagator import get_triggers_dummy
+from nucs.propagators.element_propagator import get_triggers_element
 from nucs.propagators.exactly_eq_propagator import get_triggers_exactly_eq
 from nucs.propagators.lexicographic_leq_propagator import get_triggers_lexicographic_leq
 from nucs.propagators.max_eq_propagator import get_triggers_max_eq
@@ -53,6 +54,7 @@ GET_TRIGGERS_FUNCTIONS = [
     get_triggers_alldifferent,
     get_triggers_count_eq,
     get_triggers_dummy,
+    get_triggers_element,
     get_triggers_exactly_eq,
     get_triggers_lexicographic_leq,
     get_triggers_max_eq,
