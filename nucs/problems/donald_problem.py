@@ -22,16 +22,16 @@ class DonaldProblem(Problem):
     """
 
     def __init__(self) -> None:
-        super().__init__(shr_domains=[(0, 9)] * 10, dom_indices=list(range(10)), dom_offsets=[0] * 10)
-        self.set_propagators(
-            [
-                (
-                    [A, B, D, E, G, L, N, O, R, T],
-                    ALG_AFFINE_EQ,
-                    [200, -1000, 100002, 9900, 100000, 20, 1000, 0, -99010, -1, 0],
-                ),
-                ([A, B, D, E, G, L, N, O, R, T], ALG_ALLDIFFERENT, []),
-            ]
+        super().__init__([(0, 9)] * 10)
+        self.add_propagator(
+            (
+                [A, B, D, E, G, L, N, O, R, T],
+                ALG_AFFINE_EQ,
+                [200, -1000, 100002, 9900, 100000, 20, 1000, 0, -99010, -1, 0],
+            )
+        )
+        self.add_propagator(
+            ([A, B, D, E, G, L, N, O, R, T], ALG_ALLDIFFERENT, []),
         )
 
     def pretty_print_solution(self, solution: List[int]) -> None:

@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -70,53 +70,59 @@ class Problem:
     A domain can be computed by applying an offset to a shared domain.
     """
 
-    def __init__(self, shr_domains: List[Union[int, Tuple[int, int]]], dom_indices: List[int], dom_offsets: List[int]):
+    def __init__(
+        self,
+        shr_domains: List[Union[int, Tuple[int, int]]],
+        dom_indices: Optional[List[int]] = None,
+        dom_offsets: Optional[List[int]] = None,
+    ):
         """
         Inits the problem.
         :param shr_domains: the shared domains expressed as a list
         :param dom_indices: the domain indices expressed as a list
         :param dom_offsets: the domain offsets expressed as a list
         """
-        self.variable_nb = len(dom_indices)
-        self.shr_domains_backup = shr_domains  # a copy of the shared domains (as a list) used when resetting a problem
-        self.shr_domains = new_domains_by_values(shr_domains)
-        self.dom_indices = new_indices_by_values(dom_indices)
-        self.dom_offsets = new_domain_offsets_by_values(dom_offsets)
-        self.statistics = init_statistics()
+        self.shr_domains_backup = shr_domains
+        n = len(shr_domains)
+        if dom_indices is None:
+            dom_indices = list(range(0, n))
+        if dom_offsets is None:
+            dom_offsets = [0] * n
+        self.dom_indices_backup = dom_indices
+        self.dom_offsets_backup = dom_offsets
+        self.propagators: List[Tuple[List[int], int, List[int]]] = []
+        self.ready = False
 
-    def reset_shr_domains(self) -> None:
+    def add_propagator(self, propagator: Tuple[List[int], int, List[int]]) -> None:
+        self.propagators.append(propagator)
+
+    def add_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
+        self.propagators.extend(propagators)
+
+    def init_problem(self) -> None:
         """
-        Resets the shared domains to their initial values.
+        Completes the initialization of the problem by defining the variables and the propagators.
         """
+        # inits variables
+        self.variable_nb = len(self.dom_indices_backup)
         self.shr_domains = new_domains_by_values(self.shr_domains_backup)
-
-    def reset_entailed_propagators(self) -> None:
-        """
-        Marks all propagators as not entailed anymore.
-        """
-        self.entailed_propagators[:] = False
-
-    def set_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
-        """
-        Completes the initialization of the problem by setting the propagators.
-        The order of the propagators has an impact on the global speed of the resolution:
-        it is recommended to put the more costly propagators at the end of the list.
-        :param propagators: the list of propagators as tuples of the form (list of variables, algorithm, data).
-        """
-        self.propagator_nb = len(propagators)
+        self.dom_indices = new_indices_by_values(self.dom_indices_backup)
+        self.dom_offsets = new_domain_offsets_by_values(self.dom_offsets_backup)
+        # inits propagators
+        self.propagator_nb = len(self.propagators)
         props_var_total_size = props_data_total_size = 0
         self.triggered_propagators = new_triggered_propagators(self.propagator_nb)
         self.entailed_propagators = new_entailed_propagators(self.propagator_nb)
         self.algorithms = new_algorithms(self.propagator_nb)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
         self.var_bounds = new_bounds(
-            self.propagator_nb
+            max(1, self.propagator_nb)
         )  # there is a bit of redundancy here for faster access to the bounds
         self.data_bounds = new_bounds(
-            self.propagator_nb
+            max(1, self.propagator_nb)
         )  # there is a bit of redundancy here for faster access to the bounds
         self.var_bounds[0, START] = self.data_bounds[0, START] = 0
-        for pidx, propagator in enumerate(propagators):
+        for pidx, propagator in enumerate(self.propagators):
             prop_var_size = len(propagator[0])
             prop_data_size = len(propagator[2])
             self.algorithms[pidx] = propagator[1]
@@ -134,7 +140,7 @@ class Problem:
         self.props_triggers = new_triggers(props_var_total_size, False)
         self.props_data = new_data(props_data_total_size)
         # Let's init the global arrays.
-        for pidx, propagator in enumerate(propagators):
+        for pidx, propagator in enumerate(self.propagators):
             prop_vars = propagator[0]
             self.props_dom_indices[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = self.dom_indices[
                 prop_vars
@@ -149,6 +155,20 @@ class Problem:
             self.props_triggers[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = GET_TRIGGERS_FUNCTIONS[
                 algorithm
             ](size, data)
+        # inits statistics
+        self.statistics = init_statistics()
+
+    def reset_shr_domains(self) -> None:
+        """
+        Resets the shared domains to their initial values.
+        """
+        self.shr_domains = new_domains_by_values(self.shr_domains_backup)
+
+    def reset_entailed_propagators(self) -> None:
+        """
+        Marks all propagators as not entailed anymore.
+        """
+        self.entailed_propagators[:] = False
 
     def get_values(self) -> List[int]:
         """
@@ -184,6 +204,9 @@ class Problem:
         :param shr_domain_changes: an array of shared domain changes
         :return: False if the problem is not consistent
         """
+        if not self.ready:
+            self.init_problem()
+            self.ready = True
         return filter(
             self.statistics,
             self.triggered_propagators,

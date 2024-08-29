@@ -35,7 +35,7 @@ class TestAffineLEQ:
             dom_indices=[0, 1, 2],
             dom_offsets=[0, 0, 0],
         )
-        problem.set_propagators(
+        problem.add_propagators(
             [
                 ([0, 1], ALG_AFFINE_LEQ, [-1, 1, -1]),
                 ([1, 2], ALG_AFFINE_LEQ, [-1, 1, -1]),

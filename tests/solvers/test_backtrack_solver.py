@@ -1,5 +1,5 @@
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_DUMMY
+from nucs.propagators.propagators import ALG_ALLDIFFERENT
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_SOLVER_CHOICE_DEPTH, STATS_SOLVER_SOLUTION_NB
 
@@ -7,7 +7,6 @@ from nucs.statistics import STATS_SOLVER_CHOICE_DEPTH, STATS_SOLVER_SOLUTION_NB
 class TestBacktrackSolver:
     def test_solve_and_count(self) -> None:
         problem = Problem(shr_domains=[(0, 99), (0, 99)], dom_indices=[0, 1], dom_offsets=[0, 0])
-        problem.set_propagators([([], ALG_DUMMY, [])])
         solver = BacktrackSolver(problem)
         for _ in solver.solve():
             pass
@@ -16,7 +15,6 @@ class TestBacktrackSolver:
 
     def test_solve(self) -> None:
         problem = Problem(shr_domains=[(0, 1), (0, 1)], dom_indices=[0, 1], dom_offsets=[0, 0])
-        problem.set_propagators([([], ALG_DUMMY, [])])
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 4
@@ -29,7 +27,7 @@ class TestBacktrackSolver:
 
     def test_solve_alldifferent(self) -> None:
         problem = Problem(shr_domains=[(0, 2), (0, 2), (0, 2)], dom_indices=[0, 1, 2], dom_offsets=[0, 0, 0])
-        problem.set_propagators([([0, 1, 2], ALG_ALLDIFFERENT, [])])
+        problem.add_propagator(([0, 1, 2], ALG_ALLDIFFERENT, []))
         solver = BacktrackSolver(problem)
         solutions = [solution for solution in solver.solve()]
         assert len(solutions) == 6

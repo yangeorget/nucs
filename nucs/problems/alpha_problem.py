@@ -48,8 +48,8 @@ class AlphaProblem(Problem):
     """
 
     def __init__(self) -> None:
-        super().__init__(shr_domains=[(1, 26)] * 26, dom_indices=list(range(26)), dom_offsets=[0] * 26)
-        self.set_propagators(
+        super().__init__([(1, 26)] * 26)
+        self.add_propagators(
             [
                 ([A, B, E, T, L], ALG_AFFINE_EQ, [1, 1, 1, 1, 2, 45]),
                 ([C, E, O, L], ALG_AFFINE_EQ, [1, 1, 1, 2, 43]),

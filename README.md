@@ -71,15 +71,13 @@ from nucs.propagators.propagators import ALG_ALLDIFFERENT
 
 n = 8  # the number of queens
 problem = Problem(
-    shr_domains=[(0, n - 1)] * n,  # these n domains are shared between 3n variables with different offsets
-    dom_indices=list(range(n)) * 3,  # for each variable, its domain
-    dom_offsets=[0] * n + list(range(n)) + list(range(0, -n, -1))  # for each variable, its offset
+    [(0, n - 1)] * n,  # these n domains are shared between 3n variables with different offsets
+    list(range(n)) * 3,  # for each variable, its domain
+    [0] * n + list(range(n)) + list(range(0, -n, -1))  # for each variable, its offset
 )
-problem.set_propagators([
-    (list(range(n)), ALG_ALLDIFFERENT, []), 
-    (list(range(n, 2 * n)), ALG_ALLDIFFERENT, []), 
-    (list(range(2 * n, 3 * n)), ALG_ALLDIFFERENT, [])
-])
+problem.add_propagator((list(range(n)), ALG_ALLDIFFERENT, []))
+problem.add_propagator((list(range(n, 2 * n)), ALG_ALLDIFFERENT, []))
+problem.add_propagator((list(range(2 * n, 3 * n)), ALG_ALLDIFFERENT, []))
 print(BacktrackSolver(problem).solve_one()[:n])
 ```
 Let's run this model with the following command:

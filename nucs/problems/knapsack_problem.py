@@ -11,13 +11,7 @@ class KnapsackProblem(Problem):
 
     def __init__(self, weights: List[int], volumes: List[int], capacity: int) -> None:
         n = len(weights)
-        super().__init__(
-            shr_domains=[(0, 1)] * n + [(0, sum(weights))], dom_indices=list(range(n + 1)), dom_offsets=[0] * (n + 1)
-        )
-        self.set_propagators(
-            [
-                (list(range(n)), ALG_AFFINE_LEQ, [*volumes, capacity]),
-                (list(range(n + 1)), ALG_AFFINE_EQ, [*weights, -1, 0]),
-            ]
-        )
+        super().__init__([(0, 1)] * n + [(0, sum(weights))])
+        self.add_propagator((list(range(n)), ALG_AFFINE_LEQ, [*volumes, capacity]))
+        self.add_propagator((list(range(n + 1)), ALG_AFFINE_EQ, [*weights, -1, 0]))
         self.weight = n

@@ -7,11 +7,4 @@ class QuasigroupProblem(Problem):
     """
 
     def __init__(self, n: int):
-        super().__init__(
-            shr_domains=[(0, n - 1)] * n**2,
-            dom_indices=list(range(n**2)),
-            dom_offsets=[0] * n**2,
-        )
-        propagators = []
-        # TODO
-        self.set_propagators(propagators)
+        super().__init__([(0, n - 1)] * n**2)

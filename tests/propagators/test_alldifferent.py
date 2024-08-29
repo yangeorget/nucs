@@ -32,7 +32,7 @@ class TestAlldifferent:
             dom_indices=[0, 1, 2, 0, 1, 2],
             dom_offsets=[0, 0, 0, 0, 1, 2],
         )
-        problem.set_propagators(
+        problem.add_propagators(
             [
                 ([0, 1, 2], ALG_ALLDIFFERENT, []),
                 ([3, 4, 5], ALG_ALLDIFFERENT, []),

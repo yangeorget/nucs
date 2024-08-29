@@ -54,7 +54,7 @@ class TestLexicographicLEQ:
         problem = Problem(
             shr_domains=[(0, 1), (0, 1), (0, 1), (0, 1)], dom_indices=[0, 1, 2, 3], dom_offsets=[0, 0, 0, 0]
         )
-        problem.set_propagators([([0, 1, 2, 3], ALG_LEXICOGRAPHIC_LEQ, [])])
+        problem.add_propagator(([0, 1, 2, 3], ALG_LEXICOGRAPHIC_LEQ, []))
         solver = BacktrackSolver(problem)
         solver.find_all()
         assert problem.statistics[STATS_SOLVER_SOLUTION_NB] == 10
@@ -63,7 +63,7 @@ class TestLexicographicLEQ:
         problem = Problem(
             shr_domains=[(1, 1), (0, 1), (0, 1), (0, 1)], dom_indices=[0, 1, 2, 3], dom_offsets=[0, 0, 0, 0]
         )
-        problem.set_propagators([([0, 1, 2, 3], ALG_LEXICOGRAPHIC_LEQ, [])])
+        problem.add_propagator(([0, 1, 2, 3], ALG_LEXICOGRAPHIC_LEQ, []))
         solver = BacktrackSolver(problem)
         for solution in solver.solve():
             print(solution)

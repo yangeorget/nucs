@@ -30,7 +30,7 @@ class BacktrackSolver(Solver):
     ):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
-        self.shr_domain_changes = new_domain_changes(len(self.problem.shr_domains))
+        self.shr_domain_changes = new_domain_changes(len(self.problem.shr_domains_backup))
         self.heuristic = heuristic
 
     def solve(self) -> Iterator[List[int]]:

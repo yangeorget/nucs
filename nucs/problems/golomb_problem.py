@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 import numpy as np
 from numpy.typing import NDArray
 
@@ -46,17 +44,12 @@ class GolombProblem(Problem):
         self.mark_nb = mark_nb
         self.length = mark_nb - 2
         var_nb = sum_first(mark_nb - 1)  # this the number of distances
-        super().__init__(
-            shr_domains=init_domains(var_nb, mark_nb),
-            dom_indices=list(range(var_nb)),
-            dom_offsets=[0] * var_nb,
-        )
-        propagators: List[Tuple[List[int], int, List[int]]] = []
+        super().__init__(init_domains(var_nb, mark_nb))
         # redundant constraints
         for i in range(mark_nb - 1):
             for j in range(i + 1, mark_nb):
                 if j - i < mark_nb - 1:
-                    propagators.append(
+                    self.add_propagator(
                         (
                             [index(mark_nb, i, j), self.length],
                             ALG_AFFINE_LEQ,
@@ -67,12 +60,11 @@ class GolombProblem(Problem):
         # main constraints
         for i in range(1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
-                propagators.append(
+                self.add_propagator(
                     (
                         [index(mark_nb, 0, j), index(mark_nb, 0, i), index(mark_nb, i, j)],
                         ALG_AFFINE_EQ,
                         [1, -1, -1, 0],
                     )
                 )
-        propagators.append((list(range(var_nb)), ALG_ALLDIFFERENT, []))
-        self.set_propagators(propagators)
+        self.add_propagator((list(range(var_nb)), ALG_ALLDIFFERENT, []))
