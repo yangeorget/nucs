@@ -31,9 +31,9 @@ class TestAffineLEQ:
 
     def test_filter(self) -> None:
         problem = Problem(
-            shr_domains=[(0, 2), (0, 2), (0, 2)],
-            dom_indices=[0, 1, 2],
-            dom_offsets=[0, 0, 0],
+            shr_domains_list=[(0, 2), (0, 2), (0, 2)],
+            dom_indices_list=[0, 1, 2],
+            dom_offsets_list=[0, 0, 0],
         )
         problem.add_propagators(
             [

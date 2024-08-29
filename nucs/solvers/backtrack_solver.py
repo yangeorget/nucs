@@ -30,7 +30,7 @@ class BacktrackSolver(Solver):
     ):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
-        self.shr_domain_changes = new_domain_changes(len(self.problem.shr_domains_backup))
+        self.shr_domain_changes = new_domain_changes(len(self.problem.shr_domains_list))
         self.heuristic = heuristic
 
     def solve(self) -> Iterator[List[int]]:
@@ -45,14 +45,14 @@ class BacktrackSolver(Solver):
         :return: the solution if it exists or None
         """
         while self.filter():
-            if is_solved(self.problem.shr_domains):
+            if is_solved(self.problem.shr_domains_ndarray):
                 self.problem.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 return self.problem.get_values()  # problem is solved
             self.heuristic.choose(
                 self.choice_points,
-                self.problem.shr_domains,
+                self.problem.shr_domains_ndarray,
                 self.shr_domain_changes,
-                self.problem.dom_indices,
+                self.problem.dom_indices_ndarray,
             )
             self.problem.statistics[STATS_SOLVER_CHOICE_NB] += 1
             self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH] = max(
@@ -87,7 +87,7 @@ class BacktrackSolver(Solver):
             return False
         self.problem.statistics[STATS_SOLVER_BACKTRACK_NB] += 1
         self.shr_domain_changes.fill(True)
-        self.problem.shr_domains = self.choice_points.pop()
+        self.problem.shr_domains_ndarray = self.choice_points.pop()
         self.problem.reset_entailed_propagators()
         return True
 

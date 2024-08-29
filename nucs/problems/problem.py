@@ -72,26 +72,38 @@ class Problem:
 
     def __init__(
         self,
-        shr_domains: List[Union[int, Tuple[int, int]]],
-        dom_indices: Optional[List[int]] = None,
-        dom_offsets: Optional[List[int]] = None,
+        shr_domains_list: List[Union[int, Tuple[int, int]]],
+        dom_indices_list: Optional[List[int]] = None,
+        dom_offsets_list: Optional[List[int]] = None,
     ):
         """
         Inits the problem.
-        :param shr_domains: the shared domains expressed as a list
-        :param dom_indices: the domain indices expressed as a list
-        :param dom_offsets: the domain offsets expressed as a list
+        :param shr_domains_list: the shared domains expressed as a list
+        :param dom_indices_list: the domain indices expressed as a list
+        :param dom_offsets_list: the domain offsets expressed as a list
         """
-        self.shr_domains_backup = shr_domains
-        n = len(shr_domains)
-        if dom_indices is None:
-            dom_indices = list(range(0, n))
-        if dom_offsets is None:
-            dom_offsets = [0] * n
-        self.dom_indices_backup = dom_indices
-        self.dom_offsets_backup = dom_offsets
+        n = len(shr_domains_list)
+        if dom_indices_list is None:
+            dom_indices_list = list(range(0, n))
+        if dom_offsets_list is None:
+            dom_offsets_list = [0] * n
+        self.shr_domains_list = shr_domains_list
+        self.dom_indices_list = dom_indices_list
+        self.dom_offsets_list = dom_offsets_list
         self.propagators: List[Tuple[List[int], int, List[int]]] = []
         self.ready = False
+
+    def add_variable(
+        self, shr_domain: Union[int, Tuple[int, int]], dom_index: Optional[int] = None, dom_offset: Optional[int] = None
+    ) -> None:
+        n = len(self.shr_domains_list)
+        if dom_index is None:
+            dom_index = n
+        if dom_offset is None:
+            dom_offset = 0
+        self.shr_domains_list.append(shr_domain)
+        self.dom_indices_list.append(dom_index)
+        self.dom_offsets_list.append(dom_offset)
 
     def add_propagator(self, propagator: Tuple[List[int], int, List[int]]) -> None:
         self.propagators.append(propagator)
@@ -104,10 +116,10 @@ class Problem:
         Completes the initialization of the problem by defining the variables and the propagators.
         """
         # inits variables
-        self.variable_nb = len(self.dom_indices_backup)
-        self.shr_domains = new_domains_by_values(self.shr_domains_backup)
-        self.dom_indices = new_indices_by_values(self.dom_indices_backup)
-        self.dom_offsets = new_domain_offsets_by_values(self.dom_offsets_backup)
+        self.variable_nb = len(self.dom_indices_list)
+        self.shr_domains_ndarray = new_domains_by_values(self.shr_domains_list)
+        self.dom_indices_ndarray = new_indices_by_values(self.dom_indices_list)
+        self.dom_offsets_ndarray = new_domain_offsets_by_values(self.dom_offsets_list)
         # inits propagators
         self.propagator_nb = len(self.propagators)
         props_var_total_size = props_data_total_size = 0
@@ -142,12 +154,12 @@ class Problem:
         # Let's init the global arrays.
         for pidx, propagator in enumerate(self.propagators):
             prop_vars = propagator[0]
-            self.props_dom_indices[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = self.dom_indices[
-                prop_vars
-            ]  # this is cached for faster access
-            self.props_dom_offsets[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = self.dom_offsets[
-                prop_vars
-            ]  # this is cached for faster access
+            self.props_dom_indices[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = (
+                self.dom_indices_ndarray[prop_vars]
+            )  # this is cached for faster access
+            self.props_dom_offsets[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = (
+                self.dom_offsets_ndarray[prop_vars]
+            )  # this is cached for faster access
             self.props_data[self.data_bounds[pidx, START] : self.data_bounds[pidx, END]] = propagator[2]
             algorithm = propagator[1]
             size = len(propagator[0])
@@ -162,7 +174,7 @@ class Problem:
         """
         Resets the shared domains to their initial values.
         """
-        self.shr_domains = new_domains_by_values(self.shr_domains_backup)
+        self.shr_domains_ndarray = new_domains_by_values(self.shr_domains_list)
 
     def reset_entailed_propagators(self) -> None:
         """
@@ -175,7 +187,7 @@ class Problem:
         Gets the values for the variables (when instantiated).
         :return: a list of integers
         """
-        mins = self.shr_domains[self.dom_indices, MIN] + self.dom_offsets
+        mins = self.shr_domains_ndarray[self.dom_indices_ndarray, MIN] + self.dom_offsets_ndarray
         return mins.tolist()
 
     def set_min_value(self, var_idx: int, min_value: int) -> None:
@@ -184,7 +196,7 @@ class Problem:
         :param var_idx: the index of the variable
         :param min_value: the minimal value
         """
-        self.shr_domains[self.dom_indices[var_idx], MIN] = min_value - self.dom_offsets[var_idx]
+        self.shr_domains_ndarray[self.dom_indices_ndarray[var_idx], MIN] = min_value - self.dom_offsets_ndarray[var_idx]
 
     def set_max_value(self, var_idx: int, max_value: int) -> None:
         """
@@ -192,11 +204,11 @@ class Problem:
         :param var_idx: the index of the variable
         :param min_value: the maximal value
         """
-        self.shr_domains[self.dom_indices[var_idx], MAX] = max_value - self.dom_offsets[var_idx]
+        self.shr_domains_ndarray[self.dom_indices_ndarray[var_idx], MAX] = max_value - self.dom_offsets_ndarray[var_idx]
 
     def __str__(self) -> str:
         # TODO: fix this
-        return f"domains={self.shr_domains}"
+        return f"domains={self.shr_domains_ndarray}"
 
     def filter(self, shr_domain_changes: NDArray) -> bool:
         """
@@ -218,7 +230,7 @@ class Problem:
             self.props_dom_offsets,
             self.props_triggers,
             self.props_data,
-            self.shr_domains,
+            self.shr_domains_ndarray,
             shr_domain_changes,
         )
 
