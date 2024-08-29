@@ -4,6 +4,7 @@
 # Engine
 - choice points pruning
 - backtrackable propagator state
+- problem creation: separate variables storage from problem preparation
 
 # Constraints/Problem
 - LatinSquare
@@ -12,7 +13,7 @@
 - Product
 
 # Problems
-- QuasiGroup problem: redundant constraint
+- QuasiGroup problem: redundant constraints
 - Golomb problem: implement ad-hoc solver
 - RoundRobin problem
 - Job-shop problem 
