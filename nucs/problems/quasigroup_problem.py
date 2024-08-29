@@ -1,7 +1,7 @@
-from nucs.problems.latin_square_problem import LatinSquareProblem
+from nucs.problems.latin_square_problem import LatinSquareRCProblem
 
 
-class QuasigroupProblem(LatinSquareProblem):
+class QuasigroupProblem(LatinSquareRCProblem):
     """
     This is problem #3 on CSPLIB (https://www.csplib.org/Problems/prob003/).
     """
@@ -14,7 +14,12 @@ class QuasigroupProblem(LatinSquareProblem):
 
 
 class Quasigroup5Problem(QuasigroupProblem):
+    """
+    ((b∗a)∗b)∗b=a
+    """
+
     def __init__(self, n: int):
         super().__init__(n)
+        # TODO:
         # add variables
         # add specific constraints

@@ -93,11 +93,17 @@ class Problem:
         self.dom_indices_list = dom_indices_list
         self.dom_offsets_list = dom_offsets_list
         self.propagators: List[Tuple[List[int], int, List[int]]] = []
-        self.ready = False
+        self.ready = False  # the problem is not yet ready to be used, init_problem() must be called
 
     def add_variable(
         self, shr_domain: Union[int, Tuple[int, int]], dom_index: Optional[int] = None, dom_offset: Optional[int] = None
     ) -> None:
+        """
+        Adds an extra variable to the problem.
+        :param shr_domain: the shared domain of the variable
+        :param dom_index: the domain index is automatically computed if not defined
+        :param dom_offset: the domain offset is set to 0 if not defined
+        """
         n = len(self.shr_domains_list)
         if dom_index is None:
             dom_index = n
@@ -107,10 +113,22 @@ class Problem:
         self.dom_indices_list.append(dom_index)
         self.dom_offsets_list.append(dom_offset)
 
-    def add_propagator(self, propagator: Tuple[List[int], int, List[int]]) -> None:
-        self.propagators.append(propagator)
+    def add_propagator(self, propagator: Tuple[List[int], int, List[int]], last: bool = True) -> None:
+        """
+        Adds an extra propagator.
+        :param propagator: the propagator
+        :param last: if true, adds the propagator to the end of the list; if false, to the beginning of the list
+        """
+        if last:
+            self.propagators.append(propagator)
+        else:
+            self.propagators.insert(0, propagator)
 
     def add_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
+        """
+        Adds a list of propagators
+        :param propagators: the propagators
+        """
         self.propagators.extend(propagators)
 
     def init_problem(self) -> None:
