@@ -31,11 +31,11 @@ class TestAffineLEQ:
 
     def test_filter(self) -> None:
         problem = Problem(
-            shr_domains=[(0, 2), (0, 2), (0, 2)],
-            dom_indices=[0, 1, 2],
-            dom_offsets=[0, 0, 0],
+            shr_domains_list=[(0, 2), (0, 2), (0, 2)],
+            dom_indices_list=[0, 1, 2],
+            dom_offsets_list=[0, 0, 0],
         )
-        problem.set_propagators(
+        problem.add_propagators(
             [
                 ([0, 1], ALG_AFFINE_LEQ, [-1, 1, -1]),
                 ([1, 2], ALG_AFFINE_LEQ, [-1, 1, -1]),

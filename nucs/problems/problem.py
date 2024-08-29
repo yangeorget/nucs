@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -30,6 +30,7 @@ from nucs.propagators.affine_leq_propagator import get_triggers_affine_leq
 from nucs.propagators.alldifferent_propagator import get_triggers_alldifferent
 from nucs.propagators.count_eq_propagator import get_triggers_count_eq
 from nucs.propagators.dummy_propagator import get_triggers_dummy
+from nucs.propagators.element_propagator import get_triggers_element
 from nucs.propagators.exactly_eq_propagator import get_triggers_exactly_eq
 from nucs.propagators.lexicographic_leq_propagator import get_triggers_lexicographic_leq
 from nucs.propagators.max_eq_propagator import get_triggers_max_eq
@@ -37,6 +38,7 @@ from nucs.propagators.max_leq_propagator import get_triggers_max_leq
 from nucs.propagators.min_eq_propagator import get_triggers_min_eq
 from nucs.propagators.min_geq_propagator import get_triggers_min_geq
 from nucs.propagators.propagators import compute_domains, init_triggered_propagators, update_triggered_propagators
+from nucs.propagators.relation_propagator import get_triggers_relation
 from nucs.statistics import (
     STATS_PROBLEM_FILTER_NB,
     STATS_PROPAGATOR_ENTAILMENT_NB,
@@ -53,12 +55,14 @@ GET_TRIGGERS_FUNCTIONS = [
     get_triggers_alldifferent,
     get_triggers_count_eq,
     get_triggers_dummy,
+    get_triggers_element,
     get_triggers_exactly_eq,
     get_triggers_lexicographic_leq,
     get_triggers_max_eq,
     get_triggers_max_leq,
     get_triggers_min_eq,
     get_triggers_min_geq,
+    get_triggers_relation,
 ]
 
 
@@ -68,53 +72,71 @@ class Problem:
     A domain can be computed by applying an offset to a shared domain.
     """
 
-    def __init__(self, shr_domains: List[Union[int, Tuple[int, int]]], dom_indices: List[int], dom_offsets: List[int]):
+    def __init__(
+        self,
+        shr_domains_list: List[Union[int, Tuple[int, int]]],
+        dom_indices_list: Optional[List[int]] = None,
+        dom_offsets_list: Optional[List[int]] = None,
+    ):
         """
         Inits the problem.
-        :param shr_domains: the shared domains expressed as a list
-        :param dom_indices: the domain indices expressed as a list
-        :param dom_offsets: the domain offsets expressed as a list
+        :param shr_domains_list: the shared domains expressed as a list
+        :param dom_indices_list: the domain indices expressed as a list
+        :param dom_offsets_list: the domain offsets expressed as a list
         """
-        self.variable_nb = len(dom_indices)
-        self.shr_domains_backup = shr_domains  # a copy of the shared domains (as a list) used when resetting a problem
-        self.shr_domains = new_domains_by_values(shr_domains)
-        self.dom_indices = new_indices_by_values(dom_indices)
-        self.dom_offsets = new_domain_offsets_by_values(dom_offsets)
-        self.statistics = init_statistics()
+        n = len(shr_domains_list)
+        if dom_indices_list is None:
+            dom_indices_list = list(range(0, n))
+        if dom_offsets_list is None:
+            dom_offsets_list = [0] * n
+        self.shr_domains_list = shr_domains_list
+        self.dom_indices_list = dom_indices_list
+        self.dom_offsets_list = dom_offsets_list
+        self.propagators: List[Tuple[List[int], int, List[int]]] = []
+        self.ready = False
 
-    def reset_shr_domains(self) -> None:
-        """
-        Resets the shared domains to their initial values.
-        """
-        self.shr_domains = new_domains_by_values(self.shr_domains_backup)
+    def add_variable(
+        self, shr_domain: Union[int, Tuple[int, int]], dom_index: Optional[int] = None, dom_offset: Optional[int] = None
+    ) -> None:
+        n = len(self.shr_domains_list)
+        if dom_index is None:
+            dom_index = n
+        if dom_offset is None:
+            dom_offset = 0
+        self.shr_domains_list.append(shr_domain)
+        self.dom_indices_list.append(dom_index)
+        self.dom_offsets_list.append(dom_offset)
 
-    def reset_entailed_propagators(self) -> None:
-        """
-        Marks all propagators as not entailed anymore.
-        """
-        self.entailed_propagators[:] = False
+    def add_propagator(self, propagator: Tuple[List[int], int, List[int]]) -> None:
+        self.propagators.append(propagator)
 
-    def set_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
+    def add_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
+        self.propagators.extend(propagators)
+
+    def init_problem(self) -> None:
         """
-        Completes the initialization of the problem by setting the propagators.
-        The order of the propagators has an impact on the global speed of the resolution:
-        it is recommended to put the more costly propagators at the end of the list.
-        :param propagators: the list of propagators as tuples of the form (list of variables, algorithm, data).
+        Completes the initialization of the problem by defining the variables and the propagators.
         """
-        self.propagator_nb = len(propagators)
+        # inits variables
+        self.variable_nb = len(self.dom_indices_list)
+        self.shr_domains_ndarray = new_domains_by_values(self.shr_domains_list)
+        self.dom_indices_ndarray = new_indices_by_values(self.dom_indices_list)
+        self.dom_offsets_ndarray = new_domain_offsets_by_values(self.dom_offsets_list)
+        # inits propagators
+        self.propagator_nb = len(self.propagators)
         props_var_total_size = props_data_total_size = 0
         self.triggered_propagators = new_triggered_propagators(self.propagator_nb)
         self.entailed_propagators = new_entailed_propagators(self.propagator_nb)
         self.algorithms = new_algorithms(self.propagator_nb)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
         self.var_bounds = new_bounds(
-            self.propagator_nb
+            max(1, self.propagator_nb)
         )  # there is a bit of redundancy here for faster access to the bounds
         self.data_bounds = new_bounds(
-            self.propagator_nb
+            max(1, self.propagator_nb)
         )  # there is a bit of redundancy here for faster access to the bounds
         self.var_bounds[0, START] = self.data_bounds[0, START] = 0
-        for pidx, propagator in enumerate(propagators):
+        for pidx, propagator in enumerate(self.propagators):
             prop_var_size = len(propagator[0])
             prop_data_size = len(propagator[2])
             self.algorithms[pidx] = propagator[1]
@@ -132,25 +154,42 @@ class Problem:
         self.props_triggers = new_triggers(props_var_total_size, False)
         self.props_data = new_data(props_data_total_size)
         # Let's init the global arrays.
-        for pidx, propagator in enumerate(propagators):
+        for pidx, propagator in enumerate(self.propagators):
             prop_vars = propagator[0]
-            self.props_dom_indices[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = self.dom_indices[
-                prop_vars
-            ]  # this is cached for faster access
-            self.props_dom_offsets[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = self.dom_offsets[
-                prop_vars
-            ]  # this is cached for faster access
+            self.props_dom_indices[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = (
+                self.dom_indices_ndarray[prop_vars]
+            )  # this is cached for faster access
+            self.props_dom_offsets[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = (
+                self.dom_offsets_ndarray[prop_vars]
+            )  # this is cached for faster access
             self.props_data[self.data_bounds[pidx, START] : self.data_bounds[pidx, END]] = propagator[2]
+            algorithm = propagator[1]
+            size = len(propagator[0])
+            data = propagator[2]
             self.props_triggers[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = GET_TRIGGERS_FUNCTIONS[
-                propagator[1]
-            ](len(propagator[0]), propagator[2])
+                algorithm
+            ](size, data)
+        # inits statistics
+        self.statistics = init_statistics()
+
+    def reset_shr_domains(self) -> None:
+        """
+        Resets the shared domains to their initial values.
+        """
+        self.shr_domains_ndarray = new_domains_by_values(self.shr_domains_list)
+
+    def reset_entailed_propagators(self) -> None:
+        """
+        Marks all propagators as not entailed anymore.
+        """
+        self.entailed_propagators[:] = False
 
     def get_values(self) -> List[int]:
         """
         Gets the values for the variables (when instantiated).
         :return: a list of integers
         """
-        mins = self.shr_domains[self.dom_indices, MIN] + self.dom_offsets
+        mins = self.shr_domains_ndarray[self.dom_indices_ndarray, MIN] + self.dom_offsets_ndarray
         return mins.tolist()
 
     def set_min_value(self, var_idx: int, min_value: int) -> None:
@@ -159,7 +198,7 @@ class Problem:
         :param var_idx: the index of the variable
         :param min_value: the minimal value
         """
-        self.shr_domains[self.dom_indices[var_idx], MIN] = min_value - self.dom_offsets[var_idx]
+        self.shr_domains_ndarray[self.dom_indices_ndarray[var_idx], MIN] = min_value - self.dom_offsets_ndarray[var_idx]
 
     def set_max_value(self, var_idx: int, max_value: int) -> None:
         """
@@ -167,11 +206,11 @@ class Problem:
         :param var_idx: the index of the variable
         :param min_value: the maximal value
         """
-        self.shr_domains[self.dom_indices[var_idx], MAX] = max_value - self.dom_offsets[var_idx]
+        self.shr_domains_ndarray[self.dom_indices_ndarray[var_idx], MAX] = max_value - self.dom_offsets_ndarray[var_idx]
 
     def __str__(self) -> str:
         # TODO: fix this
-        return f"domains={self.shr_domains}"
+        return f"domains={self.shr_domains_ndarray}"
 
     def filter(self, shr_domain_changes: NDArray) -> bool:
         """
@@ -179,6 +218,9 @@ class Problem:
         :param shr_domain_changes: an array of shared domain changes
         :return: False if the problem is not consistent
         """
+        if not self.ready:
+            self.init_problem()
+            self.ready = True
         return filter(
             self.statistics,
             self.triggered_propagators,
@@ -190,7 +232,7 @@ class Problem:
             self.props_dom_offsets,
             self.props_triggers,
             self.props_data,
-            self.shr_domains,
+            self.shr_domains_ndarray,
             shr_domain_changes,
         )
 

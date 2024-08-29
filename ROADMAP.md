@@ -5,13 +5,15 @@
 - choice points pruning
 - backtrackable propagator state
 
-# Constraints
+# Constraints/Problem
 - GCC
 - Cycle
 - Product
 
 # Problems
-- RoundRobin
+- QuasiGroup problem: redundant constraints
+- Golomb problem: implement ad-hoc solver
+- RoundRobin problem
 - Job-shop problem 
 - Golfers problem
 - QG problem

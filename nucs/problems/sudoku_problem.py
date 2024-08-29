@@ -1,28 +1,20 @@
-from typing import List, Tuple
+from typing import List
 
-from nucs.problems.problem import Problem
+from nucs.problems.latin_square_problem import LatinSquareProblem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT
 
 
-class SudokuProblem(Problem):
+class SudokuProblem(LatinSquareProblem):
     """
     A simple model for the sudoku problem.
     """
 
     def __init__(self, givens: List[List[int]]):
-        super().__init__(
-            shr_domains=[(1, 9) if given == 0 else (given, given) for line in givens for given in line],
-            dom_indices=list(range(81)),
-            dom_offsets=[0] * 81,
-        )
-        propagators: List[Tuple[List[int], int, List[int]]] = []
-        for i in range(9):
-            propagators.append((list(range(0 + i * 9, 9 + i * 9)), ALG_ALLDIFFERENT, []))
-            propagators.append((list(range(0 + i, 81 + i, 9)), ALG_ALLDIFFERENT, []))
+        super().__init__(list(range(1, 10)), givens)
         for i in range(3):
             for j in range(3):
                 offset = i * 27 + j * 3
-                propagators.append(
+                self.add_propagator(
                     (
                         [
                             0 + offset,
@@ -39,8 +31,3 @@ class SudokuProblem(Problem):
                         [],
                     )
                 )
-        self.set_propagators(propagators)
-
-    def pretty_print_solution(self, solution: List[int]) -> None:
-        for i in range(0, 81, 9):
-            print(solution[i : i + 9])

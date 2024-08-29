@@ -64,9 +64,9 @@ With:
 
 ##### The constructor of the `Problem` class
 Because of shared domains and offsets, the constructor of `Problem` accepts 3 arguments:
-- `shr_domains`: the shared domains as a list of pairs of integers (if the minimal and maximal values of the pair are equal, the pair can be replaced by the value)
-- `dom_indices`: a list of integers representing, for each variable, the index of its shared domain 
-- `dom_offsets`: a list of integers representing, for each variable, the offset of its shared domain
+- the shared domains as a list of pairs of integers (if the minimal and maximal values of the pair are equal, the pair can be replaced by the value)
+- a list of integers representing, for each variable, the index of its shared domain 
+- a list of integers representing, for each variable, the offset of its shared domain
 
 Python, with the help of lists and ranges, makes the construction of complex problems an easy task.
 Internally, for greater efficiency, shared domains, domain indices and offsets are stored using `numpy.ndarray`.
@@ -118,17 +118,13 @@ In NUCS, the n-queens problem is indeed constructed as follows:
 ```python
 def __init__(self, n: int):
     super().__init__(
-        shr_domains=[(0, n - 1)] * n,
-        dom_indices=list(range(n)) * 3,
-        dom_offsets=[0] * n + list(range(n)) + list(range(0, -n, -1)),
+        [(0, n - 1)] * n,
+        list(range(n)) * 3,
+        [0] * n + list(range(n)) + list(range(0, -n, -1)),
     )
-    self.set_propagators(
-        [
-            (list(range(n)), ALG_ALLDIFFERENT, []),
-            (list(range(n, 2 * n)), ALG_ALLDIFFERENT, []),
-            (list(range(2 * n, 3 * n)), ALG_ALLDIFFERENT, []),
-        ]
-    )
+    self.add_propagator((list(range(n)), ALG_ALLDIFFERENT, []))
+    self.add_propagator((list(range(n, 2 * n)), ALG_ALLDIFFERENT, []))
+    self.add_propagator((list(range(2 * n, 3 * n)), ALG_ALLDIFFERENT, []))
 ```
 
 #### Integer domains
@@ -137,9 +133,9 @@ NUCS only support integer domains.
 Boolean domains are simply integer domains of the form **[0, 1]**.
 
 ### Propagators (aka Constraints)
-Each propagator defines two functions:
-- `compute_domains(domains: NDArray, data: NDArray) -> int`
-- `get_triggers(size: int, data: NDArray) -> NDArray`
+Each propagator `XXX` defines two functions:
+- `compute_domains_XXX(domains: NDArray, data: NDArray) -> int`
+- `get_triggers_XXX(size: int, data: NDArray) -> NDArray`
 
 #### `compute_domains`
 This function takes as its first argument the actual domains (not the shared ones) of the variables of the propagator 
@@ -167,12 +163,14 @@ NUCS currently provides the following propagators:
 - `affine_leq_propagator`
 - `alldifferent_propagator`
 - `count_eq_propagator`
+- `element_propagator`
 - `exactly_eq_propagator`
 - `lexicographic_leq_propagator`
 - `max_eq_propagator`
 - `max_leq_propagator`
 - `min_eq_propagator`
 - `min_geq_propagator`
+- `relation_propagator`
 
 ### Heuristics
 NUCS currently provides the following heuristics:
