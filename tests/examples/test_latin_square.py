@@ -33,7 +33,7 @@ class TestLatinSquare:
         ],
     )
     def test_latin_square_rc(self, size: int, solution_nb: int) -> None:
-        problem = LatinSquareRCProblem(list(range(size)))
+        problem = LatinSquareRCProblem(size)
         solver = BacktrackSolver(problem)
         solver.find_all()
         assert problem.statistics[STATS_SOLVER_SOLUTION_NB] == solution_nb

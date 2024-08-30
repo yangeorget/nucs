@@ -7,7 +7,7 @@ class QuasigroupProblem(LatinSquareRCProblem):
     """
 
     def __init__(self, n: int):
-        super().__init__(list(range(0, n)))
+        super().__init__(n)
         for i in range(n):
             self.shr_domains_list[i + i * n] = i  # idempotence
         # TODO: symmetry breaking

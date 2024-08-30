@@ -75,17 +75,39 @@ class Problem:
         """
         Adds an extra variable to the problem.
         :param shr_domain: the shared domain of the variable
-        :param dom_index: the domain index is automatically computed if not defined
-        :param dom_offset: the domain offset is set to 0 if not defined
+        :param dom_index: the domain index (automatically computed if not defined)
+        :param dom_offset: the domain offset (set to 0 if not defined)
         """
-        n = len(self.shr_domains_list)
+        start = len(self.shr_domains_list)
         if dom_index is None:
-            dom_index = n
+            dom_index = start
         if dom_offset is None:
             dom_offset = 0
         self.shr_domains_list.append(shr_domain)
         self.dom_indices_list.append(dom_index)
         self.dom_offsets_list.append(dom_offset)
+
+    def add_variables(
+        self,
+        shr_domains_list: List[Union[int, Tuple[int, int]]],
+        dom_indices_list: Optional[List[int]] = None,
+        dom_offsets_list: Optional[List[int]] = None,
+    ) -> None:
+        """
+        Adds extra variabled to the problem.
+        :param shr_domains_list: the shared domains of the variables
+        :param dom_indices_list: the domain indices (automatically computed if not defined)
+        :param dom_offsets_list: the domain offsets (set to 0 if not defined)
+        """
+        start = len(self.shr_domains_list)
+        n = len(shr_domains_list)
+        if dom_indices_list is None:
+            dom_indices_list = [start + i for i in range(n)]
+        if dom_offsets_list is None:
+            dom_offsets_list = [0] * n
+        self.shr_domains_list.extend(shr_domains_list)
+        self.dom_indices_list.extend(dom_indices_list)
+        self.dom_offsets_list.extend(dom_offsets_list)
 
     def add_propagator(self, propagator: Tuple[List[int], int, List[int]], last: bool = True) -> None:
         """

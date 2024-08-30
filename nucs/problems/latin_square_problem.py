@@ -1,7 +1,11 @@
 from typing import List, Optional
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_ELEMENT_LIC
+
+MODEL_COLOR = 0
+MODEL_ROW = 1
+MODEL_COLUMN = 2
 
 
 class LatinSquareProblem(Problem):
@@ -28,9 +32,20 @@ class LatinSquareProblem(Problem):
                 for given in line
             ]
         super().__init__(shr_domains)
-        for i in range(self.n):
-            self.add_propagator((list(range(0 + i * self.n, self.n + i * self.n)), ALG_ALLDIFFERENT, []))
-            self.add_propagator((list(range(0 + i, self.n**2 + i, self.n)), ALG_ALLDIFFERENT, []))
+        self.add_propagators([(self.row(i), ALG_ALLDIFFERENT, []) for i in range(self.n)])
+        self.add_propagators([(self.column(j), ALG_ALLDIFFERENT, []) for j in range(self.n)])
+
+    def cell(self, i: int, j: int, model: int = MODEL_COLOR) -> int:
+        offset = model * (self.n**2)
+        return offset + i * self.n + j
+
+    def row(self, i: int, model: int = MODEL_COLOR) -> List[int]:
+        offset = model * (self.n**2)
+        return list(range(offset + i * self.n, offset + self.n + i * self.n))
+
+    def column(self, j: int, model: int = MODEL_COLOR) -> List[int]:
+        offset = model * (self.n**2)
+        return list(range(offset + j, offset + self.n**2 + j, self.n))
 
     def pretty_print_solution(self, solution: List[int]) -> None:
         for i in range(0, self.n**2, self.n):
@@ -40,12 +55,46 @@ class LatinSquareProblem(Problem):
 class LatinSquareRCProblem(LatinSquareProblem):
     """
     A full model for latin squares with 3 kinds of variables:
-    - n*n variables for the values, these variables are indexed by rows then columns
+    - n*n variables for the values (aka colors), these variables are indexed by rows then columns
     - n*n variables for the rows, these variables are indexed by colors then columns
     - n*n variables for the columns, these variables are indexed by colors then rows
     """
 
-    # TODO:
-    # we can connect these 3 models with
-    # for c, i: element(row[c], col[c, i], i)
-    # we need 6*n of these constraints
+    def __init__(self, n: int):
+        super().__init__(list(range(n)))  # the color model
+        self.add_variables([(0, n - 1)] * n**2)  # the row model
+        self.add_variables([(0, n - 1)] * n**2)  # the column model
+        self.add_propagators([(self.row(i, MODEL_ROW), ALG_ALLDIFFERENT, []) for i in range(self.n)])
+        self.add_propagators([(self.column(j, MODEL_ROW), ALG_ALLDIFFERENT, []) for j in range(self.n)])
+        self.add_propagators([(self.row(i, MODEL_COLUMN), ALG_ALLDIFFERENT, []) for i in range(self.n)])
+        self.add_propagators([(self.column(j, MODEL_COLUMN), ALG_ALLDIFFERENT, []) for j in range(self.n)])
+        # row[c,j]=i <=> column[i,c]=j
+        for c in range(n):
+            for i in range(n):
+                self.add_propagator(
+                    ([*self.row(c, MODEL_ROW), self.cell(i, c, MODEL_COLUMN)], ALG_ELEMENT_LIC, [i]), False
+                )
+            for j in range(n):
+                self.add_propagator(
+                    ([*self.column(c, MODEL_COLUMN), self.cell(c, j, MODEL_ROW)], ALG_ELEMENT_LIC, [j]), False
+                )
+        # row[c,j]=i <=> color[i,j]=c
+        for j in range(n):
+            for i in range(n):
+                self.add_propagator(
+                    ([*self.column(j, MODEL_ROW), self.cell(i, j, MODEL_COLOR)], ALG_ELEMENT_LIC, [i]), False
+                )
+            for c in range(n):
+                self.add_propagator(
+                    ([*self.column(j, MODEL_COLOR), self.cell(c, j, MODEL_ROW)], ALG_ELEMENT_LIC, [c]), False
+                )
+        # color[i,j]=c <=> column[i,c]=j
+        for i in range(n):
+            for c in range(n):
+                self.add_propagator(
+                    ([*self.row(i, MODEL_COLOR), self.cell(i, c, MODEL_COLUMN)], ALG_ELEMENT_LIC, [c]), False
+                )
+            for j in range(n):
+                self.add_propagator(
+                    ([*self.row(i, MODEL_COLUMN), self.cell(i, j, MODEL_COLOR)], ALG_ELEMENT_LIC, [j]), False
+                )
