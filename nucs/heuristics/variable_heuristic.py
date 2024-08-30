@@ -62,6 +62,23 @@ def smallest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) ->
             min_size = size
     return min_idx
 
+@njit("int16(int32[::1, :], uint16[:])", cache=True)
+def greatest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) -> int:
+    """
+    Chooses the variable with the greatest domain and which is not instantiated.
+    :param shr_domains: the shared domains of the problem
+    :param dom_indices: the domain indices of the problem variables
+    :return: the index of the variable
+    """
+    max_size = 0
+    max_idx = -1
+    for var_idx, dom_index in enumerate(dom_indices):
+        size = shr_domains[dom_index, MAX] - shr_domains[dom_index, MIN]  # actually this is size - 1
+        if max_size < size:
+            max_idx = var_idx
+            max_size = size
+    return max_idx
+
 
 @njit("(int32[::1, :], boolean[::1, :], int32[::1, :], uint16)", cache=True)
 def min_value_dom_heuristic(
