@@ -1,4 +1,5 @@
-from nucs.problems.latin_square_problem import LatinSquareRCProblem
+from nucs.problems.latin_square_problem import MODEL_COLOR, MODEL_COLUMN, MODEL_ROW, LatinSquareRCProblem
+from nucs.propagators.propagators import ALG_ELEMENT_LIV
 
 
 class QuasigroupProblem(LatinSquareRCProblem):
@@ -8,18 +9,31 @@ class QuasigroupProblem(LatinSquareRCProblem):
 
     def __init__(self, n: int):
         super().__init__(n)
-        for i in range(n):
-            self.shr_domains_list[i + i * n] = i  # idempotence
-        # TODO: symmetry breaking
+        # idempotence
+        for model in [MODEL_COLOR, MODEL_ROW, MODEL_COLUMN]:
+            for i in range(n):
+                self.shr_domains_list[self.cell(i, i, model)] = i
+        # symmetry breaking
+        for i in range(1, n):
+            self.shr_domains_list[self.cell(i, n - 1)] = (i - 1, n - 1)
 
 
 class Quasigroup5Problem(QuasigroupProblem):
     """
-    ((b∗a)∗b)∗b=a
+    Defined by: ((b∗a)∗b)∗b=a
+    Can be enforced by: color[color[j, i] ,j] = row[i, j]
     """
 
     def __init__(self, n: int):
         super().__init__(n)
-        # TODO:
-        # add variables
-        # add specific constraints
+        for j in range(n):
+            for i in range(n):
+                if i != j:
+                    self.add_propagator(
+                        (
+                            [*self.column(j, MODEL_COLOR), self.cell(j, i, MODEL_COLOR), self.cell(i, j, MODEL_ROW)],
+                            ALG_ELEMENT_LIV,
+                            [],
+                        ),
+                        False,
+                    )
