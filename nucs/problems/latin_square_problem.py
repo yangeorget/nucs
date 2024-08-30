@@ -13,9 +13,9 @@ class LatinSquareProblem(Problem):
         """
         Inits the latin square.
         :colors: the possible values for the cells,
-        usually [0, ..., n-1] except in some cases (Sudokus) where [1, ..., n] is preferred;
+        usually [0, ..., n-1] except in some cases (eg Sudokus) where [1, ..., n] is preferred;
         the number of colors is also the size of the square
-        :givens: initial values for the cells, any value different of the possible colors is used as a wildcard
+        :givens: initial values for the cells, any value different from the possible colors is used as a wildcard
         """
         self.colors = colors
         self.n = len(colors)
@@ -46,3 +46,6 @@ class LatinSquareRCProblem(LatinSquareProblem):
     """
 
     # TODO:
+    # we can connect these 3 models with
+    # for c, i: element(row[c], col[c, i], i)
+    # we need 6*n of these constraints

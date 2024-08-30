@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 from nucs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY, new_triggers
 
 
-def get_triggers_element(n: int, data: NDArray) -> NDArray:
+def get_triggers_element_liv(n: int, data: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
@@ -16,8 +16,9 @@ def get_triggers_element(n: int, data: NDArray) -> NDArray:
 
 
 @njit("int64(int32[::1,:], int32[:])", cache=True)
-def compute_domains_element(domains: NDArray, data: NDArray) -> int:
+def compute_domains_element_liv(domains: NDArray, data: NDArray) -> int:
     """
+    Enforces l_i = x.
     :param domains: the domains of the variables
     :param data: the parameters of the propagator
     """

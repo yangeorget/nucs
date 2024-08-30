@@ -3,16 +3,7 @@ from typing import List
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ALLDIFFERENT
 
-A = 0
-B = 1
-D = 2
-E = 3
-G = 4
-L = 5
-N = 6
-O = 7
-R = 8
-T = 9
+A, B, D, E, G, L, N, O, R, T = tuple(range(10))
 
 
 class DonaldProblem(Problem):

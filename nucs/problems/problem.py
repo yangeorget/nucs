@@ -24,21 +24,12 @@ from nucs.memory import (
     new_triggered_propagators,
     new_triggers,
 )
-from nucs.propagators.affine_eq_propagator import get_triggers_affine_eq
-from nucs.propagators.affine_geq_propagator import get_triggers_affine_geq
-from nucs.propagators.affine_leq_propagator import get_triggers_affine_leq
-from nucs.propagators.alldifferent_propagator import get_triggers_alldifferent
-from nucs.propagators.count_eq_propagator import get_triggers_count_eq
-from nucs.propagators.dummy_propagator import get_triggers_dummy
-from nucs.propagators.element_propagator import get_triggers_element
-from nucs.propagators.exactly_eq_propagator import get_triggers_exactly_eq
-from nucs.propagators.lexicographic_leq_propagator import get_triggers_lexicographic_leq
-from nucs.propagators.max_eq_propagator import get_triggers_max_eq
-from nucs.propagators.max_leq_propagator import get_triggers_max_leq
-from nucs.propagators.min_eq_propagator import get_triggers_min_eq
-from nucs.propagators.min_geq_propagator import get_triggers_min_geq
-from nucs.propagators.propagators import compute_domains, init_triggered_propagators, update_triggered_propagators
-from nucs.propagators.relation_propagator import get_triggers_relation
+from nucs.propagators.propagators import (
+    GET_TRIGGERS_FUNCTIONS,
+    compute_domains,
+    init_triggered_propagators,
+    update_triggered_propagators,
+)
 from nucs.statistics import (
     STATS_PROBLEM_FILTER_NB,
     STATS_PROPAGATOR_ENTAILMENT_NB,
@@ -47,23 +38,6 @@ from nucs.statistics import (
     STATS_PROPAGATOR_INCONSISTENCY_NB,
     init_statistics,
 )
-
-GET_TRIGGERS_FUNCTIONS = [
-    get_triggers_affine_eq,
-    get_triggers_affine_geq,
-    get_triggers_affine_leq,
-    get_triggers_alldifferent,
-    get_triggers_count_eq,
-    get_triggers_dummy,
-    get_triggers_element,
-    get_triggers_exactly_eq,
-    get_triggers_lexicographic_leq,
-    get_triggers_max_eq,
-    get_triggers_max_leq,
-    get_triggers_min_eq,
-    get_triggers_min_geq,
-    get_triggers_relation,
-]
 
 
 class Problem:
