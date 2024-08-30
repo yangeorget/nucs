@@ -109,16 +109,16 @@ class Problem:
         self.dom_indices_list.extend(dom_indices_list)
         self.dom_offsets_list.extend(dom_offsets_list)
 
-    def add_propagator(self, propagator: Tuple[List[int], int, List[int]], last: bool = True) -> None:
+    def add_propagator(self, propagator: Tuple[List[int], int, List[int]], pos: int = -1) -> None:
         """
         Adds an extra propagator.
         :param propagator: the propagator
         :param last: if true, adds the propagator to the end of the list; if false, to the beginning of the list
         """
-        if last:
+        if pos == -1:
             self.propagators.append(propagator)
         else:
-            self.propagators.insert(0, propagator)
+            self.propagators.insert(pos, propagator)
 
     def add_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
         """

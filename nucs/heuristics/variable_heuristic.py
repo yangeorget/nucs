@@ -62,6 +62,7 @@ def smallest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) ->
             min_size = size
     return min_idx
 
+
 @njit("int16(int32[::1, :], uint16[:])", cache=True)
 def greatest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) -> int:
     """

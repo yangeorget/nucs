@@ -1,4 +1,4 @@
-from nucs.problems.latin_square_problem import MODEL_COLOR, MODEL_COLUMN, MODEL_ROW, LatinSquareRCProblem
+from nucs.problems.latin_square_problem import M_COLOR, M_COLUMN, M_ROW, LatinSquareRCProblem
 from nucs.propagators.propagators import ALG_ELEMENT_LIV
 
 
@@ -10,7 +10,7 @@ class QuasigroupProblem(LatinSquareRCProblem):
     def __init__(self, n: int):
         super().__init__(n)
         # idempotence
-        for model in [MODEL_COLOR, MODEL_ROW, MODEL_COLUMN]:
+        for model in [M_COLOR, M_ROW, M_COLUMN]:
             for i in range(n):
                 self.shr_domains_list[self.cell(i, i, model)] = i
         # symmetry breaking
@@ -20,8 +20,11 @@ class QuasigroupProblem(LatinSquareRCProblem):
 
 class Quasigroup5Problem(QuasigroupProblem):
     """
-    Defined by: ((b∗a)∗b)∗b=a
-    Can be enforced by: color[color[j, i] ,j] = row[i, j]
+    Defined by:
+       ((b∗a)∗b)∗b=a
+    Can be enforced by:
+       color[color[j, i] ,j] = row[i, j]
+    which avoids the creation of additional variables
     """
 
     def __init__(self, n: int):
@@ -31,9 +34,9 @@ class Quasigroup5Problem(QuasigroupProblem):
                 if i != j:
                     self.add_propagator(
                         (
-                            [*self.column(j, MODEL_COLOR), self.cell(j, i, MODEL_COLOR), self.cell(i, j, MODEL_ROW)],
+                            [*self.column(j, M_COLOR), self.cell(j, i, M_COLOR), self.cell(i, j, M_ROW)],
                             ALG_ELEMENT_LIV,
                             [],
                         ),
-                        False,
+                        0,
                     )

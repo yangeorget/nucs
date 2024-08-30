@@ -11,7 +11,6 @@
 - Product
 
 # Problems
-- QuasiGroup problem: review constraints
 - Golomb problem: implement ad-hoc solver
 - RoundRobin problem
 - Job-shop problem 
