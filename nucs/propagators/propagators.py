@@ -132,7 +132,6 @@ def update_triggered_propagators(
     prop_triggers: NDArray,
     previous_prop_idx: int,
 ) -> None:
-
     for prop_idx, prop_allowed in enumerate(np.logical_not(np.logical_or(entailed_propagators, triggered_propagators))):
         if prop_allowed and prop_idx != previous_prop_idx:
             for var_idx in range(prop_var_bounds[prop_idx, START], prop_var_bounds[prop_idx, END]):
