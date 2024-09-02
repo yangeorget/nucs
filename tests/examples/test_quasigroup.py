@@ -30,7 +30,7 @@ class TestQuasigroup:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", type=int, default=10)
+    parser.add_argument("-n", type=int, default=11)
     args = parser.parse_args()
     problem = Quasigroup5Problem(args.n)
     solver = BacktrackSolver(problem, VariableHeuristic(smallest_domain_var_heuristic, min_value_dom_heuristic))
