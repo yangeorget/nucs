@@ -251,7 +251,9 @@ class Problem:
         if not self.ready:
             self.init_problem()
             self.ready = True
-        return self.prune() and bc_filter(
+        if not self.prune():
+            return False
+        return bc_filter(
             self.statistics,
             self.triggered_propagators,
             self.entailed_propagators,

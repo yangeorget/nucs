@@ -1,4 +1,5 @@
 import numpy as np
+from numba import njit
 from numpy.typing import NDArray
 
 from nucs.heuristics.variable_heuristic import first_not_instantiated_var_heuristic
@@ -9,10 +10,12 @@ from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLD
 GOLOMB_LENGTHS = [0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127]
 
 
+@njit
 def sum_first(n: int) -> int:
     return (n * (n + 1)) // 2
 
 
+@njit
 def index(mark_nb: int, i: int, j: int) -> int:
     return i * mark_nb - sum_first(i) + j - i - 1
 
@@ -41,8 +44,8 @@ class GolombProblem(Problem):
 
     def __init__(self, mark_nb: int) -> None:
         self.mark_nb = mark_nb
-        dist_nb = sum_first(mark_nb - 1)  # this the number of distances
-        super().__init__(init_domains(dist_nb, mark_nb))
+        self.dist_nb = sum_first(mark_nb - 1)  # this the number of distances
+        super().__init__(init_domains(self.dist_nb, mark_nb))
         self.length_idx = index(mark_nb, 0, mark_nb - 1)  # we want to minimize this
         # Additional items used in prune():
         # - a reusable array for storing the minimal sum of different integers:
@@ -62,7 +65,7 @@ class GolombProblem(Problem):
                         [1, -1, -1, 0],
                     )
                 )
-        self.add_propagator((list(range(dist_nb)), ALG_ALLDIFFERENT, []))
+        self.add_propagator((list(range(self.dist_nb)), ALG_ALLDIFFERENT, []))
         # redundant constraints
         for i in range(mark_nb - 1):
             for j in range(i + 1, mark_nb):
@@ -89,30 +92,27 @@ class GolombProblem(Problem):
         """
         A method for pruning the search space of the Golomb problem.
         """
-        # TODO: rewrite as compute_domains
-        var_idx = first_not_instantiated_var_heuristic(
-            self.shr_domains_ndarray, self.dom_indices_ndarray
-        )
-        if 1 < var_idx < self.mark_nb - 1:  # otherwise useless
+        ni_var_idx = first_not_instantiated_var_heuristic(self.shr_domains_ndarray, self.dom_indices_ndarray)
+        if 1 < ni_var_idx < self.mark_nb - 1:  # otherwise useless
             self.used_distance.fill(False)
             # the following will mark at most sum(n-3) numbers as used
             # hence there will be at least n-2 unused numbers greater than 0
-            for i in range(var_idx - 1):
-                for j in range(i + 1, var_idx):
-                    d = self.get_min_value(index(self.mark_nb, i, j))
-                    if d < len(self.used_distance):
-                        self.used_distance[d] = True
+            for var_idx in range(index(self.mark_nb, ni_var_idx - 2, ni_var_idx - 1) + 1):
+                dist = self.get_min_value(var_idx)
+                if dist < len(self.used_distance):
+                    self.used_distance[dist] = True
             # let's compute the sum of non-used numbers
-            # TODO: rewrite with numpy
             distance = 1
-            for j in range(0, self.mark_nb - var_idx):
+            for j in range(0, self.mark_nb - ni_var_idx):
                 while self.used_distance[distance]:
                     distance += 1
                 self.minimal_sum[j + 1] = self.minimal_sum[j] + distance
                 distance += 1
-            # TODO: rewrite with numpy
-            for i in range(var_idx - 1, self.mark_nb - 1):
+            for i in range(ni_var_idx - 1, self.mark_nb - 1):
                 for j in range(i + 1, self.mark_nb):
-                    self.set_min_value(index(self.mark_nb, i, j), self.minimal_sum[j - i])
-                    # TODO: check consistency ?
+                    var_idx = index(self.mark_nb, i, j)
+                    new_min = self.minimal_sum[j - i]
+                    # if new_min > self.get_max_value(var_idx):  # a bit slower
+                    #    return False
+                    self.set_min_value(var_idx, new_min)
         return True
