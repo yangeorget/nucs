@@ -111,8 +111,8 @@ def init_triggered_propagators(
     prop_triggers: NDArray,
 ) -> None:
     triggered_propagators.fill(False)
-    for prop_idx, entailed_propagator in enumerate(entailed_propagators):
-        if not entailed_propagator:
+    for prop_idx, prop_allowed in enumerate(np.logical_not(entailed_propagators)):
+        if prop_allowed:
             for var_idx in range(prop_var_bounds[prop_idx, START], prop_var_bounds[prop_idx, END]):
                 dom_idx = prop_dom_indices[var_idx]
                 if (shr_domain_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
