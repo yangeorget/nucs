@@ -1,17 +1,9 @@
-# Misc
-- Read the docs
-
-# Engine
-- choice points pruning
-- backtrackable propagator state
-
-# Constraints/Problem
+# Constraints
 - GCC
 - Cycle
 - Product
 
 # Problems
-- Golomb problem: implement ad-hoc solver
 - RoundRobin problem
 - Job-shop problem 
 - Golfers problem
@@ -19,3 +11,10 @@
 - Car sequencing problem
 - Crypto multiplication problem
 - MagicSquare problem
+
+# Misc
+- Move the doc to Read the docs
+
+# Engine
+- choice points pruning
+- backtrackable propagator state

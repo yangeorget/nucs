@@ -206,6 +206,22 @@ class Problem:
         mins = self.shr_domains_ndarray[self.dom_indices_ndarray, MIN] + self.dom_offsets_ndarray
         return mins.tolist()
 
+    def get_min_value(self, var_idx: int) -> int:
+        """
+        Gets the minimal value of a variable.
+        :param var_idx: the index of the variable
+        :return: the minimal value
+        """
+        return self.shr_domains_ndarray[self.dom_indices_ndarray[var_idx], MIN] + self.dom_offsets_ndarray[var_idx]
+
+    def get_max_value(self, var_idx: int) -> int:
+        """
+        Gets the maximal value of a variable.
+        :param var_idx: the index of the variable
+        :return: the maximal value
+        """
+        return self.shr_domains_ndarray[self.dom_indices_ndarray[var_idx], MAX] + self.dom_offsets_ndarray[var_idx]
+
     def set_min_value(self, var_idx: int, min_value: int) -> None:
         """
         Sets the minimal value of a variable.
@@ -235,7 +251,7 @@ class Problem:
         if not self.ready:
             self.init_problem()
             self.ready = True
-        return filter(
+        return self.prune() and bc_filter(
             self.statistics,
             self.triggered_propagators,
             self.entailed_propagators,
@@ -249,6 +265,12 @@ class Problem:
             self.shr_domains_ndarray,
             shr_domain_changes,
         )
+
+    def prune(self) -> bool:
+        """
+        Hook for pruning the search space before applying BC.
+        """
+        return True
 
     def pretty_print_solution(self, solution: List[int]) -> None:
         """
@@ -268,7 +290,7 @@ def pop_propagator(propagator_queue: NDArray) -> int:
 
 
 @njit(cache=True)
-def filter(
+def bc_filter(
     statistics: NDArray,
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,

@@ -32,22 +32,22 @@ class TestGolomb:
         problem.shr_domains_list[5] = 2
         assert problem.filter(np.ones((6, 2), dtype=bool))
 
-    @pytest.mark.parametrize("mark_nb,solution_nb", [(4, 6), (5, 11), (6, 17), (7, 25)])
+    @pytest.mark.parametrize("mark_nb,solution_nb", [(4, 6), (5, 11), (6, 17), (7, 25), (8, 34), (9, 44)])
     def test_golomb(self, mark_nb: int, solution_nb: int) -> None:
         problem = GolombProblem(mark_nb)
         solver = BacktrackSolver(problem)
-        solution = solver.minimize(problem.length)
+        solution = solver.minimize(problem.length_idx)
         assert solution
-        assert solution[problem.length] == solution_nb
+        assert solution[problem.length_idx] == solution_nb
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", type=int, default=8)
+    parser.add_argument("-n", type=int, default=10)
     args = parser.parse_args()
     problem = GolombProblem(args.n)
     solver = BacktrackSolver(problem)
-    solution = solver.minimize(problem.length)
+    solution = solver.minimize(problem.length_idx)
     pprint(get_statistics(problem.statistics))
     print(solution)
-    print(solution[problem.length])  # type: ignore
+    print(solution[problem.length_idx])  # type: ignore
