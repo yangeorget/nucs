@@ -4,6 +4,7 @@
 - Product
 
 # Problems
+- reread Golomb problem
 - RoundRobin problem
 - Job-shop problem 
 - Golfers problem
