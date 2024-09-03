@@ -134,4 +134,3 @@ def pop_propagator(
                 triggered_propagators[prop_idx] = False
                 return prop_idx
         return -1
-

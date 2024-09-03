@@ -18,4 +18,4 @@
 # Engine
 - choice points pruning
 - backtrackable propagator state
-- review iterations
+- refactor pop_propagator

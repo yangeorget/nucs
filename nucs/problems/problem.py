@@ -31,7 +31,7 @@ from nucs.statistics import (
     STATS_PROPAGATOR_FILTER_NB,
     STATS_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_PROPAGATOR_INCONSISTENCY_NB,
-    init_statistics,
+    init_statistics, STATS_PROBLEM_PROPAGATOR_NB, STATS_PROBLEM_VARIABLE_NB,
 )
 
 
@@ -180,6 +180,8 @@ class Problem:
             ](size, data)
         # inits statistics
         self.statistics = init_statistics()
+        self.statistics[STATS_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
+        self.statistics[STATS_PROBLEM_VARIABLE_NB] = self.variable_nb
 
     def reset_shr_domains(self) -> None:
         """
