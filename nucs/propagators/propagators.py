@@ -111,7 +111,8 @@ def init_triggered_propagators(
     prop_triggers: NDArray,
 ) -> None:
     triggered_propagators.fill(False)
-    for prop_idx, prop_allowed in enumerate(np.logical_not(entailed_propagators)):
+    candidate_propagators = np.logical_not(entailed_propagators)
+    for prop_idx, prop_allowed in enumerate(candidate_propagators):
         if prop_allowed:
             for var_idx in range(prop_var_bounds[prop_idx, START], prop_var_bounds[prop_idx, END]):
                 dom_idx = prop_dom_indices[var_idx]
@@ -132,8 +133,10 @@ def update_triggered_propagators(
     prop_triggers: NDArray,
     previous_prop_idx: int,
 ) -> None:
-    for prop_idx, prop_allowed in enumerate(np.logical_not(np.logical_or(entailed_propagators, triggered_propagators))):
-        if prop_allowed and prop_idx != previous_prop_idx:
+    candidate_propagators = np.logical_not(np.logical_or(entailed_propagators, triggered_propagators))
+    candidate_propagators[previous_prop_idx] = False
+    for prop_idx, prop_allowed in enumerate(candidate_propagators):
+        if prop_allowed:
             for var_idx in range(prop_var_bounds[prop_idx, START], prop_var_bounds[prop_idx, END]):
                 dom_idx = prop_dom_indices[var_idx]
                 if (shr_domain_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
