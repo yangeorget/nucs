@@ -19,4 +19,6 @@
 - choice points pruning
 - backtrackable propagator state
 - review iterations
-- implement propagator strategy
+- implement propagator strategy 
+- merge init and update propagators
+- merge pop and update propagators
