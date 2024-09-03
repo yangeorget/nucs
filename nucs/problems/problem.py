@@ -24,11 +24,7 @@ from nucs.memory import (
     new_triggered_propagators,
     new_triggers,
 )
-from nucs.propagators.propagators import (
-    GET_TRIGGERS_FUNCTIONS,
-    compute_domains,
-    update_triggered_propagators,
-)
+from nucs.propagators.propagators import GET_TRIGGERS_FUNCTIONS, compute_domains, pop_propagator
 from nucs.statistics import (
     STATS_PROBLEM_FILTER_NB,
     STATS_PROPAGATOR_ENTAILMENT_NB,
@@ -305,7 +301,7 @@ def bc_filter(
     triggered_propagators.fill(False)
     prop_idx = -1
     while True:
-        prop_idx = update_triggered_propagators(
+        prop_idx = pop_propagator(
             triggered_propagators,
             entailed_propagators,
             shr_domain_changes,
@@ -339,7 +335,6 @@ def bc_filter(
         np.not_equal(shr_domains_cur, shr_domains, shr_domain_changes)
         if not np.any(shr_domain_changes):  # type: ignore
             statistics[STATS_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
-
 
 
 @njit(cache=True)
