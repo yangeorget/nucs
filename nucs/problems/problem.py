@@ -27,7 +27,6 @@ from nucs.memory import (
 from nucs.propagators.propagators import (
     GET_TRIGGERS_FUNCTIONS,
     compute_domains,
-    init_triggered_propagators,
     update_triggered_propagators,
 )
 from nucs.statistics import (
@@ -283,15 +282,6 @@ class Problem:
 
 
 @njit(cache=True)
-def pop_propagator(propagator_queue: NDArray) -> int:
-    for prop_idx, propagator in enumerate(propagator_queue):
-        if propagator:
-            propagator_queue[prop_idx] = False
-            return prop_idx
-    return -1
-
-
-@njit(cache=True)
 def bc_filter(
     statistics: NDArray,
     triggered_propagators: NDArray,
@@ -312,16 +302,18 @@ def bc_filter(
     :return: False if the problem is not consistent
     """
     statistics[STATS_PROBLEM_FILTER_NB] += 1
-    init_triggered_propagators(
-        triggered_propagators,
-        entailed_propagators,
-        shr_domain_changes,
-        var_bounds,
-        props_indices,
-        props_triggers,
-    )
+    triggered_propagators.fill(False)
+    prop_idx = -1
     while True:
-        prop_idx = pop_propagator(triggered_propagators)
+        prop_idx = update_triggered_propagators(
+            triggered_propagators,
+            entailed_propagators,
+            shr_domain_changes,
+            var_bounds,
+            props_indices,
+            props_triggers,
+            prop_idx,
+        )
         if prop_idx == -1:
             return True
         statistics[STATS_PROPAGATOR_FILTER_NB] += 1
@@ -345,18 +337,9 @@ def bc_filter(
         shr_domains_cur = np.copy(shr_domains)
         shr_domains[prop_indices] = prop_domains - prop_offsets
         np.not_equal(shr_domains_cur, shr_domains, shr_domain_changes)
-        if np.any(shr_domain_changes):  # type: ignore
-            update_triggered_propagators(
-                triggered_propagators,
-                entailed_propagators,
-                shr_domain_changes,
-                var_bounds,
-                props_indices,
-                props_triggers,
-                prop_idx,
-            )
-        else:
+        if not np.any(shr_domain_changes):  # type: ignore
             statistics[STATS_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
+
 
 
 @njit(cache=True)

@@ -102,28 +102,6 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> int:
 
 
 @njit(cache=True)
-def init_triggered_propagators(
-    triggered_propagators: NDArray,
-    entailed_propagators: NDArray,
-    shr_domain_changes: NDArray,
-    prop_var_bounds: NDArray,
-    prop_dom_indices: NDArray,
-    prop_triggers: NDArray,
-) -> None:
-    triggered_propagators.fill(False)
-    candidate_propagators = np.logical_not(entailed_propagators)
-    for prop_idx, prop_allowed in enumerate(candidate_propagators):
-        if prop_allowed:
-            for var_idx in range(prop_var_bounds[prop_idx, START], prop_var_bounds[prop_idx, END]):
-                dom_idx = prop_dom_indices[var_idx]
-                if (shr_domain_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
-                    shr_domain_changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
-                ):
-                    triggered_propagators[prop_idx] = True
-                    break
-
-
-@njit(cache=True)
 def update_triggered_propagators(
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,
@@ -132,15 +110,22 @@ def update_triggered_propagators(
     prop_dom_indices: NDArray,
     prop_triggers: NDArray,
     previous_prop_idx: int,
-) -> None:
-    candidate_propagators = np.logical_not(np.logical_or(entailed_propagators, triggered_propagators))
-    candidate_propagators[previous_prop_idx] = False
-    for prop_idx, prop_allowed in enumerate(candidate_propagators):
-        if prop_allowed:
-            for var_idx in range(prop_var_bounds[prop_idx, START], prop_var_bounds[prop_idx, END]):
-                dom_idx = prop_dom_indices[var_idx]
-                if (shr_domain_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
-                    shr_domain_changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
-                ):
-                    triggered_propagators[prop_idx] = True
-                    break
+) -> int:
+    next_prop_idx = - 1
+    for prop_idx, entailed_prop in enumerate(entailed_propagators):
+        if not entailed_prop and prop_idx != previous_prop_idx:
+            if not(triggered_propagators[prop_idx]):
+                for var_idx in range(prop_var_bounds[prop_idx, START], prop_var_bounds[prop_idx, END]):
+                    dom_idx = prop_dom_indices[var_idx]
+                    if (shr_domain_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
+                        shr_domain_changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
+                    ):
+                        triggered_propagators[prop_idx] = True
+                        break
+            if next_prop_idx == -1 and triggered_propagators[prop_idx]:
+                next_prop_idx = prop_idx
+    if next_prop_idx != -1:
+        triggered_propagators[next_prop_idx] = False
+    return next_prop_idx
+
+
