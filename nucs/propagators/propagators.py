@@ -111,6 +111,9 @@ def pop_propagator(
     prop_triggers: NDArray,
     previous_prop_idx: int,
 ) -> int:
+    # TODO: for a shr_domains change
+    # TODO: get the list of propagators that are not entailed and different from the previous one
+    # TODO: add it to triggered propagators
     if np.any(shr_domain_changes):
         next_prop_idx = -1
         for prop_idx, entailed_prop in enumerate(entailed_propagators):

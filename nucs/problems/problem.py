@@ -27,11 +27,13 @@ from nucs.memory import (
 from nucs.propagators.propagators import GET_TRIGGERS_FUNCTIONS, compute_domains, pop_propagator
 from nucs.statistics import (
     STATS_PROBLEM_FILTER_NB,
+    STATS_PROBLEM_PROPAGATOR_NB,
+    STATS_PROBLEM_VARIABLE_NB,
     STATS_PROPAGATOR_ENTAILMENT_NB,
     STATS_PROPAGATOR_FILTER_NB,
     STATS_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_PROPAGATOR_INCONSISTENCY_NB,
-    init_statistics, STATS_PROBLEM_PROPAGATOR_NB, STATS_PROBLEM_VARIABLE_NB,
+    init_statistics,
 )
 
 
@@ -108,7 +110,6 @@ class Problem:
         """
         Adds an extra propagator.
         :param propagator: the propagator
-        :param last: if true, adds the propagator to the end of the list; if false, to the beginning of the list
         """
         if pos == -1:
             self.propagators.append(propagator)
@@ -126,16 +127,23 @@ class Problem:
         """
         Completes the initialization of the problem by defining the variables and the propagators.
         """
-        # inits variables
+        # Variable and domain initialization
         self.variable_nb = len(self.dom_indices_list)
         self.shr_domains_ndarray = new_domains_by_values(self.shr_domains_list)
         self.dom_indices_ndarray = new_indices_by_values(self.dom_indices_list)
         self.dom_offsets_ndarray = new_domain_offsets_by_values(self.dom_offsets_list)
-        # inits propagators
+        # Propagator initialization
         self.propagator_nb = len(self.propagators)
         props_var_total_size = props_data_total_size = 0
-        self.triggered_propagators = new_triggered_propagators(self.propagator_nb)
-        self.entailed_propagators = new_entailed_propagators(self.propagator_nb)
+        self.triggered_propagators = new_triggered_propagators(
+            self.propagator_nb
+        )  # this is where the triggered propagators will be stored,
+        # propagators will be computed in the order of their increasing indices
+        # this is empty at the end of a filter
+        self.entailed_propagators = new_entailed_propagators(
+            self.propagator_nb
+        )  # this is where the entailed propagators will be stored
+        # this is reset in the case of braktrack
         self.algorithms = new_algorithms(self.propagator_nb)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
         self.var_bounds = new_bounds(
@@ -156,11 +164,13 @@ class Problem:
             self.data_bounds[pidx, END] = self.data_bounds[pidx, START] + prop_data_size
             props_var_total_size += prop_var_size
             props_data_total_size += prop_data_size
+        # TODO: do the same and store the propagators indexed by shared_domain changes (MIN and MAX)
+        # TODO: prop_bounds and shr_domains_propagators
         # Bounds have been computed and can now be used.
         # The global arrays are the following:
         self.props_dom_indices = new_indices(props_var_total_size)
         self.props_dom_offsets = new_offsets(props_var_total_size)
-        self.props_triggers = new_triggers(props_var_total_size, False)
+        self.props_triggers = new_triggers(props_var_total_size, False)  # TODO: get rid of this
         self.props_data = new_data(props_data_total_size)
         # Let's init the global arrays.
         for pidx, propagator in enumerate(self.propagators):
@@ -177,8 +187,8 @@ class Problem:
             data = propagator[2]
             self.props_triggers[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = GET_TRIGGERS_FUNCTIONS[
                 algorithm
-            ](size, data)
-        # inits statistics
+            ](size, data)  # TODO: get rid of this
+        # Statistics initialization
         self.statistics = init_statistics()
         self.statistics[STATS_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
         self.statistics[STATS_PROBLEM_VARIABLE_NB] = self.variable_nb
