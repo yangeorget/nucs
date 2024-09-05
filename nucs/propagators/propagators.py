@@ -118,9 +118,9 @@ def update_triggered_propagators(
             np.logical_or(
                 triggered_propagators, shr_domains_propagators[shr_domain_idx, MAX], triggered_propagators
             )
-    candidate_propagators = np.logical_not(entailed_propagators)
-    candidate_propagators[previous_prop_idx] = False
-    np.logical_and(triggered_propagators, candidate_propagators, triggered_propagators)
+    np.logical_and(triggered_propagators, np.logical_not(entailed_propagators), triggered_propagators)
+    if previous_prop_idx != -1:
+        triggered_propagators[previous_prop_idx] = False
 
 
 @njit(cache=True)
