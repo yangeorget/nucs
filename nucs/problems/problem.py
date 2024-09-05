@@ -23,9 +23,13 @@ from nucs.memory import (
     new_offsets,
     new_propagators,
     new_triggered_propagators,
-    new_triggers,
 )
-from nucs.propagators.propagators import GET_TRIGGERS_FUNCTIONS, compute_domains, pop_propagator
+from nucs.propagators.propagators import (
+    GET_TRIGGERS_FUNCTIONS,
+    compute_domains,
+    pop_propagator,
+    update_triggered_propagators,
+)
 from nucs.statistics import (
     STATS_PROBLEM_FILTER_NB,
     STATS_PROBLEM_PROPAGATOR_NB,
@@ -180,7 +184,6 @@ class Problem:
         # Bounds have been computed and can now be used. The global arrays are the following:
         self.props_dom_indices = new_indices(self.var_bounds[-1, END])
         self.props_dom_offsets = new_offsets(self.var_bounds[-1, END])
-        self.props_triggers = new_triggers(self.var_bounds[-1, END], False)  # TODO: get rid of triggers
         self.props_data = new_data(self.data_bounds[-1, END])
         self.shr_domains_min_propagators = new_propagators(self.prop_min_bounds[-1, END])
         self.shr_domains_max_propagators = new_propagators(self.prop_max_bounds[-1, END])
@@ -193,11 +196,6 @@ class Problem:
                 self.dom_offsets_ndarray[prop_vars]
             )  # this is cached for faster access
             self.props_data[self.data_bounds[pidx, START] : self.data_bounds[pidx, END]] = propagator[2]
-            self.props_triggers[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = GET_TRIGGERS_FUNCTIONS[
-                propagator[1]
-            ](
-                len(propagator[0]), propagator[2]
-            )  # TODO: get rid of triggers
         for shr_domain_idx in range(len(self.shr_domains_list)):
             self.shr_domains_min_propagators[
                 self.prop_min_bounds[shr_domain_idx, START] : self.prop_min_bounds[shr_domain_idx, END]
@@ -284,11 +282,14 @@ class Problem:
             self.algorithms,
             self.var_bounds,
             self.data_bounds,
+            self.prop_min_bounds,
+            self.prop_max_bounds,
             self.props_dom_indices,
             self.props_dom_offsets,
-            self.props_triggers,
             self.props_data,
             self.shr_domains_ndarray,
+            self.shr_domains_min_propagators,
+            self.shr_domains_max_propagators,
             shr_domain_changes,
         )
 
@@ -314,11 +315,14 @@ def bc_filter(
     algorithms: NDArray,
     var_bounds: NDArray,
     data_bounds: NDArray,
+    prop_min_bounds: NDArray,
+    prop_max_bounds: NDArray,
     props_indices: NDArray,
     props_offsets: NDArray,
-    props_triggers: NDArray,
     props_data: NDArray,
     shr_domains: NDArray,
+    shr_domains_min_propagators: NDArray,
+    shr_domains_max_propagators: NDArray,
     shr_domain_changes: NDArray,
 ) -> bool:
     """
@@ -330,15 +334,17 @@ def bc_filter(
     triggered_propagators.fill(False)
     prop_idx = -1
     while True:
-        prop_idx = pop_propagator(
+        update_triggered_propagators(
             triggered_propagators,
             entailed_propagators,
             shr_domain_changes,
-            var_bounds,
-            props_indices,
-            props_triggers,
+            prop_min_bounds,
+            prop_max_bounds,
+            shr_domains_min_propagators,
+            shr_domains_max_propagators,
             prop_idx,
         )
+        prop_idx = pop_propagator(triggered_propagators)
         if prop_idx == -1:
             return True
         statistics[STATS_PROPAGATOR_FILTER_NB] += 1

@@ -1,4 +1,3 @@
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -102,38 +101,35 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> int:
 
 
 @njit(cache=True)
-def pop_propagator(
+def update_triggered_propagators(
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,
     shr_domain_changes: NDArray,
-    prop_var_bounds: NDArray,
-    prop_dom_indices: NDArray,
-    prop_triggers: NDArray,
+    prop_min_bounds: NDArray,
+    prop_max_bounds: NDArray,
+    shr_domains_min_propagators: NDArray,
+    shr_domains_max_propagators: NDArray,
     previous_prop_idx: int,
-) -> int:
-    # TODO: for a shr_domains change (MIN or MIN)
-    # TODO: get the list of propagators that are not entailed and different from the previous one
-    # TODO: add it to triggered propagators
-    if np.any(shr_domain_changes):
-        next_prop_idx = -1
-        for prop_idx, entailed_prop in enumerate(entailed_propagators):
-            if not entailed_prop and prop_idx != previous_prop_idx:
-                if not (triggered_propagators[prop_idx]):
-                    for var_idx in range(prop_var_bounds[prop_idx, START], prop_var_bounds[prop_idx, END]):
-                        dom_idx = prop_dom_indices[var_idx]
-                        if (shr_domain_changes[dom_idx, MIN] and prop_triggers[var_idx, MIN]) or (
-                            shr_domain_changes[dom_idx, MAX] and prop_triggers[var_idx, MAX]
-                        ):
-                            triggered_propagators[prop_idx] = True
-                            break
-                if next_prop_idx == -1 and triggered_propagators[prop_idx]:
-                    next_prop_idx = prop_idx
-        if next_prop_idx != -1:
-            triggered_propagators[next_prop_idx] = False
-        return next_prop_idx
-    else:
-        for prop_idx, triggered_prop in enumerate(triggered_propagators):
-            if triggered_prop:
-                triggered_propagators[prop_idx] = False
-                return prop_idx
-        return -1
+) -> None:
+    for shr_domain_idx, shr_domain_change in enumerate(shr_domain_changes):
+        if shr_domain_change[MIN]:
+            for prop_idx in shr_domains_min_propagators[
+                prop_min_bounds[shr_domain_idx, START] : prop_min_bounds[shr_domain_idx, END]
+            ]:
+                if not entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
+                    triggered_propagators[prop_idx] = True
+        if shr_domain_change[MAX]:
+            for prop_idx in shr_domains_max_propagators[
+                prop_max_bounds[shr_domain_idx, START] : prop_max_bounds[shr_domain_idx, END]
+            ]:
+                if not entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
+                    triggered_propagators[prop_idx] = True
+
+
+@njit(cache=True)
+def pop_propagator(triggered_propagators: NDArray) -> int:
+    for prop_idx, triggered_prop in enumerate(triggered_propagators):
+        if triggered_prop:
+            triggered_propagators[prop_idx] = False
+            return prop_idx
+    return -1
