@@ -61,8 +61,8 @@ def new_triggered_propagators(n: int) -> NDArray:
     return np.empty(n, dtype=bool, order="C")
 
 
-def new_entailed_propagators(n: int) -> NDArray:
-    return np.zeros(n, dtype=bool, order="C")
+def new_not_entailed_propagators(n: int) -> NDArray:
+    return np.ones(n, dtype=bool, order="C")
 
 
 def new_algorithms(n: int) -> NDArray:

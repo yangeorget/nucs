@@ -15,12 +15,12 @@ from nucs.memory import (
     new_algorithms,
     new_bounds,
     new_data,
-    new_dom_offsets_by_values,
-    new_shr_domains_by_values,
-    new_entailed_propagators,
     new_dom_indices,
     new_dom_indices_by_values,
     new_dom_offsets,
+    new_dom_offsets_by_values,
+    new_not_entailed_propagators,
+    new_shr_domains_by_values,
     new_shr_domains_propagators,
     new_triggered_propagators,
 )
@@ -145,7 +145,7 @@ class Problem:
         self.triggered_propagators = new_triggered_propagators(self.propagator_nb)
         # This is where the entailed propagators will be stored
         # This is reset in the case of braktrack
-        self.entailed_propagators = new_entailed_propagators(self.propagator_nb)
+        self.not_entailed_propagators = new_not_entailed_propagators(self.propagator_nb)
         self.algorithms = new_algorithms(self.propagator_nb)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
         self.var_bounds = new_bounds(max(1, self.propagator_nb))  # some redundancy here
@@ -189,11 +189,11 @@ class Problem:
         """
         self.shr_domains_ndarray = new_shr_domains_by_values(self.shr_domains_list)
 
-    def reset_entailed_propagators(self) -> None:
+    def reset_not_entailed_propagators(self) -> None:
         """
         Marks all propagators as not entailed anymore.
         """
-        self.entailed_propagators[:] = False
+        self.not_entailed_propagators.fill(True)
 
     def get_values(self) -> List[int]:
         """
@@ -253,7 +253,7 @@ class Problem:
         return bc_filter(
             self.statistics,
             self.triggered_propagators,
-            self.entailed_propagators,
+            self.not_entailed_propagators,
             self.algorithms,
             self.var_bounds,
             self.data_bounds,
@@ -283,7 +283,7 @@ class Problem:
 def bc_filter(
     statistics: NDArray,
     triggered_propagators: NDArray,
-    entailed_propagators: NDArray,
+    not_entailed_propagators: NDArray,
     algorithms: NDArray,
     var_bounds: NDArray,
     data_bounds: NDArray,
@@ -305,7 +305,7 @@ def bc_filter(
     while True:
         update_triggered_propagators(
             triggered_propagators,
-            entailed_propagators,
+            not_entailed_propagators,
             shr_domain_changes,
             shr_domains_propagators,
             prop_idx,
@@ -329,7 +329,7 @@ def bc_filter(
             statistics[STATS_PROPAGATOR_INCONSISTENCY_NB] += 1
             return False
         if status == PROP_ENTAILMENT:
-            entailed_propagators[prop_idx] = True
+            not_entailed_propagators[prop_idx] = False
             statistics[STATS_PROPAGATOR_ENTAILMENT_NB] += 1
         shr_domains_cur = np.copy(shr_domains)
         shr_domains[prop_indices] = prop_domains - prop_offsets

@@ -88,7 +88,7 @@ class BacktrackSolver(Solver):
         self.problem.statistics[STATS_SOLVER_BACKTRACK_NB] += 1
         self.shr_domain_changes.fill(True)
         self.problem.shr_domains_ndarray = self.choice_points.pop()
-        self.problem.reset_entailed_propagators()
+        self.problem.reset_not_entailed_propagators()
         return True
 
     def filter(self) -> bool:
@@ -108,4 +108,4 @@ class BacktrackSolver(Solver):
         self.choice_points.clear()
         self.shr_domain_changes.fill(True)
         self.problem.reset_shr_domains()
-        self.problem.reset_entailed_propagators()
+        self.problem.reset_not_entailed_propagators()

@@ -104,21 +104,17 @@ def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> int:
 @njit(cache=True)
 def update_triggered_propagators(
     triggered_propagators: NDArray,
-    entailed_propagators: NDArray,
+    not_entailed_propagators: NDArray,
     shr_domain_changes: NDArray,
     shr_domains_propagators: NDArray,
     previous_prop_idx: int,
 ) -> None:
-    for shr_domain_idx, shr_domain_change in enumerate(shr_domain_changes):
-        if shr_domain_change[MIN]:
-            np.logical_or(
-                triggered_propagators, shr_domains_propagators[shr_domain_idx, MIN], triggered_propagators
-            )
-        if shr_domain_change[MAX]:
-            np.logical_or(
-                triggered_propagators, shr_domains_propagators[shr_domain_idx, MAX], triggered_propagators
-            )
-    np.logical_and(triggered_propagators, np.logical_not(entailed_propagators), triggered_propagators)
+    for shr_domain_idx in range(len(shr_domain_changes)):
+        if shr_domain_changes[shr_domain_idx, MIN]:
+            np.logical_or(triggered_propagators, shr_domains_propagators[shr_domain_idx, MIN], triggered_propagators)
+        if shr_domain_changes[shr_domain_idx, MAX]:
+            np.logical_or(triggered_propagators, shr_domains_propagators[shr_domain_idx, MAX], triggered_propagators)
+    np.logical_and(triggered_propagators, not_entailed_propagators, triggered_propagators)
     if previous_prop_idx != -1:
         triggered_propagators[previous_prop_idx] = False
 

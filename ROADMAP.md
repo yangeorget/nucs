@@ -18,4 +18,4 @@
 # Engine
 - choice points pruning
 - backtrackable propagator state
-- refactor pop_propagator
+- use prange

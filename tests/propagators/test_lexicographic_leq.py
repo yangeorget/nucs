@@ -3,7 +3,13 @@ from typing import Any
 import numpy as np
 import pytest
 
-from nucs.memory import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY, new_data_by_values, new_shr_domains_by_values
+from nucs.memory import (
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+    new_data_by_values,
+    new_shr_domains_by_values,
+)
 from nucs.problems.problem import Problem
 from nucs.propagators.lexicographic_leq_propagator import compute_domains_lexicographic_leq
 from nucs.propagators.propagators import ALG_LEXICOGRAPHIC_LEQ
