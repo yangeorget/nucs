@@ -14,7 +14,7 @@ PROP_CONSISTENCY = 1
 PROP_ENTAILMENT = 2
 
 
-def new_domains_by_values(domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
+def new_shr_domains_by_values(domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
     return np.array(
         [(domain, domain) if isinstance(domain, int) else domain for domain in domains],
         dtype=np.int32,
@@ -22,19 +22,19 @@ def new_domains_by_values(domains: List[Union[int, Tuple[int, int]]]) -> NDArray
     )
 
 
-def new_indices_by_values(dom_indices: List[int]) -> NDArray:
+def new_dom_indices_by_values(dom_indices: List[int]) -> NDArray:
     return np.array(dom_indices, dtype=np.uint16, order="C")
 
 
-def new_indices(n: int) -> NDArray:
+def new_dom_indices(n: int) -> NDArray:
     return np.empty(n, dtype=np.uint16, order="C")
 
 
-def new_domain_offsets_by_values(dom_offsets: List[int]) -> NDArray:
+def new_dom_offsets_by_values(dom_offsets: List[int]) -> NDArray:
     return np.array(dom_offsets, dtype=np.int32, order="C")
 
 
-def new_offsets(n: int) -> NDArray:
+def new_dom_offsets(n: int) -> NDArray:
     return np.empty(n, dtype=np.int32, order="C")
 
 
@@ -46,7 +46,7 @@ def new_data(n: int) -> NDArray:
     return np.empty(n, dtype=np.int32, order="C")
 
 
-def new_domain_changes(n: int) -> NDArray:
+def new_shr_domain_changes(n: int) -> NDArray:
     return np.ones((n, 2), dtype=bool, order="F")
 
 
@@ -73,5 +73,5 @@ def new_bounds(n: int) -> NDArray:
     return np.empty((n, 2), dtype=np.uint16)
 
 
-def new_propagators(n: int, m: int) -> NDArray:
+def new_shr_domains_propagators(n: int, m: int) -> NDArray:
     return np.zeros((n, 2, m), dtype=bool, order="C")

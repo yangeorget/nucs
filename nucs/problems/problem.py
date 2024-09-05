@@ -15,13 +15,13 @@ from nucs.memory import (
     new_algorithms,
     new_bounds,
     new_data,
-    new_domain_offsets_by_values,
-    new_domains_by_values,
+    new_dom_offsets_by_values,
+    new_shr_domains_by_values,
     new_entailed_propagators,
-    new_indices,
-    new_indices_by_values,
-    new_offsets,
-    new_propagators,
+    new_dom_indices,
+    new_dom_indices_by_values,
+    new_dom_offsets,
+    new_shr_domains_propagators,
     new_triggered_propagators,
 )
 from nucs.propagators.propagators import (
@@ -134,9 +134,9 @@ class Problem:
         """
         # Variable and domain initialization
         self.variable_nb = len(self.dom_indices_list)
-        self.shr_domains_ndarray = new_domains_by_values(self.shr_domains_list)
-        self.dom_indices_ndarray = new_indices_by_values(self.dom_indices_list)
-        self.dom_offsets_ndarray = new_domain_offsets_by_values(self.dom_offsets_list)
+        self.shr_domains_ndarray = new_shr_domains_by_values(self.shr_domains_list)
+        self.dom_indices_ndarray = new_dom_indices_by_values(self.dom_indices_list)
+        self.dom_offsets_ndarray = new_dom_offsets_by_values(self.dom_offsets_list)
         # Propagator initialization
         self.propagator_nb = len(self.propagators)
         # This is where the triggered propagators will be stored,
@@ -159,8 +159,8 @@ class Problem:
             self.var_bounds[pidx, END] = self.var_bounds[pidx, START] + len(propagator[0])
             self.data_bounds[pidx, END] = self.data_bounds[pidx, START] + len(propagator[2])
         # Bounds have been computed and can now be used. The global arrays are the following:
-        self.props_dom_indices = new_indices(self.var_bounds[-1, END])
-        self.props_dom_offsets = new_offsets(self.var_bounds[-1, END])
+        self.props_dom_indices = new_dom_indices(self.var_bounds[-1, END])
+        self.props_dom_offsets = new_dom_offsets(self.var_bounds[-1, END])
         self.props_data = new_data(self.data_bounds[-1, END])
         for pidx, propagator in enumerate(self.propagators):
             prop_vars = propagator[0]
@@ -171,15 +171,13 @@ class Problem:
                 self.dom_offsets_ndarray[prop_vars]
             )  # this is cached for faster access
             self.props_data[self.data_bounds[pidx, START] : self.data_bounds[pidx, END]] = propagator[2]
-        self.shr_domains_propagators = new_propagators(len(self.shr_domains_list), self.propagator_nb)
-
+        self.shr_domains_propagators = new_shr_domains_propagators(len(self.shr_domains_list), self.propagator_nb)
         for propagator_idx, propagator in enumerate(self.propagators):
             triggers = GET_TRIGGERS_FUNCTIONS[propagator[1]](len(propagator[0]), propagator[2])
             for prop_variable_idx, prop_variable in enumerate(propagator[0]):
                 self.shr_domains_propagators[self.dom_indices_ndarray[prop_variable], :, propagator_idx] = triggers[
                     prop_variable_idx, :
                 ]
-
         # Statistics initialization
         self.statistics = init_statistics()
         self.statistics[STATS_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
@@ -189,7 +187,7 @@ class Problem:
         """
         Resets the shared domains to their initial values.
         """
-        self.shr_domains_ndarray = new_domains_by_values(self.shr_domains_list)
+        self.shr_domains_ndarray = new_shr_domains_by_values(self.shr_domains_list)
 
     def reset_entailed_propagators(self) -> None:
         """

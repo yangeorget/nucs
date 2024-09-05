@@ -6,7 +6,7 @@ from nucs.heuristics.variable_heuristic import (
     first_not_instantiated_var_heuristic,
     min_value_dom_heuristic,
 )
-from nucs.memory import new_domain_changes
+from nucs.memory import new_shr_domain_changes
 from nucs.problems.problem import Problem, is_solved
 from nucs.solvers.solver import Solver
 from nucs.statistics import (
@@ -30,7 +30,7 @@ class BacktrackSolver(Solver):
     ):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
-        self.shr_domain_changes = new_domain_changes(len(self.problem.shr_domains_list))
+        self.shr_domain_changes = new_shr_domain_changes(len(self.problem.shr_domains_list))
         self.heuristic = heuristic
 
     def solve(self) -> Iterator[List[int]]:
