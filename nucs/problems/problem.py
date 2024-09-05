@@ -128,16 +128,6 @@ class Problem:
         """
         self.propagators.extend(propagators)
 
-    def get_shr_domains_propagators(self, shr_domain_idx: int, min_max: int) -> List[int]:
-        propagator_indices = []
-        for propagator_index, propagator in enumerate(self.propagators):
-            triggers = GET_TRIGGERS_FUNCTIONS[propagator[1]](len(propagator[0]), propagator[2])
-            for prop_variable_idx, prop_variable in enumerate(propagator[0]):
-                if self.dom_indices_ndarray[prop_variable] == shr_domain_idx and triggers[prop_variable_idx][min_max]:
-                    propagator_indices.append(propagator_index)
-                    break
-        return propagator_indices
-
     def init_problem(self) -> None:
         """
         Completes the initialization of the problem by defining the variables and the propagators.
@@ -168,25 +158,10 @@ class Problem:
                 self.data_bounds[pidx, START] = self.data_bounds[pidx - 1, END]
             self.var_bounds[pidx, END] = self.var_bounds[pidx, START] + len(propagator[0])
             self.data_bounds[pidx, END] = self.data_bounds[pidx, START] + len(propagator[2])
-        self.prop_min_bounds = new_bounds(len(self.shr_domains_list))
-        self.prop_max_bounds = new_bounds(len(self.shr_domains_list))
-        self.prop_max_bounds[0, START] = self.prop_min_bounds[0, START] = 0
-        for shr_domain_idx in range(len(self.shr_domains_list)):
-            if shr_domain_idx > 0:
-                self.prop_min_bounds[shr_domain_idx, START] = self.prop_min_bounds[shr_domain_idx - 1, END]
-                self.prop_max_bounds[shr_domain_idx, START] = self.prop_max_bounds[shr_domain_idx - 1, END]
-            self.prop_min_bounds[shr_domain_idx, END] = self.prop_min_bounds[shr_domain_idx, START] + len(
-                self.get_shr_domains_propagators(shr_domain_idx, MIN)
-            )
-            self.prop_max_bounds[shr_domain_idx, END] = self.prop_max_bounds[shr_domain_idx, START] + len(
-                self.get_shr_domains_propagators(shr_domain_idx, MAX)
-            )
         # Bounds have been computed and can now be used. The global arrays are the following:
         self.props_dom_indices = new_indices(self.var_bounds[-1, END])
         self.props_dom_offsets = new_offsets(self.var_bounds[-1, END])
         self.props_data = new_data(self.data_bounds[-1, END])
-        self.shr_domains_min_propagators = new_propagators(self.prop_min_bounds[-1, END])
-        self.shr_domains_max_propagators = new_propagators(self.prop_max_bounds[-1, END])
         for pidx, propagator in enumerate(self.propagators):
             prop_vars = propagator[0]
             self.props_dom_indices[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = (
@@ -196,13 +171,15 @@ class Problem:
                 self.dom_offsets_ndarray[prop_vars]
             )  # this is cached for faster access
             self.props_data[self.data_bounds[pidx, START] : self.data_bounds[pidx, END]] = propagator[2]
-        for shr_domain_idx in range(len(self.shr_domains_list)):
-            self.shr_domains_min_propagators[
-                self.prop_min_bounds[shr_domain_idx, START] : self.prop_min_bounds[shr_domain_idx, END]
-            ] = self.get_shr_domains_propagators(shr_domain_idx, MIN)
-            self.shr_domains_max_propagators[
-                self.prop_max_bounds[shr_domain_idx, START] : self.prop_max_bounds[shr_domain_idx, END]
-            ] = self.get_shr_domains_propagators(shr_domain_idx, MAX)
+        self.shr_domains_propagators = new_propagators(len(self.shr_domains_list), self.propagator_nb)
+
+        for propagator_idx, propagator in enumerate(self.propagators):
+            triggers = GET_TRIGGERS_FUNCTIONS[propagator[1]](len(propagator[0]), propagator[2])
+            for prop_variable_idx, prop_variable in enumerate(propagator[0]):
+                self.shr_domains_propagators[self.dom_indices_ndarray[prop_variable], :, propagator_idx] = triggers[
+                    prop_variable_idx, :
+                ]
+
         # Statistics initialization
         self.statistics = init_statistics()
         self.statistics[STATS_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
@@ -282,14 +259,11 @@ class Problem:
             self.algorithms,
             self.var_bounds,
             self.data_bounds,
-            self.prop_min_bounds,
-            self.prop_max_bounds,
             self.props_dom_indices,
             self.props_dom_offsets,
             self.props_data,
             self.shr_domains_ndarray,
-            self.shr_domains_min_propagators,
-            self.shr_domains_max_propagators,
+            self.shr_domains_propagators,
             shr_domain_changes,
         )
 
@@ -315,14 +289,11 @@ def bc_filter(
     algorithms: NDArray,
     var_bounds: NDArray,
     data_bounds: NDArray,
-    prop_min_bounds: NDArray,
-    prop_max_bounds: NDArray,
     props_indices: NDArray,
     props_offsets: NDArray,
     props_data: NDArray,
     shr_domains: NDArray,
-    shr_domains_min_propagators: NDArray,
-    shr_domains_max_propagators: NDArray,
+    shr_domains_propagators: NDArray,
     shr_domain_changes: NDArray,
 ) -> bool:
     """
@@ -338,10 +309,7 @@ def bc_filter(
             triggered_propagators,
             entailed_propagators,
             shr_domain_changes,
-            prop_min_bounds,
-            prop_max_bounds,
-            shr_domains_min_propagators,
-            shr_domains_max_propagators,
+            shr_domains_propagators,
             prop_idx,
         )
         prop_idx = pop_propagator(triggered_propagators)

@@ -73,5 +73,5 @@ def new_bounds(n: int) -> NDArray:
     return np.empty((n, 2), dtype=np.uint16)
 
 
-def new_propagators(n: int) -> NDArray:
-    return np.empty(n, dtype=np.uint16, order="C")
+def new_propagators(n: int, m: int) -> NDArray:
+    return np.zeros((n, 2, m), dtype=np.uint16, order="C")

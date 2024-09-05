@@ -1,7 +1,8 @@
+import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.memory import END, MAX, MIN, START
+from nucs.memory import MAX, MIN
 from nucs.propagators.affine_eq_propagator import compute_domains_affine_eq, get_triggers_affine_eq
 from nucs.propagators.affine_geq_propagator import compute_domains_affine_geq, get_triggers_affine_geq
 from nucs.propagators.affine_leq_propagator import compute_domains_affine_leq, get_triggers_affine_leq
@@ -105,25 +106,21 @@ def update_triggered_propagators(
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,
     shr_domain_changes: NDArray,
-    prop_min_bounds: NDArray,
-    prop_max_bounds: NDArray,
-    shr_domains_min_propagators: NDArray,
-    shr_domains_max_propagators: NDArray,
+    shr_domains_propagators: NDArray,
     previous_prop_idx: int,
 ) -> None:
     for shr_domain_idx, shr_domain_change in enumerate(shr_domain_changes):
         if shr_domain_change[MIN]:
-            for prop_idx in shr_domains_min_propagators[
-                prop_min_bounds[shr_domain_idx, START] : prop_min_bounds[shr_domain_idx, END]
-            ]:
-                if not entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
-                    triggered_propagators[prop_idx] = True
+            np.logical_or(
+                triggered_propagators, shr_domains_propagators[shr_domain_idx, MIN], triggered_propagators
+            )
         if shr_domain_change[MAX]:
-            for prop_idx in shr_domains_max_propagators[
-                prop_max_bounds[shr_domain_idx, START] : prop_max_bounds[shr_domain_idx, END]
-            ]:
-                if not entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
-                    triggered_propagators[prop_idx] = True
+            np.logical_or(
+                triggered_propagators, shr_domains_propagators[shr_domain_idx, MAX], triggered_propagators
+            )
+    candidate_propagators = np.logical_not(entailed_propagators)
+    candidate_propagators[previous_prop_idx] = False
+    np.logical_and(triggered_propagators, candidate_propagators, triggered_propagators)
 
 
 @njit(cache=True)
