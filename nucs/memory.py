@@ -71,3 +71,7 @@ def new_algorithms(n: int) -> NDArray:
 
 def new_bounds(n: int) -> NDArray:
     return np.empty((n, 2), dtype=np.uint16)
+
+
+def new_propagators(n: int) -> NDArray:
+    return np.empty(n, dtype=np.uint16, order="C")

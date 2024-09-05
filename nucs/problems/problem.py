@@ -21,6 +21,7 @@ from nucs.memory import (
     new_indices,
     new_indices_by_values,
     new_offsets,
+    new_propagators,
     new_triggered_propagators,
     new_triggers,
 )
@@ -123,6 +124,16 @@ class Problem:
         """
         self.propagators.extend(propagators)
 
+    def get_shr_domains_propagators(self, shr_domain_idx: int, min_max: int) -> List[int]:
+        propagator_indices = []
+        for propagator_index, propagator in enumerate(self.propagators):
+            triggers = GET_TRIGGERS_FUNCTIONS[propagator[1]](len(propagator[0]), propagator[2])
+            for prop_variable_idx, prop_variable in enumerate(propagator[0]):
+                if self.dom_indices_ndarray[prop_variable] == shr_domain_idx and triggers[prop_variable_idx][min_max]:
+                    propagator_indices.append(propagator_index)
+                    break
+        return propagator_indices
+
     def init_problem(self) -> None:
         """
         Completes the initialization of the problem by defining the variables and the propagators.
@@ -134,45 +145,45 @@ class Problem:
         self.dom_offsets_ndarray = new_domain_offsets_by_values(self.dom_offsets_list)
         # Propagator initialization
         self.propagator_nb = len(self.propagators)
-        props_var_total_size = props_data_total_size = 0
-        self.triggered_propagators = new_triggered_propagators(
-            self.propagator_nb
-        )  # this is where the triggered propagators will be stored,
-        # propagators will be computed in the order of their increasing indices
-        # this is empty at the end of a filter
-        self.entailed_propagators = new_entailed_propagators(
-            self.propagator_nb
-        )  # this is where the entailed propagators will be stored
-        # this is reset in the case of braktrack
+        # This is where the triggered propagators will be stored,
+        # propagators will be computed in the order of their increasing indices.
+        # This is empty at the end of a filter.
+        self.triggered_propagators = new_triggered_propagators(self.propagator_nb)
+        # This is where the entailed propagators will be stored
+        # This is reset in the case of braktrack
+        self.entailed_propagators = new_entailed_propagators(self.propagator_nb)
         self.algorithms = new_algorithms(self.propagator_nb)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
-        self.var_bounds = new_bounds(
-            max(1, self.propagator_nb)
-        )  # there is a bit of redundancy here for faster access to the bounds
-        self.data_bounds = new_bounds(
-            max(1, self.propagator_nb)
-        )  # there is a bit of redundancy here for faster access to the bounds
+        self.var_bounds = new_bounds(max(1, self.propagator_nb))  # some redundancy here
+        self.data_bounds = new_bounds(max(1, self.propagator_nb))  # some redundancy here
         self.var_bounds[0, START] = self.data_bounds[0, START] = 0
         for pidx, propagator in enumerate(self.propagators):
-            prop_var_size = len(propagator[0])
-            prop_data_size = len(propagator[2])
             self.algorithms[pidx] = propagator[1]
             if pidx > 0:
                 self.var_bounds[pidx, START] = self.var_bounds[pidx - 1, END]
                 self.data_bounds[pidx, START] = self.data_bounds[pidx - 1, END]
-            self.var_bounds[pidx, END] = self.var_bounds[pidx, START] + prop_var_size
-            self.data_bounds[pidx, END] = self.data_bounds[pidx, START] + prop_data_size
-            props_var_total_size += prop_var_size
-            props_data_total_size += prop_data_size
-        # TODO: do the same and store the propagators indexed by shared_domain changes (MIN and MAX)
-        # TODO: prop_bounds and shr_domains_propagators
-        # Bounds have been computed and can now be used.
-        # The global arrays are the following:
-        self.props_dom_indices = new_indices(props_var_total_size)
-        self.props_dom_offsets = new_offsets(props_var_total_size)
-        self.props_triggers = new_triggers(props_var_total_size, False)  # TODO: get rid of this
-        self.props_data = new_data(props_data_total_size)
-        # Let's init the global arrays.
+            self.var_bounds[pidx, END] = self.var_bounds[pidx, START] + len(propagator[0])
+            self.data_bounds[pidx, END] = self.data_bounds[pidx, START] + len(propagator[2])
+        self.prop_min_bounds = new_bounds(len(self.shr_domains_list))
+        self.prop_max_bounds = new_bounds(len(self.shr_domains_list))
+        self.prop_max_bounds[0, START] = self.prop_min_bounds[0, START] = 0
+        for shr_domain_idx in range(len(self.shr_domains_list)):
+            if shr_domain_idx > 0:
+                self.prop_min_bounds[shr_domain_idx, START] = self.prop_min_bounds[shr_domain_idx - 1, END]
+                self.prop_max_bounds[shr_domain_idx, START] = self.prop_max_bounds[shr_domain_idx - 1, END]
+            self.prop_min_bounds[shr_domain_idx, END] = self.prop_min_bounds[shr_domain_idx, START] + len(
+                self.get_shr_domains_propagators(shr_domain_idx, MIN)
+            )
+            self.prop_max_bounds[shr_domain_idx, END] = self.prop_max_bounds[shr_domain_idx, START] + len(
+                self.get_shr_domains_propagators(shr_domain_idx, MAX)
+            )
+        # Bounds have been computed and can now be used. The global arrays are the following:
+        self.props_dom_indices = new_indices(self.var_bounds[-1, END])
+        self.props_dom_offsets = new_offsets(self.var_bounds[-1, END])
+        self.props_triggers = new_triggers(self.var_bounds[-1, END], False)  # TODO: get rid of triggers
+        self.props_data = new_data(self.data_bounds[-1, END])
+        self.shr_domains_min_propagators = new_propagators(self.prop_min_bounds[-1, END])
+        self.shr_domains_max_propagators = new_propagators(self.prop_max_bounds[-1, END])
         for pidx, propagator in enumerate(self.propagators):
             prop_vars = propagator[0]
             self.props_dom_indices[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = (
@@ -182,12 +193,18 @@ class Problem:
                 self.dom_offsets_ndarray[prop_vars]
             )  # this is cached for faster access
             self.props_data[self.data_bounds[pidx, START] : self.data_bounds[pidx, END]] = propagator[2]
-            algorithm = propagator[1]
-            size = len(propagator[0])
-            data = propagator[2]
             self.props_triggers[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = GET_TRIGGERS_FUNCTIONS[
-                algorithm
-            ](size, data)  # TODO: get rid of this
+                propagator[1]
+            ](
+                len(propagator[0]), propagator[2]
+            )  # TODO: get rid of triggers
+        for shr_domain_idx in range(len(self.shr_domains_list)):
+            self.shr_domains_min_propagators[
+                self.prop_min_bounds[shr_domain_idx, START] : self.prop_min_bounds[shr_domain_idx, END]
+            ] = self.get_shr_domains_propagators(shr_domain_idx, MIN)
+            self.shr_domains_max_propagators[
+                self.prop_max_bounds[shr_domain_idx, START] : self.prop_max_bounds[shr_domain_idx, END]
+            ] = self.get_shr_domains_propagators(shr_domain_idx, MAX)
         # Statistics initialization
         self.statistics = init_statistics()
         self.statistics[STATS_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
