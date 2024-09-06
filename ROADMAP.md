@@ -4,13 +4,12 @@
 - Product
 
 # Problems
-- RoundRobin problem
+- RoundRobin problem (GCC)
 - Job-shop problem 
 - Golfers problem
-- QG problem
-- Car sequencing problem
-- Crypto multiplication problem
-- MagicSquare problem
+- Car sequencing problem (Element)
+- Crypto multiplication problem (Product)
+- MagicSquare problem (Sum)
 
 # Misc
 - Move the doc to Read the docs
