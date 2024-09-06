@@ -52,9 +52,9 @@ def new_shr_domain_changes(n: int) -> NDArray:
 
 def new_triggers(n: int, init_value: bool) -> NDArray:
     if init_value:
-        return np.ones((n, 2), dtype=bool, order="F")
+        return np.ones((n, 2), dtype=bool, order="C")
     else:
-        return np.zeros((n, 2), dtype=bool, order="F")
+        return np.zeros((n, 2), dtype=bool, order="C")
 
 
 def new_triggered_propagators(n: int) -> NDArray:
@@ -70,7 +70,7 @@ def new_algorithms(n: int) -> NDArray:
 
 
 def new_bounds(n: int) -> NDArray:
-    return np.empty((n, 2), dtype=np.uint16)
+    return np.empty((n, 2), dtype=np.uint16, order="C")
 
 
 def new_shr_domains_propagators(n: int, m: int) -> NDArray:

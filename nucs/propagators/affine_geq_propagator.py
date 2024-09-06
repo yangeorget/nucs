@@ -26,8 +26,7 @@ def compute_domains_affine_geq(domains: NDArray, a: NDArray) -> int:
     :param domains: the domains of the variables
     :param a: the parameters of the propagator
     """
-    n = len(domains)
-    domain_sum = compute_domain_sum(n, domains, a)
+    domain_sum = compute_domain_sum(domains, a)
     if domain_sum[MAX] <= 0:
         return PROP_ENTAILMENT
     new_domains = np.copy(domains)

@@ -15,9 +15,10 @@ def get_triggers_affine_eq(n: int, data: NDArray) -> NDArray:
 
 
 @njit(cache=True)
-def compute_domain_sum(n: int, domains: NDArray, data: NDArray) -> NDArray:
+def compute_domain_sum(domains: NDArray, data: NDArray) -> NDArray:
     domain_sum = np.full(2, data[-1], dtype=np.int32)
-    for i, c in enumerate(data[:-1]):
+    for i in range(len(data) - 1):
+        c = data[i]
         if c > 0:
             domain_sum[MIN] -= domains[i, MAX] * c
             domain_sum[MAX] -= domains[i, MIN] * c
@@ -34,8 +35,7 @@ def compute_domains_affine_eq(domains: NDArray, a: NDArray) -> int:
     :param domains: the domains of the variables
     :param a: the parameters of the propagator
     """
-    n = len(domains)
-    domain_sum = compute_domain_sum(n, domains, a)
+    domain_sum = compute_domain_sum(domains, a)
     new_domains = np.copy(domains)
     for i, c in enumerate(a[:-1]):
         if c != 0:

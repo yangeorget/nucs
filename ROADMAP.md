@@ -18,4 +18,4 @@
 # Engine
 - choice points pruning
 - backtrackable propagator state
-- use prange
+- use prange (seg fault ...)
