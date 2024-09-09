@@ -1,22 +1,17 @@
 name: Test NUCS
-
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-
 permissions:
   contents: read
-
 jobs:
-  build:
-
+  test-nucs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.9", "3.12"]
-        
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}

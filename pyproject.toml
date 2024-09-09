@@ -1,10 +1,10 @@
 [project]
 name="NUCS"
-version="0.2.1"
+version="0.3.0"
 authors = [
   { name="Yan Georget", email="yan.georget@gmail.com" },
 ]
-description="A Numpy and Numba based Python library for solving Constraint Satifaction Problems"
+description="A Numpy and Numba based Python library for solving Constraint Satisfaction Problems"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
