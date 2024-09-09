@@ -4,7 +4,7 @@ on:
     types: [created]
 jobs:
   publish-nucs-to-pypi:
-    name: Publish NUCS release to PyPI
+    name: Publish NUCS to PyPI
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -24,5 +24,5 @@ jobs:
       - name: Build package
         run: |
           python -m build
-      - name: Publish package distributions to PyPI
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

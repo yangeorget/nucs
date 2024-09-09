@@ -1,4 +1,4 @@
-name: Test NUCS
+name: Test NUCS when a commit is pushed
 on:
   push:
     branches: [ "main" ]
@@ -8,6 +8,7 @@ permissions:
   contents: read
 jobs:
   test-nucs:
+    name: Test NUCS
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -26,13 +27,13 @@ jobs:
     - name: Fix the imports with isort
       run: |
         isort --trailing-comma nucs tests
-    - name: Format the code with black
+    - name: Format code with black
       run: |
         black nucs tests
-    - name: Fix the style with flake8
+    - name: Fix style with flake8
       run: |
         flake8 nucs tests
-    - name: Static typing with mypy
+    - name: Check typing with mypy
       run: |
         mypy --disallow-untyped-defs --ignore-missing-imports nucs tests
     - name: Test with pytest
