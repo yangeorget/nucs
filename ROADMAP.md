@@ -8,9 +8,10 @@
 - RoundRobin problem (GCC)
 - Job-shop problem 
 - Golfers problem
-- Car sequencing problem (Element)
+- Car sequencing problem (GCC or Element)
 - Crypto multiplication problem (Product)
 - MagicSquare problem (Sum)
+- MagicSequence problem (Sum)
 - review CSPlib for additional problem
 
 # Misc
