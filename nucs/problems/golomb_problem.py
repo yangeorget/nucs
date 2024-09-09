@@ -1,5 +1,5 @@
 import numpy as np
-from numba import njit
+from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.heuristics.variable_heuristic import first_not_instantiated_var_heuristic
