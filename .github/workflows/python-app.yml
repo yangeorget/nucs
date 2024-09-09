@@ -42,4 +42,4 @@ jobs:
         mypy --disallow-untyped-defs --ignore-missing-imports nucs tests
     - name: Test with pytest
       run: |
-        pytest tests
+        PYTHONPATH=. pytest tests
