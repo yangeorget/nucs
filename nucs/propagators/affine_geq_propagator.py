@@ -3,7 +3,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY, new_triggers
-from nucs.propagators.affine_eq_propagator import compute_domain_sum
+from nucs.propagators.affine_eq_propagator import compute_domain_sum_min, compute_domain_sum_max
 
 
 def get_triggers_affine_geq(n: int, data: NDArray) -> NDArray:
@@ -26,17 +26,17 @@ def compute_domains_affine_geq(domains: NDArray, a: NDArray) -> int:
     :param domains: the domains of the variables
     :param a: the parameters of the propagator
     """
-    domain_sum = compute_domain_sum(domains, a)
-    if domain_sum[MAX] <= 0:
+    if compute_domain_sum_max(domains, a) <= 0:
         return PROP_ENTAILMENT
+    domain_sum_min = compute_domain_sum_min(domains, a)
     new_domains = np.copy(domains)
     for i, c in enumerate(a[:-1]):
         if c != 0:
             if c > 0:
-                new_min = domains[i, MAX] - (domain_sum[MIN] // -c)
+                new_min = domains[i, MAX] - (domain_sum_min // -c)
                 new_domains[i, MIN] = max(domains[i, MIN], new_min)
             else:
-                new_max = domains[i, MIN] + (-domain_sum[MIN] // -c)
+                new_max = domains[i, MIN] + (-domain_sum_min // -c)
                 new_domains[i, MAX] = min(domains[i, MAX], new_max)
                 if new_domains[i, MIN] > new_domains[i, MAX]:
                     return PROP_INCONSISTENCY

@@ -15,17 +15,18 @@ def get_triggers_affine_eq(n: int, data: NDArray) -> NDArray:
 
 
 @njit(cache=True)
-def compute_domain_sum(domains: NDArray, data: NDArray) -> NDArray:
-    domain_sum = np.full(2, data[-1], dtype=np.int32)
-    for i in range(len(data) - 1):
-        c = data[i]
-        if c > 0:
-            domain_sum[MIN] -= domains[i, MAX] * c
-            domain_sum[MAX] -= domains[i, MIN] * c
-        elif c < 0:
-            domain_sum[MIN] -= domains[i, MIN] * c
-            domain_sum[MAX] -= domains[i, MAX] * c
-    return domain_sum
+def compute_domain_sum_min(domains: NDArray, data: NDArray) -> int:
+    domain_sum_min = data[-1]
+    for i, c in enumerate(data[:-1]):
+        domain_sum_min -= c * (domains[i, MAX] if c > 0 else domains[i, MIN])
+    return domain_sum_min
+
+@njit(cache=True)
+def compute_domain_sum_max(domains: NDArray, data: NDArray) -> int:
+    domain_sum_max = data[-1]
+    for i, c in enumerate(data[:-1]):
+        domain_sum_max -= c * (domains[i, MIN] if c > 0 else domains[i, MAX])
+    return domain_sum_max
 
 
 @njit("int64(int32[::1,:], int32[:])", cache=True)
@@ -35,16 +36,17 @@ def compute_domains_affine_eq(domains: NDArray, a: NDArray) -> int:
     :param domains: the domains of the variables
     :param a: the parameters of the propagator
     """
-    domain_sum = compute_domain_sum(domains, a)
+    domain_sum_min = compute_domain_sum_min(domains, a)
+    domain_sum_max = compute_domain_sum_max(domains, a)
     new_domains = np.copy(domains)
     for i, c in enumerate(a[:-1]):
         if c != 0:
             if c > 0:
-                new_min = domains[i, MAX] - (domain_sum[MIN] // -c)
-                new_max = domains[i, MIN] + (domain_sum[MAX] // c)
+                new_min = domains[i, MAX] - (domain_sum_min // -c)
+                new_max = domains[i, MIN] + (domain_sum_max // c)
             else:
-                new_min = domains[i, MAX] - (-domain_sum[MAX] // c)
-                new_max = domains[i, MIN] + (-domain_sum[MIN] // -c)
+                new_min = domains[i, MAX] - (-domain_sum_max // c)
+                new_max = domains[i, MIN] + (-domain_sum_min // -c)
             new_domains[i, MIN] = max(domains[i, MIN], new_min)
             new_domains[i, MAX] = min(domains[i, MAX], new_max)
             if new_domains[i, MIN] > new_domains[i, MAX]:
