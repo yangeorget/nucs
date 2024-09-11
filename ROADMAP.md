@@ -1,4 +1,4 @@
-# Constraints
+git # Constraints
 - GCC
 - Cycle
 - Product
@@ -10,7 +10,6 @@
 - Golfers problem
 - Car sequencing problem (GCC or Element)
 - Crypto multiplication problem (Product)
-- MagicSquare problem (Sum)
 - MagicSequence problem (Sum)
 - review CSPlib for additional problem
 
@@ -20,4 +19,5 @@
 # Engine
 - choice points pruning
 - backtrackable propagator state
-- use prange (seg fault ...)
+- use prange with parallel=True
+- review compute_domains dispatch
