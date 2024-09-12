@@ -13,6 +13,7 @@ PROP_INCONSISTENCY = 0
 PROP_CONSISTENCY = 1
 PROP_ENTAILMENT = 2
 
+# TODO: document the limits in the technical documentation
 
 def new_shr_domains_by_values(domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
     return np.array(

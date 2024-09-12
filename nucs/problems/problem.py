@@ -269,6 +269,7 @@ class Problem:
         """
         Hook for pruning the search space before applying BC.
         """
+        # TODO: add an example in the technical documentation
         return True
 
     def pretty_print_solution(self, solution: List[int]) -> None:
