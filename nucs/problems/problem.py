@@ -338,7 +338,6 @@ def bc_filter(
             statistics[STATS_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
 
 
-@njit(cache=True)
 def is_solved(shr_domains: NDArray) -> bool:
     """
     Returns true iff the problem is solved.

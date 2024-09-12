@@ -10,12 +10,10 @@ from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLD
 GOLOMB_LENGTHS = [0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127]
 
 
-@njit
 def sum_first(n: int) -> int:
     return (n * (n + 1)) // 2
 
 
-@njit
 def index(mark_nb: int, i: int, j: int) -> int:
     return i * mark_nb - sum_first(i) + j - i - 1
 
