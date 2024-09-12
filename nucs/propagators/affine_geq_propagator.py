@@ -3,7 +3,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY, new_triggers
-from nucs.propagators.affine_eq_propagator import compute_domain_sum_min, compute_domain_sum_max
+from nucs.propagators.affine_eq_propagator import compute_domain_sum_max, compute_domain_sum_min
 
 
 def get_triggers_affine_geq(n: int, data: NDArray) -> NDArray:

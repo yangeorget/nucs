@@ -3,10 +3,6 @@ from typing import List
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLDIFFERENT
 
-M_COLOR = 0
-M_ROW = 1
-M_COLUMN = 2
-
 
 class MagicSquareProblem(Problem):
     """

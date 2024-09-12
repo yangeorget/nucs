@@ -21,6 +21,7 @@ def compute_domain_sum_min(domains: NDArray, data: NDArray) -> int:
         domain_sum_min -= c * (domains[i, MAX] if c > 0 else domains[i, MIN])
     return domain_sum_min
 
+
 @njit(cache=True)
 def compute_domain_sum_max(domains: NDArray, data: NDArray) -> int:
     domain_sum_max = data[-1]

@@ -46,6 +46,21 @@ def first_not_instantiated_var_heuristic(shr_domains: NDArray, dom_indices: NDAr
 
 
 @njit("int16(int32[::1, :], uint16[:])", cache=True)
+def last_not_instantiated_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) -> int:
+    """
+    Chooses the last non instantiated variable.
+    :param shr_domains: the shared domains of the problem
+    :param dom_indices: the domain indices of the problem variables
+    :return: the index of the variable
+    """
+    for var_idx in range(len(dom_indices) - 1, -1, -1):
+        dom_index = dom_indices[var_idx]
+        if shr_domains[dom_index, MIN] < shr_domains[dom_index, MAX]:
+            return var_idx
+    return -1  # cannot happen
+
+
+@njit("int16(int32[::1, :], uint16[:])", cache=True)
 def smallest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) -> int:
     """
     Chooses the variable with the smallest domain and which is not instantiated.
