@@ -30,7 +30,7 @@ def compute_domain_sum_max(domains: NDArray, data: NDArray) -> int:
     return domain_sum_max
 
 
-@njit("int64(int32[::1,:], int32[:])", cache=True)
+@njit(cache=True)
 def compute_domains_affine_eq(domains: NDArray, a: NDArray) -> int:
     """
     Implements Sigma_i a_i * x_i = a_{n-1}.

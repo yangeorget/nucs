@@ -18,7 +18,7 @@ def get_triggers_max_leq(n: int, data: NDArray) -> NDArray:
     return triggers
 
 
-@njit("int64(int32[::1,:], int32[:])", cache=True)
+@njit(cache=True)
 def compute_domains_max_leq(domains: NDArray, data: NDArray) -> int:
     """
     Implements Max_i x_i <= x_{n-1}.

@@ -14,7 +14,7 @@ def get_triggers_exactly_eq(n: int, data: NDArray) -> NDArray:
     return new_triggers(n, True)
 
 
-@njit("int64(int32[::1,:], int32[:])", cache=True)
+@njit(cache=True)
 def compute_domains_exactly_eq(x: NDArray, data: NDArray) -> int:
     """
     Implements Sigma_i (x_i == a_0) = a_1.

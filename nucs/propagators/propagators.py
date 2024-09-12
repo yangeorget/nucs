@@ -61,7 +61,7 @@ GET_TRIGGERS_FUNCTIONS = [
 ]
 
 
-@njit("int64(uint8, int32[::1,:], int32[:])", cache=True)
+@njit(cache=True)
 def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> int:
     """
     Computes the new domains for the variables.

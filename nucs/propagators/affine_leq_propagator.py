@@ -19,7 +19,7 @@ def get_triggers_affine_leq(n: int, data: NDArray) -> NDArray:
     return triggers
 
 
-@njit("int64(int32[::1,:], int32[:])", cache=True)
+@njit(cache=True)
 def compute_domains_affine_leq(domains: NDArray, a: NDArray) -> int:
     """
     Implements Sigma_i a_i * x_i <= a_{n-1}.

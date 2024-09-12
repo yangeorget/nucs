@@ -13,7 +13,7 @@ def get_triggers_relation(n: int, data: NDArray) -> NDArray:
     return new_triggers(n, True)
 
 
-@njit("int64(int32[::1,:], int32[:])", cache=True)
+@njit(cache=True)
 def compute_domains_relation(domains: NDArray, data: NDArray) -> int:
     """
     :param domains: the domains of the variables

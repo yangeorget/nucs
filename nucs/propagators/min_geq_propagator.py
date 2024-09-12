@@ -18,7 +18,7 @@ def get_triggers_min_geq(n: int, data: NDArray) -> NDArray:
     return triggers
 
 
-@njit("int64(int32[::1,:], int32[:])", cache=True)
+@njit(cache=True)
 def compute_domains_min_geq(domains: NDArray, data: NDArray) -> int:
     """
     Implements Min_i x_i >= x_{n-1}.

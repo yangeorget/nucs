@@ -13,7 +13,7 @@ def get_triggers_lexicographic_leq(n: int, data: NDArray) -> NDArray:
     return new_triggers(n, True)
 
 
-@njit("int64(int32[:,:], int32[:,:], int64, int64, int64, int64, int64)", cache=True)
+@njit(cache=True)
 def compute_domains_4(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
     while i < n and x[i, MIN] == y[i, MAX]:
         i += 1
@@ -31,7 +31,7 @@ def compute_domains_4(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
     return PROP_CONSISTENCY
 
 
-@njit("int64(int32[:,:], int32[:,:], int64, int64, int64, int64, int64)", cache=True)
+@njit(cache=True)
 def compute_domains_3(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
     while i < n and x[i, MAX] == y[i, MIN]:
         i += 1
@@ -49,7 +49,7 @@ def compute_domains_3(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
     return PROP_CONSISTENCY
 
 
-@njit("int64(int32[:,:], int32[:,:], int64, int64, int64, int64, int64)", cache=True)
+@njit(cache=True)
 def compute_domains_2(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
     while i < n and x[i, MIN] == x[i, MAX] == y[i, MIN] == y[i, MAX]:
         i += 1
@@ -90,7 +90,7 @@ def compute_domains_2(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
     return PROP_CONSISTENCY
 
 
-@njit("int64(int32[:,:], int32[:,:], int64, int64, int64, int64, int64)", cache=True)
+@njit(cache=True)
 def compute_domains_1(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
     while i < n and x[i, MIN] == y[i, MAX]:
         # enforce xi = yi
@@ -119,7 +119,7 @@ def compute_domains_1(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
     return compute_domains_2(x, y, n, i, q, r, s)
 
 
-@njit("int64(int32[::1,:], int32[:])", cache=True)
+@njit(cache=True)
 def compute_domains_lexicographic_leq(domains: NDArray, data: NDArray) -> int:
     """
     Implements lexicographic leq.

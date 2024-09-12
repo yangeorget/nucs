@@ -14,7 +14,7 @@ def get_triggers_count_eq(n: int, data: NDArray) -> NDArray:
     return new_triggers(n, True)
 
 
-@njit("int64(int32[::1,:], int32[:])", cache=True)
+@njit(cache=True)
 def compute_domains_count_eq(domains: NDArray, data: NDArray) -> int:
     """
     Implements Sigma_i (x_i == a) = x_{n-1}.

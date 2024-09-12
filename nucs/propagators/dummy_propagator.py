@@ -13,7 +13,7 @@ def get_triggers_dummy(n: int, data: NDArray) -> NDArray:
     return new_triggers(n, True)
 
 
-@njit("int64(int32[::1,:], int32[:])", cache=True)
+@njit(cache=True)
 def compute_domains_dummy(domains: NDArray, data: NDArray) -> int:
     """
     A propagator that does nothing.

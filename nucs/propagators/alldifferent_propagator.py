@@ -14,28 +14,28 @@ def get_triggers_alldifferent(n: int, data: NDArray) -> NDArray:
     return new_triggers(n, True)
 
 
-@njit("(uint16[:], uint16, uint16, uint16)", cache=True)
+@njit(cache=True)
 def path_set(t: NDArray, start: int, end: int, to: int) -> None:
     while (p := start) != end:
         start = t[p]
         t[p] = to
 
 
-@njit("uint16(uint16[:], uint16)", cache=True)
+@njit(cache=True)
 def path_min(t: NDArray, i: int) -> int:
     while t[i] < i:
         i = t[i]
     return i
 
 
-@njit("uint16(uint16[:], uint16)", cache=True)
+@njit(cache=True)
 def path_max(t: NDArray, i: int) -> int:
     while t[i] > i:
         i = t[i]
     return i
 
 
-@njit("uint16(int64, int32[::1, :], uint16[:, :], int64[:], int64[:], int32[:])", cache=True)
+@njit(cache=True)
 def compute_nb(
     n: int,
     domains: NDArray,
@@ -70,10 +70,7 @@ def compute_nb(
     return nb
 
 
-@njit(
-    "boolean(int64, int64, uint16[:], int32[:], uint16[:], int32[:], int32[::1, :], uint16[:, :], int64[:])",
-    cache=True,
-)
+@njit(cache=True)
 def filter_lower(
     n: int,
     nb: int,
@@ -111,10 +108,7 @@ def filter_lower(
     return True
 
 
-@njit(
-    "boolean(int64, int64, uint16[:], int32[:], uint16[:], int32[:], int32[::1, :], uint16[:, :], int64[:])",
-    cache=True,
-)
+@njit(cache=True)
 def filter_upper(
     n: int,
     nb: int,
@@ -153,7 +147,7 @@ def filter_upper(
     return True
 
 
-@njit("int64(int32[::1,:], int32[:])", cache=True)
+@njit(cache=True)
 def compute_domains_alldifferent(domains: NDArray, data: NDArray) -> int:
     """
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".

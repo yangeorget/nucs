@@ -13,7 +13,7 @@ def get_triggers_element_lic(n: int, data: NDArray) -> NDArray:
     return new_triggers(n, True)
 
 
-@njit("int64(int32[::1,:], int32[:])", cache=True)
+@njit(cache=True)
 def compute_domains_element_lic(domains: NDArray, data: NDArray) -> int:
     """
     Enforces l_i = c.

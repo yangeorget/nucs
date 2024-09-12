@@ -31,7 +31,7 @@ class VariableHeuristic(Heuristic):
         choice_points.append(shr_domains_copy)
 
 
-@njit("int16(int32[::1, :], uint16[:])", cache=True)
+@njit(cache=True)
 def first_not_instantiated_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) -> int:
     """
     Chooses the first non instantiated variable.
@@ -45,7 +45,7 @@ def first_not_instantiated_var_heuristic(shr_domains: NDArray, dom_indices: NDAr
     return -1  # cannot happen
 
 
-@njit("int16(int32[::1, :], uint16[:])", cache=True)
+@njit(cache=True)
 def last_not_instantiated_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) -> int:
     """
     Chooses the last non instantiated variable.
@@ -60,7 +60,7 @@ def last_not_instantiated_var_heuristic(shr_domains: NDArray, dom_indices: NDArr
     return -1  # cannot happen
 
 
-@njit("int16(int32[::1, :], uint16[:])", cache=True)
+@njit(cache=True)
 def smallest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) -> int:
     """
     Chooses the variable with the smallest domain and which is not instantiated.
@@ -78,7 +78,7 @@ def smallest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) ->
     return min_idx
 
 
-@njit("int16(int32[::1, :], uint16[:])", cache=True)
+@njit(cache=True)
 def greatest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) -> int:
     """
     Chooses the variable with the greatest domain and which is not instantiated.
@@ -96,7 +96,7 @@ def greatest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) ->
     return max_idx
 
 
-@njit("(int32[::1, :], boolean[::1, :], int32[::1, :], uint16)", cache=True)
+@njit(cache=True)
 def min_value_dom_heuristic(
     shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
 ) -> None:
@@ -113,7 +113,7 @@ def min_value_dom_heuristic(
     shr_domain_changes[domain_idx, MAX] = True
 
 
-@njit("(int32[::1, :], boolean[::1, :], int32[::1, :], uint16)", cache=True)
+@njit(cache=True)
 def max_value_dom_heuristic(
     shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
 ) -> None:
@@ -130,7 +130,7 @@ def max_value_dom_heuristic(
     shr_domain_changes[domain_idx, MIN] = True
 
 
-@njit("(int32[::1, :], boolean[::1, :], int32[::1, :], uint16)", cache=True)
+@njit(cache=True)
 def split_low_dom_heuristic(
     shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
 ) -> None:
