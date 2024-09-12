@@ -4,7 +4,7 @@ from nucs.propagators.propagators import ALG_EXACTLY_EQ, ALG_LEXICOGRAPHIC_LEQ, 
 
 class BIBDProblem(Problem):
     """
-    This is problem #28 on CSPLIB (https://www.csplib.org/Problems/prob028/).
+    CSPLIB problem #28 - https://www.csplib.org/Problems/prob028/
     """
 
     def __init__(self, v: int, b: int, r: int, k: int, l: int):

@@ -4,7 +4,7 @@ from nucs.propagators.propagators import ALG_ELEMENT_LIV
 
 class QuasigroupProblem(LatinSquareRCProblem):
     """
-    This is problem #3 on CSPLIB (https://www.csplib.org/Problems/prob003/).
+    CSPLIB problem #3 - https://www.csplib.org/Problems/prob003/
     """
 
     def __init__(self, n: int):

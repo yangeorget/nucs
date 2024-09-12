@@ -10,7 +10,6 @@ git # Constraints
 - Golfers problem
 - Car sequencing problem (GCC or Element)
 - Crypto multiplication problem (Product)
-- MagicSequence problem (Sum)
 - review CSPlib for additional problem
 
 # Misc

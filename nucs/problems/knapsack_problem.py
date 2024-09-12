@@ -6,7 +6,7 @@ from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ
 
 class KnapsackProblem(Problem):
     """
-    This is problem #133 on https://www.csplib.org/Problems/prob133/.
+    CSPLIB problem #133 - https://www.csplib.org/Problems/prob133/
     """
 
     def __init__(self, weights: List[int], volumes: List[int], capacity: int) -> None:

@@ -6,7 +6,7 @@ class QueensProblem(Problem):
     """
     A simple model for the n-queens problem.
 
-    This is problem #54 on CSPLIB (https://www.csplib.org/Problems/prob054/).
+    CSPLIB problem #54 - https://www.csplib.org/Problems/prob054/
     """
 
     def __init__(self, n: int):

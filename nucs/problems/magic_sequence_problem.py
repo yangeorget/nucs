@@ -7,7 +7,7 @@ class MagicSequenceProblem(Problem):
     Find a sequence x_0, ... x_n-1
     such that each x_i is the number of occurences of i in the sequence.
 
-    This is problem #19 on CSPLIB (https://www.csplib.org/Problems/prob019/).
+    CSPLIB problem #19 - https://www.csplib.org/Problems/prob019/
     """
 
     def __init__(self, n: int):

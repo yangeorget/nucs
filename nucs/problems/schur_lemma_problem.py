@@ -4,7 +4,7 @@ from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_EXACTLY_EQ, ALG_LEX
 
 class SchurLemmaProblem(Problem):
     """
-    This is problem #15 on CSPLIB (https://www.csplib.org/Problems/prob015/).
+    CSPLIB problem #15 - https://www.csplib.org/Problems/prob015/
     """
 
     def __init__(self, n: int) -> None:

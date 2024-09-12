@@ -8,7 +8,7 @@ class MagicSquareProblem(Problem):
     """
     A simple model for magic squares.
 
-    This is problem #19 on CSPLIB (https://www.csplib.org/Problems/prob019/).
+    CSPLIB problem #19 - https://www.csplib.org/Problems/prob019/
     """
 
     def __init__(self, n: int):
