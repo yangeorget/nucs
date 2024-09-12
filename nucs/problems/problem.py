@@ -25,8 +25,9 @@ from nucs.memory import (
     new_triggered_propagators,
 )
 from nucs.propagators.propagators import (
-    GET_TRIGGERS_FUNCTIONS,
-    compute_domains,
+    COMPUTE_DOMAIN_TYPE,
+    COMPUTE_DOMAINS_ADDRS,
+    GET_TRIGGERS_FCTS,
     pop_propagator,
     update_triggered_propagators,
 )
@@ -40,6 +41,7 @@ from nucs.statistics import (
     STATS_PROPAGATOR_INCONSISTENCY_NB,
     init_statistics,
 )
+from nucs.utils import _func_from_address
 
 
 class Problem:
@@ -173,7 +175,7 @@ class Problem:
             self.props_data[self.data_bounds[pidx, START] : self.data_bounds[pidx, END]] = propagator[2]
         self.shr_domains_propagators = new_shr_domains_propagators(len(self.shr_domains_list), self.propagator_nb)
         for propagator_idx, propagator in enumerate(self.propagators):
-            triggers = GET_TRIGGERS_FUNCTIONS[propagator[1]](len(propagator[0]), propagator[2])
+            triggers = GET_TRIGGERS_FCTS[propagator[1]](len(propagator[0]), propagator[2])
             for prop_variable_idx, prop_variable in enumerate(propagator[0]):
                 self.shr_domains_propagators[self.dom_indices_ndarray[prop_variable], :, propagator_idx] = triggers[
                     prop_variable_idx, :
@@ -263,6 +265,7 @@ class Problem:
             self.shr_domains_ndarray,
             self.shr_domains_propagators,
             shr_domain_changes,
+            COMPUTE_DOMAINS_ADDRS,
         )
 
     def prune(self) -> bool:
@@ -294,6 +297,7 @@ def bc_filter(
     shr_domains: NDArray,
     shr_domains_propagators: NDArray,
     shr_domain_changes: NDArray,
+    compute_domains_addrs: NDArray,
 ) -> bool:
     """
     Filters the problem's domains by applying the propagators until a fix point is reached.
@@ -321,11 +325,9 @@ def bc_filter(
         prop_offsets = props_offsets[prop_var_start:prop_var_end].reshape((-1, 1))
         prop_domains = np.empty((2, len(prop_offsets)), dtype=np.int32).T  # trick for order=F
         np.add(shr_domains[prop_indices], prop_offsets, prop_domains)
-        status = compute_domains(
-            algorithms[prop_idx],
-            prop_domains,
-            props_data[data_bounds[prop_idx, START] : data_bounds[prop_idx, END]],
-        )
+        compute_domains_function = _func_from_address(COMPUTE_DOMAIN_TYPE, compute_domains_addrs[algorithms[prop_idx]])
+        prop_data = props_data[data_bounds[prop_idx, START] : data_bounds[prop_idx, END]]
+        status = compute_domains_function(prop_domains, prop_data)
         if status == PROP_INCONSISTENCY:
             statistics[STATS_PROPAGATOR_INCONSISTENCY_NB] += 1
             return False

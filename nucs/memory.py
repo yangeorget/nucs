@@ -15,6 +15,7 @@ PROP_ENTAILMENT = 2
 
 # TODO: document the limits in the technical documentation
 
+
 def new_shr_domains_by_values(domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
     return np.array(
         [(domain, domain) if isinstance(domain, int) else domain for domain in domains], dtype=np.int32, order="F"

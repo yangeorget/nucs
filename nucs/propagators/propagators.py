@@ -1,5 +1,6 @@
 import numpy as np
-from numba import njit  # type: ignore
+from numba import int32, int64, njit, types  # type: ignore
+from numba.experimental.function_type import _get_wrapper_address
 from numpy.typing import NDArray
 
 from nucs.memory import MAX, MIN
@@ -42,7 +43,7 @@ from nucs.propagators.relation_propagator import compute_domains_relation, get_t
 ) = tuple(range(15))
 
 
-GET_TRIGGERS_FUNCTIONS = [
+GET_TRIGGERS_FCTS = [
     get_triggers_affine_eq,
     get_triggers_affine_geq,
     get_triggers_affine_leq,
@@ -61,44 +62,32 @@ GET_TRIGGERS_FUNCTIONS = [
 ]
 
 
-@njit(cache=True)
-def compute_domains(algorithm: int, domains: NDArray, data: NDArray) -> int:
-    """
-    Computes the new domains for the variables.
-    :param algorithm: the ordinal of the algorithm
-    :param domains: the initial domains of the variables
-    :param data: the parameters of the propagator
-    :return: a status as an integer (INCONSISTENCY, CONSISTENCY, ENTAILMENT)
-    """
-    if algorithm == ALG_AFFINE_EQ:
-        return compute_domains_affine_eq(domains, data)
-    if algorithm == ALG_AFFINE_GEQ:
-        return compute_domains_affine_geq(domains, data)
-    if algorithm == ALG_AFFINE_LEQ:
-        return compute_domains_affine_leq(domains, data)
-    if algorithm == ALG_ALLDIFFERENT:
-        return compute_domains_alldifferent(domains, data)
-    if algorithm == ALG_COUNT_EQ:
-        return compute_domains_count_eq(domains, data)
-    if algorithm == ALG_DUMMY:
-        return compute_domains_dummy(domains, data)
-    if algorithm == ALG_ELEMENT_LIV:
-        return compute_domains_element_liv(domains, data)
-    if algorithm == ALG_ELEMENT_LIC:
-        return compute_domains_element_lic(domains, data)
-    if algorithm == ALG_EXACTLY_EQ:
-        return compute_domains_exactly_eq(domains, data)
-    if algorithm == ALG_LEXICOGRAPHIC_LEQ:
-        return compute_domains_lexicographic_leq(domains, data)
-    if algorithm == ALG_MAX_EQ:
-        return compute_domains_max_eq(domains, data)
-    if algorithm == ALG_MAX_LEQ:
-        return compute_domains_max_leq(domains, data)
-    if algorithm == ALG_MIN_EQ:
-        return compute_domains_min_eq(domains, data)
-    if algorithm == ALG_MIN_GEQ:
-        return compute_domains_min_geq(domains, data)
-    return compute_domains_relation(domains, data)
+COMPUTE_DOMAINS_FCTS = [
+    compute_domains_affine_eq,
+    compute_domains_affine_geq,
+    compute_domains_affine_leq,
+    compute_domains_alldifferent,
+    compute_domains_count_eq,
+    compute_domains_dummy,
+    compute_domains_element_liv,
+    compute_domains_element_lic,
+    compute_domains_exactly_eq,
+    compute_domains_lexicographic_leq,
+    compute_domains_max_eq,
+    compute_domains_max_leq,
+    compute_domains_min_eq,
+    compute_domains_min_geq,
+    compute_domains_relation,
+]
+
+COMPUTE_DOMAIN_SIGNATURE = int64(int32[:, :], int32[:])
+COMPUTE_DOMAIN_TYPE = types.FunctionType(COMPUTE_DOMAIN_SIGNATURE)
+COMPUTE_DOMAINS_ADDRS = np.array(
+    [
+        _get_wrapper_address(compute_domains_fct, COMPUTE_DOMAIN_SIGNATURE)
+        for compute_domains_fct in COMPUTE_DOMAINS_FCTS
+    ]
+)
 
 
 @njit(cache=True)
