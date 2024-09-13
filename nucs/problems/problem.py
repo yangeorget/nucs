@@ -297,7 +297,7 @@ def bc_filter(
     shr_domains: NDArray,
     shr_domains_propagators: NDArray,
     shr_domain_changes: NDArray,
-    compute_domains_addrs: NDArray,
+    compute_domains_addrs: NDArray,  # TODO: combine with algorithms
 ) -> bool:
     """
     Filters the problem's domains by applying the propagators until a fix point is reached.
