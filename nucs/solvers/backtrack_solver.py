@@ -45,7 +45,7 @@ class BacktrackSolver(Solver):
         :return: the solution if it exists or None
         """
         while self.filter():
-            if is_solved(self.problem.shr_domains_ndarray):
+            if is_solved(self.problem.shr_domains_ndarray):  # TODO: merge with filter
                 self.problem.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 return self.problem.get_values()  # problem is solved
             self.heuristic.choose(

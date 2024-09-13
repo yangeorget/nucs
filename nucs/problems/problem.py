@@ -242,6 +242,7 @@ class Problem:
         return f"domains={self.shr_domains_ndarray}"
 
     def filter(self, shr_domain_changes: NDArray) -> bool:
+        # TODO: merge with is_solved
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
         :param shr_domain_changes: an array of shared domain changes
@@ -304,6 +305,7 @@ def bc_filter(
     :param shr_domain_changes: an array of shared domain changes
     :return: False if the problem is not consistent
     """
+    # TODO: merge with is_solved
     statistics[STATS_PROBLEM_FILTER_NB] += 1
     triggered_propagators.fill(False)
     prop_idx = -1
@@ -341,6 +343,7 @@ def bc_filter(
             statistics[STATS_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
 
 
+@njit(cache=True)
 def is_solved(shr_domains: NDArray) -> bool:
     """
     Returns true iff the problem is solved.
