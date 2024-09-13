@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 from numba import int32, int64, njit, types  # type: ignore
 from numba.experimental.function_type import _get_wrapper_address
@@ -80,13 +82,18 @@ COMPUTE_DOMAINS_FCTS = [
     compute_domains_relation,
 ]
 
+NUMBA_DISABLE_JIT = os.getenv("NUMBA_DISABLE_JIT")
 COMPUTE_DOMAIN_SIGNATURE = int64(int32[:, :], int32[:])
 COMPUTE_DOMAIN_TYPE = types.FunctionType(COMPUTE_DOMAIN_SIGNATURE)
-COMPUTE_DOMAINS_ADDRS = np.array(
-    [
-        _get_wrapper_address(compute_domains_fct, COMPUTE_DOMAIN_SIGNATURE)
-        for compute_domains_fct in COMPUTE_DOMAINS_FCTS
-    ]
+COMPUTE_DOMAINS_ADDRS = (
+    np.array(
+        [
+            _get_wrapper_address(compute_domain_fct, COMPUTE_DOMAIN_SIGNATURE)
+            for compute_domain_fct in COMPUTE_DOMAINS_FCTS
+        ]
+    )
+    if not NUMBA_DISABLE_JIT
+    else np.empty(0)
 )
 
 

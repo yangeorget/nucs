@@ -25,6 +25,7 @@ class VariableHeuristic(Heuristic):
     def choose(
         self, choice_points: List[NDArray], shr_domains: NDArray, shr_domain_changes: NDArray, dom_indices: NDArray
     ) -> None:
+        # TODO: jit by having arrays of heuristics ?
         var_idx = self.variable_heuristic(shr_domains, dom_indices)
         shr_domains_copy = shr_domains.copy(order="F")
         self.domain_heuristic(shr_domains, shr_domain_changes, shr_domains_copy, dom_indices[var_idx])

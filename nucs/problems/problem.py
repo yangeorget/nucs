@@ -27,7 +27,9 @@ from nucs.memory import (
 from nucs.propagators.propagators import (
     COMPUTE_DOMAIN_TYPE,
     COMPUTE_DOMAINS_ADDRS,
+    COMPUTE_DOMAINS_FCTS,
     GET_TRIGGERS_FCTS,
+    NUMBA_DISABLE_JIT,
     pop_propagator,
     update_triggered_propagators,
 )
@@ -71,6 +73,7 @@ class Problem:
         self.dom_indices_list = dom_indices_list
         self.dom_offsets_list = dom_offsets_list
         self.propagators: List[Tuple[List[int], int, List[int]]] = []
+        self.propagator_nb = 0
         self.ready = False  # the problem is not yet ready to be used, init_problem() must be called
 
     def add_variable(
@@ -251,22 +254,23 @@ class Problem:
         if not self.ready:
             self.init_problem()
             self.ready = True
-        if not self.prune():
-            return False
-        return bc_filter(
-            self.statistics,
-            self.triggered_propagators,
-            self.not_entailed_propagators,
-            self.algorithms,
-            self.var_bounds,
-            self.data_bounds,
-            self.props_dom_indices,
-            self.props_dom_offsets,
-            self.props_data,
-            self.shr_domains_ndarray,
-            self.shr_domains_propagators,
-            shr_domain_changes,
-            COMPUTE_DOMAINS_ADDRS,
+        return self.propagator_nb == 0 or (
+            self.prune()
+            and bc_filter(
+                self.statistics,
+                self.triggered_propagators,
+                self.not_entailed_propagators,
+                self.algorithms,
+                self.var_bounds,
+                self.data_bounds,
+                self.props_dom_indices,
+                self.props_dom_offsets,
+                self.props_data,
+                self.shr_domains_ndarray,
+                self.shr_domains_propagators,
+                shr_domain_changes,
+                COMPUTE_DOMAINS_ADDRS,
+            )
         )
 
     def prune(self) -> bool:
@@ -298,7 +302,7 @@ def bc_filter(
     shr_domains: NDArray,
     shr_domains_propagators: NDArray,
     shr_domain_changes: NDArray,
-    compute_domains_addrs: NDArray,  # TODO: combine with algorithms
+    compute_domains_addrs: NDArray,
 ) -> bool:
     """
     Filters the problem's domains by applying the propagators until a fix point is reached.
@@ -327,8 +331,13 @@ def bc_filter(
         prop_offsets = props_offsets[prop_var_start:prop_var_end].reshape((-1, 1))
         prop_domains = np.empty((2, len(prop_offsets)), dtype=np.int32).T  # trick for order=F
         np.add(shr_domains[prop_indices], prop_offsets, prop_domains)
-        compute_domains_function = _func_from_address(COMPUTE_DOMAIN_TYPE, compute_domains_addrs[algorithms[prop_idx]])
         prop_data = props_data[data_bounds[prop_idx, START] : data_bounds[prop_idx, END]]
+        algorithm = algorithms[prop_idx]
+        compute_domains_function = (
+            COMPUTE_DOMAINS_FCTS[algorithm]
+            if NUMBA_DISABLE_JIT
+            else _func_from_address(COMPUTE_DOMAIN_TYPE, compute_domains_addrs[algorithm])
+        )
         status = compute_domains_function(prop_domains, prop_data)
         if status == PROP_INCONSISTENCY:
             statistics[STATS_PROPAGATOR_INCONSISTENCY_NB] += 1

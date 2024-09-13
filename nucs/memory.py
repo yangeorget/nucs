@@ -65,13 +65,13 @@ def new_not_entailed_propagators(n: int) -> NDArray:
     return np.ones(n, dtype=bool)
 
 
-def new_algorithms(n: int) -> NDArray:
-    return np.empty(n, dtype=np.uint8)
-
-
 def new_bounds(n: int) -> NDArray:
     return np.zeros((n, 2), dtype=np.uint16)
 
 
 def new_shr_domains_propagators(n: int, m: int) -> NDArray:
     return np.zeros((n, 2, m), dtype=bool)
+
+
+def new_algorithms(n: int) -> NDArray:
+    return np.empty(n, dtype=np.uint8)
