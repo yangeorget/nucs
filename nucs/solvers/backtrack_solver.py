@@ -6,8 +6,8 @@ from nucs.heuristics.variable_heuristic import (
     first_not_instantiated_var_heuristic,
     min_value_dom_heuristic,
 )
-from nucs.memory import new_shr_domain_changes
-from nucs.problems.problem import Problem, is_solved
+from nucs.memory import PROBLEM_INCONSISTENT, PROBLEM_SOLVED, new_shr_domain_changes
+from nucs.problems.problem import Problem
 from nucs.solvers.solver import Solver
 from nucs.statistics import (
     STATS_OPTIMIZER_SOLUTION_NB,
@@ -44,21 +44,24 @@ class BacktrackSolver(Solver):
         Find at most one solution.
         :return: the solution if it exists or None
         """
-        while self.filter():
-            if is_solved(self.problem.shr_domains_ndarray):  # TODO: merge with filter
+        while True:
+            status = self.filter()
+            if status == PROBLEM_INCONSISTENT:
+                return None
+            elif status == PROBLEM_SOLVED:
                 self.problem.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 return self.problem.get_values()  # problem is solved
-            self.heuristic.choose(
-                self.choice_points,
-                self.problem.shr_domains_ndarray,
-                self.shr_domain_changes,
-                self.problem.dom_indices_ndarray,
-            )
-            self.problem.statistics[STATS_SOLVER_CHOICE_NB] += 1
-            self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH] = max(
-                self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH], len(self.choice_points)
-            )
-        return None
+            else:
+                self.heuristic.choose(
+                    self.choice_points,
+                    self.problem.shr_domains_ndarray,
+                    self.shr_domain_changes,
+                    self.problem.dom_indices_ndarray,
+                )
+                self.problem.statistics[STATS_SOLVER_CHOICE_NB] += 1
+                self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH] = max(
+                    self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH], len(self.choice_points)
+                )
 
     def minimize(self, variable_idx: int) -> Optional[List[int]]:
         solution = None
@@ -91,15 +94,16 @@ class BacktrackSolver(Solver):
         self.problem.reset_not_entailed_propagators()
         return True
 
-    def filter(self) -> bool:
+    def filter(self) -> int:
         """
         Achieves bound consistency and backtracks if necessary.
-        :return: true iff bound consistency has been achieved
         """
-        while not self.problem.filter(self.shr_domain_changes):
-            if not self.backtrack():
-                return False
-        return True
+        while True:
+            status = self.problem.filter(self.shr_domain_changes)
+            if status == PROBLEM_INCONSISTENT:
+                if self.backtrack():
+                    continue
+            return status
 
     def reset(self) -> None:
         """

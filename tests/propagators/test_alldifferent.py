@@ -1,6 +1,6 @@
 import numpy as np
 
-from nucs.memory import PROP_CONSISTENCY, new_data_by_values, new_shr_domains_by_values
+from nucs.memory import PROBLEM_INCONSISTENT, PROP_CONSISTENCY, new_data_by_values, new_shr_domains_by_values
 from nucs.problems.problem import Problem
 from nucs.propagators.alldifferent_propagator import compute_domains_alldifferent
 from nucs.propagators.propagators import ALG_ALLDIFFERENT
@@ -38,4 +38,4 @@ class TestAlldifferent:
                 ([3, 4, 5], ALG_ALLDIFFERENT, []),
             ]
         )
-        assert not problem.filter(np.ones((3, 2), dtype=bool))
+        assert problem.filter(np.ones((3, 2), dtype=bool)) == PROBLEM_INCONSISTENT

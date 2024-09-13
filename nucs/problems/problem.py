@@ -9,6 +9,10 @@ from nucs.memory import (
     END,
     MAX,
     MIN,
+    NUMBA_DISABLE_JIT,
+    PROBLEM_FILTERED,
+    PROBLEM_INCONSISTENT,
+    PROBLEM_SOLVED,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
     START,
@@ -29,7 +33,6 @@ from nucs.propagators.propagators import (
     COMPUTE_DOMAINS_ADDRS,
     COMPUTE_DOMAINS_FCTS,
     GET_TRIGGERS_FCTS,
-    NUMBA_DISABLE_JIT,
     pop_propagator,
     update_triggered_propagators,
 )
@@ -244,33 +247,32 @@ class Problem:
         # TODO: fix this
         return f"domains={self.shr_domains_ndarray}"
 
-    def filter(self, shr_domain_changes: NDArray) -> bool:
-        # TODO: merge with is_solved
+    def filter(self, shr_domain_changes: NDArray) -> int:
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
         :param shr_domain_changes: an array of shared domain changes
-        :return: False if the problem is not consistent
         """
         if not self.ready:
             self.init_problem()
             self.ready = True
-        return self.propagator_nb == 0 or (
-            self.prune()
-            and bc_filter(
-                self.statistics,
-                self.triggered_propagators,
-                self.not_entailed_propagators,
-                self.algorithms,
-                self.var_bounds,
-                self.data_bounds,
-                self.props_dom_indices,
-                self.props_dom_offsets,
-                self.props_data,
-                self.shr_domains_ndarray,
-                self.shr_domains_propagators,
-                shr_domain_changes,
-                COMPUTE_DOMAINS_ADDRS,
-            )
+        if self.propagator_nb == 0:
+            return PROBLEM_SOLVED if is_solved(self.shr_domains_ndarray) else PROBLEM_FILTERED
+        if not self.prune():
+            return PROBLEM_INCONSISTENT
+        return bc_filter(
+            self.statistics,
+            self.triggered_propagators,
+            self.not_entailed_propagators,
+            self.algorithms,
+            self.var_bounds,
+            self.data_bounds,
+            self.props_dom_indices,
+            self.props_dom_offsets,
+            self.props_data,
+            self.shr_domains_ndarray,
+            self.shr_domains_propagators,
+            shr_domain_changes,
+            COMPUTE_DOMAINS_ADDRS,
         )
 
     def prune(self) -> bool:
@@ -303,13 +305,11 @@ def bc_filter(
     shr_domains_propagators: NDArray,
     shr_domain_changes: NDArray,
     compute_domains_addrs: NDArray,
-) -> bool:
+) -> int:
     """
     Filters the problem's domains by applying the propagators until a fix point is reached.
     :param shr_domain_changes: an array of shared domain changes
-    :return: False if the problem is not consistent
     """
-    # TODO: merge with is_solved
     statistics[STATS_PROBLEM_FILTER_NB] += 1
     triggered_propagators.fill(False)
     prop_idx = -1
@@ -323,7 +323,7 @@ def bc_filter(
         )
         prop_idx = pop_propagator(triggered_propagators)
         if prop_idx == -1:
-            return True
+            return PROBLEM_SOLVED if is_solved(shr_domains) else PROBLEM_FILTERED
         statistics[STATS_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = var_bounds[prop_idx, START]
         prop_var_end = var_bounds[prop_idx, END]
@@ -341,7 +341,7 @@ def bc_filter(
         status = compute_domains_function(prop_domains, prop_data)
         if status == PROP_INCONSISTENCY:
             statistics[STATS_PROPAGATOR_INCONSISTENCY_NB] += 1
-            return False
+            return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
             not_entailed_propagators[prop_idx] = False
             statistics[STATS_PROPAGATOR_ENTAILMENT_NB] += 1
@@ -350,6 +350,7 @@ def bc_filter(
         np.not_equal(shr_domains_cur, shr_domains, shr_domain_changes)
         if not np.any(shr_domain_changes):  # type: ignore
             statistics[STATS_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
+    return PROBLEM_SOLVED
 
 
 @njit(cache=True)

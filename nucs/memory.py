@@ -1,7 +1,10 @@
+import os
 from typing import List, Tuple, Union
 
 import numpy as np
 from numpy.typing import NDArray
+
+NUMBA_DISABLE_JIT = os.getenv("NUMBA_DISABLE_JIT")
 
 START = 0
 END = 1
@@ -12,6 +15,10 @@ MAX = 1
 PROP_INCONSISTENCY = 0
 PROP_CONSISTENCY = 1
 PROP_ENTAILMENT = 2
+
+PROBLEM_INCONSISTENT = 0
+PROBLEM_FILTERED = 1
+PROBLEM_SOLVED = 2
 
 # TODO: document the limits in the technical documentation
 
