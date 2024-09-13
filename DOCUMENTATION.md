@@ -130,14 +130,18 @@ def __init__(self, n: int):
 #### Integer domains
 NUCS only support integer domains.
 
+#### Boolean domains
 Boolean domains are simply integer domains of the form **[0, 1]**.
 
-### Propagators (aka Constraints)
+### Consistency
+The `filter` method of the problem is responsible for bound consistency computation.
+
+#### Propagators (aka constraints)
 Each propagator `XXX` defines two functions:
 - `compute_domains_XXX(domains: NDArray, data: NDArray) -> int`
 - `get_triggers_XXX(size: int, data: NDArray) -> NDArray`
 
-#### `compute_domains`
+##### `compute_domains`
 This function takes as its first argument the actual domains (not the shared ones) of the variables of the propagator 
 and updates them. 
 
@@ -149,13 +153,21 @@ It returns a status:
 - `PROP_CONSISTENCY` or 
 - `PROP_ENTAILMENT`.
 
-#### `get_triggers`
+##### `get_triggers`
 This function returns a `numpy.ndarray` of shape `(size, 2)`. 
 
 Let `triggers` be such an array, 
 `triggers[i, MIN] == True` means that the propagator should be triggered whenever the minimum value of variable `ì` changes.
 
+#### Pruning
+The `prune` method of the problem is a hook to prune the search space before applying bound consistency.
+See https://github.com/yangeorget/nucs/blob/main/nucs/problems/golomb_problem.py for an example.
+
 ## Reference documentation
+### Limits
+Domains limits are 32-bits integers.
+The number of variables is an unsigned 16-bits integer.
+
 ### Propagators
 NUCS currently provides the following propagators:
 - `affine_eq_propagator`
@@ -163,7 +175,8 @@ NUCS currently provides the following propagators:
 - `affine_leq_propagator`
 - `alldifferent_propagator`
 - `count_eq_propagator`
-- `element_propagator`
+- `element_lic_propagator`
+- `element_liv_propagator`
 - `exactly_eq_propagator`
 - `lexicographic_leq_propagator`
 - `max_eq_propagator`
@@ -173,10 +186,18 @@ NUCS currently provides the following propagators:
 - `relation_propagator`
 
 ### Heuristics
-NUCS currently provides the following heuristics:
+The class `VariableHeuristic` is parametrized by to functions 
+allowing to select a variable then a value for this variable.
+
+#### Functions for selecting a variable
 - `first_not_instantiated_var_heuristic`: selects the first non instantiated variable
+- `last_not_instantiated_var_heuristic`: selects the last non instantiated variable
 - `smallest_domain_var_heuristic`: selects the variable with the smallest domain which is not instantiated
+- `greatest_domain_var_heuristic`: selects the variable with the greatest domain which is not instantiated
+- 
+#### Functions for selecting a value
 - `min_value_dom_heuristic`: selects the minimal value of the domain 
+- `max_value_dom_heuristic`: selects the maximal value of the domain 
 - `split_low_dom_heuristic`: selects the first half of the domain
 
 

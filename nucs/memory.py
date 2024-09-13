@@ -20,7 +20,6 @@ PROBLEM_INCONSISTENT = 0
 PROBLEM_FILTERED = 1
 PROBLEM_SOLVED = 2
 
-# TODO: document the limits in the technical documentation
 
 
 def new_shr_domains_by_values(domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
