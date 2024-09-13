@@ -1,4 +1,4 @@
-git # Constraints
+# Constraints
 - GCC
 - Cycle
 - Product
