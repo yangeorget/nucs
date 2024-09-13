@@ -12,10 +12,10 @@ class QuasigroupProblem(LatinSquareRCProblem):
         # idempotence
         for model in [M_COLOR, M_ROW, M_COLUMN]:
             for i in range(n):
-                self.shr_domains_list[self.cell(i, i, model)] = i
+                self.shr_domains_lst[self.cell(i, i, model)] = i
         # symmetry breaking
         for i in range(1, n):
-            self.shr_domains_list[self.cell(i, n - 1)] = (i - 1, n - 1)
+            self.shr_domains_lst[self.cell(i, n - 1)] = (i - 1, n - 1)
 
 
 class Quasigroup5Problem(QuasigroupProblem):

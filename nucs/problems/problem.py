@@ -72,9 +72,9 @@ class Problem:
             dom_indices_list = list(range(0, n))
         if dom_offsets_list is None:
             dom_offsets_list = [0] * n
-        self.shr_domains_list = shr_domains_list
-        self.dom_indices_list = dom_indices_list
-        self.dom_offsets_list = dom_offsets_list
+        self.shr_domains_lst = shr_domains_list
+        self.dom_indices_lst = dom_indices_list
+        self.dom_offsets_lst = dom_offsets_list
         self.propagators: List[Tuple[List[int], int, List[int]]] = []
         self.propagator_nb = 0
         self.ready = False  # the problem is not yet ready to be used, init_problem() must be called
@@ -88,14 +88,14 @@ class Problem:
         :param dom_index: the domain index (automatically computed if not defined)
         :param dom_offset: the domain offset (set to 0 if not defined)
         """
-        start = len(self.shr_domains_list)
+        start = len(self.shr_domains_lst)
         if dom_index is None:
             dom_index = start
         if dom_offset is None:
             dom_offset = 0
-        self.shr_domains_list.append(shr_domain)
-        self.dom_indices_list.append(dom_index)
-        self.dom_offsets_list.append(dom_offset)
+        self.shr_domains_lst.append(shr_domain)
+        self.dom_indices_lst.append(dom_index)
+        self.dom_offsets_lst.append(dom_offset)
 
     def add_variables(
         self,
@@ -109,15 +109,15 @@ class Problem:
         :param dom_indices_list: the domain indices (automatically computed if not defined)
         :param dom_offsets_list: the domain offsets (set to 0 if not defined)
         """
-        start = len(self.shr_domains_list)
+        start = len(self.shr_domains_lst)
         n = len(shr_domains_list)
         if dom_indices_list is None:
             dom_indices_list = [start + i for i in range(n)]
         if dom_offsets_list is None:
             dom_offsets_list = [0] * n
-        self.shr_domains_list.extend(shr_domains_list)
-        self.dom_indices_list.extend(dom_indices_list)
-        self.dom_offsets_list.extend(dom_offsets_list)
+        self.shr_domains_lst.extend(shr_domains_list)
+        self.dom_indices_lst.extend(dom_indices_list)
+        self.dom_offsets_lst.extend(dom_offsets_list)
 
     def add_propagator(self, propagator: Tuple[List[int], int, List[int]], pos: int = -1) -> None:
         """
@@ -141,10 +141,10 @@ class Problem:
         Completes the initialization of the problem by defining the variables and the propagators.
         """
         # Variable and domain initialization
-        self.variable_nb = len(self.dom_indices_list)
-        self.shr_domains_ndarray = new_shr_domains_by_values(self.shr_domains_list)
-        self.dom_indices_ndarray = new_dom_indices_by_values(self.dom_indices_list)
-        self.dom_offsets_ndarray = new_dom_offsets_by_values(self.dom_offsets_list)
+        self.variable_nb = len(self.dom_indices_lst)
+        self.shr_domains_arr = new_shr_domains_by_values(self.shr_domains_lst)
+        self.dom_indices_arr = new_dom_indices_by_values(self.dom_indices_lst)
+        self.dom_offsets_arr = new_dom_offsets_by_values(self.dom_offsets_lst)
         # Propagator initialization
         self.propagator_nb = len(self.propagators)
         # This is where the triggered propagators will be stored,
@@ -172,18 +172,18 @@ class Problem:
         self.props_data = new_data(self.data_bounds[-1, END])
         for pidx, propagator in enumerate(self.propagators):
             prop_vars = propagator[0]
-            self.props_dom_indices[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = (
-                self.dom_indices_ndarray[prop_vars]
-            )  # this is cached for faster access
-            self.props_dom_offsets[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = (
-                self.dom_offsets_ndarray[prop_vars]
-            )  # this is cached for faster access
+            self.props_dom_indices[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = self.dom_indices_arr[
+                prop_vars
+            ]  # this is cached for faster access
+            self.props_dom_offsets[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = self.dom_offsets_arr[
+                prop_vars
+            ]  # this is cached for faster access
             self.props_data[self.data_bounds[pidx, START] : self.data_bounds[pidx, END]] = propagator[2]
-        self.shr_domains_propagators = new_shr_domains_propagators(len(self.shr_domains_list), self.propagator_nb)
+        self.shr_domains_propagators = new_shr_domains_propagators(len(self.shr_domains_lst), self.propagator_nb)
         for propagator_idx, propagator in enumerate(self.propagators):
             triggers = GET_TRIGGERS_FCTS[propagator[1]](len(propagator[0]), propagator[2])
             for prop_variable_idx, prop_variable in enumerate(propagator[0]):
-                self.shr_domains_propagators[self.dom_indices_ndarray[prop_variable], :, propagator_idx] = triggers[
+                self.shr_domains_propagators[self.dom_indices_arr[prop_variable], :, propagator_idx] = triggers[
                     prop_variable_idx, :
                 ]
         # Statistics initialization
@@ -195,7 +195,7 @@ class Problem:
         """
         Resets the shared domains to their initial values.
         """
-        self.shr_domains_ndarray = new_shr_domains_by_values(self.shr_domains_list)
+        self.shr_domains_arr = new_shr_domains_by_values(self.shr_domains_lst)
 
     def reset_not_entailed_propagators(self) -> None:
         """
@@ -208,7 +208,7 @@ class Problem:
         Gets the values for the variables (when instantiated).
         :return: a list of integers
         """
-        mins = self.shr_domains_ndarray[self.dom_indices_ndarray, MIN] + self.dom_offsets_ndarray
+        mins = self.shr_domains_arr[self.dom_indices_arr, MIN] + self.dom_offsets_arr
         return mins.tolist()
 
     def get_min_value(self, var_idx: int) -> int:
@@ -217,7 +217,7 @@ class Problem:
         :param var_idx: the index of the variable
         :return: the minimal value
         """
-        return self.shr_domains_ndarray[self.dom_indices_ndarray[var_idx], MIN] + self.dom_offsets_ndarray[var_idx]
+        return self.shr_domains_arr[self.dom_indices_arr[var_idx], MIN] + self.dom_offsets_arr[var_idx]
 
     def get_max_value(self, var_idx: int) -> int:
         """
@@ -225,7 +225,7 @@ class Problem:
         :param var_idx: the index of the variable
         :return: the maximal value
         """
-        return self.shr_domains_ndarray[self.dom_indices_ndarray[var_idx], MAX] + self.dom_offsets_ndarray[var_idx]
+        return self.shr_domains_arr[self.dom_indices_arr[var_idx], MAX] + self.dom_offsets_arr[var_idx]
 
     def set_min_value(self, var_idx: int, min_value: int) -> None:
         """
@@ -233,7 +233,7 @@ class Problem:
         :param var_idx: the index of the variable
         :param min_value: the minimal value
         """
-        self.shr_domains_ndarray[self.dom_indices_ndarray[var_idx], MIN] = min_value - self.dom_offsets_ndarray[var_idx]
+        self.shr_domains_arr[self.dom_indices_arr[var_idx], MIN] = min_value - self.dom_offsets_arr[var_idx]
 
     def set_max_value(self, var_idx: int, max_value: int) -> None:
         """
@@ -241,11 +241,10 @@ class Problem:
         :param var_idx: the index of the variable
         :param min_value: the maximal value
         """
-        self.shr_domains_ndarray[self.dom_indices_ndarray[var_idx], MAX] = max_value - self.dom_offsets_ndarray[var_idx]
+        self.shr_domains_arr[self.dom_indices_arr[var_idx], MAX] = max_value - self.dom_offsets_arr[var_idx]
 
     def __str__(self) -> str:
-        # TODO: fix this
-        return f"domains={self.shr_domains_ndarray}"
+        return f"domains={self.shr_domains_arr}, indices={self.dom_indices_arr}, offsets={self.dom_offsets_arr}"
 
     def filter(self, shr_domain_changes: NDArray) -> int:
         """
@@ -256,7 +255,7 @@ class Problem:
             self.init_problem()
             self.ready = True
         if self.propagator_nb == 0:
-            return PROBLEM_SOLVED if is_solved(self.shr_domains_ndarray) else PROBLEM_FILTERED
+            return PROBLEM_SOLVED if is_solved(self.shr_domains_arr) else PROBLEM_FILTERED
         if not self.prune():
             return PROBLEM_INCONSISTENT
         return bc_filter(
@@ -269,7 +268,7 @@ class Problem:
             self.props_dom_indices,
             self.props_dom_offsets,
             self.props_data,
-            self.shr_domains_ndarray,
+            self.shr_domains_arr,
             self.shr_domains_propagators,
             shr_domain_changes,
             COMPUTE_DOMAINS_ADDRS,

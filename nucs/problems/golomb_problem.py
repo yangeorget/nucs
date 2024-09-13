@@ -89,7 +89,7 @@ class GolombProblem(Problem):
         """
         A method for pruning the search space of the Golomb problem.
         """
-        ni_var_idx = first_not_instantiated_var_heuristic(self.shr_domains_ndarray, self.dom_indices_ndarray)
+        ni_var_idx = first_not_instantiated_var_heuristic(self.shr_domains_arr, self.dom_indices_arr)
         if 1 < ni_var_idx < self.mark_nb - 1:  # otherwise useless
             self.used_distance.fill(False)
             # the following will mark at most sum(n-3) numbers as used
