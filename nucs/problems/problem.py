@@ -179,6 +179,7 @@ class Problem:
                 prop_vars
             ]  # this is cached for faster access
             self.props_data[self.data_bounds[pidx, START] : self.data_bounds[pidx, END]] = propagator[2]
+        self.props_dom_offsets = self.props_dom_offsets.reshape((-1, 1))
         self.shr_domains_propagators = new_shr_domains_propagators(len(self.shr_domains_lst), self.propagator_nb)
         for propagator_idx, propagator in enumerate(self.propagators):
             triggers = GET_TRIGGERS_FCTS[propagator[1]](len(propagator[0]), propagator[2])
@@ -325,10 +326,11 @@ def bc_filter(
         statistics[STATS_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = var_bounds[prop_idx, START]
         prop_var_end = var_bounds[prop_idx, END]
+        prop_var_nb = prop_var_end - prop_var_start
         prop_indices = props_indices[prop_var_start:prop_var_end]
         prop_offsets = props_offsets[prop_var_start:prop_var_end]
-        prop_domains = np.empty((2, len(prop_offsets)), dtype=np.int32).T  # trick for order=F
-        np.add(shr_domains[prop_indices], prop_offsets.reshape((-1, 1)), prop_domains)  # TODO: reshape at init time
+        prop_domains = np.empty((2, prop_var_nb), dtype=np.int32).T  # trick for order=F
+        np.add(shr_domains[prop_indices], prop_offsets, prop_domains)
         prop_data = props_data[data_bounds[prop_idx, START] : data_bounds[prop_idx, END]]
         algorithm = algorithms[prop_idx]
         compute_domains_function = (
@@ -345,10 +347,11 @@ def bc_filter(
             statistics[STATS_PROPAGATOR_ENTAILMENT_NB] += 1
         shr_domain_changes.fill(False)
         shr_domains_changes = False
-        for var_idx in range(len(prop_domains)):
+        for var_idx in range(prop_var_nb):
             shr_domain_idx = prop_indices[var_idx]
-            shr_domain_min = prop_domains[var_idx, MIN] - prop_offsets[var_idx]
-            shr_domain_max = prop_domains[var_idx, MAX] - prop_offsets[var_idx]
+            prop_offset = prop_offsets[var_idx][0]
+            shr_domain_min = prop_domains[var_idx, MIN] - prop_offset
+            shr_domain_max = prop_domains[var_idx, MAX] - prop_offset
             if shr_domains[shr_domain_idx, MIN] != shr_domain_min:
                 shr_domains[shr_domain_idx, MIN] = shr_domain_min
                 shr_domains_changes = shr_domain_changes[shr_domain_idx, MIN] = True
