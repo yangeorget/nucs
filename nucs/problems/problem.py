@@ -204,14 +204,6 @@ class Problem:
         """
         self.not_entailed_propagators.fill(True)
 
-    def get_values(self) -> List[int]:
-        """
-        Gets the values for the variables (when instantiated).
-        :return: a list of integers
-        """
-        mins = self.shr_domains_arr[self.dom_indices_arr, MIN] + self.dom_offsets_arr
-        return mins.tolist()
-
     def get_min_value(self, var_idx: int) -> int:
         """
         Gets the minimal value of a variable.

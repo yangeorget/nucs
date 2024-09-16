@@ -20,6 +20,4 @@
 - backtrackable propagator state
 - NUMBA: use prange with parallel=True
 - NUMBA: test ufunc
-- NUMBA: test cli and debug
 - NUMBA: test vectorize
-- NUMBA: read talks, ...
