@@ -21,7 +21,6 @@ PROBLEM_FILTERED = 1
 PROBLEM_SOLVED = 2
 
 
-
 def new_shr_domains_by_values(domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
     return np.array(
         [(domain, domain) if isinstance(domain, int) else domain for domain in domains], dtype=np.int32, order="F"
