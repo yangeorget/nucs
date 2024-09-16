@@ -326,7 +326,7 @@ def bc_filter(
         prop_var_start = var_bounds[prop_idx, START]
         prop_var_end = var_bounds[prop_idx, END]
         prop_indices = props_indices[prop_var_start:prop_var_end]
-        prop_offsets = props_offsets[prop_var_start:prop_var_end].reshape((-1, 1))
+        prop_offsets = props_offsets[prop_var_start:prop_var_end].reshape((-1, 1))  # TODO: reshape at init time
         prop_domains = np.empty((2, len(prop_offsets)), dtype=np.int32).T  # trick for order=F
         np.add(shr_domains[prop_indices], prop_offsets, prop_domains)
         prop_data = props_data[data_bounds[prop_idx, START] : data_bounds[prop_idx, END]]
@@ -343,6 +343,7 @@ def bc_filter(
         if status == PROP_ENTAILMENT:
             not_entailed_propagators[prop_idx] = False
             statistics[STATS_PROPAGATOR_ENTAILMENT_NB] += 1
+        # TODO: implement the 3 following lines in a loop
         shr_domains_cur = np.copy(shr_domains)
         shr_domains[prop_indices] = prop_domains - prop_offsets
         np.not_equal(shr_domains_cur, shr_domains, shr_domain_changes)
