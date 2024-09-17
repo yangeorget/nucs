@@ -1,9 +1,9 @@
 import numpy as np
 from numba import int32, int64, njit, types  # type: ignore
-from numba.experimental.function_type import _get_wrapper_address
 from numpy.typing import NDArray
 
-from nucs.memory import MAX, MIN, NUMBA_DISABLE_JIT
+from nucs.constants import MAX, MIN
+from nucs.numba import NUMBA_DISABLE_JIT, build_function_address_list
 from nucs.propagators.affine_eq_propagator import compute_domains_affine_eq, get_triggers_affine_eq
 from nucs.propagators.affine_geq_propagator import compute_domains_affine_geq, get_triggers_affine_geq
 from nucs.propagators.affine_leq_propagator import compute_domains_affine_leq, get_triggers_affine_leq
@@ -83,12 +83,7 @@ COMPUTE_DOMAINS_FCTS = [
 COMPUTE_DOMAIN_SIGNATURE = int64(int32[:, :], int32[:])
 COMPUTE_DOMAIN_TYPE = types.FunctionType(COMPUTE_DOMAIN_SIGNATURE)
 COMPUTE_DOMAINS_ADDRS = (
-    np.array(
-        [
-            _get_wrapper_address(compute_domain_fct, COMPUTE_DOMAIN_SIGNATURE)
-            for compute_domain_fct in COMPUTE_DOMAINS_FCTS
-        ]
-    )
+    np.array(build_function_address_list(COMPUTE_DOMAINS_FCTS, COMPUTE_DOMAIN_SIGNATURE))
     if not NUMBA_DISABLE_JIT
     else np.empty(0)
 )

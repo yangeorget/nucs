@@ -1,10 +1,13 @@
+import os
+
 from numba import types  # type: ignore
 from numba.core import cgutils
+from numba.experimental.function_type import _get_wrapper_address
 from numba.extending import intrinsic
 
 
 @intrinsic
-def _func_from_address(typingctx, func_type_ref, addr):  # type: ignore
+def function_from_address(typingctx, func_type_ref, addr):  # type: ignore
     """
     Recovers a function from FunctionType and address.
     """
@@ -20,3 +23,10 @@ def _func_from_address(typingctx, func_type_ref, addr):  # type: ignore
 
     sig = func_type(func_type_ref, addr)
     return sig, codegen
+
+
+def build_function_address_list(fcts, signature):  # type: ignore
+    return [_get_wrapper_address(fct, signature) for fct in fcts]
+
+
+NUMBA_DISABLE_JIT = os.getenv("NUMBA_DISABLE_JIT")

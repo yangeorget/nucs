@@ -1,12 +1,7 @@
 import numpy as np
 
-from nucs.memory import (
-    PROBLEM_INCONSISTENT,
-    PROP_CONSISTENCY,
-    PROP_ENTAILMENT,
-    new_data_by_values,
-    new_shr_domains_by_values,
-)
+from nucs.constants import PROBLEM_INCONSISTENT, PROP_CONSISTENCY, PROP_ENTAILMENT
+from nucs.numpy import new_data_by_values, new_shr_domains_by_values
 from nucs.problems.problem import Problem
 from nucs.propagators.affine_leq_propagator import compute_domains_affine_leq, get_triggers_affine_leq
 from nucs.propagators.propagators import ALG_AFFINE_LEQ

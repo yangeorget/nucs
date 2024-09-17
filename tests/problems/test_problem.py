@@ -1,4 +1,5 @@
-from nucs.memory import MAX, MIN, new_shr_domain_changes
+from nucs.constants import MAX, MIN
+from nucs.numpy import new_shr_domain_changes
 from nucs.problems.problem import Problem, is_solved
 from nucs.propagators.propagators import ALG_AFFINE_EQ
 

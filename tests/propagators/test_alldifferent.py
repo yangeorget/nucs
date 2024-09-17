@@ -1,6 +1,7 @@
 import numpy as np
 
-from nucs.memory import PROBLEM_INCONSISTENT, PROP_CONSISTENCY, new_data_by_values, new_shr_domains_by_values
+from nucs.constants import PROBLEM_INCONSISTENT, PROP_CONSISTENCY
+from nucs.numpy import new_data_by_values, new_shr_domains_by_values
 from nucs.problems.problem import Problem
 from nucs.propagators.alldifferent_propagator import compute_domains_alldifferent
 from nucs.propagators.propagators import ALG_ALLDIFFERENT

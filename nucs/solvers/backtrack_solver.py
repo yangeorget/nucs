@@ -1,6 +1,7 @@
 from typing import Iterator, List, Optional
 
-from nucs.memory import MIN, PROBLEM_INCONSISTENT, PROBLEM_SOLVED, new_shr_domain_changes
+from nucs.constants import MIN, PROBLEM_INCONSISTENT, PROBLEM_SOLVED
+from nucs.numpy import new_shr_domain_changes
 from nucs.problems.problem import Problem
 from nucs.solvers.heuristics import (
     DOM_HEURISTIC_FCTS,

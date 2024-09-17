@@ -5,17 +5,19 @@ from numba import njit  # type: ignore
 from numba.typed import List
 from numpy.typing import NDArray
 
-from nucs.memory import (
+from nucs.constants import (
     END,
     MAX,
     MIN,
-    NUMBA_DISABLE_JIT,
     PROBLEM_FILTERED,
     PROBLEM_INCONSISTENT,
     PROBLEM_SOLVED,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
     START,
+)
+from nucs.numba import NUMBA_DISABLE_JIT, function_from_address
+from nucs.numpy import (
     new_algorithms,
     new_bounds,
     new_data,
@@ -46,7 +48,6 @@ from nucs.statistics import (
     STATS_PROPAGATOR_INCONSISTENCY_NB,
     init_statistics,
 )
-from nucs.utils import _func_from_address
 
 
 class Problem:
@@ -328,7 +329,7 @@ def bc_filter(
         compute_domains_function = (
             COMPUTE_DOMAINS_FCTS[algorithm]
             if NUMBA_DISABLE_JIT
-            else _func_from_address(COMPUTE_DOMAIN_TYPE, compute_domains_addrs[algorithm])
+            else function_from_address(COMPUTE_DOMAIN_TYPE, compute_domains_addrs[algorithm])
         )
         status = compute_domains_function(prop_domains, prop_data)
         if status == PROP_INCONSISTENCY:

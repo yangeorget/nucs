@@ -1,6 +1,7 @@
 import numpy as np
 
-from nucs.memory import PROP_CONSISTENCY, PROP_INCONSISTENCY, new_data_by_values, new_shr_domains_by_values
+from nucs.constants import PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.numpy import new_data_by_values, new_shr_domains_by_values
 from nucs.propagators.max_eq_propagator import compute_domains_max_eq
 
 

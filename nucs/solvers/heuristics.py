@@ -3,7 +3,7 @@ import sys
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.memory import MAX, MIN
+from nucs.constants import MAX, MIN
 
 
 @njit(cache=True)

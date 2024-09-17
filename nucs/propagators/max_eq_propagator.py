@@ -2,7 +2,8 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.memory import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY, new_triggers
+from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.numpy import new_triggers
 
 
 def get_triggers_max_eq(n: int, data: NDArray) -> NDArray:
