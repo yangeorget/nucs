@@ -1,10 +1,10 @@
 import numpy as np
 from numpy.typing import NDArray
 
-from nucs.heuristics.variable_heuristic import first_not_instantiated_var_heuristic
 from nucs.memory import MAX, MIN
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLDIFFERENT
+from nucs.solvers.heuristics import first_not_instantiated_var_heuristic
 
 GOLOMB_LENGTHS = [0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127]
 

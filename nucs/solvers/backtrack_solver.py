@@ -1,13 +1,13 @@
 from typing import Iterator, List, Optional
 
-from nucs.heuristics.heuristic import Heuristic
-from nucs.heuristics.variable_heuristic import (
-    VariableHeuristic,
-    first_not_instantiated_var_heuristic,
-    min_value_dom_heuristic,
-)
-from nucs.memory import PROBLEM_INCONSISTENT, PROBLEM_SOLVED, new_shr_domain_changes, MIN
+from nucs.memory import MIN, PROBLEM_INCONSISTENT, PROBLEM_SOLVED, new_shr_domain_changes
 from nucs.problems.problem import Problem
+from nucs.solvers.heuristics import (
+    DOM_HEURISTIC_FCTS,
+    DOM_HEURISTIC_MIN_VALUE,
+    VAR_HEURISTIC_FCTS,
+    VAR_HEURISTIC_FIRST_NON_INSTANTIATED,
+)
 from nucs.solvers.solver import Solver
 from nucs.statistics import (
     STATS_OPTIMIZER_SOLUTION_NB,
@@ -26,12 +26,14 @@ class BacktrackSolver(Solver):
     def __init__(
         self,
         problem: Problem,
-        heuristic: Heuristic = VariableHeuristic(first_not_instantiated_var_heuristic, min_value_dom_heuristic),
+        variable_heuristic: int = VAR_HEURISTIC_FIRST_NON_INSTANTIATED,
+        domain_heuristic: int = DOM_HEURISTIC_MIN_VALUE,
     ):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
         self.shr_domain_changes = new_shr_domain_changes(len(self.problem.shr_domains_lst))
-        self.heuristic = heuristic
+        self.variable_heuristic = variable_heuristic
+        self.domain_heuristic = domain_heuristic
 
     def solve(self) -> Iterator[List[int]]:
         while (solution := self.solve_one()) is not None:
@@ -52,12 +54,18 @@ class BacktrackSolver(Solver):
                 self.problem.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 values = self.problem.shr_domains_arr[self.problem.dom_indices_arr, MIN] + self.problem.dom_offsets_arr
                 return values.tolist()
-            self.heuristic.choose(  # TODO: remove this class
-                self.choice_points,
+            shr_domains_copy = self.problem.shr_domains_arr.copy(order="F")
+            var_idx = VAR_HEURISTIC_FCTS[self.variable_heuristic](
+                self.problem.shr_domains_arr, self.problem.dom_indices_arr
+            )
+            shr_domain_idx = self.problem.dom_indices_arr[var_idx]
+            DOM_HEURISTIC_FCTS[self.domain_heuristic](
                 self.problem.shr_domains_arr,
                 self.shr_domain_changes,
-                self.problem.dom_indices_arr,
+                shr_domains_copy,
+                shr_domain_idx,
             )
+            self.choice_points.append(shr_domains_copy)
             self.problem.statistics[STATS_SOLVER_CHOICE_NB] += 1
             self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH] = max(
                 self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH], len(self.choice_points)
