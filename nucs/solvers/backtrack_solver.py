@@ -52,7 +52,7 @@ class BacktrackSolver(Solver):
                 self.problem.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 values = self.problem.shr_domains_arr[self.problem.dom_indices_arr, MIN] + self.problem.dom_offsets_arr
                 return values.tolist()
-            self.heuristic.choose(
+            self.heuristic.choose(  # TODO: remove this class
                 self.choice_points,
                 self.problem.shr_domains_arr,
                 self.shr_domain_changes,
