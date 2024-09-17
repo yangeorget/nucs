@@ -27,7 +27,7 @@ class Solver:
 
     def find_all(self) -> None:
         """
-        Find all solutions.
+        Finds all solutions.
         """
         for _ in self.solve():
             pass
