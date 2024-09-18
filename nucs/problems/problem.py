@@ -36,8 +36,6 @@ from nucs.propagators.propagators import (
     COMPUTE_DOMAINS_FCTS,
     GET_TRIGGERS_FCTS,
     pop_propagator,
-    update_triggered_propagators_when_max_changes,
-    update_triggered_propagators_when_min_changes,
 )
 from nucs.statistics import (
     STATS_PROBLEM_FILTER_NB,
@@ -331,15 +329,13 @@ def bc_filter(
             if shr_domains[shr_domain_idx, MIN] != shr_domain_min:
                 shr_domains[shr_domain_idx, MIN] = shr_domain_min
                 shr_domains_changes = True
-                update_triggered_propagators_when_min_changes(
-                    triggered_propagators, shr_domains_propagators, shr_domain_idx
-                )
+                np.logical_or(triggered_propagators, shr_domains_propagators[shr_domain_idx, MIN],
+                              triggered_propagators)
             if shr_domains[shr_domain_idx, MAX] != shr_domain_max:
                 shr_domains[shr_domain_idx, MAX] = shr_domain_max
                 shr_domains_changes = True
-                update_triggered_propagators_when_max_changes(
-                    triggered_propagators, shr_domains_propagators, shr_domain_idx
-                )
+                np.logical_or(triggered_propagators, shr_domains_propagators[shr_domain_idx, MAX],
+                              triggered_propagators)
         if not shr_domains_changes:  # type: ignore
             statistics[STATS_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
 

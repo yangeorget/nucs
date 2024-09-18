@@ -2,7 +2,6 @@ import numpy as np
 from numba import int32, int64, njit, types  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN
 from nucs.numba import NUMBA_DISABLE_JIT, build_function_address_list
 from nucs.propagators.affine_eq_propagator import compute_domains_affine_eq, get_triggers_affine_eq
 from nucs.propagators.affine_geq_propagator import compute_domains_affine_geq, get_triggers_affine_geq
@@ -87,20 +86,6 @@ COMPUTE_DOMAINS_ADDRS = (
     if not NUMBA_DISABLE_JIT
     else np.empty(0)
 )
-
-
-@njit(cache=True)
-def update_triggered_propagators_when_min_changes(
-    triggered_propagators: NDArray, shr_domains_propagators: NDArray, shr_domain_idx: int
-) -> None:
-    np.logical_or(triggered_propagators, shr_domains_propagators[shr_domain_idx, MIN], triggered_propagators)
-
-
-@njit(cache=True)
-def update_triggered_propagators_when_max_changes(
-    triggered_propagators: NDArray, shr_domains_propagators: NDArray, shr_domain_idx: int
-) -> None:
-    np.logical_or(triggered_propagators, shr_domains_propagators[shr_domain_idx, MAX], triggered_propagators)
 
 
 @njit(cache=True)

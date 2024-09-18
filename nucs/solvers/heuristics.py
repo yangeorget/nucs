@@ -1,13 +1,10 @@
 import sys
 
+import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN
-from nucs.propagators.propagators import (
-    update_triggered_propagators_when_max_changes,
-    update_triggered_propagators_when_min_changes,
-)
 
 
 @njit(cache=True)
@@ -93,7 +90,7 @@ def min_value_dom_heuristic(
     value = shr_domains[domain_idx, MIN]
     shr_domains_copy[domain_idx, MIN] = value + 1
     shr_domains[domain_idx, MAX] = value
-    update_triggered_propagators_when_max_changes(triggered_propagators, shr_domains_propagators, domain_idx)
+    np.logical_or(triggered_propagators, shr_domains_propagators[domain_idx, MAX], triggered_propagators)
 
 
 @njit(cache=True)
@@ -114,7 +111,7 @@ def max_value_dom_heuristic(
     value = shr_domains[domain_idx, MAX]
     shr_domains_copy[domain_idx, MAX] = value - 1
     shr_domains[domain_idx, MIN] = value
-    update_triggered_propagators_when_min_changes(triggered_propagators, shr_domains_propagators, domain_idx)
+    np.logical_or(triggered_propagators, shr_domains_propagators[domain_idx, MIN], triggered_propagators)
 
 
 @njit(cache=True)
@@ -135,7 +132,7 @@ def split_low_dom_heuristic(
     value = (shr_domains[domain_idx, MIN] + shr_domains[domain_idx, MAX]) // 2
     shr_domains_copy[domain_idx, MIN] = value + 1
     shr_domains[domain_idx, MAX] = value
-    update_triggered_propagators_when_max_changes(triggered_propagators, shr_domains_propagators, domain_idx)
+    np.logical_or(triggered_propagators, shr_domains_propagators[domain_idx, MAX], triggered_propagators)
 
 
 (
