@@ -34,10 +34,6 @@ def new_data(n: int) -> NDArray:
     return np.empty(n, dtype=np.int32)
 
 
-def new_shr_domain_changes(n: int) -> NDArray:
-    return np.ones((n, 2), dtype=bool, order="F")
-
-
 def new_triggers(n: int, init_value: bool) -> NDArray:
     if init_value:
         return np.ones((n, 2), dtype=bool)
@@ -46,7 +42,7 @@ def new_triggers(n: int, init_value: bool) -> NDArray:
 
 
 def new_triggered_propagators(n: int) -> NDArray:
-    return np.empty(n, dtype=bool)
+    return np.ones(n, dtype=bool)
 
 
 def new_not_entailed_propagators(n: int) -> NDArray:

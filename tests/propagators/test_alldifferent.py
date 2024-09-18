@@ -39,4 +39,4 @@ class TestAlldifferent:
                 ([3, 4, 5], ALG_ALLDIFFERENT, []),
             ]
         )
-        assert problem.filter(np.ones((3, 2), dtype=bool)) == PROBLEM_INCONSISTENT
+        assert problem.filter() == PROBLEM_INCONSISTENT

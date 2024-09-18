@@ -4,6 +4,10 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN
+from nucs.propagators.propagators import (
+    update_triggered_propagators_when_max_changes,
+    update_triggered_propagators_when_min_changes,
+)
 
 
 @njit(cache=True)
@@ -73,7 +77,11 @@ def greatest_domain_var_heuristic(shr_domains: NDArray, dom_indices: NDArray) ->
 
 @njit(cache=True)
 def min_value_dom_heuristic(
-    shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
+    shr_domains: NDArray,
+    shr_domains_copy: NDArray,
+    domain_idx: int,
+    triggered_propagators: NDArray,
+    shr_domains_propagators: NDArray,
 ) -> None:
     """
     Chooses the first value of the domain
@@ -85,12 +93,16 @@ def min_value_dom_heuristic(
     value = shr_domains[domain_idx, MIN]
     shr_domains_copy[domain_idx, MIN] = value + 1
     shr_domains[domain_idx, MAX] = value
-    shr_domain_changes[domain_idx, MAX] = True
+    update_triggered_propagators_when_max_changes(triggered_propagators, shr_domains_propagators, domain_idx)
 
 
 @njit(cache=True)
 def max_value_dom_heuristic(
-    shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
+    shr_domains: NDArray,
+    shr_domains_copy: NDArray,
+    domain_idx: int,
+    triggered_propagators: NDArray,
+    shr_domains_propagators: NDArray,
 ) -> None:
     """
     Chooses the last value of the domain
@@ -102,12 +114,16 @@ def max_value_dom_heuristic(
     value = shr_domains[domain_idx, MAX]
     shr_domains_copy[domain_idx, MAX] = value - 1
     shr_domains[domain_idx, MIN] = value
-    shr_domain_changes[domain_idx, MIN] = True
+    update_triggered_propagators_when_min_changes(triggered_propagators, shr_domains_propagators, domain_idx)
 
 
 @njit(cache=True)
 def split_low_dom_heuristic(
-    shr_domains: NDArray, shr_domain_changes: NDArray, shr_domains_copy: NDArray, domain_idx: int
+    shr_domains: NDArray,
+    shr_domains_copy: NDArray,
+    domain_idx: int,
+    triggered_propagators: NDArray,
+    shr_domains_propagators: NDArray,
 ) -> None:
     """
     Chooses the first half of the domain
@@ -119,7 +135,7 @@ def split_low_dom_heuristic(
     value = (shr_domains[domain_idx, MIN] + shr_domains[domain_idx, MAX]) // 2
     shr_domains_copy[domain_idx, MIN] = value + 1
     shr_domains[domain_idx, MAX] = value
-    shr_domain_changes[domain_idx, MAX] = True
+    update_triggered_propagators_when_max_changes(triggered_propagators, shr_domains_propagators, domain_idx)
 
 
 (

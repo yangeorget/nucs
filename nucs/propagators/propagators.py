@@ -90,27 +90,23 @@ COMPUTE_DOMAINS_ADDRS = (
 
 
 @njit(cache=True)
-def update_triggered_propagators(
-    triggered_propagators: NDArray,
-    not_entailed_propagators: NDArray,
-    shr_domain_changes: NDArray,
-    shr_domains_propagators: NDArray,
-    previous_prop_idx: int,
+def update_triggered_propagators_when_min_changes(
+    triggered_propagators: NDArray, shr_domains_propagators: NDArray, shr_domain_idx: int
 ) -> None:
-    for shr_domain_idx in range(len(shr_domain_changes)):
-        if shr_domain_changes[shr_domain_idx, MIN]:
-            np.logical_or(triggered_propagators, shr_domains_propagators[shr_domain_idx, MIN], triggered_propagators)
-        if shr_domain_changes[shr_domain_idx, MAX]:
-            np.logical_or(triggered_propagators, shr_domains_propagators[shr_domain_idx, MAX], triggered_propagators)
-    np.logical_and(triggered_propagators, not_entailed_propagators, triggered_propagators)
-    if previous_prop_idx != -1:
-        triggered_propagators[previous_prop_idx] = False
+    np.logical_or(triggered_propagators, shr_domains_propagators[shr_domain_idx, MIN], triggered_propagators)
 
 
 @njit(cache=True)
-def pop_propagator(triggered_propagators: NDArray) -> int:
+def update_triggered_propagators_when_max_changes(
+    triggered_propagators: NDArray, shr_domains_propagators: NDArray, shr_domain_idx: int
+) -> None:
+    np.logical_or(triggered_propagators, shr_domains_propagators[shr_domain_idx, MAX], triggered_propagators)
+
+
+@njit(cache=True)
+def pop_propagator(triggered_propagators: NDArray, not_entailed_propagators: NDArray, previous_prop_idx: int) -> int:
     for prop_idx, triggered_prop in enumerate(triggered_propagators):
-        if triggered_prop:
+        if triggered_prop and not_entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
             triggered_propagators[prop_idx] = False
             return prop_idx
     return -1

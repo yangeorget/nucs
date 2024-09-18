@@ -1,5 +1,4 @@
 from nucs.constants import MAX, MIN
-from nucs.numpy import new_shr_domain_changes
 from nucs.problems.problem import Problem, is_solved
 from nucs.propagators.propagators import ALG_AFFINE_EQ
 
@@ -27,8 +26,7 @@ class TestProblem:
         problem.add_propagator(([0, 1, 2], ALG_AFFINE_EQ, [3, 1, 2, 5]))
         problem.add_propagator(([0, 1, 2], ALG_AFFINE_EQ, [2, 1, 2, 4]))
         problem.add_propagator(([1, 2], ALG_AFFINE_EQ, [1, 1, 1]))
-        shr_domain_changes = new_shr_domain_changes(3)
-        problem.filter(shr_domain_changes)
+        problem.filter()
         assert is_solved(problem.shr_domains_arr)
         assert problem.shr_domains_arr[0][MIN] == 1
         assert problem.shr_domains_arr[0][MAX] == 1

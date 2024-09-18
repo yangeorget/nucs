@@ -1,7 +1,6 @@
 from typing import Iterator, List, Optional
 
 from nucs.constants import MIN, PROBLEM_INCONSISTENT, PROBLEM_SOLVED
-from nucs.numpy import new_shr_domain_changes
 from nucs.problems.problem import Problem
 from nucs.solvers.heuristics import (
     DOM_HEURISTIC_FCTS,
@@ -32,7 +31,6 @@ class BacktrackSolver(Solver):
     ):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
-        self.shr_domain_changes = new_shr_domain_changes(len(self.problem.shr_domains_lst))
         self.variable_heuristic = variable_heuristic
         self.domain_heuristic = domain_heuristic
 
@@ -48,23 +46,25 @@ class BacktrackSolver(Solver):
         :return: the solution if it exists or None
         """
         while True:
-            while (status := self.problem.filter(self.shr_domain_changes)) == PROBLEM_INCONSISTENT:
+            while (status := self.problem.filter()) == PROBLEM_INCONSISTENT:
                 if not self.backtrack():
                     return None
             if status == PROBLEM_SOLVED:
                 self.problem.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 values = self.problem.shr_domains_arr[self.problem.dom_indices_arr, MIN] + self.problem.dom_offsets_arr
                 return values.tolist()
-            shr_domains_copy = self.problem.shr_domains_arr.copy(order="F")
+            # TODO: refactor
             var_idx = VAR_HEURISTIC_FCTS[self.variable_heuristic](
                 self.problem.shr_domains_arr, self.problem.dom_indices_arr
             )
             shr_domain_idx = self.problem.dom_indices_arr[var_idx]
+            shr_domains_copy = self.problem.shr_domains_arr.copy(order="F")
             DOM_HEURISTIC_FCTS[self.domain_heuristic](
                 self.problem.shr_domains_arr,
-                self.shr_domain_changes,
                 shr_domains_copy,
                 shr_domain_idx,
+                self.problem.triggered_propagators,
+                self.problem.shr_domains_propagators,
             )
             self.choice_points.append(shr_domains_copy)
             self.problem.statistics[STATS_SOLVER_CHOICE_NB] += 1
@@ -98,9 +98,7 @@ class BacktrackSolver(Solver):
         if len(self.choice_points) == 0:
             return False
         self.problem.statistics[STATS_SOLVER_BACKTRACK_NB] += 1
-        self.shr_domain_changes.fill(True)
-        self.problem.shr_domains_arr = self.choice_points.pop()
-        self.problem.reset_not_entailed_propagators()
+        self.problem.reset(self.choice_points.pop())
         return True
 
     def reset(self) -> None:
@@ -108,6 +106,4 @@ class BacktrackSolver(Solver):
         Resets the solver by resetting the problem and the choice points.
         """
         self.choice_points.clear()
-        self.shr_domain_changes.fill(True)
-        self.problem.reset_shr_domains()
-        self.problem.reset_not_entailed_propagators()
+        self.problem.reset()

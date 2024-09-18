@@ -36,7 +36,8 @@ from nucs.propagators.propagators import (
     COMPUTE_DOMAINS_FCTS,
     GET_TRIGGERS_FCTS,
     pop_propagator,
-    update_triggered_propagators,
+    update_triggered_propagators_when_max_changes,
+    update_triggered_propagators_when_min_changes,
 )
 from nucs.statistics import (
     STATS_PROBLEM_FILTER_NB,
@@ -193,16 +194,11 @@ class Problem:
         self.statistics[STATS_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
         self.statistics[STATS_PROBLEM_VARIABLE_NB] = self.variable_nb
 
-    def reset_shr_domains(self) -> None:
-        """
-        Resets the shared domains to their initial values.
-        """
-        self.shr_domains_arr = new_shr_domains_by_values(self.shr_domains_lst)
-
-    def reset_not_entailed_propagators(self) -> None:
-        """
-        Marks all propagators as not entailed anymore.
-        """
+    def reset(self, new_shr_domains_arr: Optional[NDArray] = None) -> None:
+        self.shr_domains_arr = (
+            new_shr_domains_arr if new_shr_domains_arr is not None else new_shr_domains_by_values(self.shr_domains_lst)
+        )
+        self.triggered_propagators.fill(True)
         self.not_entailed_propagators.fill(True)
 
     def get_min_value(self, var_idx: int) -> int:
@@ -240,10 +236,9 @@ class Problem:
     def __str__(self) -> str:
         return f"domains={self.shr_domains_arr}, indices={self.dom_indices_arr}, offsets={self.dom_offsets_arr}"
 
-    def filter(self, shr_domain_changes: NDArray) -> int:
+    def filter(self) -> int:
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
-        :param shr_domain_changes: an array of shared domain changes
         """
         if not self.ready:
             self.init_problem()
@@ -254,8 +249,6 @@ class Problem:
             return PROBLEM_INCONSISTENT
         return bc_filter(
             self.statistics,
-            self.triggered_propagators,
-            self.not_entailed_propagators,
             self.algorithms,
             self.var_bounds,
             self.data_bounds,
@@ -264,7 +257,8 @@ class Problem:
             self.props_data,
             self.shr_domains_arr,
             self.shr_domains_propagators,
-            shr_domain_changes,
+            self.triggered_propagators,
+            self.not_entailed_propagators,
             COMPUTE_DOMAINS_ADDRS,
         )
 
@@ -285,8 +279,6 @@ class Problem:
 @njit(cache=True)
 def bc_filter(
     statistics: NDArray,
-    triggered_propagators: NDArray,
-    not_entailed_propagators: NDArray,
     algorithms: NDArray,
     var_bounds: NDArray,
     data_bounds: NDArray,
@@ -295,25 +287,17 @@ def bc_filter(
     props_data: NDArray,
     shr_domains: NDArray,
     shr_domains_propagators: NDArray,
-    shr_domain_changes: NDArray,
+    triggered_propagators: NDArray,
+    not_entailed_propagators: NDArray,
     compute_domains_addrs: NDArray,
 ) -> int:
     """
     Filters the problem's domains by applying the propagators until a fix point is reached.
-    :param shr_domain_changes: an array of shared domain changes
     """
     statistics[STATS_PROBLEM_FILTER_NB] += 1
-    triggered_propagators.fill(False)
     prop_idx = -1
     while True:
-        update_triggered_propagators(
-            triggered_propagators,
-            not_entailed_propagators,
-            shr_domain_changes,
-            shr_domains_propagators,
-            prop_idx,
-        )
-        prop_idx = pop_propagator(triggered_propagators)
+        prop_idx = pop_propagator(triggered_propagators, not_entailed_propagators, prop_idx)
         if prop_idx == -1:
             return PROBLEM_SOLVED if is_solved(shr_domains) else PROBLEM_FILTERED
         statistics[STATS_PROPAGATOR_FILTER_NB] += 1
@@ -338,7 +322,6 @@ def bc_filter(
         if status == PROP_ENTAILMENT:
             not_entailed_propagators[prop_idx] = False
             statistics[STATS_PROPAGATOR_ENTAILMENT_NB] += 1
-        shr_domain_changes.fill(False)
         shr_domains_changes = False
         for var_idx in range(prop_var_nb):
             shr_domain_idx = prop_indices[var_idx]
@@ -347,10 +330,16 @@ def bc_filter(
             shr_domain_max = prop_domains[var_idx, MAX] - prop_offset
             if shr_domains[shr_domain_idx, MIN] != shr_domain_min:
                 shr_domains[shr_domain_idx, MIN] = shr_domain_min
-                shr_domains_changes = shr_domain_changes[shr_domain_idx, MIN] = True
+                shr_domains_changes = True
+                update_triggered_propagators_when_min_changes(
+                    triggered_propagators, shr_domains_propagators, shr_domain_idx
+                )
             if shr_domains[shr_domain_idx, MAX] != shr_domain_max:
                 shr_domains[shr_domain_idx, MAX] = shr_domain_max
-                shr_domains_changes = shr_domain_changes[shr_domain_idx, MAX] = True
+                shr_domains_changes = True
+                update_triggered_propagators_when_max_changes(
+                    triggered_propagators, shr_domains_propagators, shr_domain_idx
+                )
         if not shr_domains_changes:  # type: ignore
             statistics[STATS_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
 

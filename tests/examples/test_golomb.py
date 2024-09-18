@@ -1,7 +1,6 @@
 import argparse
 from pprint import pprint
 
-import numpy as np
 import pytest
 
 from nucs.constants import MIN
@@ -30,7 +29,7 @@ class TestGolomb:
         problem.shr_domains_lst[3] = 3
         problem.shr_domains_lst[4] = 5
         problem.shr_domains_lst[5] = 2
-        assert problem.filter(np.ones((6, 2), dtype=bool))
+        assert problem.filter()
 
     @pytest.mark.parametrize("mark_nb,solution_nb", [(4, 6), (5, 11), (6, 17), (7, 25), (8, 34), (9, 44)])
     def test_golomb(self, mark_nb: int, solution_nb: int) -> None:
@@ -43,7 +42,7 @@ class TestGolomb:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", type=int, default=9)
+    parser.add_argument("-n", type=int, default=10)
     args = parser.parse_args()
     problem = GolombProblem(args.n)
     solver = BacktrackSolver(problem)
