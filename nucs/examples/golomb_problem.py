@@ -88,6 +88,7 @@ class GolombProblem(Problem):
 
 
 def golomb_consistency_algorithm(statistics: NDArray, problem: GolombProblem) -> int:
+    # first prune the search space
     ni_var_idx = first_not_instantiated_var_heuristic(problem.shr_domains_arr, problem.dom_indices_arr)
     if 1 < ni_var_idx < problem.mark_nb - 1:  # otherwise useless
         problem.used_distance.fill(False)
@@ -111,4 +112,5 @@ def golomb_consistency_algorithm(statistics: NDArray, problem: GolombProblem) ->
                 # if new_min > self.get_max_value(var_idx):  # a bit slower
                 #    return False
                 problem.set_min_value(var_idx, new_min)
+    # then apply BC
     return bound_consistency_algorithm(statistics, problem)
