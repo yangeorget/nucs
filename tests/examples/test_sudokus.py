@@ -19,7 +19,7 @@ class TestSudokus:
             ]
         )
         solver = BacktrackSolver(problem)
-        solver.find_all()
+        solver.solve_all()
         assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1
 
     def test_sudokus_2(self) -> None:
@@ -37,5 +37,5 @@ class TestSudokus:
             ]
         )
         solver = BacktrackSolver(problem)
-        solver.find_all()
+        solver.solve_all()
         assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1

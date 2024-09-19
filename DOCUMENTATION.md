@@ -134,7 +134,9 @@ NUCS only support integer domains.
 Boolean domains are simply integer domains of the form **[0, 1]**.
 
 ### Consistency
-The `filter` method of the problem is responsible for bound consistency computation.
+
+#### Consistency algorithms
+NUCS implements bound consistency out-of-the box and supports custom consistency algorithms.
 
 #### Propagators (aka constraints)
 Each propagator `XXX` defines two functions:

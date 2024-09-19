@@ -4,7 +4,7 @@ from pprint import pprint
 import pytest
 
 from nucs.constants import MIN
-from nucs.examples.golomb_problem import GolombProblem, index, init_domains, golomb_consistency_algorithm
+from nucs.examples.golomb_problem import GolombProblem, golomb_consistency_algorithm, index, init_domains
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.statistics import get_statistics
 

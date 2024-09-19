@@ -32,5 +32,5 @@ class TestSchurLemma:
     def test_solve(self, ball_nb: int, solution_nb: bool) -> None:
         problem = SchurLemmaProblem(ball_nb)
         solver = BacktrackSolver(problem)
-        solver.find_all()
+        solver.solve_all()
         assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == solution_nb

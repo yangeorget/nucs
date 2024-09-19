@@ -14,6 +14,6 @@ class TestMagicSequence:
         solver = BacktrackSolver(
             problem, var_heuristic=last_not_instantiated_var_heuristic, dom_heuristic=min_value_dom_heuristic
         )
-        solutions = solver.solve_all()
+        solutions = solver.find_all()
         assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1
         assert solutions[0][0] == zero_nb

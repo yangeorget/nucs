@@ -12,7 +12,7 @@ class TestDonald:
         solver = BacktrackSolver(
             problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
         )
-        solutions = solver.solve_all()
+        solutions = solver.find_all()
         assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1
         assert solutions[0] == [4, 3, 5, 9, 1, 8, 6, 2, 7, 0]
 

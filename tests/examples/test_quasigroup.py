@@ -26,7 +26,7 @@ class TestQuasigroup:
         solver = BacktrackSolver(
             problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
         )
-        solver.find_all()
+        solver.solve_all()
         assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == solution_nb
 
 
@@ -38,5 +38,5 @@ if __name__ == "__main__":
     solver = BacktrackSolver(
         problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
     )
-    solver.find_all()
+    solver.solve_all()
     pprint(get_statistics(solver.statistics))

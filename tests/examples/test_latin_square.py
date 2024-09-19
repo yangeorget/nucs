@@ -19,7 +19,7 @@ class TestLatinSquare:
     def test_latin_square(self, size: int, solution_nb: int) -> None:
         problem = LatinSquareProblem(list(range(size)))
         solver = BacktrackSolver(problem)
-        solver.find_all()
+        solver.solve_all()
         assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == solution_nb
 
     @pytest.mark.parametrize(
@@ -35,5 +35,5 @@ class TestLatinSquare:
     def test_latin_square_rc(self, size: int, solution_nb: int) -> None:
         problem = LatinSquareRCProblem(size)
         solver = BacktrackSolver(problem)
-        solver.find_all()
+        solver.solve_all()
         assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == solution_nb

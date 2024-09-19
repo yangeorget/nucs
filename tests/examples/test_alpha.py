@@ -12,7 +12,7 @@ class TestAlpha:
         solver = BacktrackSolver(
             problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
         )
-        solutions = solver.solve_all()
+        solutions = solver.find_all()
         assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1
         assert solutions[0][:26] == [
             5,
@@ -49,6 +49,6 @@ if __name__ == "__main__":
     solver = BacktrackSolver(
         problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
     )
-    solutions = solver.solve_all()
+    solutions = solver.find_all()
     pprint(get_statistics(solver.statistics))
     print(solutions[0])

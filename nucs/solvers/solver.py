@@ -1,4 +1,4 @@
-from typing import Iterator, List, Optional
+from typing import Callable, Iterator, List, Optional
 
 from nucs.problems.problem import Problem
 from nucs.statistics import init_statistics
@@ -20,23 +20,33 @@ class Solver:
         """
         pass
 
-    def solve_all(self) -> List[List[int]]:
-        """
-        Returns the list of all solutions.
-        :return: a list of list of integers
-        """
-        return [s for s in self.solve()]
-
-    def find_all(self) -> None:
+    def solve_all(self, func: Optional[Callable] = None) -> None:
         """
         Finds all solutions.
         """
-        for _ in self.solve():
-            pass
+        for solution in self.solve():
+            if func is not None:
+                func(solution)
+
+    def find_all(self) -> List[List[int]]:
+        """
+        Finds all solutions.
+        """
+        solutions = []
+        self.solve_all(lambda solution: solutions.append(solution))
+        return solutions
 
     def minimize(self, var_idx: int) -> Optional[List[int]]:  # type: ignore
         """
         Finds, if it exists, the solution to the problem that minimizes a given variable.
+        :param variable_idx: the index of the variable
+        :return: the solution if it exists or None
+        """
+        pass
+
+    def maximize(self, var_idx: int) -> Optional[List[int]]:  # type: ignore
+        """
+        Finds, if it exists, the solution to the problem that maximizes a given variable.
         :param variable_idx: the index of the variable
         :return: the solution if it exists or None
         """
