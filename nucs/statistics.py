@@ -9,7 +9,7 @@ def init_statistics() -> NDArray:
     Inits a Numpy array for storing the statistics.
     :return: a Numpy array
     """
-    return np.array([0] * STATS_MAX, dtype=np.int32, order="C")
+    return np.array([0] * STATS_MAX, dtype=np.int64)
 
 
 def get_statistics(stats: NDArray) -> Dict[str, int]:
