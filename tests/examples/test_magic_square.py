@@ -1,8 +1,8 @@
 import pytest
 
-from nucs.problems.magic_square_problem import MagicSquareProblem
+from nucs.examples.magic_square_problem import MagicSquareProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
+from nucs.solvers.heuristics import max_value_dom_heuristic, smallest_domain_var_heuristic
 from nucs.statistics import STATS_SOLVER_SOLUTION_NB
 
 
@@ -17,6 +17,8 @@ class TestMagicSquare:
     @pytest.mark.parametrize("size,solution_nb", [(2, 0), (3, 1), (4, 880)])
     def test_magic_square(self, size: int, solution_nb: int) -> None:
         problem = MagicSquareProblem(size)
-        solver = BacktrackSolver(problem, VAR_HEURISTIC_SMALLEST_DOMAIN, DOM_HEURISTIC_MAX_VALUE)
+        solver = BacktrackSolver(
+            problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=max_value_dom_heuristic
+        )
         solver.find_all()
-        assert problem.statistics[STATS_SOLVER_SOLUTION_NB] == solution_nb
+        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == solution_nb

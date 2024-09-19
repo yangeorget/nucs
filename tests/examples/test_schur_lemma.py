@@ -1,6 +1,6 @@
 import pytest
 
-from nucs.problems.schur_lemma_problem import SchurLemmaProblem
+from nucs.examples.schur_lemma_problem import SchurLemmaProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_SOLVER_SOLUTION_NB
 
@@ -33,4 +33,4 @@ class TestSchurLemma:
         problem = SchurLemmaProblem(ball_nb)
         solver = BacktrackSolver(problem)
         solver.find_all()
-        assert problem.statistics[STATS_SOLVER_SOLUTION_NB] == solution_nb
+        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == solution_nb

@@ -133,23 +133,3 @@ def split_low_dom_heuristic(
     shr_domains_copy[domain_idx, MIN] = value + 1
     shr_domains[domain_idx, MAX] = value
     np.logical_or(triggered_propagators, shr_domains_propagators[domain_idx, MAX], triggered_propagators)
-
-
-(
-    VAR_HEURISTIC_FIRST_NON_INSTANTIATED,
-    VAR_HEURISTIC_LAST_NON_INSTANTIATED,
-    VAR_HEURISTIC_SMALLEST_DOMAIN,
-    VAR_HEURISTIC_GREATEST_DOMAIN,
-) = tuple(range(4))
-
-DOM_HEURISTIC_MIN_VALUE, DOM_HEURISTIC_MAX_VALUE, DOM_HEURISTIC_SPLIT_LOW = tuple(range(3))
-
-
-VAR_HEURISTIC_FCTS = [
-    first_not_instantiated_var_heuristic,
-    last_not_instantiated_var_heuristic,
-    smallest_domain_var_heuristic,
-    greatest_domain_var_heuristic,
-]
-
-DOM_HEURISTIC_FCTS = [min_value_dom_heuristic, min_value_dom_heuristic, split_low_dom_heuristic]

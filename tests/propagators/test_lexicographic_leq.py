@@ -60,7 +60,7 @@ class TestLexicographicLEQ:
         problem.add_propagator(([0, 1, 2, 3], ALG_LEXICOGRAPHIC_LEQ, []))
         solver = BacktrackSolver(problem)
         solver.find_all()
-        assert problem.statistics[STATS_SOLVER_SOLUTION_NB] == 10
+        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 10
 
     def test_solve_2(self) -> None:
         problem = Problem(
@@ -71,4 +71,4 @@ class TestLexicographicLEQ:
         problem.add_propagator(([0, 1, 2, 3], ALG_LEXICOGRAPHIC_LEQ, []))
         solver = BacktrackSolver(problem)
         solver.find_all()
-        assert problem.statistics[STATS_SOLVER_SOLUTION_NB] == 3
+        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 3

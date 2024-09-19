@@ -1,10 +1,8 @@
 import numpy as np
 
-from nucs.constants import PROBLEM_INCONSISTENT, PROP_CONSISTENCY, PROP_ENTAILMENT
+from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT
 from nucs.numpy import new_data_by_values, new_shr_domains_by_values
-from nucs.problems.problem import Problem
 from nucs.propagators.affine_leq_propagator import compute_domains_affine_leq, get_triggers_affine_leq
-from nucs.propagators.propagators import ALG_AFFINE_LEQ
 
 
 class TestAffineLEQ:
@@ -29,15 +27,3 @@ class TestAffineLEQ:
         data = new_data_by_values([1, 1, 5])
         assert compute_domains_affine_leq(domains, data) == PROP_ENTAILMENT
         assert np.all(domains == np.array([[2, 3], [1, 2]]))
-
-    def test_filter(self) -> None:
-        problem = Problem([(0, 2), (0, 2), (0, 2)])
-        problem.add_propagators(
-            [
-                ([0, 1], ALG_AFFINE_LEQ, [-1, 1, -1]),
-                ([1, 2], ALG_AFFINE_LEQ, [-1, 1, -1]),
-                ([2, 0], ALG_AFFINE_LEQ, [-1, 1, -1]),
-            ]
-        )
-        problem.init_problem()
-        assert problem.filter() == PROBLEM_INCONSISTENT

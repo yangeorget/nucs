@@ -1,13 +1,9 @@
-from typing import Iterator, List, Optional
+from typing import Callable, Iterator, List, Optional
 
 from nucs.constants import MIN, PROBLEM_INCONSISTENT, PROBLEM_SOLVED
 from nucs.problems.problem import Problem
-from nucs.solvers.heuristics import (
-    DOM_HEURISTIC_FCTS,
-    DOM_HEURISTIC_MIN_VALUE,
-    VAR_HEURISTIC_FCTS,
-    VAR_HEURISTIC_FIRST_NON_INSTANTIATED,
-)
+from nucs.solvers.consistency_algorithms import bound_consistency_algorithm
+from nucs.solvers.heuristics import first_not_instantiated_var_heuristic, min_value_dom_heuristic
 from nucs.solvers.solver import Solver
 from nucs.statistics import (
     STATS_OPTIMIZER_SOLUTION_NB,
@@ -26,13 +22,15 @@ class BacktrackSolver(Solver):
     def __init__(
         self,
         problem: Problem,
-        variable_heuristic: int = VAR_HEURISTIC_FIRST_NON_INSTANTIATED,
-        domain_heuristic: int = DOM_HEURISTIC_MIN_VALUE,
+        consistency_algorithm: Callable = bound_consistency_algorithm,
+        var_heuristic: Callable = first_not_instantiated_var_heuristic,
+        dom_heuristic: Callable = min_value_dom_heuristic,
     ):
         super().__init__(problem)
         self.choice_points = []  # type: ignore
-        self.variable_heuristic = variable_heuristic
-        self.domain_heuristic = domain_heuristic
+        self.consistency_algorithm = consistency_algorithm
+        self.var_heuristic = var_heuristic
+        self.dom_heuristic = dom_heuristic
 
     def solve(self) -> Iterator[List[int]]:
         while (solution := self.solve_one()) is not None:
@@ -46,23 +44,21 @@ class BacktrackSolver(Solver):
         :return: the solution if it exists or None
         """
         if not self.problem.ready:
-            self.problem.init_problem()
+            self.problem.init_problem(self.statistics)
             self.problem.ready = True
         while True:
-            while (status := self.problem.filter()) == PROBLEM_INCONSISTENT:
+            while (status := self.consistency_algorithm(self.statistics, self.problem)) == PROBLEM_INCONSISTENT:
                 if not self.backtrack():
                     return None
             if status == PROBLEM_SOLVED:
-                self.problem.statistics[STATS_SOLVER_SOLUTION_NB] += 1
+                self.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 values = self.problem.shr_domains_arr[self.problem.dom_indices_arr, MIN] + self.problem.dom_offsets_arr
                 return values.tolist()
             # TODO: refactor
-            var_idx = VAR_HEURISTIC_FCTS[self.variable_heuristic](
-                self.problem.shr_domains_arr, self.problem.dom_indices_arr
-            )
+            var_idx = self.var_heuristic(self.problem.shr_domains_arr, self.problem.dom_indices_arr)
             shr_domain_idx = self.problem.dom_indices_arr[var_idx]
             shr_domains_copy = self.problem.shr_domains_arr.copy(order="F")
-            DOM_HEURISTIC_FCTS[self.domain_heuristic](
+            self.dom_heuristic(
                 self.problem.shr_domains_arr,
                 shr_domains_copy,
                 shr_domain_idx,
@@ -70,16 +66,16 @@ class BacktrackSolver(Solver):
                 self.problem.shr_domains_propagators,
             )
             self.choice_points.append(shr_domains_copy)
-            self.problem.statistics[STATS_SOLVER_CHOICE_NB] += 1
-            self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH] = max(
-                self.problem.statistics[STATS_SOLVER_CHOICE_DEPTH], len(self.choice_points)
+            self.statistics[STATS_SOLVER_CHOICE_NB] += 1
+            self.statistics[STATS_SOLVER_CHOICE_DEPTH] = max(
+                self.statistics[STATS_SOLVER_CHOICE_DEPTH], len(self.choice_points)
             )
 
     def minimize(self, variable_idx: int) -> Optional[List[int]]:
         solution = None
         while (new_solution := self.solve_one()) is not None:
             solution = new_solution
-            self.problem.statistics[STATS_OPTIMIZER_SOLUTION_NB] += 1
+            self.statistics[STATS_OPTIMIZER_SOLUTION_NB] += 1
             self.reset()
             self.problem.set_max_value(variable_idx, solution[variable_idx] - 1)
         return solution
@@ -88,7 +84,7 @@ class BacktrackSolver(Solver):
         solution = None
         while (new_solution := self.solve_one()) is not None:
             solution = new_solution
-            self.problem.statistics[STATS_OPTIMIZER_SOLUTION_NB] += 1
+            self.statistics[STATS_OPTIMIZER_SOLUTION_NB] += 1
             self.reset()
             self.problem.set_min_value(variable_idx, solution[variable_idx] + 1)
         return solution
@@ -100,7 +96,7 @@ class BacktrackSolver(Solver):
         """
         if len(self.choice_points) == 0:
             return False
-        self.problem.statistics[STATS_SOLVER_BACKTRACK_NB] += 1
+        self.statistics[STATS_SOLVER_BACKTRACK_NB] += 1
         self.problem.reset(self.choice_points.pop())
         return True
 

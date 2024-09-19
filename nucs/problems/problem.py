@@ -5,18 +5,7 @@ from numba import njit  # type: ignore
 from numba.typed import List
 from numpy.typing import NDArray
 
-from nucs.constants import (
-    END,
-    MAX,
-    MIN,
-    PROBLEM_FILTERED,
-    PROBLEM_INCONSISTENT,
-    PROBLEM_SOLVED,
-    PROP_ENTAILMENT,
-    PROP_INCONSISTENCY,
-    START,
-)
-from nucs.numba import NUMBA_DISABLE_JIT, function_from_address
+from nucs.constants import END, MAX, MIN, START
 from nucs.numpy import (
     new_algorithms,
     new_bounds,
@@ -30,23 +19,8 @@ from nucs.numpy import (
     new_shr_domains_propagators,
     new_triggered_propagators,
 )
-from nucs.propagators.propagators import (
-    COMPUTE_DOMAIN_TYPE,
-    COMPUTE_DOMAINS_ADDRS,
-    COMPUTE_DOMAINS_FCTS,
-    GET_TRIGGERS_FCTS,
-    pop_propagator,
-)
-from nucs.statistics import (
-    STATS_PROBLEM_FILTER_NB,
-    STATS_PROBLEM_PROPAGATOR_NB,
-    STATS_PROBLEM_VARIABLE_NB,
-    STATS_PROPAGATOR_ENTAILMENT_NB,
-    STATS_PROPAGATOR_FILTER_NB,
-    STATS_PROPAGATOR_FILTER_NO_CHANGE_NB,
-    STATS_PROPAGATOR_INCONSISTENCY_NB,
-    init_statistics,
-)
+from nucs.propagators.propagators import GET_TRIGGERS_FCTS
+from nucs.statistics import STATS_PROBLEM_PROPAGATOR_NB, STATS_PROBLEM_VARIABLE_NB
 
 
 class Problem:
@@ -136,7 +110,7 @@ class Problem:
         """
         self.propagators.extend(propagators)
 
-    def init_problem(self) -> None:
+    def init_problem(self, statistics: Optional[NDArray] = None) -> None:
         """
         Completes the initialization of the problem by defining the variables and the propagators.
         """
@@ -187,10 +161,9 @@ class Problem:
                 self.shr_domains_propagators[self.dom_indices_arr[prop_variable], :, propagator_idx] = triggers[
                     prop_variable_idx, :
                 ]
-        # Statistics initialization
-        self.statistics = init_statistics()
-        self.statistics[STATS_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
-        self.statistics[STATS_PROBLEM_VARIABLE_NB] = self.variable_nb
+        if statistics is not None:
+            statistics[STATS_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
+            statistics[STATS_PROBLEM_VARIABLE_NB] = self.variable_nb
 
     def reset(self, new_shr_domains_arr: Optional[NDArray] = None) -> None:
         self.shr_domains_arr = (
@@ -234,97 +207,12 @@ class Problem:
     def __str__(self) -> str:
         return f"domains={self.shr_domains_arr}, indices={self.dom_indices_arr}, offsets={self.dom_offsets_arr}"
 
-    def filter(self) -> int:
-        """
-        Filters the problem's domains by applying the propagators until a fix point is reached.
-        """
-        return bc_filter(
-            self.statistics,
-            self.algorithms,
-            self.var_bounds,
-            self.data_bounds,
-            self.props_dom_indices,
-            self.props_dom_offsets,
-            self.props_data,
-            self.shr_domains_arr,
-            self.shr_domains_propagators,
-            self.triggered_propagators,
-            self.not_entailed_propagators,
-            COMPUTE_DOMAINS_ADDRS,
-        )
-
     def pretty_print_solution(self, solution: List[int]) -> None:
         """
         Pretty prints a solution to the problem.
         :param solution: a list of integers
         """
         print(solution)
-
-
-@njit(cache=True)
-def bc_filter(
-    statistics: NDArray,
-    algorithms: NDArray,
-    var_bounds: NDArray,
-    data_bounds: NDArray,
-    props_indices: NDArray,
-    props_offsets: NDArray,
-    props_data: NDArray,
-    shr_domains: NDArray,
-    shr_domains_propagators: NDArray,
-    triggered_propagators: NDArray,
-    not_entailed_propagators: NDArray,
-    compute_domains_addrs: NDArray,
-) -> int:
-    """
-    Filters the problem's domains by applying the propagators until a fix point is reached.
-    """
-    statistics[STATS_PROBLEM_FILTER_NB] += 1
-    prop_idx = -1
-    while True:
-        prop_idx = pop_propagator(triggered_propagators, not_entailed_propagators, prop_idx)
-        if prop_idx == -1:
-            return PROBLEM_SOLVED if is_solved(shr_domains) else PROBLEM_FILTERED
-        statistics[STATS_PROPAGATOR_FILTER_NB] += 1
-        prop_var_start = var_bounds[prop_idx, START]
-        prop_var_end = var_bounds[prop_idx, END]
-        prop_var_nb = prop_var_end - prop_var_start
-        prop_indices = props_indices[prop_var_start:prop_var_end]
-        prop_offsets = props_offsets[prop_var_start:prop_var_end]
-        prop_domains = np.empty((2, prop_var_nb), dtype=np.int32).T  # trick for order=F
-        np.add(shr_domains[prop_indices], prop_offsets, prop_domains)
-        algorithm = algorithms[prop_idx]
-        compute_domains_function = (
-            COMPUTE_DOMAINS_FCTS[algorithm]
-            if NUMBA_DISABLE_JIT
-            else function_from_address(COMPUTE_DOMAIN_TYPE, compute_domains_addrs[algorithm])
-        )
-        prop_data = props_data[data_bounds[prop_idx, START]: data_bounds[prop_idx, END]]
-        status = compute_domains_function(prop_domains, prop_data)
-        if status == PROP_INCONSISTENCY:
-            statistics[STATS_PROPAGATOR_INCONSISTENCY_NB] += 1
-            return PROBLEM_INCONSISTENT
-        if status == PROP_ENTAILMENT:
-            not_entailed_propagators[prop_idx] = False
-            statistics[STATS_PROPAGATOR_ENTAILMENT_NB] += 1
-        shr_domains_changes = False
-        for var_idx in range(prop_var_nb):
-            shr_domain_idx = prop_indices[var_idx]
-            prop_offset = prop_offsets[var_idx][0]
-            shr_domain_min = prop_domains[var_idx, MIN] - prop_offset
-            shr_domain_max = prop_domains[var_idx, MAX] - prop_offset
-            if shr_domains[shr_domain_idx, MIN] < shr_domain_min:
-                shr_domains[shr_domain_idx, MIN] = shr_domain_min
-                shr_domains_changes = True
-                np.logical_or(triggered_propagators, shr_domains_propagators[shr_domain_idx, MIN],
-                              triggered_propagators)
-            if shr_domains[shr_domain_idx, MAX] > shr_domain_max:
-                shr_domains[shr_domain_idx, MAX] = shr_domain_max
-                shr_domains_changes = True
-                np.logical_or(triggered_propagators, shr_domains_propagators[shr_domain_idx, MAX],
-                              triggered_propagators)
-        if not shr_domains_changes:  # type: ignore
-            statistics[STATS_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
 
 
 @njit(cache=True)

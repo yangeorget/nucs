@@ -1,9 +1,10 @@
 import numpy as np
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN, PROBLEM_INCONSISTENT
+from nucs.constants import MAX, MIN
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLDIFFERENT
+from nucs.solvers.consistency_algorithms import bound_consistency_algorithm
 from nucs.solvers.heuristics import first_not_instantiated_var_heuristic
 
 GOLOMB_LENGTHS = [0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127]
@@ -85,36 +86,29 @@ class GolombProblem(Problem):
             0,
         )
 
-    def filter(self) -> int:
-        if not self.prune():
-            return PROBLEM_INCONSISTENT
-        return super().filter()
 
-    def prune(self) -> bool:
-        """
-        A method for pruning the search space of the Golomb problem.
-        """
-        ni_var_idx = first_not_instantiated_var_heuristic(self.shr_domains_arr, self.dom_indices_arr)
-        if 1 < ni_var_idx < self.mark_nb - 1:  # otherwise useless
-            self.used_distance.fill(False)
-            # the following will mark at most sum(n-3) numbers as used
-            # hence there will be at least n-2 unused numbers greater than 0
-            for var_idx in range(index(self.mark_nb, ni_var_idx - 2, ni_var_idx - 1) + 1):
-                dist = self.get_min_value(var_idx)
-                if dist < len(self.used_distance):
-                    self.used_distance[dist] = True
-            # let's compute the sum of non-used numbers
-            distance = 1
-            for j in range(0, self.mark_nb - ni_var_idx):
-                while self.used_distance[distance]:
-                    distance += 1
-                self.minimal_sum[j + 1] = self.minimal_sum[j] + distance
+def golomb_consistency_algorithm(statistics: NDArray, problem: GolombProblem) -> int:
+    ni_var_idx = first_not_instantiated_var_heuristic(problem.shr_domains_arr, problem.dom_indices_arr)
+    if 1 < ni_var_idx < problem.mark_nb - 1:  # otherwise useless
+        problem.used_distance.fill(False)
+        # the following will mark at most sum(n-3) numbers as used
+        # hence there will be at least n-2 unused numbers greater than 0
+        for var_idx in range(index(problem.mark_nb, ni_var_idx - 2, ni_var_idx - 1) + 1):
+            dist = problem.get_min_value(var_idx)
+            if dist < len(problem.used_distance):
+                problem.used_distance[dist] = True
+        # let's compute the sum of non-used numbers
+        distance = 1
+        for j in range(0, problem.mark_nb - ni_var_idx):
+            while problem.used_distance[distance]:
                 distance += 1
-            for i in range(ni_var_idx - 1, self.mark_nb - 1):
-                for j in range(i + 1, self.mark_nb):
-                    var_idx = index(self.mark_nb, i, j)
-                    new_min = self.minimal_sum[j - i]
-                    # if new_min > self.get_max_value(var_idx):  # a bit slower
-                    #    return False
-                    self.set_min_value(var_idx, new_min)
-        return True
+            problem.minimal_sum[j + 1] = problem.minimal_sum[j] + distance
+            distance += 1
+        for i in range(ni_var_idx - 1, problem.mark_nb - 1):
+            for j in range(i + 1, problem.mark_nb):
+                var_idx = index(problem.mark_nb, i, j)
+                new_min = problem.minimal_sum[j - i]
+                # if new_min > self.get_max_value(var_idx):  # a bit slower
+                #    return False
+                problem.set_min_value(var_idx, new_min)
+    return bound_consistency_algorithm(statistics, problem)

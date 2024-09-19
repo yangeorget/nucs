@@ -10,8 +10,8 @@ class TestBacktrackSolver:
         solver = BacktrackSolver(problem)
         for _ in solver.solve():
             pass
-        assert problem.statistics[STATS_SOLVER_SOLUTION_NB] == 10000
-        assert problem.statistics[STATS_SOLVER_CHOICE_DEPTH] == 2
+        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 10000
+        assert solver.statistics[STATS_SOLVER_CHOICE_DEPTH] == 2
 
     def test_solve(self) -> None:
         problem = Problem([(0, 1), (0, 1)])
@@ -22,8 +22,8 @@ class TestBacktrackSolver:
         assert solutions[1] == [0, 1]
         assert solutions[2] == [1, 0]
         assert solutions[3] == [1, 1]
-        assert problem.statistics[STATS_SOLVER_SOLUTION_NB] == 4
-        assert problem.statistics[STATS_SOLVER_CHOICE_DEPTH] == 2
+        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 4
+        assert solver.statistics[STATS_SOLVER_CHOICE_DEPTH] == 2
 
     def test_solve_alldifferent(self) -> None:
         problem = Problem([(0, 2), (0, 2), (0, 2)])

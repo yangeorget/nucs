@@ -1,17 +1,19 @@
 from pprint import pprint
 
-from nucs.problems.alpha_problem import AlphaProblem
+from nucs.examples.alpha_problem import AlphaProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
+from nucs.solvers.heuristics import min_value_dom_heuristic, smallest_domain_var_heuristic
 from nucs.statistics import STATS_SOLVER_SOLUTION_NB, get_statistics
 
 
 class TestAlpha:
     def test_alpha(self) -> None:
         problem = AlphaProblem()
-        solver = BacktrackSolver(problem, VAR_HEURISTIC_SMALLEST_DOMAIN, DOM_HEURISTIC_MIN_VALUE)
+        solver = BacktrackSolver(
+            problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
+        )
         solutions = solver.solve_all()
-        assert problem.statistics[STATS_SOLVER_SOLUTION_NB] == 1
+        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1
         assert solutions[0][:26] == [
             5,
             13,
@@ -44,7 +46,9 @@ class TestAlpha:
 
 if __name__ == "__main__":
     problem = AlphaProblem()
-    solver = BacktrackSolver(problem, VAR_HEURISTIC_SMALLEST_DOMAIN, DOM_HEURISTIC_MIN_VALUE)
+    solver = BacktrackSolver(
+        problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
+    )
     solutions = solver.solve_all()
-    pprint(get_statistics(problem.statistics))
+    pprint(get_statistics(solver.statistics))
     print(solutions[0])
