@@ -12,13 +12,16 @@
 - Crypto multiplication problem (Product)
 - review CSPlib for additional problem
 
-# Misc
-- Move the doc to Read the docs
+# Doc
+- move to Read the docs
 
 # Engine
 - choice points pruning
-- backtrackable propagator state
-- decision variables
-- NUMBA: use prange with parallel=True
-- NUMBA: test ufunc
-- NUMBA: test vectorize
+- backtrackable propagator __state__
+- implement decision variables
+- try other strategies for computing fix point in BC
+
+# Numba
+- use prange with parallel=True
+- test ufunc
+- test vectorize
