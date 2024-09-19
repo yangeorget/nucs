@@ -19,7 +19,6 @@
 - choice points pruning
 - backtrackable propagator state
 - decision variables
-- move statistics to solver
 - NUMBA: use prange with parallel=True
 - NUMBA: test ufunc
 - NUMBA: test vectorize
