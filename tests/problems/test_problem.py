@@ -26,6 +26,7 @@ class TestProblem:
         problem.add_propagator(([0, 1, 2], ALG_AFFINE_EQ, [3, 1, 2, 5]))
         problem.add_propagator(([0, 1, 2], ALG_AFFINE_EQ, [2, 1, 2, 4]))
         problem.add_propagator(([1, 2], ALG_AFFINE_EQ, [1, 1, 1]))
+        problem.init_problem()
         problem.filter()
         assert is_solved(problem.shr_domains_arr)
         assert problem.shr_domains_arr[0][MIN] == 1

@@ -45,6 +45,9 @@ class BacktrackSolver(Solver):
         Find at most one solution.
         :return: the solution if it exists or None
         """
+        if not self.problem.ready:
+            self.problem.init_problem()
+            self.problem.ready = True
         while True:
             while (status := self.problem.filter()) == PROBLEM_INCONSISTENT:
                 if not self.backtrack():

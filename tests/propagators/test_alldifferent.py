@@ -39,4 +39,5 @@ class TestAlldifferent:
                 ([3, 4, 5], ALG_ALLDIFFERENT, []),
             ]
         )
+        problem.init_problem()
         assert problem.filter() == PROBLEM_INCONSISTENT

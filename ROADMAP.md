@@ -18,6 +18,9 @@
 # Engine
 - choice points pruning
 - backtrackable propagator state
+- decision variables
+- refactor prune
+- refactor project layout
 - NUMBA: use prange with parallel=True
 - NUMBA: test ufunc
 - NUMBA: test vectorize

@@ -238,13 +238,6 @@ class Problem:
         """
         Filters the problem's domains by applying the propagators until a fix point is reached.
         """
-        if not self.ready:
-            self.init_problem()
-            self.ready = True
-        if self.propagator_nb == 0:
-            return PROBLEM_SOLVED if is_solved(self.shr_domains_arr) else PROBLEM_FILTERED
-        if not self.prune():
-            return PROBLEM_INCONSISTENT
         return bc_filter(
             self.statistics,
             self.algorithms,
@@ -259,12 +252,6 @@ class Problem:
             self.not_entailed_propagators,
             COMPUTE_DOMAINS_ADDRS,
         )
-
-    def prune(self) -> bool:
-        """
-        Hook for pruning the search space before applying BC.
-        """
-        return True
 
     def pretty_print_solution(self, solution: List[int]) -> None:
         """
@@ -306,13 +293,13 @@ def bc_filter(
         prop_offsets = props_offsets[prop_var_start:prop_var_end]
         prop_domains = np.empty((2, prop_var_nb), dtype=np.int32).T  # trick for order=F
         np.add(shr_domains[prop_indices], prop_offsets, prop_domains)
-        prop_data = props_data[data_bounds[prop_idx, START] : data_bounds[prop_idx, END]]
         algorithm = algorithms[prop_idx]
         compute_domains_function = (
             COMPUTE_DOMAINS_FCTS[algorithm]
             if NUMBA_DISABLE_JIT
             else function_from_address(COMPUTE_DOMAIN_TYPE, compute_domains_addrs[algorithm])
         )
+        prop_data = props_data[data_bounds[prop_idx, START]: data_bounds[prop_idx, END]]
         status = compute_domains_function(prop_domains, prop_data)
         if status == PROP_INCONSISTENCY:
             statistics[STATS_PROPAGATOR_INCONSISTENCY_NB] += 1
@@ -326,12 +313,12 @@ def bc_filter(
             prop_offset = prop_offsets[var_idx][0]
             shr_domain_min = prop_domains[var_idx, MIN] - prop_offset
             shr_domain_max = prop_domains[var_idx, MAX] - prop_offset
-            if shr_domains[shr_domain_idx, MIN] != shr_domain_min:
+            if shr_domains[shr_domain_idx, MIN] < shr_domain_min:
                 shr_domains[shr_domain_idx, MIN] = shr_domain_min
                 shr_domains_changes = True
                 np.logical_or(triggered_propagators, shr_domains_propagators[shr_domain_idx, MIN],
                               triggered_propagators)
-            if shr_domains[shr_domain_idx, MAX] != shr_domain_max:
+            if shr_domains[shr_domain_idx, MAX] > shr_domain_max:
                 shr_domains[shr_domain_idx, MAX] = shr_domain_max
                 shr_domains_changes = True
                 np.logical_or(triggered_propagators, shr_domains_propagators[shr_domain_idx, MAX],

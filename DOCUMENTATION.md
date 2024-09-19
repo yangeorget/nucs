@@ -159,10 +159,6 @@ This function returns a `numpy.ndarray` of shape `(size, 2)`.
 Let `triggers` be such an array, 
 `triggers[i, MIN] == True` means that the propagator should be triggered whenever the minimum value of variable `ì` changes.
 
-#### Pruning
-The `prune` method of the problem is a hook to prune the search space before applying bound consistency.
-See https://github.com/yangeorget/nucs/blob/main/nucs/problems/golomb_problem.py for an example.
-
 ## Reference documentation
 ### Limits
 Domains limits are 32-bits integers.
@@ -186,9 +182,6 @@ NUCS currently provides the following propagators:
 - `relation_propagator`
 
 ### Heuristics
-The class `VariableHeuristic` is parametrized by to functions 
-allowing to select a variable then a value for this variable.
-
 #### Functions for selecting a variable
 - `first_not_instantiated_var_heuristic`: selects the first non instantiated variable
 - `last_not_instantiated_var_heuristic`: selects the last non instantiated variable

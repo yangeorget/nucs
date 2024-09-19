@@ -39,4 +39,5 @@ class TestAffineLEQ:
                 ([2, 0], ALG_AFFINE_LEQ, [-1, 1, -1]),
             ]
         )
+        problem.init_problem()
         assert problem.filter() == PROBLEM_INCONSISTENT

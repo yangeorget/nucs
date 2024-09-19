@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN
+from nucs.constants import MAX, MIN, PROBLEM_INCONSISTENT
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLDIFFERENT
 from nucs.solvers.heuristics import first_not_instantiated_var_heuristic
@@ -84,6 +84,11 @@ class GolombProblem(Problem):
             ),
             0,
         )
+
+    def filter(self) -> int:
+        if not self.prune():
+            return PROBLEM_INCONSISTENT
+        return super().filter()
 
     def prune(self) -> bool:
         """

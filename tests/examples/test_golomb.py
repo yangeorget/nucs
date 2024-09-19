@@ -29,6 +29,7 @@ class TestGolomb:
         problem.shr_domains_lst[3] = 3
         problem.shr_domains_lst[4] = 5
         problem.shr_domains_lst[5] = 2
+        problem.init_problem()
         assert problem.filter()
 
     @pytest.mark.parametrize("mark_nb,solution_nb", [(4, 6), (5, 11), (6, 17), (7, 25), (8, 34), (9, 44)])
@@ -42,7 +43,7 @@ class TestGolomb:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", type=int, default=10)
+    parser.add_argument("-n", type=int, default=9)
     args = parser.parse_args()
     problem = GolombProblem(args.n)
     solver = BacktrackSolver(problem)
