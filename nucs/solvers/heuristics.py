@@ -9,9 +9,9 @@ from nucs.constants import MAX, MIN
 @njit(cache=True)
 def first_not_instantiated_var_heuristic(shr_domains: NDArray) -> int:
     """
-    Chooses the first non instantiated variable.
+    Chooses the first non-instantiated shared domain.
     :param shr_domains: the shared domains of the problem
-    :return: the index of the variable
+    :return: the index of the shared domain
     """
     for dom_idx, shr_domain in enumerate(shr_domains):
         if shr_domain[MIN] < shr_domain[MAX]:
@@ -22,9 +22,9 @@ def first_not_instantiated_var_heuristic(shr_domains: NDArray) -> int:
 @njit(cache=True)
 def last_not_instantiated_var_heuristic(shr_domains: NDArray) -> int:
     """
-    Chooses the last non instantiated variable.
+    Chooses the last non-instantiated shared domain.
     :param shr_domains: the shared domains of the problem
-    :return: the index of the variable
+    :return: the index of the shared domain
     """
     for dom_idx in range(len(shr_domains) - 1, -1, -1):
         shr_domain = shr_domains[dom_idx]
@@ -36,9 +36,9 @@ def last_not_instantiated_var_heuristic(shr_domains: NDArray) -> int:
 @njit(cache=True)
 def smallest_domain_var_heuristic(shr_domains: NDArray) -> int:
     """
-    Chooses the variable with the smallest domain and which is not instantiated.
+    Chooses the smallest shared domain and which is not instantiated.
     :param shr_domains: the shared domains of the problem
-    :return: the index of the variable
+    :return: the index of the shared domain
     """
     min_size = sys.maxsize
     min_idx = -1
@@ -53,10 +53,9 @@ def smallest_domain_var_heuristic(shr_domains: NDArray) -> int:
 @njit(cache=True)
 def greatest_domain_var_heuristic(shr_domains: NDArray) -> int:
     """
-    Chooses the variable with the greatest domain and which is not instantiated.
+    Chooses the greatest shared domain and which is not instantiated.
     :param shr_domains: the shared domains of the problem
-    :param dom_indices: the domain indices of the problem variables
-    :return: the index of the variable
+    :return: the index of the shared domain
     """
     max_size = 0
     max_idx = -1
