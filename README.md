@@ -77,8 +77,8 @@ from nucs.propagators.propagators import ALG_ALLDIFFERENT
 
 n = 8  # the number of queens
 problem = Problem(
-    [(0, n - 1)] * n,  # these n domains are shared between 3n variables with different offsets
-    list(range(n)) * 3,  # for each variable, its domain
+    [(0, n - 1)] * n,  # these n domains are shared between the 3n variables with different offsets
+    list(range(n)) * 3,  # for each variable, its shared domain
     [0] * n + list(range(n)) + list(range(0, -n, -1))  # for each variable, its offset
 )
 problem.add_propagator((list(range(n)), ALG_ALLDIFFERENT, []))
@@ -95,7 +95,7 @@ The first solution found is:
 [0, 4, 7, 5, 2, 6, 1, 3]
 ```
 > [!TIP]
-> Note that the second run will always be much faster since the Python code will already have been compiled and cached by Numba.
+> Note that the second run will always be __much faster__ since the Python code will already have been compiled and cached by Numba.
 
 ### Install NUCS from the sources 
 Let's install NUCS from the sources by cloning the NUCS Github repository:
