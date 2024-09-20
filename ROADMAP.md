@@ -19,7 +19,6 @@
 - choice points pruning
 - backtrackable propagator __state__
 - implement decision variables
-- try other strategies for computing fix point in BC
 
 # Numba
 - use prange with parallel=True

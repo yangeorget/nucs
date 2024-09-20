@@ -7,6 +7,10 @@ from nucs.numpy import new_triggers
 from nucs.propagators.affine_eq_propagator import compute_domain_sum_max, compute_domain_sum_min
 
 
+def get_complexity_affine_leq(n: int, data: NDArray) -> float:
+    return 5 * n
+
+
 def get_triggers_affine_leq(n: int, data: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.

@@ -19,7 +19,7 @@ from nucs.numpy import (
     new_shr_domains_propagators,
     new_triggered_propagators,
 )
-from nucs.propagators.propagators import GET_TRIGGERS_FCTS
+from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
 from nucs.statistics import STATS_PROBLEM_PROPAGATOR_NB, STATS_PROBLEM_VARIABLE_NB
 
 
@@ -119,6 +119,8 @@ class Problem:
         self.shr_domains_arr = new_shr_domains_by_values(self.shr_domains_lst)
         self.dom_indices_arr = new_dom_indices_by_values(self.dom_indices_lst)
         self.dom_offsets_arr = new_dom_offsets_by_values(self.dom_offsets_lst)
+        # Sort the propagators based on their estimated amortized complexities.
+        self.propagators.sort(key=lambda prop: GET_COMPLEXITY_FCTS[prop[1]](len(prop[0]), prop[2]))
         # Propagator initialization
         self.propagator_nb = len(self.propagators)
         # This is where the triggered propagators will be stored,

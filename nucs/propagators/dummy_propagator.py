@@ -5,6 +5,10 @@ from nucs.constants import PROP_CONSISTENCY
 from nucs.numpy import new_triggers
 
 
+def get_complexity_dummy(n: int, data: NDArray) -> float:
+    return 0
+
+
 def get_triggers_dummy(n: int, data: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.

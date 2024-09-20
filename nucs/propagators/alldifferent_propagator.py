@@ -1,9 +1,15 @@
+import math
+
 import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 from nucs.numpy import new_triggers
+
+
+def get_complexity_alldifferent(n: int, data: NDArray) -> float:
+    return 2 * n * math.log(n) + 5 * n
 
 
 def get_triggers_alldifferent(n: int, data: NDArray) -> NDArray:

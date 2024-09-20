@@ -6,6 +6,10 @@ from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 from nucs.numpy import new_triggers
 
 
+def get_complexity_affine_eq(n: int, data: NDArray) -> float:
+    return 5 * n
+
+
 def get_triggers_affine_eq(n: int, data: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.

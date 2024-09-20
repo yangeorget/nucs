@@ -6,6 +6,10 @@ from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 from nucs.numpy import new_triggers
 
 
+def get_complexity_max_eq(n: int, data: NDArray) -> float:
+    return 3 * n
+
+
 def get_triggers_max_eq(n: int, data: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.

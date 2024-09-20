@@ -3,24 +3,61 @@ from numba import int32, int64, njit, types  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.numba import NUMBA_DISABLE_JIT, build_function_address_list
-from nucs.propagators.affine_eq_propagator import compute_domains_affine_eq, get_triggers_affine_eq
-from nucs.propagators.affine_geq_propagator import compute_domains_affine_geq, get_triggers_affine_geq
-from nucs.propagators.affine_leq_propagator import compute_domains_affine_leq, get_triggers_affine_leq
-from nucs.propagators.alldifferent_propagator import compute_domains_alldifferent, get_triggers_alldifferent
-from nucs.propagators.count_eq_propagator import compute_domains_count_eq, get_triggers_count_eq
-from nucs.propagators.dummy_propagator import compute_domains_dummy, get_triggers_dummy
-from nucs.propagators.element_lic_propagator import compute_domains_element_lic, get_triggers_element_lic
-from nucs.propagators.element_liv_propagator import compute_domains_element_liv, get_triggers_element_liv
-from nucs.propagators.exactly_eq_propagator import compute_domains_exactly_eq, get_triggers_exactly_eq
+from nucs.propagators.affine_eq_propagator import (
+    compute_domains_affine_eq,
+    get_complexity_affine_eq,
+    get_triggers_affine_eq,
+)
+from nucs.propagators.affine_geq_propagator import (
+    compute_domains_affine_geq,
+    get_complexity_affine_geq,
+    get_triggers_affine_geq,
+)
+from nucs.propagators.affine_leq_propagator import (
+    compute_domains_affine_leq,
+    get_complexity_affine_leq,
+    get_triggers_affine_leq,
+)
+from nucs.propagators.alldifferent_propagator import (
+    compute_domains_alldifferent,
+    get_complexity_alldifferent,
+    get_triggers_alldifferent,
+)
+from nucs.propagators.count_eq_propagator import (
+    compute_domains_count_eq,
+    get_complexity_count_eq,
+    get_triggers_count_eq,
+)
+from nucs.propagators.dummy_propagator import compute_domains_dummy, get_complexity_dummy, get_triggers_dummy
+from nucs.propagators.element_lic_propagator import (
+    compute_domains_element_lic,
+    get_complexity_element_lic,
+    get_triggers_element_lic,
+)
+from nucs.propagators.element_liv_propagator import (
+    compute_domains_element_liv,
+    get_complexity_element_liv,
+    get_triggers_element_liv,
+)
+from nucs.propagators.exactly_eq_propagator import (
+    compute_domains_exactly_eq,
+    get_complexity_exactly_eq,
+    get_triggers_exactly_eq,
+)
 from nucs.propagators.lexicographic_leq_propagator import (
     compute_domains_lexicographic_leq,
+    get_complexity_lexicographic_leq,
     get_triggers_lexicographic_leq,
 )
-from nucs.propagators.max_eq_propagator import compute_domains_max_eq, get_triggers_max_eq
-from nucs.propagators.max_leq_propagator import compute_domains_max_leq, get_triggers_max_leq
-from nucs.propagators.min_eq_propagator import compute_domains_min_eq, get_triggers_min_eq
-from nucs.propagators.min_geq_propagator import compute_domains_min_geq, get_triggers_min_geq
-from nucs.propagators.relation_propagator import compute_domains_relation, get_triggers_relation
+from nucs.propagators.max_eq_propagator import compute_domains_max_eq, get_complexity_max_eq, get_triggers_max_eq
+from nucs.propagators.max_leq_propagator import compute_domains_max_leq, get_complexity_max_leq, get_triggers_max_leq
+from nucs.propagators.min_eq_propagator import compute_domains_min_eq, get_complexity_min_eq, get_triggers_min_eq
+from nucs.propagators.min_geq_propagator import compute_domains_min_geq, get_complexity_min_geq, get_triggers_min_geq
+from nucs.propagators.relation_propagator import (
+    compute_domains_relation,
+    get_complexity_relation,
+    get_triggers_relation,
+)
 
 # The ordinals of the algorithms for all propagators (sorted by alphabetical ordering).
 (
@@ -58,6 +95,24 @@ GET_TRIGGERS_FCTS = [
     get_triggers_min_eq,
     get_triggers_min_geq,
     get_triggers_relation,
+]
+
+GET_COMPLEXITY_FCTS = [
+    get_complexity_affine_eq,
+    get_complexity_affine_geq,
+    get_complexity_affine_leq,
+    get_complexity_alldifferent,
+    get_complexity_count_eq,
+    get_complexity_dummy,
+    get_complexity_element_liv,
+    get_complexity_element_lic,
+    get_complexity_exactly_eq,
+    get_complexity_lexicographic_leq,
+    get_complexity_max_eq,
+    get_complexity_max_leq,
+    get_complexity_min_eq,
+    get_complexity_min_geq,
+    get_complexity_relation,
 ]
 
 
