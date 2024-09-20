@@ -1,5 +1,7 @@
 from typing import Callable, Iterator, List, Optional
 
+import numpy as np
+
 from nucs.constants import MIN, PROBLEM_INCONSISTENT, PROBLEM_SOLVED
 from nucs.problems.problem import Problem
 from nucs.solvers.consistency_algorithms import bound_consistency_algorithm
@@ -54,22 +56,19 @@ class BacktrackSolver(Solver):
                 self.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 values = self.problem.shr_domains_arr[self.problem.dom_indices_arr, MIN] + self.problem.dom_offsets_arr
                 return values.tolist()
-            # TODO: refactor
-            var_idx = self.var_heuristic(self.problem.shr_domains_arr, self.problem.dom_indices_arr)
-            shr_domain_idx = self.problem.dom_indices_arr[var_idx]
+            dom_idx = self.var_heuristic(self.problem.shr_domains_arr)
             shr_domains_copy = self.problem.shr_domains_arr.copy(order="F")
-            self.dom_heuristic(
-                self.problem.shr_domains_arr,
-                shr_domains_copy,
-                shr_domain_idx,
-                self.problem.triggered_propagators,
-                self.problem.shr_domains_propagators,
-            )
             self.choice_points.append(shr_domains_copy)
-            self.statistics[STATS_SOLVER_CHOICE_NB] += 1
-            self.statistics[STATS_SOLVER_CHOICE_DEPTH] = max(
-                self.statistics[STATS_SOLVER_CHOICE_DEPTH], len(self.choice_points)
+            event = self.dom_heuristic(self.problem.shr_domains_arr[dom_idx], shr_domains_copy[dom_idx])
+            np.logical_or(
+                self.problem.triggered_propagators,
+                self.problem.shr_domains_propagators[dom_idx, event],
+                self.problem.triggered_propagators,
             )
+            self.statistics[STATS_SOLVER_CHOICE_NB] += 1
+            cp_max_depth = len(self.choice_points)
+            if cp_max_depth > self.statistics[STATS_SOLVER_CHOICE_DEPTH]:
+                self.statistics[STATS_SOLVER_CHOICE_DEPTH] = cp_max_depth
 
     def minimize(self, variable_idx: int) -> Optional[List[int]]:
         solution = None
@@ -97,7 +96,7 @@ class BacktrackSolver(Solver):
         if len(self.choice_points) == 0:
             return False
         self.statistics[STATS_SOLVER_BACKTRACK_NB] += 1
-        self.problem.reset(self.choice_points.pop())
+        self.problem.reset(self.choice_points.pop())  # TODO: optimize by reusing
         return True
 
     def reset(self) -> None:

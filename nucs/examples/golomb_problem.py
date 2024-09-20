@@ -89,7 +89,7 @@ class GolombProblem(Problem):
 
 def golomb_consistency_algorithm(statistics: NDArray, problem: GolombProblem) -> int:
     # first prune the search space
-    ni_var_idx = first_not_instantiated_var_heuristic(problem.shr_domains_arr, problem.dom_indices_arr)
+    ni_var_idx = first_not_instantiated_var_heuristic(problem.shr_domains_arr)  # no domains shared between vars
     if 1 < ni_var_idx < problem.mark_nb - 1:  # otherwise useless
         problem.used_distance.fill(False)
         # the following will mark at most sum(n-3) numbers as used

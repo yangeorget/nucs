@@ -74,9 +74,9 @@ def _bound_consistency_algorithm(
         statistics[STATS_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = var_bounds[prop_idx, START]
         prop_var_end = var_bounds[prop_idx, END]
-        prop_var_nb = prop_var_end - prop_var_start
         prop_indices = props_indices[prop_var_start:prop_var_end]
         prop_offsets = props_offsets[prop_var_start:prop_var_end]
+        prop_var_nb = prop_var_end - prop_var_start
         prop_domains = np.empty((2, prop_var_nb), dtype=np.int32).T  # trick for order=F
         np.add(shr_domains[prop_indices], prop_offsets, prop_domains)
         algorithm = algorithms[prop_idx]
@@ -99,13 +99,13 @@ def _bound_consistency_algorithm(
             prop_offset = prop_offsets[var_idx][0]
             shr_domain_min = prop_domains[var_idx, MIN] - prop_offset
             shr_domain_max = prop_domains[var_idx, MAX] - prop_offset
-            if shr_domains[shr_domain_idx, MIN] < shr_domain_min:
+            if shr_domains[shr_domain_idx, MIN] != shr_domain_min:
                 shr_domains[shr_domain_idx, MIN] = shr_domain_min
                 shr_domains_changes = True
                 np.logical_or(
                     triggered_propagators, shr_domains_propagators[shr_domain_idx, MIN], triggered_propagators
                 )
-            if shr_domains[shr_domain_idx, MAX] > shr_domain_max:
+            if shr_domains[shr_domain_idx, MAX] != shr_domain_max:
                 shr_domains[shr_domain_idx, MAX] = shr_domain_max
                 shr_domains_changes = True
                 np.logical_or(

@@ -7,7 +7,7 @@ from nucs.numpy import new_triggers
 
 
 def get_complexity_exactly_eq(n: int, data: NDArray) -> float:
-    return 2* n
+    return 2 * n
 
 
 def get_triggers_exactly_eq(n: int, data: NDArray) -> NDArray:

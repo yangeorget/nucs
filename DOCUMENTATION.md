@@ -190,13 +190,13 @@ NUCS currently provides the following propagators:
 - `relation_propagator`
 
 ### Heuristics
-#### Functions for selecting a variable
-- `first_not_instantiated_var_heuristic`: selects the first non instantiated variable
-- `last_not_instantiated_var_heuristic`: selects the last non instantiated variable
-- `smallest_domain_var_heuristic`: selects the variable with the smallest domain which is not instantiated
-- `greatest_domain_var_heuristic`: selects the variable with the greatest domain which is not instantiated
+#### Functions for selecting a shared domain
+- `first_not_instantiated_var_heuristic`: selects the first non-instantiated shared domain
+- `last_not_instantiated_var_heuristic`: selects the last non-instantiated shared domain
+- `smallest_domain_var_heuristic`: selects the smallest shared domain which is not instantiated
+- `greatest_domain_var_heuristic`: selects the greatest shared domain which is not instantiated
 - 
-#### Functions for selecting a value
+#### Functions for reducing the chosen shared domain
 - `min_value_dom_heuristic`: selects the minimal value of the domain 
 - `max_value_dom_heuristic`: selects the maximal value of the domain 
 - `split_low_dom_heuristic`: selects the first half of the domain
