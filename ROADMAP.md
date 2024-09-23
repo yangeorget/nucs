@@ -12,9 +12,6 @@
 - Crypto multiplication problem (Product)
 - review CSPlib for additional problem
 
-# Doc
-- move to Read the docs
-
 # Engine
 - choice points pruning
 - backtrackable propagator __state__
@@ -24,3 +21,7 @@
 - use prange with parallel=True
 - test ufunc
 - test vectorize
+
+# Docs
+- improve reference with problems and examples
+- improve usage of rst
