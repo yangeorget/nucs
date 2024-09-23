@@ -1,6 +1,6 @@
 ![pypi version](https://img.shields.io/pypi/v/nucs?color=blue&label=pypi%20version&logo=pypi&logoColor=white)
-![numba version](https://img.shields.io/badge/numba-0.60-blue)
-![numpy version](https://img.shields.io/badge/numpy-2.0-blue)
+![numba version](https://img.shields.io/badge/numba-v0.60-blue)
+![numpy version](https://img.shields.io/badge/numpy-v2.0-blue)
 ![tests](https://github.com/yangeorget/nucs/actions/workflows/test.yml/badge.svg)
 ![license](https://img.shields.io/github/license/yangeorget/nucs)
 

@@ -72,7 +72,7 @@ Python, with the help of lists and ranges, makes the construction of complex pro
 Internally, for greater efficiency, shared domains, domain indices and offsets are stored using `numpy.ndarray`.
 
 ##### A concrete example: the 4-queens problem
-![4-queens image](./assets/queens.png "4 non attacking queens")
+![4-queens image](assets/queens.png "4 non attacking queens")
 
 The 4-queens problem can be modelled as follows:
 - for **i** in **[0, 3]**, **v_i** is the vertical position of the queen in the **i**th column
