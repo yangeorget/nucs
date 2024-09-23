@@ -24,6 +24,3 @@
 - use prange with parallel=True
 - test ufunc
 - test vectorize
-
-GitHub
-- badges
