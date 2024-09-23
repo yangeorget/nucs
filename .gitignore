@@ -3,6 +3,7 @@
 .numba
 __pycache__
 dist
+docs-output
 venv*
 .venv*
 profile.pstats

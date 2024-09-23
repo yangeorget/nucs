@@ -64,5 +64,4 @@ Find all 14200 solutions to the [12-queens problem](https://www.csplib.org/Probl
 ```
 
 ## Documentation
-
 Check out [NUCS documentation](https://nucs.readthedocs.io/).
