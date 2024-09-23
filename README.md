@@ -10,8 +10,10 @@ NUCS is a Python library for solving Constraint Satisfaction and Optimization Pr
 Because it is 100% written in Python, NUCS is easy to install and use.
 NUCS is also very fast because it is powered by [Numpy](https://numpy.org/) and [Numba](https://numba.pydata.org/).
 
-## With NUCS, in a few seconds you can ...
+## Documentation
+Check out [NUCS documentation](https://nucs.readthedocs.io/).
 
+## With NUCS, in a few seconds you can ...
 Compute the 92 solutions to the [BIBD(8,14,7,4,3) problem](https://www.csplib.org/Problems/prob028/):
 ```python
 {
@@ -63,6 +65,3 @@ Find all 14200 solutions to the [12-queens problem](https://www.csplib.org/Probl
     'SOLVER_SOLUTION_NB': 14200
 }
 ```
-
-## Documentation
-Check out [NUCS documentation](https://nucs.readthedocs.io/).
