@@ -1,10 +1,12 @@
+############
 Installation
-============
+############
 
 .. _installation:
 
+************************
 Install the NUCS package
-------------------------
+************************
 
 Let's install the NUCS package with pip:
 
@@ -48,8 +50,9 @@ The first solution found is:
    Note that the second run will always be **much faster**
    since the Python code will already have been compiled and cached by Numba.
 
+*****************************
 Install NUCS from the sources
------------------------------
+*****************************
 
 Let's install NUCS from the sources by cloning the NUCS Github repository:
 

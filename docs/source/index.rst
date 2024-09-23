@@ -1,5 +1,6 @@
+###############################
 Welcome to NUCS' documentation!
-===================================
+###############################
 
 NUCS is a 100% Python library leveraging Numpy and Numba.
 
@@ -19,7 +20,7 @@ Check out the :doc:`installation` section for further information to get started
    This project is under active development.
 
 Contents
---------
+########
 
 .. toctree::
 
