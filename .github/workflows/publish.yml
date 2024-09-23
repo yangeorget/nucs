@@ -1,4 +1,4 @@
-name: Publish NUCS to PyPI when a release is created
+name: pypi
 on:
   release:
     types: [created]

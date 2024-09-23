@@ -1,4 +1,4 @@
-name: Test NUCS when a commit is pushed
+name: tests
 on:
   push:
     branches: [ "main" ]
