@@ -36,7 +36,7 @@ html_context = {
     "github_user": "yangeorget", # Username
     "github_repo": "nucs", # Repo name
     "github_version": "main", # Version
-    "conf_py_path": "/source/", # Path in the checkout to the docs root
+    "conf_py_path": "/docs/source/", # Path in the checkout to the docs root
 }
 
 # -- Options for EPUB output
