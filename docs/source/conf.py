@@ -7,7 +7,7 @@ copyright = '2024, Yan Georget'
 author = 'Yan Georget'
 
 release = '0.8'
-version = '0.8.0'
+version = '0.8.1'
 
 # -- General configuration
 
