@@ -2,6 +2,7 @@
 ![numba version](https://img.shields.io/badge/numba-v0.60-blue)
 ![numpy version](https://img.shields.io/badge/numpy-v2.0-blue)
 ![tests](https://github.com/yangeorget/nucs/actions/workflows/test.yml/badge.svg)
+![doc](https://img.shields.io/readthedocs/nucs)
 ![license](https://img.shields.io/github/license/yangeorget/nucs)
 
 ## TLDR
@@ -9,7 +10,7 @@ NUCS is a Python library for solving Constraint Satisfaction and Optimization Pr
 Because it is 100% written in Python, NUCS is easy to install and use.
 NUCS is also very fast because it is powered by [Numpy](https://numpy.org/) and [Numba](https://numba.pydata.org/).
 
-With NUCS, in a few seconds you can ...
+## With NUCS, in a few seconds you can ...
 
 Compute the 92 solutions to the [BIBD(8,14,7,4,3) problem](https://www.csplib.org/Problems/prob028/):
 ```python
