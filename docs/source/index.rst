@@ -1,13 +1,14 @@
-Welcome to Lumache's documentation!
+Welcome to NUCS' documentation!
 ===================================
 
-**Lumache** (/lu'make/) is a Python library for cooks and food lovers
-that creates recipes mixing random ingredients.
-It pulls data from the `Open Food Facts database <https://world.openfoodfacts.org/>`_
-and offers a *simple* and *intuitive* API.
+NUCS is a 100% Python library leveraging Numpy and Numba.
 
-Check out the :doc:`usage` section for further information, including
-how to :ref:`installation` the project.
+* **Python** is a powerful and flexible programing language that allows to express complex problems in a few lines of code.
+* **Numpy** brings the computational power of languages like C and Fortran to Python.
+* **Numba** translates Python functions to optimized machine code at runtime using the industry-standard LLVM compiler library.
+  Numba-compiled numerical algorithms in Python can approach the speeds of C or FORTRAN.
+
+Check out the :doc:`installation` section for further information to get started with NUCS!
 
 .. note::
 
@@ -18,5 +19,6 @@ Contents
 
 .. toctree::
 
-   usage
-   api
+   installation
+   architecture
+   reference
