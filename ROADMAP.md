@@ -23,5 +23,5 @@
 - test vectorize
 
 # Docs
-- improve reference with problems and examples
+- document examples: in installation chapter (with CLI) and also in reference (with code?)
 - improve usage of rst
