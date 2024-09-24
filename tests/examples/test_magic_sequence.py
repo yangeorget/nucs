@@ -1,6 +1,6 @@
 import pytest
 
-from nucs.examples.magic_sequence_problem import MagicSequenceProblem
+from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.heuristics import last_not_instantiated_var_heuristic, min_value_dom_heuristic
 from nucs.statistics import STATS_SOLVER_SOLUTION_NB

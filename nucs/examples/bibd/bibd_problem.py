@@ -1,5 +1,9 @@
+from pprint import pprint
+
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_EXACTLY_EQ, ALG_LEXICOGRAPHIC_LEQ, ALG_MIN_EQ
+from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import get_statistics
 
 
 class BIBDProblem(Problem):
@@ -36,3 +40,10 @@ class BIBDProblem(Problem):
         # lexleq on columns
         for j in range(0, b - 1):
             self.add_propagator((list(range(j, v * b, b)) + list(range(j + 1, v * b, b)), ALG_LEXICOGRAPHIC_LEQ, []))
+
+
+if __name__ == "__main__":
+    problem = BIBDProblem(8, 14, 7, 4, 3)
+    solver = BacktrackSolver(problem)
+    solver.solve_all()
+    pprint(get_statistics(solver.statistics))

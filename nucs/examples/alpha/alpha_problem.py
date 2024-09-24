@@ -1,7 +1,11 @@
+from pprint import pprint
 from typing import List
 
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ALLDIFFERENT
+from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.heuristics import min_value_dom_heuristic, smallest_domain_var_heuristic
+from nucs.statistics import get_statistics
 
 A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z = tuple(range(26))
 
@@ -81,3 +85,13 @@ class AlphaProblem(Problem):
                 "Z": solution[Z],
             }
         )
+
+
+if __name__ == "__main__":
+    problem = AlphaProblem()
+    solver = BacktrackSolver(
+        problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
+    )
+    solutions = solver.find_all()
+    pprint(get_statistics(solver.statistics))
+    print(solutions[0])

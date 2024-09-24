@@ -1,5 +1,11 @@
+import argparse
+from pprint import pprint
+
 from nucs.problems.latin_square_problem import M_COLOR, M_COLUMN, M_ROW, LatinSquareRCProblem
 from nucs.propagators.propagators import ALG_ELEMENT_LIV
+from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.heuristics import min_value_dom_heuristic, smallest_domain_var_heuristic
+from nucs.statistics import get_statistics
 
 
 class QuasigroupProblem(LatinSquareRCProblem):
@@ -40,3 +46,15 @@ class Quasigroup5Problem(QuasigroupProblem):
                         ),
                         0,
                     )
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-n", type=int, default=10)
+    args = parser.parse_args()
+    problem = Quasigroup5Problem(args.n)
+    solver = BacktrackSolver(
+        problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
+    )
+    solver.solve_all()
+    pprint(get_statistics(solver.statistics))

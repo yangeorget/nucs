@@ -1,6 +1,6 @@
 import pytest
 
-from nucs.examples.magic_square_problem import MagicSquareProblem
+from nucs.examples.magic_square.magic_square_problem import MagicSquareProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.heuristics import max_value_dom_heuristic, smallest_domain_var_heuristic
 from nucs.statistics import STATS_SOLVER_SOLUTION_NB

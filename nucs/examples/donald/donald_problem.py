@@ -1,7 +1,11 @@
+from pprint import pprint
 from typing import List
 
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ALLDIFFERENT
+from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.heuristics import min_value_dom_heuristic, smallest_domain_var_heuristic
+from nucs.statistics import get_statistics
 
 A, B, D, E, G, L, N, O, R, T = tuple(range(10))
 
@@ -40,3 +44,13 @@ class DonaldProblem(Problem):
                 "T": solution[T],
             }
         )
+
+
+if __name__ == "__main__":
+    problem = DonaldProblem()
+    solver = BacktrackSolver(
+        problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
+    )
+    for solution in solver.solve():
+        problem.pretty_print_solution(solution)
+    pprint(get_statistics(solver.statistics))

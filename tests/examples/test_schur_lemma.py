@@ -1,6 +1,6 @@
 import pytest
 
-from nucs.examples.schur_lemma_problem import SchurLemmaProblem
+from nucs.examples.schur_lemma.schur_lemma_problem import SchurLemmaProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_SOLVER_SOLUTION_NB
 

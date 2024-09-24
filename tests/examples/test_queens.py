@@ -1,12 +1,9 @@
-import argparse
-from pprint import pprint
-
 import pytest
 
-from nucs.examples.queens_problem import QueensProblem
+from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.heuristics import min_value_dom_heuristic, smallest_domain_var_heuristic
-from nucs.statistics import STATS_SOLVER_SOLUTION_NB, get_statistics
+from nucs.statistics import STATS_SOLVER_SOLUTION_NB
 
 
 class TestQueens:
@@ -26,13 +23,3 @@ class TestQueens:
         )
         solver.solve_all()
         assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 92
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-n", type=int, default=12)
-    args = parser.parse_args()
-    problem = QueensProblem(args.n)
-    solver = BacktrackSolver(problem)
-    solver.solve_all()
-    pprint(get_statistics(solver.statistics))

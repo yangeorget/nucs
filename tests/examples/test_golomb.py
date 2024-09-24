@@ -1,12 +1,8 @@
-import argparse
-from pprint import pprint
-
 import pytest
 
 from nucs.constants import MIN
-from nucs.examples.golomb_problem import GolombProblem, golomb_consistency_algorithm, index, init_domains
+from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm, index, init_domains
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.statistics import get_statistics
 
 
 class TestGolomb:
@@ -28,15 +24,3 @@ class TestGolomb:
         solution = solver.minimize(problem.length_idx)
         assert solution
         assert solution[problem.length_idx] == solution_nb
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-n", type=int, default=10)
-    args = parser.parse_args()
-    problem = GolombProblem(args.n)
-    solver = BacktrackSolver(problem, consistency_algorithm=golomb_consistency_algorithm)
-    solution = solver.minimize(problem.length_idx)
-    pprint(get_statistics(solver.statistics))
-    print(solution)
-    print(solution[problem.length_idx])  # type: ignore

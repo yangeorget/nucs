@@ -67,13 +67,13 @@ Let's find all solutions to the `12-queens problem <https://www.csplib.org/Probl
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python tests/examples/test_queens.py -n 12
+   NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python nucs/examples/queens/queens_problem.py -n 12
 
 Let's find the optimal solution to the `Golomb ruler problem <https://www.csplib.org/Problems/prob006>`_ with 10 marks:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python tests/examples/test_golomb.py -n 10
+   NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python nucs/examples/golomb/golomb_problem.py -n 10
 
 
 
