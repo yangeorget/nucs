@@ -14,7 +14,67 @@ Let's install the NUCS package with pip:
 
    $ pip install nucs
 
-Now we can write the following :code:`queens.py` program:
+*****************
+Run some examples
+*****************
+
+NUCS comes with some models and heuristics for some well-known problems.
+Some of these examples have a command line interface and can be run directly.
+
+Solve the 12-queens problem
+###########################
+Let's find all solutions to the `12-queens problem <https://www.csplib.org/Problems/prob054>`_:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.queens -n 12
+   {
+       'OPTIMIZER_SOLUTION_NB': 0,
+       'PROBLEM_FILTER_NB': 262011,
+       'PROBLEM_PROPAGATOR_NB': 3,
+       'PROBLEM_VARIABLE_NB': 36,
+       'PROPAGATOR_ENTAILMENT_NB': 0,
+       'PROPAGATOR_FILTER_NB': 2269980,
+       'PROPAGATOR_FILTER_NO_CHANGE_NB': 990450,
+       'PROPAGATOR_INCONSISTENCY_NB': 116806,
+       'SOLVER_BACKTRACK_NB': 131005,
+       'SOLVER_CHOICE_NB': 131005,
+       'SOLVER_CHOICE_DEPTH': 10,
+       'SOLVER_SOLUTION_NB': 14200
+   }
+
+Solve the Golomb ruler problem
+##############################
+Let's find the optimal solution to the `Golomb ruler problem <https://www.csplib.org/Problems/prob006>`_ with 10 marks:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.golomb -n 10
+   {
+       'OPTIMIZER_SOLUTION_NB': 10,
+       'PROBLEM_FILTER_NB': 22204,
+       'PROBLEM_PROPAGATOR_NB': 82,
+       'PROBLEM_VARIABLE_NB': 45,
+       'PROPAGATOR_ENTAILMENT_NB': 416934,
+       'PROPAGATOR_FILTER_NB': 3088066,
+       'PROPAGATOR_FILTER_NO_CHANGE_NB': 2072616,
+       'PROPAGATOR_INCONSISTENCY_NB': 11065,
+       'SOLVER_BACKTRACK_NB': 11064,
+       'SOLVER_CHOICE_NB': 11129,
+       'SOLVER_CHOICE_DEPTH': 9,
+       'SOLVER_SOLUTION_NB': 10
+   }
+   [1, 6, 10, 23, 26, 34, 41, 53, 55]
+
+
+**********************
+Write your first model
+**********************
+
+Model the n-queens problem
+###########################
+
+Let's write the following :code:`queens.py` program:
 
 .. code-block:: python
    :linenos:
@@ -49,33 +109,6 @@ The first solution found is:
 .. note::
    Note that the second run will always be **much faster**
    since the Python code will already have been compiled and cached by Numba.
-
-*****************************
-Install NUCS from the sources
-*****************************
-
-Let's install NUCS from the sources by cloning the NUCS Github repository:
-
-.. code-block:: bash
-
-   git clone https://github.com/yangeorget/nucs.git
-   pip install -r requirements.txt
-
-Some of the examples come with a command line interface and can be run directly.
-
-Let's find all solutions to the `12-queens problem <https://www.csplib.org/Problems/prob054>`_:
-
-.. code-block:: bash
-
-   NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python nucs/examples/queens/queens_problem.py -n 12
-
-Let's find the optimal solution to the `Golomb ruler problem <https://www.csplib.org/Problems/prob006>`_ with 10 marks:
-
-.. code-block:: bash
-
-   NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python nucs/examples/golomb/golomb_problem.py -n 10
-
-
 
 
 

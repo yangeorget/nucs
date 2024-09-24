@@ -1,11 +1,7 @@
-from pprint import pprint
-from typing import List
+from typing import Dict, List
 
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ALLDIFFERENT
-from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import min_value_dom_heuristic, smallest_domain_var_heuristic
-from nucs.statistics import get_statistics
 
 A, B, D, E, G, L, N, O, R, T = tuple(range(10))
 
@@ -29,28 +25,16 @@ class DonaldProblem(Problem):
             ([A, B, D, E, G, L, N, O, R, T], ALG_ALLDIFFERENT, []),
         )
 
-    def pretty_print_solution(self, solution: List[int]) -> None:
-        print(
-            {
-                "A": solution[A],
-                "B": solution[B],
-                "D": solution[D],
-                "E": solution[E],
-                "G": solution[G],
-                "L": solution[L],
-                "N": solution[N],
-                "O": solution[O],
-                "R": solution[R],
-                "T": solution[T],
-            }
-        )
-
-
-if __name__ == "__main__":
-    problem = DonaldProblem()
-    solver = BacktrackSolver(
-        problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
-    )
-    for solution in solver.solve():
-        problem.pretty_print_solution(solution)
-    pprint(get_statistics(solver.statistics))
+    def solution_as_dict(self, solution: List[int]) -> Dict[str, int]:
+        return {
+            "A": solution[A],
+            "B": solution[B],
+            "D": solution[D],
+            "E": solution[E],
+            "G": solution[G],
+            "L": solution[L],
+            "N": solution[N],
+            "O": solution[O],
+            "R": solution[R],
+            "T": solution[T],
+        }

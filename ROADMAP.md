@@ -23,7 +23,5 @@
 - test vectorize
 
 # Docs
-- fix README
-- remove install from source
-- improve reference with problems and examples:  NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.golomb.golomb_problem -n 10
+- improve reference with problems and examples
 - improve usage of rst

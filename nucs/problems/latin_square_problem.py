@@ -47,9 +47,8 @@ class LatinSquareProblem(Problem):
         offset = model * (self.n**2)
         return list(range(offset + j, offset + self.n**2 + j, self.n))
 
-    def pretty_print_solution(self, solution: List[int]) -> None:
-        for i in range(0, self.n**2, self.n):
-            print(solution[i : i + self.n])
+    def solution_as_matrix(self, solution: List[int]) -> List[List[int]]:
+        return [solution[i : i + self.n] for i in range(0, self.n**2, self.n)]
 
 
 class LatinSquareRCProblem(LatinSquareProblem):

@@ -1,10 +1,7 @@
-import argparse
-from pprint import pprint
+from typing import List
 
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT
-from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.statistics import get_statistics
 
 
 class QueensProblem(Problem):
@@ -24,12 +21,6 @@ class QueensProblem(Problem):
         self.add_propagator((list(range(n, 2 * n)), ALG_ALLDIFFERENT, []))
         self.add_propagator((list(range(2 * n, 3 * n)), ALG_ALLDIFFERENT, []))
 
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-n", type=int, default=12)
-    args = parser.parse_args()
-    problem = QueensProblem(args.n)
-    solver = BacktrackSolver(problem)
-    solver.solve_all()
-    pprint(get_statistics(solver.statistics))
+    def solution_as_matrix(self, solution: List[int]) -> List[List[str]]:
+        n = len(solution)
+        return [([" "] * i + ["X"] + [" "] * (n - i - 1)) for i in range(n)]

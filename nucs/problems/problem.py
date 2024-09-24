@@ -209,13 +209,6 @@ class Problem:
     def __str__(self) -> str:
         return f"domains={self.shr_domains_arr}, indices={self.dom_indices_arr}, offsets={self.dom_offsets_arr}"
 
-    def pretty_print_solution(self, solution: List[int]) -> None:
-        """
-        Pretty prints a solution to the problem.
-        :param solution: a list of integers
-        """
-        print(solution)
-
 
 @njit(cache=True)
 def is_solved(shr_domains: NDArray) -> bool:

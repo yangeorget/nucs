@@ -1,11 +1,7 @@
-from pprint import pprint
-from typing import List
+from typing import Dict, List
 
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ALLDIFFERENT
-from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import min_value_dom_heuristic, smallest_domain_var_heuristic
-from nucs.statistics import get_statistics
 
 A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z = tuple(range(26))
 
@@ -54,44 +50,32 @@ class AlphaProblem(Problem):
             ]
         )
 
-    def pretty_print_solution(self, solution: List[int]) -> None:
-        print(
-            {
-                "A": solution[A],
-                "B": solution[B],
-                "C": solution[C],
-                "D": solution[D],
-                "E": solution[E],
-                "F": solution[F],
-                "G": solution[G],
-                "H": solution[H],
-                "I": solution[I],
-                "J": solution[J],
-                "K": solution[K],
-                "L": solution[L],
-                "M": solution[M],
-                "N": solution[N],
-                "O": solution[O],
-                "P": solution[P],
-                "Q": solution[Q],
-                "R": solution[R],
-                "S": solution[S],
-                "T": solution[T],
-                "U": solution[U],
-                "V": solution[V],
-                "W": solution[W],
-                "X": solution[X],
-                "Y": solution[Y],
-                "Z": solution[Z],
-            }
-        )
-
-
-if __name__ == "__main__":
-    problem = AlphaProblem()
-    solver = BacktrackSolver(
-        problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
-    )
-    solutions = solver.find_all()
-    pprint(get_statistics(solver.statistics))
-    print(solutions[0])
+    def solution_as_dict(self, solution: List[int]) -> Dict[str, int]:
+        return {
+            "A": solution[A],
+            "B": solution[B],
+            "C": solution[C],
+            "D": solution[D],
+            "E": solution[E],
+            "F": solution[F],
+            "G": solution[G],
+            "H": solution[H],
+            "I": solution[I],
+            "J": solution[J],
+            "K": solution[K],
+            "L": solution[L],
+            "M": solution[M],
+            "N": solution[N],
+            "O": solution[O],
+            "P": solution[P],
+            "Q": solution[Q],
+            "R": solution[R],
+            "S": solution[S],
+            "T": solution[T],
+            "U": solution[U],
+            "V": solution[V],
+            "W": solution[W],
+            "X": solution[X],
+            "Y": solution[Y],
+            "Z": solution[Z],
+        }
