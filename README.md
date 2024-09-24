@@ -21,6 +21,8 @@ Check out [NUCS documentation](https://nucs.readthedocs.io/).
 ### Find all 14200 solutions to the [12-queens problem](https://www.csplib.org/Problems/prob054/)
 ```bash
 NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.queens -n 12
+```
+```bash
 {
     'OPTIMIZER_SOLUTION_NB': 0,
     'PROBLEM_FILTER_NB': 262011,
@@ -40,6 +42,8 @@ NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.queens -n 12
 ### Compute the 92 solutions to the [BIBD(8,14,7,4,3) problem](https://www.csplib.org/Problems/prob028/)
 ```bash
 NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.bibd  
+```
+```bash
 {
     'OPTIMIZER_SOLUTION_NB': 0,
     'PROBLEM_FILTER_NB': 2797,
@@ -59,6 +63,8 @@ NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.bibd
 ### Demonstrate that the optimal [10-marks Golomb ruler](https://www.csplib.org/Problems/prob006/) length is 55
 ```bash
 NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.golomb
+```
+```bash
 {
     'OPTIMIZER_SOLUTION_NB': 10,
     'PROBLEM_FILTER_NB': 22204,
