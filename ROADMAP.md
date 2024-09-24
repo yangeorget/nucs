@@ -4,6 +4,7 @@
 - Product
 
 # Problems
+- refactor examples
 - submit problems to CSPlib
 - RoundRobin problem (GCC)
 - Job-shop problem 
