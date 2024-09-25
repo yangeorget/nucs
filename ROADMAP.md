@@ -23,5 +23,6 @@
 - test vectorize
 
 # Docs
-- document examples: in installation chapter (with CLI) and also in reference (with code?)
+- installation : put links to examples (and not CSPLIB)
+- examples : link to github
 - improve usage of rst

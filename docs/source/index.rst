@@ -25,6 +25,6 @@ Contents
 .. toctree::
 
    installation
-   domains
-   propagators
+   variables_domains
+   consistency_propagators
    reference

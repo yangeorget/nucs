@@ -2,8 +2,6 @@
 Installation
 ############
 
-.. _installation:
-
 ************************
 Install the NUCS package
 ************************
@@ -12,13 +10,13 @@ Let's install the NUCS package with pip:
 
 .. code-block:: bash
 
-   $ pip install nucs
+   pip install nucs
 
 *****************
 Run some examples
 *****************
 
-NUCS comes with some models and heuristics for some well-known problems.
+NUCS comes with some models and :ref:`heuristics <heuristics>` for some well-known :ref:`examples <examples>`.
 Some of these examples have a command line interface and can be run directly.
 
 Solve the 12-queens problem
@@ -65,7 +63,6 @@ Let's find the optimal solution to the `Golomb ruler problem <https://www.csplib
        'SOLVER_SOLUTION_NB': 10
    }
    [1, 6, 10, 23, 26, 34, 41, 53, 55]
-
 
 **********************
 Write your first model

@@ -11,6 +11,8 @@ version = '0.9.1'
 
 # -- General configuration
 
+tls_verify = False
+
 extensions = [
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
@@ -41,3 +43,4 @@ html_context = {
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
+
