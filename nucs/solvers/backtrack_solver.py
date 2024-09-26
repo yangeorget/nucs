@@ -58,7 +58,8 @@ class BacktrackSolver(Solver):
                 return values.tolist()
             dom_idx = self.var_heuristic(self.problem.shr_domains_arr)
             shr_domains_copy = self.problem.shr_domains_arr.copy(order="F")
-            self.choice_points.append(shr_domains_copy)
+            not_entailed_propagators_copy = self.problem.not_entailed_propagators.copy()
+            self.choice_points.append((shr_domains_copy, not_entailed_propagators_copy))
             event = self.dom_heuristic(self.problem.shr_domains_arr[dom_idx], shr_domains_copy[dom_idx])
             np.logical_or(
                 self.problem.triggered_propagators,

@@ -167,12 +167,14 @@ class Problem:
             statistics[STATS_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
             statistics[STATS_PROBLEM_VARIABLE_NB] = self.variable_nb
 
-    def reset(self, new_shr_domains_arr: Optional[NDArray] = None) -> None:
-        self.shr_domains_arr = (
-            new_shr_domains_arr if new_shr_domains_arr is not None else new_shr_domains_by_values(self.shr_domains_lst)
-        )
-        self.triggered_propagators.fill(True)
-        self.not_entailed_propagators.fill(True)
+    def reset(self, choice_point: Optional[Tuple[NDArray, NDArray]] = None) -> None:
+        if choice_point is None:
+            self.shr_domains_arr = new_shr_domains_by_values(self.shr_domains_lst)
+            self.not_entailed_propagators.fill(True)
+            self.triggered_propagators.fill(True)
+        else:
+            self.shr_domains_arr, self.not_entailed_propagators = choice_point
+            np.copyto(self.triggered_propagators, self.not_entailed_propagators)
 
     def get_min_value(self, var_idx: int) -> int:
         """

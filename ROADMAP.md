@@ -15,7 +15,6 @@
 # Engine
 - choice points pruning
 - backtrackable propagator __state__
-- backtrackable list of entailed propagators
 - implement decision variables
 - disable offsets when not useful
 
