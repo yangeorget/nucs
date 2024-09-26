@@ -8,7 +8,7 @@ from nucs.statistics import get_statistics
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", type=int, default=12)
+    parser.add_argument("-n", type=int, default=10)
     args = parser.parse_args()
     problem = QueensProblem(args.n)
     solver = BacktrackSolver(problem)

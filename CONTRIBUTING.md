@@ -26,12 +26,12 @@ sphinx-build -M html docs/source docs/output
 ## Performance
 ### How to profile the code
 ```bash
-NUMBA_DISABLE_JIT=1 ./scripts/bash/profile.sh tests/examples/test_queens.py | more
+NUMBA_DISABLE_JIT=1 python -m "cProfile" -s time -m nucs.examples.queens | more
 ```
 
 ### How to measure the performance
 ```bash
-time NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python tests/examples/test_queens.py -n 12
+time NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.queens -n 12 
 ```
 
 ## Package

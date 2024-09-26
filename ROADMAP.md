@@ -15,7 +15,9 @@
 # Engine
 - choice points pruning
 - backtrackable propagator __state__
+- backtrackable list of entailed propagators
 - implement decision variables
+- disable offsets when not useful
 
 # Numba
 - use prange with parallel=True
@@ -26,3 +28,4 @@
 - installation : put links to examples (and not CSPLIB)
 - examples : link to github
 - improve usage of rst
+- document environment variables
