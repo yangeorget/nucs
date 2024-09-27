@@ -5,11 +5,11 @@ from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INC
 from nucs.numpy import new_triggers
 
 
-def get_complexity_element_lic(n: int, data: NDArray) -> float:
+def get_complexity_element_lic(n: int, parameters: NDArray) -> float:
     return n
 
 
-def get_triggers_element_lic(n: int, data: NDArray) -> NDArray:
+def get_triggers_element_lic(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
@@ -19,11 +19,11 @@ def get_triggers_element_lic(n: int, data: NDArray) -> NDArray:
 
 
 @njit(cache=True)
-def compute_domains_element_lic(domains: NDArray, data: NDArray) -> int:
+def compute_domains_element_lic(domains: NDArray, parameters: NDArray) -> int:
     """
     Enforces l_i = c.
-    :param domains: the domains of the variables
-    :param data: the parameters of the propagator
+    :param domains: the domains of the variables, l is the list of the first n-1 domains, i is the last domain
+    :param parameters: the parameters of the propagator, c is the first parameter
     """
     l = domains[:-1]
     i = domains[-1]
@@ -32,7 +32,7 @@ def compute_domains_element_lic(domains: NDArray, data: NDArray) -> int:
     i[MAX] = min(i[MAX], len(l) - 1)
     if i[MAX] < i[MIN]:
         return PROP_INCONSISTENCY
-    c = data[0]
+    c = parameters[0]
     i_min = i[MIN]
     i_max = i[MAX]
     for idx in range(i[MIN], i[MAX] + 1):

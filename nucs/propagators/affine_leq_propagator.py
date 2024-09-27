@@ -7,35 +7,35 @@ from nucs.numpy import new_triggers
 from nucs.propagators.affine_eq_propagator import compute_domain_sum_max, compute_domain_sum_min
 
 
-def get_complexity_affine_leq(n: int, data: NDArray) -> float:
+def get_complexity_affine_leq(n: int, parameters: NDArray) -> float:
     return 5 * n
 
 
-def get_triggers_affine_leq(n: int, data: NDArray) -> NDArray:
+def get_triggers_affine_leq(n: int, parameters: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.
     :param n: the number of variables
     :return: an array of triggers
     """
     triggers = new_triggers(n, False)
-    for i, c in enumerate(data[:-1]):
+    for i, c in enumerate(parameters[:-1]):
         triggers[i, MIN] = c > 0
         triggers[i, MAX] = c < 0
     return triggers
 
 
 @njit(cache=True)
-def compute_domains_affine_leq(domains: NDArray, a: NDArray) -> int:
+def compute_domains_affine_leq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements Sigma_i a_i * x_i <= a_{n-1}.
-    :param domains: the domains of the variables
-    :param a: the parameters of the propagator
+    :param domains: the domains of the variables, x = domains
+    :param parameters: the parameters of the propagator, a = parameters
     """
-    if compute_domain_sum_min(domains, a) >= 0:
+    if compute_domain_sum_min(domains, parameters) >= 0:
         return PROP_ENTAILMENT
-    domain_sum_max = compute_domain_sum_max(domains, a)
+    domain_sum_max = compute_domain_sum_max(domains, parameters)
     new_domains = np.copy(domains)
-    for i, c in enumerate(a[:-1]):
+    for i, c in enumerate(parameters[:-1]):
         if c != 0:
             if c > 0:
                 new_max = domains[i, MIN] + (domain_sum_max // c)

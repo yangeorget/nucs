@@ -8,11 +8,11 @@ from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 from nucs.numpy import new_triggers
 
 
-def get_complexity_alldifferent(n: int, data: NDArray) -> float:
+def get_complexity_alldifferent(n: int, parameters: NDArray) -> float:
     return 2 * n * math.log(n) + 5 * n
 
 
-def get_triggers_alldifferent(n: int, data: NDArray) -> NDArray:
+def get_triggers_alldifferent(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
@@ -155,11 +155,12 @@ def filter_upper(
 
 
 @njit(cache=True)
-def compute_domains_alldifferent(domains: NDArray, data: NDArray) -> int:
+def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     """
+    Enforces that x_i <> x_j when i<>j.
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
-    :param domains: the domains of the variables
-    :param data: unused here
+    :param domains: the domains of the variables, x=domains
+    :param parameters: unused here
     """
     n = len(domains)
     ranks = np.zeros((n, 2), dtype=np.uint16)

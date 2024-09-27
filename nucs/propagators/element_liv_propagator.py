@@ -7,11 +7,11 @@ from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INC
 from nucs.numpy import new_triggers
 
 
-def get_complexity_element_liv(n: int, data: NDArray) -> float:
+def get_complexity_element_liv(n: int, parameters: NDArray) -> float:
     return n
 
 
-def get_triggers_element_liv(n: int, data: NDArray) -> NDArray:
+def get_triggers_element_liv(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
@@ -21,11 +21,14 @@ def get_triggers_element_liv(n: int, data: NDArray) -> NDArray:
 
 
 @njit(cache=True)
-def compute_domains_element_liv(domains: NDArray, data: NDArray) -> int:
+def compute_domains_element_liv(domains: NDArray, parameters: NDArray) -> int:
     """
     Enforces l_i = x.
-    :param domains: the domains of the variables
-    :param data: the parameters of the propagator
+    :param domains: the domains of the variables,
+           l is the list of the first n-2 domains,
+           i is the (n-1)th domain,
+           x is the last domain
+    :param parameters: the parameters of the propagator
     """
     l = domains[:-2]
     i = domains[-2]

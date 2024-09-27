@@ -5,11 +5,11 @@ from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INC
 from nucs.numpy import new_triggers
 
 
-def get_complexity_relation(n: int, data: NDArray) -> float:
-    return 3 * len(data)
+def get_complexity_relation(n: int, parameters: NDArray) -> float:
+    return 3 * len(parameters)
 
 
-def get_triggers_relation(n: int, data: NDArray) -> NDArray:
+def get_triggers_relation(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
@@ -19,13 +19,15 @@ def get_triggers_relation(n: int, data: NDArray) -> NDArray:
 
 
 @njit(cache=True)
-def compute_domains_relation(domains: NDArray, data: NDArray) -> int:
+def compute_domains_relation(domains: NDArray, parameters: NDArray) -> int:
     """
     :param domains: the domains of the variables
-    :param data: the parameters of the propagator
+    :param parameters: the parameters of the propagator,
+           the allowed tuples correspond to:
+           (parameter_0, ..., parameter_n-1), (parameter_n, ..., parameter_2n-1), ...
     """
     n = len(domains)
-    tuples = data.copy().reshape((-1, n))
+    tuples = parameters.copy().reshape((-1, n))
     for domain_idx in range(n):
         tuples = tuples[
             (tuples[:, domain_idx] >= domains[domain_idx, MIN]) & (tuples[:, domain_idx] <= domains[domain_idx, MAX])

@@ -6,11 +6,11 @@ from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 from nucs.numpy import new_triggers
 
 
-def get_complexity_affine_eq(n: int, data: NDArray) -> float:
+def get_complexity_affine_eq(n: int, parameters: NDArray) -> float:
     return 5 * n
 
 
-def get_triggers_affine_eq(n: int, data: NDArray) -> NDArray:
+def get_triggers_affine_eq(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
@@ -20,32 +20,32 @@ def get_triggers_affine_eq(n: int, data: NDArray) -> NDArray:
 
 
 @njit(cache=True)
-def compute_domain_sum_min(domains: NDArray, data: NDArray) -> int:
-    domain_sum_min = data[-1]
-    for i, c in enumerate(data[:-1]):
+def compute_domain_sum_min(domains: NDArray, parameters: NDArray) -> int:
+    domain_sum_min = parameters[-1]
+    for i, c in enumerate(parameters[:-1]):
         domain_sum_min -= c * (domains[i, MAX] if c > 0 else domains[i, MIN])
     return domain_sum_min
 
 
 @njit(cache=True)
-def compute_domain_sum_max(domains: NDArray, data: NDArray) -> int:
-    domain_sum_max = data[-1]
-    for i, c in enumerate(data[:-1]):
+def compute_domain_sum_max(domains: NDArray, parameters: NDArray) -> int:
+    domain_sum_max = parameters[-1]
+    for i, c in enumerate(parameters[:-1]):
         domain_sum_max -= c * (domains[i, MIN] if c > 0 else domains[i, MAX])
     return domain_sum_max
 
 
 @njit(cache=True)
-def compute_domains_affine_eq(domains: NDArray, a: NDArray) -> int:
+def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements Sigma_i a_i * x_i = a_{n-1}.
-    :param domains: the domains of the variables
-    :param a: the parameters of the propagator
+    :param domains: the domains of the variables, x = domains
+    :param parameters: the parameters of the propagator, a = parameters
     """
-    domain_sum_min = compute_domain_sum_min(domains, a)
-    domain_sum_max = compute_domain_sum_max(domains, a)
+    domain_sum_min = compute_domain_sum_min(domains, parameters)
+    domain_sum_max = compute_domain_sum_max(domains, parameters)
     new_domains = np.copy(domains)
-    for i, c in enumerate(a[:-1]):
+    for i, c in enumerate(parameters[:-1]):
         if c != 0:
             if c > 0:
                 new_min = domains[i, MAX] - (domain_sum_min // -c)

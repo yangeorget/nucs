@@ -6,11 +6,11 @@ from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 from nucs.numpy import new_triggers
 
 
-def get_complexity_min_eq(n: int, data: NDArray) -> float:
+def get_complexity_min_eq(n: int, parameters: NDArray) -> float:
     return 3 * n
 
 
-def get_triggers_min_eq(n: int, data: NDArray) -> NDArray:
+def get_triggers_min_eq(n: int, parameters: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.
     :param n: the number of variables
@@ -22,11 +22,11 @@ def get_triggers_min_eq(n: int, data: NDArray) -> NDArray:
 
 
 @njit(cache=True)
-def compute_domains_min_eq(domains: NDArray, data: NDArray) -> int:
+def compute_domains_min_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements Min_i x_i = x_{n-1}.
-    :param domains: the domains of the variables
-    :param data: unused here
+    :param domains: the domains of the variables, x=domains
+    :param parameters: unused here
     """
     x = domains[:-1]
     y = domains[-1]

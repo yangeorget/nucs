@@ -5,11 +5,11 @@ from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INC
 from nucs.numpy import new_triggers
 
 
-def get_complexity_lexicographic_leq(n: int, data: NDArray) -> float:
+def get_complexity_lexicographic_leq(n: int, parameters: NDArray) -> float:
     return 4 * n
 
 
-def get_triggers_lexicographic_leq(n: int, data: NDArray) -> NDArray:
+def get_triggers_lexicographic_leq(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
@@ -125,12 +125,14 @@ def compute_domains_1(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
 
 
 @njit(cache=True)
-def compute_domains_lexicographic_leq(domains: NDArray, data: NDArray) -> int:
+def compute_domains_lexicographic_leq(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements lexicographic leq.
+    Implements lexicographic leq: x <_leq y.
     See https://www.diva-portal.org/smash/record.jsf?pid=diva2:1041533.
-    :param domains: the domains of the variables
-    :param data: unused here
+    :param domains: the domains of the variables,
+           x is the list of the first n domains,
+           y is the list of the last n domains
+    :param parameters: unused here
     """
     # TODO: make incremental
     n = len(domains) // 2
