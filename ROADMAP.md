@@ -17,6 +17,7 @@
 - backtrackable propagator __state__
 - implement decision variables
 - disable offsets when not useful
+- entailment date
 
 # Numba
 - use prange with parallel=True
@@ -25,6 +26,6 @@
 
 # Docs
 - installation : put links to examples (and not CSPLIB)
-- examples : link to github
+- examples : link to github, use https://www.sphinx-doc.org/en/master/tutorial/describing-code.html
 - improve usage of rst
 - document environment variables
