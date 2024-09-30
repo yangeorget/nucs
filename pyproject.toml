@@ -1,6 +1,6 @@
 [project]
 name="NUCS"
-version="0.9.2"
+version="0.9.3"
 authors = [
   { name="Yan Georget", email="yan.georget@gmail.com" },
 ]
@@ -24,7 +24,7 @@ dependencies = [
 ]
 [project.urls]
 Homepage = "https://github.com/yangeorget/nucs"
-Issues = "https://github.com/yangeorget/nucs"
+Issues = "https://github.com/yangeorget/nucs/issues"
 
 [build-system]
 requires = ["setuptools>=61.0"]
