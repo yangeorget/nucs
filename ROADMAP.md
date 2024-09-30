@@ -26,6 +26,5 @@
 
 # Docs
 - installation : put links to examples (and not CSPLIB)
-- examples : link to github, use https://www.sphinx-doc.org/en/master/tutorial/describing-code.html
 - improve usage of rst
 - document environment variables

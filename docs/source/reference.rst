@@ -214,7 +214,7 @@ Heuristics for selecting a shared domain
 
 NUCS provides the following functions for selecting a shared domain.
 
-.. py:module:: nucs.solvers.heuristics
+
 .. py:function:: nucs.solvers.heuristics.first_not_instantiated_var_heuristic(shr_domains)
 
    This heuristics chooses the first non-instantiated shared domain.
@@ -285,7 +285,7 @@ NUCS provides the following functions for reducing a shared domain.
    :rtype: int
 
 
-.. py:function:: nucs.solvers.heuristics.max_value_dom_heuristic(shr_domains, shr_domains_copy)
+.. py:function:: nucs.solvers.heuristics.split_low_dom_heuristic(shr_domains, shr_domains_copy)
 
    This heuristics chooses the first half of the domain.
 
@@ -304,26 +304,106 @@ Examples
 ********
 
 NUCS comes with the following examples.
-Some of these examples have a command line interface and can be run directly:
+
+
+.. py:module:: nucs.examples.alpha.alpha_problem
+.. py:class:: nucs.examples.alpha.alpha_problem
+
+This problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.<problem> <options>
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.alpha
 
 
-================================ ======== ======================== =====================================================
-Problem                          CSPLib # CLI                      Options
-================================ ======== ======================== =====================================================
-:code:`alpha`                             Yes
-:code:`bibd`                     028      Yes (for one instance)
-:code:`donald`                            Yes
-:code:`golomb`                   006      Yes                      :code:`-n` size
-:code:`knapsack`                 133      Yes (for one instance)
-:code:`magic_sequence`           019
-:code:`magic_square`             019
-:code:`quasigroup`               003      Yes (for one subproblem) :code:`-n` size
-:code:`queens`                   054      Yes                      :code:`-n` size
-:code:`schur_lemma`              015
-:code:`sudoku`
-================================ ======== ======================== =====================================================
+.. py:module:: nucs.examples.bibd.bibd_problem
+.. py:class:: nucs.examples.bibd.bibd_problem
+
+This problem is problem `028 <https://www.csplib.org/Problems/prob028>`_ on CSPLib.
+
+This problem can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.bibd
+
+
+.. py:module:: nucs.examples.donald.donald_problem
+.. py:class:: nucs.examples.donald.donald_problem
+
+This problem can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.donald
+
+
+.. py:module:: nucs.examples.golomb.golomb_problem
+.. py:class:: nucs.examples.golomb.golomb_problem
+
+This problem is problem `006 <https://www.csplib.org/Problems/prob006>`_ on CSPLib.
+
+This problem can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.golomb -n 10
+
+
+.. py:module:: nucs.examples.knapsack.knapsack_problem
+.. py:class:: nucs.examples.knapsack.knapsack_problem
+
+This problem is problem `133 <https://www.csplib.org/Problems/prob133>`_ on CSPLib.
+
+This problem can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.knapsack
+
+
+.. py:module:: nucs.examples.magic_sequence.magic_sequence_problem
+.. py:class:: nucs.examples.magic_sequence.magic_sequence_problem
+
+This problem is problem `019 <https://www.csplib.org/Problems/prob019>`_ on CSPLib.
+
+
+.. py:module:: nucs.examples.magic_square.magic_square_problem
+.. py:class:: nucs.examples.magic_square.magic_square_problem
+
+This problem is problem `019 <https://www.csplib.org/Problems/prob019>`_ on CSPLib.
+
+
+.. py:module:: nucs.examples.quasigroup.quasigroup_problem
+.. py:class:: nucs.examples.quasigroup.quasigroup_problem
+
+This problem is problem `003 <https://www.csplib.org/Problems/prob003>`_ on CSPLib.
+
+The problem QG5, a sub-instance of the quasigroup problem, can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.quasigroup -n 10
+
+
+.. py:module:: nucs.examples.queens.queens_problem
+.. py:class:: nucs.examples.queens.queens_problem
+
+This problem is problem `054 <https://www.csplib.org/Problems/prob054>`_ on CSPLib.
+
+The problem can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.queens -n 10
+
+
+.. py:module:: nucs.examples.schur_lemma.schur_lemma_problem
+.. py:class:: nucs.examples.schur_lemma.schur_lemma_problem
+
+This problem is problem `015 <https://www.csplib.org/Problems/prob015>`_ on CSPLib.
+
+
+.. py:module:: nucs.examples.sudoku.sudoku_problem
+.. py:class:: nucs.examples.sudoku.sudoku_problem
 

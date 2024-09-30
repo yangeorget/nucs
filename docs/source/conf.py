@@ -46,7 +46,12 @@ html_context = {
 epub_show_urls = 'footnote'
 
 def linkcode_resolve(domain, info):
-    if domain != 'py' or not info['fullname']:
+    if domain != 'py':
         return None
-    filename = '/'.join(info['fullname'].split('.')[:-1])
-    return f"https://github.com/yangeorget/nucs/tree/main/{filename}.py"
+    if info['module']:
+        filename = info['module'].replace('.', '/')
+        return f"https://github.com/yangeorget/nucs/tree/main/{filename}.py"
+    if info['fullname']:
+        filename = '/'.join(info['fullname'].split('.')[:-1])
+        return f"https://github.com/yangeorget/nucs/tree/main/{filename}.py"
+    return None
