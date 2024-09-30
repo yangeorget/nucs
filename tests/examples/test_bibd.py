@@ -10,8 +10,16 @@ class TestBIBD:
         solver.solve_all()
         assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1
 
+    def test_7_7_3_3_1(self) -> None:
+        problem = BIBDProblem(7, 7, 3, 3, 1)
+        solver = BacktrackSolver(problem)
+        solver.solve_all()
+        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1
+
     def test_8_14_7_4_3(self) -> None:
         problem = BIBDProblem(8, 14, 7, 4, 3)
         solver = BacktrackSolver(problem)
         solver.solve_all()
         assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 92
+
+
