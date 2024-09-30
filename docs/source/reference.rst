@@ -12,7 +12,7 @@ Propagators
 NUCS currently provides the following highly-optimized propagators.
 
 
-.. py:function:: nucs.propagators.affine_eq_propagator(domains, parameters)
+.. py:function:: nucs.propagators.affine_eq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\Sigma_{i \in [0, n-1[} a_i \times x_i = a_{n-1}`.
 
@@ -24,7 +24,7 @@ NUCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
-.. py:function:: nucs.propagators.affine_geq_propagator(domains, parameters)
+.. py:function:: nucs.propagators.affine_geq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\Sigma_{i \in [0, n-1[} a_i \times x_i \geq a_{n-1}`.
 
@@ -36,7 +36,7 @@ NUCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
-.. py:function:: nucs.propagators.affine_leq_propagator(domains, parameters)
+.. py:function:: nucs.propagators.affine_leq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\Sigma_{i \in [0, n-1[} a_i \times x_i \leq a_{n-1}`.
 
@@ -48,7 +48,7 @@ NUCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
-.. py:function:: nucs.propagators.alldifferent_propagator(domains, parameters)
+.. py:function:: nucs.propagators.alldifferent_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\forall i \neq j, x_i \neq x_j`.
 
@@ -61,7 +61,8 @@ NUCS currently provides the following highly-optimized propagators.
    :param parameters: the parameters of the propagator, it is unused
    :type parameters: NDArray
 
-.. py:function:: nucs.propagators.count_eq_propagator(domains, parameters)
+
+.. py:function:: nucs.propagators.count_eq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\Sigma_i (x_i = a) = x_{n-1}`.
 
@@ -73,7 +74,7 @@ NUCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
-.. py:function:: nucs.propagators.element_lic_propagator(domains, parameters)
+.. py:function:: nucs.propagators.element_lic_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`l_i = c`.
 
@@ -87,7 +88,7 @@ NUCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
-.. py:function:: nucs.propagators.element_liv_propagator(domains, parameters)
+.. py:function:: nucs.propagators.element_liv_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`l_i = v`.
 
@@ -102,7 +103,7 @@ NUCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
-.. py:function:: nucs.propagators.exactly_eq_propagator(domains, parameters)
+.. py:function:: nucs.propagators.exactly_eq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\Sigma_i (x_i = a) = c`.
 
@@ -116,7 +117,7 @@ NUCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
-.. py:function:: nucs.propagators.lexicographic_leq_propagator(domains, parameters)
+.. py:function:: nucs.propagators.lexicographic_leq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`x <_{leq} y`.
 
@@ -132,7 +133,7 @@ NUCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
-.. py:function:: nucs.propagators.max_eq_propagator(domains, parameters)
+.. py:function:: nucs.propagators.max_eq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\max_i x_i = x_{n-1}`.
 
@@ -145,7 +146,7 @@ NUCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
-.. py:function:: nucs.propagators.max_leq_propagator(domains, parameters)
+.. py:function:: nucs.propagators.max_leq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\max_i x_i \leq x_{n-1}`.
 
@@ -158,7 +159,7 @@ NUCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
-.. py:function:: nucs.propagators.min_eq_propagator(domains, parameters)
+.. py:function:: nucs.propagators.min_eq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\min_i x_i = x_{n-1}`.
 
@@ -171,7 +172,7 @@ NUCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
-.. py:function:: nucs.propagators.min_geq_propagator(domains, parameters)
+.. py:function:: nucs.propagators.min_geq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\min_i x_i \geq x_{n-1}`.
 
@@ -184,7 +185,7 @@ NUCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
-.. py:function:: nucs.propagators.relation_propagator(domains, parameters)
+.. py:function:: nucs.propagators.relation_propagator.compute_domains(domains, parameters)
 
    This propagator implements a relation over :math:`O(n)` variables defined by its allowed tuples.
 
@@ -213,27 +214,88 @@ Heuristics for selecting a shared domain
 
 NUCS provides the following functions for selecting a shared domain.
 
-============================================ ============================================================
-Function                                     Description
-============================================ ============================================================
-:code:`first_not_instantiated_var_heuristic` selects the first non-instantiated shared domain
-:code:`last_not_instantiated_var_heuristic`  selects the last non-instantiated shared domain
-:code:`smallest_domain_var_heuristic`        selects the smallest shared domain which is not instantiated
-:code:`greatest_domain_var_heuristic`        selects the greatest shared domain which is not instantiated
-============================================ ============================================================
+.. py:module:: nucs.solvers.heuristics
+.. py:function:: nucs.solvers.heuristics.first_not_instantiated_var_heuristic(shr_domains)
+
+   This heuristics chooses the first non-instantiated shared domain.
+
+   :param shr_domains: the shared domains of the variables
+   :type shr_domains: NDArray
+   :return: the index of the shared domain
+   :rtype: int
+
+
+.. py:function:: nucs.solvers.heuristics.last_not_instantiated_var_heuristic(shr_domains)
+
+   This heuristics chooses the last non-instantiated shared domain.
+
+   :param shr_domains: the shared domains of the variables
+   :type shr_domains: NDArray
+   :return: the index of the shared domain
+   :rtype: int
+
+
+.. py:function:: nucs.solvers.heuristics.smallest_domain_var_heuristic(shr_domains)
+
+   This heuristics chooses the smallest shared domain and which is not instantiated.
+
+   :param shr_domains: the shared domains of the variables
+   :type shr_domains: NDArray
+   :return: the index of the shared domain
+   :rtype: int
+
+
+.. py:function:: nucs.solvers.heuristics.greatest_domain_var_heuristic(shr_domains)
+
+   This heuristics chooses the greatest shared domain and which is not instantiated.
+
+   :param shr_domains: the shared domains of the variables
+   :type shr_domains: NDArray
+   :return: the index of the shared domain
+   :rtype: int
+
 
 Heuristics for reducing the chosen shared domain
 ################################################
 
 NUCS provides the following functions for reducing a shared domain.
 
-============================================ ============================================================
-Function                                     Description
-============================================ ============================================================
-:code:`min_value_dom_heuristic`              selects the minimal value of the domain
-:code:`max_value_dom_heuristic`              selects the maximal value of the domain
-:code:`split_low_dom_heuristic`              selects the first half of the domain
-============================================ ============================================================
+
+.. py:function:: nucs.solvers.heuristics.min_value_dom_heuristic(shr_domains, shr_domains_copy)
+
+   This heuristics chooses the first value of the domain.
+
+   :param shr_domains: the shared domains of the variables
+   :type shr_domains: NDArray
+   :param shr_domains_copy: the copy of the shared domains to be added to the choice points
+   :type shr_domains_copy: NDArray
+   :return: the MAX event
+   :rtype: int
+
+
+.. py:function:: nucs.solvers.heuristics.max_value_dom_heuristic(shr_domains, shr_domains_copy)
+
+   This heuristics chooses the last value of the domain.
+
+   :param shr_domains: the shared domains of the variables
+   :type shr_domains: NDArray
+   :param shr_domains_copy: the copy of the shared domains to be added to the choice points
+   :type shr_domains_copy: NDArray
+   :return: the MIN event
+   :rtype: int
+
+
+.. py:function:: nucs.solvers.heuristics.max_value_dom_heuristic(shr_domains, shr_domains_copy)
+
+   This heuristics chooses the first half of the domain.
+
+   :param shr_domains: the shared domains of the variables
+   :type shr_domains: NDArray
+   :param shr_domains_copy: the copy of the shared domains to be added to the choice points
+   :type shr_domains_copy: NDArray
+   :return: the MAX event
+   :rtype: int
+
 
 .. _examples:
 
@@ -247,6 +309,7 @@ Some of these examples have a command line interface and can be run directly:
 .. code-block:: bash
 
    NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.<problem> <options>
+
 
 ================================ ======== ======================== =====================================================
 Problem                          CSPLib # CLI                      Options
