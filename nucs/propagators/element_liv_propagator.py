@@ -23,12 +23,12 @@ def get_triggers_element_liv(n: int, parameters: NDArray) -> NDArray:
 @njit(cache=True)
 def compute_domains_element_liv(domains: NDArray, parameters: NDArray) -> int:
     """
-    Enforces l_i = x.
+    Enforces l_i = v.
     :param domains: the domains of the variables,
            l is the list of the first n-2 domains,
            i is the (n-1)th domain,
-           x is the last domain
-    :param parameters: the parameters of the propagator
+           v is the last domain
+    :param parameters: the parameters of the propagator, it is unused
     """
     l = domains[:-2]
     i = domains[-2]
@@ -36,31 +36,31 @@ def compute_domains_element_liv(domains: NDArray, parameters: NDArray) -> int:
     i[MAX] = min(i[MAX], len(l) - 1)
     if i[MAX] < i[MIN]:
         return PROP_INCONSISTENCY
-    x = domains[-1]
-    x_min = sys.maxsize
-    x_max = -sys.maxsize
+    v = domains[-1]
+    v_min = sys.maxsize
+    v_max = -sys.maxsize
     i_min = i[MIN]
     i_max = i[MAX]
     for idx in range(i[MIN], i[MAX] + 1):
-        if x[MAX] < l[idx, MIN] or x[MIN] > l[idx, MAX]:  # no intersection
+        if v[MAX] < l[idx, MIN] or v[MIN] > l[idx, MAX]:  # no intersection
             if idx == i_min:
                 i_min += 1
             elif idx == i_max:
                 i_max -= 1
         else:  # intersection
-            if l[idx, MIN] < x_min:
-                x_min = l[idx, MIN]
-            if l[idx, MAX] > x_max:
-                x_max = l[idx, MAX]
+            if l[idx, MIN] < v_min:
+                v_min = l[idx, MIN]
+            if l[idx, MAX] > v_max:
+                v_max = l[idx, MAX]
     if i_max < i_min:
         return PROP_INCONSISTENCY
     i[MIN] = i_min
     i[MAX] = i_max
-    x[MIN] = max(x[MIN], x_min)
-    x[MAX] = min(x[MAX], x_max)
+    v[MIN] = max(v[MIN], v_min)
+    v[MAX] = min(v[MAX], v_max)
     if i_min == i_max:
-        l[i_min, MIN] = max(l[i_min, MIN], x[MIN])
-        l[i_max, MAX] = min(l[i_max, MAX], x[MAX])
-        if x[MIN] == x[MAX]:
+        l[i_min, MIN] = max(l[i_min, MIN], v[MIN])
+        l[i_max, MAX] = min(l[i_max, MAX], v[MAX])
+        if v[MIN] == v[MAX]:
             return PROP_ENTAILMENT
     return PROP_CONSISTENCY

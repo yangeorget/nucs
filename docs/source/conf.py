@@ -14,6 +14,7 @@ version = '0.9.1'
 tls_verify = False
 
 extensions = [
+    'sphinx.ext.linkcode',
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
@@ -44,3 +45,8 @@ html_context = {
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
 
+def linkcode_resolve(domain, info):
+    if domain != 'py' or not info['fullname']:
+        return None
+    filename = info['fullname'].replace('.', '/')
+    return f"https://github.com/yangeorget/nucs/tree/main/{filename}.py"

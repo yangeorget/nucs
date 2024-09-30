@@ -21,10 +21,11 @@ def get_triggers_relation(n: int, parameters: NDArray) -> NDArray:
 @njit(cache=True)
 def compute_domains_relation(domains: NDArray, parameters: NDArray) -> int:
     """
+    Implements a relation over n variables defined by its allowed tuples.
     :param domains: the domains of the variables
     :param parameters: the parameters of the propagator,
            the allowed tuples correspond to:
-           (parameter_0, ..., parameter_n-1), (parameter_n, ..., parameter_2n-1), ...
+           (parameters_0, ..., parameters_n-1), (parameters_n, ..., parameters_2n-1), ...
     """
     n = len(domains)
     tuples = parameters.copy().reshape((-1, n))

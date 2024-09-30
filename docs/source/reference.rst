@@ -11,24 +11,193 @@ Propagators
 
 NUCS currently provides the following highly-optimized propagators.
 
-==================================== ============================================== ========================
-Name                                 Definition                                     Complexity
-==================================== ============================================== ========================
-:code:`affine_eq_propagator`         :math:`\Sigma_i a_i \times x_i = a_{n-1}`      :math:`n`
-:code:`affine_geq_propagator`        :math:`\Sigma_i a_i \times x_i \geq a_{n-1}`   :math:`n`
-:code:`affine_leq_propagator`        :math:`\Sigma_i a_i \times x_i \leq a_{n-1}`   :math:`n`
-:code:`alldifferent_propagator`      :math:`\forall i, j, x_i \neq x_j`             :math:`n \times log(n)`
-:code:`count_eq_propagator`          :math:`\Sigma_i (x_i = a) = x_{n-1}`           :math:`n`
-:code:`element_lic_propagator`       :math:`l_i = c`                                :math:`n`
-:code:`element_liv_propagator`       :math:`l_i = x`                                :math:`n`
-:code:`exactly_eq_propagator`        :math:`\Sigma_i (x_i = a_0) = a_1`             :math:`n`
-:code:`lexicographic_leq_propagator` :math:`x \leq_{lex} y`                         :math:`n`
-:code:`max_eq_propagator`            :math:`\max_i x_i = x_{n-1}`                   :math:`n`
-:code:`max_leq_propagator`           :math:`\max_i x_i \leq x_{n-1}`                :math:`n`
-:code:`min_eq_propagator`            :math:`\min_i x_i = x_{n-1}`                   :math:`n`
-:code:`min_geq_propagator`           :math:`\min_i x_i \geq x_{n-1}`                :math:`n`
-:code:`relation_propagator`          Relation defined in extension                  :math:`n`
-==================================== ============================================== ========================
+
+.. py:function:: nucs.propagators.affine_eq_propagator(domains, parameters)
+
+   This propagator implements the relation :math:`\Sigma_{i \in [0, n-1[} a_i \times x_i = a_{n-1}`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables, :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, :math:`a` is an alias for parameters
+   :type parameters: NDArray
+
+
+.. py:function:: nucs.propagators.affine_geq_propagator(domains, parameters)
+
+   This propagator implements the relation :math:`\Sigma_{i \in [0, n-1[} a_i \times x_i \geq a_{n-1}`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables, :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, :math:`a` is an alias for parameters
+   :type parameters: NDArray
+
+
+.. py:function:: nucs.propagators.affine_leq_propagator(domains, parameters)
+
+   This propagator implements the relation :math:`\Sigma_{i \in [0, n-1[} a_i \times x_i \leq a_{n-1}`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables, :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, :math:`a` is an alias for parameters
+   :type parameters: NDArray
+
+
+.. py:function:: nucs.propagators.alldifferent_propagator(domains, parameters)
+
+   This propagator implements the relation :math:`\forall i \neq j, x_i \neq x_j`.
+
+   It is adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
+
+   It has the time complexity: :math:`O(n \times log(n))` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables, :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, it is unused
+   :type parameters: NDArray
+
+.. py:function:: nucs.propagators.count_eq_propagator(domains, parameters)
+
+   This propagator implements the relation :math:`\Sigma_i (x_i = a) = x_{n-1}`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables, :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, :math:`a` is the first parameter
+   :type parameters: NDArray
+
+
+.. py:function:: nucs.propagators.element_lic_propagator(domains, parameters)
+
+   This propagator implements the relation :math:`l_i = c`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables,
+          :math:`l` is the list of the first :math:`n-1` domains,
+          :math:`i` is the last domain
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, :math:`c` is the first parameter
+   :type parameters: NDArray
+
+
+.. py:function:: nucs.propagators.element_liv_propagator(domains, parameters)
+
+   This propagator implements the relation :math:`l_i = v`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables,
+          :math:`l` is the list of the first :math:`n-2` domains,
+          :math:`i` is the :math:`n-1` th domain,
+          :math:`v` is the last domain
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, it is unused
+   :type parameters: NDArray
+
+
+.. py:function:: nucs.propagators.exactly_eq_propagator(domains, parameters)
+
+   This propagator implements the relation :math:`\Sigma_i (x_i = a) = c`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables, :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator,
+          :math:`a` is the first parameter,
+          :math:`c` is the second parameter
+   :type parameters: NDArray
+
+
+.. py:function:: nucs.propagators.lexicographic_leq_propagator(domains, parameters)
+
+   This propagator implements the relation :math:`x <_{leq} y`.
+
+   See https://www.diva-portal.org/smash/record.jsf?pid=diva2:1041533.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables,
+          :math:`x` is the list of the first :math:`n` domains,
+          :math:`y` is the list of the last :math:`n` domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, it is unused
+   :type parameters: NDArray
+
+
+.. py:function:: nucs.propagators.max_eq_propagator(domains, parameters)
+
+   This propagator implements the relation :math:`\max_i x_i = x_{n-1}`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables,
+          :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, it is unused
+   :type parameters: NDArray
+
+
+.. py:function:: nucs.propagators.max_leq_propagator(domains, parameters)
+
+   This propagator implements the relation :math:`\max_i x_i \leq x_{n-1}`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables,
+          :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, it is unused
+   :type parameters: NDArray
+
+
+.. py:function:: nucs.propagators.min_eq_propagator(domains, parameters)
+
+   This propagator implements the relation :math:`\min_i x_i = x_{n-1}`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables,
+          :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, it is unused
+   :type parameters: NDArray
+
+
+.. py:function:: nucs.propagators.min_geq_propagator(domains, parameters)
+
+   This propagator implements the relation :math:`\min_i x_i \geq x_{n-1}`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables,
+          :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, it is unused
+   :type parameters: NDArray
+
+
+.. py:function:: nucs.propagators.relation_propagator(domains, parameters)
+
+   This propagator implements a relation over :math:`O(n)` variables defined by its allowed tuples.
+
+   It has the time complexity: :math:`O(p)` where :math:`p` is the number of parameters.
+
+   :param domains: the domains of the variables
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator,
+          the allowed tuples correspond to:
+          :math:`(p_0, ..., p_{n-1}), (p_n, ..., p_{2n-1}), ...` where :math:`p` is an alias for parameters
+
+   :type parameters: NDArray
+
 
 .. _heuristics:
 

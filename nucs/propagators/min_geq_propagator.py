@@ -27,7 +27,7 @@ def get_triggers_min_geq(n: int, parameters: NDArray) -> NDArray:
 def compute_domains_min_geq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements Min_i x_i >= x_{n-1}.
-    :param domains: the domains of the variables, x=domains
+    :param domains: the domains of the variables, x is an alias for domains
     :param parameters: unused here
     """
     x = domains[:-1]

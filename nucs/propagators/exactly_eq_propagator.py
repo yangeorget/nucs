@@ -23,7 +23,7 @@ def get_triggers_exactly_eq(n: int, parameters: NDArray) -> NDArray:
 def compute_domains_exactly_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements Sigma_i (x_i == a) = c.
-    :param domains: the domains of the variables, x=domains
+    :param domains: the domains of the variables, x is an alias for domains
     :param parameters: the parameters of the propagator, a is the first parameter, c is the second parameter
     """
     a = parameters[0]

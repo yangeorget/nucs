@@ -159,7 +159,7 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     """
     Enforces that x_i <> x_j when i<>j.
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
-    :param domains: the domains of the variables, x=domains
+    :param domains: the domains of the variables, x is an alias for domains
     :param parameters: unused here
     """
     n = len(domains)

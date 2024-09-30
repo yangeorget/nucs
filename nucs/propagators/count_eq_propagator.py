@@ -23,7 +23,7 @@ def get_triggers_count_eq(n: int, parameters: NDArray) -> NDArray:
 def compute_domains_count_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements Sigma_i (x_i == a) = x_{n-1}.
-    :param domains: the domains of the variables, x = domains
+    :param domains: the domains of the variables, x is an alias for domains
     :param parameters: the parameters of the propagator, a is the first parameter
     """
     x = domains[:-1]
