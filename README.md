@@ -1,4 +1,4 @@
-![NucS logo](https://github.com/yangeorget/nucs/main/assets/nucs.png?raw=true)
+![NucS logo](https://github.com/yangeorget/nucs/blob/main/assets/nucs.png?raw=true)
 
 
 ![pypi version](https://img.shields.io/pypi/v/nucs?color=blue&label=pypi%20version&logo=pypi&logoColor=white)
