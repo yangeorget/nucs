@@ -22,13 +22,14 @@ class BIBDProblem(Problem):
         for block_idx in range(0, b):
             self.add_propagator((list(range(block_idx, v * b, b)), ALG_EXACTLY_EQ, [1, k]))
         # scalar products: conjunctions and counts
+        # TODO: test with GCC
         conj_idx = v * b  # index of first redundant variable
         for i1 in range(0, v - 1):
             for i2 in range(i1 + 1, v):
                 conj_vars = []
                 for block_idx in range(0, b):
                     self.add_propagator(
-                        ([(i1 * b + block_idx), (i2 * b + block_idx), conj_idx], ALG_MIN_EQ, [])
+                        ([i1 * b + block_idx, i2 * b + block_idx, conj_idx], ALG_MIN_EQ, [])
                     )  # TODO:replace by AND ?
                     conj_vars.append(conj_idx)
                     conj_idx += 1
