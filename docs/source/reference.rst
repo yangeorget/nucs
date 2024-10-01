@@ -12,6 +12,7 @@ Propagators
 NuCS currently provides the following highly-optimized propagators.
 
 
+.. py:module:: nucs.propagators.affine_eq_propagator
 .. py:function:: nucs.propagators.affine_eq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\Sigma_{i \in [0, n-1[} a_i \times x_i = a_{n-1}`.
@@ -24,6 +25,7 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.affine_geq_propagator
 .. py:function:: nucs.propagators.affine_geq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\Sigma_{i \in [0, n-1[} a_i \times x_i \geq a_{n-1}`.
@@ -36,6 +38,7 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.affine_leq_propagator
 .. py:function:: nucs.propagators.affine_leq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\Sigma_{i \in [0, n-1[} a_i \times x_i \leq a_{n-1}`.
@@ -48,6 +51,7 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.alldifferent_propagator
 .. py:function:: nucs.propagators.alldifferent_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\forall i \neq j, x_i \neq x_j`.
@@ -62,6 +66,7 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.count_eq_propagator
 .. py:function:: nucs.propagators.count_eq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\Sigma_i (x_i = a) = x_{n-1}`.
@@ -74,6 +79,7 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.element_lic_propagator
 .. py:function:: nucs.propagators.element_lic_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`l_i = c`.
@@ -88,6 +94,7 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.element_liv_propagator
 .. py:function:: nucs.propagators.element_liv_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`l_i = v`.
@@ -103,6 +110,7 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.exactly_eq_propagator
 .. py:function:: nucs.propagators.exactly_eq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\Sigma_i (x_i = a) = c`.
@@ -117,6 +125,7 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.lexicographic_leq_propagator
 .. py:function:: nucs.propagators.lexicographic_leq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`x <_{leq} y`.
@@ -133,6 +142,7 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.max_eq_propagator
 .. py:function:: nucs.propagators.max_eq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\max_i x_i = x_{n-1}`.
@@ -146,6 +156,7 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.max_leq_propagator
 .. py:function:: nucs.propagators.max_leq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\max_i x_i \leq x_{n-1}`.
@@ -159,6 +170,7 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.min_eq_propagator
 .. py:function:: nucs.propagators.min_eq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\min_i x_i = x_{n-1}`.
@@ -172,6 +184,7 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.min_geq_propagator
 .. py:function:: nucs.propagators.min_geq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\min_i x_i \geq x_{n-1}`.
@@ -185,6 +198,7 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.relation_propagator
 .. py:function:: nucs.propagators.relation_propagator.compute_domains(domains, parameters)
 
    This propagator implements a relation over :math:`O(n)` variables defined by its allowed tuples.
@@ -205,6 +219,8 @@ NuCS currently provides the following highly-optimized propagators.
 **********
 Heuristics
 **********
+
+.. py:module:: nucs.solvers.heuristics
 
 NUCS provides heuristics for selecting a variable (precisely selecting a shared domain)
 and for selecting a value (more generally, reducing the shared domain):
@@ -315,6 +331,11 @@ This problem can be run with the command:
 
    NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.alpha
 
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.affine_eq_propagator`,
+* :mod:`nucs.propagators.alldifferent_propagator`.
+
 
 .. py:module:: nucs.examples.bibd.bibd_problem
 .. py:class:: nucs.examples.bibd.bibd_problem
@@ -327,6 +348,11 @@ This problem can be run with the command:
 
    NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -l 3
 
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.exactly_eq_propagator`,
+* :mod:`nucs.propagators.min_eq_propagator`,
+* :mod:`nucs.propagators.lexicographic_leq_propagator`.
 
 .. py:module:: nucs.examples.donald.donald_problem
 .. py:class:: nucs.examples.donald.donald_problem
@@ -336,6 +362,11 @@ This problem can be run with the command:
 .. code-block:: bash
 
    NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.donald
+
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.affine_eq_propagator`,
+* :mod:`nucs.propagators.alldifferent_propagator`.
 
 
 .. py:module:: nucs.examples.golomb.golomb_problem
@@ -349,6 +380,12 @@ This problem can be run with the command:
 
    NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.golomb -n 10
 
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.affine_eq_propagator`,
+* :mod:`nucs.propagators.affine_leq_propagator`,
+* :mod:`nucs.propagators.alldifferent_propagator`.
+
 
 .. py:module:: nucs.examples.knapsack.knapsack_problem
 .. py:class:: nucs.examples.knapsack.knapsack_problem
@@ -361,17 +398,33 @@ This problem can be run with the command:
 
    NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.knapsack
 
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.affine_eq_propagator`,
+* :mod:`nucs.propagators.affine_leq_propagator`.
+
 
 .. py:module:: nucs.examples.magic_sequence.magic_sequence_problem
 .. py:class:: nucs.examples.magic_sequence.magic_sequence_problem
 
 This problem is problem `019 <https://www.csplib.org/Problems/prob019>`_ on CSPLib.
 
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.affine_eq_propagator`,
+* :mod:`nucs.propagators.count_eq_propagator`.
+
 
 .. py:module:: nucs.examples.magic_square.magic_square_problem
 .. py:class:: nucs.examples.magic_square.magic_square_problem
 
 This problem is problem `019 <https://www.csplib.org/Problems/prob019>`_ on CSPLib.
+
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.affine_eq_propagator`,
+* :mod:`nucs.propagators.affine_leq_propagator`,
+* :mod:`nucs.propagators.alldifferent_propagator`.
 
 
 .. py:module:: nucs.examples.quasigroup.quasigroup_problem
@@ -385,6 +438,12 @@ The problem QG5, a sub-instance of the quasigroup problem, can be run with the c
 
    NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.quasigroup -n 10
 
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.element_liv_propagator`,
+* :mod:`nucs.propagators.element_lic_propagator`,
+* :mod:`nucs.propagators.alldifferent_propagator`.
+
 
 .. py:module:: nucs.examples.queens.queens_problem
 .. py:class:: nucs.examples.queens.queens_problem
@@ -397,13 +456,25 @@ The problem can be run with the command:
 
    NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.queens -n 10
 
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.alldifferent_propagator`.
+
 
 .. py:module:: nucs.examples.schur_lemma.schur_lemma_problem
 .. py:class:: nucs.examples.schur_lemma.schur_lemma_problem
 
 This problem is problem `015 <https://www.csplib.org/Problems/prob015>`_ on CSPLib.
 
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.exactly_eq_propagator`,
+* :mod:`nucs.propagators.affine_leq_propagator`,
+* :mod:`nucs.propagators.lexicographic_leq_propagator`.
 
 .. py:module:: nucs.examples.sudoku.sudoku_problem
 .. py:class:: nucs.examples.sudoku.sudoku_problem
 
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.alldifferent_propagator`.

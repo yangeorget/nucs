@@ -51,7 +51,4 @@ def linkcode_resolve(domain, info):
     if info['module']:
         filename = info['module'].replace('.', '/')
         return f"https://github.com/yangeorget/nucs/tree/main/{filename}.py"
-    if info['fullname']:
-        filename = '/'.join(info['fullname'].split('.')[:-1])
-        return f"https://github.com/yangeorget/nucs/tree/main/{filename}.py"
     return None
