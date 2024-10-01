@@ -45,8 +45,11 @@ from nucs.propagators.exactly_eq_propagator import (
     get_complexity_exactly_eq,
     get_triggers_exactly_eq,
 )
-from nucs.propagators.exactly_true_propagator import compute_domains_exactly_true, get_complexity_exactly_true, \
-    get_triggers_exactly_true
+from nucs.propagators.exactly_true_propagator import (
+    compute_domains_exactly_true,
+    get_complexity_exactly_true,
+    get_triggers_exactly_true,
+)
 from nucs.propagators.lexicographic_leq_propagator import (
     compute_domains_lexicographic_leq,
     get_complexity_lexicographic_leq,

@@ -4,7 +4,7 @@ from rich import print
 
 from nucs.examples.bibd.bibd_problem import BIBDProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import max_value_dom_heuristic, min_value_dom_heuristic
+from nucs.solvers.heuristics import max_value_dom_heuristic
 from nucs.statistics import get_statistics
 
 if __name__ == "__main__":

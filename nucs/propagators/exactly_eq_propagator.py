@@ -1,4 +1,3 @@
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -27,16 +26,29 @@ def compute_domains_exactly_eq(domains: NDArray, parameters: NDArray) -> int:
     :param parameters: the parameters of the propagator, a is the first parameter, c is the second parameter
     """
     a = parameters[0]
-    ok_count_max = len(domains) - np.count_nonzero((domains[:, MIN] > a) | (domains[:, MAX] < a))
-    ok_count_min = np.count_nonzero((domains[:, MIN] == a) & (domains[:, MAX] == a))
     c = parameters[1]
-    if ok_count_min > c or ok_count_max < c:
-        return PROP_INCONSISTENCY
-    if ok_count_min == c and ok_count_max == c:
+    count_max = len(domains) - c
+    count_min = -c
+    for domain in domains:
+        if domain[MIN] > a or domain[MAX] < a:
+            count_max -= 1
+            if count_max < 0:
+                return PROP_INCONSISTENCY
+        elif domain[MIN] == a and domain[MAX] == a:
+            count_min += 1
+            if count_min > 0:
+                return PROP_INCONSISTENCY
+    if count_min == 0 and count_max == 0:
         return PROP_ENTAILMENT
-    if ok_count_min == c:  # we cannot have more domains equal to a
-        domains[(domains[:, MIN] == a) & (domains[:, MAX] > a), MIN] = a + 1
+    if count_min == 0:  # we cannot have more domains equal to a
+        for domain in domains:
+            if domain[MIN] == a and domain[MAX] > a:
+                domain[MIN] = a + 1
+            if domain[MIN] < a and domain[MAX] == a:
+                domain[MAX] = a - 1
         domains[(domains[:, MIN] < a) & (domains[:, MAX] == a), MAX] = a - 1
-    elif ok_count_max == c:  # we cannot have more domains different from a
-        domains[(domains[:, MIN] <= a) & (a <= domains[:, MAX]), :] = a
+    elif count_max == 0:  # we cannot have more domains different from a
+        for domain in domains:
+            if domain[MIN] <= a <= domain[MAX]:
+                domain[:] = a
     return PROP_CONSISTENCY

@@ -27,4 +27,4 @@
 
 # Docs
 - document environment variables
-- fix doc after adding new constraints
+- fix doc after adding new constraints: and and exactly_true

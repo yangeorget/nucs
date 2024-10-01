@@ -1,4 +1,3 @@
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -22,19 +21,30 @@ def get_triggers_exactly_true(n: int, parameters: NDArray) -> NDArray:
 @njit(cache=True)
 def compute_domains_exactly_true(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements Sigma_i (x_i == 1) = c.
-    :param domains: the domains of the variables, x is an alias for domains
+    Implements Sigma_i (b_i == 1) = c when b_i is a boolean variable
+    :param domains: the domains of the variables, b is an alias for domains
     :param parameters: the parameters of the propagator, c is the first parameter
     """
-    ok_count_max = np.count_nonzero(domains[:, MAX] == 1)
-    ok_count_min = np.count_nonzero((domains[:, MIN] == 1) & (domains[:, MAX] == 1))
     c = parameters[0]
-    if ok_count_min > c or ok_count_max < c:
-        return PROP_INCONSISTENCY
-    if ok_count_min == c and ok_count_max == c:
+    count_max = len(domains) - c
+    count_min = -c
+    for domain in domains:
+        if domain[MAX] < 1:
+            count_max -= 1
+            if count_max < 0:
+                return PROP_INCONSISTENCY
+        if domain[MIN] == 1 and domain[MAX] == 1:
+            count_min += 1
+            if count_min > 0:
+                return PROP_INCONSISTENCY
+    if count_min == 0 and count_max == 0:
         return PROP_ENTAILMENT
-    if ok_count_min == c:  # we cannot have more domains equal to 1
-        domains[(domains[:, MIN] == 0) & (domains[:, MAX] == 1), MAX] = 0
-    elif ok_count_max == c:  # we cannot have more domains different from 1
-        domains[(domains[:, MIN] == 0) & (domains[:, MAX] == 1), MIN] = 1
+    if count_min == 0:  # we cannot have more domains equal to 1
+        for domain in domains:
+            if domain[MIN] == 0 and domain[MAX] == 1:
+                domain[MAX] = 0
+    elif count_max == 0:  # we cannot have more domains different from 1
+        for domain in domains:
+            if domain[MIN] == 0 and domain[MAX] == 1:
+                domain[MIN] = 1
     return PROP_CONSISTENCY

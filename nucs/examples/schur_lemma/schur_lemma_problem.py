@@ -1,5 +1,5 @@
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_EXACTLY_EQ, ALG_LEXICOGRAPHIC_LEQ
+from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_EXACTLY_TRUE, ALG_LEXICOGRAPHIC_LEQ
 
 
 class SchurLemmaProblem(Problem):
@@ -10,7 +10,7 @@ class SchurLemmaProblem(Problem):
     def __init__(self, n: int) -> None:
         super().__init__([(0, 1)] * n * 3)
         for x in range(n):
-            self.add_propagator(([x * 3, x * 3 + 1, x * 3 + 2], ALG_EXACTLY_EQ, [1, 1]))
+            self.add_propagator(([x * 3, x * 3 + 1, x * 3 + 2], ALG_EXACTLY_TRUE, [1]))
         for x in range(n):
             for y in range(n):
                 z = (x + 1) + (y + 1) - 1

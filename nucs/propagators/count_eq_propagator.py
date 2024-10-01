@@ -30,6 +30,7 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray) -> int:
     a = parameters[0]
     ok_count_max = len(x) - np.count_nonzero((x[:, MIN] > a) | (x[:, MAX] < a))
     ok_count_min = np.count_nonzero((x[:, MIN] == a) & (x[:, MAX] == a))
+    # TODO: refactor (see exactly)
     counter = domains[-1]
     counter[MIN] = max(counter[MIN], ok_count_min)
     counter[MAX] = min(counter[MAX], ok_count_max)
