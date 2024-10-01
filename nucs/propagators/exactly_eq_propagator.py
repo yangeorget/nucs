@@ -46,7 +46,6 @@ def compute_domains_exactly_eq(domains: NDArray, parameters: NDArray) -> int:
                 domain[MIN] = a + 1
             if domain[MIN] < a and domain[MAX] == a:
                 domain[MAX] = a - 1
-        domains[(domains[:, MIN] < a) & (domains[:, MAX] == a), MAX] = a - 1
     elif count_max == 0:  # we cannot have more domains different from a
         for domain in domains:
             if domain[MIN] <= a <= domain[MAX]:
