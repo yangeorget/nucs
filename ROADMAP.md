@@ -13,11 +13,12 @@
 - review CSPlib for additional problem
 
 # Engine
-- choice points pruning
-- backtrackable propagator __state__
+- optimizer: implement choice points pruning
+- implement a backtrackable propagator __state__
 - implement decision variables
 - disable offsets when not useful
 - entailment date
+- allow custom propagators
 
 # Numba
 - use prange with parallel=True
@@ -25,6 +26,4 @@
 - test vectorize
 
 # Docs
-- installation : put links to examples (and not CSPLIB)
-- improve usage of rst
 - document environment variables

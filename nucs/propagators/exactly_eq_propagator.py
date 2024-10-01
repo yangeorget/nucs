@@ -37,6 +37,6 @@ def compute_domains_exactly_eq(domains: NDArray, parameters: NDArray) -> int:
     if ok_count_min == c:  # we cannot have more domains equal to c
         domains[(domains[:, MIN] == a) & (domains[:, MAX] > a), MIN] = a + 1
         domains[(domains[:, MIN] < a) & (domains[:, MAX] == a), MAX] = a - 1
-    if ok_count_max == c:  # we cannot have more domains different from c
+    elif ok_count_max == c:  # we cannot have more domains different from c
         domains[(domains[:, MIN] <= a) & (a <= domains[:, MAX]), :] = a
     return PROP_CONSISTENCY
