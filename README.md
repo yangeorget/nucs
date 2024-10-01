@@ -41,7 +41,7 @@ NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.queens -n 12
 
 ### Compute the 92 solutions to the [BIBD(8,14,7,4,3) problem](https://www.csplib.org/Problems/prob028/)
 ```bash
-NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.bibd  
+NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -l 3 
 ```
 ```bash
 {

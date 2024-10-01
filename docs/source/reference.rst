@@ -325,7 +325,7 @@ This problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.bibd
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -l 3
 
 
 .. py:module:: nucs.examples.donald.donald_problem

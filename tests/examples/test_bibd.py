@@ -21,5 +21,3 @@ class TestBIBD:
         solver = BacktrackSolver(problem)
         solver.solve_all()
         assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 92
-
-
