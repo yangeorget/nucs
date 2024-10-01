@@ -33,7 +33,7 @@ def compute_domains_exactly_true(domains: NDArray, parameters: NDArray) -> int:
             count_max -= 1
             if count_max < 0:
                 return PROP_INCONSISTENCY
-        if domain[MIN] == 1 and domain[MAX] == 1:
+        elif domain[MIN] == 1 and domain[MAX] == 1:
             count_min += 1
             if count_min > 0:
                 return PROP_INCONSISTENCY
