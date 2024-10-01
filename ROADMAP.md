@@ -27,3 +27,4 @@
 
 # Docs
 - document environment variables
+- fix doc after adding new constraints

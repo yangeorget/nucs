@@ -1,7 +1,7 @@
 from typing import List
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_EXACTLY_EQ, ALG_LEXICOGRAPHIC_LEQ, ALG_MIN_EQ
+from nucs.propagators.propagators import ALG_AND, ALG_EXACTLY_TRUE, ALG_LEXICOGRAPHIC_LEQ
 
 
 class BIBDProblem(Problem):
@@ -17,10 +17,10 @@ class BIBDProblem(Problem):
         super().__init__([(0, 1)] * (matrix_var_nb + additional_var_nb))
         # rows: counts
         for object_idx in range(0, v):
-            self.add_propagator((list(range(object_idx * b, (object_idx + 1) * b)), ALG_EXACTLY_EQ, [1, r]))
+            self.add_propagator((list(range(object_idx * b, (object_idx + 1) * b)), ALG_EXACTLY_TRUE, [r]))
         # columns: counts
         for block_idx in range(0, b):
-            self.add_propagator((list(range(block_idx, v * b, b)), ALG_EXACTLY_EQ, [1, k]))
+            self.add_propagator((list(range(block_idx, v * b, b)), ALG_EXACTLY_TRUE, [k]))
         # scalar products: conjunctions and counts
         # TODO: test with GCC
         conj_idx = v * b  # index of first redundant variable
@@ -28,12 +28,10 @@ class BIBDProblem(Problem):
             for i2 in range(i1 + 1, v):
                 conj_vars = []
                 for block_idx in range(0, b):
-                    self.add_propagator(
-                        ([i1 * b + block_idx, i2 * b + block_idx, conj_idx], ALG_MIN_EQ, [])
-                    )  # TODO:replace by AND ?
+                    self.add_propagator(([i1 * b + block_idx, i2 * b + block_idx, conj_idx], ALG_AND, []))
                     conj_vars.append(conj_idx)
                     conj_idx += 1
-                self.add_propagator((conj_vars, ALG_EXACTLY_EQ, [1, l]))
+                self.add_propagator((conj_vars, ALG_EXACTLY_TRUE, [l]))
         # remove symmetries
         # lexleq on rows
         for object_idx in range(0, v - 1):

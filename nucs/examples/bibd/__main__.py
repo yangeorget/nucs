@@ -4,6 +4,7 @@ from rich import print
 
 from nucs.examples.bibd.bibd_problem import BIBDProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.heuristics import max_value_dom_heuristic, min_value_dom_heuristic
 from nucs.statistics import get_statistics
 
 if __name__ == "__main__":
@@ -15,6 +16,6 @@ if __name__ == "__main__":
     parser.add_argument("-l", type=int)
     args = parser.parse_args()
     problem = BIBDProblem(args.v, args.b, args.r, args.k, args.l)
-    solver = BacktrackSolver(problem)
-    solver.solve_all(lambda solution: print(problem.solution_as_matrix(solution)))
+    solver = BacktrackSolver(problem, dom_heuristic=max_value_dom_heuristic)
+    solver.solve_one()
     print(get_statistics(solver.statistics))

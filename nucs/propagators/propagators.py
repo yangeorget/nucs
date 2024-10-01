@@ -23,6 +23,7 @@ from nucs.propagators.alldifferent_propagator import (
     get_complexity_alldifferent,
     get_triggers_alldifferent,
 )
+from nucs.propagators.and_propagator import compute_domains_and, get_complexity_and, get_triggers_and
 from nucs.propagators.count_eq_propagator import (
     compute_domains_count_eq,
     get_complexity_count_eq,
@@ -44,6 +45,8 @@ from nucs.propagators.exactly_eq_propagator import (
     get_complexity_exactly_eq,
     get_triggers_exactly_eq,
 )
+from nucs.propagators.exactly_true_propagator import compute_domains_exactly_true, get_complexity_exactly_true, \
+    get_triggers_exactly_true
 from nucs.propagators.lexicographic_leq_propagator import (
     compute_domains_lexicographic_leq,
     get_complexity_lexicographic_leq,
@@ -61,6 +64,7 @@ from nucs.propagators.relation_propagator import (
 
 # The ordinals of the algorithms for all propagators (sorted by alphabetical ordering).
 (
+    ALG_AND,
     ALG_AFFINE_EQ,
     ALG_AFFINE_GEQ,
     ALG_AFFINE_LEQ,
@@ -70,16 +74,18 @@ from nucs.propagators.relation_propagator import (
     ALG_ELEMENT_LIV,
     ALG_ELEMENT_LIC,
     ALG_EXACTLY_EQ,
+    ALG_EXACTLY_TRUE,
     ALG_LEXICOGRAPHIC_LEQ,
     ALG_MAX_EQ,
     ALG_MAX_LEQ,
     ALG_MIN_EQ,
     ALG_MIN_GEQ,
     ALG_RELATION,
-) = tuple(range(15))
+) = tuple(range(17))
 
 
 GET_TRIGGERS_FCTS = [
+    get_triggers_and,
     get_triggers_affine_eq,
     get_triggers_affine_geq,
     get_triggers_affine_leq,
@@ -89,6 +95,7 @@ GET_TRIGGERS_FCTS = [
     get_triggers_element_liv,
     get_triggers_element_lic,
     get_triggers_exactly_eq,
+    get_triggers_exactly_true,
     get_triggers_lexicographic_leq,
     get_triggers_max_eq,
     get_triggers_max_leq,
@@ -98,6 +105,7 @@ GET_TRIGGERS_FCTS = [
 ]
 
 GET_COMPLEXITY_FCTS = [
+    get_complexity_and,
     get_complexity_affine_eq,
     get_complexity_affine_geq,
     get_complexity_affine_leq,
@@ -107,6 +115,7 @@ GET_COMPLEXITY_FCTS = [
     get_complexity_element_liv,
     get_complexity_element_lic,
     get_complexity_exactly_eq,
+    get_complexity_exactly_true,
     get_complexity_lexicographic_leq,
     get_complexity_max_eq,
     get_complexity_max_leq,
@@ -117,6 +126,7 @@ GET_COMPLEXITY_FCTS = [
 
 
 COMPUTE_DOMAINS_FCTS = [
+    compute_domains_and,
     compute_domains_affine_eq,
     compute_domains_affine_geq,
     compute_domains_affine_leq,
@@ -126,6 +136,7 @@ COMPUTE_DOMAINS_FCTS = [
     compute_domains_element_liv,
     compute_domains_element_lic,
     compute_domains_exactly_eq,
+    compute_domains_exactly_true,
     compute_domains_lexicographic_leq,
     compute_domains_max_eq,
     compute_domains_max_leq,

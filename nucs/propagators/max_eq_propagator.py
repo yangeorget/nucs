@@ -16,9 +16,7 @@ def get_triggers_max_eq(n: int, parameters: NDArray) -> NDArray:
     :param n: the number of variables
     :return: an array of triggers
     """
-    triggers = new_triggers(n, True)
-    triggers[-1, MIN] = False
-    return triggers
+    return new_triggers(n, True)
 
 
 @njit(cache=True)
@@ -34,8 +32,13 @@ def compute_domains_max_eq(domains: NDArray, parameters: NDArray) -> int:
     y[MAX] = min(y[MAX], np.max(x[:, MAX]))
     if y[MIN] > y[MAX]:
         return PROP_INCONSISTENCY
+    candidates_nb = 0
+    candidate_idx = -1
     for i in range(len(x)):
-        x[i, MAX] = min(x[i, MAX], y[MAX])
-        if x[i, MAX] < x[i, MIN]:
-            return PROP_INCONSISTENCY
+        if x[i, MAX] >= y[MAX]:
+            x[i, MAX] = y[MAX]
+            candidate_idx = i
+            candidates_nb += 1
+    if candidates_nb == 1:
+        x[candidate_idx, MIN] = y[MIN]
     return PROP_CONSISTENCY
