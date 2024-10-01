@@ -9,7 +9,7 @@ Reference documentation
 Propagators
 ***********
 
-NUCS currently provides the following highly-optimized propagators.
+NuCS currently provides the following highly-optimized propagators.
 
 
 .. py:function:: nucs.propagators.affine_eq_propagator.compute_domains(domains, parameters)

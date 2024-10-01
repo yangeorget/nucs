@@ -1,8 +1,13 @@
 ###############################
-Welcome to NUCS' documentation!
+Welcome to NuCS' documentation!
 ###############################
 
-NUCS is a 100% Python library leveraging Numpy and Numba.
+
+.. figure:: ../../assets/nucs.png
+   :alt: NuCS logo
+
+
+NuCS is a 100% Python library leveraging Numpy and Numba.
 
 * **Python** is a powerful and flexible programing language
   that allows to express complex problems in a few lines of code.
@@ -13,7 +18,7 @@ NUCS is a 100% Python library leveraging Numpy and Numba.
   using the industry-standard LLVM compiler library.
   Numba-compiled numerical algorithms in Python can approach the speeds of C or FORTRAN.
 
-Check out the :doc:`installation` section for further information to get started with NUCS!
+Check out the :doc:`installation` section for further information to get started with NuCS!
 
 .. note::
 

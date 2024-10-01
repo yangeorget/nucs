@@ -1,3 +1,6 @@
+![NucS logo](https://github.com/yangeorget/nucs/main/assets/png.?raw=true)
+
+
 ![pypi version](https://img.shields.io/pypi/v/nucs?color=blue&label=pypi%20version&logo=pypi&logoColor=white)
 ![numba version](https://img.shields.io/badge/numba-v0.60-blue)
 ![numpy version](https://img.shields.io/badge/numpy-v2.0-blue)
@@ -6,9 +9,9 @@
 ![license](https://img.shields.io/github/license/yangeorget/nucs)
 
 ## TLDR
-NUCS is a Python library for solving Constraint Satisfaction and Optimization Problems.
-Because it is 100% written in Python, NUCS is easy to install and use.
-NUCS is also very fast because it is powered by [Numpy](https://numpy.org/) and [Numba](https://numba.pydata.org/).
+NuCS is a Python library for solving Constraint Satisfaction and Optimization Problems.
+Because it is 100% written in Python, NuCS is easy to install and use.
+NuCS is also very fast because it is powered by [Numpy](https://numpy.org/) and [Numba](https://numba.pydata.org/).
 
 ## Installation
 ```bash
@@ -17,7 +20,7 @@ pip install nucs
 ## Documentation
 Check out [NUCS documentation](https://nucs.readthedocs.io/).
 
-## With NUCS, in a few seconds you can ...
+## With NuCS, in a few seconds you can ...
 ### Find all 14200 solutions to the [12-queens problem](https://www.csplib.org/Problems/prob054/)
 ```bash
 NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.queens -n 12

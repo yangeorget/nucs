@@ -3,10 +3,10 @@ Installation
 ############
 
 ************************
-Install the NUCS package
+Install the NuCS package
 ************************
 
-Let's install the NUCS package with pip:
+Let's install the NuCS package with pip:
 
 .. code-block:: bash
 
@@ -16,7 +16,7 @@ Let's install the NUCS package with pip:
 Run some examples
 *****************
 
-NUCS comes with some models and :ref:`heuristics <heuristics>` for some well-known :ref:`examples <examples>`.
+NuCS comes with some models and :ref:`heuristics <heuristics>` for some well-known :ref:`examples <examples>`.
 Some of these examples have a command line interface and can be run directly.
 
 Solve the 12-queens problem

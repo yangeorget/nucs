@@ -8,13 +8,13 @@ Consistency
 
 Consistency algorithms
 ######################
-NUCS implements bound consistency out-of-the box and supports custom consistency algorithms.
+NuCS implements bound consistency out-of-the box and supports custom consistency algorithms.
 
 *****************************
 Propagators (aka constraints)
 *****************************
 
-NUCS comes with some highly-optimized :ref:`propagators <propagators>`.
+NuCS comes with some highly-optimized :ref:`propagators <propagators>`.
 Each propagator :code:`XXX` defines three functions:
 
 - :code:`compute_domains_XXX(domains: NDArray, data: NDArray) -> int`

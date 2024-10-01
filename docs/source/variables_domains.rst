@@ -6,12 +6,12 @@ Variables and domains
 Variables
 *********
 
-In NUCS, variables are not entities in their own right, but integers that index domains.
+In NuCS, variables are not entities in their own right, but integers that index domains.
 The number of variables is an unsigned 16-bits integer.
 
 Let's consider three variables with integer domains :math:`[1,10]`.
 
-NUCS could represent these domains as a :code:`numpy.ndarray` of shape :code:`(3,2)`:
+NuCS could represent these domains as a :code:`numpy.ndarray` of shape :code:`(3,2)`:
 
 - one row for each domain
 - the first column corresponds to the minimal values
@@ -82,7 +82,7 @@ With:
      - 6
 
 .. note::
-   In NUCS, actual domains are computed on demand from shared domains and offsets.
+   In NuCS, actual domains are computed on demand from shared domains and offsets.
 
 The constructor of the :code:`Problem` class
 ********************************************
@@ -186,7 +186,7 @@ With:
      - 0
      - 3
 
-In NUCS, the n-queens problem is indeed constructed as follows:
+In NuCS, the n-queens problem is indeed constructed as follows:
 
 .. code-block:: python
 
@@ -203,7 +203,7 @@ In NUCS, the n-queens problem is indeed constructed as follows:
 Integer domains
 ###############
 
-NUCS only support integer domains.
+NuCS only support integer domains.
 Domains limits are 32-bits integers.
 
 Boolean domains
