@@ -4,7 +4,6 @@
 - Product
 
 # Problems
-- submit problems to CSPlib
 - RoundRobin problem (GCC)
 - Job-shop problem 
 - Golfers problem
@@ -27,3 +26,6 @@
 
 # Docs
 - document environment variables
+
+# Growth hacking
+- submit problems and nucs description to CSPlib
