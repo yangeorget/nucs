@@ -40,7 +40,7 @@ class GolombProblem(Problem):
     CSPLIB problem #6 - https://www.csplib.org/Problems/prob006/
     """
 
-    def __init__(self, mark_nb: int) -> None:
+    def __init__(self, mark_nb: int, symmetry_breaking: bool = True) -> None:
         self.mark_nb = mark_nb
         self.dist_nb = sum_first(mark_nb - 1)  # this the number of distances
         super().__init__(init_domains(self.dist_nb, mark_nb))
@@ -76,15 +76,15 @@ class GolombProblem(Problem):
                         ),
                         0,
                     )
-        # break symmetries
-        self.add_propagator(
-            (
-                [index(mark_nb, 0, 1), index(mark_nb, mark_nb - 2, mark_nb - 1)],
-                ALG_AFFINE_LEQ,
-                [1, -1, -1],
-            ),
-            0,
-        )
+        if symmetry_breaking:
+            self.add_propagator(
+                (
+                    [index(mark_nb, 0, 1), index(mark_nb, mark_nb - 2, mark_nb - 1)],
+                    ALG_AFFINE_LEQ,
+                    [1, -1, -1],
+                ),
+                0,
+            )
 
 
 def golomb_consistency_algorithm(statistics: NDArray, problem: GolombProblem) -> int:

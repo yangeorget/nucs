@@ -22,8 +22,8 @@ def get_triggers_and(n: int, parameters: NDArray) -> NDArray:
 @njit(cache=True)
 def compute_domains_and(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements & x_i = x_{n-1}.
-    :param domains: the domains of the variables, x is an alias for domains
+    Implements & b_i = b_{n-1} where for each i, b_i is a boolean variable.
+    :param domains: the domains of the variables, b is an alias for domains
     :param parameters: unused here
     """
     x = domains[:-1]

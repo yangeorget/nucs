@@ -17,9 +17,9 @@ Propagators (aka constraints)
 NuCS comes with some highly-optimized :ref:`propagators <propagators>`.
 Each propagator :code:`XXX` defines three functions:
 
-- :code:`compute_domains_XXX(domains: NDArray, data: NDArray) -> int`
-- :code:`get_triggers_XXX(size: int, data: NDArray) -> NDArray`
-- :code:`get_complexity_XXX(size: int, data: NDArray) -> float`
+- :code:`compute_domains_XXX(domains: NDArray, parameters: NDArray) -> int`
+- :code:`get_triggers_XXX(size: int, parameters: NDArray) -> NDArray`
+- :code:`get_complexity_XXX(size: int, parameters: NDArray) -> float`
 
 :code:`compute_domains` function
 ################################
@@ -42,7 +42,8 @@ It returns a status:
 This function returns a :code:`numpy.ndarray` of shape :code:`(size, 2)`.
 
 Let :code:`triggers` be such an array,
-:code:`triggers[i, MIN] == True` means that the propagator should be triggered whenever the minimum value of variable :code:`ì` changes.
+:code:`triggers[i, MIN] == True` means that
+the propagator should be triggered whenever the minimum value of variable :code:`ì` changes.
 
 :code:`get_complexity` function
 ###############################

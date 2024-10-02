@@ -47,7 +47,7 @@ Let's find the optimal solution to the `Golomb ruler problem <https://www.csplib
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.golomb -n 10
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.golomb -n 10 --symmetry_breaking
    {
        'OPTIMIZER_SOLUTION_NB': 10,
        'PROBLEM_FILTER_NB': 22886,

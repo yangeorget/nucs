@@ -9,7 +9,7 @@ class BIBDProblem(Problem):
     CSPLIB problem #28 - https://www.csplib.org/Problems/prob028/
     """
 
-    def __init__(self, v: int, b: int, r: int, k: int, l: int):
+    def __init__(self, v: int, b: int, r: int, k: int, l: int, symmetry_breaking: bool = True):
         self.v = v  # number of points/rows
         self.b = b  # number of blocks/columns
         matrix_var_nb = v * b  # number of cells in the matrix
@@ -32,19 +32,19 @@ class BIBDProblem(Problem):
                     conj_vars.append(conj_idx)
                     conj_idx += 1
                 self.add_propagator((conj_vars, ALG_EXACTLY_TRUE, [l]))
-        # remove symmetries
-        # lexleq on rows
-        for object_idx in range(0, v - 1):
-            self.add_propagator((list(range(object_idx * b, (object_idx + 2) * b)), ALG_LEXICOGRAPHIC_LEQ, []))
-        # lexleq on columns
-        for block_idx in range(0, b - 1):
-            self.add_propagator(
-                (
-                    list(range(block_idx, v * b, b)) + list(range(block_idx + 1, v * b, b)),
-                    ALG_LEXICOGRAPHIC_LEQ,
-                    [],
+        if symmetry_breaking:
+            # lexleq on rows
+            for object_idx in range(0, v - 1):
+                self.add_propagator((list(range(object_idx * b, (object_idx + 2) * b)), ALG_LEXICOGRAPHIC_LEQ, []))
+            # lexleq on columns
+            for block_idx in range(0, b - 1):
+                self.add_propagator(
+                    (
+                        list(range(block_idx, v * b, b)) + list(range(block_idx + 1, v * b, b)),
+                        ALG_LEXICOGRAPHIC_LEQ,
+                        [],
+                    )
                 )
-            )
 
     def solution_as_matrix(self, solution: List[int]) -> List[List[int]]:
         return [[solution[i * self.b + j] for j in range(0, self.b)] for i in range(0, self.v)]

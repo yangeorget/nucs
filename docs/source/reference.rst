@@ -12,6 +12,20 @@ Propagators
 NuCS currently provides the following highly-optimized propagators.
 
 
+.. py:module:: nucs.propagators.and_propagator
+.. py:function:: nucs.propagators.and_propagator.compute_domains(domains, parameters)
+
+   This propagator implements the relation :math:`\&_{i \in [0, n-1[} b_i = b_{n-1}`
+   where for each :math:`i`, :math:`b_i` is a boolean variable.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables, :math:`b` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, it is unused
+   :type parameters: NDArray
+
+
 .. py:module:: nucs.propagators.affine_eq_propagator
 .. py:function:: nucs.propagators.affine_eq_propagator.compute_domains(domains, parameters)
 
@@ -122,6 +136,21 @@ NuCS currently provides the following highly-optimized propagators.
    :param parameters: the parameters of the propagator,
           :math:`a` is the first parameter,
           :math:`c` is the second parameter
+   :type parameters: NDArray
+
+
+.. py:module:: nucs.propagators.exactly_true_propagator
+.. py:function:: nucs.propagators.exactly_true_propagator.compute_domains(domains, parameters)
+
+   This propagator implements the relation :math:`\Sigma_i (b_i = 1) = c`
+   where for each :math:`i`, :math:`b_i` is a boolean variable.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables, :math:`b` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator,
+          :math:`c` is the first parameter
    :type parameters: NDArray
 
 
@@ -346,12 +375,12 @@ This problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -l 3
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -l 3 --symmetry_breaking
 
 This problem leverages the propagators:
 
-* :mod:`nucs.propagators.exactly_eq_propagator`,
-* :mod:`nucs.propagators.min_eq_propagator`,
+* :mod:`nucs.propagators.exactly_true_propagator`,
+* :mod:`nucs.propagators.and_propagator`,
 * :mod:`nucs.propagators.lexicographic_leq_propagator`.
 
 .. py:module:: nucs.examples.donald.donald_problem
@@ -378,7 +407,7 @@ This problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.golomb -n 10
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.golomb -n 10 --symmetry_breaking
 
 This problem leverages the propagators:
 
@@ -468,7 +497,7 @@ This problem is problem `015 <https://www.csplib.org/Problems/prob015>`_ on CSPL
 
 This problem leverages the propagators:
 
-* :mod:`nucs.propagators.exactly_eq_propagator`,
+* :mod:`nucs.propagators.exactly_true_propagator`,
 * :mod:`nucs.propagators.affine_leq_propagator`,
 * :mod:`nucs.propagators.lexicographic_leq_propagator`.
 

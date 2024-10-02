@@ -21,7 +21,7 @@ def get_triggers_exactly_true(n: int, parameters: NDArray) -> NDArray:
 @njit(cache=True)
 def compute_domains_exactly_true(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements Sigma_i (b_i == 1) = c when b_i is a boolean variable
+    Implements Sigma_i (b_i == 1) = c when for each i, b_i is a boolean variable.
     :param domains: the domains of the variables, b is an alias for domains
     :param parameters: the parameters of the propagator, c is the first parameter
     """
