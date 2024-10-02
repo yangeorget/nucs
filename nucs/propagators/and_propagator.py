@@ -36,7 +36,7 @@ def compute_domains_and(domains: NDArray, parameters: NDArray) -> int:
         return PROP_INCONSISTENCY
     if y[MIN] == 1:
         x[:, MIN] = 1
-    if y[MAX] == 0:
+    elif y[MAX] == 0:
         candidates_nb = 0
         candidate_idx = -1
         for i in range(len(x)):
