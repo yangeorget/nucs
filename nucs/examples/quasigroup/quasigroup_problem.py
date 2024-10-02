@@ -7,15 +7,15 @@ class QuasigroupProblem(LatinSquareRCProblem):
     CSPLIB problem #3 - https://www.csplib.org/Problems/prob003/
     """
 
-    def __init__(self, n: int):
+    def __init__(self, n: int, symmetry_breaking: bool = True):
         super().__init__(n)
         # idempotence
         for model in [M_COLOR, M_ROW, M_COLUMN]:
             for i in range(n):
                 self.shr_domains_lst[self.cell(i, i, model)] = i
-        # symmetry breaking
-        for i in range(1, n):
-            self.shr_domains_lst[self.cell(i, n - 1)] = (i - 1, n - 1)
+        if symmetry_breaking:
+            for i in range(1, n):
+                self.shr_domains_lst[self.cell(i, n - 1)] = (i - 1, n - 1)
 
 
 class Quasigroup5Problem(QuasigroupProblem):
@@ -27,8 +27,8 @@ class Quasigroup5Problem(QuasigroupProblem):
     which avoids the creation of additional variables
     """
 
-    def __init__(self, n: int):
-        super().__init__(n)
+    def __init__(self, n: int, symmetry_breaking: bool = True):
+        super().__init__(n, symmetry_breaking)
         for j in range(n):
             for i in range(n):
                 if i != j:
