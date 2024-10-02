@@ -1,3 +1,15 @@
+###############################################################################
+# __   _            _____    _____
+# | \ | |          / ____|  / ____|
+# |  \| |  _   _  | |      | (___
+# | . ` | | | | | | |       \___ \
+# | |\  | | |_| | | |____   ____) |
+# |_| \_|  \__,_|  \_____| |_____/
+#
+# Fast constraint solving in Python  - https://github.com/yangeorget/nucs
+#
+# Copyright 2024 - Yan Georget
+###############################################################################
 import numpy as np
 from numba import int32, int64, njit, types  # type: ignore
 from numpy.typing import NDArray
