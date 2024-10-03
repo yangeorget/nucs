@@ -22,7 +22,6 @@ class BIBDProblem(Problem):
         for block_idx in range(0, b):
             self.add_propagator((list(range(block_idx, v * b, b)), ALG_EXACTLY_TRUE, [k]))
         # scalar products: conjunctions and counts
-        # TODO: test with GCC
         conj_idx = v * b  # index of first redundant variable
         for i1 in range(0, v - 1):
             for i2 in range(i1 + 1, v):

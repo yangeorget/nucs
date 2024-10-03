@@ -4,12 +4,13 @@
 - Product
 
 # Problems
-- submit problems to CSPlib
 - RoundRobin problem (GCC)
 - Job-shop problem 
 - Golfers problem
 - Car sequencing problem (GCC or Element)
 - Crypto multiplication problem (Product)
+
+# CSPlib
 - review CSPlib for additional problem
 
 # Engine
