@@ -16,7 +16,6 @@
 # Engine
 - optimizer: implement choice points pruning
 - implement a backtrackable propagator __state__
-- entailment date
 - allow custom propagators
 
 # Numba
