@@ -1,3 +1,15 @@
+###############################################################################
+# __   _            _____    _____
+# | \ | |          / ____|  / ____|
+# |  \| |  _   _  | |      | (___
+# | . ` | | | | | | |       \___ \
+# | |\  | | |_| | | |____   ____) |
+# |_| \_|  \__,_|  \_____| |_____/
+#
+# Fast constraint solving in Python  - https://github.com/yangeorget/nucs
+#
+# Copyright 2024 - Yan Georget
+###############################################################################
 from nucs.examples.sudoku.sudoku_problem import SudokuProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_SOLVER_SOLUTION_NB

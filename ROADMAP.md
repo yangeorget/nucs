@@ -28,3 +28,6 @@
 
 # Docs
 - document environment variables
+
+# Growth hacking
+- submit problems and nucs description to CSPlib

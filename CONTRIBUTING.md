@@ -1,6 +1,13 @@
 # Useful scripts and commands to contribute to NUCS
 
 ## Code
+### How to fix the header
+```bash
+pip install addheader
+addheader nucs -t header.txt 
+addheader tests -t header.txt 
+```
+
 ### How to check the coding style
 ```bash
 ./scripts/bash/style.sh    
@@ -44,4 +51,5 @@ python -m build
 ```bash
 python -m twine upload --verbose dist/*
 ```
+
 

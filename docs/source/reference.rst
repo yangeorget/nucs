@@ -465,7 +465,7 @@ The problem QG5, a sub-instance of the quasigroup problem, can be run with the c
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.quasigroup -n 10
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.quasigroup -n 10 --symmetry_breaking
 
 This problem leverages the propagators:
 
