@@ -16,8 +16,6 @@
 # Engine
 - optimizer: implement choice points pruning
 - implement a backtrackable propagator __state__
-- implement decision variables
-- disable offsets when not useful
 - entailment date
 - allow custom propagators
 
@@ -28,6 +26,5 @@
 
 # Docs
 - document environment variables
-
-# Growth hacking
-- submit problems and nucs description to CSPlib
+- document the absence of decision variables
+- document solvers

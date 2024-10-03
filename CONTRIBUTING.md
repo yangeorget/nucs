@@ -3,7 +3,6 @@
 ## Code
 ### How to fix the header
 ```bash
-pip install addheader
 addheader nucs -t header.txt 
 addheader tests -t header.txt 
 ```
