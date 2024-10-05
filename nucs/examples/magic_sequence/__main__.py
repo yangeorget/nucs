@@ -29,5 +29,5 @@ if __name__ == "__main__":
     solver = BacktrackSolver(
         problem, var_heuristic=last_not_instantiated_var_heuristic, dom_heuristic=min_value_dom_heuristic
     )
-    solutions = solver.solve_all()
+    solver.solve_all()
     print(get_statistics(solver.statistics))

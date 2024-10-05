@@ -14,7 +14,6 @@ import argparse
 
 from rich import print
 
-from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm
 from nucs.examples.schur_lemma.schur_lemma_problem import SchurLemmaProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.statistics import get_statistics
