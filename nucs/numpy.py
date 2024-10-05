@@ -38,7 +38,7 @@ def new_dom_offsets(n: int) -> NDArray:
     return np.empty(n, dtype=np.int32)
 
 
-def new_data_by_values(data: List[int]) -> NDArray:
+def new_parameters_by_values(data: List[int]) -> NDArray:
     return np.array(data, dtype=np.int32)
 
 

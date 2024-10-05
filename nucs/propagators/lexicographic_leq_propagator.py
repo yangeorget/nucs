@@ -146,6 +146,6 @@ def compute_domains_lexicographic_leq(domains: NDArray, parameters: NDArray) -> 
            y is the list of the last n domains
     :param parameters: unused here
     """
-    # TODO: make incremental
+    # TODO: make incremental, use a var?
     n = len(domains) // 2
     return compute_domains_1(domains[:n], domains[n:], n, 0, 0, 0, 0)

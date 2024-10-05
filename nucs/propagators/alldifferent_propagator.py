@@ -55,13 +55,13 @@ def path_max(t: NDArray, i: int) -> int:
 
 
 @njit(cache=True)
-def compute_nb(
+def update_bounds(
+    bounds: NDArray,
     n: int,
     domains: NDArray,
     ranks: NDArray,
     min_sorted_vars: NDArray,
     max_sorted_vars: NDArray,
-    bounds: NDArray,
 ) -> int:
     min_value = domains[min_sorted_vars[0], MIN]
     max_value = domains[max_sorted_vars[0], MAX] + 1
@@ -178,12 +178,12 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     ranks = np.zeros((n, 2), dtype=np.uint16)
     bounds_nb = 2 * n + 2
     bounds = np.zeros(bounds_nb, dtype=np.int32)
-    min_sorted_vars = np.argsort(domains[:, MIN])
-    max_sorted_vars = np.argsort(domains[:, MAX])
-    nb = compute_nb(n, domains, ranks, min_sorted_vars, max_sorted_vars, bounds)
     t = np.zeros(bounds_nb, dtype=np.uint16)  # critical capacity pointers
     d = np.zeros(bounds_nb, dtype=np.int32)  # differences between critical capacities
     h = np.zeros(bounds_nb, dtype=np.uint16)  # Hall interval pointers
+    min_sorted_vars = np.argsort(domains[:, MIN])
+    max_sorted_vars = np.argsort(domains[:, MAX])
+    nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars)
     return (
         PROP_CONSISTENCY
         if filter_lower(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars)

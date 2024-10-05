@@ -62,6 +62,7 @@ from nucs.propagators.exactly_true_propagator import (
     get_complexity_exactly_true,
     get_triggers_exactly_true,
 )
+from nucs.propagators.gcc_propagator import compute_domains_gcc, get_complexity_gcc, get_triggers_gcc
 from nucs.propagators.lexicographic_leq_propagator import (
     compute_domains_lexicographic_leq,
     get_complexity_lexicographic_leq,
@@ -90,13 +91,14 @@ from nucs.propagators.relation_propagator import (
     ALG_ELEMENT_LIC,
     ALG_EXACTLY_EQ,
     ALG_EXACTLY_TRUE,
+    ALG_GCC,
     ALG_LEXICOGRAPHIC_LEQ,
     ALG_MAX_EQ,
     ALG_MAX_LEQ,
     ALG_MIN_EQ,
     ALG_MIN_GEQ,
     ALG_RELATION,
-) = tuple(range(17))
+) = tuple(range(18))
 
 
 GET_TRIGGERS_FCTS = [
@@ -111,6 +113,7 @@ GET_TRIGGERS_FCTS = [
     get_triggers_element_lic,
     get_triggers_exactly_eq,
     get_triggers_exactly_true,
+    get_triggers_gcc,
     get_triggers_lexicographic_leq,
     get_triggers_max_eq,
     get_triggers_max_leq,
@@ -131,6 +134,7 @@ GET_COMPLEXITY_FCTS = [
     get_complexity_element_lic,
     get_complexity_exactly_eq,
     get_complexity_exactly_true,
+    get_complexity_gcc,
     get_complexity_lexicographic_leq,
     get_complexity_max_eq,
     get_complexity_max_leq,
@@ -152,6 +156,7 @@ COMPUTE_DOMAINS_FCTS = [
     compute_domains_element_lic,
     compute_domains_exactly_eq,
     compute_domains_exactly_true,
+    compute_domains_gcc,
     compute_domains_lexicographic_leq,
     compute_domains_max_eq,
     compute_domains_max_leq,
