@@ -43,6 +43,12 @@ from nucs.statistics import (
 
 
 def bound_consistency_algorithm(statistics: NDArray, problem: Problem) -> int:
+    """
+    Applies the bound consistency algorithm.
+    :param statistics: the statistics array
+    :param problem: the problem
+    :return: the status as an integer
+    """
     return _bound_consistency_algorithm(
         statistics,
         problem.algorithms,

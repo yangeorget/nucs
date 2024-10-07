@@ -22,6 +22,10 @@ class Solver:
     """
 
     def __init__(self, problem: Problem):
+        """
+        Inits the solver.
+        :param problem: the problem
+        """
         self.problem = problem
         self.statistics = init_statistics()
 

@@ -40,6 +40,13 @@ class BacktrackSolver(Solver):
         var_heuristic: Callable = first_not_instantiated_var_heuristic,
         dom_heuristic: Callable = min_value_dom_heuristic,
     ):
+        """
+        Inits the solver.
+        :param problem: the problem
+        :param consistency_algorithm: a consistency algorithm (usually bound consistency)
+        :param var_heuristic: a heuristic for selecting a variable/domain
+        :param dom_heuristic: a heuristic for reducing a domain
+        """
         super().__init__(problem)
         self.choice_points = []  # type: ignore
         self.consistency_algorithm = consistency_algorithm
@@ -47,6 +54,10 @@ class BacktrackSolver(Solver):
         self.dom_heuristic = dom_heuristic
 
     def solve(self) -> Iterator[List[int]]:
+        """
+        Returns an iterator over the solutions.
+        :return: an iterator
+        """
         while (solution := self.solve_one()) is not None:
             yield solution
             if not self.backtrack():
