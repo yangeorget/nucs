@@ -1,5 +1,6 @@
 # Constraints
-- GCC
+- GCC:
+  - write tests for path_set, partial sum
 - Cycle
 - Product
 
@@ -17,6 +18,7 @@
 - optimizer: implement choice points pruning
 - implement a backtrackable propagator __state__
 - allow custom propagators
+- assert that parameters make sense (cf GCC)
 
 # Numba
 - use prange with parallel=True

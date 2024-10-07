@@ -35,6 +35,80 @@ def get_triggers_gcc(n: int, parameters: NDArray) -> NDArray:
 
 
 @njit(cache=True)
+def first_value(psum: NDArray) -> int:
+    return psum[0, -1]
+
+
+@njit(cache=True)
+def last_value(psum: NDArray) -> int:
+    return psum[1, -1]
+
+
+@njit(cache=True)
+def update_partial_sum(psum: NDArray, first_value: int, m: int, values: NDArray) -> None:
+    """
+    Updates the partial_sum data structure:
+    ---------------------
+    | sum | first_value |
+    ---------------------
+    | ds  | last_value  |
+    ---------------------
+    """
+    psum[0, -1] = first_value - 3
+    psum[1, -1] = first_value + m + 1
+    sum = psum[0, :-1]
+    sum[0] = 0
+    sum[1] = 1
+    sum[2] = 2
+    for i in range(2, m + 2):
+        sum[i + 1] = sum[i] + values[i - 2]
+    sum[m + 3] = sum[m + 2] + 1
+    sum[m + 4] = sum[m + 3] + 1
+    ds = psum[1, :-1]
+    i = m + 3
+    j = m + 4
+    while i > 0:
+        while sum[i] == sum[i - 1]:
+            ds[i] = j
+            i -= 1
+        j = ds[j] = i
+        i -= 1
+    ds[j] = 0
+
+
+@njit(cache=True)
+def get_sum(psum: NDArray, from_idx: int, to_idx: int) -> int:
+    fv = first_value(psum)
+    return (
+        psum[0, to_idx - fv] - psum[0, from_idx - fv - 1]
+        if from_idx <= to_idx
+        else psum[0, to_idx - fv - 1] - psum[0, from_idx - fv]
+    )
+
+
+@njit(cache=True)
+def get_min_value(psum: NDArray) -> int:
+    return first_value(psum) + 3
+
+
+@njit(cache=True)
+def get_max_value(psum: NDArray) -> int:
+    return last_value(psum) - 2
+
+
+@njit(cache=True)
+def skip_non_null_elements_right(psum: NDArray, value: int) -> int:
+    value -= first_value(psum)
+    return (value if psum[1, value] < value else psum[1, value]) + first_value(psum)
+
+
+@njit(cache=True)
+def skip_non_null_elements_left(psum: NDArray, value: int) -> int:
+    value -= first_value(psum)
+    return (psum[1, psum[1, value]] if psum[1, value] > value else value) + first_value(psum)
+
+
+@njit(cache=True)
 def update_bounds(
     bounds: NDArray,
     n: int,
@@ -47,7 +121,7 @@ def update_bounds(
 ) -> int:
     min_value = domains[min_sorted_vars[0], MIN]
     max_value = domains[max_sorted_vars[0], MAX] + 1
-    bounds[0] = last = l[0, -1] + 1
+    bounds[0] = last = first_value(l) + 1
     i = j = nb = 0
     while True:
         if i < n and min_value <= max_value:
@@ -67,72 +141,8 @@ def update_bounds(
             if j == n:
                 break
             max_value = domains[max_sorted_vars[j], MAX] + 1
-    bounds[nb + 1] = u[1, -1] + 1
+    bounds[nb + 1] = last_value(u) + 1
     return nb
-
-
-@njit(cache=True)
-def update_partial_sum(psum: NDArray, first_value: int, m: int, values: NDArray) -> None:
-    """
-    Updates the partial_sum data structure:
-    ---------------------
-    | sum | first_value |
-    ---------------------
-    | ds  | last_value  |
-    ---------------------
-    """
-    psum[0, -1] = first_value - 3
-    psum[1, -1] = first_value + m + 1
-    sum = psum[0, :]
-    sum[0] = 0
-    sum[1] = 1
-    sum[2] = 2
-    for i in range(2, m + 2):
-        sum[i + 1] = sum[i] + values[i - 2]
-    sum[i + 1] = sum[i] + 1
-    sum[i + 2] = sum[i + 1] + 1
-    ds = psum[1, :]
-    i = m + 3
-    j = m + 4
-    while i > 0:
-        while sum[i] == sum[i - 1]:
-            ds[i] = j
-            i -= 1
-        j = ds[j] = i
-        i -= 1
-    ds[j] = 0
-
-
-@njit(cache=True)
-def get_sum(psum: NDArray, start: int, end: int) -> int:
-    first_value = psum[0, -1]
-    return (
-        psum[0, end - first_value] - psum[0, start - first_value - 1]
-        if start <= end
-        else psum[0, end - first_value - 1] - psum[0, start - first_value]
-    )
-
-
-@njit(cache=True)
-def get_min_value(psum: NDArray) -> int:
-    return psum[0, -1] + 3
-
-
-@njit(cache=True)
-def get_max_value(psum: NDArray) -> int:
-    return psum[1, -1] - 2
-
-
-@njit(cache=True)
-def skip_non_null_elements_right(psum: NDArray, value: int) -> int:
-    value -= psum[0, -1]
-    return (value if psum[1, value] < value else psum[1, value]) + psum[0, -1]
-
-
-@njit(cache=True)
-def skip_non_null_elements_left(psum: NDArray, value: int) -> int:
-    value -= psum[0, -1]
-    return (psum[1, psum[1, value]] if psum[1, value] > value else value) + psum[0, -1]
 
 
 @njit(cache=True)
@@ -197,7 +207,7 @@ def filter_upper_max(
         min_sorted_vars_i = min_sorted_vars[i]
         x = ranks[min_sorted_vars_i, MAX]
         y = ranks[min_sorted_vars_i, MIN]
-        z = path_max(t, x - 1)
+        z = path_min(t, x - 1)
         j = t[z]
         d[z] -= 1
         if d[z] == 0:
@@ -237,7 +247,7 @@ def filter_lower_min(
     new_mins: NDArray,
 ) -> bool:
     w = nb + 1
-    for i in range(w, -1, -1):
+    for i in range(w, 0, -1):
         pot_stbl_sets[i] = stbl_intervals[i] = i - 1
         c[i] = get_sum(l, bounds[i - 1], bounds[i] - 1)
         if c[i] == 0:  # if the capacity between both bounds is zero, we have an unstable set between these two bounds
@@ -262,8 +272,9 @@ def filter_lower_min(
             path_set(pot_stbl_sets, x + 1, w, w)  # path compression
             w = min(y, z)
             path_set(pot_stbl_sets, pot_stbl_sets[w], v, w)
-            pot_stbl_sets[w] = w
+            pot_stbl_sets[w] = v
         if c[z] <= get_sum(l, bounds[y], bounds[z] - 1):
+            # (potentialStableSets[y], y] is a stable set
             w = path_max(stbl_intervals, pot_stbl_sets[y])
             path_set(stbl_intervals, pot_stbl_sets[y], w, w)  # path compression
             v = stbl_intervals[w]
@@ -273,7 +284,7 @@ def filter_lower_min(
             c[z] -= 1  # decrease the capacity between the two bounds
             if c[z] == 0:
                 tl[z] = z + 1
-                z = path_max[tl, tl[z]]
+                z = path_max(tl, tl[z])
                 tl[z] = j
             # If the lower bound belongs to an unstable or a stable set, remind the new value we might assign to
             # the lower bound in case the variable doesn't belong to a stable set.
@@ -351,7 +362,7 @@ def filter_upper_min(
             c[z] -= 1
             if c[z] == 0:
                 tl[z] = z - 1
-                z = path_min[tl, tl[z]]
+                z = path_min(tl, tl[z])
                 tl[z] = j
             if sets[x] < x:
                 new_maxs[i] = w = path_min(sets, sets[x])
@@ -388,8 +399,6 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     t = np.zeros(bounds_nb, dtype=np.uint16)  # critical capacity pointers
     d = np.zeros(bounds_nb, dtype=np.int32)  # differences between critical capacities
     h = np.zeros(bounds_nb, dtype=np.uint16)  # Hall interval pointers
-    min_sorted_vars = np.argsort(domains[:, MIN])
-    max_sorted_vars = np.argsort(domains[:, MAX])
     stbl_intervals = np.zeros(bounds_nb, dtype=np.int32)
     pot_stbl_sets = np.zeros(bounds_nb, dtype=np.int32)
     new_mins = np.zeros(n, dtype=np.int32)
@@ -399,14 +408,16 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     first_value = parameters[0]
     update_partial_sum(l, first_value, m, parameters[1 : 1 + m])
     update_partial_sum(u, first_value, m, parameters[1 + m :])
+    min_sorted_vars = np.argsort(domains[:, MIN])
+    max_sorted_vars = np.argsort(domains[:, MAX])
+    if get_sum(l, get_min_value(l), domains[min_sorted_vars[0], MIN] - 1) > 0:
+        return PROP_INCONSISTENCY
+    if get_sum(l, domains[max_sorted_vars[n - 1], MAX] + 1, get_max_value(l)) > 0:
+        return PROP_INCONSISTENCY
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
-    if get_sum(l, get_min_value(l), domains[min_sorted_vars[0], MIN] - 1) <= 0:
-        return PROP_INCONSISTENCY
-    if get_sum(l, domains[max_sorted_vars[n - 1], MAX] + 1, get_max_value(l)) <= 0:
-        return PROP_INCONSISTENCY
     if not filter_lower_max(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars, u):
         return PROP_INCONSISTENCY
-    if not filter_lower_min(
+    if not filter_lower_min(  # infinite loop
         n,
         nb,
         t,
@@ -424,6 +435,6 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
         return PROP_INCONSISTENCY
     if not filter_upper_max(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, u):
         return PROP_INCONSISTENCY
-    if not filter_upper_min(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, l, stbl_intervals, new_mins):
-        return PROP_INCONSISTENCY
+    # if not filter_upper_min(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, l, stbl_intervals, new_mins): # infinite loop
+    #    return PROP_INCONSISTENCY
     return PROP_CONSISTENCY

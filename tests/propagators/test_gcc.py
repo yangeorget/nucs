@@ -48,5 +48,5 @@ class TestGCC:
 
     def test_compute_domains_3(self) -> None:
         domains = new_shr_domains_by_values([(0, 0), (0, 4), (0, 4), (0, 4), (0, 4)])
-        assert compute_domains_gcc(domains, new_parameters_by_values([0] + [1] * 6)) == PROP_CONSISTENCY
+        assert compute_domains_gcc(domains, new_parameters_by_values([0] + [1] * 10)) == PROP_CONSISTENCY
         assert np.all(domains == np.array([[0, 0], [1, 4], [1, 4], [1, 4], [1, 4]]))
