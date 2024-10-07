@@ -152,6 +152,7 @@ def compute_domains_lexicographic_leq(domains: NDArray, parameters: NDArray) -> 
            x is the list of the first n domains,
            y is the list of the last n domains
     :param parameters: unused here
+    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
     """
     # TODO: make incremental
     n = len(domains) // 2

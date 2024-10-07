@@ -48,6 +48,7 @@ def compute_domains_element_liv(domains: NDArray, parameters: NDArray) -> int:
            i is the (n-1)th domain,
            v is the last domain
     :param parameters: the parameters of the propagator, it is unused
+    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
     """
     l = domains[:-2]
     i = domains[-2]

@@ -44,6 +44,7 @@ def compute_domains_and(domains: NDArray, parameters: NDArray) -> int:
     Implements & b_i = b_{n-1} where for each i, b_i is a boolean variable.
     :param domains: the domains of the variables, b is an alias for domains
     :param parameters: unused here
+    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
     """
     x = domains[:-1]
     y = domains[-1]

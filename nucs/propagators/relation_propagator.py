@@ -45,6 +45,7 @@ def compute_domains_relation(domains: NDArray, parameters: NDArray) -> int:
     :param parameters: the parameters of the propagator,
            the allowed tuples correspond to:
            (parameters_0, ..., parameters_n-1), (parameters_n, ..., parameters_2n-1), ...
+    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
     """
     n = len(domains)
     tuples = parameters.copy().reshape((-1, n))
