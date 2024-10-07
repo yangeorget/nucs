@@ -27,4 +27,3 @@
 - document environment variables
 - document the absence of decision variables
 - document solvers
-- document all functions
