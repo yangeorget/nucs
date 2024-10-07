@@ -33,6 +33,7 @@ def get_triggers_affine_leq(n: int, parameters: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.
     :param n: the number of variables
+    :param parameters: the parameters
     :return: an array of triggers
     """
     triggers = new_triggers(n, False)

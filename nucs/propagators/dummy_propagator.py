@@ -30,7 +30,8 @@ def get_complexity_dummy(n: int, parameters: NDArray) -> float:
 def get_triggers_dummy(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
-    :param n: the number of variables
+    :param n: the number of variables, unused here
+    :param parameters: the parameters, unused here
     :return: an array of triggers
     """
     return new_triggers(n, True)

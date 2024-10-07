@@ -32,6 +32,7 @@ def get_triggers_max_eq(n: int, parameters: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.
     :param n: the number of variables
+    :param parameters: the parameters, unused here
     :return: an array of triggers
     """
     return new_triggers(n, True)

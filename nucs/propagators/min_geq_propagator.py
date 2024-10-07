@@ -32,6 +32,7 @@ def get_triggers_min_geq(n: int, parameters: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.
     :param n: the number of variables
+    :param parameters: the parameters, unused here
     :return: an array of triggers
     """
     triggers = new_triggers(n, False)
