@@ -9,7 +9,6 @@
 - Golfers problem
 - Car sequencing problem (GCC or Element)
 - Crypto multiplication problem (Product)
-- break symmetries in schur lemma
 
 # CSPlib
 - review CSPlib for additional problem

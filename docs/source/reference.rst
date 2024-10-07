@@ -507,6 +507,12 @@ This problem leverages the propagators:
 
 This problem is problem `015 <https://www.csplib.org/Problems/prob015>`_ on CSPLib.
 
+The problem can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.schur_lemma -n 20 --symmetry_breaking
+
 This problem leverages the propagators:
 
 * :mod:`nucs.propagators.exactly_true_propagator`,
