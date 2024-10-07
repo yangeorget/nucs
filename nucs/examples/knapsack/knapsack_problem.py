@@ -22,6 +22,12 @@ class KnapsackProblem(Problem):
     """
 
     def __init__(self, weights: List[int], volumes: List[int], capacity: int) -> None:
+        """
+        Inits the problem.
+        :param weights: the weights as a list of ints
+        :param volumes: the volume as a list of ints
+        :param capacity: the capacity
+        """
         n = len(weights)
         super().__init__([(0, 1)] * n + [(0, sum(weights))])
         self.add_propagator((list(range(n)), ALG_AFFINE_LEQ, [*volumes, capacity]))

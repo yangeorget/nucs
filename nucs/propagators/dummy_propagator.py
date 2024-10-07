@@ -18,13 +18,20 @@ from nucs.numpy import new_triggers
 
 
 def get_complexity_dummy(n: int, parameters: NDArray) -> float:
-    return 0
+    """
+    Returns the time complexity of the propagator as a float.
+    :param n: the number of variables
+    :param parameters: the parameters, unused here
+    :return: a float
+    """
+    return 0.0
 
 
 def get_triggers_dummy(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
-    :param n: the number of variables
+    :param n: the number of variables, unused here
+    :param parameters: the parameters, unused here
     :return: an array of triggers
     """
     return new_triggers(n, True)
@@ -34,5 +41,6 @@ def get_triggers_dummy(n: int, parameters: NDArray) -> NDArray:
 def compute_domains_dummy(domains: NDArray, parameters: NDArray) -> int:
     """
     A propagator that does nothing.
+    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
     """
     return PROP_CONSISTENCY

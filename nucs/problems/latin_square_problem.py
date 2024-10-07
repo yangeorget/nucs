@@ -15,9 +15,9 @@ from typing import List, Optional
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_ELEMENT_LIC
 
-M_COLOR = 0
-M_ROW = 1
-M_COLUMN = 2
+M_COLOR = 0  # the color model
+M_ROW = 1  # the row model
+M_COLUMN = 2  # the column model
 
 
 class LatinSquareProblem(Problem):
@@ -72,6 +72,10 @@ class LatinSquareRCProblem(LatinSquareProblem):
     """
 
     def __init__(self, n: int):
+        """
+        Inits the problem.
+        :param n: the size of the square
+        """
         super().__init__(list(range(n)))  # the color model
         self.add_variables([(0, n - 1)] * n**2)  # the row model
         self.add_variables([(0, n - 1)] * n**2)  # the column model

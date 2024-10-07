@@ -19,6 +19,12 @@ from nucs.numpy import new_triggers
 
 
 def get_complexity_and(n: int, parameters: NDArray) -> float:
+    """
+    Returns the time complexity of the propagator as a float.
+    :param n: the number of variables
+    :param parameters: the parameters, unused here
+    :return: a float
+    """
     return 3 * n
 
 
@@ -26,6 +32,7 @@ def get_triggers_and(n: int, parameters: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.
     :param n: the number of variables
+    :param parameters: the parameters, unused here
     :return: an array of triggers
     """
     return new_triggers(n, True)
@@ -37,6 +44,7 @@ def compute_domains_and(domains: NDArray, parameters: NDArray) -> int:
     Implements & b_i = b_{n-1} where for each i, b_i is a boolean variable.
     :param domains: the domains of the variables, b is an alias for domains
     :param parameters: unused here
+    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
     """
     x = domains[:-1]
     y = domains[-1]

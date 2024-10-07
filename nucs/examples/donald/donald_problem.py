@@ -25,6 +25,9 @@ class DonaldProblem(Problem):
     """
 
     def __init__(self) -> None:
+        """
+        Inits the problem.
+        """
         super().__init__([(0, 9)] * 10)
         self.add_propagator(
             (
@@ -38,6 +41,11 @@ class DonaldProblem(Problem):
         )
 
     def solution_as_dict(self, solution: List[int]) -> Dict[str, int]:
+        """
+        Returns the solution as a dict.
+        :param solution: the solution as a list of ints
+        :return: a dict
+        """
         return {
             "A": solution[A],
             "B": solution[B],

@@ -20,6 +20,11 @@ class QuasigroupProblem(LatinSquareRCProblem):
     """
 
     def __init__(self, n: int, symmetry_breaking: bool = True):
+        """
+        Inits the problem.
+        :param n: the size of the quasigroup
+        :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
+        """
         super().__init__(n)
         # idempotence
         for model in [M_COLOR, M_ROW, M_COLUMN]:
@@ -40,6 +45,11 @@ class Quasigroup5Problem(QuasigroupProblem):
     """
 
     def __init__(self, n: int, symmetry_breaking: bool = True):
+        """
+        Inits the problem
+        :param n: the size of the quasigroup
+        :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
+        """
         super().__init__(n, symmetry_breaking)
         for j in range(n):
             for i in range(n):

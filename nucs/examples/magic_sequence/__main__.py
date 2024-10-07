@@ -10,23 +10,25 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
+import argparse
+
 from rich import print
 
-from nucs.examples.knapsack.knapsack_problem import KnapsackProblem
+from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import first_not_instantiated_var_heuristic, max_value_dom_heuristic
+from nucs.solvers.heuristics import last_not_instantiated_var_heuristic, min_value_dom_heuristic
 from nucs.statistics import get_statistics
 
-# NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.knapsack
+# Run with the following command (the second run is much faster because the code has been compiled):
+# NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.magic_sequence -n 100
 if __name__ == "__main__":
-    problem = KnapsackProblem(
-        [40, 40, 38, 38, 36, 36, 34, 34, 32, 32, 30, 30, 28, 28, 26, 26, 24, 24, 22, 22],
-        [40, 40, 38, 38, 36, 36, 34, 34, 32, 32, 30, 30, 28, 28, 26, 26, 24, 24, 22, 22],
-        55,
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-n", type=int, default=100)
+    args = parser.parse_args()
+    problem = MagicSequenceProblem(args.n)
     solver = BacktrackSolver(
-        problem, var_heuristic=first_not_instantiated_var_heuristic, dom_heuristic=max_value_dom_heuristic
+        problem, var_heuristic=last_not_instantiated_var_heuristic, dom_heuristic=min_value_dom_heuristic
     )
-    solution = solver.maximize(problem.weight)
+    solver.solve_all()
     print(get_statistics(solver.statistics))
-    print(solution)
+

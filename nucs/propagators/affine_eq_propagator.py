@@ -19,6 +19,12 @@ from nucs.numpy import new_triggers
 
 
 def get_complexity_affine_eq(n: int, parameters: NDArray) -> float:
+    """
+    Returns the time complexity of the propagator as a float.
+    :param n: the number of variables
+    :param parameters: the parameters, unused here
+    :return: a float
+    """
     return 5 * n
 
 
@@ -26,6 +32,7 @@ def get_triggers_affine_eq(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
+    :param parameters: the parameters, unused here
     :return: an array of triggers
     """
     return new_triggers(n, True)
@@ -53,6 +60,7 @@ def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
     Implements Sigma_i a_i * x_i = a_{n-1}.
     :param domains: the domains of the variables, x is an alias for domains
     :param parameters: the parameters of the propagator, a is an alias for parameters
+    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
     """
     domain_sum_min = compute_domain_sum_min(domains, parameters)
     domain_sum_max = compute_domain_sum_max(domains, parameters)

@@ -23,14 +23,32 @@ GOLOMB_LENGTHS = [0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127]
 
 
 def sum_first(n: int) -> int:
+    """
+    Returns the sum of the first n integers.
+    :param n: an integer
+    :return: the sum
+    """
     return (n * (n + 1)) // 2
 
 
 def index(mark_nb: int, i: int, j: int) -> int:
+    """
+    Returns the index of the distance variable between two marks.
+    :param mark_nb: the total number of marks
+    :param i: the first mark
+    :param j: the second mark
+    :return: the index of the distance variable
+    """
     return i * mark_nb - sum_first(i) + j - i - 1
 
 
 def init_domains(dist_nb: int, mark_nb: int) -> NDArray:
+    """
+    Returns the domains.
+    :param dist_nb: the number of distances
+    :param mark_nb: the number of marks
+    :return: a Numpy array of domains
+    """
     domains = np.empty((dist_nb, 2), dtype=np.int32, order="F")
     for i in range(0, mark_nb - 1):
         for j in range(i + 1, mark_nb):
@@ -100,6 +118,12 @@ class GolombProblem(Problem):
 
 
 def golomb_consistency_algorithm(statistics: NDArray, problem: GolombProblem) -> int:
+    """
+    Applies a custom consistency algorithm for the Golomb Ruler problem.
+    :param statistics: the statistics array
+    :param problem: the problem
+    :return: the status as an int
+    """
     # first prune the search space
     ni_var_idx = first_not_instantiated_var_heuristic(problem.shr_domains_arr)  # no domains shared between vars
     if 1 < ni_var_idx < problem.mark_nb - 1:  # otherwise useless

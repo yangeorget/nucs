@@ -18,6 +18,12 @@ from nucs.numpy import new_triggers
 
 
 def get_complexity_relation(n: int, parameters: NDArray) -> float:
+    """
+    Returns the time complexity of the propagator as a float.
+    :param n: the number of variables, unused here
+    :param parameters: the parameters
+    :return: a float
+    """
     return 3 * len(parameters)
 
 
@@ -25,6 +31,7 @@ def get_triggers_relation(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
+    :param parameters: the parameters, unused here
     :return: an array of triggers
     """
     return new_triggers(n, True)
@@ -38,6 +45,7 @@ def compute_domains_relation(domains: NDArray, parameters: NDArray) -> int:
     :param parameters: the parameters of the propagator,
            the allowed tuples correspond to:
            (parameters_0, ..., parameters_n-1), (parameters_n, ..., parameters_2n-1), ...
+    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
     """
     n = len(domains)
     tuples = parameters.copy().reshape((-1, n))

@@ -438,6 +438,12 @@ This problem leverages the propagators:
 
 This problem is problem `019 <https://www.csplib.org/Problems/prob019>`_ on CSPLib.
 
+This problem can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.magic_sequence -n 100
+
 This problem leverages the propagators:
 
 * :mod:`nucs.propagators.affine_eq_propagator`,
@@ -448,6 +454,12 @@ This problem leverages the propagators:
 .. py:class:: nucs.examples.magic_square.magic_square_problem
 
 This problem is problem `019 <https://www.csplib.org/Problems/prob019>`_ on CSPLib.
+
+This problem can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.magic_square -n 4 --symmetry_breaking
 
 This problem leverages the propagators:
 
@@ -494,6 +506,12 @@ This problem leverages the propagators:
 .. py:class:: nucs.examples.schur_lemma.schur_lemma_problem
 
 This problem is problem `015 <https://www.csplib.org/Problems/prob015>`_ on CSPLib.
+
+The problem can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.schur_lemma -n 20 --symmetry_breaking
 
 This problem leverages the propagators:
 

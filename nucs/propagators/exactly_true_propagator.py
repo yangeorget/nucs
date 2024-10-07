@@ -18,6 +18,12 @@ from nucs.numpy import new_triggers
 
 
 def get_complexity_exactly_true(n: int, parameters: NDArray) -> float:
+    """
+    Returns the time complexity of the propagator as a float.
+    :param n: the number of variables
+    :param parameters: the parameters, unused here
+    :return: a float
+    """
     return 2 * n
 
 
@@ -25,6 +31,7 @@ def get_triggers_exactly_true(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
+    :param parameters: the parameters, unused here
     :return: an array of triggers
     """
     return new_triggers(n, True)
@@ -36,6 +43,7 @@ def compute_domains_exactly_true(domains: NDArray, parameters: NDArray) -> int:
     Implements Sigma_i (b_i == 1) = c when for each i, b_i is a boolean variable.
     :param domains: the domains of the variables, b is an alias for domains
     :param parameters: the parameters of the propagator, c is the first parameter
+    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
     """
     c = parameters[0]
     count_max = len(domains) - c

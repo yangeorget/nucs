@@ -24,6 +24,10 @@ class QueensProblem(Problem):
     """
 
     def __init__(self, n: int):
+        """
+        Inits the problem.
+        :param n: the number of queens
+        """
         super().__init__(
             [(0, n - 1)] * n,
             list(range(n)) * 3,

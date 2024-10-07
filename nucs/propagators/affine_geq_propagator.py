@@ -20,6 +20,12 @@ from nucs.propagators.affine_eq_propagator import compute_domain_sum_max, comput
 
 
 def get_complexity_affine_geq(n: int, parameters: NDArray) -> float:
+    """
+    Returns the time complexity of the propagator as a float.
+    :param n: the number of variables
+    :param parameters: the parameters, unused here
+    :return: a float
+    """
     return 5 * n
 
 
@@ -27,6 +33,7 @@ def get_triggers_affine_geq(n: int, parameters: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.
     :param n: the number of variables
+    :param parameters: the parameters
     :return: an array of triggers
     """
     triggers = new_triggers(n, False)
@@ -42,6 +49,7 @@ def compute_domains_affine_geq(domains: NDArray, parameters: NDArray) -> int:
     Implements Sigma_i a_i * x_i >= a_{n-1}.
     :param domains: the domains of the variables, x is an alias for domains
     :param parameters: the parameters of the propagator, a is an alias for parameters
+    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
     """
     if compute_domain_sum_max(domains, parameters) <= 0:
         return PROP_ENTAILMENT

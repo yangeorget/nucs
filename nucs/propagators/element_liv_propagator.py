@@ -20,6 +20,12 @@ from nucs.numpy import new_triggers
 
 
 def get_complexity_element_liv(n: int, parameters: NDArray) -> float:
+    """
+    Returns the time complexity of the propagator as a float.
+    :param n: the number of variables
+    :param parameters: the parameters, unused here
+    :return: a float
+    """
     return n
 
 
@@ -27,6 +33,7 @@ def get_triggers_element_liv(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
+    :param parameters: the parameters, unused here
     :return: an array of triggers
     """
     return new_triggers(n, True)
@@ -41,6 +48,7 @@ def compute_domains_element_liv(domains: NDArray, parameters: NDArray) -> int:
            i is the (n-1)th domain,
            v is the last domain
     :param parameters: the parameters of the propagator, it is unused
+    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
     """
     l = domains[:-2]
     i = domains[-2]

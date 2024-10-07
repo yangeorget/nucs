@@ -21,6 +21,12 @@ from nucs.numpy import new_triggers
 
 
 def get_complexity_alldifferent(n: int, parameters: NDArray) -> float:
+    """
+    Returns the time complexity of the propagator as a float.
+    :param n: the number of variables
+    :param parameters: the parameters, unused here
+    :return: a float
+    """
     return 2 * n * math.log(n) + 5 * n
 
 
@@ -28,20 +34,34 @@ def get_triggers_alldifferent(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
+    :param parameters: the parameters, unused here
     :return: an array of triggers
     """
     return new_triggers(n, True)
 
 
 @njit(cache=True)
-def path_set(t: NDArray, start: int, end: int, to: int) -> None:
+def path_set(t: NDArray, start: int, end: int, value: int) -> None:
+    """
+    Sets t[start], t[t[start]], ..., a[idx] to value until a[idx] = end.
+    :param t: an array of pointers
+    :param start: an index
+    :param end: an index
+    :param value: a value
+    """
     while (p := start) != end:
         start = t[p]
-        t[p] = to
+        t[p] = value
 
 
 @njit(cache=True)
 def path_min(t: NDArray, i: int) -> int:
+    """
+    Follows i, t[i], t[t[i], ... until it stops decreasing.
+    :param t: an array of pointers
+    :param i: an index
+    :return: the index found
+    """
     while t[i] < i:
         i = t[i]
     return i
@@ -49,6 +69,12 @@ def path_min(t: NDArray, i: int) -> int:
 
 @njit(cache=True)
 def path_max(t: NDArray, i: int) -> int:
+    """
+    Follows i, t[i], t[t[i], ... until it stops increasing.
+    :param t: an array of pointers
+    :param i: an index
+    :return: the index found
+    """
     while t[i] > i:
         i = t[i]
     return i
@@ -173,6 +199,7 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
     :param domains: the domains of the variables, x is an alias for domains
     :param parameters: unused here
+    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
     """
     n = len(domains)
     ranks = np.zeros((n, 2), dtype=np.uint16)

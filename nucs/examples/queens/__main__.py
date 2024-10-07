@@ -18,6 +18,8 @@ from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.statistics import get_statistics
 
+# Run with the following command (the second run is much faster because the code has been compiled):
+# NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.queens -n 10
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", type=int, default=10)

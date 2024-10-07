@@ -43,6 +43,12 @@ from nucs.statistics import (
 
 
 def bound_consistency_algorithm(statistics: NDArray, problem: Problem) -> int:
+    """
+    Applies the bound consistency algorithm.
+    :param statistics: the statistics array
+    :param problem: the problem
+    :return: the status as an integer
+    """
     return _bound_consistency_algorithm(
         statistics,
         problem.algorithms,
@@ -75,7 +81,8 @@ def _bound_consistency_algorithm(
     compute_domains_addrs: NDArray,
 ) -> int:
     """
-    Filters the problem's domains by applying the propagators until a fix point is reached.
+    Internal method for applying the bound consistency algorithm.
+    This method only uses Numpy arrays as parameters, this permits JIT compilation.
     """
     statistics[STATS_PROBLEM_FILTER_NB] += 1
     prop_idx = -1
