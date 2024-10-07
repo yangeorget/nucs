@@ -18,6 +18,12 @@ from nucs.numpy import new_triggers
 
 
 def get_complexity_relation(n: int, parameters: NDArray) -> float:
+    """
+    Returns the time complexity of the propagator as a float.
+    :param n: the number of variables, unused here
+    :param parameters: the parameters
+    :return: a float
+    """
     return 3 * len(parameters)
 
 

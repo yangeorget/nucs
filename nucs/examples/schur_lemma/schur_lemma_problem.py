@@ -20,6 +20,11 @@ class SchurLemmaProblem(Problem):
     """
 
     def __init__(self, n: int, symmetry_breaking: bool = True) -> None:
+        """
+        Inits the problem.
+        :param n: the size of the problem
+        :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
+        """
         super().__init__([(0, 1)] * n * 3)
         for x in range(n):
             self.add_propagator(([x * 3, x * 3 + 1, x * 3 + 2], ALG_EXACTLY_TRUE, [1]))
@@ -31,5 +36,9 @@ class SchurLemmaProblem(Problem):
                         self.add_propagator(([3 * x + k, 3 * y + k, 3 * z + k], ALG_AFFINE_LEQ, [1, 1, 1, 2]))
         if symmetry_breaking:
             self.add_propagator(
-                (list(range(0, n * 3, 3)) + list(range(1, n * 3, 3)) + list(range(2, n * 3, 3)), ALG_LEXICOGRAPHIC_LEQ, [])
+                (
+                    list(range(0, n * 3, 3)) + list(range(1, n * 3, 3)) + list(range(2, n * 3, 3)),
+                    ALG_LEXICOGRAPHIC_LEQ,
+                    [],
+                )
             )

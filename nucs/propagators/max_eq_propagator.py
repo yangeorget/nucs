@@ -19,6 +19,12 @@ from nucs.numpy import new_triggers
 
 
 def get_complexity_max_eq(n: int, parameters: NDArray) -> float:
+    """
+    Returns the time complexity of the propagator as a float.
+    :param n: the number of variables
+    :param parameters: the parameters, unused here
+    :return: a float
+    """
     return 3 * n
 
 

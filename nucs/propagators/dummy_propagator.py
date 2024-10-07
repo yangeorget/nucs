@@ -18,7 +18,13 @@ from nucs.numpy import new_triggers
 
 
 def get_complexity_dummy(n: int, parameters: NDArray) -> float:
-    return 0
+    """
+    Returns the time complexity of the propagator as a float.
+    :param n: the number of variables
+    :param parameters: the parameters, unused here
+    :return: a float
+    """
+    return 0.0
 
 
 def get_triggers_dummy(n: int, parameters: NDArray) -> NDArray:

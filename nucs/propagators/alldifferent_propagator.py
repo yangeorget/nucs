@@ -34,14 +34,27 @@ def get_triggers_alldifferent(n: int, parameters: NDArray) -> NDArray:
 
 
 @njit(cache=True)
-def path_set(t: NDArray, start: int, end: int, to: int) -> None:
+def path_set(t: NDArray, start: int, end: int, value: int) -> None:
+    """
+    Sets t[start], t[t[start]], ..., a[idx] to value until a[idx] = end.
+    :param t: an array of pointers
+    :param start: an index
+    :param end: an index
+    :param value: a value
+    """
     while (p := start) != end:
         start = t[p]
-        t[p] = to
+        t[p] = value
 
 
 @njit(cache=True)
 def path_min(t: NDArray, i: int) -> int:
+    """
+    Follows i, t[i], t[t[i], ... until it stops decreasing.
+    :param t: an array of pointers
+    :param i: an index
+    :return: the index found
+    """
     while t[i] < i:
         i = t[i]
     return i
@@ -49,6 +62,12 @@ def path_min(t: NDArray, i: int) -> int:
 
 @njit(cache=True)
 def path_max(t: NDArray, i: int) -> int:
+    """
+    Follows i, t[i], t[t[i], ... until it stops increasing.
+    :param t: an array of pointers
+    :param i: an index
+    :return: the index found
+    """
     while t[i] > i:
         i = t[i]
     return i

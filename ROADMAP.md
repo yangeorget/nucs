@@ -2,7 +2,6 @@
 - GCC
 - Cycle
 - Product
-- Alldifferent: relire http://www2.ift.ulaval.ca/~quimper/publications/ijcai03_TR.pdf et ecrire tests pour path* methods
 
 # Problems
 - RoundRobin problem (GCC)

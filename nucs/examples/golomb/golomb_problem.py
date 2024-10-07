@@ -23,6 +23,11 @@ GOLOMB_LENGTHS = [0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127]
 
 
 def sum_first(n: int) -> int:
+    """
+    Returns the sum of the first n integers.
+    :param n: an integer
+    :return: the sum
+    """
     return (n * (n + 1)) // 2
 
 

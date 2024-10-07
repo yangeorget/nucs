@@ -22,6 +22,15 @@ class BIBDProblem(Problem):
     """
 
     def __init__(self, v: int, b: int, r: int, k: int, l: int, symmetry_breaking: bool = True):
+        """
+        Inits the problem.
+        :param v: the number of points/rows
+        :param b: the number of blocks
+        :param r: the number of true values per row
+        :param k: the number of true values per column
+        :param l: the scalar product between two rows
+        :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
+        """
         self.v = v  # number of points/rows
         self.b = b  # number of blocks/columns
         matrix_var_nb = v * b  # number of cells in the matrix
@@ -58,4 +67,9 @@ class BIBDProblem(Problem):
                 )
 
     def solution_as_matrix(self, solution: List[int]) -> List[List[int]]:
+        """
+        Returns the solutions as a matrix of ints.
+        :param solution: the solution as a list of ints
+        :return: a matrix
+        """
         return [[solution[i * self.b + j] for j in range(0, self.b)] for i in range(0, self.v)]
