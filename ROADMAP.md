@@ -1,8 +1,6 @@
 # Constraints
 - GCC:
-  - write tests for partial sum
   - write a smaller test that loops
-  - add assertions (see article)
   - compare with KCS !!!
   
 - Cycle

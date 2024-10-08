@@ -45,18 +45,19 @@ def get_last_value(psum: NDArray) -> int:
 
 
 @njit(cache=True)
-def update_partial_sum(psum: NDArray, first_value: int, m: int, values: NDArray) -> None:
+def init_partial_sum(first_value: int, m: int, values: NDArray) -> NDArray:
     """
-    Updates the partial_sum data structure:
+    Inits the partial_sum data structure:
     ---------------------
     | sum | first_value |
     ---------------------
     | ds  | last_value  |
     ---------------------
     """
-    psum[0, -1] = first_value - 3
-    psum[1, -1] = first_value + m + 1
-    sum = psum[0, :-1]
+    partial_sum = np.zeros((2, m + 6), dtype=np.int32)
+    partial_sum[0, -1] = first_value - 3
+    partial_sum[1, -1] = first_value + m + 1
+    sum = partial_sum[0, :-1]
     sum[0] = 0
     sum[1] = 1
     sum[2] = 2
@@ -64,7 +65,7 @@ def update_partial_sum(psum: NDArray, first_value: int, m: int, values: NDArray)
         sum[i + 1] = sum[i] + values[i - 2]
     sum[m + 3] = sum[m + 2] + 1
     sum[m + 4] = sum[m + 3] + 1
-    ds = psum[1, :-1]
+    ds = partial_sum[1, :-1]
     i = m + 3
     j = m + 4
     while i > 0:
@@ -74,16 +75,21 @@ def update_partial_sum(psum: NDArray, first_value: int, m: int, values: NDArray)
         j = ds[j] = i
         i -= 1
     ds[j] = 0
+    return partial_sum
 
 
 @njit(cache=True)
-def get_sum(psum: NDArray, from_idx: int, to_idx: int) -> int:
+def get_sum(psum: NDArray, start: int, end: int) -> int:
     fv = get_first_value(psum)
-    return (
-        psum[0, to_idx - fv] - psum[0, from_idx - fv - 1]
-        if from_idx <= to_idx
-        else psum[0, to_idx - fv - 1] - psum[0, from_idx - fv]
-    )
+    sum = psum[0, :-1]
+    if start <= end:
+        assert fv <= start
+        assert end <= get_last_value(psum)
+        return sum[end - fv] - sum[start - fv - 1]
+    else:
+        assert fv <= end
+        assert start <= get_last_value(psum)
+        return sum[end - fv - 1] - sum[start - fv]
 
 
 @njit(cache=True)
@@ -119,7 +125,6 @@ def update_bounds(
     l: NDArray,
     u: NDArray,
 ) -> int:
-    print("update_bounds")
     min_value = domains[min_sorted_vars[0], MIN]
     max_value = domains[max_sorted_vars[0], MAX] + 1
     bounds[0] = last = get_first_value(l) + 1
@@ -406,10 +411,9 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     :param domains: the domains of the variables
     :param parameters: the first domain value, then the lower bounds, then the upper bounds (capacities)
     """
-    print(parameters)
     n = len(domains)
-    bounds_nb = 2 * n + 2
     m = (len(parameters) - 1) // 2  # number of values
+    bounds_nb = 2 * n + 2
     ranks = np.zeros((n, 2), dtype=np.uint16)
     bounds = np.zeros(bounds_nb, dtype=np.int32)
     t = np.zeros(bounds_nb, dtype=np.uint16)  # critical capacity pointers
@@ -418,21 +422,24 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     stbl_intervals = np.zeros(bounds_nb, dtype=np.int32)
     pot_stbl_sets = np.zeros(bounds_nb, dtype=np.int32)
     new_mins = np.zeros(n, dtype=np.int32)
-    l = np.zeros((2, m + 6), dtype=np.int32)
-    u = np.zeros((2, m + 6), dtype=np.int32)
-    first_value = parameters[0]
-    update_partial_sum(l, first_value, m, parameters[1 : 1 + m])
-    print(l)
-    update_partial_sum(u, first_value, m, parameters[1 + m :])
+    l = init_partial_sum(parameters[0], m, parameters[1 : 1 + m])
+    u = init_partial_sum(parameters[0], m, parameters[1 + m :])
     min_sorted_vars = np.argsort(domains[:, MIN])
     max_sorted_vars = np.argsort(domains[:, MAX])
+    nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
+
+    assert get_min_value(l) == get_min_value(u)
+    assert get_max_value(l) == get_max_value(u)
+    assert get_min_value(l) <= domains[min_sorted_vars[0], MIN]
+    assert domains[max_sorted_vars[n - 1], MAX] <= get_max_value(u)
+
     if get_sum(l, get_min_value(l), domains[min_sorted_vars[0], MIN] - 1) > 0:
         return PROP_INCONSISTENCY
     if get_sum(l, domains[max_sorted_vars[n - 1], MAX] + 1, get_max_value(l)) > 0:
         return PROP_INCONSISTENCY
-    nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
-    #if not filter_lower_max(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars, u):
-    #    return PROP_INCONSISTENCY
+
+    if not filter_lower_max(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars, u):
+        return PROP_INCONSISTENCY
     if not filter_lower_min(  # infinite loop
         n,
         nb,
@@ -451,6 +458,8 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
         return PROP_INCONSISTENCY
     if not filter_upper_max(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, u):
         return PROP_INCONSISTENCY
-    # if not filter_upper_min(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, l, stbl_intervals, new_mins): # infinite loop
-    #    return PROP_INCONSISTENCY
+    if not filter_upper_min(
+        n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, l, stbl_intervals, new_mins
+    ):  # infinite loop
+        return PROP_INCONSISTENCY
     return PROP_CONSISTENCY
