@@ -59,6 +59,5 @@ class Quasigroup5Problem(QuasigroupProblem):
                             [*self.column(j, M_COLOR), self.cell(j, i, M_COLOR), self.cell(i, j, M_ROW)],
                             ALG_ELEMENT_LIV,
                             [],
-                        ),
-                        0,
+                        )
                     )

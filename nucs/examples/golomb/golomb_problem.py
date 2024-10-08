@@ -103,8 +103,7 @@ class GolombProblem(Problem):
                             [index(mark_nb, i, j), index(mark_nb, 0, mark_nb - 1)],
                             ALG_AFFINE_LEQ,
                             [1, -1, -sum_first(mark_nb - 1 - (j - i))],
-                        ),
-                        0,
+                        )
                     )
         if symmetry_breaking:
             self.add_propagator(
@@ -112,8 +111,7 @@ class GolombProblem(Problem):
                     [index(mark_nb, 0, 1), index(mark_nb, mark_nb - 2, mark_nb - 1)],
                     ALG_AFFINE_LEQ,
                     [1, -1, -1],
-                ),
-                0,
+                )
             )
 
 

@@ -105,15 +105,12 @@ class Problem:
         self.dom_indices_lst.extend(dom_indices_list)
         self.dom_offsets_lst.extend(dom_offsets_list)
 
-    def add_propagator(self, propagator: Tuple[List[int], int, List[int]], pos: int = -1) -> None:
+    def add_propagator(self, propagator: Tuple[List[int], int, List[int]]) -> None:
         """
         Adds an extra propagator.
         :param propagator: the propagator
         """
-        if pos == -1:
-            self.propagators.append(propagator)
-        else:
-            self.propagators.insert(pos, propagator)
+        self.propagators.append(propagator)
 
     def add_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
         """
