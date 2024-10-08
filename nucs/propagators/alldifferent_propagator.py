@@ -49,6 +49,7 @@ def path_set(t: NDArray, start: int, end: int, value: int) -> None:
     :param end: an index
     :param value: a value
     """
+    print("path_set", t, start, end, value)
     while (p := start) != end:
         start = t[p]
         t[p] = value
@@ -62,6 +63,7 @@ def path_min(t: NDArray, i: int) -> int:
     :param i: an index
     :return: the index found
     """
+    print("path_min")
     while t[i] < i:
         i = t[i]
     return i
@@ -75,6 +77,7 @@ def path_max(t: NDArray, i: int) -> int:
     :param i: an index
     :return: the index found
     """
+    print("path_max")
     while t[i] > i:
         i = t[i]
     return i

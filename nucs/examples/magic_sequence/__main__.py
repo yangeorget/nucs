@@ -31,4 +31,3 @@ if __name__ == "__main__":
     )
     solver.solve_all()
     print(get_statistics(solver.statistics))
-

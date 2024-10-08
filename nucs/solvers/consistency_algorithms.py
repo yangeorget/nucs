@@ -53,10 +53,10 @@ def bound_consistency_algorithm(statistics: NDArray, problem: Problem) -> int:
         statistics,
         problem.algorithms,
         problem.var_bounds,
-        problem.data_bounds,
+        problem.param_bounds,
         problem.props_dom_indices,
         problem.props_dom_offsets,
-        problem.props_data,
+        problem.props_parameters,
         problem.shr_domains_arr,
         problem.shr_domains_propagators,
         problem.triggered_propagators,
@@ -75,9 +75,9 @@ def _bound_consistency_algorithm(
     props_offsets: NDArray,
     props_data: NDArray,
     shr_domains: NDArray,
-    shr_domains_propagators: NDArray,
-    triggered_propagators: NDArray,
-    not_entailed_propagators: NDArray,
+    shr_domains_props: NDArray,
+    triggered_props: NDArray,
+    not_entailed_props: NDArray,
     compute_domains_addrs: NDArray,
 ) -> int:
     """
@@ -87,7 +87,7 @@ def _bound_consistency_algorithm(
     statistics[STATS_PROBLEM_FILTER_NB] += 1
     prop_idx = -1
     while True:
-        prop_idx = pop_propagator(triggered_propagators, not_entailed_propagators, prop_idx)
+        prop_idx = pop_propagator(triggered_props, not_entailed_props, prop_idx)
         if prop_idx == -1:
             return PROBLEM_SOLVED if is_solved(shr_domains) else PROBLEM_FILTERED
         statistics[STATS_PROPAGATOR_FILTER_NB] += 1
@@ -110,25 +110,17 @@ def _bound_consistency_algorithm(
             statistics[STATS_PROPAGATOR_INCONSISTENCY_NB] += 1
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
-            not_entailed_propagators[prop_idx] = False
+            not_entailed_props[prop_idx] = False
             statistics[STATS_PROPAGATOR_ENTAILMENT_NB] += 1
         shr_domains_changes = False
         for var_idx in range(prop_var_nb):
             shr_domain_idx = prop_indices[var_idx]
             prop_offset = prop_offsets[var_idx][0]
-            shr_domain_min = prop_domains[var_idx, MIN] - prop_offset
-            shr_domain_max = prop_domains[var_idx, MAX] - prop_offset
-            if shr_domains[shr_domain_idx, MIN] != shr_domain_min:
-                shr_domains[shr_domain_idx, MIN] = shr_domain_min
-                shr_domains_changes = True
-                np.logical_or(
-                    triggered_propagators, shr_domains_propagators[shr_domain_idx, MIN], triggered_propagators
-                )
-            if shr_domains[shr_domain_idx, MAX] != shr_domain_max:
-                shr_domains[shr_domain_idx, MAX] = shr_domain_max
-                shr_domains_changes = True
-                np.logical_or(
-                    triggered_propagators, shr_domains_propagators[shr_domain_idx, MAX], triggered_propagators
-                )
+            for bound in [MIN, MAX]:
+                shr_domain_bound = prop_domains[var_idx, bound] - prop_offset
+                if shr_domains[shr_domain_idx, bound] != shr_domain_bound:
+                    shr_domains[shr_domain_idx, bound] = shr_domain_bound
+                    shr_domains_changes = True
+                    np.logical_or(triggered_props, shr_domains_props[shr_domain_idx, bound], triggered_props)
         if not shr_domains_changes:  # type: ignore
             statistics[STATS_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1

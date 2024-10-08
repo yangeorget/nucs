@@ -13,8 +13,7 @@
 import numpy as np
 
 from nucs.constants import PROP_CONSISTENCY
-
-from nucs.numpy import new_shr_domains_by_values, new_parameters_by_values
+from nucs.numpy import new_parameters_by_values, new_shr_domains_by_values
 from nucs.propagators.alldifferent_propagator import compute_domains_alldifferent, path_max, path_min, path_set
 
 

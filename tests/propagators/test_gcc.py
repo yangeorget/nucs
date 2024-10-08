@@ -22,21 +22,21 @@ class TestGCC:
     def test_get_min_value(self) -> None:
         m = 3
         l = np.zeros((2, m + 6))
-        update_partial_sum(l, 4, m, [0] * m)
+        update_partial_sum(l, 4, m, np.array([0] * m))
         assert get_min_value(l) == 4
 
     def test_get_max_value(self) -> None:
         m = 3
         l = np.zeros((2, m + 6))
-        update_partial_sum(l, 4, m, [1] * m)
+        update_partial_sum(l, 4, m, np.array([1] * m))
         assert get_min_value(l) == 4
 
-    def test_compute_domains_0(self) -> None:
+    def test_compute_domains_0(self) -> None:  # fails
         domains = new_shr_domains_by_values([(3, 4), (2, 4), (3, 4), (2, 5), (3, 6), (1, 6)])
         assert compute_domains_gcc(domains, new_parameters_by_values([1] + [0] * 6 + [1] * 6)) == PROP_CONSISTENCY
         assert np.all(domains == np.array([[3, 4], [2, 2], [3, 4], [5, 5], [6, 6], [1, 1]]))
 
-    def test_compute_domains_1(self) -> None:
+    def test_compute_domains_1(self) -> None:  # loops
         domains = new_shr_domains_by_values([(3, 6), (3, 4), (2, 5), (2, 4), (3, 4), (1, 6)])
         assert compute_domains_gcc(domains, new_parameters_by_values([1] + [1] * 12)) == PROP_CONSISTENCY
         assert np.all(domains == np.array([[6, 6], [3, 4], [5, 5], [2, 2], [3, 4], [1, 1]]))
