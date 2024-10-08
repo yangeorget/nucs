@@ -21,12 +21,12 @@ from nucs.constants import END, MAX, MIN, START
 from nucs.numpy import (
     new_algorithms,
     new_bounds,
-    new_data,
     new_dom_indices,
     new_dom_indices_by_values,
     new_dom_offsets,
     new_dom_offsets_by_values,
     new_not_entailed_propagators,
+    new_parameters,
     new_shr_domains_by_values,
     new_shr_domains_propagators,
     new_triggered_propagators,
@@ -142,36 +142,34 @@ class Problem:
         self.algorithms = new_algorithms(self.propagator_nb)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
         self.var_bounds = new_bounds(max(1, self.propagator_nb))  # some redundancy here
-        self.data_bounds = new_bounds(max(1, self.propagator_nb))  # some redundancy here
-        self.var_bounds[0, START] = self.data_bounds[0, START] = 0
-        for pidx, propagator in enumerate(self.propagators):
-            self.algorithms[pidx] = propagator[1]
-            if pidx > 0:
-                self.var_bounds[pidx, START] = self.var_bounds[pidx - 1, END]
-                self.data_bounds[pidx, START] = self.data_bounds[pidx - 1, END]
-            self.var_bounds[pidx, END] = self.var_bounds[pidx, START] + len(propagator[0])
-            self.data_bounds[pidx, END] = self.data_bounds[pidx, START] + len(propagator[2])
+        self.param_bounds = new_bounds(max(1, self.propagator_nb))  # some redundancy here
+        self.var_bounds[0, START] = self.param_bounds[0, START] = 0
+        for prop_idx, prop in enumerate(self.propagators):
+            self.algorithms[prop_idx] = prop[1]
+            if prop_idx > 0:
+                self.var_bounds[prop_idx, START] = self.var_bounds[prop_idx - 1, END]
+                self.param_bounds[prop_idx, START] = self.param_bounds[prop_idx - 1, END]
+            self.var_bounds[prop_idx, END] = self.var_bounds[prop_idx, START] + len(prop[0])
+            self.param_bounds[prop_idx, END] = self.param_bounds[prop_idx, START] + len(prop[2])
         # Bounds have been computed and can now be used. The global arrays are the following:
         self.props_dom_indices = new_dom_indices(self.var_bounds[-1, END])
         self.props_dom_offsets = new_dom_offsets(self.var_bounds[-1, END])
-        self.props_data = new_data(self.data_bounds[-1, END])
-        for pidx, propagator in enumerate(self.propagators):
-            prop_vars = propagator[0]
-            self.props_dom_indices[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = self.dom_indices_arr[
-                prop_vars
-            ]  # this is cached for faster access
-            self.props_dom_offsets[self.var_bounds[pidx, START] : self.var_bounds[pidx, END]] = self.dom_offsets_arr[
-                prop_vars
-            ]  # this is cached for faster access
-            self.props_data[self.data_bounds[pidx, START] : self.data_bounds[pidx, END]] = propagator[2]
+        self.props_parameters = new_parameters(self.param_bounds[-1, END])
+        for prop_idx, prop in enumerate(self.propagators):
+            prop_vars = prop[0]
+            self.props_dom_indices[self.var_bounds[prop_idx, START] : self.var_bounds[prop_idx, END]] = (
+                self.dom_indices_arr[prop_vars]
+            )  # this is cached for faster access
+            self.props_dom_offsets[self.var_bounds[prop_idx, START] : self.var_bounds[prop_idx, END]] = (
+                self.dom_offsets_arr[prop_vars]
+            )  # this is cached for faster access
+            self.props_parameters[self.param_bounds[prop_idx, START] : self.param_bounds[prop_idx, END]] = prop[2]
         self.props_dom_offsets = self.props_dom_offsets.reshape((-1, 1))
         self.shr_domains_propagators = new_shr_domains_propagators(len(self.shr_domains_lst), self.propagator_nb)
-        for propagator_idx, propagator in enumerate(self.propagators):
-            triggers = GET_TRIGGERS_FCTS[propagator[1]](len(propagator[0]), propagator[2])
-            for prop_variable_idx, prop_variable in enumerate(propagator[0]):
-                self.shr_domains_propagators[self.dom_indices_arr[prop_variable], :, propagator_idx] = triggers[
-                    prop_variable_idx, :
-                ]
+        for prop_idx, prop in enumerate(self.propagators):
+            triggers = GET_TRIGGERS_FCTS[prop[1]](len(prop[0]), prop[2])
+            for prop_var_idx, prop_var in enumerate(prop[0]):
+                self.shr_domains_propagators[self.dom_indices_arr[prop_var], :, prop_idx] = triggers[prop_var_idx, :]
         if statistics is not None:
             statistics[STATS_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
             statistics[STATS_PROBLEM_VARIABLE_NB] = self.variable_nb
