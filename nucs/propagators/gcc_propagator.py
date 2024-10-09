@@ -128,7 +128,8 @@ def update_bounds(
 ) -> int:
     min_value = domains[min_sorted_vars[0], MIN]
     max_value = domains[max_sorted_vars[0], MAX] + 1
-    bounds[0] = last = get_first_value(l) + 1
+    last = get_first_value(l) + 1
+    bounds[0] = last
     i = j = nb = 0
     while True:
         if i < n and min_value <= max_value:
@@ -256,7 +257,7 @@ def filter_lower_min(
     new_mins: NDArray,
 ) -> bool:
     w = nb + 1
-    for i in range(w, 0, -1):
+    for i in range(nb + 1, 0, -1):
         pot_stbl_sets[i] = i - 1
         stbl_intervals[i] = i - 1
         c[i] = get_sum(l, bounds[i - 1], bounds[i] - 1)
@@ -266,7 +267,7 @@ def filter_lower_min(
             sets[w] = i - 1
             w = i - 1
     w = nb + 1
-    for i in range(w, -1, -1):
+    for i in range(nb + 1, -1, -1):
         if c[i] == 0:
             tl[i] = w
         else:
@@ -347,15 +348,25 @@ def filter_upper_min(
     stbl_intervals: NDArray,
     new_maxs: NDArray,
 ) -> bool:
+    debug("filter_upper_min:entering", tl, c, sets, bounds, domains, ranks, min_sorted_vars, None, l, None,
+          stbl_intervals, None, new_maxs)
+
     w = 0
     for i in range(nb + 1):
+        debug(f"filter_upper_min:first loop {i}", tl, c, sets, bounds, domains, ranks, min_sorted_vars, None, l, None,
+              stbl_intervals, None, new_maxs)
         c[i] = get_sum(l, bounds[i], bounds[i + 1] - 1)
         if c[i] == 0:  # if the capacity between both bounds is zero, we have an unstable set between these two bounds
             tl[i] = w
         else:
             tl[w] = i
             w = i
-    tl[w] = i
+        debug(f"filter_upper_min:first loop {i}", tl, c, sets, bounds, domains, ranks, min_sorted_vars, None, l, None,
+              stbl_intervals, None, new_maxs)
+
+    tl[w] = nb + 1
+    debug("filter_upper_min:after first loop", tl, c, sets, bounds, domains, ranks, min_sorted_vars, None, l, None,
+          stbl_intervals, None, new_maxs)
     w = 0
     for i in range(1, nb + 1):
         if c[i - 1] == 0:
@@ -363,7 +374,9 @@ def filter_upper_min(
         else:
             sets[w] = i
             w = i
-    sets[w] = i
+    sets[w] = nb + 1
+    debug("filter_upper_min:after second loop", tl, c, sets, bounds, domains, ranks, min_sorted_vars, None, l, None,
+          stbl_intervals, None, new_maxs)
     for i in range(n - 1, -1, -1):  # visit intervals in decreasing max order
         min_sorted_vars_i = min_sorted_vars[i]
         x = ranks[min_sorted_vars_i, MAX]
@@ -388,7 +401,8 @@ def filter_upper_min(
             if c[z] == get_sum(l, bounds[z], bounds[y] - 1):
                 if sets[y] < y:
                     y = sets[y]
-                path_set(sets, sets[y], j + 1, y)
+                debug("filter_upper_min:before path_set", tl,c,sets,bounds, domains, ranks, min_sorted_vars, None, l, None, stbl_intervals, None, new_maxs)
+                path_set(sets, sets[y], j + 1, y)  # loop
                 sets[y] = j + 1
         path_set(tl, x - 1, z, z)
     #  For all variables that are not subsets of a stable set, shrink the lower bound.
@@ -410,12 +424,12 @@ def debug(when, t,d,h,bounds, domains, ranks, min_sorted_vars, max_sorted_vars, 
         "bounds": bounds.tolist(),
         "domains": domains.tolist(),
         "ranks": ranks.tolist(),
-        "min_sorted_vars": min_sorted_vars.tolist(),
-        "max_sorted_vars": max_sorted_vars.tolist(),
-        "l": l.tolist(),
-        "u": u.tolist(),
-        "stbl_intervals": stbl_intervals.tolist(),
-        "pot_stbl_sets": pot_stbl_sets.tolist(),
+        "min_sorted_vars": min_sorted_vars.tolist() if min_sorted_vars is not None else None,
+        "max_sorted_vars": max_sorted_vars.tolist() if max_sorted_vars is not None else None,
+        "l": l.tolist() if l is not None else None,
+        "u": u.tolist() if u is not None else None,
+        "stbl_intervals": stbl_intervals.tolist() if stbl_intervals is not None else None,
+        "pot_stbl_sets": pot_stbl_sets.tolist() if pot_stbl_sets is not None else None,
         "new_mins": new_mins.tolist(),
     })
 
