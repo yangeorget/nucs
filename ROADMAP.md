@@ -1,6 +1,5 @@
 # Constraints
 - GCC:
-  - write a smaller test that loops
   - compare with KCS !!!
   
 - Cycle

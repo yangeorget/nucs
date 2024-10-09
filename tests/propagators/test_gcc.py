@@ -53,12 +53,12 @@ class TestGCC:
         assert compute_domains_gcc(domains, new_parameters_by_values([0] + [1] * 10)) == PROP_CONSISTENCY
         assert np.all(domains == np.array([[0, 0], [1, 4], [1, 4], [1, 4], [1, 4]]))
 
-    def test_compute_domains_5(self) -> None:  # loops
+    def test_compute_domains_5(self) -> None:
         domains = new_shr_domains_by_values([(3, 6), (3, 4), (2, 5), (2, 4), (3, 4), (1, 6)])
-        # assert compute_domains_gcc(domains, new_parameters_by_values([1] + [1] * 12)) == PROP_CONSISTENCY
-        # assert np.all(domains == np.array([[6, 6], [3, 4], [5, 5], [2, 2], [3, 4], [1, 1]]))
+        assert compute_domains_gcc(domains, new_parameters_by_values([1] + [1] * 12)) == PROP_CONSISTENCY
+        assert np.all(domains == np.array([[6, 6], [3, 4], [5, 5], [2, 2], [3, 4], [1, 1]]))
 
-    def test_compute_domains_6(self) -> None:  # fails
+    def test_compute_domains_6(self) -> None:
         domains = new_shr_domains_by_values([(3, 4), (2, 4), (3, 4), (2, 5), (3, 6), (1, 6)])
-        # assert compute_domains_gcc(domains, new_parameters_by_values([1] + [0] * 6 + [1] * 6)) == PROP_CONSISTENCY
-        # assert np.all(domains == np.array([[3, 4], [2, 2], [3, 4], [5, 5], [6, 6], [1, 1]]))
+        assert compute_domains_gcc(domains, new_parameters_by_values([1] + [0] * 6 + [1] * 6)) == PROP_CONSISTENCY
+        assert np.all(domains == np.array([[3, 4], [2, 2], [3, 4], [5, 5], [6, 6], [1, 1]]))

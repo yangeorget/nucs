@@ -164,7 +164,6 @@ def filter_lower_max(
     max_sorted_vars: NDArray,
     u: NDArray,
 ) -> bool:
-    print("filter_lower_max")
     for i in range(1, nb + 2):
         t[i] = h[i] = i - 1
         d[i] = get_sum(u, bounds[i - 1], bounds[i] - 1)
@@ -207,7 +206,6 @@ def filter_upper_max(
     min_sorted_vars: NDArray,
     u: NDArray,
 ) -> bool:
-    print("filter_upper_max")
     for i in range(0, nb + 1):
         t[i] = h[i] = i + 1
         d[i] = get_sum(u, bounds[i], bounds[i + 1] - 1)
@@ -254,8 +252,6 @@ def filter_lower_min(
     pot_stbl_sets: NDArray,
     new_mins: NDArray,
 ) -> bool:
-    print("filter_lower_min")
-    print("loop 1")
     w = nb + 1
     for i in range(w, 0, -1):
         pot_stbl_sets[i] = stbl_intervals[i] = i - 1
@@ -264,22 +260,18 @@ def filter_lower_min(
             sets[i - 1] = w
         else:
             w = sets[w] = i - 1
-    print("loop 2")
     w = nb + 1
     for i in range(w, -1, -1):
         if c[i] == 0:
             tl[i] = w
         else:
             w = tl[w] = i
-    print("loop 3")
     for i, max_sorted_vars_i in enumerate(max_sorted_vars):  # visit intervals in increasing max order
-        print(i)
         x = ranks[max_sorted_vars_i, MIN]
         y = ranks[max_sorted_vars_i, MAX]
         z = path_max(tl, x + 1)
         j = tl[z]
         if z != x + 1:
-            print("z != x + 1")
             # If bounds[z] - 1 belongs to a stable set, [bounds[x], bounds[z]) is a sub set of this stable set.
             w = path_max(pot_stbl_sets, x + 1)
             v = pot_stbl_sets[w]
@@ -288,7 +280,6 @@ def filter_lower_min(
             path_set(pot_stbl_sets, pot_stbl_sets[w], v, w)
             pot_stbl_sets[w] = v
         if c[z] <= get_sum(l, bounds[y], bounds[z] - 1):
-            print("c[z] <= get_sum(l, bounds[y], bounds[z] - 1)")
             # (potentialStableSets[y], y] is a stable set
             w = path_max(stbl_intervals, pot_stbl_sets[y])
             path_set(stbl_intervals, pot_stbl_sets[y], w, w)  # path compression
@@ -296,7 +287,6 @@ def filter_lower_min(
             path_set(stbl_intervals, stbl_intervals[y], v, y)
             stbl_intervals[y] = v
         else:
-            print("else")
             c[z] -= 1  # decrease the capacity between the two bounds
             if c[z] == 0:
                 tl[z] = z + 1
@@ -319,14 +309,12 @@ def filter_lower_min(
         return False
     # Perform path compression over all elements in the stable interval data structure. This data structure will no
     # longer be modified and will be accessed n or 2n times. Therefore, we can afford a linear time compression.
-    print("loop 4")
     for i in range(nb + 1, 0, -1):
         if stbl_intervals[i] > i:
             stbl_intervals[i] = w
         else:
             w = i
     # For all variables that are not a subset of a stable set, shrink the lower bound.
-    print("loop 5")
     for i in range(n - 1, -1, -1):
         max_sorted_vars_i = max_sorted_vars[i]
         x = ranks[max_sorted_vars_i, MIN]
@@ -428,18 +416,14 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     min_sorted_vars = np.argsort(domains[:, MIN])
     max_sorted_vars = np.argsort(domains[:, MAX])
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
-
-    print(l, u, domains)
     assert get_min_value(l) == get_min_value(u)
     assert get_max_value(l) == get_max_value(u)
     assert get_min_value(l) <= domains[min_sorted_vars[0], MIN]
     assert domains[max_sorted_vars[n - 1], MAX] <= get_max_value(u)
-
     if get_sum(l, get_min_value(l), domains[min_sorted_vars[0], MIN] - 1) > 0:
         return PROP_INCONSISTENCY
     if get_sum(l, domains[max_sorted_vars[n - 1], MAX] + 1, get_max_value(l)) > 0:
         return PROP_INCONSISTENCY
-
     if not filter_lower_max(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars, u):
         return PROP_INCONSISTENCY
     if not filter_lower_min(  # infinite loop
