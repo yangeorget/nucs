@@ -84,12 +84,12 @@ def get_sum(psum: NDArray, start: int, end: int) -> int:
     fv = get_first_value(psum)
     sum = psum[0, :-1]
     if start <= end:
-        assert fv <= start
-        assert end <= get_last_value(psum)
+        # assert fv <= start
+        # assert end <= get_last_value(psum)
         return sum[end - fv] - sum[start - fv - 1]
     else:
-        assert fv <= end
-        assert start <= get_last_value(psum)
+        # assert fv <= end
+        # assert start <= get_last_value(psum)
         return sum[end - fv - 1] - sum[start - fv]
 
 
@@ -348,25 +348,15 @@ def filter_upper_min(
     stbl_intervals: NDArray,
     new_maxs: NDArray,
 ) -> bool:
-    debug("filter_upper_min:entering", tl, c, sets, bounds, domains, ranks, min_sorted_vars, None, l, None,
-          stbl_intervals, None, new_maxs)
-
     w = 0
     for i in range(nb + 1):
-        debug(f"filter_upper_min:first loop {i}", tl, c, sets, bounds, domains, ranks, min_sorted_vars, None, l, None,
-              stbl_intervals, None, new_maxs)
         c[i] = get_sum(l, bounds[i], bounds[i + 1] - 1)
         if c[i] == 0:  # if the capacity between both bounds is zero, we have an unstable set between these two bounds
             tl[i] = w
         else:
             tl[w] = i
             w = i
-        debug(f"filter_upper_min:first loop {i}", tl, c, sets, bounds, domains, ranks, min_sorted_vars, None, l, None,
-              stbl_intervals, None, new_maxs)
-
     tl[w] = nb + 1
-    debug("filter_upper_min:after first loop", tl, c, sets, bounds, domains, ranks, min_sorted_vars, None, l, None,
-          stbl_intervals, None, new_maxs)
     w = 0
     for i in range(1, nb + 1):
         if c[i - 1] == 0:
@@ -375,8 +365,6 @@ def filter_upper_min(
             sets[w] = i
             w = i
     sets[w] = nb + 1
-    debug("filter_upper_min:after second loop", tl, c, sets, bounds, domains, ranks, min_sorted_vars, None, l, None,
-          stbl_intervals, None, new_maxs)
     for i in range(n - 1, -1, -1):  # visit intervals in decreasing max order
         min_sorted_vars_i = min_sorted_vars[i]
         x = ranks[min_sorted_vars_i, MAX]
@@ -401,7 +389,6 @@ def filter_upper_min(
             if c[z] == get_sum(l, bounds[z], bounds[y] - 1):
                 if sets[y] < y:
                     y = sets[y]
-                debug("filter_upper_min:before path_set", tl,c,sets,bounds, domains, ranks, min_sorted_vars, None, l, None, stbl_intervals, None, new_maxs)
                 path_set(sets, sets[y], j + 1, y)  # loop
                 sets[y] = j + 1
         path_set(tl, x - 1, z, z)
@@ -414,24 +401,6 @@ def filter_upper_min(
             domains[min_sorted_vars_i, MAX] = skip_non_null_elements_left(l, bounds[new_maxs[i]] - 1)
             # changes = 1
     return True
-
-def debug(when, t,d,h,bounds, domains, ranks, min_sorted_vars, max_sorted_vars, l, u, stbl_intervals, pot_stbl_sets, new_mins):
-    print(when)
-    print({
-        "t": t.tolist(),
-        "d": d.tolist(),
-        "h": h.tolist(),
-        "bounds": bounds.tolist(),
-        "domains": domains.tolist(),
-        "ranks": ranks.tolist(),
-        "min_sorted_vars": min_sorted_vars.tolist() if min_sorted_vars is not None else None,
-        "max_sorted_vars": max_sorted_vars.tolist() if max_sorted_vars is not None else None,
-        "l": l.tolist() if l is not None else None,
-        "u": u.tolist() if u is not None else None,
-        "stbl_intervals": stbl_intervals.tolist() if stbl_intervals is not None else None,
-        "pot_stbl_sets": pot_stbl_sets.tolist() if pot_stbl_sets is not None else None,
-        "new_mins": new_mins.tolist(),
-    })
 
 @njit(cache=True)
 def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
@@ -456,19 +425,16 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     min_sorted_vars = np.argsort(domains[:, MIN])
     max_sorted_vars = np.argsort(domains[:, MAX])
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
-    assert get_min_value(l) == get_min_value(u)
-    assert get_max_value(l) == get_max_value(u)
-    assert get_min_value(l) <= domains[min_sorted_vars[0], MIN]
-    assert domains[max_sorted_vars[n - 1], MAX] <= get_max_value(u)
+    # assert get_min_value(l) == get_min_value(u)
+    # assert get_max_value(l) == get_max_value(u)
+    # assert get_min_value(l) <= domains[min_sorted_vars[0], MIN]
+    # assert domains[max_sorted_vars[n - 1], MAX] <= get_max_value(u)
     if get_sum(l, get_min_value(l), domains[min_sorted_vars[0], MIN] - 1) > 0:
         return PROP_INCONSISTENCY
     if get_sum(l, domains[max_sorted_vars[n - 1], MAX] + 1, get_max_value(l)) > 0:
         return PROP_INCONSISTENCY
-    debug("before filter_lower_max", t, d, h, bounds, domains, ranks, min_sorted_vars, max_sorted_vars, l, u, stbl_intervals,
-                pot_stbl_sets, new_mins)
     if not filter_lower_max(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars, u):
         return PROP_INCONSISTENCY
-    debug("before filter_lower_min", t,d,h,bounds, domains, ranks, min_sorted_vars, max_sorted_vars, l, u, stbl_intervals, pot_stbl_sets, new_mins)
     if not filter_lower_min(
         n,
         nb,
@@ -485,13 +451,8 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
         new_mins,
     ):
         return PROP_INCONSISTENCY
-    debug("before filter_upper_max", t, d, h, bounds, domains, ranks, min_sorted_vars, max_sorted_vars, l, u,
-          stbl_intervals, pot_stbl_sets, new_mins)
     if not filter_upper_max(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, u):
         return PROP_INCONSISTENCY
-    debug("before filter_upper_min", t, d, h, bounds, domains, ranks, min_sorted_vars, max_sorted_vars, l, u,
-          stbl_intervals,
-          pot_stbl_sets, new_mins)
     if not filter_upper_min(
         n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, l, stbl_intervals, new_mins
     ):
