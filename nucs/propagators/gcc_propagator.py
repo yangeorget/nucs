@@ -11,7 +11,7 @@
 # Copyright 2024 - Yan Georget
 ###############################################################################
 import math
-
+from rich import print
 import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -72,7 +72,8 @@ def init_partial_sum(first_value: int, m: int, values: NDArray) -> NDArray:
         while sum[i] == sum[i - 1]:
             ds[i] = j
             i -= 1
-        j = ds[j] = i
+        ds[j] = i
+        j = i
         i -= 1
     ds[j] = 0
     return partial_sum
@@ -165,7 +166,8 @@ def filter_lower_max(
     u: NDArray,
 ) -> bool:
     for i in range(1, nb + 2):
-        t[i] = h[i] = i - 1
+        t[i] = i - 1
+        h[i] = i - 1
         d[i] = get_sum(u, bounds[i - 1], bounds[i] - 1)
     for i, max_sorted_vars_i in enumerate(max_sorted_vars):
         x = ranks[max_sorted_vars_i, MIN]
@@ -207,7 +209,8 @@ def filter_upper_max(
     u: NDArray,
 ) -> bool:
     for i in range(0, nb + 1):
-        t[i] = h[i] = i + 1
+        t[i] = i + 1
+        h[i] = i + 1
         d[i] = get_sum(u, bounds[i], bounds[i + 1] - 1)
     for i in range(n - 1, -1, -1):
         min_sorted_vars_i = min_sorted_vars[i]
@@ -254,18 +257,21 @@ def filter_lower_min(
 ) -> bool:
     w = nb + 1
     for i in range(w, 0, -1):
-        pot_stbl_sets[i] = stbl_intervals[i] = i - 1
+        pot_stbl_sets[i] = i - 1
+        stbl_intervals[i] = i - 1
         c[i] = get_sum(l, bounds[i - 1], bounds[i] - 1)
         if c[i] == 0:  # if the capacity between both bounds is zero, we have an unstable set between these two bounds
             sets[i - 1] = w
         else:
-            w = sets[w] = i - 1
+            sets[w] = i - 1
+            w = i - 1
     w = nb + 1
     for i in range(w, -1, -1):
         if c[i] == 0:
             tl[i] = w
         else:
-            w = tl[w] = i
+            tl[w] = i
+            w = i
     for i, max_sorted_vars_i in enumerate(max_sorted_vars):  # visit intervals in increasing max order
         x = ranks[max_sorted_vars_i, MIN]
         y = ranks[max_sorted_vars_i, MAX]
@@ -295,7 +301,8 @@ def filter_lower_min(
             # If the lower bound belongs to an unstable or a stable set, remind the new value we might assign to
             # the lower bound in case the variable doesn't belong to a stable set.
             if sets[x] > x:
-                w = new_mins[i] = path_max(sets, x)
+                w = path_max(sets, x)
+                new_mins[i] = w
                 path_set(sets, x, w, w)  # path compression
             else:
                 new_mins[i] = x  # do not shrink the variable
@@ -340,21 +347,22 @@ def filter_upper_min(
     stbl_intervals: NDArray,
     new_maxs: NDArray,
 ) -> bool:
-    print("filter_upper_min")
     w = 0
     for i in range(nb + 1):
         c[i] = get_sum(l, bounds[i], bounds[i + 1] - 1)
         if c[i] == 0:  # if the capacity between both bounds is zero, we have an unstable set between these two bounds
             tl[i] = w
         else:
-            w = tl[w] = i
+            tl[w] = i
+            w = i
     tl[w] = i
     w = 0
     for i in range(1, nb + 1):
         if c[i - 1] == 0:
             sets[i] = w
         else:
-            w = sets[w] = i
+            sets[w] = i
+            w = i
     sets[w] = i
     for i in range(n - 1, -1, -1):  # visit intervals in decreasing max order
         min_sorted_vars_i = min_sorted_vars[i]
@@ -372,7 +380,8 @@ def filter_upper_min(
                 z = path_min(tl, tl[z])
                 tl[z] = j
             if sets[x] < x:
-                new_maxs[i] = w = path_min(sets, sets[x])
+                w = path_min(sets, sets[x])
+                new_maxs[i] = w
                 path_set(sets, x, w, w)  # path compression
             else:
                 new_maxs[i] = x
@@ -392,6 +401,23 @@ def filter_upper_min(
             # changes = 1
     return True
 
+def debug(when, t,d,h,bounds, domains, ranks, min_sorted_vars, max_sorted_vars, l, u, stbl_intervals, pot_stbl_sets, new_mins):
+    print(when)
+    print({
+        "t": t.tolist(),
+        "d": d.tolist(),
+        "h": h.tolist(),
+        "bounds": bounds.tolist(),
+        "domains": domains.tolist(),
+        "ranks": ranks.tolist(),
+        "min_sorted_vars": min_sorted_vars.tolist(),
+        "max_sorted_vars": max_sorted_vars.tolist(),
+        "l": l.tolist(),
+        "u": u.tolist(),
+        "stbl_intervals": stbl_intervals.tolist(),
+        "pot_stbl_sets": pot_stbl_sets.tolist(),
+        "new_mins": new_mins.tolist(),
+    })
 
 @njit(cache=True)
 def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
@@ -424,9 +450,12 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
         return PROP_INCONSISTENCY
     if get_sum(l, domains[max_sorted_vars[n - 1], MAX] + 1, get_max_value(l)) > 0:
         return PROP_INCONSISTENCY
+    debug("before filter_lower_max", t, d, h, bounds, domains, ranks, min_sorted_vars, max_sorted_vars, l, u, stbl_intervals,
+                pot_stbl_sets, new_mins)
     if not filter_lower_max(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars, u):
         return PROP_INCONSISTENCY
-    if not filter_lower_min(  # infinite loop
+    debug("before filter_lower_min", t,d,h,bounds, domains, ranks, min_sorted_vars, max_sorted_vars, l, u, stbl_intervals, pot_stbl_sets, new_mins)
+    if not filter_lower_min(
         n,
         nb,
         t,
@@ -442,10 +471,15 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
         new_mins,
     ):
         return PROP_INCONSISTENCY
+    debug("before filter_upper_max", t, d, h, bounds, domains, ranks, min_sorted_vars, max_sorted_vars, l, u,
+          stbl_intervals, pot_stbl_sets, new_mins)
     if not filter_upper_max(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, u):
         return PROP_INCONSISTENCY
+    debug("before filter_upper_min", t, d, h, bounds, domains, ranks, min_sorted_vars, max_sorted_vars, l, u,
+          stbl_intervals,
+          pot_stbl_sets, new_mins)
     if not filter_upper_min(
         n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, l, stbl_intervals, new_mins
-    ):  # infinite loop
+    ):
         return PROP_INCONSISTENCY
     return PROP_CONSISTENCY
