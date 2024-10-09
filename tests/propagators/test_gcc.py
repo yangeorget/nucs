@@ -28,19 +28,19 @@ class TestGCC:
         assert get_last_value(l) == 4
         assert get_max_value(l) == 2
 
-    def test_compute_domains_0(self) -> None:   # loops !!!
+    def test_compute_domains_0(self) -> None:
         domains = new_shr_domains_by_values([0])
-        assert compute_domains_gcc(domains, new_parameters_by_values([0, 1])) == PROP_CONSISTENCY
+        assert compute_domains_gcc(domains, new_parameters_by_values([0, 1, 1])) == PROP_CONSISTENCY
         assert np.all(domains == np.array([[0, 0]]))
 
     def test_compute_domains_1(self) -> None:
         domains = new_shr_domains_by_values([0, 1])
-        assert compute_domains_gcc(domains, new_parameters_by_values([0, 1, 1])) == PROP_CONSISTENCY
+        assert compute_domains_gcc(domains, new_parameters_by_values([0, 1, 1, 1, 1])) == PROP_CONSISTENCY
         assert np.all(domains == np.array([[0, 0], [1, 1]]))
 
     def test_compute_domains_2(self) -> None:
         domains = new_shr_domains_by_values([0, (0, 1)])
-        assert compute_domains_gcc(domains, new_parameters_by_values([0, 1, 1])) == PROP_CONSISTENCY
+        assert compute_domains_gcc(domains, new_parameters_by_values([0, 1, 1, 1, 1])) == PROP_CONSISTENCY
         assert np.all(domains == np.array([[0, 0], [1, 1]]))
 
     def test_compute_domains_3(self) -> None:

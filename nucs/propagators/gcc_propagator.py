@@ -409,7 +409,8 @@ def filter_upper_min(
 def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     """
     :param domains: the domains of the variables
-    :param parameters: the first domain value, then the lower bounds, then the upper bounds (capacities)
+    :param parameters: there are 1 + 2 * n parameters:
+    the first domain value, then the n lower bounds, then the n upper bounds (capacities)
     """
     n = len(domains)
     m = (len(parameters) - 1) // 2  # number of values
@@ -428,6 +429,7 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     max_sorted_vars = np.argsort(domains[:, MAX])
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
 
+    print(l, u, domains)
     assert get_min_value(l) == get_min_value(u)
     assert get_max_value(l) == get_max_value(u)
     assert get_min_value(l) <= domains[min_sorted_vars[0], MIN]
