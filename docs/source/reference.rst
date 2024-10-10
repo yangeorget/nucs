@@ -400,6 +400,7 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.and_propagator`,
 * :mod:`nucs.propagators.lexicographic_leq_propagator`.
 
+
 .. py:module:: nucs.examples.donald.donald_problem
 .. py:class:: nucs.examples.donald.donald_problem
 
@@ -535,6 +536,26 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.exactly_true_propagator`,
 * :mod:`nucs.propagators.affine_leq_propagator`,
 * :mod:`nucs.propagators.lexicographic_leq_propagator`.
+
+
+.. py:module:: nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem
+.. py:class:: nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem
+
+This problem is problem `026 <https://www.csplib.org/Problems/prob026>`_ on CSPLib.
+
+The problem can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.sports_tournament_scheduling -n 10 --symmetry_breaking
+
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.alldifferent_propagator`,
+* :mod:`nucs.propagators.exactly_eq_propagator`,
+* :mod:`nucs.propagators.gcc_propagator`,
+* :mod:`nucs.propagators.relation_propagator`.
+
 
 .. py:module:: nucs.examples.sudoku.sudoku_problem
 .. py:class:: nucs.examples.sudoku.sudoku_problem
