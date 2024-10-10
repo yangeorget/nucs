@@ -12,7 +12,7 @@
 ###############################################################################
 import numpy as np
 
-from nucs.constants import PROP_CONSISTENCY
+from nucs.constants import PROP_CONSISTENCY, PROP_INCONSISTENCY
 from nucs.numpy import new_parameters_by_values, new_shr_domains_by_values
 from nucs.propagators.gcc_propagator import compute_domains_gcc
 
@@ -52,3 +52,7 @@ class TestGCC:
         domains = new_shr_domains_by_values([(3, 4), (2, 4), (3, 4), (2, 5), (3, 6), (1, 6)])
         assert compute_domains_gcc(domains, new_parameters_by_values([1] + [0] * 6 + [1] * 6)) == PROP_CONSISTENCY
         assert np.all(domains == np.array([[3, 4], [2, 2], [3, 4], [5, 5], [6, 6], [1, 1]]))
+
+    def test_compute_domains_7(self) -> None:
+        domains = new_shr_domains_by_values([(0, 4), (0, 4), (0, 4), (0, 4)])
+        assert compute_domains_gcc(domains, new_parameters_by_values([0, 0, 0, 0, 1, 1, 1])) == PROP_INCONSISTENCY
