@@ -14,7 +14,7 @@ import numpy as np
 
 from nucs.constants import PROP_CONSISTENCY
 from nucs.numpy import new_parameters_by_values, new_shr_domains_by_values
-from nucs.propagators.gcc_propagator import compute_domains_gcc, get_max_value, get_min_value, init_partial_sum
+from nucs.propagators.gcc_propagator import compute_domains_gcc
 
 
 class TestGCC:

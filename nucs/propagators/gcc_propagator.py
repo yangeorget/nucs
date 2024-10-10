@@ -11,6 +11,7 @@
 # Copyright 2024 - Yan Georget
 ###############################################################################
 import math
+
 import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -397,6 +398,7 @@ def filter_upper_min(
             # changes = 1
     return True
 
+
 @njit(cache=True)
 def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     """
@@ -450,8 +452,6 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
         return PROP_INCONSISTENCY
     if not filter_upper_max(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, u):
         return PROP_INCONSISTENCY
-    if not filter_upper_min(
-        n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, l, stbl_intervals, new_mins
-    ):
+    if not filter_upper_min(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, l, stbl_intervals, new_mins):
         return PROP_INCONSISTENCY
     return PROP_CONSISTENCY
