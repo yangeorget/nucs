@@ -26,7 +26,7 @@ Check out [NUCS documentation](https://nucs.readthedocs.io/).
 ## With NuCS, in a few seconds you can ...
 ### Find all 14200 solutions to the [12-queens problem](https://www.csplib.org/Problems/prob054/)
 ```bash
-NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.queens -n 12
+NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.queens -n 12
 ```
 ```bash
 {
@@ -47,7 +47,7 @@ NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.queens -n 12
 
 ### Compute the 92 solutions to the [BIBD(8,14,7,4,3) problem](https://www.csplib.org/Problems/prob028/)
 ```bash
-NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -l 3 --symmetry_breaking
+NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -l 3 --symmetry_breaking
 ```
 ```bash
 {
@@ -68,7 +68,7 @@ NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.bibd -v 8 -b 
 
 ### Demonstrate that the optimal [10-marks Golomb ruler](https://www.csplib.org/Problems/prob006/) length is 55
 ```bash
-NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.golomb -n 10 --symmetry_breaking
+NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.golomb -n 10 --symmetry_breaking
 ```
 ```bash
 {

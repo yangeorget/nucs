@@ -25,7 +25,7 @@ Let's find all solutions to the `12-queens problem <https://www.csplib.org/Probl
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.queens -n 12
+   NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.queens -n 12
    {
        'OPTIMIZER_SOLUTION_NB': 0,
        'PROBLEM_FILTER_NB': 262011,
@@ -47,7 +47,7 @@ Let's find the optimal solution to the `Golomb ruler problem <https://www.csplib
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.golomb -n 10 --symmetry_breaking
+   NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.golomb -n 10 --symmetry_breaking
    {
        'OPTIMIZER_SOLUTION_NB': 10,
        'PROBLEM_FILTER_NB': 22886,

@@ -20,7 +20,7 @@ from nucs.solvers.heuristics import last_not_instantiated_var_heuristic, min_val
 from nucs.statistics import get_statistics
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.magic_sequence -n 100
+# NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.magic_sequence -n 100
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", type=int, default=100)

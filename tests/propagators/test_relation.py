@@ -42,3 +42,12 @@ class TestRelation:
         data = new_parameters_by_values([1, 2])
         assert compute_domains_relation(domains, data) == PROP_ENTAILMENT
         assert np.all(domains == np.array([[1, 1], [2, 2]]))
+
+    def test_compute_domains_5(self) -> None:
+        data = new_parameters_by_values([0, 1, 0, 0, 2, 1, 0, 3, 2, 1, 2, 3, 1, 3, 4, 2, 3, 5])
+        assert compute_domains_relation(new_shr_domains_by_values([0, 1, (0, 5)]), data) == PROP_ENTAILMENT
+        assert compute_domains_relation(new_shr_domains_by_values([0, 2, (0, 5)]), data) == PROP_ENTAILMENT
+        assert compute_domains_relation(new_shr_domains_by_values([0, 3, (0, 5)]), data) == PROP_ENTAILMENT
+        assert compute_domains_relation(new_shr_domains_by_values([2, 3, (0, 5)]), data) == PROP_ENTAILMENT
+        assert compute_domains_relation(new_shr_domains_by_values([1, 3, (0, 5)]), data) == PROP_ENTAILMENT
+        assert compute_domains_relation(new_shr_domains_by_values([1, 2, (0, 5)]), data) == PROP_ENTAILMENT

@@ -3,7 +3,6 @@
 - Product
 
 # Problems
-- RoundRobin problem (GCC)
 - Job-shop problem 
 - Golfers problem
 - Car sequencing problem (GCC or Element)
@@ -29,3 +28,4 @@
 - document environment variables
 - document the absence of decision variables
 - document solvers
+- document sports scheduling

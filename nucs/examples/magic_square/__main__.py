@@ -20,7 +20,7 @@ from nucs.solvers.heuristics import max_value_dom_heuristic, smallest_domain_var
 from nucs.statistics import get_statistics
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.magic_square -n 4 --symmetry_breaking
+# NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.magic_square -n 4 --symmetry_breaking
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", type=int)

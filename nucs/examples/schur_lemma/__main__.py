@@ -19,7 +19,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.statistics import get_statistics
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.schur_lemma -n 20 --symmetry_breaking
+# NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.schur_lemma -n 20 --symmetry_breaking
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", type=int, default=20)

@@ -18,7 +18,7 @@ from nucs.solvers.heuristics import min_value_dom_heuristic, smallest_domain_var
 from nucs.statistics import get_statistics
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.alpha
+# NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.alpha
 if __name__ == "__main__":
     problem = AlphaProblem()
     solver = BacktrackSolver(

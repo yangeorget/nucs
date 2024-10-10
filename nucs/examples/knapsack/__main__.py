@@ -18,7 +18,7 @@ from nucs.solvers.heuristics import first_not_instantiated_var_heuristic, max_va
 from nucs.statistics import get_statistics
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache PYTHON_PATH=. python -m nucs.examples.knapsack
+# NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.knapsack
 if __name__ == "__main__":
     problem = KnapsackProblem(
         [40, 40, 38, 38, 36, 36, 34, 34, 32, 32, 30, 30, 28, 28, 26, 26, 24, 24, 22, 22],
