@@ -34,4 +34,5 @@ if __name__ == "__main__":
     )
     solution = solver.solve_one()
     print(get_statistics(solver.statistics))
-    print(problem.solution_as_matrix(solution))
+    if solution:
+        print(problem.solution_as_matrix(solution))
