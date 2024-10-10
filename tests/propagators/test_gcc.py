@@ -14,20 +14,10 @@ import numpy as np
 
 from nucs.constants import PROP_CONSISTENCY
 from nucs.numpy import new_parameters_by_values, new_shr_domains_by_values
-from nucs.propagators.gcc_propagator import compute_domains_gcc, get_max_value, get_min_value, init_partial_sum, \
-    get_first_value, get_last_value
+from nucs.propagators.gcc_propagator import compute_domains_gcc, get_max_value, get_min_value, init_partial_sum
 
 
 class TestGCC:
-
-    def test_partial_sum(self) -> None:
-        m = 3
-        l = init_partial_sum(0, m, np.array([1] * m))
-        assert get_first_value(l) == -3
-        assert get_min_value(l) == 0
-        assert get_last_value(l) == 4
-        assert get_max_value(l) == 2
-
     def test_compute_domains_0(self) -> None:
         domains = new_shr_domains_by_values([0])
         assert compute_domains_gcc(domains, new_parameters_by_values([0, 1, 1])) == PROP_CONSISTENCY

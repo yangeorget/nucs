@@ -91,7 +91,8 @@ def update_bounds(
 ) -> int:
     min_value = domains[min_sorted_vars[0], MIN]
     max_value = domains[max_sorted_vars[0], MAX] + 1
-    bounds[0] = last = min_value - 2
+    last = min_value - 2
+    bounds[0] = last
     i = j = nb = 0
     while True:
         if i < n and min_value <= max_value:

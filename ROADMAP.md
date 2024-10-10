@@ -1,7 +1,4 @@
 # Constraints
-- GCC:
-  - compare with KCS !!!
-  
 - Cycle
 - Product
 
@@ -21,6 +18,7 @@
 - allow custom propagators
 - assert that parameters make sense (cf GCC)
 - compare perfs with KCS
+- threading
 
 # Numba
 - use prange with parallel=True

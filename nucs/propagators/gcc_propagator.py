@@ -11,7 +11,6 @@
 # Copyright 2024 - Yan Georget
 ###############################################################################
 import math
-from rich import print
 import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -22,7 +21,13 @@ from nucs.propagators.alldifferent_propagator import path_max, path_min, path_se
 
 
 def get_complexity_gcc(n: int, parameters: NDArray) -> float:
-    return 2 * n * math.log(n) + 5 * n
+    """
+    Returns the time complexity of the propagator as a float.
+    :param n: the number of variables
+    :param parameters: the parameters, unused here
+    :return: a float
+    """
+    return 2 * n * math.log(n) + 15 * n
 
 
 def get_triggers_gcc(n: int, parameters: NDArray) -> NDArray:
@@ -32,16 +37,6 @@ def get_triggers_gcc(n: int, parameters: NDArray) -> NDArray:
     :return: an array of triggers
     """
     return new_triggers(n, True)
-
-
-@njit(cache=True)
-def get_first_value(psum: NDArray) -> int:
-    return psum[0, -1]
-
-
-@njit(cache=True)
-def get_last_value(psum: NDArray) -> int:
-    return psum[1, -1]
 
 
 @njit(cache=True)
@@ -81,7 +76,7 @@ def init_partial_sum(first_value: int, m: int, values: NDArray) -> NDArray:
 
 @njit(cache=True)
 def get_sum(psum: NDArray, start: int, end: int) -> int:
-    fv = get_first_value(psum)
+    fv = psum[0, -1]
     sum = psum[0, :-1]
     if start <= end:
         # assert fv <= start
@@ -95,24 +90,24 @@ def get_sum(psum: NDArray, start: int, end: int) -> int:
 
 @njit(cache=True)
 def get_min_value(psum: NDArray) -> int:
-    return get_first_value(psum) + 3
+    return psum[0, -1] + 3
 
 
 @njit(cache=True)
 def get_max_value(psum: NDArray) -> int:
-    return get_last_value(psum) - 2
+    return psum[1, -1] - 2
 
 
 @njit(cache=True)
 def skip_non_null_elements_right(psum: NDArray, value: int) -> int:
-    value -= get_first_value(psum)
-    return (value if psum[1, value] < value else psum[1, value]) + get_first_value(psum)
+    value -= psum[0, -1]
+    return (value if psum[1, value] < value else psum[1, value]) + psum[0, -1]
 
 
 @njit(cache=True)
 def skip_non_null_elements_left(psum: NDArray, value: int) -> int:
-    value -= get_first_value(psum)
-    return (psum[1, psum[1, value]] if psum[1, value] > value else value) + get_first_value(psum)
+    value -= psum[0, -1]
+    return (psum[1, psum[1, value]] if psum[1, value] > value else value) + psum[0, -1]
 
 
 @njit(cache=True)
@@ -128,7 +123,7 @@ def update_bounds(
 ) -> int:
     min_value = domains[min_sorted_vars[0], MIN]
     max_value = domains[max_sorted_vars[0], MAX] + 1
-    last = get_first_value(l) + 1
+    last = l[0, -1] + 1
     bounds[0] = last
     i = j = nb = 0
     while True:
@@ -149,7 +144,7 @@ def update_bounds(
             if j == n:
                 break
             max_value = domains[max_sorted_vars[j], MAX] + 1
-    bounds[nb + 1] = get_last_value(u) + 1
+    bounds[nb + 1] = u[1, -1] + 1
     return nb
 
 
@@ -405,9 +400,11 @@ def filter_upper_min(
 @njit(cache=True)
 def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     """
+    This propagator (Global Cardinality Constraint) enforces that l_j <= |{ i / x_i =v_j }| <= c_j for all j.
+    Adapted from "An efficient bounds consistency algorithm for the global cardinality constraint".
     :param domains: the domains of the variables
-    :param parameters: there are 1 + 2 * n parameters:
-    the first domain value, then the n lower bounds, then the n upper bounds (capacities)
+    :param parameters: there are 1 + 2 * m parameters:
+    the first domain value (v_0), then the m lower bounds, then the m upper bounds (capacities)
     """
     n = len(domains)
     m = (len(parameters) - 1) // 2  # number of values

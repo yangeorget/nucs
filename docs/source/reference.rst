@@ -154,6 +154,23 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.gcc_propagator
+.. py:function:: nucs.propagators.gcc_propagator.compute_domains(domains, parameters)
+
+   This propagator (Global Cardinality Constraint) enforces that
+   :math:`\forall j,  l_j \leq |\{ i  / x_i = v_j \}| \leq v_j`.
+
+   It is adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
+
+   It has the time complexity: :math:`O(n \times log(n))` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables, :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, there are :math:`1 + 2 \times m` parameters:
+    the first domain value :math:`v_0`, then the :math:`m` lower bounds, then the :math:`m` upper bounds (capacities)
+   :type parameters: NDArray
+
+
 .. py:module:: nucs.propagators.lexicographic_leq_propagator
 .. py:function:: nucs.propagators.lexicographic_leq_propagator.compute_domains(domains, parameters)
 
