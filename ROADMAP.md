@@ -12,17 +12,12 @@
 - review CSPlib for additional problem
 
 # Engine
+- implement a backtrackable propagator __state__ and optimize GCC and LexLeq
 - optimizer: implement choice points pruning
-- implement a backtrackable propagator __state__
 - allow custom propagators
 - assert that parameters make sense (cf GCC)
 - compare perfs with KCS
-- threading
-
-# Numba
-- use prange with parallel=True
-- test ufunc
-- test vectorize
+- study multiprocessing
 
 # Docs
 - document environment variables
