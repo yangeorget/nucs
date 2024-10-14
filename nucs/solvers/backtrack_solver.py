@@ -25,6 +25,7 @@ from nucs.statistics import (
     STATS_SOLVER_CHOICE_DEPTH,
     STATS_SOLVER_CHOICE_NB,
     STATS_SOLVER_SOLUTION_NB,
+    init_statistics,
 )
 
 
@@ -47,7 +48,8 @@ class BacktrackSolver(Solver):
         :param var_heuristic: a heuristic for selecting a variable/domain
         :param dom_heuristic: a heuristic for reducing a domain
         """
-        super().__init__(problem)
+        self.problem = problem
+        self.statistics = init_statistics()
         self.choice_points = []  # type: ignore
         self.consistency_algorithm = consistency_algorithm
         self.var_heuristic = var_heuristic
@@ -64,10 +66,6 @@ class BacktrackSolver(Solver):
                 break
 
     def solve_one(self) -> Optional[List[int]]:
-        """
-        Find at most one solution.
-        :return: the solution if it exists or None
-        """
         if not self.problem.ready:
             self.problem.init_problem(self.statistics)
             self.problem.ready = True

@@ -12,22 +12,18 @@
 ###############################################################################
 from typing import Callable, Iterator, List, Optional
 
-from nucs.problems.problem import Problem
-from nucs.statistics import init_statistics
-
 
 class Solver:
     """
     A solver.
     """
 
-    def __init__(self, problem: Problem):
+    def solve_one(self) -> Optional[List[int]]:  # type: ignore
         """
-        Inits the solver.
-        :param problem: the problem
+        Find at most one solution.
+        :return: the solution if it exists or None
         """
-        self.problem = problem
-        self.statistics = init_statistics()
+        pass
 
     def solve(self) -> Iterator[List[int]]:  # type: ignore
         """
