@@ -77,6 +77,9 @@ class BacktrackSolver(Solver):
             if not self.backtrack():
                 break
 
+    # TODO: write 2 solve_one methods : one process safe, the other not
+    # TODO: use shared memory instead of manager
+
     def solve_one(self, run: Event, solution_proxy: ListProxy) -> None:
         if not self.problem.ready:
             self.problem.init_problem(self.statistics)
