@@ -18,10 +18,6 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.solver import Solver
 from nucs.statistics import get_statistics, init_statistics
 
-# TODO:
-# interruptible solver ? could be a subclass of backtrack solver
-# first make solve_one() works then solve()
-
 
 class MultiprocessingSolver(Solver):
     def __init__(self, solvers: List[BacktrackSolver]):
@@ -37,8 +33,8 @@ class MultiprocessingSolver(Solver):
         solution = manager.list()
         run = manager.Event()
         run.set()
-        for solvr in self.solvers:
-            process = Process(target=solvr.solve_one, args=(run, solution))
+        for solver in self.solvers:
+            process = Process(target=solver.solve_one, args=(run, solution))
             processes.append(process)
             process.start()
         for process in processes:
