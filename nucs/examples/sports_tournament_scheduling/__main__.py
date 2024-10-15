@@ -32,7 +32,7 @@ if __name__ == "__main__":
     solver = BacktrackSolver(
         problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
     )
-    solution = solver.solve_one()
+    solution = next(solver.solve())
     print(get_statistics(solver.statistics))
     if solution:
         print(problem.solution_as_matrix(solution))

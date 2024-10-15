@@ -32,5 +32,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     problem = BIBDProblem(args.v, args.b, args.r, args.k, args.l, args.symmetry_breaking)
     solver = BacktrackSolver(problem, dom_heuristic=max_value_dom_heuristic)
-    solver.solve_one()
+    solver.solve_all()
     print(get_statistics(solver.statistics))

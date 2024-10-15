@@ -18,13 +18,6 @@ class Solver:
     A solver.
     """
 
-    def solve_one(self) -> Optional[List[int]]:  # type: ignore
-        """
-        Find at most one solution.
-        :return: the solution if it exists or None
-        """
-        pass
-
     def solve(self) -> Iterator[List[int]]:  # type: ignore
         """
         Returns an iterator over the solutions.

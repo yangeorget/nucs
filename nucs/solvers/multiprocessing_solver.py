@@ -10,7 +10,7 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
-import argparse
+from multiprocessing import Manager, Process
 from typing import Iterator, List, Optional
 
 from nucs.examples.queens.queens_problem import QueensProblem
@@ -18,11 +18,10 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.solver import Solver
 from nucs.statistics import get_statistics, init_statistics
 
-
 # TODO:
 # interruptible solver ? could be a subclass of backtrack solver
-# let caller create the subproblems or provide some help ?
 # first make solve_one() works then solve()
+
 
 class MultiprocessingSolver(Solver):
     def __init__(self, solvers: List[BacktrackSolver]):
@@ -33,9 +32,18 @@ class MultiprocessingSolver(Solver):
         pass
 
     def solve_one(self) -> Optional[List[int]]:
-        result = self.solvers[0].solve_one()
-        self.statistics = self.solvers[0].statistics
-        return result
+        processes = []
+        manager = Manager()
+        solution = manager.list()
+        run = manager.Event()
+        run.set()
+        for _ in range(10):
+            process = Process(target=solvers[i].solve_one, args=(run, solution))
+            processes.append(process)
+            process.start()
+        for process in processes:
+            process.join()
+        return list(solution)
 
     def minimize(self, variable_idx: int) -> Optional[List[int]]:
         pass
@@ -48,13 +56,10 @@ class MultiprocessingSolver(Solver):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-n", type=int, default=10)
-    args = parser.parse_args()
     solvers = []
-    for i in range(1):
-        problem = QueensProblem(args.n)
-        problem.shr_domains_lst[0] = (0, args.n-1)
+    for i in range(5):
+        problem = QueensProblem(10)
+        problem.shr_domains_lst[0] = (0 + i * 2, 2 + i * 2)
         solvers.append(BacktrackSolver(problem))
     solver = MultiprocessingSolver(solvers)
     solver.solve_one()

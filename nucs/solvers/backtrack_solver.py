@@ -10,7 +10,10 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
-from typing import Callable, Iterator, List, Optional
+from multiprocessing import Manager
+from multiprocessing.managers import ListProxy
+from threading import Event
+from typing import Any, Callable, Iterator, List, Optional
 
 import numpy as np
 
@@ -60,23 +63,35 @@ class BacktrackSolver(Solver):
         Returns an iterator over the solutions.
         :return: an iterator
         """
-        while (solution := self.solve_one()) is not None:
-            yield solution
+        manager = Manager()
+        run = manager.Event()
+        run.set()
+        solution_proxy = manager.list()
+        while True:
+            self.solve_one(run, solution_proxy)
+            if len(solution_proxy) == 0:
+                break
+            yield list(solution_proxy)
+            run.set()
+            solution_proxy[:] = []
             if not self.backtrack():
                 break
 
-    def solve_one(self) -> Optional[List[int]]:
+    def solve_one(self, run: Event, solution_proxy: ListProxy) -> None:
         if not self.problem.ready:
             self.problem.init_problem(self.statistics)
             self.problem.ready = True
-        while True:
+        while run.is_set():
             while (status := self.consistency_algorithm(self.statistics, self.problem)) == PROBLEM_INCONSISTENT:
                 if not self.backtrack():
-                    return None
+                    run.clear()
+                    return
             if status == PROBLEM_SOLVED:
                 self.statistics[STATS_SOLVER_SOLUTION_NB] += 1
                 values = self.problem.shr_domains_arr[self.problem.dom_indices_arr, MIN] + self.problem.dom_offsets_arr
-                return values.tolist()
+                solution_proxy.extend(values.tolist())
+                run.clear()
+                return
             dom_idx = self.var_heuristic(self.problem.shr_domains_arr)
             shr_domains_copy = self.problem.shr_domains_arr.copy(order="F")
             not_entailed_propagators_copy = self.problem.not_entailed_propagators.copy()
@@ -93,22 +108,40 @@ class BacktrackSolver(Solver):
                 self.statistics[STATS_SOLVER_CHOICE_DEPTH] = cp_max_depth
 
     def minimize(self, variable_idx: int) -> Optional[List[int]]:
-        solution = None
-        while (new_solution := self.solve_one()) is not None:
-            solution = new_solution
+        manager = Manager()
+        run = manager.Event()
+        run.set()
+        solution_proxy = manager.list()
+        best_solution = []
+        while True:
+            self.solve_one(run, solution_proxy)
+            if len(solution_proxy) == 0:
+                break
+            best_solution = list(solution_proxy)
+            run.set()
+            solution_proxy[:] = []
             self.statistics[STATS_OPTIMIZER_SOLUTION_NB] += 1
             self.reset()
-            self.problem.set_max_value(variable_idx, solution[variable_idx] - 1)
-        return solution
+            self.problem.set_max_value(variable_idx, best_solution[variable_idx] - 1)
+        return best_solution
 
     def maximize(self, variable_idx: int) -> Optional[List[int]]:
-        solution = None
-        while (new_solution := self.solve_one()) is not None:
-            solution = new_solution
+        manager = Manager()
+        run = manager.Event()
+        run.set()
+        solution_proxy = manager.list()
+        best_solution = []
+        while True:
+            self.solve_one(run, solution_proxy)
+            if len(solution_proxy) == 0:
+                break
+            best_solution = list(solution_proxy)
+            run.set()
+            solution_proxy[:] = []
             self.statistics[STATS_OPTIMIZER_SOLUTION_NB] += 1
             self.reset()
-            self.problem.set_min_value(variable_idx, solution[variable_idx] + 1)
-        return solution
+            self.problem.set_min_value(variable_idx, best_solution[variable_idx] + 1)
+        return best_solution
 
     def backtrack(self) -> bool:
         """
