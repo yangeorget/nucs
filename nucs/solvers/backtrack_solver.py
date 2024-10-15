@@ -28,7 +28,7 @@ from nucs.statistics import (
     STATS_SOLVER_CHOICE_DEPTH,
     STATS_SOLVER_CHOICE_NB,
     STATS_SOLVER_SOLUTION_NB,
-    init_statistics,
+    init_statistics, get_statistics,
 )
 
 

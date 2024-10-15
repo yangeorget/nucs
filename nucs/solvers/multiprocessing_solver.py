@@ -37,8 +37,8 @@ class MultiprocessingSolver(Solver):
         solution = manager.list()
         run = manager.Event()
         run.set()
-        for _ in range(10):
-            process = Process(target=solvers[i].solve_one, args=(run, solution))
+        for solvr in self.solvers:
+            process = Process(target=solvr.solve_one, args=(run, solution))
             processes.append(process)
             process.start()
         for process in processes:
@@ -57,9 +57,9 @@ class MultiprocessingSolver(Solver):
 
 if __name__ == "__main__":
     solvers = []
-    for i in range(5):
-        problem = QueensProblem(10)
-        problem.shr_domains_lst[0] = (0 + i * 2, 2 + i * 2)
+    for i in range(4):
+        problem = QueensProblem(28)
+        problem.shr_domains_lst[0] = (0 + i * 7, 6 + i * 7)
         solvers.append(BacktrackSolver(problem))
     solver = MultiprocessingSolver(solvers)
     solver.solve_one()
