@@ -10,7 +10,7 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
-from multiprocessing import Manager, Process
+from multiprocessing import Process, Queue
 from typing import Iterator, List, Optional
 
 from nucs.examples.queens.queens_problem import QueensProblem
@@ -20,30 +20,31 @@ from nucs.statistics import get_statistics, init_statistics
 
 
 class MultiprocessingSolver(Solver):
-    # TODO: use shared memory instead of manager
-
     def __init__(self, solvers: List[BacktrackSolver]):
         self.statistics = init_statistics()
         self.solvers = solvers
+        self.processes = []
+        self.queue = Queue()
+
+    def init_problem(self):
+        for solver in self.solvers:
+            solver.init_problem()
 
     def solve(self) -> Iterator[List[int]]:
-        pass
+        self.init_problem()
+        for solver_idx, solver in enumerate(self.solvers):
+            process = Process(target=solver.solve_one_interruptible, args=(solver_idx, self.queue))
+            self.processes.append(process)
+            process.start()
+        while (solution := self.solve_one()) is not None:
+            yield solution
+            if not self.backtrack():
+                break
 
     def solve_one(self) -> Optional[List[int]]:
-        processes = []
-        manager = Manager()
-        out = manager.dict()
-        out["solution"] = None
-        run = manager.Event()
-        run.set()
-        for solver in self.solvers:
-            solver.problem.init_problem(solver.statistics)
-            process = Process(target=solver.solve_one_interruptible, args=(run, out))
-            processes.append(process)
-            process.start()
-        for process in processes:
-            process.join()
-        return list(out["solution"])
+        solution, statistics = self.queue.get()
+        self.statistics = statistics
+        return list(solution)
 
     def optimize(self, variable_idx: int) -> Optional[List[int]]:
         pass
@@ -59,6 +60,6 @@ if __name__ == "__main__":
         problem.shr_domains_lst[0] = (0 + i * 7, 6 + i * 7)
         solvers.append(BacktrackSolver(problem))
     solver = MultiprocessingSolver(solvers)
-    solution = solver.solve_one()
+    solution = next(solver.solve())
     print(solution)
     print(get_statistics(solver.statistics))

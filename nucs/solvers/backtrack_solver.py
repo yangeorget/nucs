@@ -10,7 +10,7 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
-
+from multiprocessing import Queue
 from typing import Callable, Iterator, List, Optional
 
 import numpy as np
@@ -56,12 +56,15 @@ class BacktrackSolver(Solver):
         self.var_heuristic = var_heuristic
         self.dom_heuristic = dom_heuristic
 
+    def init_problem(self):
+        self.problem.init_problem(self.statistics)
+
     def solve(self) -> Iterator[List[int]]:
         """
         Returns an iterator over the solutions.
         :return: an iterator
         """
-        self.problem.init_problem(self.statistics)
+        self.init_problem()
         while (solution := self.solve_one()) is not None:
             yield solution
             if not self.backtrack():
@@ -72,22 +75,20 @@ class BacktrackSolver(Solver):
         Find at most one solution.
         :return: the solution if it exists or None
         """
-        while (status := self.filter_then_make_choice()) == PROBLEM_TO_FILTER:
+        while (status := self.make_choice()) == PROBLEM_TO_FILTER:
             pass
         return self.problem.get_solution() if status == PROBLEM_SOLVED else None
 
-    def solve_one_interruptible(self, run, out) -> None:
+    def solve_one_interruptible(self, idx: int, queue: Queue) -> None:
         """
         Find at most one solution.
         """
-        while run.is_set():
-            status = self.filter_then_make_choice()
-            if status != PROBLEM_TO_FILTER:
-                out["solution"] = self.problem.get_solution() if status == PROBLEM_SOLVED else None
-                run.clear()
+        while queue.empty() and (status := self.make_choice()) == PROBLEM_TO_FILTER:
+            pass
+        queue.put((idx, self.problem.get_solution() if status == PROBLEM_SOLVED else None, self.statistics))
 
 
-    def filter_then_make_choice(self) -> int:
+    def make_choice(self) -> int:
         # first filter
         while (status := self.consistency_algorithm(self.statistics, self.problem)) == PROBLEM_INCONSISTENT:
             if not self.backtrack():
@@ -119,7 +120,7 @@ class BacktrackSolver(Solver):
         return self.optimize(variable_idx, lambda var_idx, value: self.problem.set_min_value(var_idx, value + 1))
 
     def optimize(self, variable_idx: int, modify_target_bound: Callable) -> Optional[List[int]]:
-        self.problem.init_problem(self.statistics)
+        self.init_problem()
         solution = None
         while (new_solution := self.solve_one()) is not None:
             solution = new_solution
