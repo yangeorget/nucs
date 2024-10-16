@@ -57,7 +57,7 @@ class BacktrackSolver(Solver):
         self.dom_heuristic = dom_heuristic
 
     def init_problem(self):
-        self.problem.init_problem(self.statistics)
+        self.problem.init(self.statistics)
 
     def solve(self) -> Iterator[List[int]]:
         """
@@ -79,13 +79,9 @@ class BacktrackSolver(Solver):
             pass
         return self.problem.get_solution() if status == PROBLEM_SOLVED else None
 
-    def solve_one_interruptible(self, idx: int, queue: Queue) -> None:
-        """
-        Find at most one solution.
-        """
-        while queue.empty() and (status := self.make_choice()) == PROBLEM_TO_FILTER:
-            pass
-        queue.put((idx, self.problem.get_solution() if status == PROBLEM_SOLVED else None, self.statistics))
+    def solve_all_queue(self, idx: int, queue: Queue) -> None:
+        # TODO: use a a semaphor or event
+        self.solve_all(lambda solution: queue.put((idx, solution, self.statistics)))
 
 
     def make_choice(self) -> int:
@@ -119,14 +115,14 @@ class BacktrackSolver(Solver):
     def maximize(self, variable_idx: int) -> Optional[List[int]]:
         return self.optimize(variable_idx, lambda var_idx, value: self.problem.set_min_value(var_idx, value + 1))
 
-    def optimize(self, variable_idx: int, modify_target_bound: Callable) -> Optional[List[int]]:
+    def optimize(self, variable_idx: int, update_target_domain: Callable) -> Optional[List[int]]:
         self.init_problem()
         solution = None
         while (new_solution := self.solve_one()) is not None:
             solution = new_solution
             self.statistics[STATS_OPTIMIZER_SOLUTION_NB] += 1
             self.reset()
-            modify_target_bound(variable_idx, solution[variable_idx])
+            update_target_domain(variable_idx, solution[variable_idx])
         return solution
 
     def backtrack(self) -> bool:

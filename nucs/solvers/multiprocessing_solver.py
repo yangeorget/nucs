@@ -23,28 +23,19 @@ class MultiprocessingSolver(Solver):
     def __init__(self, solvers: List[BacktrackSolver]):
         self.statistics = init_statistics()
         self.solvers = solvers
-        self.processes = []
-        self.queue = Queue()
-
-    def init_problem(self):
-        for solver in self.solvers:
-            solver.init_problem()
 
     def solve(self) -> Iterator[List[int]]:
-        self.init_problem()
+        processes = []
+        queue = Queue()
         for solver_idx, solver in enumerate(self.solvers):
-            process = Process(target=solver.solve_one_interruptible, args=(solver_idx, self.queue))
-            self.processes.append(process)
+            process = Process(target=solver.solve_all_queue, args=(solver_idx, queue))
+            processes.append(process)
             process.start()
-        while (solution := self.solve_one()) is not None:
-            yield solution
-            if not self.backtrack():
-                break
+        while any(proces.is_alive() for proces in processes):
+            idx, solution, statistics = queue.get()
+            self.statistics = statistics  # TODO: fix this
+            yield list(solution)
 
-    def solve_one(self) -> Optional[List[int]]:
-        solution, statistics = self.queue.get()
-        self.statistics = statistics
-        return list(solution)
 
     def optimize(self, variable_idx: int) -> Optional[List[int]]:
         pass

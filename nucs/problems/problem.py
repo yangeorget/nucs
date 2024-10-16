@@ -118,7 +118,7 @@ class Problem:
         """
         self.propagators.extend(propagators)
 
-    def init_problem(self, statistics: Optional[NDArray] = None) -> None:
+    def init(self, statistics: Optional[NDArray] = None) -> None:
         """
         Completes the initialization of the problem by defining the variables and the propagators.
         """
