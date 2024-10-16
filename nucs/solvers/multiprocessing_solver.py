@@ -20,6 +20,8 @@ from nucs.statistics import get_statistics, init_statistics
 
 
 class MultiprocessingSolver(Solver):
+    # TODO: use shared memory instead of manager
+
     def __init__(self, solvers: List[BacktrackSolver]):
         self.statistics = init_statistics()
         self.solvers = solvers
@@ -30,21 +32,20 @@ class MultiprocessingSolver(Solver):
     def solve_one(self) -> Optional[List[int]]:
         processes = []
         manager = Manager()
-        solution = manager.list()
+        out = manager.dict()
+        out["solution"] = None
         run = manager.Event()
         run.set()
         for solver in self.solvers:
-            process = Process(target=solver.solve_one, args=(run, solution))
+            solver.problem.init_problem(solver.statistics)
+            process = Process(target=solver.solve_one_interruptible, args=(run, out))
             processes.append(process)
             process.start()
         for process in processes:
             process.join()
-        return list(solution)
+        return list(out["solution"])
 
-    def minimize(self, variable_idx: int) -> Optional[List[int]]:
-        pass
-
-    def maximize(self, variable_idx: int) -> Optional[List[int]]:
+    def optimize(self, variable_idx: int) -> Optional[List[int]]:
         pass
 
     def reset(self) -> None:
@@ -58,5 +59,6 @@ if __name__ == "__main__":
         problem.shr_domains_lst[0] = (0 + i * 7, 6 + i * 7)
         solvers.append(BacktrackSolver(problem))
     solver = MultiprocessingSolver(solvers)
-    solver.solve_one()
+    solution = solver.solve_one()
+    print(solution)
     print(get_statistics(solver.statistics))

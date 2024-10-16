@@ -10,14 +10,12 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
-from multiprocessing import Manager
-from multiprocessing.managers import ListProxy
-from threading import Event
-from typing import Any, Callable, Iterator, List, Optional
+
+from typing import Callable, Iterator, List, Optional
 
 import numpy as np
 
-from nucs.constants import MIN, PROBLEM_INCONSISTENT, PROBLEM_SOLVED
+from nucs.constants import PROBLEM_INCONSISTENT, PROBLEM_SOLVED, PROBLEM_TO_FILTER
 from nucs.problems.problem import Problem
 from nucs.solvers.consistency_algorithms import bound_consistency_algorithm
 from nucs.solvers.heuristics import first_not_instantiated_var_heuristic, min_value_dom_heuristic
@@ -28,7 +26,7 @@ from nucs.statistics import (
     STATS_SOLVER_CHOICE_DEPTH,
     STATS_SOLVER_CHOICE_NB,
     STATS_SOLVER_SOLUTION_NB,
-    init_statistics, get_statistics,
+    init_statistics,
 )
 
 
@@ -63,88 +61,72 @@ class BacktrackSolver(Solver):
         Returns an iterator over the solutions.
         :return: an iterator
         """
-        manager = Manager()
-        run = manager.Event()
-        run.set()
-        solution_proxy = manager.list()
-        while True:
-            self.solve_one(run, solution_proxy)
-            if len(solution_proxy) == 0:
-                break
-            yield list(solution_proxy)
-            run.set()
-            solution_proxy[:] = []
+        self.problem.init_problem(self.statistics)
+        while (solution := self.solve_one()) is not None:
+            yield solution
             if not self.backtrack():
                 break
 
-    # TODO: write 2 solve_one methods : one process safe, the other not
-    # TODO: use shared memory instead of manager
+    def solve_one(self) -> Optional[List[int]]:
+        """
+        Find at most one solution.
+        :return: the solution if it exists or None
+        """
+        while (status := self.filter_then_make_choice()) == PROBLEM_TO_FILTER:
+            pass
+        return self.problem.get_solution() if status == PROBLEM_SOLVED else None
 
-    def solve_one(self, run: Event, solution_proxy: ListProxy) -> None:
-        if not self.problem.ready:
-            self.problem.init_problem(self.statistics)
-            self.problem.ready = True
+    def solve_one_interruptible(self, run, out) -> None:
+        """
+        Find at most one solution.
+        """
         while run.is_set():
-            while (status := self.consistency_algorithm(self.statistics, self.problem)) == PROBLEM_INCONSISTENT:
-                if not self.backtrack():
-                    run.clear()
-                    return
-            if status == PROBLEM_SOLVED:
-                self.statistics[STATS_SOLVER_SOLUTION_NB] += 1
-                values = self.problem.shr_domains_arr[self.problem.dom_indices_arr, MIN] + self.problem.dom_offsets_arr
-                solution_proxy.extend(values.tolist())
+            status = self.filter_then_make_choice()
+            if status != PROBLEM_TO_FILTER:
+                out["solution"] = self.problem.get_solution() if status == PROBLEM_SOLVED else None
                 run.clear()
-                return
-            dom_idx = self.var_heuristic(self.problem.shr_domains_arr)
-            shr_domains_copy = self.problem.shr_domains_arr.copy(order="F")
-            not_entailed_propagators_copy = self.problem.not_entailed_propagators.copy()
-            self.choice_points.append((shr_domains_copy, not_entailed_propagators_copy))
-            event = self.dom_heuristic(self.problem.shr_domains_arr[dom_idx], shr_domains_copy[dom_idx])
-            np.logical_or(
-                self.problem.triggered_propagators,
-                self.problem.shr_domains_propagators[dom_idx, event],
-                self.problem.triggered_propagators,
-            )
-            self.statistics[STATS_SOLVER_CHOICE_NB] += 1
-            cp_max_depth = len(self.choice_points)
-            if cp_max_depth > self.statistics[STATS_SOLVER_CHOICE_DEPTH]:
-                self.statistics[STATS_SOLVER_CHOICE_DEPTH] = cp_max_depth
+
+
+    def filter_then_make_choice(self) -> int:
+        # first filter
+        while (status := self.consistency_algorithm(self.statistics, self.problem)) == PROBLEM_INCONSISTENT:
+            if not self.backtrack():
+                return PROBLEM_INCONSISTENT
+        if status == PROBLEM_SOLVED:
+            self.statistics[STATS_SOLVER_SOLUTION_NB] += 1
+            return PROBLEM_SOLVED
+        # then make a choice
+        dom_idx = self.var_heuristic(self.problem.shr_domains_arr)
+        shr_domains_copy = self.problem.shr_domains_arr.copy(order="F")
+        not_entailed_propagators_copy = self.problem.not_entailed_propagators.copy()
+        self.choice_points.append((shr_domains_copy, not_entailed_propagators_copy))
+        event = self.dom_heuristic(self.problem.shr_domains_arr[dom_idx], shr_domains_copy[dom_idx])
+        np.logical_or(
+            self.problem.triggered_propagators,
+            self.problem.shr_domains_propagators[dom_idx, event],
+            self.problem.triggered_propagators,
+        )
+        self.statistics[STATS_SOLVER_CHOICE_NB] += 1
+        cp_max_depth = len(self.choice_points)
+        if cp_max_depth > self.statistics[STATS_SOLVER_CHOICE_DEPTH]:
+            self.statistics[STATS_SOLVER_CHOICE_DEPTH] = cp_max_depth
+        return PROBLEM_TO_FILTER
 
     def minimize(self, variable_idx: int) -> Optional[List[int]]:
-        manager = Manager()
-        run = manager.Event()
-        run.set()
-        solution_proxy = manager.list()
-        best_solution = []
-        while True:
-            self.solve_one(run, solution_proxy)
-            if len(solution_proxy) == 0:
-                break
-            best_solution = list(solution_proxy)
-            run.set()
-            solution_proxy[:] = []
-            self.statistics[STATS_OPTIMIZER_SOLUTION_NB] += 1
-            self.reset()
-            self.problem.set_max_value(variable_idx, best_solution[variable_idx] - 1)
-        return best_solution
+        return self.optimize(variable_idx, lambda var_idx, value: self.problem.set_max_value(var_idx, value - 1))
 
     def maximize(self, variable_idx: int) -> Optional[List[int]]:
-        manager = Manager()
-        run = manager.Event()
-        run.set()
-        solution_proxy = manager.list()
-        best_solution = []
-        while True:
-            self.solve_one(run, solution_proxy)
-            if len(solution_proxy) == 0:
-                break
-            best_solution = list(solution_proxy)
-            run.set()
-            solution_proxy[:] = []
+        return self.optimize(variable_idx, lambda var_idx, value: self.problem.set_min_value(var_idx, value + 1))
+
+    def optimize(self, variable_idx: int, modify_target_bound: Callable) -> Optional[List[int]]:
+        self.problem.init_problem(self.statistics)
+        solution = None
+        while (new_solution := self.solve_one()) is not None:
+            solution = new_solution
             self.statistics[STATS_OPTIMIZER_SOLUTION_NB] += 1
             self.reset()
-            self.problem.set_min_value(variable_idx, best_solution[variable_idx] + 1)
-        return best_solution
+            modify_target_bound(variable_idx, solution[variable_idx])
+        return solution
 
     def backtrack(self) -> bool:
         """

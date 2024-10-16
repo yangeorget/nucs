@@ -63,7 +63,6 @@ class Problem:
         self.dom_offsets_lst = dom_offsets_list
         self.propagators: List[Tuple[List[int], int, List[int]]] = []
         self.propagator_nb = 0
-        self.ready = False  # the problem is not yet ready to be used, init_problem() must be called
 
     def add_variable(
         self, shr_domain: Union[int, Tuple[int, int]], dom_index: Optional[int] = None, dom_offset: Optional[int] = None
@@ -214,6 +213,10 @@ class Problem:
         :param min_value: the maximal value
         """
         self.shr_domains_arr[self.dom_indices_arr[var_idx], MAX] = max_value - self.dom_offsets_arr[var_idx]
+
+    def get_solution(self) -> List[int]:
+        values = self.shr_domains_arr[self.dom_indices_arr, MIN] + self.dom_offsets_arr
+        return values.tolist()
 
     def __str__(self) -> str:
         return f"domains={self.shr_domains_arr}, indices={self.dom_indices_arr}, offsets={self.dom_offsets_arr}"
