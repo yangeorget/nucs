@@ -25,26 +25,48 @@ from nucs.statistics import get_statistics, init_statistics
 class MultiprocessingSolver(Solver):
     def __init__(self, solvers: List[BacktrackSolver]):
         self.statistics = [init_statistics() for _ in solvers]
+        self.solvers = solvers
         self.queue: Queue = Queue()
-        self.processes = [
-            Process(target=solver.solve_queue, args=(idx, self.queue)) for idx, solver in enumerate(solvers)
-        ]
 
     def solve(self) -> Iterator[List[int]]:
-        for process in self.processes:
-            process.start()
-        nb = len(self.processes)
+        for processor_idx, solver in enumerate(self.solvers):
+            Process(target=solver.solve_queue, args=(processor_idx, self.queue)).start()
+        nb = len(self.solvers)
         while nb > 0:
-            idx, solution, statistics = self.queue.get()
-            self.statistics[idx] = statistics
+            processor_idx, solution, statistics = self.queue.get()
+            self.statistics[processor_idx] = statistics
             if solution is None:
                 nb -= 1
             else:
                 yield solution
 
-    def optimize(self, variable_idx: int) -> Optional[List[int]]:
-        # TODO: fix this
-        pass
+    def minimize(self, variable_idx: int) -> Optional[List[int]]:
+        for processor_idx, solver in enumerate(self.solvers):
+            Process(target=solver.minimize_queue, args=(variable_idx, processor_idx, self.queue)).start()
+        solution = None
+        nb = len(self.solvers)
+        while nb > 0:
+            processor_idx, new_solution, statistics = self.queue.get()
+            self.statistics[processor_idx] = statistics
+            if new_solution is None:
+                nb -= 1
+            elif solution is None or new_solution[variable_idx] < solution[variable_idx]:
+                solution = new_solution
+        return solution
+
+    def maximize(self, variable_idx: int) -> Optional[List[int]]:
+        for processor_idx, solver in enumerate(self.solvers):
+            Process(target=solver.maximize_queue, args=(variable_idx, processor_idx, self.queue)).start()
+        solution = None
+        nb = len(self.solvers)
+        while nb > 0:
+            processor_idx, new_solution, statistics = self.queue.get()
+            self.statistics[processor_idx] = statistics
+            if new_solution is None:
+                nb -= 1
+            elif solution is None or new_solution[variable_idx] > solution[variable_idx]:
+                solution = new_solution
+        return solution
 
 
 if __name__ == "__main__":

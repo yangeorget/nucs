@@ -11,9 +11,14 @@
 # Copyright 2024 - Yan Georget
 ###############################################################################
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_RELATION
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.statistics import STATS_LBL_SOLVER_CHOICE_DEPTH, STATS_LBL_SOLVER_SOLUTION_NB, get_statistics
+from nucs.statistics import (
+    STATS_LBL_OPTIMIZER_SOLUTION_NB,
+    STATS_LBL_SOLVER_CHOICE_DEPTH,
+    STATS_LBL_SOLVER_SOLUTION_NB,
+    get_statistics,
+)
 
 
 class TestBacktrackSolver:
@@ -49,3 +54,13 @@ class TestBacktrackSolver:
         assert solutions[4] == [2, 0, 1]
         assert solutions[5] == [2, 1, 0]
         assert get_statistics(solver.statistics)[STATS_LBL_SOLVER_SOLUTION_NB] == 6
+
+    def test_optimize_relation(self) -> None:
+        problem = Problem([(-5, 5), (-100, 100)])
+        problem.add_propagator(
+            ([0, 1], ALG_RELATION, [-5, 25, -4, 16, -3, 9, -2, 4, -1, 1, 0, 0, 1, 1, 2, 4, 3, 9, 4, 16, 5, 25])
+        )
+        solver = BacktrackSolver(problem)
+        solution = solver.minimize(1)
+        assert solution == [0, 0]
+        assert get_statistics(solver.statistics)[STATS_LBL_OPTIMIZER_SOLUTION_NB] == 6

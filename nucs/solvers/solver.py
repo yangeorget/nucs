@@ -41,7 +41,7 @@ class Solver:
         self.solve_all(lambda solution: solutions.append(solution))
         return solutions
 
-    def minimize(self, var_idx: int) -> Optional[List[int]]:  # type: ignore
+    def minimize(self, variable_idx: int) -> Optional[List[int]]:  # type: ignore
         """
         Finds, if it exists, the solution to the problem that minimizes a given variable.
         :param variable_idx: the index of the variable
@@ -49,7 +49,7 @@ class Solver:
         """
         pass
 
-    def maximize(self, var_idx: int) -> Optional[List[int]]:  # type: ignore
+    def maximize(self, variable_idx: int) -> Optional[List[int]]:  # type: ignore
         """
         Finds, if it exists, the solution to the problem that maximizes a given variable.
         :param variable_idx: the index of the variable

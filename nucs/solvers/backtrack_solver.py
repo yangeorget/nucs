@@ -30,6 +30,14 @@ from nucs.statistics import (
 )
 
 
+def decrease_max(problem: Problem, var_idx: int, value: int) -> None:
+    problem.set_max_value(var_idx, value - 1)
+
+
+def increase_min(problem: Problem, var_idx: int, value: int) -> None:
+    problem.set_min_value(var_idx, value + 1)
+
+
 class BacktrackSolver(Solver):
     """
     A solver relying on a backtracking mechanism.
@@ -59,6 +67,15 @@ class BacktrackSolver(Solver):
     def init_problem(self) -> None:
         self.problem.init(self.statistics)
 
+    def solve_one(self) -> Optional[List[int]]:
+        """
+        Find at most one solution.
+        :return: the solution if it exists or None
+        """
+        while (status := self.make_choice()) == PROBLEM_TO_FILTER:
+            pass
+        return self.problem.get_solution() if status == PROBLEM_SOLVED else None
+
     def solve(self) -> Iterator[List[int]]:
         """
         Returns an iterator over the solutions.
@@ -70,22 +87,13 @@ class BacktrackSolver(Solver):
             if not self.backtrack():
                 break
 
-    def solve_one(self) -> Optional[List[int]]:
-        """
-        Find at most one solution.
-        :return: the solution if it exists or None
-        """
-        while (status := self.make_choice()) == PROBLEM_TO_FILTER:
-            pass
-        return self.problem.get_solution() if status == PROBLEM_SOLVED else None
-
-    def solve_queue(self, idx: int, queue: Queue) -> None:
+    def solve_queue(self, processor_idx: int, queue: Queue) -> None:
         self.init_problem()
         while (solution := self.solve_one()) is not None:
-            queue.put((idx, solution, self.statistics))
+            queue.put((processor_idx, solution, self.statistics))
             if not self.backtrack():
                 break
-        queue.put((idx, None, self.statistics))
+        queue.put((processor_idx, None, self.statistics))
 
     def make_choice(self) -> int:
         # first filter
@@ -113,10 +121,10 @@ class BacktrackSolver(Solver):
         return PROBLEM_TO_FILTER
 
     def minimize(self, variable_idx: int) -> Optional[List[int]]:
-        return self.optimize(variable_idx, lambda var_idx, value: self.problem.set_max_value(var_idx, value - 1))
+        return self.optimize(variable_idx, decrease_max)
 
     def maximize(self, variable_idx: int) -> Optional[List[int]]:
-        return self.optimize(variable_idx, lambda var_idx, value: self.problem.set_min_value(var_idx, value + 1))
+        return self.optimize(variable_idx, increase_min)
 
     def optimize(self, variable_idx: int, update_target_domain: Callable) -> Optional[List[int]]:
         self.init_problem()
@@ -125,8 +133,25 @@ class BacktrackSolver(Solver):
             solution = new_solution
             self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
             self.reset()
-            update_target_domain(variable_idx, solution[variable_idx])
+            update_target_domain(self.problem, variable_idx, solution[variable_idx])
         return solution
+
+    def minimize_queue(self, variable_idx: int, processor_idx: int, queue: Queue) -> None:
+        self.optimize_queue(variable_idx, decrease_max, processor_idx, queue)
+
+    def maximize_queue(self, variable_idx: int, processor_idx: int, queue: Queue) -> None:
+        self.optimize_queue(variable_idx, increase_min, processor_idx, queue)
+
+    def optimize_queue(
+        self, variable_idx: int, update_target_domain: Callable, processor_idx: int, queue: Queue
+    ) -> None:
+        self.init_problem()
+        while (solution := self.solve_one()) is not None:
+            self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
+            queue.put((processor_idx, solution, self.statistics))
+            self.reset()
+            update_target_domain(self.problem, variable_idx, solution[variable_idx])
+        queue.put((processor_idx, None, self.statistics))
 
     def backtrack(self) -> bool:
         """
