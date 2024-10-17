@@ -56,7 +56,7 @@ class BacktrackSolver(Solver):
         self.var_heuristic = var_heuristic
         self.dom_heuristic = dom_heuristic
 
-    def init_problem(self):
+    def init_problem(self) -> None:
         self.problem.init(self.statistics)
 
     def solve(self) -> Iterator[List[int]]:
@@ -79,10 +79,13 @@ class BacktrackSolver(Solver):
             pass
         return self.problem.get_solution() if status == PROBLEM_SOLVED else None
 
-    def solve_all_queue(self, idx: int, queue: Queue) -> None:
-        # TODO: use a a semaphor or event
-        self.solve_all(lambda solution: queue.put((idx, solution, self.statistics)))
-
+    def solve_queue(self, idx: int, queue: Queue) -> None:
+        self.init_problem()
+        while (solution := self.solve_one()) is not None:
+            queue.put((idx, solution, self.statistics))
+            if not self.backtrack():
+                break
+        queue.put((idx, None, self.statistics))
 
     def make_choice(self) -> int:
         # first filter

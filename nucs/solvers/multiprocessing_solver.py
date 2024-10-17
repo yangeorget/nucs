@@ -13,44 +13,48 @@
 from multiprocessing import Process, Queue
 from typing import Iterator, List, Optional
 
+from rich import print
+
 from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.solver import Solver
-from nucs.statistics import get_statistics, init_statistics
+from nucs.statistics import get_statistics
 
 
 class MultiprocessingSolver(Solver):
     def __init__(self, solvers: List[BacktrackSolver]):
-        self.statistics = init_statistics()
-        self.solvers = solvers
+        self.statistics = list(range(len(solvers)))
+        self.queue: Queue = Queue()
+        self.processes = [
+            Process(target=solver.solve_queue, args=(idx, self.queue)) for idx, solver in enumerate(solvers)
+        ]
 
     def solve(self) -> Iterator[List[int]]:
-        processes = []
-        queue = Queue()
-        for solver_idx, solver in enumerate(self.solvers):
-            process = Process(target=solver.solve_all_queue, args=(solver_idx, queue))
-            processes.append(process)
+        for process in self.processes:
             process.start()
-        while any(proces.is_alive() for proces in processes):
-            idx, solution, statistics = queue.get()
-            self.statistics = statistics  # TODO: fix this
-            yield list(solution)
-
+        nb = len(self.processes)
+        while nb > 0:
+            idx, solution, statistics = self.queue.get()
+            self.statistics[idx] = statistics
+            if solution is None:
+                nb -= 1
+            else:
+                yield solution
 
     def optimize(self, variable_idx: int) -> Optional[List[int]]:
-        pass
-
-    def reset(self) -> None:
+        # TODO: fix this
         pass
 
 
 if __name__ == "__main__":
     solvers = []
-    for i in range(4):
-        problem = QueensProblem(28)
-        problem.shr_domains_lst[0] = (0 + i * 7, 6 + i * 7)
+    queen_nb = 12
+    processor_nb = 6
+    size = queen_nb // processor_nb  # TODO: simplify this
+    for i in range(processor_nb):
+        problem = QueensProblem(queen_nb)
+        problem.shr_domains_lst[0] = (0 + i * size, size - 1 + i * size)
         solvers.append(BacktrackSolver(problem))
     solver = MultiprocessingSolver(solvers)
-    solution = next(solver.solve())
-    print(solution)
+    solver.solve_all()
     print(get_statistics(solver.statistics))
