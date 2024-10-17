@@ -21,11 +21,11 @@ from nucs.solvers.consistency_algorithms import bound_consistency_algorithm
 from nucs.solvers.heuristics import first_not_instantiated_var_heuristic, min_value_dom_heuristic
 from nucs.solvers.solver import Solver
 from nucs.statistics import (
-    STATS_OPTIMIZER_SOLUTION_NB,
-    STATS_SOLVER_BACKTRACK_NB,
-    STATS_SOLVER_CHOICE_DEPTH,
-    STATS_SOLVER_CHOICE_NB,
-    STATS_SOLVER_SOLUTION_NB,
+    STATS_IDX_OPTIMIZER_SOLUTION_NB,
+    STATS_IDX_SOLVER_BACKTRACK_NB,
+    STATS_IDX_SOLVER_CHOICE_DEPTH,
+    STATS_IDX_SOLVER_CHOICE_NB,
+    STATS_IDX_SOLVER_SOLUTION_NB,
     init_statistics,
 )
 
@@ -93,7 +93,7 @@ class BacktrackSolver(Solver):
             if not self.backtrack():
                 return PROBLEM_INCONSISTENT
         if status == PROBLEM_SOLVED:
-            self.statistics[STATS_SOLVER_SOLUTION_NB] += 1
+            self.statistics[STATS_IDX_SOLVER_SOLUTION_NB] += 1
             return PROBLEM_SOLVED
         # then make a choice
         dom_idx = self.var_heuristic(self.problem.shr_domains_arr)
@@ -106,10 +106,10 @@ class BacktrackSolver(Solver):
             self.problem.shr_domains_propagators[dom_idx, event],
             self.problem.triggered_propagators,
         )
-        self.statistics[STATS_SOLVER_CHOICE_NB] += 1
+        self.statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
         cp_max_depth = len(self.choice_points)
-        if cp_max_depth > self.statistics[STATS_SOLVER_CHOICE_DEPTH]:
-            self.statistics[STATS_SOLVER_CHOICE_DEPTH] = cp_max_depth
+        if cp_max_depth > self.statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
+            self.statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = cp_max_depth
         return PROBLEM_TO_FILTER
 
     def minimize(self, variable_idx: int) -> Optional[List[int]]:
@@ -123,7 +123,7 @@ class BacktrackSolver(Solver):
         solution = None
         while (new_solution := self.solve_one()) is not None:
             solution = new_solution
-            self.statistics[STATS_OPTIMIZER_SOLUTION_NB] += 1
+            self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
             self.reset()
             update_target_domain(variable_idx, solution[variable_idx])
         return solution
@@ -135,7 +135,7 @@ class BacktrackSolver(Solver):
         """
         if len(self.choice_points) == 0:
             return False
-        self.statistics[STATS_SOLVER_BACKTRACK_NB] += 1
+        self.statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
         self.problem.reset(self.choice_points.pop())  # TODO: optimize by reusing
         return True
 

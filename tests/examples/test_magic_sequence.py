@@ -15,7 +15,7 @@ import pytest
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.heuristics import last_not_instantiated_var_heuristic, min_value_dom_heuristic
-from nucs.statistics import STATS_SOLVER_SOLUTION_NB
+from nucs.statistics import STATS_IDX_SOLVER_SOLUTION_NB
 
 
 class TestMagicSequence:
@@ -27,5 +27,5 @@ class TestMagicSequence:
             problem, var_heuristic=last_not_instantiated_var_heuristic, dom_heuristic=min_value_dom_heuristic
         )
         solutions = solver.find_all()
-        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1
+        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 1
         assert solutions[0][0] == zero_nb

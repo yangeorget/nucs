@@ -15,7 +15,7 @@ import pytest
 from nucs.examples.magic_square.magic_square_problem import MagicSquareProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.heuristics import max_value_dom_heuristic, smallest_domain_var_heuristic
-from nucs.statistics import STATS_SOLVER_SOLUTION_NB
+from nucs.statistics import STATS_IDX_SOLVER_SOLUTION_NB
 
 
 class TestMagicSquare:
@@ -33,4 +33,4 @@ class TestMagicSquare:
             problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=max_value_dom_heuristic
         )
         solver.solve_all()
-        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == solution_nb
+        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == solution_nb

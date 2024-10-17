@@ -21,7 +21,7 @@ from nucs.problems.problem import Problem
 from nucs.propagators.lexicographic_leq_propagator import compute_domains_lexicographic_leq
 from nucs.propagators.propagators import ALG_LEXICOGRAPHIC_LEQ
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.statistics import STATS_SOLVER_SOLUTION_NB
+from nucs.statistics import STATS_IDX_SOLVER_SOLUTION_NB
 
 
 class TestLexicographicLEQ:
@@ -72,7 +72,7 @@ class TestLexicographicLEQ:
         problem.add_propagator(([0, 1, 2, 3], ALG_LEXICOGRAPHIC_LEQ, []))
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 10
+        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 10
 
     def test_solve_2(self) -> None:
         problem = Problem(
@@ -83,4 +83,4 @@ class TestLexicographicLEQ:
         problem.add_propagator(([0, 1, 2, 3], ALG_LEXICOGRAPHIC_LEQ, []))
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 3
+        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 3

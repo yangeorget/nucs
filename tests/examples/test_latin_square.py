@@ -14,7 +14,7 @@ import pytest
 
 from nucs.problems.latin_square_problem import LatinSquareProblem, LatinSquareRCProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.statistics import STATS_SOLVER_SOLUTION_NB
+from nucs.statistics import STATS_IDX_SOLVER_SOLUTION_NB
 
 
 class TestLatinSquare:
@@ -32,7 +32,7 @@ class TestLatinSquare:
         problem = LatinSquareProblem(list(range(size)))
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == solution_nb
+        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == solution_nb
 
     @pytest.mark.parametrize(
         "size, solution_nb",
@@ -48,4 +48,4 @@ class TestLatinSquare:
         problem = LatinSquareRCProblem(size)
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == solution_nb
+        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == solution_nb

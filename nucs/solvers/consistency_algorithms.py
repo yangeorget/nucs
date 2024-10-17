@@ -34,11 +34,11 @@ from nucs.propagators.propagators import (
     pop_propagator,
 )
 from nucs.statistics import (
-    STATS_PROBLEM_FILTER_NB,
-    STATS_PROPAGATOR_ENTAILMENT_NB,
-    STATS_PROPAGATOR_FILTER_NB,
-    STATS_PROPAGATOR_FILTER_NO_CHANGE_NB,
-    STATS_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_IDX_PROBLEM_FILTER_NB,
+    STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
+    STATS_IDX_PROPAGATOR_FILTER_NB,
+    STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
+    STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
 )
 
 
@@ -84,13 +84,13 @@ def _bound_consistency_algorithm(
     Internal method for applying the bound consistency algorithm.
     This method only uses Numpy arrays as parameters, this permits JIT compilation.
     """
-    statistics[STATS_PROBLEM_FILTER_NB] += 1
+    statistics[STATS_IDX_PROBLEM_FILTER_NB] += 1
     prop_idx = -1
     while True:
         prop_idx = pop_propagator(triggered_props, not_entailed_props, prop_idx)
         if prop_idx == -1:
             return PROBLEM_SOLVED if is_solved(shr_domains) else PROBLEM_FILTERED
-        statistics[STATS_PROPAGATOR_FILTER_NB] += 1
+        statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = var_bounds[prop_idx, START]
         prop_var_end = var_bounds[prop_idx, END]
         prop_indices = props_indices[prop_var_start:prop_var_end]
@@ -107,11 +107,11 @@ def _bound_consistency_algorithm(
         prop_data = props_data[data_bounds[prop_idx, START] : data_bounds[prop_idx, END]]
         status = compute_domains_function(prop_domains, prop_data)
         if status == PROP_INCONSISTENCY:
-            statistics[STATS_PROPAGATOR_INCONSISTENCY_NB] += 1
+            statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
             not_entailed_props[prop_idx] = False
-            statistics[STATS_PROPAGATOR_ENTAILMENT_NB] += 1
+            statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
         shr_domains_changes = False
         for var_idx in range(prop_var_nb):
             shr_domain_idx = prop_indices[var_idx]
@@ -123,4 +123,4 @@ def _bound_consistency_algorithm(
                     shr_domains_changes = True
                     np.logical_or(triggered_props, shr_domains_props[shr_domain_idx, bound], triggered_props)
         if not shr_domains_changes:  # type: ignore
-            statistics[STATS_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
+            statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1

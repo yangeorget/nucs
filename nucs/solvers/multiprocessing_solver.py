@@ -17,15 +17,14 @@ from typing import Iterator, List, Optional
 from rich import print
 
 from nucs.examples.queens.queens_problem import QueensProblem
-from nucs.problems.problem import split_problem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.solver import Solver
-from nucs.statistics import get_statistics
+from nucs.statistics import get_statistics, init_statistics
 
 
 class MultiprocessingSolver(Solver):
     def __init__(self, solvers: List[BacktrackSolver]):
-        self.statistics = list(range(len(solvers)))
+        self.statistics = [init_statistics() for _ in solvers]
         self.queue: Queue = Queue()
         self.processes = [
             Process(target=solver.solve_queue, args=(idx, self.queue)) for idx, solver in enumerate(solvers)
@@ -52,7 +51,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-processors", type=int, default=1)
     args = parser.parse_args()
-    problems = split_problem(QueensProblem(12), args.processors, 0)
+    problems = QueensProblem(12).split(args.processors, 0)
     solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in problems])
     solver.solve_all()
     print(get_statistics(solver.statistics))

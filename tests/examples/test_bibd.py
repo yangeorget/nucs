@@ -12,7 +12,7 @@
 ###############################################################################
 from nucs.examples.bibd.bibd_problem import BIBDProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.statistics import STATS_SOLVER_SOLUTION_NB
+from nucs.statistics import STATS_IDX_SOLVER_SOLUTION_NB
 
 
 class TestBIBD:
@@ -20,16 +20,16 @@ class TestBIBD:
         problem = BIBDProblem(6, 10, 5, 3, 2)
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1
+        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 1
 
     def test_7_7_3_3_1(self) -> None:
         problem = BIBDProblem(7, 7, 3, 3, 1)
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1
+        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 1
 
     def test_8_14_7_4_3(self) -> None:
         problem = BIBDProblem(8, 14, 7, 4, 3)
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 92
+        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 92

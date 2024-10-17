@@ -12,7 +12,7 @@
 ###############################################################################
 from nucs.examples.sudoku.sudoku_problem import SudokuProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.statistics import STATS_SOLVER_SOLUTION_NB
+from nucs.statistics import STATS_IDX_SOLVER_SOLUTION_NB
 
 
 class TestSudokus:
@@ -32,7 +32,7 @@ class TestSudokus:
         )
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1
+        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 1
 
     def test_sudokus_2(self) -> None:
         problem = SudokuProblem(
@@ -50,4 +50,4 @@ class TestSudokus:
         )
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_SOLVER_SOLUTION_NB] == 1
+        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 1

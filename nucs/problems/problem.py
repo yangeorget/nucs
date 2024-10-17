@@ -11,7 +11,7 @@
 # Copyright 2024 - Yan Georget
 ###############################################################################
 import copy
-from typing import Optional, Tuple, Union
+from typing import Optional, Self, Tuple, Union
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -33,7 +33,7 @@ from nucs.numpy import (
     new_triggered_propagators,
 )
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
-from nucs.statistics import STATS_PROBLEM_PROPAGATOR_NB, STATS_PROBLEM_VARIABLE_NB
+from nucs.statistics import STATS_IDX_PROBLEM_PROPAGATOR_NB, STATS_IDX_PROBLEM_VARIABLE_NB
 
 
 class Problem:
@@ -64,6 +64,26 @@ class Problem:
         self.dom_offsets_lst = dom_offsets_list
         self.propagators: List[Tuple[List[int], int, List[int]]] = []
         self.propagator_nb = 0
+
+    def split(self, proc_nb: int, var_idx: int) -> List[Self]:
+        # TODO: improve this and test
+        shr_dom = self.shr_domains_lst[var_idx]
+        if isinstance(shr_dom, int):
+            shr_dom_min = shr_dom
+            shr_dom_max = shr_dom
+        else:
+            shr_dom_min = shr_dom[0]
+            shr_dom_max = shr_dom[1]
+        chunk_sz = (shr_dom_max - shr_dom_min + 1) // proc_nb
+        problems = []
+        for proc_idx in range(proc_nb):
+            problem = copy.deepcopy(self)
+            problem.shr_domains_lst[var_idx] = (
+                shr_dom_min + proc_idx * chunk_sz,
+                shr_dom_min + proc_idx * chunk_sz + chunk_sz - 1 if proc_idx < proc_nb - 1 else shr_dom_max,
+            )
+            problems.append(problem)
+        return problems
 
     def add_variable(
         self, shr_domain: Union[int, Tuple[int, int]], dom_index: Optional[int] = None, dom_offset: Optional[int] = None
@@ -171,8 +191,8 @@ class Problem:
             for prop_var_idx, prop_var in enumerate(prop[0]):
                 self.shr_domains_propagators[self.dom_indices_arr[prop_var], :, prop_idx] = triggers[prop_var_idx, :]
         if statistics is not None:
-            statistics[STATS_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
-            statistics[STATS_PROBLEM_VARIABLE_NB] = self.variable_nb
+            statistics[STATS_IDX_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
+            statistics[STATS_IDX_PROBLEM_VARIABLE_NB] = self.variable_nb
 
     def reset(self, choice_point: Optional[Tuple[NDArray, NDArray]] = None) -> None:
         if choice_point is None:
@@ -230,23 +250,3 @@ def is_solved(shr_domains: NDArray) -> bool:
     :return: a boolean
     """
     return bool(np.all(np.equal(shr_domains[:, MIN], shr_domains[:, MAX])))
-
-
-def split_problem(master_problem: Problem, proc_nb: int, var_idx: int) -> List[Problem]:
-    shr_dom = master_problem.shr_domains_lst[var_idx]
-    if isinstance(shr_dom, int):
-        shr_dom_min = shr_dom
-        shr_dom_max = shr_dom
-    else:
-        shr_dom_min = shr_dom[0]
-        shr_dom_max = shr_dom[1]
-    chunk_sz = (shr_dom_max - shr_dom_min + 1) // proc_nb
-    problems = []
-    for proc_idx in range(proc_nb):
-        problem = copy.deepcopy(master_problem)
-        problem.shr_domains_lst[var_idx] = (
-            shr_dom_min + proc_idx * chunk_sz,
-            shr_dom_min + proc_idx * chunk_sz + chunk_sz - 1 if proc_idx < proc_nb - 1 else shr_dom_max,
-        )
-        problems.append(problem)
-    return problems
