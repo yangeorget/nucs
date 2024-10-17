@@ -66,7 +66,6 @@ class Problem:
         self.propagator_nb = 0
 
     def split(self, proc_nb: int, var_idx: int) -> List[Self]:
-        # TODO: improve this and test
         shr_dom = self.shr_domains_lst[var_idx]
         if isinstance(shr_dom, int):
             shr_dom_min = shr_dom
@@ -74,7 +73,8 @@ class Problem:
         else:
             shr_dom_min = shr_dom[0]
             shr_dom_max = shr_dom[1]
-        chunk_sz = (shr_dom_max - shr_dom_min + 1) // proc_nb
+        shr_dom_sz = shr_dom_max - shr_dom_min + 1
+        chunk_sz = shr_dom_sz // proc_nb if shr_dom_sz % proc_nb == 0 else shr_dom_sz // proc_nb + 1
         problems = []
         for proc_idx in range(proc_nb):
             problem = copy.deepcopy(self)

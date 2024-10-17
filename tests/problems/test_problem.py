@@ -31,3 +31,16 @@ class TestProblem:
         problem = Problem([(2, 2), (2, 2), (6, 6)])
         problem.init()
         assert is_solved(problem.shr_domains_arr)
+
+    def test_split_0(self) -> None:
+        problem = Problem([(0, 9)])
+        problems = problem.split(2, 0)
+        assert problems[0].shr_domains_lst[0] == (0, 4)
+        assert problems[1].shr_domains_lst[0] == (5, 9)
+
+    def test_split_1(self) -> None:
+        problem = Problem([(0, 9)])
+        problems = problem.split(3, 0)
+        assert problems[0].shr_domains_lst[0] == (0, 3)
+        assert problems[1].shr_domains_lst[0] == (4, 7)
+        assert problems[2].shr_domains_lst[0] == (8, 9)
