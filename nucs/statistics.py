@@ -27,6 +27,7 @@ def init_statistics() -> NDArray:
 def sum_stats(stats: List[NDArray], index: int) -> int:
     return int(sum(stats[i][index] for i in range(len(stats))))
 
+
 def max_stats(stats: List[NDArray], index: int) -> int:
     return int(max(stats[i][index] for i in range(len(stats))))
 

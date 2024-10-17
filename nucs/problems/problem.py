@@ -10,6 +10,7 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
+import copy
 from typing import Optional, Tuple, Union
 
 import numpy as np
@@ -229,3 +230,23 @@ def is_solved(shr_domains: NDArray) -> bool:
     :return: a boolean
     """
     return bool(np.all(np.equal(shr_domains[:, MIN], shr_domains[:, MAX])))
+
+
+def split_problem(master_problem: Problem, proc_nb: int, var_idx: int) -> List[Problem]:
+    shr_dom = master_problem.shr_domains_lst[var_idx]
+    if isinstance(shr_dom, int):
+        shr_dom_min = shr_dom
+        shr_dom_max = shr_dom
+    else:
+        shr_dom_min = shr_dom[0]
+        shr_dom_max = shr_dom[1]
+    chunk_sz = (shr_dom_max - shr_dom_min + 1) // proc_nb
+    problems = []
+    for proc_idx in range(proc_nb):
+        problem = copy.deepcopy(master_problem)
+        problem.shr_domains_lst[var_idx] = (
+            shr_dom_min + proc_idx * chunk_sz,
+            shr_dom_min + proc_idx * chunk_sz + chunk_sz - 1 if proc_idx < proc_nb - 1 else shr_dom_max,
+        )
+        problems.append(problem)
+    return problems

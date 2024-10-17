@@ -10,12 +10,14 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
+import argparse
 from multiprocessing import Process, Queue
 from typing import Iterator, List, Optional
 
 from rich import print
 
 from nucs.examples.queens.queens_problem import QueensProblem
+from nucs.problems.problem import split_problem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.solver import Solver
 from nucs.statistics import get_statistics
@@ -47,14 +49,10 @@ class MultiprocessingSolver(Solver):
 
 
 if __name__ == "__main__":
-    solvers = []
-    queen_nb = 12
-    processor_nb = 6
-    size = queen_nb // processor_nb  # TODO: simplify this
-    for i in range(processor_nb):
-        problem = QueensProblem(queen_nb)
-        problem.shr_domains_lst[0] = (0 + i * size, size - 1 + i * size)
-        solvers.append(BacktrackSolver(problem))
-    solver = MultiprocessingSolver(solvers)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-processors", type=int, default=1)
+    args = parser.parse_args()
+    problems = split_problem(QueensProblem(12), args.processors, 0)
+    solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in problems])
     solver.solve_all()
     print(get_statistics(solver.statistics))
