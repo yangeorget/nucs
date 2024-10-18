@@ -74,14 +74,13 @@ class Problem:
             shr_dom_min = shr_dom[0]
             shr_dom_max = shr_dom[1]
         shr_dom_sz = shr_dom_max - shr_dom_min + 1
-        chunk_sz = shr_dom_sz // proc_nb if shr_dom_sz % proc_nb == 0 else shr_dom_sz // proc_nb + 1
         problems = []
+        min_i = shr_dom_min
         for proc_idx in range(proc_nb):
             problem = copy.deepcopy(self)
-            problem.shr_domains_lst[var_idx] = (
-                shr_dom_min + proc_idx * chunk_sz,
-                shr_dom_min + proc_idx * chunk_sz + chunk_sz - 1 if proc_idx < proc_nb - 1 else shr_dom_max,
-            )
+            max_i = min_i + shr_dom_sz // proc_nb - (0 if proc_idx < shr_dom_sz % proc_nb else 1)
+            problem.shr_domains_lst[var_idx] = (min_i, max_i)
+            min_i = max_i + 1
             problems.append(problem)
         return problems
 

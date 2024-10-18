@@ -27,7 +27,7 @@ if __name__ == "__main__":
     parser.add_argument("-processors", type=int, default=1)
     args = parser.parse_args()
     problem = QueensProblem(args.n)
-    problems = problem.split(args.processors, 0)
+    problems = problem.split(args.processors, 0)  # TODO: different profiles : flat, gaussian
     solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in problems])
     solver.solve_all()
     print(get_statistics(solver.statistics))
