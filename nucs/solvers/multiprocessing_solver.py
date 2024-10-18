@@ -30,43 +30,46 @@ class MultiprocessingSolver(Solver):
 
     def solve(self) -> Iterator[List[int]]:
         for processor_idx, solver in enumerate(self.solvers):
-            Process(target=solver.solve_queue, args=(processor_idx, self.queue)).start()
+            Process(target=solver.solve_and_queue, args=(processor_idx, self.queue)).start()
         nb = len(self.solvers)
         while nb > 0:
-            processor_idx, solution, statistics = self.queue.get()
+            processor_idx, solutions, statistics = self.queue.get()
             self.statistics[processor_idx] = statistics
-            if solution is None:
-                nb -= 1
-            else:
-                yield solution
+            for solution in solutions:
+                if solution is None:
+                    nb -= 1
+                else:
+                    yield solution
 
     def minimize(self, variable_idx: int) -> Optional[List[int]]:
         for processor_idx, solver in enumerate(self.solvers):
-            Process(target=solver.minimize_queue, args=(variable_idx, processor_idx, self.queue)).start()
-        solution = None
+            Process(target=solver.minimize_and_queue, args=(variable_idx, processor_idx, self.queue)).start()
+        best_solution = None
         nb = len(self.solvers)
         while nb > 0:
-            processor_idx, new_solution, statistics = self.queue.get()
+            processor_idx, solutions, statistics = self.queue.get()
             self.statistics[processor_idx] = statistics
-            if new_solution is None:
-                nb -= 1
-            elif solution is None or new_solution[variable_idx] < solution[variable_idx]:
-                solution = new_solution
-        return solution
+            for solution in solutions:
+                if solution is None:
+                    nb -= 1
+                elif best_solution is None or solution[variable_idx] < best_solution[variable_idx]:
+                    best_solution = solution
+        return best_solution
 
     def maximize(self, variable_idx: int) -> Optional[List[int]]:
         for processor_idx, solver in enumerate(self.solvers):
-            Process(target=solver.maximize_queue, args=(variable_idx, processor_idx, self.queue)).start()
-        solution = None
+            Process(target=solver.maximize_and_queue, args=(variable_idx, processor_idx, self.queue)).start()
+        best_solution = None
         nb = len(self.solvers)
         while nb > 0:
-            processor_idx, new_solution, statistics = self.queue.get()
+            processor_idx, solutions, statistics = self.queue.get()
             self.statistics[processor_idx] = statistics
-            if new_solution is None:
-                nb -= 1
-            elif solution is None or new_solution[variable_idx] > solution[variable_idx]:
-                solution = new_solution
-        return solution
+            for solution in solutions:
+                if solution is None:
+                    nb -= 1
+                elif best_solution is None or solution[variable_idx] > best_solution[variable_idx]:
+                    best_solution = solution
+        return best_solution
 
 
 if __name__ == "__main__":

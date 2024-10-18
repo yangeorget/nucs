@@ -7,3 +7,4 @@ isort==5.13.2
 mypy==1.9.0
 pytest~=8.3.2
 twine==5.1.1
+viztracer==0.17.0
