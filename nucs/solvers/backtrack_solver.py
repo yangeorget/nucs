@@ -50,6 +50,7 @@ class BacktrackSolver(Solver):
         consistency_algorithm: Callable = bound_consistency_algorithm,
         var_heuristic: Callable = first_not_instantiated_var_heuristic,
         dom_heuristic: Callable = min_value_dom_heuristic,
+        buffer_size: int = 1024
     ):
         """
         Inits the solver.
@@ -64,6 +65,8 @@ class BacktrackSolver(Solver):
         self.consistency_algorithm = consistency_algorithm
         self.var_heuristic = var_heuristic
         self.dom_heuristic = dom_heuristic
+        self.buffer_size = buffer_size
+
 
     def init_problem(self) -> None:
         self.problem.init(self.statistics)
@@ -139,7 +142,7 @@ class BacktrackSolver(Solver):
         self, buffer: List[Optional[NDArray]], queue: Queue, processor_idx: int, solution: Optional[NDArray]
     ) -> None:
         buffer.append(solution)
-        if len(buffer) == 1024 or solution is None:
+        if len(buffer) == self.buffer_size or solution is None:
             queue.put((processor_idx, buffer.copy(), self.statistics))
             buffer.clear()
 
