@@ -12,6 +12,8 @@
 ###############################################################################
 from typing import List
 
+from numpy._typing import NDArray
+
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_EXACTLY_EQ, ALG_GCC, ALG_RELATION
 
@@ -32,7 +34,7 @@ class SportsTournamentSchedulingProblem(Problem):
     CSPLIB problem #26 - https://www.csplib.org/Problems/prob026/
     """
 
-    def solution_as_matrix(self, solution: List[int]) -> List[List[str]]:
+    def solution_as_matrix(self, solution: NDArray) -> List[List[str]]:
         """
         Returns the solutions as a matrix of strings.
         :param solution: the solution as a list of ints

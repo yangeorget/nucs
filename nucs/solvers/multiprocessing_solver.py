@@ -14,6 +14,7 @@ import argparse
 from multiprocessing import Process, Queue
 from typing import Iterator, List, Optional
 
+from numpy._typing import NDArray
 from rich import print
 
 from nucs.examples.queens.queens_problem import QueensProblem
@@ -28,7 +29,7 @@ class MultiprocessingSolver(Solver):
         self.solvers = solvers
         self.queue: Queue = Queue()
 
-    def solve(self) -> Iterator[List[int]]:
+    def solve(self) -> Iterator[NDArray]:
         for processor_idx, solver in enumerate(self.solvers):
             Process(target=solver.solve_and_queue, args=(processor_idx, self.queue)).start()
         nb = len(self.solvers)
@@ -41,7 +42,7 @@ class MultiprocessingSolver(Solver):
                 else:
                     yield solution
 
-    def minimize(self, variable_idx: int) -> Optional[List[int]]:
+    def minimize(self, variable_idx: int) -> Optional[NDArray]:
         for processor_idx, solver in enumerate(self.solvers):
             Process(target=solver.minimize_and_queue, args=(variable_idx, processor_idx, self.queue)).start()
         best_solution = None
@@ -56,7 +57,7 @@ class MultiprocessingSolver(Solver):
                     best_solution = solution
         return best_solution
 
-    def maximize(self, variable_idx: int) -> Optional[List[int]]:
+    def maximize(self, variable_idx: int) -> Optional[NDArray]:
         for processor_idx, solver in enumerate(self.solvers):
             Process(target=solver.maximize_and_queue, args=(variable_idx, processor_idx, self.queue)).start()
         best_solution = None

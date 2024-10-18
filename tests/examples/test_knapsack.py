@@ -26,5 +26,5 @@ class TestKnapsack:
             problem, var_heuristic=first_not_instantiated_var_heuristic, dom_heuristic=max_value_dom_heuristic
         )
         solution = solver.maximize(problem.weight)
-        assert solution
+        assert solution is not None
         assert solution[problem.weight] == 54

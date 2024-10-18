@@ -14,6 +14,7 @@ from multiprocessing import Queue
 from typing import Callable, Iterator, List, Optional
 
 import numpy as np
+from numpy.typing import NDArray
 
 from nucs.constants import PROBLEM_INCONSISTENT, PROBLEM_SOLVED, PROBLEM_TO_FILTER
 from nucs.problems.problem import Problem
@@ -67,7 +68,7 @@ class BacktrackSolver(Solver):
     def init_problem(self) -> None:
         self.problem.init(self.statistics)
 
-    def solve_one(self) -> Optional[List[int]]:
+    def solve_one(self) -> Optional[NDArray]:
         """
         Find at most one solution.
         :return: the solution if it exists or None
@@ -76,7 +77,7 @@ class BacktrackSolver(Solver):
             pass
         return self.problem.get_solution() if status == PROBLEM_SOLVED else None
 
-    def solve(self) -> Iterator[List[int]]:
+    def solve(self) -> Iterator[NDArray]:
         """
         Returns an iterator over the solutions.
         :return: an iterator
@@ -112,21 +113,21 @@ class BacktrackSolver(Solver):
             self.statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = cp_max_depth
         return PROBLEM_TO_FILTER
 
-    def minimize(self, variable_idx: int) -> Optional[List[int]]:
+    def minimize(self, variable_idx: int) -> Optional[NDArray]:
         return self.optimize(variable_idx, decrease_max)
 
-    def maximize(self, variable_idx: int) -> Optional[List[int]]:
+    def maximize(self, variable_idx: int) -> Optional[NDArray]:
         return self.optimize(variable_idx, increase_min)
 
-    def optimize(self, variable_idx: int, update_target_domain: Callable) -> Optional[List[int]]:
+    def optimize(self, variable_idx: int, update_target_domain: Callable) -> Optional[NDArray]:
         self.init_problem()
-        solution = None
-        while (new_solution := self.solve_one()) is not None:
-            solution = new_solution
+        best_solution = None
+        while (solution := self.solve_one()) is not None:
+            best_solution = solution
             self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
             self.reset()
-            update_target_domain(self.problem, variable_idx, solution[variable_idx])
-        return solution
+            update_target_domain(self.problem, variable_idx, best_solution[variable_idx])
+        return best_solution
 
     def minimize_and_queue(self, variable_idx: int, processor_idx: int, queue: Queue) -> None:
         self.optimize_and_queue(variable_idx, decrease_max, processor_idx, queue)
@@ -135,16 +136,16 @@ class BacktrackSolver(Solver):
         self.optimize_and_queue(variable_idx, increase_min, processor_idx, queue)
 
     def add_to_queue(
-        self, buffer: List[Optional[List[int]]], queue: Queue, processor_idx: int, solution: Optional[List[int]]
+        self, buffer: List[Optional[NDArray]], queue: Queue, processor_idx: int, solution: Optional[NDArray]
     ) -> None:
         buffer.append(solution)
-        if len(buffer) == 4096 or solution is None:
+        if len(buffer) == 1024 or solution is None:
             queue.put((processor_idx, buffer.copy(), self.statistics))
             buffer.clear()
 
     def solve_and_queue(self, processor_idx: int, queue: Queue) -> None:
         self.init_problem()
-        buffer: List[Optional[List[int]]] = []
+        buffer: List[Optional[NDArray]] = []
         while (solution := self.solve_one()) is not None:
             self.add_to_queue(buffer, queue, processor_idx, solution)
             if not self.backtrack():
@@ -155,7 +156,7 @@ class BacktrackSolver(Solver):
         self, variable_idx: int, update_target_domain: Callable, processor_idx: int, queue: Queue
     ) -> None:
         self.init_problem()
-        buffer: List[Optional[List[int]]] = []
+        buffer: List[Optional[NDArray]] = []
         while (solution := self.solve_one()) is not None:
             self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
             self.add_to_queue(buffer, queue, processor_idx, solution)

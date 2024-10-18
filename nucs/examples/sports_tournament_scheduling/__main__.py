@@ -34,5 +34,5 @@ if __name__ == "__main__":
     )
     solution = next(solver.solve())
     print(get_statistics(solver.statistics))
-    if solution:
+    if solution is not None:
         print(problem.solution_as_matrix(solution))

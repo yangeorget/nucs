@@ -235,9 +235,8 @@ class Problem:
         """
         self.shr_domains_arr[self.dom_indices_arr[var_idx], MAX] = max_value - self.dom_offsets_arr[var_idx]
 
-    def get_solution(self) -> List[int]:
-        values = self.shr_domains_arr[self.dom_indices_arr, MIN] + self.dom_offsets_arr
-        return values.tolist()
+    def get_solution(self) -> NDArray:
+        return self.shr_domains_arr[self.dom_indices_arr, MIN] + self.dom_offsets_arr
 
     def __str__(self) -> str:
         return f"domains={self.shr_domains_arr}, indices={self.dom_indices_arr}, offsets={self.dom_offsets_arr}"

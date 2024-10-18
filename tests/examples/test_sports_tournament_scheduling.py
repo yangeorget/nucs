@@ -94,11 +94,11 @@ class TestSportsTournamentScheduling:
             3,
         ]
         solver = BacktrackSolver(problem)
-        assert next(solver.solve())
+        assert next(solver.solve()) is not None
 
     def test_sports_tournament_scheduling_solve(self) -> None:
         problem = SportsTournamentSchedulingProblem(8)
         solver = BacktrackSolver(
             problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
         )
-        assert next(solver.solve())
+        assert next(solver.solve()) is not None
