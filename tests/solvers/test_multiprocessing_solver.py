@@ -56,5 +56,6 @@ class TestMultiprocessingSolver:
         problems = problem.split(5, 0)
         solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in problems])
         solution = solver.minimize(1)
-        assert solution == [0, 0]
+        assert solution is not None
+        assert solution.tolist() == [0, 0]
         assert get_statistics(solver.statistics)[STATS_LBL_OPTIMIZER_SOLUTION_NB] >= 6

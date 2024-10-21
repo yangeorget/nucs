@@ -10,7 +10,9 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
-from typing import Dict, List
+from typing import Dict
+
+from numpy._typing import NDArray
 
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ALLDIFFERENT
@@ -40,7 +42,7 @@ class DonaldProblem(Problem):
             ([A, B, D, E, G, L, N, O, R, T], ALG_ALLDIFFERENT, []),
         )
 
-    def solution_as_dict(self, solution: List[int]) -> Dict[str, int]:
+    def solution_as_dict(self, solution: NDArray) -> Dict[str, int]:
         """
         Returns the solution as a dict.
         :param solution: the solution as a list of ints

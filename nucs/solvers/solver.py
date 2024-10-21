@@ -12,13 +12,15 @@
 ###############################################################################
 from typing import Callable, Iterator, List, Optional
 
+from numpy._typing import NDArray
+
 
 class Solver:
     """
     A solver.
     """
 
-    def solve(self) -> Iterator[List[int]]:  # type: ignore
+    def solve(self) -> Iterator[NDArray]:  # type: ignore
         """
         Returns an iterator over the solutions.
         :return: an iterator
@@ -33,7 +35,7 @@ class Solver:
             if func is not None:
                 func(solution)
 
-    def find_all(self) -> List[List[int]]:
+    def find_all(self) -> List[NDArray]:
         """
         Finds all solutions.
         """
@@ -41,7 +43,7 @@ class Solver:
         self.solve_all(lambda solution: solutions.append(solution))
         return solutions
 
-    def minimize(self, variable_idx: int) -> Optional[List[int]]:  # type: ignore
+    def minimize(self, variable_idx: int) -> Optional[NDArray]:  # type: ignore
         """
         Finds, if it exists, the solution to the problem that minimizes a given variable.
         :param variable_idx: the index of the variable
@@ -49,7 +51,7 @@ class Solver:
         """
         pass
 
-    def maximize(self, variable_idx: int) -> Optional[List[int]]:  # type: ignore
+    def maximize(self, variable_idx: int) -> Optional[NDArray]:  # type: ignore
         """
         Finds, if it exists, the solution to the problem that maximizes a given variable.
         :param variable_idx: the index of the variable

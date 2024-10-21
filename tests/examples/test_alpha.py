@@ -24,7 +24,7 @@ class TestAlpha:
         )
         solutions = solver.find_all()
         assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 1
-        assert solutions[0][:26] == [
+        assert solutions[0][:26].tolist() == [
             5,
             13,
             9,

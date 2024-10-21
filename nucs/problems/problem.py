@@ -65,7 +65,7 @@ class Problem:
         self.propagators: List[Tuple[List[int], int, List[int]]] = []
         self.propagator_nb = 0
 
-    def split(self, proc_nb: int, var_idx: int) -> List[Self]:
+    def split(self, split_nb: int, var_idx: int) -> List[Self]:
         shr_dom = self.shr_domains_lst[var_idx]
         if isinstance(shr_dom, int):
             shr_dom_min = shr_dom
@@ -74,14 +74,21 @@ class Problem:
             shr_dom_min = shr_dom[0]
             shr_dom_max = shr_dom[1]
         shr_dom_sz = shr_dom_max - shr_dom_min + 1
-        chunk_sz = shr_dom_sz // proc_nb if shr_dom_sz % proc_nb == 0 else shr_dom_sz // proc_nb + 1
         problems = []
-        for proc_idx in range(proc_nb):
+        min_idx = shr_dom_min
+        for split_idx in range(split_nb):
             problem = copy.deepcopy(self)
-            problem.shr_domains_lst[var_idx] = (
-                shr_dom_min + proc_idx * chunk_sz,
-                shr_dom_min + proc_idx * chunk_sz + chunk_sz - 1 if proc_idx < proc_nb - 1 else shr_dom_max,
-            )
+            max_idx = min_idx + shr_dom_sz // split_nb - (0 if split_idx < shr_dom_sz % split_nb else 1)
+            problem.shr_domains_lst[var_idx] = (min_idx, max_idx)
+            min_idx = max_idx + 1
+            problems.append(problem)
+        return problems
+
+    def split_by_intervals(self, intervals: List[Tuple[int, int]], var_idx: int) -> List[Self]:
+        problems = []
+        for interval in intervals:
+            problem = copy.deepcopy(self)
+            problem.shr_domains_lst[var_idx] = interval
             problems.append(problem)
         return problems
 
@@ -235,9 +242,8 @@ class Problem:
         """
         self.shr_domains_arr[self.dom_indices_arr[var_idx], MAX] = max_value - self.dom_offsets_arr[var_idx]
 
-    def get_solution(self) -> List[int]:
-        values = self.shr_domains_arr[self.dom_indices_arr, MIN] + self.dom_offsets_arr
-        return values.tolist()
+    def get_solution(self) -> NDArray:
+        return self.shr_domains_arr[self.dom_indices_arr, MIN] + self.dom_offsets_arr
 
     def __str__(self) -> str:
         return f"domains={self.shr_domains_arr}, indices={self.dom_indices_arr}, offsets={self.dom_offsets_arr}"

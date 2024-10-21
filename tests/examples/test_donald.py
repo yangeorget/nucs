@@ -24,4 +24,4 @@ class TestDonald:
         )
         solutions = solver.find_all()
         assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 1
-        assert solutions[0] == [4, 3, 5, 9, 1, 8, 6, 2, 7, 0]
+        assert solutions[0].tolist() == [4, 3, 5, 9, 1, 8, 6, 2, 7, 0]

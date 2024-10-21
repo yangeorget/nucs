@@ -29,10 +29,10 @@ class TestGolomb:
         domains = init_domains(6, 4)
         assert domains[:, MIN].tolist() == [1, 3, 6, 1, 3, 1]
 
-    @pytest.mark.parametrize("mark_nb,solution_nb", [(4, 6), (5, 11), (6, 17), (7, 25), (8, 34), (9, 44)])
-    def test_golomb(self, mark_nb: int, solution_nb: int) -> None:
+    @pytest.mark.parametrize("mark_nb,length", [(4, 6), (5, 11), (6, 17), (7, 25), (8, 34), (9, 44)])
+    def test_golomb(self, mark_nb: int, length: int) -> None:
         problem = GolombProblem(mark_nb)
         solver = BacktrackSolver(problem, consistency_algorithm=golomb_consistency_algorithm)
         solution = solver.minimize(problem.length_idx)
-        assert solution
-        assert solution[problem.length_idx] == solution_nb
+        assert solution is not None
+        assert solution[problem.length_idx] == length

@@ -34,10 +34,10 @@ class TestBacktrackSolver:
         solver = BacktrackSolver(problem)
         solutions = solver.find_all()
         assert len(solutions) == 4
-        assert solutions[0] == [0, 0]
-        assert solutions[1] == [0, 1]
-        assert solutions[2] == [1, 0]
-        assert solutions[3] == [1, 1]
+        assert solutions[0].tolist() == [0, 0]
+        assert solutions[1].tolist() == [0, 1]
+        assert solutions[2].tolist() == [1, 0]
+        assert solutions[3].tolist() == [1, 1]
         assert get_statistics(solver.statistics)[STATS_LBL_SOLVER_SOLUTION_NB] == 4
         assert get_statistics(solver.statistics)[STATS_LBL_SOLVER_CHOICE_DEPTH] == 2
 
@@ -47,12 +47,12 @@ class TestBacktrackSolver:
         solver = BacktrackSolver(problem)
         solutions = solver.find_all()
         assert len(solutions) == 6
-        assert solutions[0] == [0, 1, 2]
-        assert solutions[1] == [0, 2, 1]
-        assert solutions[2] == [1, 0, 2]
-        assert solutions[3] == [1, 2, 0]
-        assert solutions[4] == [2, 0, 1]
-        assert solutions[5] == [2, 1, 0]
+        assert solutions[0].tolist() == [0, 1, 2]
+        assert solutions[1].tolist() == [0, 2, 1]
+        assert solutions[2].tolist() == [1, 0, 2]
+        assert solutions[3].tolist() == [1, 2, 0]
+        assert solutions[4].tolist() == [2, 0, 1]
+        assert solutions[5].tolist() == [2, 1, 0]
         assert get_statistics(solver.statistics)[STATS_LBL_SOLVER_SOLUTION_NB] == 6
 
     def test_optimize_relation(self) -> None:
@@ -62,5 +62,6 @@ class TestBacktrackSolver:
         )
         solver = BacktrackSolver(problem)
         solution = solver.minimize(1)
-        assert solution == [0, 0]
+        assert solution is not None
+        assert solution.tolist() == [0, 0]
         assert get_statistics(solver.statistics)[STATS_LBL_OPTIMIZER_SOLUTION_NB] == 6
