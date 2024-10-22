@@ -21,6 +21,11 @@ from nucs.statistics import init_statistics
 
 
 class MultiprocessingSolver(Solver):
+    """
+    A solver relying on the multiprocessing package.
+    This solver delegates resolution to a set of solvers.
+    """
+
     def __init__(self, solvers: List[BacktrackSolver]):
         self.statistics = [init_statistics() for _ in solvers]
         self.solvers = solvers

@@ -38,8 +38,8 @@ from nucs.statistics import STATS_IDX_PROBLEM_PROPAGATOR_NB, STATS_IDX_PROBLEM_V
 
 class Problem:
     """
-    A problem is conceptually defined by a list of domains, a list of variables and a list of propagators.
-    A domain can be computed by applying an offset to a shared domain.
+    A problem is defined by a list of domains, a list of variables and a list of propagators.
+    A domain is computed by adding an offset to a shared domain.
     """
 
     def __init__(
@@ -66,6 +66,12 @@ class Problem:
         self.propagator_nb = 0
 
     def split(self, split_nb: int, var_idx: int) -> List[Self]:
+        """
+        Splits a problem into several sub-problems by splitting the domain of a variable.
+        :param split_nb: the number of sub-problems
+        :param var_idx: the index of the variable
+        :return: a list of sub-problems
+        """
         shr_dom = self.shr_domains_lst[var_idx]
         if isinstance(shr_dom, int):
             shr_dom_min = shr_dom
@@ -85,6 +91,12 @@ class Problem:
         return problems
 
     def split_by_intervals(self, intervals: List[Tuple[int, int]], var_idx: int) -> List[Self]:
+        """
+        Splits a problem into several sub-problems by assigning intervals to a variable.
+        :param intervals: the list of intervals
+        :param var_idx: the index of the variable
+        :return: a list of sub-problems
+        """
         problems = []
         for interval in intervals:
             problem = copy.deepcopy(self)
@@ -243,6 +255,10 @@ class Problem:
         self.shr_domains_arr[self.dom_indices_arr[var_idx], MAX] = max_value - self.dom_offsets_arr[var_idx]
 
     def get_solution(self) -> NDArray:
+        """
+        Returns the solution to the problem.
+        :return: a Numpy array
+        """
         return self.shr_domains_arr[self.dom_indices_arr, MIN] + self.dom_offsets_arr
 
     def __str__(self) -> str:

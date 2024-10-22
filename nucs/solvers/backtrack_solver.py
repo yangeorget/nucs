@@ -32,10 +32,22 @@ from nucs.statistics import (
 
 
 def decrease_max(problem: Problem, var_idx: int, value: int) -> None:
+    """
+    Decreases the max of a variable
+    :param problem: the problem
+    :param var_idx: the index of the variable
+    :param value: the current max
+    """
     problem.set_max_value(var_idx, value - 1)
 
 
 def increase_min(problem: Problem, var_idx: int, value: int) -> None:
+    """
+    Increases the min of a variable
+    :param problem: the problem
+    :param var_idx: the index of the variable
+    :param value: the current min
+    """
     problem.set_min_value(var_idx, value + 1)
 
 
@@ -68,6 +80,9 @@ class BacktrackSolver(Solver):
         self.buffer_size = buffer_size
 
     def init_problem(self) -> None:
+        """
+        Inits the problem.
+        """
         self.problem.init(self.statistics)
 
     def solve_one(self) -> Optional[NDArray]:
@@ -91,6 +106,10 @@ class BacktrackSolver(Solver):
                 break
 
     def make_choice(self) -> int:
+        """
+        Makes a choice and returns a status
+        :return: the status as an integer
+        """
         # first filter
         while (status := self.consistency_algorithm(self.statistics, self.problem)) == PROBLEM_INCONSISTENT:
             if not self.backtrack():
@@ -116,9 +135,19 @@ class BacktrackSolver(Solver):
         return PROBLEM_TO_FILTER
 
     def minimize(self, variable_idx: int) -> Optional[NDArray]:
+        """
+        Return the solution that minimizes a variable.
+        :param variable_idx: the index of the variable to minimize
+        :return: the optimal solution if it exists or None
+        """
         return self.optimize(variable_idx, decrease_max)
 
     def maximize(self, variable_idx: int) -> Optional[NDArray]:
+        """
+        Return the solution that maximizes a variable.
+        :param variable_idx: the index of the variable to maximize
+        :return: the optimal solution if it exists or None
+        """
         return self.optimize(variable_idx, increase_min)
 
     def optimize(self, variable_idx: int, update_target_domain: Callable) -> Optional[NDArray]:
@@ -132,9 +161,21 @@ class BacktrackSolver(Solver):
         return best_solution
 
     def minimize_and_queue(self, variable_idx: int, processor_idx: int, queue: Queue) -> None:
+        """
+        Enqueues the solution that minimizes a variable.
+        :param variable_idx: the index of the variable to minimize
+        :param processor_idx: the index of the processor running the minimizer
+        :param queue: the queue
+        """
         self.optimize_and_queue(variable_idx, decrease_max, processor_idx, queue)
 
     def maximize_and_queue(self, variable_idx: int, processor_idx: int, queue: Queue) -> None:
+        """
+        Enqueues the solution that maximizes a variable.
+        :param variable_idx: the index of the variable to maximizer
+        :param processor_idx: the index of the processor running the maximizer
+        :param queue: the queue
+        """
         self.optimize_and_queue(variable_idx, increase_min, processor_idx, queue)
 
     def add_to_queue(
