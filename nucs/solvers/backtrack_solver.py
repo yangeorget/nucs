@@ -18,7 +18,7 @@ from numpy.typing import NDArray
 
 from nucs.constants import PROBLEM_INCONSISTENT, PROBLEM_SOLVED, PROBLEM_TO_FILTER
 from nucs.problems.problem import Problem
-from nucs.solvers.choice_points import ChoicePoints, ChoicePointList, ChoicePointQueue
+from nucs.solvers.choice_points import ChoicePointList, ChoicePoints
 from nucs.solvers.consistency_algorithms import bound_consistency_algorithm
 from nucs.solvers.heuristics import first_not_instantiated_var_heuristic, min_value_dom_heuristic
 from nucs.solvers.solver import Solver
@@ -160,29 +160,29 @@ class BacktrackSolver(Solver):
             self.statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = cp_max_depth
         return PROBLEM_TO_FILTER
 
-    def minimize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue, cp_queue: Queue) -> None:
+    def minimize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue) -> None:
         """
         Enqueues the solution that minimizes a variable.
         :param variable_idx: the index of the variable to minimize
         :param processor_idx: the index of the processor running the minimizer
         :param solution_queue: the solution queue
         """
-        self.optimize_and_queue(variable_idx, decrease_max, processor_idx, solution_queue, cp_queue)
+        self.optimize_and_queue(variable_idx, decrease_max, processor_idx, solution_queue)
 
-    def maximize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue, cp_queue: Queue) -> None:
+    def maximize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue) -> None:
         """
         Enqueues the solution that maximizes a variable.
         :param variable_idx: the index of the variable to maximizer
         :param processor_idx: the index of the processor running the maximizer
         :param solution_queue: the solution queue
         """
-        self.optimize_and_queue(variable_idx, increase_min, processor_idx, solution_queue, cp_queue)
+        self.optimize_and_queue(variable_idx, increase_min, processor_idx, solution_queue)
 
     def optimize_and_queue(
-        self, variable_idx: int, update_target_domain: Callable, processor_idx: int, solution_queue: Queue, cp_queue: Queue
+        self, variable_idx: int, update_target_domain: Callable, processor_idx: int, solution_queue: Queue
     ) -> None:
         self.init_problem()
-        choice_points = ChoicePointList()  # ChoicePointQueue(cp_queue)
+        choice_points = ChoicePointList()
         while (solution := self.solve_one(choice_points)) is not None:
             self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
             solution_queue.put((processor_idx, solution, self.statistics))
@@ -190,9 +190,9 @@ class BacktrackSolver(Solver):
             update_target_domain(self.problem, variable_idx, solution[variable_idx])
         solution_queue.put((processor_idx, None, self.statistics))
 
-    def solve_and_queue(self, processor_idx: int, solution_queue: Queue, cp_queue: Queue) -> None:
+    def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
         self.init_problem()
-        choice_points = ChoicePointList()  # ChoicePointQueue(cp_queue)
+        choice_points = ChoicePointList()
         while (solution := self.solve_one(choice_points)) is not None:
             solution_queue.put((processor_idx, solution, self.statistics))
             if not self.backtrack(choice_points):

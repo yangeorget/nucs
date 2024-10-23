@@ -14,12 +14,7 @@ from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_RELATION
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
-from nucs.statistics import (
-    STATS_LBL_OPTIMIZER_SOLUTION_NB,
-    STATS_LBL_SOLVER_CHOICE_DEPTH,
-    STATS_LBL_SOLVER_SOLUTION_NB,
-    get_statistics,
-)
+from nucs.statistics import STATS_LBL_OPTIMIZER_SOLUTION_NB, STATS_LBL_SOLVER_SOLUTION_NB, get_statistics
 
 
 class TestMultiprocessingSolver:

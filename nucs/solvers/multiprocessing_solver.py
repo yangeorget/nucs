@@ -32,13 +32,12 @@ class MultiprocessingSolver(Solver):
         self.solvers = solvers
 
     def solve(self) -> Iterator[NDArray]:
-        solution_queue: Queue = Queue()
-        cp_queue: Queue = Queue()
+        solutions: Queue = Queue()
         for proc_idx, solver in enumerate(self.solvers):
-            Process(target=solver.solve_and_queue, args=(proc_idx, solution_queue, cp_queue)).start()
+            Process(target=solver.solve_and_queue, args=(proc_idx, solutions)).start()
         nb = len(self.solvers)
         while nb > 0:
-            proc_idx, solution, statistics = solution_queue.get()
+            proc_idx, solution, statistics = solutions.get()
             self.statistics[proc_idx] = statistics
             if solution is None:
                 nb -= 1
@@ -52,14 +51,13 @@ class MultiprocessingSolver(Solver):
         return self.optimize(variable_idx, "maximize_and_queue", operator.gt)
 
     def optimize(self, variable_idx: int, proc_func_name: str, comparison_func: Callable) -> Optional[NDArray]:
-        solution_queue: Queue = Queue()
-        cp_queue: Queue = Queue()
+        solutions: Queue = Queue()
         for proc_idx, solver in enumerate(self.solvers):
-            Process(target=(getattr(solver, proc_func_name)), args=(variable_idx, proc_idx, solution_queue, cp_queue)).start()
+            Process(target=(getattr(solver, proc_func_name)), args=(variable_idx, proc_idx, solutions)).start()
         best_solution = None
         nb = len(self.solvers)
         while nb > 0:
-            proc_idx, solution, statistics = solution_queue.get()
+            proc_idx, solution, statistics = solutions.get()
             self.statistics[proc_idx] = statistics
             if solution is None:
                 nb -= 1
