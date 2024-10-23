@@ -12,7 +12,7 @@
 ###############################################################################
 from typing import Callable, Iterator, List, Optional
 
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 
 
 class Solver:

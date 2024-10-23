@@ -33,8 +33,9 @@ class MultiprocessingSolver(Solver):
 
     def solve(self) -> Iterator[NDArray]:
         solution_queue: Queue = Queue()
+        cp_queue: Queue = Queue()
         for proc_idx, solver in enumerate(self.solvers):
-            Process(target=solver.solve_and_queue, args=(proc_idx, solution_queue)).start()
+            Process(target=solver.solve_and_queue, args=(proc_idx, solution_queue, cp_queue)).start()
         nb = len(self.solvers)
         while nb > 0:
             proc_idx, solution, statistics = solution_queue.get()
@@ -52,8 +53,9 @@ class MultiprocessingSolver(Solver):
 
     def optimize(self, variable_idx: int, proc_func_name: str, comparison_func: Callable) -> Optional[NDArray]:
         solution_queue: Queue = Queue()
+        cp_queue: Queue = Queue()
         for proc_idx, solver in enumerate(self.solvers):
-            Process(target=(getattr(solver, proc_func_name)), args=(variable_idx, proc_idx, solution_queue)).start()
+            Process(target=(getattr(solver, proc_func_name)), args=(variable_idx, proc_idx, solution_queue, cp_queue)).start()
         best_solution = None
         nb = len(self.solvers)
         while nb > 0:

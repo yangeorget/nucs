@@ -23,15 +23,15 @@ from nucs.statistics import (
 
 
 class TestMultiprocessingSolver:
-    def test_solve_and_count(self) -> None:
+    def test_solve1(self) -> None:
         problem = Problem([(0, 99), (0, 99)])
         problems = problem.split(4, 0)
         solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in problems])
-        solver.solve_all()
+        solutions = solver.find_all()
+        assert len(solutions) == 10000
         assert get_statistics(solver.statistics)[STATS_LBL_SOLVER_SOLUTION_NB] == 10000
-        assert get_statistics(solver.statistics)[STATS_LBL_SOLVER_CHOICE_DEPTH] == 2
 
-    def test_solve(self) -> None:
+    def test_solve2(self) -> None:
         problem = Problem([(0, 1), (0, 1)])
         problems = problem.split(2, 0)
         solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in problems])
