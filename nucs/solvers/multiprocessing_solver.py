@@ -10,8 +10,9 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
+import operator
 from multiprocessing import Process, Queue
-from typing import Iterator, List, Optional
+from typing import Callable, Iterator, List, Optional
 
 from numpy.typing import NDArray
 
@@ -31,47 +32,35 @@ class MultiprocessingSolver(Solver):
         self.solvers = solvers
 
     def solve(self) -> Iterator[NDArray]:
-        queue: Queue = Queue()
-        for processor_idx, solver in enumerate(self.solvers):
-            Process(target=solver.solve_and_queue, args=(processor_idx, queue)).start()
+        solution_queue: Queue = Queue()
+        for proc_idx, solver in enumerate(self.solvers):
+            Process(target=solver.solve_and_queue, args=(proc_idx, solution_queue)).start()
         nb = len(self.solvers)
         while nb > 0:
-            processor_idx, solutions, statistics = queue.get()
-            self.statistics[processor_idx] = statistics
-            for solution in solutions:
-                if solution is None:
-                    nb -= 1
-                else:
-                    yield solution
+            proc_idx, solution, statistics = solution_queue.get()
+            self.statistics[proc_idx] = statistics
+            if solution is None:
+                nb -= 1
+            else:
+                yield solution
 
     def minimize(self, variable_idx: int) -> Optional[NDArray]:
-        queue: Queue = Queue()
-        for processor_idx, solver in enumerate(self.solvers):
-            Process(target=solver.minimize_and_queue, args=(variable_idx, processor_idx, queue)).start()
-        best_solution = None
-        nb = len(self.solvers)
-        while nb > 0:
-            processor_idx, solutions, statistics = queue.get()
-            self.statistics[processor_idx] = statistics
-            for solution in solutions:
-                if solution is None:
-                    nb -= 1
-                elif best_solution is None or solution[variable_idx] < best_solution[variable_idx]:
-                    best_solution = solution
-        return best_solution
+        return self.optimize(variable_idx, "minimize_and_queue", operator.lt)
 
     def maximize(self, variable_idx: int) -> Optional[NDArray]:
-        queue: Queue = Queue()
-        for processor_idx, solver in enumerate(self.solvers):
-            Process(target=solver.maximize_and_queue, args=(variable_idx, processor_idx, queue)).start()
+        return self.optimize(variable_idx, "maximize_and_queue", operator.gt)
+
+    def optimize(self, variable_idx: int, proc_func_name: str, comparison_func: Callable) -> Optional[NDArray]:
+        solution_queue: Queue = Queue()
+        for proc_idx, solver in enumerate(self.solvers):
+            Process(target=(getattr(solver, proc_func_name)), args=(variable_idx, proc_idx, solution_queue)).start()
         best_solution = None
         nb = len(self.solvers)
         while nb > 0:
-            processor_idx, solutions, statistics = queue.get()
-            self.statistics[processor_idx] = statistics
-            for solution in solutions:
-                if solution is None:
-                    nb -= 1
-                elif best_solution is None or solution[variable_idx] > best_solution[variable_idx]:
-                    best_solution = solution
+            proc_idx, solution, statistics = solution_queue.get()
+            self.statistics[proc_idx] = statistics
+            if solution is None:
+                nb -= 1
+            elif best_solution is None or comparison_func(solution[variable_idx], best_solution[variable_idx]):
+                best_solution = solution
         return best_solution

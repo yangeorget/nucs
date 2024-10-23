@@ -11,7 +11,7 @@
 # Copyright 2024 - Yan Georget
 ###############################################################################
 from multiprocessing import Queue
-from typing import Callable, Iterator, List, Optional
+from typing import Callable, Iterator, Optional
 
 import numpy as np
 from numpy.typing import NDArray
@@ -62,7 +62,6 @@ class BacktrackSolver(Solver):
         consistency_algorithm: Callable = bound_consistency_algorithm,
         var_heuristic: Callable = first_not_instantiated_var_heuristic,
         dom_heuristic: Callable = min_value_dom_heuristic,
-        buffer_size: int = 1024,
     ):
         """
         Inits the solver.
@@ -77,7 +76,6 @@ class BacktrackSolver(Solver):
         self.consistency_algorithm = consistency_algorithm
         self.var_heuristic = var_heuristic
         self.dom_heuristic = dom_heuristic
-        self.buffer_size = buffer_size
 
     def init_problem(self) -> None:
         """
@@ -160,52 +158,50 @@ class BacktrackSolver(Solver):
             update_target_domain(self.problem, variable_idx, best_solution[variable_idx])
         return best_solution
 
-    def minimize_and_queue(self, variable_idx: int, processor_idx: int, queue: Queue) -> None:
+    def minimize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue) -> None:
         """
         Enqueues the solution that minimizes a variable.
         :param variable_idx: the index of the variable to minimize
         :param processor_idx: the index of the processor running the minimizer
-        :param queue: the queue
+        :param solution_queue: the solution queue
         """
-        self.optimize_and_queue(variable_idx, decrease_max, processor_idx, queue)
+        self.optimize_and_queue(variable_idx, decrease_max, processor_idx, solution_queue)
 
-    def maximize_and_queue(self, variable_idx: int, processor_idx: int, queue: Queue) -> None:
+    def maximize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue) -> None:
         """
         Enqueues the solution that maximizes a variable.
         :param variable_idx: the index of the variable to maximizer
         :param processor_idx: the index of the processor running the maximizer
-        :param queue: the queue
+        :param solution_queue: the solution queue
         """
-        self.optimize_and_queue(variable_idx, increase_min, processor_idx, queue)
+        self.optimize_and_queue(variable_idx, increase_min, processor_idx, solution_queue)
 
-    def add_to_queue(
-        self, buffer: List[Optional[NDArray]], queue: Queue, processor_idx: int, solution: Optional[NDArray]
+    def add_to_solution_queue(
+        self,
+        solution_queue: Queue,
+        processor_idx: int,
+        solution: Optional[NDArray],
     ) -> None:
-        buffer.append(solution)
-        if len(buffer) == self.buffer_size or solution is None:
-            queue.put((processor_idx, buffer.copy(), self.statistics))
-            buffer.clear()
+        solution_queue.put((processor_idx, solution, self.statistics))
 
-    def solve_and_queue(self, processor_idx: int, queue: Queue) -> None:
+    def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
         self.init_problem()
-        buffer: List[Optional[NDArray]] = []
         while (solution := self.solve_one()) is not None:
-            self.add_to_queue(buffer, queue, processor_idx, solution)
+            self.add_to_solution_queue(solution_queue, processor_idx, solution)
             if not self.backtrack():
                 break
-        self.add_to_queue(buffer, queue, processor_idx, None)
+        self.add_to_solution_queue(solution_queue, processor_idx, None)
 
     def optimize_and_queue(
-        self, variable_idx: int, update_target_domain: Callable, processor_idx: int, queue: Queue
+        self, variable_idx: int, update_target_domain: Callable, processor_idx: int, solution_queue: Queue
     ) -> None:
         self.init_problem()
-        buffer: List[Optional[NDArray]] = []
         while (solution := self.solve_one()) is not None:
             self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
-            self.add_to_queue(buffer, queue, processor_idx, solution)
+            self.add_to_solution_queue(solution_queue, processor_idx, solution)
             self.reset()
             update_target_domain(self.problem, variable_idx, solution[variable_idx])
-        self.add_to_queue(buffer, queue, processor_idx, None)
+        self.add_to_solution_queue(solution_queue, processor_idx, None)
 
     def backtrack(self) -> bool:
         """
