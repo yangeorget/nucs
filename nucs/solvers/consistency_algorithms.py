@@ -26,13 +26,14 @@ from nucs.constants import (
     START,
 )
 from nucs.numba import NUMBA_DISABLE_JIT, function_from_address
-from nucs.problems.problem import Problem, is_solved
+from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     COMPUTE_DOMAIN_TYPE,
     COMPUTE_DOMAINS_ADDRS,
     COMPUTE_DOMAINS_FCTS,
     pop_propagator,
 )
+from nucs.solvers.solver import is_solved
 from nucs.statistics import (
     STATS_IDX_PROBLEM_FILTER_NB,
     STATS_IDX_PROPAGATOR_ENTAILMENT_NB,

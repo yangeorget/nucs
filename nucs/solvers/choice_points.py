@@ -10,26 +10,27 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
-from typing import List, Optional, Tuple
+from abc import abstractmethod
+from typing import List, Tuple
 
 from numpy.typing import NDArray
 
 
 class ChoicePoints:
-    def is_empty(self) -> bool:
-        return True
+    @abstractmethod
+    def is_empty(self) -> bool: ...
 
-    def size(self) -> int:
-        return 0
+    @abstractmethod
+    def size(self) -> int: ...
 
-    def get(self) -> Optional[Tuple[NDArray, NDArray]]:
-        return None
+    @abstractmethod
+    def get(self) -> Tuple[NDArray, NDArray]: ...
 
-    def put(self, cp: Tuple[NDArray, NDArray]) -> None:
-        pass
+    @abstractmethod
+    def put(self, cp: Tuple[NDArray, NDArray]) -> None: ...
 
-    def clear(self) -> None:
-        pass
+    @abstractmethod
+    def clear(self) -> None: ...
 
 
 class ChoicePointList(ChoicePoints):
@@ -42,7 +43,7 @@ class ChoicePointList(ChoicePoints):
     def size(self) -> int:
         return len(self.list)
 
-    def get(self) -> Optional[Tuple[NDArray, NDArray]]:
+    def get(self) -> Tuple[NDArray, NDArray]:
         return self.list.pop()
 
     def put(self, cp: Tuple[NDArray, NDArray]) -> None:

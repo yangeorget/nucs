@@ -13,12 +13,10 @@
 import copy
 from typing import Optional, Self, Tuple, Union
 
-import numpy as np
-from numba import njit  # type: ignore
 from numba.typed import List
 from numpy.typing import NDArray
 
-from nucs.constants import END, MAX, MIN, START
+from nucs.constants import END, START
 from nucs.numpy import (
     new_algorithms,
     new_bounds,
@@ -33,6 +31,7 @@ from nucs.numpy import (
     new_triggered_propagators,
 )
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
+from nucs.solvers.choice_points import ChoicePoints
 from nucs.statistics import STATS_IDX_PROBLEM_PROPAGATOR_NB, STATS_IDX_PROBLEM_VARIABLE_NB
 
 
@@ -158,7 +157,7 @@ class Problem:
         """
         self.propagators.extend(propagators)
 
-    def init(self, statistics: Optional[NDArray] = None) -> None:
+    def init(self, statistics: NDArray, choice_points: ChoicePoints) -> None:
         """
         Completes the initialization of the problem by defining the variables and the propagators.
         """
@@ -209,66 +208,8 @@ class Problem:
             triggers = GET_TRIGGERS_FCTS[prop[1]](len(prop[0]), prop[2])
             for prop_var_idx, prop_var in enumerate(prop[0]):
                 self.shr_domains_propagators[self.dom_indices_arr[prop_var], :, prop_idx] = triggers[prop_var_idx, :]
-        if statistics is not None:
-            statistics[STATS_IDX_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
-            statistics[STATS_IDX_PROBLEM_VARIABLE_NB] = self.variable_nb
-
-    def reset(self, choice_point: Optional[Tuple[NDArray, NDArray]] = None) -> None:
-        if choice_point is None:
-            self.shr_domains_arr = new_shr_domains_by_values(self.shr_domains_lst)
-            self.not_entailed_propagators.fill(True)
-            self.triggered_propagators.fill(True)
-        else:
-            self.shr_domains_arr, self.not_entailed_propagators = choice_point
-            np.copyto(self.triggered_propagators, self.not_entailed_propagators)
-
-    def get_min_value(self, var_idx: int) -> int:
-        """
-        Gets the minimal value of a variable.
-        :param var_idx: the index of the variable
-        :return: the minimal value
-        """
-        return self.shr_domains_arr[self.dom_indices_arr[var_idx], MIN] + self.dom_offsets_arr[var_idx]
-
-    def get_max_value(self, var_idx: int) -> int:
-        """
-        Gets the maximal value of a variable.
-        :param var_idx: the index of the variable
-        :return: the maximal value
-        """
-        return self.shr_domains_arr[self.dom_indices_arr[var_idx], MAX] + self.dom_offsets_arr[var_idx]
-
-    def set_min_value(self, var_idx: int, min_value: int) -> None:
-        """
-        Sets the minimal value of a variable.
-        :param var_idx: the index of the variable
-        :param min_value: the minimal value
-        """
-        self.shr_domains_arr[self.dom_indices_arr[var_idx], MIN] = min_value - self.dom_offsets_arr[var_idx]
-
-    def set_max_value(self, var_idx: int, max_value: int) -> None:
-        """
-        Sets the maximal value of a variable.
-        :param var_idx: the index of the variable
-        :param min_value: the maximal value
-        """
-        self.shr_domains_arr[self.dom_indices_arr[var_idx], MAX] = max_value - self.dom_offsets_arr[var_idx]
-
-    def get_solution(self) -> NDArray:
-        """
-        Returns the solution to the problem.
-        :return: a Numpy array
-        """
-        return self.shr_domains_arr[self.dom_indices_arr, MIN] + self.dom_offsets_arr
+        statistics[STATS_IDX_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
+        statistics[STATS_IDX_PROBLEM_VARIABLE_NB] = self.variable_nb
 
     def __str__(self) -> str:
         return f"domains={self.shr_domains_arr}, indices={self.dom_indices_arr}, offsets={self.dom_offsets_arr}"
-
-
-@njit(cache=True)
-def is_solved(shr_domains: NDArray) -> bool:
-    """
-    Returns true iff the problem is solved.
-    :return: a boolean
-    """
-    return bool(np.all(np.equal(shr_domains[:, MIN], shr_domains[:, MAX])))
