@@ -44,7 +44,11 @@ from nucs.statistics import (
 
 
 def bound_consistency_algorithm(
-    statistics: NDArray, problem: Problem, shr_domains_arr: NDArray, not_entailed_propagators: NDArray
+    statistics: NDArray,
+    problem: Problem,  # TODO: get rid of problem
+    shr_domains_arr: NDArray,
+    not_entailed_propagators: NDArray,
+    triggered_propagators: NDArray,
 ) -> int:
     """
     Applies the bound consistency algorithm.
@@ -61,7 +65,7 @@ def bound_consistency_algorithm(
         problem.props_dom_offsets,
         problem.props_parameters,
         problem.shr_domains_propagators,
-        problem.triggered_propagators,
+        triggered_propagators,
         shr_domains_arr,
         not_entailed_propagators,
         COMPUTE_DOMAINS_ADDRS,

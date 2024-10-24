@@ -117,7 +117,11 @@ class GolombProblem(Problem):
 
 
 def golomb_consistency_algorithm(
-    statistics: NDArray, problem: GolombProblem, shr_domains_arr: NDArray, not_entailed_propagators: NDArray
+    statistics: NDArray,
+    problem: GolombProblem,
+    shr_domains_arr: NDArray,
+    not_entailed_propagators: NDArray,
+    triggered_propagators: NDArray,
 ) -> int:
     """
     Applies a custom consistency algorithm for the Golomb Ruler problem.
@@ -150,4 +154,6 @@ def golomb_consistency_algorithm(
                 #    return False
                 set_min_value(problem, shr_domains_arr, var_idx, new_min)
     # then apply BC
-    return bound_consistency_algorithm(statistics, problem, shr_domains_arr, not_entailed_propagators)
+    return bound_consistency_algorithm(
+        statistics, problem, shr_domains_arr, not_entailed_propagators, triggered_propagators
+    )

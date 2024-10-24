@@ -14,7 +14,6 @@ import copy
 from typing import Optional, Self, Tuple, Union
 
 from numba.typed import List
-from numpy.typing import NDArray
 
 from nucs.constants import END, START
 from nucs.numpy import (
@@ -24,15 +23,10 @@ from nucs.numpy import (
     new_dom_indices_by_values,
     new_dom_offsets,
     new_dom_offsets_by_values,
-    new_not_entailed_propagators,
     new_parameters,
-    new_shr_domains_by_values,
     new_shr_domains_propagators,
-    new_triggered_propagators,
 )
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
-from nucs.solvers.choice_points import ChoicePoints
-from nucs.statistics import STATS_IDX_PROBLEM_PROPAGATOR_NB, STATS_IDX_PROBLEM_VARIABLE_NB
 
 
 class Problem:
@@ -61,8 +55,10 @@ class Problem:
         self.shr_domains_lst = shr_domains_list
         self.dom_indices_lst = dom_indices_list
         self.dom_offsets_lst = dom_offsets_list
+        self.variable_nb = len(shr_domains_list)
         self.propagators: List[Tuple[List[int], int, List[int]]] = []
         self.propagator_nb = 0
+
 
     def split(self, split_nb: int, var_idx: int) -> List[Self]:
         """
@@ -120,6 +116,7 @@ class Problem:
         self.shr_domains_lst.append(shr_domain)
         self.dom_indices_lst.append(dom_index)
         self.dom_offsets_lst.append(dom_offset)
+        self.variable_nb = len(self.dom_indices_lst)
 
     def add_variables(
         self,
@@ -142,6 +139,7 @@ class Problem:
         self.shr_domains_lst.extend(shr_domains_list)
         self.dom_indices_lst.extend(dom_indices_list)
         self.dom_offsets_lst.extend(dom_offsets_list)
+        self.variable_nb = len(self.dom_indices_lst)
 
     def add_propagator(self, propagator: Tuple[List[int], int, List[int]]) -> None:
         """
@@ -149,6 +147,7 @@ class Problem:
         :param propagator: the propagator
         """
         self.propagators.append(propagator)
+        self.propagator_nb = len(self.propagators)
 
     def add_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
         """
@@ -156,27 +155,19 @@ class Problem:
         :param propagators: the propagators
         """
         self.propagators.extend(propagators)
+        self.propagator_nb = len(self.propagators)
 
-    def init(self, statistics: NDArray, choice_points: ChoicePoints) -> None:
+    def init(self) -> None:
         """
         Completes the initialization of the problem by defining the variables and the propagators.
         """
-        self.variable_nb = len(self.dom_indices_lst)
-        self.propagator_nb = len(self.propagators)
         # Sort the propagators based on their estimated amortized complexities.
         self.propagators.sort(key=lambda prop: GET_COMPLEXITY_FCTS[prop[1]](len(prop[0]), prop[2]))
         # Variable and domain initialization
         self.dom_indices_arr = new_dom_indices_by_values(self.dom_indices_lst)
         self.dom_offsets_arr = new_dom_offsets_by_values(self.dom_offsets_lst)
-        shr_domains_arr = new_shr_domains_by_values(self.shr_domains_lst)
-        not_entailed_propagators = new_not_entailed_propagators(self.propagator_nb)
-        choice_points.put((shr_domains_arr, not_entailed_propagators))
         # Propagator initialization
         self.algorithms = new_algorithms(self.propagator_nb)
-        # This is where the triggered propagators will be stored,
-        # propagators will be computed in the order of their increasing indices.
-        # This is empty at the end of a filter.
-        self.triggered_propagators = new_triggered_propagators(self.propagator_nb)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
         self.var_bounds = new_bounds(max(1, self.propagator_nb))  # some redundancy here
         self.param_bounds = new_bounds(max(1, self.propagator_nb))  # some redundancy here
@@ -207,5 +198,3 @@ class Problem:
             triggers = GET_TRIGGERS_FCTS[prop[1]](len(prop[0]), prop[2])
             for prop_var_idx, prop_var in enumerate(prop[0]):
                 self.shr_domains_propagators[self.dom_indices_arr[prop_var], :, prop_idx] = triggers[prop_var_idx, :]
-        statistics[STATS_IDX_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
-        statistics[STATS_IDX_PROBLEM_VARIABLE_NB] = self.variable_nb

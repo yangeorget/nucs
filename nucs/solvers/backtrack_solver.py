@@ -17,7 +17,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from nucs.constants import PROBLEM_INCONSISTENT, PROBLEM_SOLVED, PROBLEM_TO_FILTER
-from nucs.numpy import new_not_entailed_propagators, new_shr_domains_by_values
+from nucs.numpy import new_not_entailed_propagators, new_shr_domains_by_values, new_triggered_propagators
 from nucs.problems.problem import Problem
 from nucs.solvers.choice_points import ChoicePoints
 from nucs.solvers.consistency_algorithms import bound_consistency_algorithm
@@ -25,6 +25,8 @@ from nucs.solvers.heuristics import first_not_instantiated_var_heuristic, min_va
 from nucs.solvers.solver import Solver, decrease_max, get_solution, increase_min
 from nucs.statistics import (
     STATS_IDX_OPTIMIZER_SOLUTION_NB,
+    STATS_IDX_PROBLEM_PROPAGATOR_NB,
+    STATS_IDX_PROBLEM_VARIABLE_NB,
     STATS_IDX_SOLVER_BACKTRACK_NB,
     STATS_IDX_SOLVER_CHOICE_DEPTH,
     STATS_IDX_SOLVER_CHOICE_NB,
@@ -55,6 +57,7 @@ class BacktrackSolver(Solver):
         self.statistics = init_statistics()
         self.problem = problem
         self.choice_points = ChoicePoints()
+        self.triggered_propagators = new_triggered_propagators(problem.propagator_nb)
         self.consistency_algorithm = consistency_algorithm
         self.var_heuristic = var_heuristic
         self.dom_heuristic = dom_heuristic
@@ -76,13 +79,14 @@ class BacktrackSolver(Solver):
         return self.optimize(variable_idx, increase_min)
 
     def optimize(self, variable_idx: int, update_target_domain: Callable) -> Optional[NDArray]:
-        self.problem.init(self.statistics, self.choice_points)
+        self.init()
         best_solution = None
         while (
             solution := solve_one(
                 self.statistics,
                 self.problem,
                 self.choice_points,
+                self.triggered_propagators,
                 self.consistency_algorithm,
                 self.var_heuristic,
                 self.dom_heuristic,
@@ -90,8 +94,10 @@ class BacktrackSolver(Solver):
         ) is not None:
             best_solution = solution
             self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
-            reset(self.problem, self.choice_points)
-            update_target_domain(self.problem, self.choice_points.get()[0], variable_idx, best_solution[variable_idx])
+            reset(self.problem, self.choice_points, self.triggered_propagators)
+            update_target_domain(
+                self.problem, self.choice_points.get_shr_domains(), variable_idx, best_solution[variable_idx]
+            )
         return best_solution
 
     def solve(self) -> Iterator[NDArray]:
@@ -99,19 +105,20 @@ class BacktrackSolver(Solver):
         Returns an iterator over the solutions.
         :return: an iterator
         """
-        self.problem.init(self.statistics, self.choice_points)
+        self.init()
         while (
             solution := solve_one(
                 self.statistics,
                 self.problem,
                 self.choice_points,
+                self.triggered_propagators,
                 self.consistency_algorithm,
                 self.var_heuristic,
                 self.dom_heuristic,
             )
         ) is not None:
             yield solution
-            if not backtrack(self.statistics, self.problem, self.choice_points):
+            if not backtrack(self.statistics, self.choice_points, self.triggered_propagators):
                 break
 
     def minimize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue) -> None:
@@ -135,12 +142,13 @@ class BacktrackSolver(Solver):
     def optimize_and_queue(
         self, variable_idx: int, update_target_domain: Callable, processor_idx: int, solution_queue: Queue
     ) -> None:
-        self.problem.init(self.statistics, self.choice_points)
+        self.init()
         while (
             solution := solve_one(
                 self.statistics,
                 self.problem,
                 self.choice_points,
+                self.triggered_propagators,
                 self.consistency_algorithm,
                 self.var_heuristic,
                 self.dom_heuristic,
@@ -148,29 +156,40 @@ class BacktrackSolver(Solver):
         ) is not None:
             self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
             solution_queue.put((processor_idx, solution, self.statistics))
-            reset(self.problem, self.choice_points)
-            update_target_domain(self.problem, self.choice_points.get()[0], variable_idx, solution[variable_idx])
+            reset(self.problem, self.choice_points, self.triggered_propagators)
+            update_target_domain(
+                self.problem, self.choice_points.get_shr_domains(), variable_idx, solution[variable_idx]
+            )
         solution_queue.put((processor_idx, None, self.statistics))
 
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
-        self.problem.init(self.statistics, self.choice_points)
+        self.init()
         while (
             solution := solve_one(
                 self.statistics,
                 self.problem,
                 self.choice_points,
+                self.triggered_propagators,
                 self.consistency_algorithm,
                 self.var_heuristic,
                 self.dom_heuristic,
             )
         ) is not None:
             solution_queue.put((processor_idx, solution, self.statistics))
-            if not backtrack(self.statistics, self.problem, self.choice_points):
+            if not backtrack(self.statistics, self.choice_points, self.triggered_propagators):
                 break
         solution_queue.put((processor_idx, None, self.statistics))
 
+    def init(self) -> None:
+        self.problem.init()
+        shr_domains_arr = new_shr_domains_by_values(self.problem.shr_domains_lst)
+        not_entailed_propagators = new_not_entailed_propagators(self.problem.propagator_nb)
+        self.choice_points.put((shr_domains_arr, not_entailed_propagators))
+        self.statistics[STATS_IDX_PROBLEM_PROPAGATOR_NB] = self.problem.propagator_nb
+        self.statistics[STATS_IDX_PROBLEM_VARIABLE_NB] = self.problem.variable_nb
 
-def backtrack(statistics: NDArray, problem: Problem, choice_points: ChoicePoints) -> bool:
+
+def backtrack(statistics: NDArray, choice_points: ChoicePoints, triggered_propagators: NDArray) -> bool:
     """
     Backtracks and updates the problem's domains
     :return: true iff it is possible to backtrack
@@ -178,22 +197,23 @@ def backtrack(statistics: NDArray, problem: Problem, choice_points: ChoicePoints
     if not choice_points.pop():
         return False
     statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
-    np.copyto(problem.triggered_propagators, choice_points.get()[1])
+    np.copyto(triggered_propagators, choice_points.get_not_entailed_propagators())
     return True
 
 
-def reset(problem: Problem, choice_points: ChoicePoints) -> None:
+def reset(problem: Problem, choice_points: ChoicePoints, triggered_propagators: NDArray) -> None:
     choice_points.clear()
     choice_points.put(
         (new_shr_domains_by_values(problem.shr_domains_lst), new_not_entailed_propagators(problem.propagator_nb))
     )
-    problem.triggered_propagators.fill(True)
+    triggered_propagators.fill(True)
 
 
 def make_choice(
     statistics: NDArray,
     problem: Problem,
     choice_points: ChoicePoints,
+    triggered_propagators: NDArray,
     consistency_algorithm: Callable,
     var_heuristic: Callable,
     dom_heuristic: Callable,
@@ -204,24 +224,31 @@ def make_choice(
     """
     # first filter
     while (
-        status := consistency_algorithm(statistics, problem, choice_points.get()[0], choice_points.get()[1])
+        status := consistency_algorithm(
+            statistics,
+            problem,
+            choice_points.get_shr_domains(),
+            choice_points.get_not_entailed_propagators(),
+            triggered_propagators,
+        )
     ) == PROBLEM_INCONSISTENT:
-        if not backtrack(statistics, problem, choice_points):
+        if not backtrack(statistics, choice_points, triggered_propagators):
             return PROBLEM_INCONSISTENT
     if status == PROBLEM_SOLVED:
         statistics[STATS_IDX_SOLVER_SOLUTION_NB] += 1
         return PROBLEM_SOLVED
     # then make a choice
-    shr_domains_arr, not_entailed_propagators = choice_points.get()
+    shr_domains_arr = choice_points.get_shr_domains()
+    not_entailed_propagators = choice_points.get_not_entailed_propagators()
     dom_idx = var_heuristic(shr_domains_arr)
     shr_domains_copy = shr_domains_arr.copy(order="F")
     not_entailed_propagators_copy = not_entailed_propagators.copy()
     choice_points.put((shr_domains_copy, not_entailed_propagators_copy))
     event = dom_heuristic(shr_domains_arr[dom_idx], shr_domains_copy[dom_idx])
     np.logical_or(
-        problem.triggered_propagators,
+        triggered_propagators,
         problem.shr_domains_propagators[dom_idx, event],
-        problem.triggered_propagators,
+        triggered_propagators,
     )
     statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
     cp_max_depth = choice_points.size() - 1
@@ -234,6 +261,7 @@ def solve_one(
     statistics: NDArray,
     problem: Problem,
     choice_points: ChoicePoints,
+    triggered_propagators: NDArray,
     consistency_algorithm: Callable,
     var_heuristic: Callable,
     dom_heuristic: Callable,
@@ -243,7 +271,15 @@ def solve_one(
     :return: the solution if it exists or None
     """
     while (
-        status := make_choice(statistics, problem, choice_points, consistency_algorithm, var_heuristic, dom_heuristic)
+        status := make_choice(
+            statistics,
+            problem,
+            choice_points,
+            triggered_propagators,
+            consistency_algorithm,
+            var_heuristic,
+            dom_heuristic,
+        )
     ) == PROBLEM_TO_FILTER:
         pass
-    return get_solution(problem, choice_points.get()[0]) if status == PROBLEM_SOLVED else None
+    return get_solution(problem, choice_points.get_shr_domains()) if status == PROBLEM_SOLVED else None

@@ -15,12 +15,9 @@ from typing import List, Tuple
 from numpy.typing import NDArray
 
 
-class ChoicePoints:
+class ChoicePoints:  # TODO add a depth parameter
     def __init__(self) -> None:
         self.list: List[Tuple[NDArray, NDArray]] = []
-
-    def is_empty(self) -> bool:
-        return len(self.list) == 0
 
     def size(self) -> int:
         return len(self.list)
@@ -31,8 +28,11 @@ class ChoicePoints:
         self.list[0] = self.list.pop()
         return True
 
-    def get(self) -> Tuple[NDArray, NDArray]:
-        return self.list[0]
+    def get_shr_domains(self) -> NDArray:
+        return self.list[0][0]
+
+    def get_not_entailed_propagators(self) -> NDArray:
+        return self.list[0][1]
 
     def put(self, cp: Tuple[NDArray, NDArray]) -> None:
         self.list.append(cp)
