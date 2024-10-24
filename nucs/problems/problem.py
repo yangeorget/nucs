@@ -161,23 +161,22 @@ class Problem:
         """
         Completes the initialization of the problem by defining the variables and the propagators.
         """
-        # Variable and domain initialization
         self.variable_nb = len(self.dom_indices_lst)
-        self.shr_domains_arr = new_shr_domains_by_values(self.shr_domains_lst)
-        self.dom_indices_arr = new_dom_indices_by_values(self.dom_indices_lst)
-        self.dom_offsets_arr = new_dom_offsets_by_values(self.dom_offsets_lst)
+        self.propagator_nb = len(self.propagators)
         # Sort the propagators based on their estimated amortized complexities.
         self.propagators.sort(key=lambda prop: GET_COMPLEXITY_FCTS[prop[1]](len(prop[0]), prop[2]))
+        # Variable and domain initialization
+        self.dom_indices_arr = new_dom_indices_by_values(self.dom_indices_lst)
+        self.dom_offsets_arr = new_dom_offsets_by_values(self.dom_offsets_lst)
+        shr_domains_arr = new_shr_domains_by_values(self.shr_domains_lst)
+        not_entailed_propagators = new_not_entailed_propagators(self.propagator_nb)
+        choice_points.put((shr_domains_arr, not_entailed_propagators))
         # Propagator initialization
-        self.propagator_nb = len(self.propagators)
+        self.algorithms = new_algorithms(self.propagator_nb)
         # This is where the triggered propagators will be stored,
         # propagators will be computed in the order of their increasing indices.
         # This is empty at the end of a filter.
         self.triggered_propagators = new_triggered_propagators(self.propagator_nb)
-        # This is where the entailed propagators will be stored
-        # This is reset in the case of braktrack
-        self.not_entailed_propagators = new_not_entailed_propagators(self.propagator_nb)
-        self.algorithms = new_algorithms(self.propagator_nb)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
         self.var_bounds = new_bounds(max(1, self.propagator_nb))  # some redundancy here
         self.param_bounds = new_bounds(max(1, self.propagator_nb))  # some redundancy here
@@ -210,6 +209,3 @@ class Problem:
                 self.shr_domains_propagators[self.dom_indices_arr[prop_var], :, prop_idx] = triggers[prop_var_idx, :]
         statistics[STATS_IDX_PROBLEM_PROPAGATOR_NB] = self.propagator_nb
         statistics[STATS_IDX_PROBLEM_VARIABLE_NB] = self.variable_nb
-
-    def __str__(self) -> str:
-        return f"domains={self.shr_domains_arr}, indices={self.dom_indices_arr}, offsets={self.dom_offsets_arr}"

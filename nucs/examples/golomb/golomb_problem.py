@@ -116,7 +116,9 @@ class GolombProblem(Problem):
             )
 
 
-def golomb_consistency_algorithm(statistics: NDArray, problem: GolombProblem) -> int:
+def golomb_consistency_algorithm(
+    statistics: NDArray, problem: GolombProblem, shr_domains_arr: NDArray, not_entailed_propagators: NDArray
+) -> int:
     """
     Applies a custom consistency algorithm for the Golomb Ruler problem.
     :param statistics: the statistics array
@@ -124,13 +126,13 @@ def golomb_consistency_algorithm(statistics: NDArray, problem: GolombProblem) ->
     :return: the status as an int
     """
     # first prune the search space
-    ni_var_idx = first_not_instantiated_var_heuristic(problem.shr_domains_arr)  # no domains shared between vars
+    ni_var_idx = first_not_instantiated_var_heuristic(shr_domains_arr)  # no domains shared between vars
     if 1 < ni_var_idx < problem.mark_nb - 1:  # otherwise useless
         problem.used_distance.fill(False)
         # the following will mark at most sum(n-3) numbers as used
         # hence there will be at least n-2 unused numbers greater than 0
         for var_idx in range(index(problem.mark_nb, ni_var_idx - 2, ni_var_idx - 1) + 1):
-            dist = get_min_value(problem, var_idx)
+            dist = get_min_value(problem, shr_domains_arr, var_idx)
             if dist < len(problem.used_distance):
                 problem.used_distance[dist] = True
         # let's compute the sum of non-used numbers
@@ -146,6 +148,6 @@ def golomb_consistency_algorithm(statistics: NDArray, problem: GolombProblem) ->
                 new_min = problem.minimal_sum[j - i]
                 # if new_min > self.get_max_value(var_idx):  # a bit slower
                 #    return False
-                set_min_value(problem, var_idx, new_min)
+                set_min_value(problem, shr_domains_arr, var_idx, new_min)
     # then apply BC
-    return bound_consistency_algorithm(statistics, problem)
+    return bound_consistency_algorithm(statistics, problem, shr_domains_arr, not_entailed_propagators)
