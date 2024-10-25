@@ -65,9 +65,9 @@ class TestLexicographicLEQ:
 
     def test_solve_1(self) -> None:
         problem = Problem(
-            shr_domains_list=[(0, 1), (0, 1), (0, 1), (0, 1)],
-            dom_indices_list=[0, 1, 2, 3],
-            dom_offsets_list=[0, 0, 0, 0],
+            shr_domains_lst=[(0, 1), (0, 1), (0, 1), (0, 1)],
+            dom_indices_lst=[0, 1, 2, 3],
+            dom_offsets_lst=[0, 0, 0, 0],
         )
         problem.add_propagator(([0, 1, 2, 3], ALG_LEXICOGRAPHIC_LEQ, []))
         solver = BacktrackSolver(problem)
@@ -76,9 +76,9 @@ class TestLexicographicLEQ:
 
     def test_solve_2(self) -> None:
         problem = Problem(
-            shr_domains_list=[(1, 1), (0, 1), (0, 1), (0, 1)],
-            dom_indices_list=[0, 1, 2, 3],
-            dom_offsets_list=[0, 0, 0, 0],
+            shr_domains_lst=[(1, 1), (0, 1), (0, 1), (0, 1)],
+            dom_indices_lst=[0, 1, 2, 3],
+            dom_offsets_lst=[0, 0, 0, 0],
         )
         problem.add_propagator(([0, 1, 2, 3], ALG_LEXICOGRAPHIC_LEQ, []))
         solver = BacktrackSolver(problem)

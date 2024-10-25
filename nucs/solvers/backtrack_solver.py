@@ -54,13 +54,19 @@ class BacktrackSolver(Solver):
         :param var_heuristic: a heuristic for selecting a variable/domain
         :param dom_heuristic: a heuristic for reducing a domain
         """
-        self.statistics = init_statistics()
-        self.problem = problem
-        self.choice_points = ChoicePoints()
-        self.triggered_propagators = new_triggered_propagators(problem.propagator_nb)
         self.consistency_algorithm = consistency_algorithm
         self.var_heuristic = var_heuristic
         self.dom_heuristic = dom_heuristic
+        self.triggered_propagators = new_triggered_propagators(problem.propagator_nb)
+        problem.init()
+        self.problem = problem
+        shr_domains_arr = new_shr_domains_by_values(self.problem.shr_domains_lst)
+        not_entailed_propagators = new_not_entailed_propagators(self.problem.propagator_nb)
+        self.choice_points = ChoicePoints()
+        self.choice_points.put((shr_domains_arr, not_entailed_propagators))
+        self.statistics = init_statistics()
+        self.statistics[STATS_IDX_PROBLEM_PROPAGATOR_NB] = self.problem.propagator_nb
+        self.statistics[STATS_IDX_PROBLEM_VARIABLE_NB] = self.problem.variable_nb
 
     def minimize(self, variable_idx: int) -> Optional[NDArray]:
         """
@@ -78,8 +84,7 @@ class BacktrackSolver(Solver):
         """
         return self.optimize(variable_idx, increase_min)
 
-    def optimize(self, variable_idx: int, update_target_domain: Callable) -> Optional[NDArray]:
-        self.init()
+    def optimize(self, variable_idx: int, update_domain: Callable) -> Optional[NDArray]:
         best_solution = None
         while (
             solution := solve_one(
@@ -95,8 +100,12 @@ class BacktrackSolver(Solver):
             best_solution = solution
             self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
             reset(self.problem, self.choice_points, self.triggered_propagators)
-            update_target_domain(
-                self.problem, self.choice_points.get_shr_domains(), variable_idx, best_solution[variable_idx]
+            update_domain(
+                self.choice_points.get_shr_domains(),
+                self.problem.dom_indices_arr,
+                self.problem.dom_offsets_arr,
+                variable_idx,
+                best_solution[variable_idx],
             )
         return best_solution
 
@@ -105,7 +114,6 @@ class BacktrackSolver(Solver):
         Returns an iterator over the solutions.
         :return: an iterator
         """
-        self.init()
         while (
             solution := solve_one(
                 self.statistics,
@@ -140,9 +148,8 @@ class BacktrackSolver(Solver):
         self.optimize_and_queue(variable_idx, increase_min, processor_idx, solution_queue)
 
     def optimize_and_queue(
-        self, variable_idx: int, update_target_domain: Callable, processor_idx: int, solution_queue: Queue
+        self, variable_idx: int, update_domain: Callable, processor_idx: int, solution_queue: Queue
     ) -> None:
-        self.init()
         while (
             solution := solve_one(
                 self.statistics,
@@ -157,13 +164,16 @@ class BacktrackSolver(Solver):
             self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
             solution_queue.put((processor_idx, solution, self.statistics))
             reset(self.problem, self.choice_points, self.triggered_propagators)
-            update_target_domain(
-                self.problem, self.choice_points.get_shr_domains(), variable_idx, solution[variable_idx]
+            update_domain(
+                self.choice_points.get_shr_domains(),
+                self.problem.dom_indices_arr,
+                self.problem.dom_offsets_arr,
+                variable_idx,
+                solution[variable_idx],
             )
         solution_queue.put((processor_idx, None, self.statistics))
 
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
-        self.init()
         while (
             solution := solve_one(
                 self.statistics,
@@ -179,14 +189,6 @@ class BacktrackSolver(Solver):
             if not backtrack(self.statistics, self.choice_points, self.triggered_propagators):
                 break
         solution_queue.put((processor_idx, None, self.statistics))
-
-    def init(self) -> None:
-        self.problem.init()
-        shr_domains_arr = new_shr_domains_by_values(self.problem.shr_domains_lst)
-        not_entailed_propagators = new_not_entailed_propagators(self.problem.propagator_nb)
-        self.choice_points.put((shr_domains_arr, not_entailed_propagators))
-        self.statistics[STATS_IDX_PROBLEM_PROPAGATOR_NB] = self.problem.propagator_nb
-        self.statistics[STATS_IDX_PROBLEM_VARIABLE_NB] = self.problem.variable_nb
 
 
 def backtrack(statistics: NDArray, choice_points: ChoicePoints, triggered_propagators: NDArray) -> bool:
@@ -282,4 +284,8 @@ def solve_one(
         )
     ) == PROBLEM_TO_FILTER:
         pass
-    return get_solution(problem, choice_points.get_shr_domains()) if status == PROBLEM_SOLVED else None
+    return (
+        get_solution(choice_points.get_shr_domains(), problem.dom_indices_arr, problem.dom_offsets_arr)
+        if status == PROBLEM_SOLVED
+        else None
+    )

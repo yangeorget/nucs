@@ -45,7 +45,7 @@ from nucs.statistics import (
 
 def bound_consistency_algorithm(
     statistics: NDArray,
-    problem: Problem,  # TODO: get rid of problem
+    problem: Problem,
     shr_domains_arr: NDArray,
     not_entailed_propagators: NDArray,
     triggered_propagators: NDArray,
