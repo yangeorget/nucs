@@ -10,11 +10,13 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
+import math
+
 import numpy as np
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN
-from nucs.problems.problem import Problem
+from nucs.problems.problem import Problem, ProblemData
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLDIFFERENT
 from nucs.solvers.consistency_algorithms import bound_consistency_algorithm
 from nucs.solvers.heuristics import first_not_instantiated_var_heuristic
@@ -76,12 +78,6 @@ class GolombProblem(Problem):
         self.dist_nb = sum_first(mark_nb - 1)  # this the number of distances
         super().__init__(init_domains(self.dist_nb, mark_nb))
         self.length_idx = index(mark_nb, 0, mark_nb - 1)  # we want to minimize this
-        # Additional items used in prune():
-        # - a reusable array for storing the minimal sum of different integers:
-        # minimal_sum[i] will be the minimal sum of i different integers chosen among a set of possible integers
-        self.minimal_sum = np.zeros(self.mark_nb - 1, dtype=int)
-        # - a boolean array for marking already existing distances as used
-        self.used_distance = np.empty(sum_first(self.mark_nb - 2) + 1, dtype=bool)
         # main constraints
         # dist_ij = mark_j - mark_i for j > i
         # mark_j = dist_0j for j > 0
@@ -118,7 +114,7 @@ class GolombProblem(Problem):
 
 def golomb_consistency_algorithm(
     statistics: NDArray,
-    problem: GolombProblem,
+    problem_data: ProblemData,
     shr_domains_arr: NDArray,
     not_entailed_propagators: NDArray,
     triggered_propagators: NDArray,
@@ -131,29 +127,34 @@ def golomb_consistency_algorithm(
     """
     # first prune the search space
     ni_var_idx = first_not_instantiated_var_heuristic(shr_domains_arr)  # no domains shared between vars
-    if 1 < ni_var_idx < problem.mark_nb - 1:  # otherwise useless
-        problem.used_distance.fill(False)
+    mark_nb = (int(math.sqrt(problem_data.variable_nb * 8 + 1)) + 1) // 2
+    if 1 < ni_var_idx < mark_nb - 1:  # otherwise useless
+        # boolean array for marking already existing distances as used
+        used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=bool)
+        # a reusable array for storing the minimal sum of different integers:
+        # minimal_sum[i] will be the minimal sum of i different integers chosen among a set of possible integers
+        minimal_sum = np.zeros(mark_nb - 1, dtype=int)
         # the following will mark at most sum(n-3) numbers as used
         # hence there will be at least n-2 unused numbers greater than 0
-        for var_idx in range(index(problem.mark_nb, ni_var_idx - 2, ni_var_idx - 1) + 1):
-            dist = get_min_value(problem, shr_domains_arr, var_idx)
-            if dist < len(problem.used_distance):
-                problem.used_distance[dist] = True
+        for var_idx in range(index(mark_nb, ni_var_idx - 2, ni_var_idx - 1) + 1):
+            dist = get_min_value(problem_data, shr_domains_arr, var_idx)
+            if dist < len(used_distance):
+                used_distance[dist] = True
         # let's compute the sum of non-used numbers
         distance = 1
-        for j in range(0, problem.mark_nb - ni_var_idx):
-            while problem.used_distance[distance]:
+        for j in range(0, mark_nb - ni_var_idx):
+            while used_distance[distance]:
                 distance += 1
-            problem.minimal_sum[j + 1] = problem.minimal_sum[j] + distance
+            minimal_sum[j + 1] = minimal_sum[j] + distance
             distance += 1
-        for i in range(ni_var_idx - 1, problem.mark_nb - 1):
-            for j in range(i + 1, problem.mark_nb):
-                var_idx = index(problem.mark_nb, i, j)
-                new_min = problem.minimal_sum[j - i]
+        for i in range(ni_var_idx - 1, mark_nb - 1):
+            for j in range(i + 1, mark_nb):
+                var_idx = index(mark_nb, i, j)
+                new_min = minimal_sum[j - i]
                 # if new_min > self.get_max_value(var_idx):  # a bit slower
                 #    return False
-                set_min_value(problem, shr_domains_arr, var_idx, new_min)
+                set_min_value(problem_data, shr_domains_arr, var_idx, new_min)
     # then apply BC
     return bound_consistency_algorithm(
-        statistics, problem, shr_domains_arr, not_entailed_propagators, triggered_propagators
+        statistics, problem_data, shr_domains_arr, not_entailed_propagators, triggered_propagators
     )

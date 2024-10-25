@@ -18,7 +18,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN
-from nucs.problems.problem import Problem
+from nucs.problems.problem import ProblemData
 
 
 class Solver:
@@ -69,48 +69,52 @@ class Solver:
         ...
 
 
-def get_min_value(problem: Problem, shr_domains_arr: NDArray, var_idx: int) -> int:
+@njit(cache=True)
+def get_min_value(problem_data: ProblemData, shr_domains_arr: NDArray, var_idx: int) -> int:
     """
     Gets the minimal value of a variable.
     :param var_idx: the index of the variable
     :return: the minimal value
     """
-    return shr_domains_arr[problem.dom_indices_arr[var_idx], MIN] + problem.dom_offsets_arr[var_idx]
+    return shr_domains_arr[problem_data.dom_indices_arr[var_idx], MIN] + problem_data.dom_offsets_arr[var_idx]
 
 
-def get_max_value(problem: Problem, shr_domains_arr: NDArray, var_idx: int) -> int:
+@njit(cache=True)
+def get_max_value(problem_data: ProblemData, shr_domains_arr: NDArray, var_idx: int) -> int:
     """
     Gets the maximal value of a variable.
     :param var_idx: the index of the variable
     :return: the maximal value
     """
-    return shr_domains_arr[problem.dom_indices_arr[var_idx], MAX] + problem.dom_offsets_arr[var_idx]
+    return shr_domains_arr[problem_data.dom_indices_arr[var_idx], MAX] + problem_data.dom_offsets_arr[var_idx]
 
 
-def set_min_value(problem: Problem, shr_domains_arr: NDArray, var_idx: int, min_value: int) -> None:
+@njit(cache=True)
+def set_min_value(problem_data: ProblemData, shr_domains_arr: NDArray, var_idx: int, min_value: int) -> None:
     """
     Sets the minimal value of a variable.
     :param var_idx: the index of the variable
     :param min_value: the minimal value
     """
-    shr_domains_arr[problem.dom_indices_arr[var_idx], MIN] = min_value - problem.dom_offsets_arr[var_idx]
+    shr_domains_arr[problem_data.dom_indices_arr[var_idx], MIN] = min_value - problem_data.dom_offsets_arr[var_idx]
 
 
-def set_max_value(problem: Problem, shr_domains_arr: NDArray, var_idx: int, max_value: int) -> None:
+@njit(cache=True)
+def set_max_value(problem_data: ProblemData, shr_domains_arr: NDArray, var_idx: int, max_value: int) -> None:
     """
     Sets the maximal value of a variable.
     :param var_idx: the index of the variable
     :param min_value: the maximal value
     """
-    shr_domains_arr[problem.dom_indices_arr[var_idx], MAX] = max_value - problem.dom_offsets_arr[var_idx]
+    shr_domains_arr[problem_data.dom_indices_arr[var_idx], MAX] = max_value - problem_data.dom_offsets_arr[var_idx]
 
 
-def get_solution(problem: Problem, shr_domains_arr: NDArray) -> NDArray:
+def get_solution(problem_data: ProblemData, shr_domains_arr: NDArray) -> NDArray:
     """
     Returns the solution to the problem.
     :return: a Numpy array
     """
-    return shr_domains_arr[problem.dom_indices_arr, MIN] + problem.dom_offsets_arr
+    return shr_domains_arr[problem_data.dom_indices_arr, MIN] + problem_data.dom_offsets_arr
 
 
 @njit(cache=True)
@@ -122,21 +126,23 @@ def is_solved(shr_domains: NDArray) -> bool:
     return bool(np.all(np.equal(shr_domains[:, MIN], shr_domains[:, MAX])))
 
 
-def decrease_max(problem: Problem, shr_domains_arr: NDArray, var_idx: int, value: int) -> None:
+@njit(cache=True)
+def decrease_max(problem_data: ProblemData, shr_domains_arr: NDArray, var_idx: int, value: int) -> None:  # TODO: remove
     """
     Decreases the max of a variable
     :param problem: the problem
     :param var_idx: the index of the variable
     :param value: the current max
     """
-    set_max_value(problem, shr_domains_arr, var_idx, value - 1)
+    set_max_value(problem_data, shr_domains_arr, var_idx, value - 1)
 
 
-def increase_min(problem: Problem, shr_domains_arr: NDArray, var_idx: int, value: int) -> None:
+@njit(cache=True)
+def increase_min(problem_data: ProblemData, shr_domains_arr: NDArray, var_idx: int, value: int) -> None:  # TODO: remove
     """
     Increases the min of a variable
     :param problem: the problem
     :param var_idx: the index of the variable
     :param value: the current min
     """
-    set_min_value(problem, shr_domains_arr, var_idx, value + 1)
+    set_min_value(problem_data, shr_domains_arr, var_idx, value + 1)

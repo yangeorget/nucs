@@ -26,7 +26,7 @@ from nucs.constants import (
     START,
 )
 from nucs.numba import NUMBA_DISABLE_JIT, function_from_address
-from nucs.problems.problem import Problem
+from nucs.problems.problem import ProblemData
 from nucs.propagators.propagators import (
     COMPUTE_DOMAIN_TYPE,
     COMPUTE_DOMAINS_ADDRS,
@@ -45,7 +45,7 @@ from nucs.statistics import (
 
 def bound_consistency_algorithm(
     statistics: NDArray,
-    problem: Problem,  # TODO: get rid of problem
+    problem_data: ProblemData,
     shr_domains_arr: NDArray,
     not_entailed_propagators: NDArray,
     triggered_propagators: NDArray,
@@ -58,16 +58,16 @@ def bound_consistency_algorithm(
     """
     return _bound_consistency_algorithm(
         statistics,
-        problem.algorithms,
-        problem.var_bounds,
-        problem.param_bounds,
-        problem.props_dom_indices,
-        problem.props_dom_offsets,
-        problem.props_parameters,
-        problem.shr_domains_propagators,
-        triggered_propagators,
+        problem_data.algorithms,  # TODO : pass only problem_data
+        problem_data.var_bounds,
+        problem_data.param_bounds,
+        problem_data.props_dom_indices,
+        problem_data.props_dom_offsets,
+        problem_data.props_parameters,
+        problem_data.shr_domains_propagators,
         shr_domains_arr,
         not_entailed_propagators,
+        triggered_propagators,
         COMPUTE_DOMAINS_ADDRS,
     )
 
@@ -82,9 +82,9 @@ def _bound_consistency_algorithm(
     props_offsets: NDArray,
     props_data: NDArray,
     shr_domains_props: NDArray,
-    triggered_props: NDArray,
     shr_domains: NDArray,
     not_entailed_props: NDArray,
+    triggered_props: NDArray,
     compute_domains_addrs: NDArray,
 ) -> int:
     """
