@@ -71,7 +71,9 @@ class Problem:
             dom_indices_lst = list(range(0, n))
         if dom_offsets_lst is None:
             dom_offsets_lst = [0] * n
-        self.shr_domains_lst = shr_domains_lst
+        self.shr_domains_lst = [
+            (shr_domain, shr_domain) if isinstance(shr_domain, int) else shr_domain for shr_domain in shr_domains_lst
+        ]
         self.dom_indices_lst = dom_indices_lst
         self.dom_offsets_lst = dom_offsets_lst
         self.variable_nb = len(shr_domains_lst)
