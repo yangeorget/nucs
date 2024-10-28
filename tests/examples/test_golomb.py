@@ -32,7 +32,7 @@ class TestGolomb:
     @pytest.mark.parametrize("mark_nb,length", [(4, 6), (5, 11), (6, 17), (7, 25), (8, 34), (9, 44)])
     def test_golomb(self, mark_nb: int, length: int) -> None:
         problem = GolombProblem(mark_nb)
-        solver = BacktrackSolver(problem, consistency_algorithm=1)
+        solver = BacktrackSolver(problem, consistency_algorithm=True)
         solution = solver.minimize(problem.length_idx)
         assert solution is not None
         assert solution[problem.length_idx] == length

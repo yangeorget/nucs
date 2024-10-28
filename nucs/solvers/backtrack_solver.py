@@ -50,9 +50,9 @@ class BacktrackSolver(Solver):
     def __init__(
         self,
         problem: Problem,
+        consistency_algorithm: bool = False,  # TODO: fix this
         var_heuristic: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         dom_heuristic: int = DOM_HEURISTIC_MIN_VALUE,
-        consistency_algorithm: int = 0,
     ):
         """
         Inits the solver.
@@ -68,7 +68,7 @@ class BacktrackSolver(Solver):
         self.problem = problem
         shr_domains_arr = new_shr_domains_by_values(self.problem.shr_domains_lst)
         not_entailed_propagators = new_not_entailed_propagators(self.problem.propagator_nb)
-        self.choice_points = ChoicePoints()
+        self.choice_points = ChoicePoints()  # TODO: replace with NDArrays
         self.choice_points.put((shr_domains_arr, not_entailed_propagators))
         self.statistics = init_statistics()
         self.statistics[STATS_IDX_PROBLEM_PROPAGATOR_NB] = self.problem.propagator_nb
@@ -98,9 +98,9 @@ class BacktrackSolver(Solver):
                 self.problem,
                 self.choice_points,
                 self.triggered_propagators,
+                self.consistency_algorithm,
                 self.var_heuristic,
                 self.dom_heuristic,
-                self.consistency_algorithm,
             )
         ) is not None:
             best_solution = solution
@@ -217,14 +217,14 @@ def reset(problem: Problem, choice_points: ChoicePoints, triggered_propagators: 
     triggered_propagators.fill(True)
 
 
-def make_choice(
+def make_choice(  # TODO jit
     statistics: NDArray,
     problem: Problem,
     choice_points: ChoicePoints,
     triggered_propagators: NDArray,
+    consistency_algorithm: bool,
     var_heuristic: int,
     dom_heuristic: int,
-    consistency_algorithm: int,
 ) -> int:
     """
     Makes a choice and returns a status
@@ -249,7 +249,7 @@ def make_choice(
                 triggered_propagators,
                 COMPUTE_DOMAINS_ADDRS,
             )
-            if consistency_algorithm == 0
+            if consistency_algorithm is False  # TODO: fix this
             else golomb_consistency_algorithm(
                 statistics,
                 problem.algorithms,
@@ -303,14 +303,14 @@ def make_choice(
     return PROBLEM_TO_FILTER
 
 
-def solve_one(
+def solve_one(  # TODO jit
     statistics: NDArray,
     problem: Problem,
     choice_points: ChoicePoints,
     triggered_propagators: NDArray,
+    consistency_algorithm: bool,
     var_heuristic: int,
     dom_heuristic: int,
-    consistency_algorithm: int,
 ) -> Optional[NDArray]:
     """
     Find at most one solution.
@@ -322,9 +322,9 @@ def solve_one(
             problem,
             choice_points,
             triggered_propagators,
+            consistency_algorithm,
             var_heuristic,
             dom_heuristic,
-            consistency_algorithm,
         )
     ) == PROBLEM_TO_FILTER:
         pass

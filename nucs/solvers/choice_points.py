@@ -15,7 +15,7 @@ from typing import List, Tuple
 from numpy.typing import NDArray
 
 
-class ChoicePoints:  # TODO add a depth parameter
+class ChoicePoints:
     def __init__(self) -> None:
         self.list: List[Tuple[NDArray, NDArray]] = []
 

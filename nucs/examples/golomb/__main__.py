@@ -26,7 +26,7 @@ if __name__ == "__main__":
     parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
     args = parser.parse_args()
     problem = GolombProblem(args.n, args.symmetry_breaking)
-    solver = BacktrackSolver(problem, consistency_algorithm=1)  # TODO: fix
+    solver = BacktrackSolver(problem, consistency_algorithm=True)  # TODO: fix
     solution = solver.minimize(problem.length_idx)
     print(get_statistics(solver.statistics))
     if solution is not None:
