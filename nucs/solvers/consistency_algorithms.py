@@ -37,48 +37,8 @@ from nucs.statistics import (
 )
 
 
-def bound_consistency_algorithm(
-    statistics: NDArray,
-    algorithms: NDArray,
-    var_bounds: NDArray,
-    param_bounds: NDArray,
-    dom_indices_arr: NDArray,
-    dom_offsets_arr: NDArray,
-    props_dom_indices: NDArray,
-    props_dom_offsets: NDArray,
-    props_parameters: NDArray,
-    shr_domains_propagators: NDArray,
-    shr_domains_arr: NDArray,
-    not_entailed_propagators: NDArray,
-    triggered_propagators: NDArray,
-    compute_domains_addrs: NDArray,
-) -> int:
-    """
-    Applies the bound consistency algorithm.
-    :param statistics: the statistics array
-    :param problem: the problem
-    :return: the status as an integer
-    """
-    return _bound_consistency_algorithm(
-        statistics,
-        algorithms,
-        var_bounds,
-        param_bounds,
-        dom_indices_arr,
-        dom_offsets_arr,
-        props_dom_indices,
-        props_dom_offsets,
-        props_parameters,
-        shr_domains_propagators,
-        shr_domains_arr,
-        not_entailed_propagators,
-        triggered_propagators,
-        compute_domains_addrs,
-    )
-
-
 @njit(cache=True)
-def _bound_consistency_algorithm(
+def bound_consistency_algorithm(
     statistics: NDArray,
     algorithms: NDArray,
     var_bounds: NDArray,

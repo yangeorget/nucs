@@ -14,7 +14,7 @@ import pytest
 
 from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN, DOM_HEURISTIC_MIN_VALUE
+from nucs.solvers.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.statistics import STATS_IDX_SOLVER_SOLUTION_NB
 
 

@@ -17,21 +17,17 @@ import numpy as np
 from numpy.typing import NDArray
 
 from nucs.constants import PROBLEM_INCONSISTENT, PROBLEM_SOLVED, PROBLEM_TO_FILTER
-from nucs.numba import NUMBA_DISABLE_JIT, function_from_address
+from nucs.examples.golomb.golomb_problem import golomb_consistency_algorithm
 from nucs.numpy import new_not_entailed_propagators, new_shr_domains_by_values, new_triggered_propagators
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import COMPUTE_DOMAINS_ADDRS
 from nucs.solvers.choice_points import ChoicePoints
 from nucs.solvers.consistency_algorithms import bound_consistency_algorithm
 from nucs.solvers.heuristics import (
-    DOM_HEURISTIC_ADDRS,
     DOM_HEURISTIC_FCTS,
     DOM_HEURISTIC_MIN_VALUE,
-    DOM_HEURISTIC_TYPE,
-    VAR_HEURISTIC_ADDRS,
     VAR_HEURISTIC_FCTS,
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
-    VAR_HEURISTIC_TYPE,
 )
 from nucs.solvers.solver import Solver, decrease_max, get_solution, increase_min
 from nucs.statistics import (
@@ -54,20 +50,19 @@ class BacktrackSolver(Solver):
     def __init__(
         self,
         problem: Problem,
-        consistency_algorithm: Callable = bound_consistency_algorithm,
         var_heuristic: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         dom_heuristic: int = DOM_HEURISTIC_MIN_VALUE,
+        consistency_algorithm: int = 0,
     ):
         """
         Inits the solver.
         :param problem: the problem
-        :param consistency_algorithm: a consistency algorithm (usually bound consistency)
         :param var_heuristic: a heuristic for selecting a variable/domain
         :param dom_heuristic: a heuristic for reducing a domain
         """
-        self.consistency_algorithm = consistency_algorithm
         self.var_heuristic = var_heuristic
         self.dom_heuristic = dom_heuristic
+        self.consistency_algorithm = consistency_algorithm
         self.triggered_propagators = new_triggered_propagators(problem.propagator_nb)
         problem.init()
         self.problem = problem
@@ -103,9 +98,9 @@ class BacktrackSolver(Solver):
                 self.problem,
                 self.choice_points,
                 self.triggered_propagators,
-                self.consistency_algorithm,
                 self.var_heuristic,
                 self.dom_heuristic,
+                self.consistency_algorithm,
             )
         ) is not None:
             best_solution = solution
@@ -227,9 +222,9 @@ def make_choice(
     problem: Problem,
     choice_points: ChoicePoints,
     triggered_propagators: NDArray,
-    consistency_algorithm: Callable,
     var_heuristic: int,
     dom_heuristic: int,
+    consistency_algorithm: int,
 ) -> int:
     """
     Makes a choice and returns a status
@@ -237,21 +232,40 @@ def make_choice(
     """
     # first filter
     while (
-        status := consistency_algorithm(
-            statistics,
-            problem.algorithms,
-            problem.var_bounds,
-            problem.param_bounds,
-            problem.dom_indices_arr,
-            problem.dom_offsets_arr,
-            problem.props_dom_indices,
-            problem.props_dom_offsets,
-            problem.props_parameters,
-            problem.shr_domains_propagators,
-            choice_points.get_shr_domains(),
-            choice_points.get_not_entailed_propagators(),
-            triggered_propagators,
-            COMPUTE_DOMAINS_ADDRS,
+        status := (
+            bound_consistency_algorithm(
+                statistics,
+                problem.algorithms,
+                problem.var_bounds,
+                problem.param_bounds,
+                problem.dom_indices_arr,
+                problem.dom_offsets_arr,
+                problem.props_dom_indices,
+                problem.props_dom_offsets,
+                problem.props_parameters,
+                problem.shr_domains_propagators,
+                choice_points.get_shr_domains(),
+                choice_points.get_not_entailed_propagators(),
+                triggered_propagators,
+                COMPUTE_DOMAINS_ADDRS,
+            )
+            if consistency_algorithm == 0
+            else golomb_consistency_algorithm(
+                statistics,
+                problem.algorithms,
+                problem.var_bounds,
+                problem.param_bounds,
+                problem.dom_indices_arr,
+                problem.dom_offsets_arr,
+                problem.props_dom_indices,
+                problem.props_dom_offsets,
+                problem.props_parameters,
+                problem.shr_domains_propagators,
+                choice_points.get_shr_domains(),
+                choice_points.get_not_entailed_propagators(),
+                triggered_propagators,
+                COMPUTE_DOMAINS_ADDRS,
+            )
         )
     ) == PROBLEM_INCONSISTENT:
         if not backtrack(statistics, choice_points, triggered_propagators):
@@ -264,8 +278,8 @@ def make_choice(
     not_entailed_propagators = choice_points.get_not_entailed_propagators()
     var_heuristic_function = (
         VAR_HEURISTIC_FCTS[var_heuristic]
-        if NUMBA_DISABLE_JIT
-        else function_from_address(VAR_HEURISTIC_TYPE, VAR_HEURISTIC_ADDRS[var_heuristic])
+        # if NUMBA_DISABLE_JIT
+        # else function_from_address(VAR_HEURISTIC_TYPE, VAR_HEURISTIC_ADDRS[var_heuristic])
     )
     dom_idx = var_heuristic_function(shr_domains_arr)
     shr_domains_copy = shr_domains_arr.copy(order="F")
@@ -273,8 +287,8 @@ def make_choice(
     choice_points.put((shr_domains_copy, not_entailed_propagators_copy))
     dom_heuristic_function = (
         DOM_HEURISTIC_FCTS[dom_heuristic]
-        if NUMBA_DISABLE_JIT
-        else function_from_address(DOM_HEURISTIC_TYPE, DOM_HEURISTIC_ADDRS[dom_heuristic])
+        # if NUMBA_DISABLE_JIT
+        # else function_from_address(DOM_HEURISTIC_TYPE, DOM_HEURISTIC_ADDRS[dom_heuristic])
     )
     event = dom_heuristic_function(shr_domains_arr[dom_idx], shr_domains_copy[dom_idx])
     np.logical_or(
@@ -294,9 +308,9 @@ def solve_one(
     problem: Problem,
     choice_points: ChoicePoints,
     triggered_propagators: NDArray,
-    consistency_algorithm: Callable,
     var_heuristic: int,
     dom_heuristic: int,
+    consistency_algorithm: int,
 ) -> Optional[NDArray]:
     """
     Find at most one solution.
@@ -308,9 +322,9 @@ def solve_one(
             problem,
             choice_points,
             triggered_propagators,
-            consistency_algorithm,
             var_heuristic,
             dom_heuristic,
+            consistency_algorithm,
         )
     ) == PROBLEM_TO_FILTER:
         pass
