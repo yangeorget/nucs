@@ -65,9 +65,9 @@ def bound_consistency_algorithm(
         problem.props_dom_offsets,
         problem.props_parameters,
         problem.shr_domains_propagators,
-        triggered_propagators,
         shr_domains_arr,
         not_entailed_propagators,
+        triggered_propagators,
         COMPUTE_DOMAINS_ADDRS,
     )
 
@@ -82,9 +82,9 @@ def _bound_consistency_algorithm(
     props_dom_offsets: NDArray,
     props_parameters: NDArray,
     shr_domains_propagators: NDArray,
-    triggered_propagators: NDArray,
     shr_domains_arr: NDArray,
     not_entailed_propagators: NDArray,
+    triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
 ) -> int:
     """
