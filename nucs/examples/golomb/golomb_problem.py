@@ -110,7 +110,15 @@ class GolombProblem(Problem):
 
 def golomb_consistency_algorithm(
     statistics: NDArray,
-    problem: Problem,
+    algorithms: NDArray,
+    var_bounds: NDArray,
+    param_bounds: NDArray,
+    dom_indices_arr: NDArray,
+    dom_offsets_arr: NDArray,
+    props_dom_indices: NDArray,
+    props_dom_offsets: NDArray,
+    props_parameters: NDArray,
+    shr_domains_propagators: NDArray,
     shr_domains_arr: NDArray,
     not_entailed_propagators: NDArray,
     triggered_propagators: NDArray,
@@ -122,7 +130,7 @@ def golomb_consistency_algorithm(
     :return: the status as an int
     """
     # first prune the search space
-    mark_nb = (1 + int(math.sqrt(8 * problem.variable_nb + 1))) // 2
+    mark_nb = (1 + int(math.sqrt(8 * len(dom_indices_arr) + 1))) // 2
     ni_var_idx = first_not_instantiated_var_heuristic(shr_domains_arr)  # no domains shared between vars
     if 1 < ni_var_idx < mark_nb - 1:  # otherwise useless
         used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=bool)
@@ -132,7 +140,7 @@ def golomb_consistency_algorithm(
         # the following will mark at most sum(n-3) numbers as used
         # hence there will be at least n-2 unused numbers greater than 0
         for var_idx in range(index(mark_nb, ni_var_idx - 2, ni_var_idx - 1) + 1):
-            dist = shr_domains_arr[problem.dom_indices_arr[var_idx], MIN]  # no offset
+            dist = shr_domains_arr[dom_indices_arr[var_idx], MIN]  # no offset
             if dist < len(used_distance):
                 used_distance[dist] = True
         # let's compute the sum of non-used numbers
@@ -144,7 +152,19 @@ def golomb_consistency_algorithm(
             distance += 1
         for i in range(ni_var_idx - 1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
-                shr_domains_arr[problem.dom_indices_arr[index(mark_nb, i, j)], MIN] = minimal_sum[j - i]  # no offset
+                shr_domains_arr[dom_indices_arr[index(mark_nb, i, j)], MIN] = minimal_sum[j - i]  # no offset
     return bound_consistency_algorithm(
-        statistics, problem, shr_domains_arr, not_entailed_propagators, triggered_propagators
+        statistics,
+        algorithms,
+        var_bounds,
+        param_bounds,
+        dom_indices_arr,
+        dom_offsets_arr,
+        props_dom_indices,
+        props_dom_offsets,
+        props_parameters,
+        shr_domains_propagators,
+        shr_domains_arr,
+        not_entailed_propagators,
+        triggered_propagators,
     )

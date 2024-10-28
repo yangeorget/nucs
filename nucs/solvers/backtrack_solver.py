@@ -228,7 +228,15 @@ def make_choice(
     while (
         status := consistency_algorithm(
             statistics,
-            problem,
+            problem.algorithms,
+            problem.var_bounds,
+            problem.param_bounds,
+            problem.dom_indices_arr,
+            problem.dom_offsets_arr,
+            problem.props_dom_indices,
+            problem.props_dom_offsets,
+            problem.props_parameters,
+            problem.shr_domains_propagators,
             choice_points.get_shr_domains(),
             choice_points.get_not_entailed_propagators(),
             triggered_propagators,
