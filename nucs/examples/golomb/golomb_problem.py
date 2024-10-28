@@ -122,6 +122,7 @@ def golomb_consistency_algorithm(
     shr_domains_arr: NDArray,
     not_entailed_propagators: NDArray,
     triggered_propagators: NDArray,
+    compute_domains_addrs: NDArray,
 ) -> int:
     """
     Applies a custom consistency algorithm for the Golomb Ruler problem.
@@ -167,4 +168,5 @@ def golomb_consistency_algorithm(
         shr_domains_arr,
         not_entailed_propagators,
         triggered_propagators,
+        compute_domains_addrs,
     )

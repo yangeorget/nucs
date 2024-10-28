@@ -19,8 +19,9 @@ from numpy.typing import NDArray
 from nucs.constants import PROBLEM_INCONSISTENT, PROBLEM_SOLVED, PROBLEM_TO_FILTER
 from nucs.numpy import new_not_entailed_propagators, new_shr_domains_by_values, new_triggered_propagators
 from nucs.problems.problem import Problem
+from nucs.propagators.propagators import COMPUTE_DOMAINS_ADDRS
 from nucs.solvers.choice_points import ChoicePoints
-from nucs.solvers.consistency_algorithms import bound_consistency_algorithm
+from nucs.solvers.consistency_algorithms import _bound_consistency_algorithm, bound_consistency_algorithm
 from nucs.solvers.heuristics import first_not_instantiated_var_heuristic, min_value_dom_heuristic
 from nucs.solvers.solver import Solver, decrease_max, get_solution, increase_min
 from nucs.statistics import (
@@ -43,9 +44,9 @@ class BacktrackSolver(Solver):
     def __init__(
         self,
         problem: Problem,
-        consistency_algorithm: Callable = bound_consistency_algorithm,
-        var_heuristic: Callable = first_not_instantiated_var_heuristic,
-        dom_heuristic: Callable = min_value_dom_heuristic,
+        consistency_algorithm: Optional[Callable] = None,
+        var_heuristic: Optional[Callable] = None,
+        dom_heuristic: Optional[Callable] = None,
     ):
         """
         Inits the solver.
@@ -54,9 +55,11 @@ class BacktrackSolver(Solver):
         :param var_heuristic: a heuristic for selecting a variable/domain
         :param dom_heuristic: a heuristic for reducing a domain
         """
-        self.consistency_algorithm = consistency_algorithm
-        self.var_heuristic = var_heuristic
-        self.dom_heuristic = dom_heuristic
+        self.consistency_algorithm = (
+            consistency_algorithm if consistency_algorithm is not None else bound_consistency_algorithm
+        )
+        self.var_heuristic = var_heuristic if var_heuristic is not None else first_not_instantiated_var_heuristic
+        self.dom_heuristic = dom_heuristic if dom_heuristic is not None else min_value_dom_heuristic
         self.triggered_propagators = new_triggered_propagators(problem.propagator_nb)
         problem.init()
         self.problem = problem
@@ -240,6 +243,7 @@ def make_choice(
             choice_points.get_shr_domains(),
             choice_points.get_not_entailed_propagators(),
             triggered_propagators,
+            COMPUTE_DOMAINS_ADDRS,
         )
     ) == PROBLEM_INCONSISTENT:
         if not backtrack(statistics, choice_points, triggered_propagators):

@@ -26,12 +26,7 @@ from nucs.constants import (
     START,
 )
 from nucs.numba import NUMBA_DISABLE_JIT, function_from_address
-from nucs.propagators.propagators import (
-    COMPUTE_DOMAIN_TYPE,
-    COMPUTE_DOMAINS_ADDRS,
-    COMPUTE_DOMAINS_FCTS,
-    pop_propagator,
-)
+from nucs.propagators.propagators import COMPUTE_DOMAIN_TYPE, COMPUTE_DOMAINS_FCTS, pop_propagator
 from nucs.solvers.solver import is_solved
 from nucs.statistics import (
     STATS_IDX_PROBLEM_FILTER_NB,
@@ -56,6 +51,7 @@ def bound_consistency_algorithm(
     shr_domains_arr: NDArray,
     not_entailed_propagators: NDArray,
     triggered_propagators: NDArray,
+    compute_domains_addrs: NDArray,
 ) -> int:
     """
     Applies the bound consistency algorithm.
@@ -77,7 +73,7 @@ def bound_consistency_algorithm(
         shr_domains_arr,
         not_entailed_propagators,
         triggered_propagators,
-        COMPUTE_DOMAINS_ADDRS,
+        compute_domains_addrs,
     )
 
 
