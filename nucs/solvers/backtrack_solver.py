@@ -95,7 +95,15 @@ class BacktrackSolver(Solver):
         while (
             solution := solve_one(
                 self.statistics,
-                self.problem,
+                self.problem.algorithms,
+                self.problem.var_bounds,
+                self.problem.param_bounds,
+                self.problem.dom_indices_arr,
+                self.problem.dom_offsets_arr,
+                self.problem.props_dom_indices,
+                self.problem.props_dom_offsets,
+                self.problem.props_parameters,
+                self.problem.shr_domains_propagators,
                 self.choice_points,
                 self.triggered_propagators,
                 self.consistency_algorithm,
@@ -123,7 +131,15 @@ class BacktrackSolver(Solver):
         while (
             solution := solve_one(
                 self.statistics,
-                self.problem,
+                self.problem.algorithms,
+                self.problem.var_bounds,
+                self.problem.param_bounds,
+                self.problem.dom_indices_arr,
+                self.problem.dom_offsets_arr,
+                self.problem.props_dom_indices,
+                self.problem.props_dom_offsets,
+                self.problem.props_parameters,
+                self.problem.shr_domains_propagators,
                 self.choice_points,
                 self.triggered_propagators,
                 self.consistency_algorithm,
@@ -159,7 +175,15 @@ class BacktrackSolver(Solver):
         while (
             solution := solve_one(
                 self.statistics,
-                self.problem,
+                self.problem.algorithms,
+                self.problem.var_bounds,
+                self.problem.param_bounds,
+                self.problem.dom_indices_arr,
+                self.problem.dom_offsets_arr,
+                self.problem.props_dom_indices,
+                self.problem.props_dom_offsets,
+                self.problem.props_parameters,
+                self.problem.shr_domains_propagators,
                 self.choice_points,
                 self.triggered_propagators,
                 self.consistency_algorithm,
@@ -183,7 +207,15 @@ class BacktrackSolver(Solver):
         while (
             solution := solve_one(
                 self.statistics,
-                self.problem,
+                self.problem.algorithms,
+                self.problem.var_bounds,
+                self.problem.param_bounds,
+                self.problem.dom_indices_arr,
+                self.problem.dom_offsets_arr,
+                self.problem.props_dom_indices,
+                self.problem.props_dom_offsets,
+                self.problem.props_parameters,
+                self.problem.shr_domains_propagators,
                 self.choice_points,
                 self.triggered_propagators,
                 self.consistency_algorithm,
@@ -219,7 +251,15 @@ def reset(problem: Problem, choice_points: ChoicePoints, triggered_propagators: 
 
 def make_choice(  # TODO jit
     statistics: NDArray,
-    problem: Problem,
+    algorithms: NDArray,
+    var_bounds: NDArray,
+    param_bounds: NDArray,
+    dom_indices_arr: NDArray,
+    dom_offsets_arr: NDArray,
+    props_dom_indices: NDArray,
+    props_dom_offsets: NDArray,
+    props_parameters: NDArray,
+    shr_domains_propagators: NDArray,
     choice_points: ChoicePoints,
     triggered_propagators: NDArray,
     consistency_algorithm: bool,
@@ -235,15 +275,15 @@ def make_choice(  # TODO jit
         status := (
             bound_consistency_algorithm(
                 statistics,
-                problem.algorithms,
-                problem.var_bounds,
-                problem.param_bounds,
-                problem.dom_indices_arr,
-                problem.dom_offsets_arr,
-                problem.props_dom_indices,
-                problem.props_dom_offsets,
-                problem.props_parameters,
-                problem.shr_domains_propagators,
+                algorithms,
+                var_bounds,
+                param_bounds,
+                dom_indices_arr,
+                dom_offsets_arr,
+                props_dom_indices,
+                props_dom_offsets,
+                props_parameters,
+                shr_domains_propagators,
                 choice_points.get_shr_domains(),
                 choice_points.get_not_entailed_propagators(),
                 triggered_propagators,
@@ -252,15 +292,15 @@ def make_choice(  # TODO jit
             if consistency_algorithm is False  # TODO: fix this
             else golomb_consistency_algorithm(
                 statistics,
-                problem.algorithms,
-                problem.var_bounds,
-                problem.param_bounds,
-                problem.dom_indices_arr,
-                problem.dom_offsets_arr,
-                problem.props_dom_indices,
-                problem.props_dom_offsets,
-                problem.props_parameters,
-                problem.shr_domains_propagators,
+                algorithms,
+                var_bounds,
+                param_bounds,
+                dom_indices_arr,
+                dom_offsets_arr,
+                props_dom_indices,
+                props_dom_offsets,
+                props_parameters,
+                shr_domains_propagators,
                 choice_points.get_shr_domains(),
                 choice_points.get_not_entailed_propagators(),
                 triggered_propagators,
@@ -277,7 +317,7 @@ def make_choice(  # TODO jit
     shr_domains_arr = choice_points.get_shr_domains()
     not_entailed_propagators = choice_points.get_not_entailed_propagators()
     var_heuristic_function = (
-        VAR_HEURISTIC_FCTS[var_heuristic]
+        VAR_HEURISTIC_FCTS[var_heuristic]  # TODO: fix when jitted
         # if NUMBA_DISABLE_JIT
         # else function_from_address(VAR_HEURISTIC_TYPE, VAR_HEURISTIC_ADDRS[var_heuristic])
     )
@@ -286,14 +326,14 @@ def make_choice(  # TODO jit
     not_entailed_propagators_copy = not_entailed_propagators.copy()
     choice_points.put((shr_domains_copy, not_entailed_propagators_copy))
     dom_heuristic_function = (
-        DOM_HEURISTIC_FCTS[dom_heuristic]
+        DOM_HEURISTIC_FCTS[dom_heuristic]  # TODO: fix when jitted
         # if NUMBA_DISABLE_JIT
         # else function_from_address(DOM_HEURISTIC_TYPE, DOM_HEURISTIC_ADDRS[dom_heuristic])
     )
     event = dom_heuristic_function(shr_domains_arr[dom_idx], shr_domains_copy[dom_idx])
     np.logical_or(
         triggered_propagators,
-        problem.shr_domains_propagators[dom_idx, event],
+        shr_domains_propagators[dom_idx, event],
         triggered_propagators,
     )
     statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
@@ -305,7 +345,15 @@ def make_choice(  # TODO jit
 
 def solve_one(  # TODO jit
     statistics: NDArray,
-    problem: Problem,
+    algorithms: NDArray,
+    var_bounds: NDArray,
+    param_bounds: NDArray,
+    dom_indices_arr: NDArray,
+    dom_offsets_arr: NDArray,
+    props_dom_indices: NDArray,
+    props_dom_offsets: NDArray,
+    props_parameters: NDArray,
+    shr_domains_propagators: NDArray,
     choice_points: ChoicePoints,
     triggered_propagators: NDArray,
     consistency_algorithm: bool,
@@ -319,7 +367,15 @@ def solve_one(  # TODO jit
     while (
         status := make_choice(
             statistics,
-            problem,
+            algorithms,
+            var_bounds,
+            param_bounds,
+            dom_indices_arr,
+            dom_offsets_arr,
+            props_dom_indices,
+            props_dom_offsets,
+            props_parameters,
+            shr_domains_propagators,
             choice_points,
             triggered_propagators,
             consistency_algorithm,
@@ -329,7 +385,7 @@ def solve_one(  # TODO jit
     ) == PROBLEM_TO_FILTER:
         pass
     return (
-        get_solution(choice_points.get_shr_domains(), problem.dom_indices_arr, problem.dom_offsets_arr)
+        get_solution(choice_points.get_shr_domains(), dom_indices_arr, dom_offsets_arr)
         if status == PROBLEM_SOLVED
         else None
     )
