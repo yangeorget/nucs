@@ -14,7 +14,7 @@ from nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_pro
     SportsTournamentSchedulingProblem,
 )
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import min_value_dom_heuristic, smallest_domain_var_heuristic
+from nucs.solvers.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 
 
 class TestSportsTournamentScheduling:
@@ -99,6 +99,6 @@ class TestSportsTournamentScheduling:
     def test_sports_tournament_scheduling_solve(self) -> None:
         problem = SportsTournamentSchedulingProblem(8)
         solver = BacktrackSolver(
-            problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
+            problem, var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MIN_VALUE
         )
         assert next(solver.solve()) is not None

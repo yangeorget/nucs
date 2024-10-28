@@ -14,7 +14,7 @@ from rich import print
 
 from nucs.examples.donald.donald_problem import DonaldProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import min_value_dom_heuristic, smallest_domain_var_heuristic
+from nucs.solvers.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.statistics import get_statistics
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -22,7 +22,7 @@ from nucs.statistics import get_statistics
 if __name__ == "__main__":
     problem = DonaldProblem()
     solver = BacktrackSolver(
-        problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
+        problem, var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MIN_VALUE
     )
     print(get_statistics(solver.statistics))
     for solution in solver.solve():

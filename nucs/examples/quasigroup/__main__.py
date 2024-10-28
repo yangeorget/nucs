@@ -16,7 +16,7 @@ from rich import print
 
 from nucs.examples.quasigroup.quasigroup_problem import Quasigroup5Problem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import min_value_dom_heuristic, smallest_domain_var_heuristic
+from nucs.solvers.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.statistics import get_statistics
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     problem = Quasigroup5Problem(args.n, args.symmetry_breaking)
     solver = BacktrackSolver(
-        problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
+        problem, var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MIN_VALUE
     )
     solver.solve_all()
     print(get_statistics(solver.statistics))

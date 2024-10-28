@@ -12,7 +12,7 @@
 ###############################################################################
 from nucs.examples.alpha.alpha_problem import AlphaProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import min_value_dom_heuristic, smallest_domain_var_heuristic
+from nucs.solvers.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.statistics import STATS_IDX_SOLVER_SOLUTION_NB
 
 
@@ -20,7 +20,7 @@ class TestAlpha:
     def test_alpha(self) -> None:
         problem = AlphaProblem()
         solver = BacktrackSolver(
-            problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
+            problem, var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MIN_VALUE
         )
         solutions = solver.find_all()
         assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 1

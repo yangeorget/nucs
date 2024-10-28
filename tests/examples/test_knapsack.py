@@ -12,7 +12,7 @@
 ###############################################################################
 from nucs.examples.knapsack.knapsack_problem import KnapsackProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import first_not_instantiated_var_heuristic, max_value_dom_heuristic
+from nucs.solvers.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 
 
 class TestKnapsack:
@@ -23,7 +23,7 @@ class TestKnapsack:
             55,
         )
         solver = BacktrackSolver(
-            problem, var_heuristic=first_not_instantiated_var_heuristic, dom_heuristic=max_value_dom_heuristic
+            problem, var_heuristic=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, dom_heuristic=DOM_HEURISTIC_MAX_VALUE
         )
         solution = solver.maximize(problem.weight)
         assert solution is not None

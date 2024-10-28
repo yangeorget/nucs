@@ -16,7 +16,7 @@ from rich import print
 
 from nucs.examples.bibd.bibd_problem import BIBDProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import max_value_dom_heuristic
+from nucs.solvers.heuristics import DOM_HEURISTIC_MAX_VALUE
 from nucs.statistics import get_statistics
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -31,6 +31,6 @@ if __name__ == "__main__":
     parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
     args = parser.parse_args()
     problem = BIBDProblem(args.v, args.b, args.r, args.k, args.l, args.symmetry_breaking)
-    solver = BacktrackSolver(problem, dom_heuristic=max_value_dom_heuristic)
+    solver = BacktrackSolver(problem, dom_heuristic=DOM_HEURISTIC_MAX_VALUE)
     solver.solve_all()
     print(get_statistics(solver.statistics))
