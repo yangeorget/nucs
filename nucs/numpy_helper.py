@@ -48,17 +48,17 @@ def new_parameters(n: int) -> NDArray:
 
 def new_triggers(n: int, init_value: bool) -> NDArray:
     if init_value:
-        return np.ones((n, 2), dtype=bool)
+        return np.ones((n, 2), dtype=np.bool)
     else:
-        return np.zeros((n, 2), dtype=bool)
+        return np.zeros((n, 2), dtype=np.bool)
 
 
 def new_triggered_propagators(n: int) -> NDArray:
-    return np.ones(n, dtype=bool)
+    return np.ones(n, dtype=np.bool)
 
 
 def new_not_entailed_propagators(n: int) -> NDArray:
-    return np.ones(n, dtype=bool)
+    return np.ones(n, dtype=np.bool)
 
 
 def new_bounds(n: int) -> NDArray:
@@ -66,7 +66,7 @@ def new_bounds(n: int) -> NDArray:
 
 
 def new_shr_domains_propagators(n: int, m: int) -> NDArray:
-    return np.zeros((n, 2, m), dtype=bool)
+    return np.zeros((n, 2, m), dtype=np.bool)
 
 
 def new_algorithms(n: int) -> NDArray:

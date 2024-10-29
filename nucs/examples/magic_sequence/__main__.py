@@ -27,7 +27,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     problem = MagicSequenceProblem(args.n)
     solver = BacktrackSolver(
-        problem, var_heuristic=VAR_HEURISTIC_LAST_NOT_INSTANTIATED, dom_heuristic=DOM_HEURISTIC_MIN_VALUE
+        problem, var_heuristic_idx=VAR_HEURISTIC_LAST_NOT_INSTANTIATED, dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE
     )
     solver.solve_all()
     print(get_statistics(solver.statistics))

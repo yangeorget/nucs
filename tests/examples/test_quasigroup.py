@@ -33,7 +33,7 @@ class TestQuasigroup:
     def test_quasigroup5(self, size: int, solution_nb: int) -> None:
         problem = Quasigroup5Problem(size)
         solver = BacktrackSolver(
-            problem, var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MIN_VALUE
+            problem, var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE
         )
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == solution_nb

@@ -10,6 +10,8 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
+import os
+
 from numba import int32, int64, types  # type: ignore
 
 START = 0  # index corresponding the start of a values range
@@ -34,3 +36,5 @@ SIGNATURE_VAR_HEURISTIC = int64(int32[:, :])
 TYPE_COMPUTE_DOMAINS = types.FunctionType(SIGNATURE_COMPUTE_DOMAINS)
 TYPE_DOM_HEURISTIC = types.FunctionType(SIGNATURE_DOM_HEURISTIC)
 TYPE_VAR_HEURISTIC = types.FunctionType(SIGNATURE_VAR_HEURISTIC)
+
+NUMBA_DISABLE_JIT = os.getenv("NUMBA_DISABLE_JIT")

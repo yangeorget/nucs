@@ -34,7 +34,7 @@ if __name__ == "__main__":
         [
             BacktrackSolver(
                 problem,
-                var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
+                var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
             )
             for problem in problems
         ]

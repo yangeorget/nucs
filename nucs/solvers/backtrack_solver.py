@@ -11,26 +11,17 @@
 # Copyright 2024 - Yan Georget
 ###############################################################################
 from multiprocessing import Queue
-from typing import Callable, Iterator, Optional, Tuple
+from typing import Callable, Iterator, Optional
 
 import numpy as np
 from numpy.typing import NDArray
 
-from nucs.constants import (
-    PROBLEM_INCONSISTENT,
-    PROBLEM_SOLVED,
-    PROBLEM_TO_FILTER,
-    SIGNATURE_COMPUTE_DOMAINS,
-    SIGNATURE_DOM_HEURISTIC,
-    SIGNATURE_VAR_HEURISTIC,
-)
-from nucs.examples.golomb.golomb_problem import golomb_consistency_algorithm
-from nucs.numba_helper import NUMBA_DISABLE_JIT, build_function_address_list
+from nucs.constants import PROBLEM_INCONSISTENT, PROBLEM_SOLVED, PROBLEM_TO_FILTER
+from nucs.numba_helper import get_addrs
 from nucs.numpy_helper import new_not_entailed_propagators, new_shr_domains_by_values, new_triggered_propagators
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS
 from nucs.solvers.choice_points import ChoicePoints
-from nucs.solvers.consistency_algorithms import bound_consistency_algorithm
+from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, consistency_algorithm
 from nucs.solvers.heuristics import (
     DOM_HEURISTIC_FCTS,
     DOM_HEURISTIC_MIN_VALUE,
@@ -58,19 +49,19 @@ class BacktrackSolver(Solver):
     def __init__(
         self,
         problem: Problem,
-        consistency_algorithm: bool = False,  # TODO: fix this
-        var_heuristic: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
-        dom_heuristic: int = DOM_HEURISTIC_MIN_VALUE,
+        consistency_algorithm_idx: int = CONSISTENCY_ALG_BC,
+        var_heuristic_idx: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
+        dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
     ):
         """
         Inits the solver.
         :param problem: the problem
-        :param var_heuristic: a heuristic for selecting a variable/domain
-        :param dom_heuristic: a heuristic for reducing a domain
+        :param var_heuristic_idx: a heuristic for selecting a variable/domain
+        :param dom_heuristic_idx: a heuristic for reducing a domain
         """
-        self.var_heuristic = var_heuristic
-        self.dom_heuristic = dom_heuristic
-        self.consistency_algorithm = consistency_algorithm
+        self.var_heuristic_idx = var_heuristic_idx
+        self.dom_heuristic_idx = dom_heuristic_idx
+        self.consistency_algorithm_idx = consistency_algorithm_idx
         self.triggered_propagators = new_triggered_propagators(problem.propagator_nb)
         problem.init()
         self.problem = problem
@@ -98,27 +89,8 @@ class BacktrackSolver(Solver):
         """
         return self.optimize(variable_idx, increase_min)
 
-    def get_addrs(self) -> Tuple[NDArray, NDArray, NDArray]:
-        compute_domains_addrs = (
-            np.array(build_function_address_list(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS))
-            if not NUMBA_DISABLE_JIT
-            else np.empty(0)
-        )
-        var_heuristic_addrs = (
-            np.array(build_function_address_list(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC))
-            if not NUMBA_DISABLE_JIT
-            else np.empty(0)
-        )
-
-        dom_heuristic_addrs = (
-            np.array(build_function_address_list(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC))
-            if not NUMBA_DISABLE_JIT
-            else np.empty(0)
-        )
-        return compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs
-
     def optimize(self, variable_idx: int, update_domain: Callable) -> Optional[NDArray]:
-        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs = self.get_addrs()
+        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs = get_addrs()
         best_solution = None
         while (
             solution := solve_one(
@@ -134,9 +106,9 @@ class BacktrackSolver(Solver):
                 self.problem.shr_domains_propagators,
                 self.choice_points,
                 self.triggered_propagators,
-                self.consistency_algorithm,
-                self.var_heuristic,
-                self.dom_heuristic,
+                self.consistency_algorithm_idx,
+                self.var_heuristic_idx,
+                self.dom_heuristic_idx,
                 compute_domains_addrs,
                 var_heuristic_addrs,
                 dom_heuristic_addrs,
@@ -159,7 +131,7 @@ class BacktrackSolver(Solver):
         Returns an iterator over the solutions.
         :return: an iterator
         """
-        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs = self.get_addrs()
+        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs = get_addrs()
         while (
             solution := solve_one(
                 self.statistics,
@@ -174,9 +146,9 @@ class BacktrackSolver(Solver):
                 self.problem.shr_domains_propagators,
                 self.choice_points,
                 self.triggered_propagators,
-                self.consistency_algorithm,
-                self.var_heuristic,
-                self.dom_heuristic,
+                self.consistency_algorithm_idx,
+                self.var_heuristic_idx,
+                self.dom_heuristic_idx,
                 compute_domains_addrs,
                 var_heuristic_addrs,
                 dom_heuristic_addrs,
@@ -207,7 +179,7 @@ class BacktrackSolver(Solver):
     def optimize_and_queue(
         self, variable_idx: int, update_domain: Callable, processor_idx: int, solution_queue: Queue
     ) -> None:
-        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs = self.get_addrs()
+        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs = get_addrs()
         while (
             solution := solve_one(
                 self.statistics,
@@ -222,9 +194,9 @@ class BacktrackSolver(Solver):
                 self.problem.shr_domains_propagators,
                 self.choice_points,
                 self.triggered_propagators,
-                self.consistency_algorithm,
-                self.var_heuristic,
-                self.dom_heuristic,
+                self.consistency_algorithm_idx,
+                self.var_heuristic_idx,
+                self.dom_heuristic_idx,
                 compute_domains_addrs,
                 var_heuristic_addrs,
                 dom_heuristic_addrs,
@@ -243,7 +215,7 @@ class BacktrackSolver(Solver):
         solution_queue.put((processor_idx, None, self.statistics))
 
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
-        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs = self.get_addrs()
+        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs = get_addrs()
         while (
             solution := solve_one(
                 self.statistics,
@@ -258,9 +230,9 @@ class BacktrackSolver(Solver):
                 self.problem.shr_domains_propagators,
                 self.choice_points,
                 self.triggered_propagators,
-                self.consistency_algorithm,
-                self.var_heuristic,
-                self.dom_heuristic,
+                self.consistency_algorithm_idx,
+                self.var_heuristic_idx,
+                self.dom_heuristic_idx,
                 compute_domains_addrs,
                 var_heuristic_addrs,
                 dom_heuristic_addrs,
@@ -305,9 +277,9 @@ def make_choice(  # TODO jit
     shr_domains_propagators: NDArray,
     choice_points: ChoicePoints,
     triggered_propagators: NDArray,
-    consistency_algorithm: bool,
-    var_heuristic: int,
-    dom_heuristic: int,
+    consistency_algorithm_idx: int,
+    var_heuristic_idx: int,
+    dom_heuristic_idx: int,
     compute_domains_addrs: NDArray,
     var_heuristic_addrs: NDArray,
     dom_heuristic_addrs: NDArray,
@@ -319,24 +291,8 @@ def make_choice(  # TODO jit
     # first filter
     while (
         status := (
-            bound_consistency_algorithm(
-                statistics,
-                algorithms,
-                var_bounds,
-                param_bounds,
-                dom_indices_arr,
-                dom_offsets_arr,
-                props_dom_indices,
-                props_dom_offsets,
-                props_parameters,
-                shr_domains_propagators,
-                choice_points.get_shr_domains(),
-                choice_points.get_not_entailed_propagators(),
-                triggered_propagators,
-                compute_domains_addrs,
-            )
-            if consistency_algorithm is False  # TODO: fix this
-            else golomb_consistency_algorithm(
+            consistency_algorithm(
+                consistency_algorithm_idx,
                 statistics,
                 algorithms,
                 var_bounds,
@@ -363,7 +319,7 @@ def make_choice(  # TODO jit
     shr_domains_arr = choice_points.get_shr_domains()
     not_entailed_propagators = choice_points.get_not_entailed_propagators()
     var_heuristic_function = (
-        VAR_HEURISTIC_FCTS[var_heuristic]  # TODO: fix when jitted
+        VAR_HEURISTIC_FCTS[var_heuristic_idx]  # TODO: fix when jitted
         # if NUMBA_DISABLE_JIT
         # else function_from_address(VAR_HEURISTIC_TYPE, VAR_HEURISTIC_ADDRS[var_heuristic])
     )
@@ -372,7 +328,7 @@ def make_choice(  # TODO jit
     not_entailed_propagators_copy = not_entailed_propagators.copy()
     choice_points.put((shr_domains_copy, not_entailed_propagators_copy))
     dom_heuristic_function = (
-        DOM_HEURISTIC_FCTS[dom_heuristic]  # TODO: fix when jitted
+        DOM_HEURISTIC_FCTS[dom_heuristic_idx]  # TODO: fix when jitted
         # if NUMBA_DISABLE_JIT
         # else function_from_address(DOM_HEURISTIC_TYPE, DOM_HEURISTIC_ADDRS[dom_heuristic])
     )
@@ -402,9 +358,9 @@ def solve_one(  # TODO jit
     shr_domains_propagators: NDArray,
     choice_points: ChoicePoints,
     triggered_propagators: NDArray,
-    consistency_algorithm: bool,
-    var_heuristic: int,
-    dom_heuristic: int,
+    consistency_algorithm_idx: int,
+    var_heuristic_idx: int,
+    dom_heuristic_idx: int,
     compute_domains_addrs: NDArray,
     var_heuristic_addrs: NDArray,
     dom_heuristic_addrs: NDArray,
@@ -427,9 +383,9 @@ def solve_one(  # TODO jit
             shr_domains_propagators,
             choice_points,
             triggered_propagators,
-            consistency_algorithm,
-            var_heuristic,
-            dom_heuristic,
+            consistency_algorithm_idx,
+            var_heuristic_idx,
+            dom_heuristic_idx,
             compute_domains_addrs,
             var_heuristic_addrs,
             dom_heuristic_addrs,

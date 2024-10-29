@@ -26,7 +26,7 @@ if __name__ == "__main__":
         55,
     )
     solver = BacktrackSolver(
-        problem, var_heuristic=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, dom_heuristic=DOM_HEURISTIC_MAX_VALUE
+        problem, var_heuristic_idx=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE
     )
     solution = solver.maximize(problem.weight)
     print(get_statistics(solver.statistics))

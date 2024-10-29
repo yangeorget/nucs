@@ -30,7 +30,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     problem = SportsTournamentSchedulingProblem(args.n, args.symmetry_breaking)
     solver = BacktrackSolver(
-        problem, var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MIN_VALUE
+        problem, var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE
     )
     solution = next(solver.solve())
     print(get_statistics(solver.statistics))

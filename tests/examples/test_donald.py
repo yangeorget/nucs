@@ -20,7 +20,7 @@ class TestDonald:
     def test_donald(self) -> None:
         problem = DonaldProblem()
         solver = BacktrackSolver(
-            problem, var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MIN_VALUE
+            problem, var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE
         )
         solutions = solver.find_all()
         assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 1

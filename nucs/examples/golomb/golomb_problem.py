@@ -13,18 +13,21 @@
 import math
 
 import numpy as np
+from numba import njit
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLDIFFERENT
-from nucs.solvers.consistency_algorithms import bound_consistency_algorithm
+from nucs.solvers.bc_consistency_algorithm import bound_consistency_algorithm
 from nucs.solvers.heuristics import first_not_instantiated_var_heuristic
 
-GOLOMB_LENGTHS = [0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127]
+
+GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])
 
 
-def sum_first(n: int) -> int:
+@njit(cache=True)
+def sum_first(n: np.uint32) -> np.uint32:
     """
     Returns the sum of the first n integers.
     :param n: an integer
@@ -33,7 +36,8 @@ def sum_first(n: int) -> int:
     return (n * (n + 1)) // 2
 
 
-def index(mark_nb: int, i: int, j: int) -> int:
+@njit(cache=True)
+def index(mark_nb: np.uint32, i: np.uint32, j: np.uint32) -> np.uint32:
     """
     Returns the index of the distance variable between two marks.
     :param mark_nb: the total number of marks
@@ -44,6 +48,7 @@ def index(mark_nb: int, i: int, j: int) -> int:
     return i * mark_nb - sum_first(i) + j - i - 1
 
 
+@njit(cache=True)
 def init_domains(dist_nb: int, mark_nb: int) -> NDArray:
     """
     Returns the domains.
@@ -51,7 +56,7 @@ def init_domains(dist_nb: int, mark_nb: int) -> NDArray:
     :param mark_nb: the number of marks
     :return: a Numpy array of domains
     """
-    domains = np.empty((dist_nb, 2), dtype=np.int32, order="F")
+    domains = np.empty((dist_nb, 2), dtype=np.int32)
     for i in range(0, mark_nb - 1):
         for j in range(i + 1, mark_nb):
             domains[index(mark_nb, i, j), MIN] = GOLOMB_LENGTHS[j - i + 1] if j - i + 1 < mark_nb else sum_first(j - i)
@@ -108,6 +113,7 @@ class GolombProblem(Problem):
             )
 
 
+@njit(cache=True)
 def golomb_consistency_algorithm(
     statistics: NDArray,
     algorithms: NDArray,
@@ -134,10 +140,10 @@ def golomb_consistency_algorithm(
     mark_nb = (1 + int(math.sqrt(8 * len(dom_indices_arr) + 1))) // 2
     ni_var_idx = first_not_instantiated_var_heuristic(shr_domains_arr)  # no domains shared between vars
     if 1 < ni_var_idx < mark_nb - 1:  # otherwise useless
-        used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=bool)
+        used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=np.bool)
         # a reusable array for storing the minimal sum of different integers:
         # minimal_sum[i] will be the minimal sum of i different integers chosen among a set of possible integers
-        minimal_sum = np.zeros(mark_nb - 1, dtype=int)
+        minimal_sum = np.zeros(mark_nb - 1, dtype=np.int32)
         # the following will mark at most sum(n-3) numbers as used
         # hence there will be at least n-2 unused numbers greater than 0
         for var_idx in range(index(mark_nb, ni_var_idx - 2, ni_var_idx - 1) + 1):
