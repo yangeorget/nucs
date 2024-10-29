@@ -18,9 +18,13 @@ from numpy.typing import NDArray
 
 from nucs.constants import PROBLEM_INCONSISTENT, PROBLEM_SOLVED, PROBLEM_TO_FILTER
 from nucs.numba_helper import get_addrs
-from nucs.numpy_helper import new_not_entailed_propagators, new_shr_domains_by_values, new_triggered_propagators
+from nucs.numpy_helper import (
+    new_not_entailed_propagators,
+    new_shr_domains_by_values,
+    new_stacks,
+    new_triggered_propagators,
+)
 from nucs.problems.problem import Problem
-from nucs.solvers.choice_points import ChoicePoints
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, consistency_algorithm
 from nucs.solvers.heuristics import (
     DOM_HEURISTIC_FCTS,
@@ -65,10 +69,9 @@ class BacktrackSolver(Solver):
         self.triggered_propagators = new_triggered_propagators(problem.propagator_nb)
         problem.init()
         self.problem = problem
-        shr_domains_arr = new_shr_domains_by_values(self.problem.shr_domains_lst)
-        not_entailed_propagators = new_not_entailed_propagators(self.problem.propagator_nb)
-        self.choice_points = ChoicePoints()  # TODO: replace with NDArrays
-        self.choice_points.put((shr_domains_arr, not_entailed_propagators))
+        self.shr_domains_stack, self.not_entailed_propagators_stack, self.stacks_height = new_stacks(
+            self.problem.shr_domains_lst, self.problem.propagator_nb
+        )
         self.statistics = init_statistics()
         self.statistics[STATS_IDX_PROBLEM_PROPAGATOR_NB] = self.problem.propagator_nb
         self.statistics[STATS_IDX_PROBLEM_VARIABLE_NB] = self.problem.variable_nb
@@ -104,7 +107,7 @@ class BacktrackSolver(Solver):
                 self.problem.props_dom_offsets,
                 self.problem.props_parameters,
                 self.problem.shr_domains_propagators,
-                self.choice_points,
+                self.shr_domains_stack, self.not_entailed_propagators_stack, self.stacks_height,
                 self.triggered_propagators,
                 self.consistency_algorithm_idx,
                 self.var_heuristic_idx,
@@ -144,7 +147,7 @@ class BacktrackSolver(Solver):
                 self.problem.props_dom_offsets,
                 self.problem.props_parameters,
                 self.problem.shr_domains_propagators,
-                self.choice_points,
+                self.shr_domains_stack, self.not_entailed_propagators_stack, self.stacks_height,
                 self.triggered_propagators,
                 self.consistency_algorithm_idx,
                 self.var_heuristic_idx,
@@ -192,7 +195,7 @@ class BacktrackSolver(Solver):
                 self.problem.props_dom_offsets,
                 self.problem.props_parameters,
                 self.problem.shr_domains_propagators,
-                self.choice_points,
+                self.shr_domains_stack, self.not_entailed_propagators_stack, self.stacks_height,
                 self.triggered_propagators,
                 self.consistency_algorithm_idx,
                 self.var_heuristic_idx,
@@ -228,7 +231,7 @@ class BacktrackSolver(Solver):
                 self.problem.props_dom_offsets,
                 self.problem.props_parameters,
                 self.problem.shr_domains_propagators,
-                self.choice_points,
+                self.shr_domains_stack, self.not_entailed_propagators_stack, self.stacks_height,
                 self.triggered_propagators,
                 self.consistency_algorithm_idx,
                 self.var_heuristic_idx,
@@ -244,7 +247,7 @@ class BacktrackSolver(Solver):
         solution_queue.put((processor_idx, None, self.statistics))
 
 
-def backtrack(statistics: NDArray, choice_points: ChoicePoints, triggered_propagators: NDArray) -> bool:
+def backtrack(statistics: NDArray, shr_domains_stack, not_entailed_propagators_stack, stacks_height, triggered_propagators: NDArray) -> bool:
     """
     Backtracks and updates the problem's domains
     :return: true iff it is possible to backtrack
@@ -275,7 +278,7 @@ def make_choice(  # TODO jit
     props_dom_offsets: NDArray,
     props_parameters: NDArray,
     shr_domains_propagators: NDArray,
-    choice_points: ChoicePoints,
+    shr_domains_stack: NDArray, not_entailed_propagators_stack: NDArray, stacks_height: NDArray,
     triggered_propagators: NDArray,
     consistency_algorithm_idx: int,
     var_heuristic_idx: int,
@@ -303,14 +306,13 @@ def make_choice(  # TODO jit
                 props_dom_offsets,
                 props_parameters,
                 shr_domains_propagators,
-                choice_points.get_shr_domains(),
-                choice_points.get_not_entailed_propagators(),
+                shr_domains_stack, not_entailed_propagators_stack, stacks_height,
                 triggered_propagators,
                 compute_domains_addrs,
             )
         )
     ) == PROBLEM_INCONSISTENT:
-        if not backtrack(statistics, choice_points, triggered_propagators):
+        if not backtrack(statistics, shr_domains_stack, not_entailed_propagators_stack, stacks_height, triggered_propagators):
             return PROBLEM_INCONSISTENT
     if status == PROBLEM_SOLVED:
         statistics[STATS_IDX_SOLVER_SOLUTION_NB] += 1

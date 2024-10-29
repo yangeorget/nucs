@@ -22,7 +22,6 @@ from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLD
 from nucs.solvers.bc_consistency_algorithm import bound_consistency_algorithm
 from nucs.solvers.heuristics import first_not_instantiated_var_heuristic
 
-
 GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])
 
 
