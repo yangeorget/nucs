@@ -10,11 +10,11 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
-import numpy as np
-from numba import int32, int64, njit, types  # type: ignore
+from typing import Callable
+
+from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.numba import NUMBA_DISABLE_JIT, build_function_address_list
 from nucs.propagators.affine_eq_propagator import (
     compute_domains_affine_eq,
     get_complexity_affine_eq,
@@ -78,100 +78,42 @@ from nucs.propagators.relation_propagator import (
     get_triggers_relation,
 )
 
-# The ordinals of the algorithms for all propagators (sorted by alphabetical ordering).
-(
-    ALG_AND,
-    ALG_AFFINE_EQ,
-    ALG_AFFINE_GEQ,
-    ALG_AFFINE_LEQ,
-    ALG_ALLDIFFERENT,
-    ALG_COUNT_EQ,
-    ALG_DUMMY,
-    ALG_ELEMENT_LIV,
-    ALG_ELEMENT_LIC,
-    ALG_EXACTLY_EQ,
-    ALG_EXACTLY_TRUE,
-    ALG_GCC,
-    ALG_LEXICOGRAPHIC_LEQ,
-    ALG_MAX_EQ,
-    ALG_MAX_LEQ,
-    ALG_MIN_EQ,
-    ALG_MIN_GEQ,
-    ALG_RELATION,
-) = tuple(range(18))
+GET_TRIGGERS_FCTS = []
+GET_COMPLEXITY_FCTS = []
+COMPUTE_DOMAINS_FCTS = []
 
 
-GET_TRIGGERS_FCTS = [
-    get_triggers_and,
-    get_triggers_affine_eq,
-    get_triggers_affine_geq,
-    get_triggers_affine_leq,
-    get_triggers_alldifferent,
-    get_triggers_count_eq,
-    get_triggers_dummy,
-    get_triggers_element_liv,
-    get_triggers_element_lic,
-    get_triggers_exactly_eq,
-    get_triggers_exactly_true,
-    get_triggers_gcc,
-    get_triggers_lexicographic_leq,
-    get_triggers_max_eq,
-    get_triggers_max_leq,
-    get_triggers_min_eq,
-    get_triggers_min_geq,
-    get_triggers_relation,
-]
-
-GET_COMPLEXITY_FCTS = [
-    get_complexity_and,
-    get_complexity_affine_eq,
-    get_complexity_affine_geq,
-    get_complexity_affine_leq,
-    get_complexity_alldifferent,
-    get_complexity_count_eq,
-    get_complexity_dummy,
-    get_complexity_element_liv,
-    get_complexity_element_lic,
-    get_complexity_exactly_eq,
-    get_complexity_exactly_true,
-    get_complexity_gcc,
-    get_complexity_lexicographic_leq,
-    get_complexity_max_eq,
-    get_complexity_max_leq,
-    get_complexity_min_eq,
-    get_complexity_min_geq,
-    get_complexity_relation,
-]
+def register_propagator(get_triggers_fct: Callable, get_complexity_fct: Callable, compute_domains_fct: Callable) -> int:
+    GET_TRIGGERS_FCTS.append(get_triggers_fct)
+    GET_COMPLEXITY_FCTS.append(get_complexity_fct)
+    COMPUTE_DOMAINS_FCTS.append(compute_domains_fct)
+    return len(COMPUTE_DOMAINS_FCTS) - 1
 
 
-COMPUTE_DOMAINS_FCTS = [
-    compute_domains_and,
-    compute_domains_affine_eq,
-    compute_domains_affine_geq,
-    compute_domains_affine_leq,
-    compute_domains_alldifferent,
-    compute_domains_count_eq,
-    compute_domains_dummy,
-    compute_domains_element_liv,
-    compute_domains_element_lic,
-    compute_domains_exactly_eq,
-    compute_domains_exactly_true,
-    compute_domains_gcc,
-    compute_domains_lexicographic_leq,
-    compute_domains_max_eq,
-    compute_domains_max_leq,
-    compute_domains_min_eq,
-    compute_domains_min_geq,
-    compute_domains_relation,
-]
-
-COMPUTE_DOMAIN_SIGNATURE = int64(int32[:, :], int32[:])
-COMPUTE_DOMAIN_TYPE = types.FunctionType(COMPUTE_DOMAIN_SIGNATURE)
-COMPUTE_DOMAINS_ADDRS = (
-    np.array(build_function_address_list(COMPUTE_DOMAINS_FCTS, COMPUTE_DOMAIN_SIGNATURE))
-    if not NUMBA_DISABLE_JIT
-    else np.empty(0)
+ALG_AND = register_propagator(get_triggers_and, get_complexity_and, compute_domains_and)
+ALG_AFFINE_EQ = register_propagator(get_triggers_affine_eq, get_complexity_affine_eq, compute_domains_affine_eq)
+ALG_AFFINE_GEQ = register_propagator(get_triggers_affine_geq, get_complexity_affine_geq, compute_domains_affine_geq)
+ALG_AFFINE_LEQ = register_propagator(get_triggers_affine_leq, get_complexity_affine_leq, compute_domains_affine_leq)
+ALG_ALLDIFFERENT = register_propagator(
+    get_triggers_alldifferent, get_complexity_alldifferent, compute_domains_alldifferent
 )
+ALG_COUNT_EQ = register_propagator(get_triggers_count_eq, get_complexity_count_eq, compute_domains_count_eq)
+ALG_DUMMY = register_propagator(get_triggers_dummy, get_complexity_dummy, compute_domains_dummy)
+ALG_ELEMENT_LIV = register_propagator(get_triggers_element_liv, get_complexity_element_liv, compute_domains_element_liv)
+ALG_ELEMENT_LIC = register_propagator(get_triggers_element_lic, get_complexity_element_lic, compute_domains_element_lic)
+ALG_EXACTLY_EQ = register_propagator(get_triggers_exactly_eq, get_complexity_exactly_eq, compute_domains_exactly_eq)
+ALG_EXACTLY_TRUE = register_propagator(
+    get_triggers_exactly_true, get_complexity_exactly_true, compute_domains_exactly_true
+)
+ALG_GCC = register_propagator(get_triggers_gcc, get_complexity_gcc, compute_domains_gcc)
+ALG_LEXICOGRAPHIC_LEQ = register_propagator(
+    get_triggers_lexicographic_leq, get_complexity_lexicographic_leq, compute_domains_lexicographic_leq
+)
+ALG_MAX_EQ = register_propagator(get_triggers_max_eq, get_complexity_max_eq, compute_domains_max_eq)
+ALG_MAX_LEQ = register_propagator(get_triggers_max_leq, get_complexity_max_leq, compute_domains_max_leq)
+ALG_MIN_EQ = register_propagator(get_triggers_min_eq, get_complexity_min_eq, compute_domains_min_eq)
+ALG_MIN_GEQ = register_propagator(get_triggers_min_geq, get_complexity_min_geq, compute_domains_min_geq)
+ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relation, compute_domains_relation)
 
 
 @njit(cache=True)

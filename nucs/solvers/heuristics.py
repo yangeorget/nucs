@@ -11,13 +11,12 @@
 # Copyright 2024 - Yan Georget
 ###############################################################################
 import sys
+from typing import Callable
 
-import numpy as np
-from numba import int32, int64, njit, types  # type: ignore
+from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN
-from nucs.numba import NUMBA_DISABLE_JIT, build_function_address_list
 
 
 @njit(cache=True)
@@ -114,40 +113,25 @@ def split_low_dom_heuristic(shr_domain: NDArray, shr_domain_copy: NDArray) -> in
     return MAX
 
 
-(
-    VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
-    VAR_HEURISTIC_LAST_NOT_INSTANTIATED,
-    VAR_HEURISTIC_SMALLEST_DOMAIN,
-    VAR_HEURISTIC_GREATEST_DOMAIN,
-) = tuple(range(4))
+VAR_HEURISTIC_FCTS = []
+DOM_HEURISTIC_FCTS = []
 
-VAR_HEURISTIC_FCTS = [
-    first_not_instantiated_var_heuristic,
-    last_not_instantiated_var_heuristic,
-    smallest_domain_var_heuristic,
-    greatest_domain_var_heuristic,
-]
 
-VAR_HEURISTIC_SIGNATURE = int64(int32[:, :])
-VAR_HEURISTIC_TYPE = types.FunctionType(VAR_HEURISTIC_SIGNATURE)
-VAR_HEURISTIC_ADDRS = (
-    np.array(build_function_address_list(VAR_HEURISTIC_FCTS, VAR_HEURISTIC_SIGNATURE))
-    if not NUMBA_DISABLE_JIT
-    else np.empty(0)
-)
+def register_var_heuristic(var_heuristic: Callable) -> int:
+    VAR_HEURISTIC_FCTS.append(var_heuristic)
+    return len(VAR_HEURISTIC_FCTS) - 1
 
-(
-    DOM_HEURISTIC_MIN_VALUE,
-    DOM_HEURISTIC_MAX_VALUE,
-    DOM_HEURISTIC_SPLIT_LOW,
-) = tuple(range(3))
 
-DOM_HEURISTIC_FCTS = [min_value_dom_heuristic, max_value_dom_heuristic, split_low_dom_heuristic]
+def register_dom_heuristic(dom_heuristic: Callable) -> int:
+    DOM_HEURISTIC_FCTS.append(dom_heuristic)
+    return len(DOM_HEURISTIC_FCTS) - 1
 
-DOM_HEURISTIC_SIGNATURE = int64(int32[:, :], int32[:, :])
-DOM_HEURISTIC_TYPE = types.FunctionType(DOM_HEURISTIC_SIGNATURE)
-DOM_HEURISTIC_ADDRS = (
-    np.array(build_function_address_list(DOM_HEURISTIC_FCTS, DOM_HEURISTIC_SIGNATURE))
-    if not NUMBA_DISABLE_JIT
-    else np.empty(0)
-)
+
+VAR_HEURISTIC_FIRST_NOT_INSTANTIATED = register_var_heuristic(first_not_instantiated_var_heuristic)
+VAR_HEURISTIC_LAST_NOT_INSTANTIATED = register_var_heuristic(last_not_instantiated_var_heuristic)
+VAR_HEURISTIC_SMALLEST_DOMAIN = register_var_heuristic(smallest_domain_var_heuristic)
+VAR_HEURISTIC_GREATEST_DOMAIN = register_var_heuristic(greatest_domain_var_heuristic)
+
+DOM_HEURISTIC_MIN_VALUE = register_dom_heuristic(min_value_dom_heuristic)
+DOM_HEURISTIC_MAX_VALUE = register_dom_heuristic(max_value_dom_heuristic)
+DOM_HEURISTIC_SPLIT_LOW = register_dom_heuristic(split_low_dom_heuristic)

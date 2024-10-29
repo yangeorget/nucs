@@ -14,7 +14,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import PROP_CONSISTENCY
-from nucs.numpy import new_triggers
+from nucs.numpy_helper import new_triggers
 
 
 def get_complexity_dummy(n: int, parameters: NDArray) -> float:

@@ -24,9 +24,10 @@ from nucs.constants import (
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
     START,
+    TYPE_COMPUTE_DOMAINS,
 )
-from nucs.numba import NUMBA_DISABLE_JIT, function_from_address
-from nucs.propagators.propagators import COMPUTE_DOMAIN_TYPE, COMPUTE_DOMAINS_FCTS, pop_propagator
+from nucs.numba_helper import NUMBA_DISABLE_JIT, function_from_address
+from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, pop_propagator
 from nucs.solvers.solver import is_solved
 from nucs.statistics import (
     STATS_IDX_PROBLEM_FILTER_NB,
@@ -76,7 +77,7 @@ def bound_consistency_algorithm(
         compute_domains_function = (
             COMPUTE_DOMAINS_FCTS[algorithm]
             if NUMBA_DISABLE_JIT
-            else function_from_address(COMPUTE_DOMAIN_TYPE, compute_domains_addrs[algorithm])
+            else function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[algorithm])
         )
         prop_data = props_parameters[param_bounds[prop_idx, START] : param_bounds[prop_idx, END]]
         status = compute_domains_function(prop_domains, prop_data)

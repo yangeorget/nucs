@@ -16,7 +16,7 @@ import numpy as np
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
-from nucs.numpy import new_parameters_by_values, new_shr_domains_by_values
+from nucs.numpy_helper import new_parameters_by_values, new_shr_domains_by_values
 from nucs.problems.problem import Problem
 from nucs.propagators.lexicographic_leq_propagator import compute_domains_lexicographic_leq
 from nucs.propagators.propagators import ALG_LEXICOGRAPHIC_LEQ

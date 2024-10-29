@@ -13,7 +13,7 @@
 import numpy as np
 
 from nucs.constants import PROP_CONSISTENCY
-from nucs.numpy import new_parameters_by_values, new_shr_domains_by_values
+from nucs.numpy_helper import new_parameters_by_values, new_shr_domains_by_values
 from nucs.propagators.gcc_propagator import compute_domains_gcc
 
 

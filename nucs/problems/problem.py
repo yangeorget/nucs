@@ -16,7 +16,7 @@ from typing import Optional, Self, Tuple, Union
 from numba.typed import List
 
 from nucs.constants import END, START
-from nucs.numpy import (
+from nucs.numpy_helper import (
     new_algorithms,
     new_bounds,
     new_dom_indices,
