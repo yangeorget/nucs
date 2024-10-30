@@ -16,7 +16,7 @@ from rich import print
 
 from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import first_not_instantiated_var_heuristic, smallest_domain_var_heuristic
+from nucs.solvers.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 from nucs.statistics import get_statistics
 
@@ -34,7 +34,7 @@ if __name__ == "__main__":
         [
             BacktrackSolver(
                 problem,
-                var_heuristic=smallest_domain_var_heuristic if args.ff else first_not_instantiated_var_heuristic,
+                var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
             )
             for problem in problems
         ]

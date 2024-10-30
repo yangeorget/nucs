@@ -106,7 +106,7 @@ class SportsTournamentSchedulingProblem(Problem):
             k = 0
             for p in range(self.period_nb):
                 for s in range(self.slot_nb):
-                    self.shr_domains_lst[self.team_var_index(p, 0, s)] = k
+                    self.shr_domains_lst[self.team_var_index(p, 0, s)] = [k, k]
                     k += 1
             # the match `0 versus (t+1)` appears at week t (much slower)
             self.add_propagators(

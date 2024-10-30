@@ -16,7 +16,7 @@ from rich import print
 
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import last_not_instantiated_var_heuristic, min_value_dom_heuristic
+from nucs.solvers.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_LAST_NOT_INSTANTIATED
 from nucs.statistics import get_statistics
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     problem = MagicSequenceProblem(args.n)
     solver = BacktrackSolver(
-        problem, var_heuristic=last_not_instantiated_var_heuristic, dom_heuristic=min_value_dom_heuristic
+        problem, var_heuristic_idx=VAR_HEURISTIC_LAST_NOT_INSTANTIATED, dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE
     )
     solver.solve_all()
     print(get_statistics(solver.statistics))

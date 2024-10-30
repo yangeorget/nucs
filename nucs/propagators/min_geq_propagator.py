@@ -15,7 +15,6 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
-from nucs.numpy import new_triggers
 
 
 def get_complexity_min_geq(n: int, parameters: NDArray) -> float:
@@ -35,7 +34,7 @@ def get_triggers_min_geq(n: int, parameters: NDArray) -> NDArray:
     :param parameters: the parameters, unused here
     :return: an array of triggers
     """
-    triggers = new_triggers(n, False)
+    triggers = np.zeros((n, 2), dtype=np.bool)
     for i in range(n - 1):
         triggers[i, MAX] = True
     triggers[-1, MIN] = True

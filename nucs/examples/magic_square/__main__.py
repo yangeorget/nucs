@@ -16,7 +16,7 @@ from rich import print
 
 from nucs.examples.magic_square.magic_square_problem import MagicSquareProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import max_value_dom_heuristic, smallest_domain_var_heuristic
+from nucs.solvers.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.statistics import get_statistics
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     problem = MagicSquareProblem(args.n, args.symmetry_breaking)
     solver = BacktrackSolver(
-        problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=max_value_dom_heuristic
+        problem, var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE
     )
     solver.solve_all()
     print(get_statistics(solver.statistics))

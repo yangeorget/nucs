@@ -11,6 +11,7 @@
 # Copyright 2024 - Yan Georget
 ###############################################################################
 import sys
+from typing import Callable
 
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -110,3 +111,27 @@ def split_low_dom_heuristic(shr_domain: NDArray, shr_domain_copy: NDArray) -> in
     shr_domain_copy[MIN] = value + 1
     shr_domain[MAX] = value
     return MAX
+
+
+VAR_HEURISTIC_FCTS = []
+DOM_HEURISTIC_FCTS = []
+
+
+def register_var_heuristic(var_heuristic: Callable) -> int:
+    VAR_HEURISTIC_FCTS.append(var_heuristic)
+    return len(VAR_HEURISTIC_FCTS) - 1
+
+
+def register_dom_heuristic(dom_heuristic: Callable) -> int:
+    DOM_HEURISTIC_FCTS.append(dom_heuristic)
+    return len(DOM_HEURISTIC_FCTS) - 1
+
+
+VAR_HEURISTIC_FIRST_NOT_INSTANTIATED = register_var_heuristic(first_not_instantiated_var_heuristic)
+VAR_HEURISTIC_LAST_NOT_INSTANTIATED = register_var_heuristic(last_not_instantiated_var_heuristic)
+VAR_HEURISTIC_SMALLEST_DOMAIN = register_var_heuristic(smallest_domain_var_heuristic)
+VAR_HEURISTIC_GREATEST_DOMAIN = register_var_heuristic(greatest_domain_var_heuristic)
+
+DOM_HEURISTIC_MIN_VALUE = register_dom_heuristic(min_value_dom_heuristic)
+DOM_HEURISTIC_MAX_VALUE = register_dom_heuristic(max_value_dom_heuristic)
+DOM_HEURISTIC_SPLIT_LOW = register_dom_heuristic(split_low_dom_heuristic)

@@ -14,7 +14,7 @@ import pytest
 
 from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import min_value_dom_heuristic, smallest_domain_var_heuristic
+from nucs.solvers.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.statistics import STATS_IDX_SOLVER_SOLUTION_NB
 
 
@@ -31,7 +31,7 @@ class TestQueens:
     def test_queens_8_solve_ff(self) -> None:
         problem = QueensProblem(8)
         solver = BacktrackSolver(
-            problem, var_heuristic=smallest_domain_var_heuristic, dom_heuristic=min_value_dom_heuristic
+            problem, var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE
         )
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 92
