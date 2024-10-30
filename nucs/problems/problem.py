@@ -13,19 +13,10 @@
 import copy
 from typing import Optional, Self, Tuple, Union
 
+import numpy as np
 from numba.typed import List
 
 from nucs.constants import END, START
-from nucs.numpy_helper import (
-    new_algorithms,
-    new_bounds,
-    new_dom_indices,
-    new_dom_indices_by_values,
-    new_dom_offsets,
-    new_dom_offsets_by_values,
-    new_parameters,
-    new_shr_domains_propagators,
-)
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
 
 
@@ -52,7 +43,9 @@ class Problem:
             dom_indices_lst = list(range(0, n))
         if dom_offsets_lst is None:
             dom_offsets_lst = [0] * n
-        self.shr_domains_lst = shr_domains_lst
+        self.shr_domains_lst = [
+            [domain, domain] if isinstance(domain, int) else [domain[0], domain[1]] for domain in shr_domains_lst
+        ]
         self.dom_indices_lst = dom_indices_lst
         self.dom_offsets_lst = dom_offsets_lst
         self.variable_nb = len(shr_domains_lst)
@@ -67,34 +60,16 @@ class Problem:
         :return: a list of sub-problems
         """
         shr_dom = self.shr_domains_lst[var_idx]
-        if isinstance(shr_dom, int):
-            shr_dom_min = shr_dom
-            shr_dom_max = shr_dom
-        else:
-            shr_dom_min = shr_dom[0]
-            shr_dom_max = shr_dom[1]
+        shr_dom_min = shr_dom[0]
+        shr_dom_max = shr_dom[1]
         shr_dom_sz = shr_dom_max - shr_dom_min + 1
         problems = []
         min_idx = shr_dom_min
         for split_idx in range(split_nb):
             problem = copy.deepcopy(self)
             max_idx = min_idx + shr_dom_sz // split_nb - (0 if split_idx < shr_dom_sz % split_nb else 1)
-            problem.shr_domains_lst[var_idx] = (min_idx, max_idx)
+            problem.shr_domains_lst[var_idx] = [min_idx, max_idx]
             min_idx = max_idx + 1
-            problems.append(problem)
-        return problems
-
-    def split_by_intervals(self, intervals: List[Tuple[int, int]], var_idx: int) -> List[Self]:
-        """
-        Splits a problem into several sub-problems by assigning intervals to a variable.
-        :param intervals: the list of intervals
-        :param var_idx: the index of the variable
-        :return: a list of sub-problems
-        """
-        problems = []
-        for interval in intervals:
-            problem = copy.deepcopy(self)
-            problem.shr_domains_lst[var_idx] = interval
             problems.append(problem)
         return problems
 
@@ -112,7 +87,9 @@ class Problem:
             dom_index = start
         if dom_offset is None:
             dom_offset = 0
-        self.shr_domains_lst.append(shr_domain)
+        self.shr_domains_lst.append(
+            [shr_domain, shr_domain] if isinstance(shr_domain, int) else [shr_domain[0], shr_domain[1]]
+        )
         self.dom_indices_lst.append(dom_index)
         self.dom_offsets_lst.append(dom_offset)
         self.variable_nb = len(self.dom_indices_lst)
@@ -135,7 +112,12 @@ class Problem:
             dom_indices_list = [start + i for i in range(n)]
         if dom_offsets_list is None:
             dom_offsets_list = [0] * n
-        self.shr_domains_lst.extend(shr_domains_list)
+        self.shr_domains_lst.extend(
+            [
+                [shr_domain, shr_domain] if isinstance(shr_domain, int) else [shr_domain[0], shr_domain[1]]
+                for shr_domain in shr_domains_list
+            ]
+        )
         self.dom_indices_lst.extend(dom_indices_list)
         self.dom_offsets_lst.extend(dom_offsets_list)
         self.variable_nb = len(self.dom_indices_lst)
@@ -163,13 +145,14 @@ class Problem:
         # Sort the propagators based on their estimated amortized complexities.
         self.propagators.sort(key=lambda prop: GET_COMPLEXITY_FCTS[prop[1]](len(prop[0]), prop[2]))
         # Variable and domain initialization
-        self.dom_indices_arr = new_dom_indices_by_values(self.dom_indices_lst)
-        self.dom_offsets_arr = new_dom_offsets_by_values(self.dom_offsets_lst)
+        self.dom_indices_arr = np.array(self.dom_indices_lst, dtype=np.uint16)
+        self.dom_offsets_arr = np.array(self.dom_offsets_lst, dtype=np.int32)
         # Propagator initialization
-        self.algorithms = new_algorithms(self.propagator_nb)
+        self.algorithms = np.empty(self.propagator_nb, dtype=np.uint8)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
-        self.var_bounds = new_bounds(max(1, self.propagator_nb))  # some redundancy here
-        self.param_bounds = new_bounds(max(1, self.propagator_nb))  # some redundancy here
+        bound_nb = max(1, self.propagator_nb)
+        self.var_bounds = np.zeros((bound_nb, 2), dtype=np.uint16)  # some redundancy here
+        self.param_bounds = np.zeros((bound_nb, 2), dtype=np.uint16)  # some redundancy here
         self.var_bounds[0, START] = self.param_bounds[0, START] = 0
         for propagator_idx, propagator in enumerate(self.propagators):
             prop_vars, prop_algorithm, prop_params = propagator
@@ -180,9 +163,9 @@ class Problem:
             self.var_bounds[propagator_idx, END] = self.var_bounds[propagator_idx, START] + len(prop_vars)
             self.param_bounds[propagator_idx, END] = self.param_bounds[propagator_idx, START] + len(prop_params)
         # Bounds have been computed and can now be used. The global arrays are the following:
-        self.props_dom_indices = new_dom_indices(self.var_bounds[-1, END])
-        self.props_dom_offsets = new_dom_offsets(self.var_bounds[-1, END])
-        self.props_parameters = new_parameters(self.param_bounds[-1, END])
+        self.props_dom_indices = np.empty(self.var_bounds[-1, END], dtype=np.uint16)
+        self.props_dom_offsets = np.empty(self.var_bounds[-1, END], dtype=np.int32)
+        self.props_parameters = np.empty(self.param_bounds[-1, END], dtype=np.int32)
         for propagator_idx, propagator in enumerate(self.propagators):
             prop_vars, _, prop_params = propagator
             var_start = self.var_bounds[propagator_idx, START]
@@ -193,7 +176,7 @@ class Problem:
             param_end = self.param_bounds[propagator_idx, END]
             self.props_parameters[param_start:param_end] = prop_params
         self.props_dom_offsets = self.props_dom_offsets.reshape((-1, 1))
-        self.shr_domains_propagators = new_shr_domains_propagators(self.variable_nb, self.propagator_nb)
+        self.shr_domains_propagators = np.zeros((self.variable_nb, 2, self.propagator_nb), dtype=np.bool)
         for propagator_idx, propagator in enumerate(self.propagators):
             prop_vars, prop_algorithm, prop_params = propagator
             triggers = GET_TRIGGERS_FCTS[prop_algorithm](len(prop_vars), prop_params)

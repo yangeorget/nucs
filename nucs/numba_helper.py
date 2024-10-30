@@ -30,7 +30,7 @@ from nucs.solvers.heuristics import DOM_HEURISTIC_FCTS, VAR_HEURISTIC_FCTS
 
 
 @intrinsic
-def function_from_addr(typingctx, func_type_ref, addr):  # type: ignore
+def function_from_address(typingctx, func_type_ref, addr):  # type: ignore
     """
     Recovers a function from FunctionType and address.
     """
@@ -48,15 +48,15 @@ def function_from_addr(typingctx, func_type_ref, addr):  # type: ignore
     return sig, codegen
 
 
-def build_function_addr_list(fcts, signature):  # type: ignore
+def build_function_address_list(fcts, signature):  # type: ignore
     return [_get_wrapper_address(fct, signature) for fct in fcts]
 
 
-def get_addrs() -> Tuple[NDArray, NDArray, NDArray]:
+def get_function_addresses() -> Tuple[NDArray, NDArray, NDArray]:
     if NUMBA_DISABLE_JIT:
         return np.empty(0), np.empty(0), np.empty(0)
     return (
-        np.array(build_function_addr_list(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)),
-        np.array(build_function_addr_list(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC)),
-        np.array(build_function_addr_list(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC)),
+        np.array(build_function_address_list(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)),
+        np.array(build_function_address_list(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC)),
+        np.array(build_function_address_list(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC)),
     )

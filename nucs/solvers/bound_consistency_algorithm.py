@@ -27,7 +27,7 @@ from nucs.constants import (
     START,
     TYPE_COMPUTE_DOMAINS,
 )
-from nucs.numba_helper import function_from_addr
+from nucs.numba_helper import function_from_address
 from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, pop_propagator
 from nucs.solvers.solver import is_solved
 from nucs.statistics import (
@@ -72,13 +72,13 @@ def bound_consistency_algorithm(
         prop_indices = props_dom_indices[prop_var_start:prop_var_end]
         prop_offsets = props_dom_offsets[prop_var_start:prop_var_end]
         prop_var_nb = prop_var_end - prop_var_start
-        prop_domains = np.empty((2, prop_var_nb), dtype=np.int32).T  # trick for order=F
+        prop_domains = np.empty((prop_var_nb, 2), dtype=np.int32)  # .T  # trick for order=F
         np.add(shr_domains_arr[prop_indices], prop_offsets, prop_domains)
         algorithm = algorithms[prop_idx]
         compute_domains_function = (
             COMPUTE_DOMAINS_FCTS[algorithm]
             if NUMBA_DISABLE_JIT
-            else function_from_addr(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[algorithm])
+            else function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[algorithm])
         )
         prop_data = props_parameters[param_bounds[prop_idx, START] : param_bounds[prop_idx, END]]
         status = compute_domains_function(prop_domains, prop_data)
@@ -91,7 +91,7 @@ def bound_consistency_algorithm(
         shr_domains_changes = False
         for var_idx in range(prop_var_nb):
             shr_domain_idx = prop_indices[var_idx]
-            prop_offset = prop_offsets[var_idx][0]
+            prop_offset = prop_offsets[var_idx, 0]
             for bound in [MIN, MAX]:
                 shr_domain_bound = prop_domains[var_idx, bound] - prop_offset
                 if shr_domains_arr[shr_domain_idx, bound] != shr_domain_bound:

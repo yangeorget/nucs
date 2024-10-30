@@ -15,7 +15,6 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
-from nucs.numpy_helper import new_triggers
 
 
 def get_complexity_max_eq(n: int, parameters: NDArray) -> float:
@@ -35,7 +34,7 @@ def get_triggers_max_eq(n: int, parameters: NDArray) -> NDArray:
     :param parameters: the parameters, unused here
     :return: an array of triggers
     """
-    return new_triggers(n, True)
+    return np.ones((n, 2), dtype=np.bool)
 
 
 @njit(cache=True)

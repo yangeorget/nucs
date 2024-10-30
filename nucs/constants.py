@@ -30,7 +30,7 @@ PROBLEM_INCONSISTENT = 2  # returned when the filtering of a problem detects an 
 PROBLEM_SOLVED = 3  # returned when a problem is solved
 
 SIGNATURE_COMPUTE_DOMAINS = int64(int32[:, :], int32[:])
-SIGNATURE_DOM_HEURISTIC = int64(int32[:, :], int32[:, :])
+SIGNATURE_DOM_HEURISTIC = int64(int32[:], int32[:])
 SIGNATURE_VAR_HEURISTIC = int64(int32[:, :])
 
 TYPE_COMPUTE_DOMAINS = types.FunctionType(SIGNATURE_COMPUTE_DOMAINS)
@@ -39,4 +39,4 @@ TYPE_VAR_HEURISTIC = types.FunctionType(SIGNATURE_VAR_HEURISTIC)
 
 NUMBA_DISABLE_JIT = os.getenv("NUMBA_DISABLE_JIT")
 
-STACK_MAX_HEIGHT = 128
+STACK_MAX_HEIGHT = 128  # TODO: should be a parameter

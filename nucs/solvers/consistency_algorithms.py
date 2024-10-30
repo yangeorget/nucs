@@ -14,12 +14,12 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.examples.golomb.golomb_problem import golomb_consistency_algorithm
-from nucs.solvers.bc_consistency_algorithm import bound_consistency_algorithm
+from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
 
 CONSISTENCY_ALG_BC = 0
 
 
-@njit(cache=True)  # TODO: fix this
+@njit(cache=True)
 def consistency_algorithm(
     consistency_algorithm_idx: int,
     statistics: NDArray,

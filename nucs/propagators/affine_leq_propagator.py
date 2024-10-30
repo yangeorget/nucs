@@ -15,7 +15,6 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
-from nucs.numpy_helper import new_triggers
 from nucs.propagators.affine_eq_propagator import compute_domain_sum_max, compute_domain_sum_min
 
 
@@ -36,7 +35,7 @@ def get_triggers_affine_leq(n: int, parameters: NDArray) -> NDArray:
     :param parameters: the parameters
     :return: an array of triggers
     """
-    triggers = new_triggers(n, False)
+    triggers = np.zeros((n, 2), dtype=np.bool)
     for i, c in enumerate(parameters[:-1]):
         triggers[i, MIN] = c > 0
         triggers[i, MAX] = c < 0
