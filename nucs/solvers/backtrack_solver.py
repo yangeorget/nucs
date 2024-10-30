@@ -12,7 +12,7 @@
 ###############################################################################
 from multiprocessing import Queue
 from typing import Callable, Iterator, Optional
-from rich import print
+
 import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -33,7 +33,7 @@ from nucs.solvers.heuristics import (
     DOM_HEURISTIC_FCTS,
     DOM_HEURISTIC_MIN_VALUE,
     VAR_HEURISTIC_FCTS,
-    VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, min_value_dom_heuristic,
+    VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
 )
 from nucs.solvers.solver import Solver, decrease_max, get_solution, increase_min
 from nucs.statistics import (
@@ -73,9 +73,9 @@ class BacktrackSolver(Solver):
         problem.init()
         self.problem = problem
         self.shr_domains_stack = np.empty((STACK_MAX_HEIGHT, self.problem.variable_nb, 2), dtype=np.int32)
-        self.shr_domains_stack[0, :, :] = problem.shr_domains_lst
+        self.shr_domains_stack[0] = problem.shr_domains_lst
         self.not_entailed_propagators_stack = np.empty((STACK_MAX_HEIGHT, self.problem.propagator_nb), dtype=np.bool)
-        self.not_entailed_propagators_stack[0, :] = True
+        self.not_entailed_propagators_stack[0] = True
         self.stacks_height = np.ones((1,), dtype=np.uint8)
         self.statistics = init_statistics()
         self.statistics[STATS_IDX_PROBLEM_PROPAGATOR_NB] = self.problem.propagator_nb
@@ -393,11 +393,7 @@ def make_choice(
         else function_from_address(TYPE_DOM_HEURISTIC, dom_heuristic_addrs[dom_heuristic_idx])
     )
     event = dom_heuristic_function(shr_domains_stack[0, dom_idx], shr_domains_stack[stacks_height[0] - 1, dom_idx])
-    np.logical_or(
-        triggered_propagators,
-        shr_domains_propagators[dom_idx, event],
-        triggered_propagators,
-    )
+    np.logical_or(triggered_propagators, shr_domains_propagators[dom_idx, event], triggered_propagators)
     statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
     if stacks_height[0] - 1 > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
         statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = stacks_height[0] - 1
