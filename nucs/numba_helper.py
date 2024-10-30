@@ -10,7 +10,7 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 from numba import types  # type: ignore
@@ -30,7 +30,7 @@ from nucs.solvers.heuristics import DOM_HEURISTIC_FCTS, VAR_HEURISTIC_FCTS
 
 
 @intrinsic
-def function_from_address(typingctx, func_type_ref, addr):  # type: ignore
+def function_from_address(typingctx, func_type_ref: types.FunctionType, addr: int):  # type: ignore
     """
     Recovers a function from FunctionType and address.
     """
@@ -39,17 +39,14 @@ def function_from_address(typingctx, func_type_ref, addr):  # type: ignore
     def codegen(context, builder, sig, args):  # type: ignore
         _, addr = args
         sfunc = cgutils.create_struct_proxy(func_type)(context, builder)
-        llty = context.get_value_type(types.voidptr)
-        addr_ptr = builder.inttoptr(addr, llty)
-        sfunc.addr = addr_ptr
+        sfunc.addr = builder.inttoptr(addr, context.get_value_type(types.voidptr))
         return sfunc._getvalue()
 
-    sig = func_type(func_type_ref, addr)
-    return sig, codegen
+    return func_type(func_type_ref, addr), codegen
 
 
-def build_function_address_list(fcts, signature):  # type: ignore
-    return [_get_wrapper_address(fct, signature) for fct in fcts]
+def build_function_address_list(functions, signature) -> List[int]:  # type: ignore
+    return [_get_wrapper_address(function, signature) for function in functions]
 
 
 def get_function_addresses() -> Tuple[NDArray, NDArray, NDArray]:

@@ -120,8 +120,8 @@ class BacktrackSolver(Solver):
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
-                var_heuristic_addrs,
-                dom_heuristic_addrs,
+                var_heuristic_addrs[self.var_heuristic_idx],
+                dom_heuristic_addrs[self.dom_heuristic_idx],
             )
         ) is not None:
             best_solution = solution
@@ -168,8 +168,8 @@ class BacktrackSolver(Solver):
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
-                var_heuristic_addrs,
-                dom_heuristic_addrs,
+                var_heuristic_addrs[self.var_heuristic_idx],
+                dom_heuristic_addrs[self.dom_heuristic_idx],
             )
             if solution is None:
                 break
@@ -225,8 +225,8 @@ class BacktrackSolver(Solver):
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
-                var_heuristic_addrs,
-                dom_heuristic_addrs,
+                var_heuristic_addrs[self.var_heuristic_idx],
+                dom_heuristic_addrs[self.dom_heuristic_idx],
             )
             if solution is None:
                 break
@@ -270,8 +270,8 @@ class BacktrackSolver(Solver):
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
-                var_heuristic_addrs,
-                dom_heuristic_addrs,
+                var_heuristic_addrs[self.var_heuristic_idx],
+                dom_heuristic_addrs[self.dom_heuristic_idx],
             )
             if solution is None:
                 break
@@ -342,8 +342,8 @@ def make_choice(
     var_heuristic_idx: int,
     dom_heuristic_idx: int,
     compute_domains_addrs: NDArray,
-    var_heuristic_addrs: NDArray,
-    dom_heuristic_addrs: NDArray,
+    var_heuristic_addr: int,
+    dom_heuristic_addr: int,
 ) -> int:
     """
     Makes a choice and returns a status
@@ -381,7 +381,7 @@ def make_choice(
     var_heuristic_function = (
         VAR_HEURISTIC_FCTS[var_heuristic_idx]
         if NUMBA_DISABLE_JIT
-        else function_from_address(TYPE_VAR_HEURISTIC, var_heuristic_addrs[var_heuristic_idx])
+        else function_from_address(TYPE_VAR_HEURISTIC, var_heuristic_addr)
     )
     dom_idx = var_heuristic_function(shr_domains_stack[0])
     shr_domains_stack[stacks_height[0], :, :] = shr_domains_stack[0, :, :]
@@ -390,7 +390,7 @@ def make_choice(
     dom_heuristic_function = (
         DOM_HEURISTIC_FCTS[dom_heuristic_idx]
         if NUMBA_DISABLE_JIT
-        else function_from_address(TYPE_DOM_HEURISTIC, dom_heuristic_addrs[dom_heuristic_idx])
+        else function_from_address(TYPE_DOM_HEURISTIC, dom_heuristic_addr)
     )
     event = dom_heuristic_function(shr_domains_stack[0, dom_idx], shr_domains_stack[stacks_height[0] - 1, dom_idx])
     np.logical_or(triggered_propagators, shr_domains_propagators[dom_idx, event], triggered_propagators)
@@ -420,8 +420,8 @@ def solve_one(
     var_heuristic_idx: int,
     dom_heuristic_idx: int,
     compute_domains_addrs: NDArray,
-    var_heuristic_addrs: NDArray,
-    dom_heuristic_addrs: NDArray,
+    var_heuristic_addr: int,
+    dom_heuristic_addr: int,
 ) -> Optional[NDArray]:
     """
     Find at most one solution.
@@ -447,8 +447,8 @@ def solve_one(
             var_heuristic_idx,
             dom_heuristic_idx,
             compute_domains_addrs,
-            var_heuristic_addrs,
-            dom_heuristic_addrs,
+            var_heuristic_addr,
+            dom_heuristic_addr,
         )
         if status != PROBLEM_TO_FILTER:
             break
