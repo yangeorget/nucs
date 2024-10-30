@@ -22,7 +22,6 @@ from nucs.constants import (
     PROBLEM_INCONSISTENT,
     PROBLEM_SOLVED,
     PROBLEM_TO_FILTER,
-    STACK_MAX_HEIGHT,
     TYPE_DOM_HEURISTIC,
     TYPE_VAR_HEURISTIC,
 )
@@ -59,6 +58,7 @@ class BacktrackSolver(Solver):
         consistency_algorithm_idx: int = CONSISTENCY_ALG_BC,
         var_heuristic_idx: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
+        stack_max_height: int = 128
     ):
         """
         Inits the solver.
@@ -72,9 +72,9 @@ class BacktrackSolver(Solver):
         self.triggered_propagators = np.ones(problem.propagator_nb, dtype=np.bool)
         problem.init()
         self.problem = problem
-        self.shr_domains_stack = np.empty((STACK_MAX_HEIGHT, self.problem.variable_nb, 2), dtype=np.int32)
+        self.shr_domains_stack = np.empty((stack_max_height, self.problem.variable_nb, 2), dtype=np.int32)
         self.shr_domains_stack[0] = problem.shr_domains_lst
-        self.not_entailed_propagators_stack = np.empty((STACK_MAX_HEIGHT, self.problem.propagator_nb), dtype=np.bool)
+        self.not_entailed_propagators_stack = np.empty((stack_max_height, self.problem.propagator_nb), dtype=np.bool)
         self.not_entailed_propagators_stack[0] = True
         self.stacks_height = np.ones((1,), dtype=np.uint8)
         self.statistics = init_statistics()

@@ -39,4 +39,3 @@ TYPE_VAR_HEURISTIC = types.FunctionType(SIGNATURE_VAR_HEURISTIC)
 
 NUMBA_DISABLE_JIT = os.getenv("NUMBA_DISABLE_JIT")
 
-STACK_MAX_HEIGHT = 128  # TODO: should be a parameter
