@@ -58,7 +58,7 @@ class BacktrackSolver(Solver):
         consistency_algorithm_idx: int = CONSISTENCY_ALG_BC,
         var_heuristic_idx: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
-        stack_max_height: int = 128
+        stack_max_height: int = 128,
     ):
         """
         Inits the solver.
