@@ -20,7 +20,7 @@ CONSISTENCY_ALG_BC = 0
 
 
 @njit(cache=True)
-def consistency_algorithm(
+def consistency_algorithm(  # TODO: fix this
     consistency_algorithm_idx: int,
     statistics: NDArray,
     algorithms: NDArray,
