@@ -72,7 +72,7 @@ def bound_consistency_algorithm(
         prop_indices = props_dom_indices[prop_var_start:prop_var_end]
         prop_offsets = props_dom_offsets[prop_var_start:prop_var_end]
         prop_var_nb = prop_var_end - prop_var_start
-        prop_domains = np.empty((prop_var_nb, 2), dtype=np.int32)  # .T  # trick for order=F
+        prop_domains = np.empty((prop_var_nb, 2), dtype=np.int32)
         np.add(shr_domains_arr[prop_indices], prop_offsets, prop_domains)
         algorithm = algorithms[prop_idx]
         compute_domains_function = (
@@ -100,5 +100,5 @@ def bound_consistency_algorithm(
                     np.logical_or(
                         triggered_propagators, shr_domains_propagators[shr_domain_idx, bound], triggered_propagators
                     )
-        if not shr_domains_changes:  # type: ignore
+        if not shr_domains_changes:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
