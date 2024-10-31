@@ -74,14 +74,14 @@ def bound_consistency_algorithm(
         prop_var_nb = prop_var_end - prop_var_start
         prop_domains = np.empty((prop_var_nb, 2), dtype=np.int32)
         np.add(shr_domains_arr[prop_indices], prop_offsets, prop_domains)
-        algorithm = algorithms[prop_idx]
         compute_domains_function = (
-            COMPUTE_DOMAINS_FCTS[algorithm]
+            COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]]
             if NUMBA_DISABLE_JIT
-            else function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[algorithm])
+            else function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[algorithms[prop_idx]])
         )
-        prop_data = props_parameters[param_bounds[prop_idx, START] : param_bounds[prop_idx, END]]
-        status = compute_domains_function(prop_domains, prop_data)
+        status = compute_domains_function(
+            prop_domains, props_parameters[param_bounds[prop_idx, START] : param_bounds[prop_idx, END]]
+        )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             return PROBLEM_INCONSISTENT
