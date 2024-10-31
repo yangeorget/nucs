@@ -24,13 +24,12 @@ PROP_INCONSISTENCY = 0  # returned by a propagator when inconsistent
 PROP_CONSISTENCY = 1  # returned by a propagator when consistent
 PROP_ENTAILMENT = 2  # returned by a propagator when entailed
 
-PROBLEM_TO_FILTER = 0  # returned when the problem needs some filtering
-PROBLEM_FILTERED = 1  # returned when the filtering of a problem has been completed
-PROBLEM_INCONSISTENT = 2  # returned when the filtering of a problem detects an inconsistency
-PROBLEM_SOLVED = 3  # returned when a problem is solved
+PROBLEM_INCONSISTENT = 0  # returned when the filtering of a problem detects an inconsistency
+PROBLEM_UNBOUND = 1  # returned when the filtering of a problem has been completed but the problem is not solved
+PROBLEM_BOUND = 2  # returned when a problem is solved
 
-SIGNATURE_COMPUTE_DOMAINS = int64(int32[:, :], int32[:])  # domains  # parameters
-SIGNATURE_DOM_HEURISTIC = int64(int32[:], int32[:])  # shr_domain  # shr_domain_copy
+SIGNATURE_COMPUTE_DOMAINS = int64(int32[:, :], int32[:])  # domains, parameters
+SIGNATURE_DOM_HEURISTIC = int64(int32[:], int32[:])  # shr_domain, shr_domain_copy
 SIGNATURE_VAR_HEURISTIC = int64(int32[:, :])  # shr_domains
 SIGNATURE_CONSISTENCY_ALG = int64(
     int64[:],  # statistics

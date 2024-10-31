@@ -28,7 +28,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     problem = GolombProblem(args.n, args.symmetry_breaking)
     consistency_alg_golomb = register_consistency_algorithm(golomb_consistency_algorithm)
-    solver = BacktrackSolver(problem, consistency_algorithm_idx=consistency_alg_golomb)
+    solver = BacktrackSolver(problem, consistency_alg_idx=consistency_alg_golomb)
     solution = solver.minimize(problem.length_idx)
     print(get_statistics(solver.statistics))
     if solution is not None:

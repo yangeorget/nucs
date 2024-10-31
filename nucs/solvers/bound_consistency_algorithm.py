@@ -19,9 +19,9 @@ from nucs.constants import (
     MAX,
     MIN,
     NUMBA_DISABLE_JIT,
-    PROBLEM_FILTERED,
+    PROBLEM_BOUND,
     PROBLEM_INCONSISTENT,
-    PROBLEM_SOLVED,
+    PROBLEM_UNBOUND,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
     START,
@@ -65,7 +65,7 @@ def bound_consistency_algorithm(
     while True:
         prop_idx = pop_propagator(triggered_propagators, not_entailed_propagators, prop_idx)
         if prop_idx == -1:
-            return PROBLEM_SOLVED if is_solved(shr_domains_arr) else PROBLEM_FILTERED
+            return PROBLEM_BOUND if is_solved(shr_domains_arr) else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = var_bounds[prop_idx, START]
         prop_var_end = var_bounds[prop_idx, END]

@@ -19,9 +19,8 @@ from numpy.typing import NDArray
 
 from nucs.constants import (
     NUMBA_DISABLE_JIT,
-    PROBLEM_INCONSISTENT,
-    PROBLEM_SOLVED,
-    PROBLEM_TO_FILTER,
+    PROBLEM_BOUND,
+    PROBLEM_UNBOUND,
     SIGNATURE_COMPUTE_DOMAINS,
     SIGNATURE_CONSISTENCY_ALG,
     SIGNATURE_DOM_HEURISTIC,
@@ -72,7 +71,7 @@ class BacktrackSolver(Solver):
     def __init__(
         self,
         problem: Problem,
-        consistency_algorithm_idx: int = CONSISTENCY_ALG_BC,
+        consistency_alg_idx: int = CONSISTENCY_ALG_BC,
         var_heuristic_idx: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
         stack_max_height: int = 128,
@@ -85,7 +84,7 @@ class BacktrackSolver(Solver):
         """
         self.var_heuristic_idx = var_heuristic_idx
         self.dom_heuristic_idx = dom_heuristic_idx
-        self.consistency_algorithm_idx = consistency_algorithm_idx
+        self.consistency_alg_idx = consistency_alg_idx
         self.triggered_propagators = np.ones(problem.propagator_nb, dtype=np.bool)
         problem.init()
         self.problem = problem
@@ -135,7 +134,7 @@ class BacktrackSolver(Solver):
                 self.not_entailed_propagators_stack,
                 self.stacks_height,
                 self.triggered_propagators,
-                self.consistency_algorithm_idx,
+                self.consistency_alg_idx,
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
@@ -186,7 +185,7 @@ class BacktrackSolver(Solver):
                 self.not_entailed_propagators_stack,
                 self.stacks_height,
                 self.triggered_propagators,
-                self.consistency_algorithm_idx,
+                self.consistency_alg_idx,
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
@@ -246,7 +245,7 @@ class BacktrackSolver(Solver):
                 self.not_entailed_propagators_stack,
                 self.stacks_height,
                 self.triggered_propagators,
-                self.consistency_algorithm_idx,
+                self.consistency_alg_idx,
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
@@ -294,7 +293,7 @@ class BacktrackSolver(Solver):
                 self.not_entailed_propagators_stack,
                 self.stacks_height,
                 self.triggered_propagators,
-                self.consistency_algorithm_idx,
+                self.consistency_alg_idx,
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
@@ -352,89 +351,6 @@ def reset(
 
 
 @njit(cache=True)
-def make_choice(
-    statistics: NDArray,
-    algorithms: NDArray,
-    var_bounds: NDArray,
-    param_bounds: NDArray,
-    dom_indices_arr: NDArray,
-    dom_offsets_arr: NDArray,
-    props_dom_indices: NDArray,
-    props_dom_offsets: NDArray,
-    props_parameters: NDArray,
-    shr_domains_propagators: NDArray,
-    shr_domains_stack: NDArray,
-    not_entailed_propagators_stack: NDArray,
-    stacks_height: NDArray,
-    triggered_propagators: NDArray,
-    consistency_algorithm_idx: int,
-    var_heuristic_idx: int,
-    dom_heuristic_idx: int,
-    compute_domains_addrs: NDArray,
-    consistency_algorithm_addrs: NDArray,
-    var_heuristic_addrs: NDArray,
-    dom_heuristic_addrs: NDArray,
-) -> int:
-    """
-    Makes a choice and returns a status
-    :return: the status as an integer
-    """
-    # first filter
-    while True:
-        consistency_algorithm_function = (
-            CONSISTENCY_ALG_FCTS[consistency_algorithm_idx]
-            if NUMBA_DISABLE_JIT
-            else function_from_address(TYPE_CONSISTENCY_ALG, consistency_algorithm_addrs[consistency_algorithm_idx])
-        )
-        status = consistency_algorithm_function(
-            statistics,
-            algorithms,
-            var_bounds,
-            param_bounds,
-            dom_indices_arr,
-            dom_offsets_arr,
-            props_dom_indices,
-            props_dom_offsets,
-            props_parameters,
-            shr_domains_propagators,
-            shr_domains_stack[0],
-            not_entailed_propagators_stack[0],
-            triggered_propagators,
-            compute_domains_addrs,
-        )
-        if status != PROBLEM_INCONSISTENT:
-            break
-        if not backtrack(
-            statistics, shr_domains_stack, not_entailed_propagators_stack, stacks_height, triggered_propagators
-        ):
-            return PROBLEM_INCONSISTENT
-    if status == PROBLEM_SOLVED:
-        statistics[STATS_IDX_SOLVER_SOLUTION_NB] += 1
-        return PROBLEM_SOLVED
-    # then make a choice
-    var_heuristic_function = (
-        VAR_HEURISTIC_FCTS[var_heuristic_idx]
-        if NUMBA_DISABLE_JIT
-        else function_from_address(TYPE_VAR_HEURISTIC, var_heuristic_addrs[var_heuristic_idx])
-    )
-    dom_idx = var_heuristic_function(shr_domains_stack[0])
-    shr_domains_stack[stacks_height[0], :, :] = shr_domains_stack[0, :, :]
-    not_entailed_propagators_stack[stacks_height[0], :] = not_entailed_propagators_stack[0, :]
-    stacks_height[0] += 1
-    dom_heuristic_function = (
-        DOM_HEURISTIC_FCTS[dom_heuristic_idx]
-        if NUMBA_DISABLE_JIT
-        else function_from_address(TYPE_DOM_HEURISTIC, dom_heuristic_addrs[dom_heuristic_idx])
-    )
-    event = dom_heuristic_function(shr_domains_stack[0, dom_idx], shr_domains_stack[stacks_height[0] - 1, dom_idx])
-    np.logical_or(triggered_propagators, shr_domains_propagators[dom_idx, event], triggered_propagators)
-    statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
-    if stacks_height[0] - 1 > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
-        statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = stacks_height[0] - 1
-    return PROBLEM_TO_FILTER
-
-
-@njit(cache=True)
 def solve_one(
     statistics: NDArray,
     algorithms: NDArray,
@@ -450,7 +366,7 @@ def solve_one(
     not_entailed_propagators_stack: NDArray,
     stacks_height: NDArray,
     triggered_propagators: NDArray,
-    consistency_algorithm_idx: int,
+    consistency_alg_idx: int,
     var_heuristic_idx: int,
     dom_heuristic_idx: int,
     compute_domains_addrs: NDArray,
@@ -462,8 +378,16 @@ def solve_one(
     Find at most one solution.
     :return: the solution if it exists or None
     """
+    if NUMBA_DISABLE_JIT:
+        consistency_alg_fct = CONSISTENCY_ALG_FCTS[consistency_alg_idx]
+        var_heuristic_fct = VAR_HEURISTIC_FCTS[var_heuristic_idx]
+        dom_heuristic_fct = DOM_HEURISTIC_FCTS[dom_heuristic_idx]
+    else:
+        consistency_alg_fct = function_from_address(TYPE_CONSISTENCY_ALG, consistency_alg_addrs[consistency_alg_idx])
+        var_heuristic_fct = function_from_address(TYPE_VAR_HEURISTIC, var_heuristic_addrs[var_heuristic_idx])
+        dom_heuristic_fct = function_from_address(TYPE_DOM_HEURISTIC, dom_heuristic_addrs[dom_heuristic_idx])
     while True:
-        status = make_choice(
+        status = consistency_alg_fct(
             statistics,
             algorithms,
             var_bounds,
@@ -474,18 +398,25 @@ def solve_one(
             props_dom_offsets,
             props_parameters,
             shr_domains_propagators,
-            shr_domains_stack,
-            not_entailed_propagators_stack,
-            stacks_height,
+            shr_domains_stack[0],
+            not_entailed_propagators_stack[0],
             triggered_propagators,
-            consistency_algorithm_idx,
-            var_heuristic_idx,
-            dom_heuristic_idx,
             compute_domains_addrs,
-            consistency_alg_addrs,
-            var_heuristic_addrs,
-            dom_heuristic_addrs,
         )
-        if status != PROBLEM_TO_FILTER:
-            break
-    return get_solution(shr_domains_stack[0], dom_indices_arr, dom_offsets_arr) if status == PROBLEM_SOLVED else None
+        if status == PROBLEM_BOUND:
+            statistics[STATS_IDX_SOLVER_SOLUTION_NB] += 1
+            return get_solution(shr_domains_stack[0], dom_indices_arr, dom_offsets_arr)
+        elif status == PROBLEM_UNBOUND:
+            dom_idx = var_heuristic_fct(shr_domains_stack[0])
+            shr_domains_stack[stacks_height[0], :, :] = shr_domains_stack[0, :, :]
+            not_entailed_propagators_stack[stacks_height[0], :] = not_entailed_propagators_stack[0, :]
+            stacks_height[0] += 1
+            event = dom_heuristic_fct(shr_domains_stack[0, dom_idx], shr_domains_stack[stacks_height[0] - 1, dom_idx])
+            np.logical_or(triggered_propagators, shr_domains_propagators[dom_idx, event], triggered_propagators)
+            statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
+            if stacks_height[0] - 1 > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
+                statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = stacks_height[0] - 1
+        elif not backtrack(
+            statistics, shr_domains_stack, not_entailed_propagators_stack, stacks_height, triggered_propagators
+        ):
+            return None
