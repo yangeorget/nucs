@@ -117,13 +117,13 @@ VAR_HEURISTIC_FCTS = []
 DOM_HEURISTIC_FCTS = []
 
 
-def register_var_heuristic(var_heuristic: Callable) -> int:
-    VAR_HEURISTIC_FCTS.append(var_heuristic)
+def register_var_heuristic(var_heuristic_fct: Callable) -> int:
+    VAR_HEURISTIC_FCTS.append(var_heuristic_fct)
     return len(VAR_HEURISTIC_FCTS) - 1
 
 
-def register_dom_heuristic(dom_heuristic: Callable) -> int:
-    DOM_HEURISTIC_FCTS.append(dom_heuristic)
+def register_dom_heuristic(dom_heuristic_fct: Callable) -> int:
+    DOM_HEURISTIC_FCTS.append(dom_heuristic_fct)
     return len(DOM_HEURISTIC_FCTS) - 1
 
 

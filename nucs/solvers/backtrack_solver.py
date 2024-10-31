@@ -11,7 +11,7 @@
 # Copyright 2024 - Yan Georget
 ###############################################################################
 from multiprocessing import Queue
-from typing import Callable, Iterator, Optional
+from typing import Callable, Iterator, Optional, Tuple
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -22,12 +22,18 @@ from nucs.constants import (
     PROBLEM_INCONSISTENT,
     PROBLEM_SOLVED,
     PROBLEM_TO_FILTER,
+    SIGNATURE_COMPUTE_DOMAINS,
+    SIGNATURE_CONSISTENCY_ALG,
+    SIGNATURE_DOM_HEURISTIC,
+    SIGNATURE_VAR_HEURISTIC,
+    TYPE_CONSISTENCY_ALG,
     TYPE_DOM_HEURISTIC,
     TYPE_VAR_HEURISTIC,
 )
-from nucs.numba_helper import function_from_address, get_function_addresses
+from nucs.numba_helper import build_function_address_list, function_from_address
 from nucs.problems.problem import Problem
-from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, consistency_algorithm
+from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS
+from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.heuristics import (
     DOM_HEURISTIC_FCTS,
     DOM_HEURISTIC_MIN_VALUE,
@@ -45,6 +51,17 @@ from nucs.statistics import (
     STATS_IDX_SOLVER_SOLUTION_NB,
     init_statistics,
 )
+
+
+def get_function_addresses() -> Tuple[NDArray, NDArray, NDArray, NDArray]:
+    if NUMBA_DISABLE_JIT:
+        return np.empty(0), np.empty(0), np.empty(0), np.empty(0)
+    return (
+        np.array(build_function_address_list(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)),
+        np.array(build_function_address_list(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC)),
+        np.array(build_function_address_list(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC)),
+        np.array(build_function_address_list(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG)),
+    )
 
 
 class BacktrackSolver(Solver):
@@ -98,7 +115,9 @@ class BacktrackSolver(Solver):
         return self.optimize(variable_idx, increase_min)
 
     def optimize(self, variable_idx: int, update_domain: Callable) -> Optional[NDArray]:
-        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs = get_function_addresses()
+        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
+            get_function_addresses()
+        )
         best_solution = None
         while (
             solution := solve_one(
@@ -120,8 +139,9 @@ class BacktrackSolver(Solver):
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
-                var_heuristic_addrs[self.var_heuristic_idx],
-                dom_heuristic_addrs[self.dom_heuristic_idx],
+                consistency_alg_addrs,
+                var_heuristic_addrs,
+                dom_heuristic_addrs,
             )
         ) is not None:
             best_solution = solution
@@ -147,7 +167,9 @@ class BacktrackSolver(Solver):
         Returns an iterator over the solutions.
         :return: an iterator
         """
-        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs = get_function_addresses()
+        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
+            get_function_addresses()
+        )
         while True:
             solution = solve_one(
                 self.statistics,
@@ -168,8 +190,9 @@ class BacktrackSolver(Solver):
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
-                var_heuristic_addrs[self.var_heuristic_idx],
-                dom_heuristic_addrs[self.dom_heuristic_idx],
+                consistency_alg_addrs,
+                var_heuristic_addrs,
+                dom_heuristic_addrs,
             )
             if solution is None:
                 break
@@ -204,7 +227,9 @@ class BacktrackSolver(Solver):
     def optimize_and_queue(
         self, variable_idx: int, update_domain: Callable, processor_idx: int, solution_queue: Queue
     ) -> None:
-        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs = get_function_addresses()
+        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
+            get_function_addresses()
+        )
         while True:
             solution = solve_one(
                 self.statistics,
@@ -225,8 +250,9 @@ class BacktrackSolver(Solver):
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
-                var_heuristic_addrs[self.var_heuristic_idx],
-                dom_heuristic_addrs[self.dom_heuristic_idx],
+                consistency_alg_addrs,
+                var_heuristic_addrs,
+                dom_heuristic_addrs,
             )
             if solution is None:
                 break
@@ -249,7 +275,9 @@ class BacktrackSolver(Solver):
         solution_queue.put((processor_idx, None, self.statistics))
 
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
-        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs = get_function_addresses()
+        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
+            get_function_addresses()
+        )
         while True:
             solution = solve_one(
                 self.statistics,
@@ -270,8 +298,9 @@ class BacktrackSolver(Solver):
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
-                var_heuristic_addrs[self.var_heuristic_idx],
-                dom_heuristic_addrs[self.dom_heuristic_idx],
+                consistency_alg_addrs,
+                var_heuristic_addrs,
+                dom_heuristic_addrs,
             )
             if solution is None:
                 break
@@ -342,8 +371,9 @@ def make_choice(
     var_heuristic_idx: int,
     dom_heuristic_idx: int,
     compute_domains_addrs: NDArray,
-    var_heuristic_addr: int,
-    dom_heuristic_addr: int,
+    consistency_algorithm_addrs: NDArray,
+    var_heuristic_addrs: NDArray,
+    dom_heuristic_addrs: NDArray,
 ) -> int:
     """
     Makes a choice and returns a status
@@ -351,8 +381,12 @@ def make_choice(
     """
     # first filter
     while True:
-        status = consistency_algorithm(
-            consistency_algorithm_idx,
+        consistency_algorithm_function = (
+            CONSISTENCY_ALG_FCTS[consistency_algorithm_idx]
+            if NUMBA_DISABLE_JIT
+            else function_from_address(TYPE_CONSISTENCY_ALG, consistency_algorithm_addrs[consistency_algorithm_idx])
+        )
+        status = consistency_algorithm_function(
             statistics,
             algorithms,
             var_bounds,
@@ -381,7 +415,7 @@ def make_choice(
     var_heuristic_function = (
         VAR_HEURISTIC_FCTS[var_heuristic_idx]
         if NUMBA_DISABLE_JIT
-        else function_from_address(TYPE_VAR_HEURISTIC, var_heuristic_addr)
+        else function_from_address(TYPE_VAR_HEURISTIC, var_heuristic_addrs[var_heuristic_idx])
     )
     dom_idx = var_heuristic_function(shr_domains_stack[0])
     shr_domains_stack[stacks_height[0], :, :] = shr_domains_stack[0, :, :]
@@ -390,7 +424,7 @@ def make_choice(
     dom_heuristic_function = (
         DOM_HEURISTIC_FCTS[dom_heuristic_idx]
         if NUMBA_DISABLE_JIT
-        else function_from_address(TYPE_DOM_HEURISTIC, dom_heuristic_addr)
+        else function_from_address(TYPE_DOM_HEURISTIC, dom_heuristic_addrs[dom_heuristic_idx])
     )
     event = dom_heuristic_function(shr_domains_stack[0, dom_idx], shr_domains_stack[stacks_height[0] - 1, dom_idx])
     np.logical_or(triggered_propagators, shr_domains_propagators[dom_idx, event], triggered_propagators)
@@ -420,8 +454,9 @@ def solve_one(
     var_heuristic_idx: int,
     dom_heuristic_idx: int,
     compute_domains_addrs: NDArray,
-    var_heuristic_addr: int,
-    dom_heuristic_addr: int,
+    consistency_alg_addrs: NDArray,
+    var_heuristic_addrs: NDArray,
+    dom_heuristic_addrs: NDArray,
 ) -> Optional[NDArray]:
     """
     Find at most one solution.
@@ -447,8 +482,9 @@ def solve_one(
             var_heuristic_idx,
             dom_heuristic_idx,
             compute_domains_addrs,
-            var_heuristic_addr,
-            dom_heuristic_addr,
+            consistency_alg_addrs,
+            var_heuristic_addrs,
+            dom_heuristic_addrs,
         )
         if status != PROBLEM_TO_FILTER:
             break

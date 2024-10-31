@@ -13,8 +13,9 @@
 import pytest
 
 from nucs.constants import MIN
-from nucs.examples.golomb.golomb_problem import GolombProblem, index, init_domains
+from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm, index, init_domains
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.consistency_algorithms import register_consistency_algorithm
 
 
 class TestGolomb:
@@ -32,7 +33,8 @@ class TestGolomb:
     @pytest.mark.parametrize("mark_nb,length", [(4, 6), (5, 11), (6, 17), (7, 25), (8, 34), (9, 44)])
     def test_golomb(self, mark_nb: int, length: int) -> None:
         problem = GolombProblem(mark_nb)
-        solver = BacktrackSolver(problem, consistency_algorithm_idx=True)
+        consistency_alg_golomb = register_consistency_algorithm(golomb_consistency_algorithm)
+        solver = BacktrackSolver(problem, consistency_algorithm_idx=consistency_alg_golomb)
         solution = solver.minimize(problem.length_idx)
         assert solution is not None
         assert solution[problem.length_idx] == length

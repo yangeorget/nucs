@@ -12,7 +12,7 @@
 ###############################################################################
 import os
 
-from numba import int32, int64, types  # type: ignore
+from numba import bool, int32, int64, types, uint8, uint16  # type: ignore
 
 START = 0  # index corresponding the start of a values range
 END = 1  # index corresponding the end of a values range
@@ -29,12 +29,29 @@ PROBLEM_FILTERED = 1  # returned when the filtering of a problem has been comple
 PROBLEM_INCONSISTENT = 2  # returned when the filtering of a problem detects an inconsistency
 PROBLEM_SOLVED = 3  # returned when a problem is solved
 
-SIGNATURE_COMPUTE_DOMAINS = int64(int32[:, :], int32[:])
-SIGNATURE_DOM_HEURISTIC = int64(int32[:], int32[:])
-SIGNATURE_VAR_HEURISTIC = int64(int32[:, :])
+SIGNATURE_COMPUTE_DOMAINS = int64(int32[:, :], int32[:])  # domains  # parameters
+SIGNATURE_DOM_HEURISTIC = int64(int32[:], int32[:])  # shr_domain  # shr_domain_copy
+SIGNATURE_VAR_HEURISTIC = int64(int32[:, :])  # shr_domains
+SIGNATURE_CONSISTENCY_ALG = int64(
+    int64[:],  # statistics
+    uint8[:],  # algorithms
+    uint16[:, :],  # var_bounds
+    uint16[:, :],  # param_bounds
+    uint16[:],  # dom_indices_arr
+    int32[:],  # dom_offsets_arr
+    uint16[:],  # props_dom_indices
+    int32[:, :],  # props_dom_offsets
+    int32[:],  # props_parameters
+    bool[:, :, :],  # shr_domains_propagators
+    int32[:, :],  # shr_domains_arr
+    bool[:],  # not_entailed_propagators
+    bool[:],  # triggered_propagators
+    int64[:],  # compute_domains_addrs
+)
 
 TYPE_COMPUTE_DOMAINS = types.FunctionType(SIGNATURE_COMPUTE_DOMAINS)
 TYPE_DOM_HEURISTIC = types.FunctionType(SIGNATURE_DOM_HEURISTIC)
 TYPE_VAR_HEURISTIC = types.FunctionType(SIGNATURE_VAR_HEURISTIC)
+TYPE_CONSISTENCY_ALG = types.FunctionType(SIGNATURE_CONSISTENCY_ALG)
 
 NUMBA_DISABLE_JIT = os.getenv("NUMBA_DISABLE_JIT")
