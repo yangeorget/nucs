@@ -84,6 +84,8 @@ def greatest_domain_var_heuristic(shr_domains: NDArray) -> int:
 def min_value_dom_heuristic(shr_domain: NDArray, shr_domain_copy: NDArray) -> int:
     """
     Chooses the first value of the domain.
+    :param shr_domain: a shared domain
+    :param shr_domain: a copy of this shared domain to be stored in choice points stack
     """
     value = shr_domain[MIN]
     shr_domain_copy[MIN] = value + 1
@@ -95,6 +97,8 @@ def min_value_dom_heuristic(shr_domain: NDArray, shr_domain_copy: NDArray) -> in
 def max_value_dom_heuristic(shr_domain: NDArray, shr_domain_copy: NDArray) -> int:
     """
     Chooses the last value of the domain.
+    :param shr_domain: a shared domain
+    :param shr_domain: a copy of this shared domain to be stored in choice points stack
     """
     value = shr_domain[MAX]
     shr_domain_copy[MAX] = value - 1
@@ -106,6 +110,8 @@ def max_value_dom_heuristic(shr_domain: NDArray, shr_domain_copy: NDArray) -> in
 def split_low_dom_heuristic(shr_domain: NDArray, shr_domain_copy: NDArray) -> int:
     """
     Chooses the first half of the domain.
+    :param shr_domain: a shared domain
+    :param shr_domain: a copy of this shared domain to be stored in choice points stack
     """
     value = (shr_domain[MIN] + shr_domain[MAX]) // 2
     shr_domain_copy[MIN] = value + 1
@@ -118,11 +124,21 @@ DOM_HEURISTIC_FCTS = []
 
 
 def register_var_heuristic(var_heuristic_fct: Callable) -> int:
+    """
+    Register a variable heuristic by adding it function to the corresponding list of functions.
+    :param var_heuristic_fct: a function that implements the variable heuristic
+    :return: the index of the variable heuristic
+    """
     VAR_HEURISTIC_FCTS.append(var_heuristic_fct)
     return len(VAR_HEURISTIC_FCTS) - 1
 
 
 def register_dom_heuristic(dom_heuristic_fct: Callable) -> int:
+    """
+    Register a domain heuristic by adding it function to the corresponding list of functions.
+    :param dom_heuristic_fct: a function that implements the domain heuristic
+    :return: the index of the domain heuristic
+    """
     DOM_HEURISTIC_FCTS.append(dom_heuristic_fct)
     return len(DOM_HEURISTIC_FCTS) - 1
 

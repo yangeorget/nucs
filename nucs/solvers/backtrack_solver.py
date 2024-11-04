@@ -415,6 +415,31 @@ def solve_one(
 ) -> Optional[NDArray]:
     """
     Find at most one solution.
+    :param statistics: a Numpy array of statistics
+    :param algorithms: the algorithms indexed by propagators
+    :param var_bounds: the variable bounds indexed by propagators
+    :param param_bounds: the parameters bounds indexed by propagators
+    :param dom_indices_arr: the domain indices indexed by variables
+    :param dom_offsets_arr: the domain offsets indexed by variables
+    :param props_dom_indices: the domain indices indexed by propagator variables
+    :param props_dom_offsets: the domain offsets indexed by propagator variables
+    :param props_parameters: the parameters indexed by propagator variables
+    :param shr_domains_propagators: a Numpy array of booleans indexed
+    by shared domain indices, MIN/MAX and propagators; true means that the propagator has to be triggered when the MIN
+    or MAX of the shared domain has changed
+    :param shr_domains_stack: a stack of shared domains;
+    the first level correspond to the current shared domains, the rest correspond to the choice points
+    :param not_entailed_propagators_stack: a stack not entailed propagators;
+    the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
+    :param stacks_height: the height of the stacks as a Numpy array
+    :param triggered_propagators: the Numpy array of triggered propagators
+    :param consistency_alg_idx: the index of the consistency algorithm
+    :param var_heuristic_idx: the index of the variable heuristic
+    :param dom_heuristic_idx: the index of the domain heuristic
+    :param compute_domains_addrs: the addresses of the compute_domains functions
+    :param consistency_alg_addrs: the addresses of the functions implementing the consistency algorithms
+    :param var_heuristic_addrs: the addresses of the functions implementing the variable heuristics
+    :param dom_heuristic_addrs: the addresses of the functions implementing the domain heuristics
     :return: the solution if it exists or None
     """
     if NUMBA_DISABLE_JIT:

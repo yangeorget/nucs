@@ -57,8 +57,24 @@ def bound_consistency_algorithm(
     compute_domains_addrs: NDArray,
 ) -> int:
     """
-    Internal method for applying the bound consistency algorithm.
-    This method only uses Numpy arrays as parameters, this permits JIT compilation.
+    Bound consistency algorithm.
+    :param statistics: a Numpy array of statistics
+    :param algorithms: the algorithms indexed by propagators
+    :param var_bounds: the variable bounds indexed by propagators
+    :param param_bounds: the parameters bounds indexed by propagators
+    :param dom_indices_arr: the domain indices indexed by variables
+    :param dom_offsets_arr: the domain offsets indexed by variables
+    :param props_dom_indices: the domain indices indexed by propagator variables
+    :param props_dom_offsets: the domain offsets indexed by propagator variables
+    :param props_parameters: the parameters indexed by propagator variables
+    :param shr_domains_propagators: a Numpy array of booleans indexed
+    by shared domain indices, MIN/MAX and propagators; true means that the propagator has to be triggered when the MIN
+    or MAX of the shared domain has changed
+    :param shr_domains_arr: the current shared domains
+    :param not_entailed_propagators: the propagators currently not entailed
+    :param triggered_propagators: the Numpy array of triggered propagators
+    :param compute_domains_addrs: the addresses of the compute_domains functions
+    :return: a status (consistency, inconsistency or entailment) as an integer
     """
     statistics[STATS_IDX_PROBLEM_FILTER_NB] += 1
     prop_idx = -1

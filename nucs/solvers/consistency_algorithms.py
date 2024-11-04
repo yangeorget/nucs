@@ -18,6 +18,11 @@ CONSISTENCY_ALG_FCTS = []
 
 
 def register_consistency_algorithm(consistency_algorithm_fct: Callable) -> int:
+    """
+    Register a consistency algorithm by adding its function to the corresponding list of functions.
+    :param consistency_algorithm_fct: a function that enforces consistency
+    :return: the index of the consistency algorithm
+    """
     CONSISTENCY_ALG_FCTS.append(consistency_algorithm_fct)
     return len(CONSISTENCY_ALG_FCTS) - 1
 
