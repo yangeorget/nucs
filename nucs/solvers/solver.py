@@ -36,6 +36,7 @@ class Solver:
     def solve_all(self, func: Optional[Callable] = None) -> None:
         """
         Finds all solutions.
+        :param func: a function to handle each solution found
         """
         for solution in self.solve():
             if func is not None:
@@ -44,6 +45,7 @@ class Solver:
     def find_all(self) -> List[NDArray]:
         """
         Finds all solutions.
+        :return: the list of all solutions
         """
         solutions = []
         self.solve_all(lambda solution: solutions.append(solution))
@@ -92,7 +94,6 @@ def decrease_max(
 ) -> None:
     """
     Decreases the max of a variable
-    :param problem: the problem
     :param var_idx: the index of the variable
     :param value: the current max
     """
@@ -105,7 +106,6 @@ def increase_min(
 ) -> None:
     """
     Increases the min of a variable
-    :param problem: the problem
     :param var_idx: the index of the variable
     :param value: the current min
     """

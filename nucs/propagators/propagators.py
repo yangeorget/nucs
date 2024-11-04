@@ -84,6 +84,13 @@ COMPUTE_DOMAINS_FCTS = []
 
 
 def register_propagator(get_triggers_fct: Callable, get_complexity_fct: Callable, compute_domains_fct: Callable) -> int:
+    """
+    Register a propagator by adding its 3 functions to the corresponding lists of functions.
+    :param get_triggers_fct: a function that returns the triggers
+    :param get_complexity_fct: a function that computes the complexity
+    :param compute_domains_fct: a function that computes the domains
+    :return: the index of the propagator
+    """
     GET_TRIGGERS_FCTS.append(get_triggers_fct)
     GET_COMPLEXITY_FCTS.append(get_complexity_fct)
     COMPUTE_DOMAINS_FCTS.append(compute_domains_fct)
@@ -118,6 +125,13 @@ ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relatio
 
 @njit(cache=True)
 def pop_propagator(triggered_propagators: NDArray, not_entailed_propagators: NDArray, previous_prop_idx: int) -> int:
+    """
+    Pops a propagator to be filtered.
+    :param triggered_propagators: the candidate propagators
+    :param not_entailed_propagators: the propagators that are not entailed yet
+    :param previous_prop_idx: the index of the previous propagator which has been selected
+    :return: an index
+    """
     for prop_idx, triggered_prop in enumerate(triggered_propagators):
         if triggered_prop and not_entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
             triggered_propagators[prop_idx] = False

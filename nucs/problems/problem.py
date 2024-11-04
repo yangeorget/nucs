@@ -101,7 +101,7 @@ class Problem:
         dom_offsets_list: Optional[List[int]] = None,
     ) -> None:
         """
-        Adds extra variabled to the problem.
+        Adds extra variables to the problem.
         :param shr_domains_list: the shared domains of the variables
         :param dom_indices_list: the domain indices (automatically computed if not defined)
         :param dom_offsets_list: the domain offsets (set to 0 if not defined)
@@ -140,7 +140,7 @@ class Problem:
 
     def init(self) -> None:
         """
-        Completes the initialization of the problem by defining the variables and the propagators.
+        Completes the initialization of the problem.
         """
         # Sort the propagators based on their estimated amortized complexities.
         self.propagators.sort(key=lambda prop: GET_COMPLEXITY_FCTS[prop[1]](len(prop[0]), prop[2]))

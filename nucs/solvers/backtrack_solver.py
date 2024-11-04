@@ -53,6 +53,11 @@ from nucs.statistics import (
 
 
 def get_function_addresses() -> Tuple[NDArray, NDArray, NDArray, NDArray]:
+    """
+    Returns the addresses of the
+    compute_domains, variable heuristics, domain heuristics and consistency algorithms functions.
+    :return: a tuple of NDArrays
+    """
     if NUMBA_DISABLE_JIT:
         return np.empty(0), np.empty(0), np.empty(0), np.empty(0)
     return (
@@ -79,20 +84,25 @@ class BacktrackSolver(Solver):
         """
         Inits the solver.
         :param problem: the problem
-        :param var_heuristic_idx: a heuristic for selecting a variable/domain
-        :param dom_heuristic_idx: a heuristic for reducing a domain
+        :param consistency_alg_idx: the index of the consistency algorithm
+        :param var_heuristic_idx: the index of the heuristic for selecting a variable/domain
+        :param dom_heuristic_idx: the index of the heuristic for reducing a domain
+        :param stack_max_height: the maximal choice point stack height
         """
+        # heuristics and consistency algorithms
         self.var_heuristic_idx = var_heuristic_idx
         self.dom_heuristic_idx = dom_heuristic_idx
         self.consistency_alg_idx = consistency_alg_idx
         self.triggered_propagators = np.ones(problem.propagator_nb, dtype=np.bool)
         problem.init()
         self.problem = problem
+        # choice points
         self.shr_domains_stack = np.empty((stack_max_height, self.problem.variable_nb, 2), dtype=np.int32)
         self.shr_domains_stack[0] = problem.shr_domains_lst
         self.not_entailed_propagators_stack = np.empty((stack_max_height, self.problem.propagator_nb), dtype=np.bool)
         self.not_entailed_propagators_stack[0] = True
         self.stacks_height = np.ones((1,), dtype=np.uint8)
+        # statistics
         self.statistics = init_statistics()
         self.statistics[STATS_IDX_PROBLEM_PROPAGATOR_NB] = self.problem.propagator_nb
         self.statistics[STATS_IDX_PROBLEM_VARIABLE_NB] = self.problem.variable_nb
@@ -113,7 +123,13 @@ class BacktrackSolver(Solver):
         """
         return self.optimize(variable_idx, increase_min)
 
-    def optimize(self, variable_idx: int, update_domain: Callable) -> Optional[NDArray]:
+    def optimize(self, variable_idx: int, update_domain_fct: Callable) -> Optional[NDArray]:
+        """
+        Finds, if it exists, the solution to the problem that optimizes a given variable.
+        :param variable_idx: the index of the variable
+        :param update_domain_fct: the function to update the domain of the variable
+        :return: the solution if it exists or None
+        """
         compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
             get_function_addresses()
         )
@@ -152,7 +168,7 @@ class BacktrackSolver(Solver):
                 self.stacks_height,
                 self.triggered_propagators,
             )
-            update_domain(
+            update_domain_fct(
                 self.shr_domains_stack[0],
                 self.problem.dom_indices_arr,
                 self.problem.dom_offsets_arr,
@@ -224,8 +240,14 @@ class BacktrackSolver(Solver):
         self.optimize_and_queue(variable_idx, increase_min, processor_idx, solution_queue)
 
     def optimize_and_queue(
-        self, variable_idx: int, update_domain: Callable, processor_idx: int, solution_queue: Queue
+        self, variable_idx: int, update_domain_fct: Callable, processor_idx: int, solution_queue: Queue
     ) -> None:
+        """
+        Enqueues the solution that optimizes a variable.
+        :param variable_idx: the index of the variable
+        :param update_domain_fct: the function to update the domain of the variable
+        :param solution_queue: the solution queue
+        """
         compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
             get_function_addresses()
         )
@@ -264,7 +286,7 @@ class BacktrackSolver(Solver):
                 self.stacks_height,
                 self.triggered_propagators,
             )
-            update_domain(
+            update_domain_fct(
                 self.shr_domains_stack[0],
                 self.problem.dom_indices_arr,
                 self.problem.dom_offsets_arr,
@@ -274,6 +296,11 @@ class BacktrackSolver(Solver):
         solution_queue.put((processor_idx, None, self.statistics))
 
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
+        """
+        Enqueues the solutions.
+        :param processor_idx: the index of the processor
+        :param solution_queue: the solution queue
+        """
         compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
             get_function_addresses()
         )
@@ -324,7 +351,11 @@ def backtrack(
     triggered_propagators: NDArray,
 ) -> bool:
     """
-    Backtracks and updates the problem's domains
+    Backtracks and updates the problem's domains.
+    :param statistics: the statistics array
+    :param shr_domains_stack: the stack of shared domains
+    :param not_entailed_propagators_stack: the stack of not entailed propagators
+    :param stacks_height: the height of both stacks
     :return: true iff it is possible to backtrack
     """
     if stacks_height[0] == 1:
@@ -344,6 +375,14 @@ def reset(
     stacks_height: NDArray,
     triggered_propagators: NDArray,
 ) -> None:
+    """
+    Resets the solver.
+    :param problem: the problem
+    :param shr_domains_stack: the stack of shared domains
+    :param not_entailed_propagators_stack: the stack of not entailed propagators
+    :param stacks_height: the height of both stacks
+    :param triggered_propagators: the list of triggered propagators
+    """
     shr_domains_stack[0] = problem.shr_domains_lst
     not_entailed_propagators_stack[0, :] = True
     stacks_height[0] = 1
