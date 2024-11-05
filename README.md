@@ -13,8 +13,9 @@
 
 ## TLDR
 NuCS is a Python library for solving Constraint Satisfaction and Optimization Problems.
-Because it is 100% written in Python, NuCS is easy to install and use.
-NuCS is also very fast because it is powered by [Numpy](https://numpy.org/) and [Numba](https://numba.pydata.org/).
+Because it is 100% written in Python, 
+NuCS is easy to install and allows to model complex problems in a few lines of code.
+The NuCS solver is also very fast because it is powered by [Numpy](https://numpy.org/) and [Numba](https://numba.pydata.org/).
 
 ## Installation
 ```bash
