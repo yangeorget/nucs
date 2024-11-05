@@ -2,51 +2,13 @@
 Consistency and propagators
 ###########################
 
-***********
-Consistency
-***********
-
+**********************
 Consistency algorithms
-######################
-NuCS implements bound consistency out-of-the box and supports custom consistency algorithms.
+**********************
 
-Bound consistency
-#################
-Unless specified otherwise, bound consistency is used.
-
-.. py:module:: nucs.solvers.bound_consistency_algorithm
-.. py:function:: nucs.solvers.bound_consistency_algorithm.bound_consistency_algorithm(statistics, algorithms, var_bounds, param_bounds, dom_indices_arr, dom_offsets_arr, props_dom_indices, props_dom_offsets, props_parameters,shr_domains_propagators, shr_domains_arr, not_entailed_propagators, triggered_propagators, compute_domains_addrs)
-
-   :param statistics: a Numpy array of statistics
-   :type statistics: NDArray
-   :param algorithms: the algorithms indexed by propagators
-   :type algorithms: NDArray
-   :param var_bounds: the variable bounds indexed by propagators
-   :type var_bounds: NDArray
-   :param param_bounds: the parameters bounds indexed by propagators
-   :type param_bounds: NDArray
-   :param dom_indices_arr: the domain indices indexed by variables
-   :type dom_indices_arr: NDArray
-   :param dom_offsets_arr: the domain offsets indexed by variables
-   :type dom_offsets_arr: NDArray
-   :param props_dom_indices: the domain indices indexed by propagator variables
-   :type props_dom_indices: NDArray
-   :param props_dom_offsets: the domain offsets indexed by propagator variables
-   :type props_dom_offsets: NDArray
-   :param props_parameters: the parameters indexed by propagator variables
-   :type props_parameters: NDArray
-   :param shr_domains_propagators: a Numpy array of booleans indexed by shared domain indices, MIN/MAX and propagators; true means that the propagator has to be triggered when the MIN or MAX of the shared domain has changed
-   :type shr_domains_propagators: NDArray
-   :param shr_domains_arr: the current shared domains
-   :type shr_domains_arr: NDArray
-   :param not_entailed_propagators: the propagators currently not entailed
-   :type not_entailed_propagators: NDArray
-   :param triggered_propagators: the Numpy array of triggered propagators
-   :type triggered_propagators: NDArray
-   :param compute_domains_addrs: the addresses of the compute_domains functions
-   :type compute_domains_addrs: NDArray
-   :return: a status (consistency, inconsistency or entailment) as an integer
-   :rtype: int
+Bound consistency algorithm
+###########################
+NuCS implements :mod:`nucs.solvers.bound_consistency_algorithm` out-of-the box.
 
 Custom consistency algorithms
 #############################
