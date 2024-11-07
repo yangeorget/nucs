@@ -6,15 +6,18 @@ Consistency and propagators
 Consistency algorithms
 **********************
 
+NuCS relies on :ref:`consistency algorithms <consistency_algorithms>`.
+A bound-consistency algorithm is provided, custom consistency algorithm can be used instead.
+
 Bound consistency algorithm
 ###########################
-NuCS implements :mod:`nucs.solvers.bound_consistency_algorithm` out-of-the box.
+NuCS provides :mod:`nucs.solvers.bound_consistency_algorithm` which is the default consistency algorithm.
 
 Custom consistency algorithms
 #############################
-NuCS makes it possible to use custom consistency algorithms.
+NuCS makes it possible to define and use custom consistency algorithms.
 
-The :mod:`nucs.examples.golomb.golomb_problem` model defines a custom consistency algorithm.
+The :mod:`nucs.examples.golomb.golomb_problem` model defines a custom consistency algorithm adapted to the Golomb ruler problem.
 
 This custom consistency algorithm needs to be registered before it is used.
 
@@ -67,4 +70,15 @@ This function returns the amortized complexity of the propagator's :code:`comput
 
 These complexities are used to sort the propagators and ensure that the cheapest propagators are evaluated first.
 
+Custom propagators
+##################
+NuCS makes it possible to define and use custom propagators.
+
+A propagator needs to be registered before it is used.
+The following code registers the :code:`AND` propagator.
+
+.. code-block:: python
+   :linenos:
+
+   ALG_AND = register_propagator(get_triggers_and, get_complexity_and, compute_domains_and)
 
