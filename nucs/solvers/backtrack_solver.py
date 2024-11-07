@@ -83,7 +83,7 @@ class BacktrackSolver(Solver):
     ):
         """
         Inits the solver.
-        :param problem: the problem
+        :param problem: the problem to be solved
         :param consistency_alg_idx: the index of the consistency algorithm
         :param var_heuristic_idx: the index of the heuristic for selecting a variable/domain
         :param dom_heuristic_idx: the index of the heuristic for reducing a domain

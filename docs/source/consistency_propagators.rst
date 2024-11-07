@@ -7,7 +7,7 @@ Consistency algorithms
 **********************
 
 NuCS relies on :ref:`consistency algorithms <consistency_algorithms>`.
-A bound-consistency algorithm is provided, custom consistency algorithm can be used instead.
+A bound-consistency algorithm is provided, a custom consistency algorithm can be used instead.
 
 Bound consistency algorithm
 ###########################
