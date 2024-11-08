@@ -44,6 +44,7 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     bool[:, :, :],  # shr_domains_propagators
     int32[:, :, :],  # shr_domains_stack
     bool[:, :],  # not_entailed_propagators_stack
+    uint16[:, :],  # dom_update_stack
     uint8[:],  # stacks_height
     bool[:],  # triggered_propagators
     int64[:],  # compute_domains_addrs

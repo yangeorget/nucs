@@ -15,8 +15,9 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN, PROBLEM_INCONSISTENT, PROBLEM_UNBOUND
+from nucs.propagators.propagators import add_propagators
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
-from nucs.solvers.choice_points import cp_put, cp_pop
+from nucs.solvers.choice_points import backtrack, cp_put
 from nucs.solvers.heuristics import (
     first_not_instantiated_var_heuristic_from_index,
     max_value_dom_heuristic,
@@ -44,12 +45,19 @@ def shave_max(
     shr_domains_propagators: NDArray,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
+    dom_update_stack: NDArray,
     stacks_height: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
 ) -> bool:
     max_value_dom_heuristic(shr_domains_stack[0, dom_idx], shr_domains_stack[stacks_height[0] - 1, dom_idx])
-    np.logical_or(triggered_propagators, shr_domains_propagators[dom_idx, MAX], triggered_propagators)
+    add_propagators(
+        triggered_propagators,
+        not_entailed_propagators_stack[0],
+        shr_domains_propagators,
+        dom_idx,
+        MIN,
+    )
     status = bound_consistency_algorithm(
         statistics,
         algorithms,
@@ -63,6 +71,7 @@ def shave_max(
         shr_domains_propagators,
         shr_domains_stack,
         not_entailed_propagators_stack,
+        dom_update_stack,
         stacks_height,
         triggered_propagators,
         compute_domains_addrs,
@@ -89,12 +98,19 @@ def shave_min(
     shr_domains_propagators: NDArray,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
+    dom_update_stack: NDArray,
     stacks_height: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
 ) -> bool:
     min_value_dom_heuristic(shr_domains_stack[0, dom_idx], shr_domains_stack[stacks_height[0] - 1, dom_idx])
-    np.logical_or(triggered_propagators, shr_domains_propagators[dom_idx, MAX], triggered_propagators)
+    add_propagators(
+        triggered_propagators,
+        not_entailed_propagators_stack[0],
+        shr_domains_propagators,
+        dom_idx,
+        MAX,
+    )
     status = bound_consistency_algorithm(
         statistics,
         algorithms,
@@ -108,6 +124,7 @@ def shave_min(
         shr_domains_propagators,
         shr_domains_stack,
         not_entailed_propagators_stack,
+        dom_update_stack,
         stacks_height,
         triggered_propagators,
         compute_domains_addrs,
@@ -133,6 +150,7 @@ def shaving_consistency_algorithm(
     shr_domains_propagators: NDArray,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
+    dom_update_stack: NDArray,
     stacks_height: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
@@ -180,6 +198,7 @@ def shaving_consistency_algorithm(
                 shr_domains_propagators,
                 shr_domains_stack,
                 not_entailed_propagators_stack,
+                dom_update_stack,
                 stacks_height,
                 triggered_propagators,
                 compute_domains_addrs,
@@ -188,7 +207,7 @@ def shaving_consistency_algorithm(
                 return status
         dom_idx = first_not_instantiated_var_heuristic_from_index(shr_domains_stack[0], start_idx)
         statistics[STATS_IDX_PROBLEM_SHAVING_NB] += 1
-        cp_put(shr_domains_stack, not_entailed_propagators_stack, stacks_height)
+        cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_height, dom_idx)
         needs_bc = (
             shave_min(
                 dom_idx,
@@ -204,6 +223,7 @@ def shaving_consistency_algorithm(
                 shr_domains_propagators,
                 shr_domains_stack,
                 not_entailed_propagators_stack,
+                dom_update_stack,
                 stacks_height,
                 triggered_propagators,
                 compute_domains_addrs,
@@ -223,17 +243,26 @@ def shaving_consistency_algorithm(
                 shr_domains_propagators,
                 shr_domains_stack,
                 not_entailed_propagators_stack,
+                dom_update_stack,
                 stacks_height,
                 triggered_propagators,
                 compute_domains_addrs,
             )
         )
-        cp_pop(shr_domains_stack, not_entailed_propagators_stack, stacks_height)
-        triggered_propagators[:] = not_entailed_propagators_stack[0, :]  # numba does not support copyto
+        backtrack(
+            statistics,
+            shr_domains_stack,
+            not_entailed_propagators_stack,
+            dom_update_stack,
+            stacks_height,
+            triggered_propagators,
+            shr_domains_propagators,
+        )
         if needs_bc:  # there's been some shaving
             statistics[STATS_IDX_PROBLEM_SHAVING_CHANGE_NB] += 1
         else:  # no change
             statistics[STATS_IDX_PROBLEM_SHAVING_NO_CHANGE_NB] += 1
+            # this is one of the many shaving strategies
             bound += 1
             if bound > MAX:
                 bound = MIN

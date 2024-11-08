@@ -28,7 +28,7 @@ from nucs.constants import (
     TYPE_COMPUTE_DOMAINS,
 )
 from nucs.numba_helper import function_from_address
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, pop_propagator
+from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, add_propagators, pop_propagator
 from nucs.solvers.solver import is_solved
 from nucs.statistics import (
     STATS_IDX_PROBLEM_FILTER_NB,
@@ -53,6 +53,7 @@ def bound_consistency_algorithm(
     shr_domains_propagators: NDArray,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
+    dom_update_stack: NDArray,
     stacks_height: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
@@ -80,14 +81,12 @@ def bound_consistency_algorithm(
     :param compute_domains_addrs: the addresses of the compute_domains functions
     :return: a status (consistency, inconsistency or entailment) as an integer
     """
-    shr_domains_arr = shr_domains_stack[0]
-    not_entailed_propagators = not_entailed_propagators_stack[0]
     statistics[STATS_IDX_PROBLEM_FILTER_NB] += 1
     prop_idx = -1
     while True:
-        prop_idx = pop_propagator(triggered_propagators, not_entailed_propagators, prop_idx)
+        prop_idx = pop_propagator(triggered_propagators, prop_idx)
         if prop_idx == -1:
-            return PROBLEM_BOUND if is_solved(shr_domains_arr) else PROBLEM_UNBOUND
+            return PROBLEM_BOUND if is_solved(shr_domains_stack[0]) else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = var_bounds[prop_idx, START]
         prop_var_end = var_bounds[prop_idx, END]
@@ -95,7 +94,7 @@ def bound_consistency_algorithm(
         prop_offsets = props_dom_offsets[prop_var_start:prop_var_end]
         prop_var_nb = prop_var_end - prop_var_start
         prop_domains = np.empty((prop_var_nb, 2), dtype=np.int32)
-        np.add(shr_domains_arr[prop_indices], prop_offsets, prop_domains)
+        np.add(shr_domains_stack[0, prop_indices], prop_offsets, prop_domains)
         compute_domains_function = (
             COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]]
             if NUMBA_DISABLE_JIT
@@ -108,7 +107,7 @@ def bound_consistency_algorithm(
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
-            not_entailed_propagators[prop_idx] = False
+            not_entailed_propagators_stack[0, prop_idx] = False
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
         shr_domains_changes = False
         for var_idx in range(prop_var_nb):
@@ -116,11 +115,15 @@ def bound_consistency_algorithm(
             prop_offset = prop_offsets[var_idx, 0]
             for bound in [MIN, MAX]:
                 shr_domain_bound = prop_domains[var_idx, bound] - prop_offset
-                if shr_domains_arr[shr_domain_idx, bound] != shr_domain_bound:
-                    shr_domains_arr[shr_domain_idx, bound] = shr_domain_bound
+                if shr_domains_stack[0, shr_domain_idx, bound] != shr_domain_bound:
+                    shr_domains_stack[0, shr_domain_idx, bound] = shr_domain_bound
                     shr_domains_changes = True
-                    np.logical_or(
-                        triggered_propagators, shr_domains_propagators[shr_domain_idx, bound], triggered_propagators
+                    add_propagators(
+                        triggered_propagators,
+                        not_entailed_propagators_stack[0],
+                        shr_domains_propagators,
+                        shr_domain_idx,
+                        bound,
                     )
         if not shr_domains_changes:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
