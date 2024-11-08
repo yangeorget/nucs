@@ -10,7 +10,6 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
