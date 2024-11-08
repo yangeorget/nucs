@@ -7,11 +7,16 @@ Consistency algorithms
 **********************
 
 NuCS relies on :ref:`consistency algorithms <consistency_algorithms>`.
-A bound-consistency algorithm is provided, a custom consistency algorithm can be used instead.
+Some consistency algorithms are provided, custom consistency algorithms can be defined and used instead.
 
 Bound consistency algorithm
 ###########################
 NuCS provides :mod:`nucs.solvers.bound_consistency_algorithm` which is the default consistency algorithm.
+
+Bound consistency algorithm with shaving
+########################################
+NuCS provides :mod:`nucs.solvers.shaving_consistency_algorithm` which performs some shaving of the domains.
+Note that this algorithm is experimental and is subject to change.
 
 Custom consistency algorithms
 #############################
