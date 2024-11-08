@@ -112,7 +112,7 @@ def bound_consistency_algorithm(
         shr_domains_changes = False
         for var_idx in range(prop_var_nb):
             shr_domain_idx = prop_indices[var_idx]
-            prop_offset = prop_offsets[var_idx, 0]
+            prop_offset = prop_offsets[var_idx, 0]  # because of vertical shape
             for bound in [MIN, MAX]:
                 shr_domain_bound = prop_domains[var_idx, bound] - prop_offset
                 if shr_domains_stack[0, shr_domain_idx, bound] != shr_domain_bound:
