@@ -51,8 +51,9 @@ def bound_consistency_algorithm(
     props_dom_offsets: NDArray,
     props_parameters: NDArray,
     shr_domains_propagators: NDArray,
-    shr_domains_arr: NDArray,
-    not_entailed_propagators: NDArray,
+    shr_domains_stack: NDArray,
+    not_entailed_propagators_stack: NDArray,
+    stacks_height: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
 ) -> int:
@@ -70,12 +71,17 @@ def bound_consistency_algorithm(
     :param shr_domains_propagators: a Numpy array of booleans indexed
     by shared domain indices, MIN/MAX and propagators; true means that the propagator has to be triggered when the MIN
     or MAX of the shared domain has changed
-    :param shr_domains_arr: the current shared domains
-    :param not_entailed_propagators: the propagators currently not entailed
+    :param shr_domains_stack: a stack of shared domains;
+    the first level correspond to the current shared domains, the rest correspond to the choice points
+    :param not_entailed_propagators_stack: a stack not entailed propagators;
+    the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
+    :param stacks_height: the height of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param compute_domains_addrs: the addresses of the compute_domains functions
     :return: a status (consistency, inconsistency or entailment) as an integer
     """
+    shr_domains_arr = shr_domains_stack[0]
+    not_entailed_propagators = not_entailed_propagators_stack[0]
     statistics[STATS_IDX_PROBLEM_FILTER_NB] += 1
     prop_idx = -1
     while True:

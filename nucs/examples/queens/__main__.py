@@ -16,6 +16,7 @@ from rich import print
 
 from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_SHAVING
 from nucs.solvers.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 from nucs.statistics import get_statistics
@@ -26,6 +27,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", type=int, default=10)
     parser.add_argument("--processors", type=int, default=1)
+    parser.add_argument("--shaving", type=bool, action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--ff", type=bool, action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     problem = QueensProblem(args.n)
@@ -34,6 +36,7 @@ if __name__ == "__main__":
         [
             BacktrackSolver(
                 problem,
+                consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
                 var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
             )
             for problem in problems

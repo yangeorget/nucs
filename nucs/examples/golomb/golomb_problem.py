@@ -124,8 +124,9 @@ def golomb_consistency_algorithm(
     props_dom_offsets: NDArray,
     props_parameters: NDArray,
     shr_domains_propagators: NDArray,
-    shr_domains_arr: NDArray,
-    not_entailed_propagators: NDArray,
+    shr_domains_stack: NDArray,
+    not_entailed_propagators_stack: NDArray,
+    stacks_height: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
 ) -> int:
@@ -135,6 +136,7 @@ def golomb_consistency_algorithm(
     :param problem: the problem
     :return: the status as an int
     """
+    shr_domains_arr = shr_domains_stack[0]
     # first prune the search space
     mark_nb = (1 + int(math.sqrt(8 * len(dom_indices_arr) + 1))) // 2
     ni_var_idx = first_not_instantiated_var_heuristic(shr_domains_arr)  # no domains shared between vars
@@ -170,8 +172,9 @@ def golomb_consistency_algorithm(
         props_dom_offsets,
         props_parameters,
         shr_domains_propagators,
-        shr_domains_arr,
-        not_entailed_propagators,
+        shr_domains_stack,
+        not_entailed_propagators_stack,
+        stacks_height,
         triggered_propagators,
         compute_domains_addrs,
     )

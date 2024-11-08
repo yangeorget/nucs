@@ -32,6 +32,7 @@ from nucs.constants import (
 from nucs.numba_helper import build_function_address_list, function_from_address
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS
+from nucs.solvers.choice_points import cp_init, cp_pop, cp_put
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.heuristics import (
     DOM_HEURISTIC_FCTS,
@@ -358,11 +359,8 @@ def backtrack(
     :param stacks_height: the height of both stacks
     :return: true iff it is possible to backtrack
     """
-    if stacks_height[0] == 1:
+    if not cp_pop(shr_domains_stack, not_entailed_propagators_stack, stacks_height):
         return False
-    stacks_height[0] -= 1
-    shr_domains_stack[0, :, :] = shr_domains_stack[stacks_height[0], :, :]
-    not_entailed_propagators_stack[0, :] = not_entailed_propagators_stack[stacks_height[0], :]
     statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
     triggered_propagators[:] = not_entailed_propagators_stack[0, :]  # numba does not support copyto
     return True
@@ -383,9 +381,7 @@ def reset(
     :param stacks_height: the height of both stacks
     :param triggered_propagators: the list of triggered propagators
     """
-    shr_domains_stack[0] = problem.shr_domains_lst
-    not_entailed_propagators_stack[0, :] = True
-    stacks_height[0] = 1
+    cp_init(shr_domains_stack, not_entailed_propagators_stack, stacks_height, np.array(problem.shr_domains_lst))
     triggered_propagators.fill(True)
 
 
@@ -462,8 +458,9 @@ def solve_one(
             props_dom_offsets,
             props_parameters,
             shr_domains_propagators,
-            shr_domains_stack[0],
-            not_entailed_propagators_stack[0],
+            shr_domains_stack,
+            not_entailed_propagators_stack,
+            stacks_height,
             triggered_propagators,
             compute_domains_addrs,
         )
@@ -472,9 +469,7 @@ def solve_one(
             return get_solution(shr_domains_stack[0], dom_indices_arr, dom_offsets_arr)
         elif status == PROBLEM_UNBOUND:
             dom_idx = var_heuristic_fct(shr_domains_stack[0])
-            shr_domains_stack[stacks_height[0], :, :] = shr_domains_stack[0, :, :]
-            not_entailed_propagators_stack[stacks_height[0], :] = not_entailed_propagators_stack[0, :]
-            stacks_height[0] += 1
+            cp_put(shr_domains_stack, not_entailed_propagators_stack, stacks_height)
             event = dom_heuristic_fct(shr_domains_stack[0, dom_idx], shr_domains_stack[stacks_height[0] - 1, dom_idx])
             np.logical_or(triggered_propagators, shr_domains_propagators[dom_idx, event], triggered_propagators)
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
