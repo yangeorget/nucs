@@ -26,8 +26,21 @@ def first_not_instantiated_var_heuristic(shr_domains: NDArray) -> int:
     :param shr_domains: the shared domains of the problem
     :return: the index of the shared domain
     """
-    for dom_idx, shr_domain in enumerate(shr_domains):
-        if shr_domain[MIN] < shr_domain[MAX]:
+    for dom_idx in range(len(shr_domains)):
+        if shr_domains[dom_idx, MIN] < shr_domains[dom_idx, MAX]:
+            return dom_idx
+    return -1  # cannot happen
+
+
+@njit(cache=True)
+def first_not_instantiated_var_heuristic_from_index(shr_domains: NDArray, start_idx: int) -> int:
+    """
+    Chooses the first non-instantiated shared domain.
+    :param shr_domains: the shared domains of the problem
+    :return: the index of the shared domain
+    """
+    for dom_idx in range(start_idx, len(shr_domains)):
+        if shr_domains[dom_idx, MIN] < shr_domains[dom_idx, MAX]:
             return dom_idx
     return -1  # cannot happen
 
@@ -40,8 +53,7 @@ def last_not_instantiated_var_heuristic(shr_domains: NDArray) -> int:
     :return: the index of the shared domain
     """
     for dom_idx in range(len(shr_domains) - 1, -1, -1):
-        shr_domain = shr_domains[dom_idx]
-        if shr_domain[MIN] < shr_domain[MAX]:
+        if shr_domains[dom_idx, MIN] < shr_domains[dom_idx, MAX]:
             return dom_idx
     return -1  # cannot happen
 

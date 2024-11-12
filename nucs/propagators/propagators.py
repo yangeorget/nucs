@@ -124,16 +124,30 @@ ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relatio
 
 
 @njit(cache=True)
-def pop_propagator(triggered_propagators: NDArray, not_entailed_propagators: NDArray, previous_prop_idx: int) -> int:
+def pop_propagator(triggered_propagators: NDArray, previous_prop_idx: int) -> int:
     """
     Pops a propagator to be filtered.
     :param triggered_propagators: the candidate propagators
-    :param not_entailed_propagators: the propagators that are not entailed yet
     :param previous_prop_idx: the index of the previous propagator which has been selected
     :return: an index
     """
-    for prop_idx, triggered_prop in enumerate(triggered_propagators):
-        if triggered_prop and not_entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
+    for prop_idx in range(len(triggered_propagators)):
+        if triggered_propagators[prop_idx] and prop_idx != previous_prop_idx:
             triggered_propagators[prop_idx] = False
             return prop_idx
     return -1
+
+
+@njit(cache=True)
+def add_propagators(
+    triggered_propagators: NDArray,
+    not_entailed_propagators: NDArray,
+    shr_domains_propagators: NDArray,
+    dom_idx: int,
+    bound: int,
+) -> None:
+    for prop_idx in range(len(triggered_propagators)):
+        if shr_domains_propagators[dom_idx, bound, prop_idx] and not_entailed_propagators[prop_idx]:
+            triggered_propagators[prop_idx] = True
+    # np.logical_or(triggered_propagators, shr_domains_propagators[dom_idx, bound], triggered_propagators)
+    # np.logical_and(triggered_propagators, not_entailed_propagators, triggered_propagators)

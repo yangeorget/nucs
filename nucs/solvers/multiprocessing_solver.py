@@ -38,6 +38,7 @@ class MultiprocessingSolver(Solver):
         self.solvers = solvers
         logger.info("Initializing statistics")
         self.statistics = [init_statistics() for _ in solvers]
+        logger.info("Statistics initialized")
         logger.info("MultiprocessingSolver initialized")
 
     def solve(self) -> Iterator[NDArray]:

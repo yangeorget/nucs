@@ -32,4 +32,5 @@ Contents
    installation
    variables_domains
    consistency_propagators
+   solvers_heuristics
    reference

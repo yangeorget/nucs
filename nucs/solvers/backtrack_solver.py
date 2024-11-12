@@ -33,7 +33,8 @@ from nucs.constants import (
 )
 from nucs.numba_helper import build_function_address_list, function_from_address
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS
+from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, add_propagators
+from nucs.solvers.choice_points import backtrack, cp_init, cp_put
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.heuristics import (
     DOM_HEURISTIC_FCTS,
@@ -44,7 +45,6 @@ from nucs.solvers.heuristics import (
 from nucs.solvers.solver import Solver, decrease_max, get_solution, increase_min
 from nucs.statistics import (
     STATS_IDX_OPTIMIZER_SOLUTION_NB,
-    STATS_IDX_SOLVER_BACKTRACK_NB,
     STATS_IDX_SOLVER_CHOICE_DEPTH,
     STATS_IDX_SOLVER_CHOICE_NB,
     STATS_IDX_SOLVER_SOLUTION_NB,
@@ -86,7 +86,7 @@ class BacktrackSolver(Solver):
     ):
         """
         Inits the solver.
-        :param problem: the problem
+        :param problem: the problem to be solved
         :param consistency_alg_idx: the index of the consistency algorithm
         :param var_heuristic_idx: the index of the heuristic for selecting a variable/domain
         :param dom_heuristic_idx: the index of the heuristic for reducing a domain
@@ -100,15 +100,23 @@ class BacktrackSolver(Solver):
         self.dom_heuristic_idx = dom_heuristic_idx
         self.consistency_alg_idx = consistency_alg_idx
         self.triggered_propagators = np.ones(problem.propagator_nb, dtype=np.bool)
-        # choice points
+        logger.info("Initializing choice points")
         self.shr_domains_stack = np.empty((stack_max_height, self.problem.variable_nb, 2), dtype=np.int32)
-        self.shr_domains_stack[0] = problem.shr_domains_lst
         self.not_entailed_propagators_stack = np.empty((stack_max_height, self.problem.propagator_nb), dtype=np.bool)
-        self.not_entailed_propagators_stack[0] = True
+        self.dom_update_stack = np.empty((stack_max_height, 2), dtype=np.uint16)
         self.stacks_height = np.ones((1,), dtype=np.uint8)
-        logger.info(f"CP stack has a maximal height of {self.stacks_height[0]}")
+        logger.info(f"Choice points stack has a maximal height of {stack_max_height}")
+        cp_init(
+            self.shr_domains_stack,
+            self.not_entailed_propagators_stack,
+            self.dom_update_stack,
+            self.stacks_height,
+            np.array(problem.shr_domains_lst),
+        )
+        logger.info("Choice points initialized")
         logger.info("Initializing statistics")
         self.statistics = init_statistics()
+        logger.info("Statistics initialized")
         logger.info("BacktrackSolver initialized")
 
     def minimize(self, variable_idx: int) -> Optional[NDArray]:
@@ -154,6 +162,7 @@ class BacktrackSolver(Solver):
                 self.problem.shr_domains_propagators,
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
+                self.dom_update_stack,
                 self.stacks_height,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
@@ -172,6 +181,7 @@ class BacktrackSolver(Solver):
                 self.problem,
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
+                self.dom_update_stack,
                 self.stacks_height,
                 self.triggered_propagators,
             )
@@ -206,6 +216,7 @@ class BacktrackSolver(Solver):
                 self.problem.shr_domains_propagators,
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
+                self.dom_update_stack,
                 self.stacks_height,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
@@ -223,8 +234,10 @@ class BacktrackSolver(Solver):
                 self.statistics,
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
+                self.dom_update_stack,
                 self.stacks_height,
                 self.triggered_propagators,
+                self.problem.shr_domains_propagators,
             ):
                 break
 
@@ -274,6 +287,7 @@ class BacktrackSolver(Solver):
                 self.problem.shr_domains_propagators,
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
+                self.dom_update_stack,
                 self.stacks_height,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
@@ -293,6 +307,7 @@ class BacktrackSolver(Solver):
                 self.problem,
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
+                self.dom_update_stack,
                 self.stacks_height,
                 self.triggered_propagators,
             )
@@ -328,6 +343,7 @@ class BacktrackSolver(Solver):
                 self.problem.shr_domains_propagators,
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
+                self.dom_update_stack,
                 self.stacks_height,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
@@ -345,43 +361,20 @@ class BacktrackSolver(Solver):
                 self.statistics,
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
+                self.dom_update_stack,
                 self.stacks_height,
                 self.triggered_propagators,
+                self.problem.shr_domains_propagators,
             ):
                 break
         solution_queue.put((processor_idx, None, self.statistics))
-
-
-@njit(cache=True)
-def backtrack(
-    statistics: NDArray,
-    shr_domains_stack: NDArray,
-    not_entailed_propagators_stack: NDArray,
-    stacks_height: NDArray,
-    triggered_propagators: NDArray,
-) -> bool:
-    """
-    Backtracks and updates the problem's domains.
-    :param statistics: the statistics array
-    :param shr_domains_stack: the stack of shared domains
-    :param not_entailed_propagators_stack: the stack of not entailed propagators
-    :param stacks_height: the height of both stacks
-    :return: true iff it is possible to backtrack
-    """
-    if stacks_height[0] == 1:
-        return False
-    stacks_height[0] -= 1
-    shr_domains_stack[0, :, :] = shr_domains_stack[stacks_height[0], :, :]
-    not_entailed_propagators_stack[0, :] = not_entailed_propagators_stack[stacks_height[0], :]
-    statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
-    triggered_propagators[:] = not_entailed_propagators_stack[0, :]  # numba does not support copyto
-    return True
 
 
 def reset(
     problem: Problem,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
+    dom_update_stack: NDArray,
     stacks_height: NDArray,
     triggered_propagators: NDArray,
 ) -> None:
@@ -393,9 +386,13 @@ def reset(
     :param stacks_height: the height of both stacks
     :param triggered_propagators: the list of triggered propagators
     """
-    shr_domains_stack[0] = problem.shr_domains_lst
-    not_entailed_propagators_stack[0, :] = True
-    stacks_height[0] = 1
+    cp_init(
+        shr_domains_stack,
+        not_entailed_propagators_stack,
+        dom_update_stack,
+        stacks_height,
+        np.array(problem.shr_domains_lst),
+    )
     triggered_propagators.fill(True)
 
 
@@ -413,6 +410,7 @@ def solve_one(
     shr_domains_propagators: NDArray,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
+    dom_update_stack: NDArray,
     stacks_height: NDArray,
     triggered_propagators: NDArray,
     consistency_alg_idx: int,
@@ -472,8 +470,10 @@ def solve_one(
             props_dom_offsets,
             props_parameters,
             shr_domains_propagators,
-            shr_domains_stack[0],
-            not_entailed_propagators_stack[0],
+            shr_domains_stack,
+            not_entailed_propagators_stack,
+            dom_update_stack,
+            stacks_height,
             triggered_propagators,
             compute_domains_addrs,
         )
@@ -482,15 +482,27 @@ def solve_one(
             return get_solution(shr_domains_stack[0], dom_indices_arr, dom_offsets_arr)
         elif status == PROBLEM_UNBOUND:
             dom_idx = var_heuristic_fct(shr_domains_stack[0])
-            shr_domains_stack[stacks_height[0], :, :] = shr_domains_stack[0, :, :]
-            not_entailed_propagators_stack[stacks_height[0], :] = not_entailed_propagators_stack[0, :]
-            stacks_height[0] += 1
-            event = dom_heuristic_fct(shr_domains_stack[0, dom_idx], shr_domains_stack[stacks_height[0] - 1, dom_idx])
-            np.logical_or(triggered_propagators, shr_domains_propagators[dom_idx, event], triggered_propagators)
+            cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_height, dom_idx)
+            cp_idx = stacks_height[0] - 1
+            event = dom_heuristic_fct(shr_domains_stack[0, dom_idx], shr_domains_stack[cp_idx, dom_idx])
+            dom_update_stack[cp_idx, 1] = event
+            add_propagators(
+                triggered_propagators,
+                not_entailed_propagators_stack[0],
+                shr_domains_propagators,
+                dom_idx,
+                event,
+            )
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
             if stacks_height[0] - 1 > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
                 statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = stacks_height[0] - 1
         elif not backtrack(
-            statistics, shr_domains_stack, not_entailed_propagators_stack, stacks_height, triggered_propagators
+            statistics,
+            shr_domains_stack,
+            not_entailed_propagators_stack,
+            dom_update_stack,
+            stacks_height,
+            triggered_propagators,
+            shr_domains_propagators,
         ):
             return None
