@@ -12,10 +12,10 @@
 ###############################################################################
 import pytest
 
+from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_LAST_NOT_INSTANTIATED
-from nucs.statistics import STATS_IDX_SOLVER_SOLUTION_NB
 
 
 class TestMagicSequence:

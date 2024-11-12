@@ -13,14 +13,42 @@
 import logging
 import operator
 from multiprocessing import Process, Queue
-from typing import Callable, Iterator, List, Optional
+from typing import Any, Callable, Dict, Iterator, List, Optional
 
 from numpy.typing import NDArray
 
-from nucs.constants import LOG_FORMAT, LOG_LEVEL_INFO
+from nucs.constants import (
+    LOG_FORMAT,
+    LOG_LEVEL_INFO,
+    STATS_IDX_ALG_BC_NB,
+    STATS_IDX_ALG_BC_WITH_SHAVING_NB,
+    STATS_IDX_ALG_SHAVING_CHANGE_NB,
+    STATS_IDX_ALG_SHAVING_NB,
+    STATS_IDX_ALG_SHAVING_NO_CHANGE_NB,
+    STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
+    STATS_IDX_PROPAGATOR_FILTER_NB,
+    STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
+    STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_IDX_SOLVER_BACKTRACK_NB,
+    STATS_IDX_SOLVER_CHOICE_DEPTH,
+    STATS_IDX_SOLVER_CHOICE_NB,
+    STATS_IDX_SOLVER_SOLUTION_NB,
+    STATS_LBL_ALG_BC_NB,
+    STATS_LBL_ALG_BC_WITH_SHAVING_NB,
+    STATS_LBL_ALG_SHAVING_CHANGE_NB,
+    STATS_LBL_ALG_SHAVING_NB,
+    STATS_LBL_ALG_SHAVING_NO_CHANGE_NB,
+    STATS_LBL_PROPAGATOR_ENTAILMENT_NB,
+    STATS_LBL_PROPAGATOR_FILTER_NB,
+    STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
+    STATS_LBL_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_LBL_SOLVER_BACKTRACK_NB,
+    STATS_LBL_SOLVER_CHOICE_DEPTH,
+    STATS_LBL_SOLVER_CHOICE_NB,
+    STATS_LBL_SOLVER_SOLUTION_NB,
+)
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.solver import Solver
-from nucs.statistics import init_statistics
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +66,28 @@ class MultiprocessingSolver(Solver):
         logger.info(f"MultiprocessingSolver has {len(solvers)} processors")
         self.solvers = solvers
         logger.debug("Initializing statistics")
-        self.statistics = [init_statistics() for _ in solvers]
+        self.statistics = [None for _ in solvers]
         logger.debug("Statistics initialized")
         logger.debug("MultiprocessingSolver initialized")
+
+    def get_statistics(self) -> Dict[str, int]:
+        return {
+            STATS_LBL_ALG_BC_NB: sum_stats(self.statistics, STATS_IDX_ALG_BC_NB),
+            STATS_LBL_ALG_BC_WITH_SHAVING_NB: sum_stats(self.statistics, STATS_IDX_ALG_BC_WITH_SHAVING_NB),
+            STATS_LBL_ALG_SHAVING_NB: sum_stats(self.statistics, STATS_IDX_ALG_SHAVING_NB),
+            STATS_LBL_ALG_SHAVING_CHANGE_NB: sum_stats(self.statistics, STATS_IDX_ALG_SHAVING_CHANGE_NB),
+            STATS_LBL_ALG_SHAVING_NO_CHANGE_NB: sum_stats(self.statistics, STATS_IDX_ALG_SHAVING_NO_CHANGE_NB),
+            STATS_LBL_PROPAGATOR_ENTAILMENT_NB: sum_stats(self.statistics, STATS_IDX_PROPAGATOR_ENTAILMENT_NB),
+            STATS_LBL_PROPAGATOR_FILTER_NB: sum_stats(self.statistics, STATS_IDX_PROPAGATOR_FILTER_NB),
+            STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB: sum_stats(
+                self.statistics, STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB
+            ),
+            STATS_LBL_PROPAGATOR_INCONSISTENCY_NB: sum_stats(self.statistics, STATS_IDX_PROPAGATOR_INCONSISTENCY_NB),
+            STATS_LBL_SOLVER_BACKTRACK_NB: sum_stats(self.statistics, STATS_IDX_SOLVER_BACKTRACK_NB),
+            STATS_LBL_SOLVER_CHOICE_NB: sum_stats(self.statistics, STATS_IDX_SOLVER_CHOICE_NB),
+            STATS_LBL_SOLVER_CHOICE_DEPTH: max_stats(self.statistics, STATS_IDX_SOLVER_CHOICE_DEPTH),
+            STATS_LBL_SOLVER_SOLUTION_NB: sum_stats(self.statistics, STATS_IDX_SOLVER_SOLUTION_NB),
+        }
 
     def solve(self) -> Iterator[NDArray]:
         solutions: Queue = Queue()
@@ -75,3 +122,11 @@ class MultiprocessingSolver(Solver):
             elif best_solution is None or comparison_func(solution[variable_idx], best_solution[variable_idx]):
                 best_solution = solution
         return best_solution
+
+
+def sum_stats(stats: List[Any], index: int) -> int:
+    return sum(int(s[index]) for s in stats)
+
+
+def max_stats(stats: List[Any], index: int) -> int:
+    return max(int(s[index]) for s in stats)

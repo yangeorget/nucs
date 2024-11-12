@@ -10,9 +10,9 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
+from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB
 from nucs.examples.bibd.bibd_problem import BIBDProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.statistics import STATS_IDX_SOLVER_SOLUTION_NB
 
 
 class TestBIBD:

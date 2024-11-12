@@ -12,7 +12,7 @@
 ###############################################################################
 import logging
 from multiprocessing import Queue
-from typing import Callable, Iterator, Optional, Tuple
+from typing import Callable, Dict, Iterator, Optional, Tuple
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -28,6 +28,33 @@ from nucs.constants import (
     SIGNATURE_CONSISTENCY_ALG,
     SIGNATURE_DOM_HEURISTIC,
     SIGNATURE_VAR_HEURISTIC,
+    STATS_IDX_ALG_BC_NB,
+    STATS_IDX_ALG_BC_WITH_SHAVING_NB,
+    STATS_IDX_ALG_SHAVING_CHANGE_NB,
+    STATS_IDX_ALG_SHAVING_NB,
+    STATS_IDX_ALG_SHAVING_NO_CHANGE_NB,
+    STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
+    STATS_IDX_PROPAGATOR_FILTER_NB,
+    STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
+    STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_IDX_SOLVER_BACKTRACK_NB,
+    STATS_IDX_SOLVER_CHOICE_DEPTH,
+    STATS_IDX_SOLVER_CHOICE_NB,
+    STATS_IDX_SOLVER_SOLUTION_NB,
+    STATS_LBL_ALG_BC_NB,
+    STATS_LBL_ALG_BC_WITH_SHAVING_NB,
+    STATS_LBL_ALG_SHAVING_CHANGE_NB,
+    STATS_LBL_ALG_SHAVING_NB,
+    STATS_LBL_ALG_SHAVING_NO_CHANGE_NB,
+    STATS_LBL_PROPAGATOR_ENTAILMENT_NB,
+    STATS_LBL_PROPAGATOR_FILTER_NB,
+    STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
+    STATS_LBL_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_LBL_SOLVER_BACKTRACK_NB,
+    STATS_LBL_SOLVER_CHOICE_DEPTH,
+    STATS_LBL_SOLVER_CHOICE_NB,
+    STATS_LBL_SOLVER_SOLUTION_NB,
+    STATS_MAX,
     TYPE_CONSISTENCY_ALG,
     TYPE_DOM_HEURISTIC,
     TYPE_VAR_HEURISTIC,
@@ -44,31 +71,8 @@ from nucs.solvers.heuristics import (
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
 )
 from nucs.solvers.solver import Solver, decrease_max, get_solution, increase_min
-from nucs.statistics import (
-    STATS_IDX_OPTIMIZER_SOLUTION_NB,
-    STATS_IDX_SOLVER_CHOICE_DEPTH,
-    STATS_IDX_SOLVER_CHOICE_NB,
-    STATS_IDX_SOLVER_SOLUTION_NB,
-    init_statistics,
-)
 
 logger = logging.getLogger(__name__)
-
-
-def get_function_addresses() -> Tuple[NDArray, NDArray, NDArray, NDArray]:
-    """
-    Returns the addresses of the
-    compute_domains, variable heuristics, domain heuristics and consistency algorithms functions.
-    :return: a tuple of NDArrays
-    """
-    if NUMBA_DISABLE_JIT:
-        return np.empty(0), np.empty(0), np.empty(0), np.empty(0)
-    return (
-        np.array(build_function_address_list(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)),
-        np.array(build_function_address_list(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC)),
-        np.array(build_function_address_list(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC)),
-        np.array(build_function_address_list(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG)),
-    )
 
 
 class BacktrackSolver(Solver):
@@ -118,9 +122,26 @@ class BacktrackSolver(Solver):
         )
         logger.debug("Choice points initialized")
         logger.debug("Initializing statistics")
-        self.statistics = init_statistics()
+        self.statistics = np.array([0] * STATS_MAX, dtype=np.int64)
         logger.debug("Statistics initialized")
         logger.debug("BacktrackSolver initialized")
+
+    def get_statistics(self) -> Dict[str, int]:
+        return {
+            STATS_LBL_ALG_BC_NB: int(self.statistics[STATS_IDX_ALG_BC_NB]),
+            STATS_LBL_ALG_BC_WITH_SHAVING_NB: int(self.statistics[STATS_IDX_ALG_BC_WITH_SHAVING_NB]),
+            STATS_LBL_ALG_SHAVING_NB: int(self.statistics[STATS_IDX_ALG_SHAVING_NB]),
+            STATS_LBL_ALG_SHAVING_CHANGE_NB: int(self.statistics[STATS_IDX_ALG_SHAVING_CHANGE_NB]),
+            STATS_LBL_ALG_SHAVING_NO_CHANGE_NB: int(self.statistics[STATS_IDX_ALG_SHAVING_NO_CHANGE_NB]),
+            STATS_LBL_PROPAGATOR_ENTAILMENT_NB: int(self.statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB]),
+            STATS_LBL_PROPAGATOR_FILTER_NB: int(self.statistics[STATS_IDX_PROPAGATOR_FILTER_NB]),
+            STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB: int(self.statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB]),
+            STATS_LBL_PROPAGATOR_INCONSISTENCY_NB: int(self.statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB]),
+            STATS_LBL_SOLVER_BACKTRACK_NB: int(self.statistics[STATS_IDX_SOLVER_BACKTRACK_NB]),
+            STATS_LBL_SOLVER_CHOICE_NB: int(self.statistics[STATS_IDX_SOLVER_CHOICE_NB]),
+            STATS_LBL_SOLVER_CHOICE_DEPTH: int(self.statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]),
+            STATS_LBL_SOLVER_SOLUTION_NB: int(self.statistics[STATS_IDX_SOLVER_SOLUTION_NB]),
+        }
 
     def minimize(self, variable_idx: int) -> Optional[NDArray]:
         """
@@ -177,9 +198,8 @@ class BacktrackSolver(Solver):
                 dom_heuristic_addrs,
             )
         ) is not None:
-            logger.info(f"Found a (new) solution: {solution[variable_idx]}")
+            logger.info(f"Found a local optimum: {solution[variable_idx]}")
             best_solution = solution
-            self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
             reset(
                 self.problem,
                 self.shr_domains_stack,
@@ -303,8 +323,7 @@ class BacktrackSolver(Solver):
             )
             if solution is None:
                 break
-            logger.info(f"Found a (new) solution: {solution[variable_idx]}")
-            self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
+            logger.info(f"Found a local optimum: {solution[variable_idx]}")
             solution_queue.put((processor_idx, solution, self.statistics))
             reset(
                 self.problem,
@@ -509,3 +528,19 @@ def solve_one(
             shr_domains_propagators,
         ):
             return None
+
+
+def get_function_addresses() -> Tuple[NDArray, NDArray, NDArray, NDArray]:
+    """
+    Returns the addresses of the
+    compute_domains, variable heuristics, domain heuristics and consistency algorithms functions.
+    :return: a tuple of NDArrays
+    """
+    if NUMBA_DISABLE_JIT:
+        return np.empty(0), np.empty(0), np.empty(0), np.empty(0)
+    return (
+        np.array(build_function_address_list(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)),
+        np.array(build_function_address_list(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC)),
+        np.array(build_function_address_list(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC)),
+        np.array(build_function_address_list(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG)),
+    )

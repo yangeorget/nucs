@@ -18,10 +18,9 @@ from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
 from nucs.examples.quasigroup.quasigroup_problem import Quasigroup5Problem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
-from nucs.statistics import get_statistics
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.quasigroup -n 10 --symmetry_breaking
+# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.quasigroup -n 10 --symmetry_breaking
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", type=int, default=10)
@@ -36,4 +35,4 @@ if __name__ == "__main__":
         log_level=args.log_level,
     )
     solver.solve_all()
-    print(get_statistics(solver.statistics))
+    print(solver.get_statistics())

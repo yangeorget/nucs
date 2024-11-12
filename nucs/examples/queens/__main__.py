@@ -20,10 +20,9 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_SHAVING
 from nucs.solvers.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
-from nucs.statistics import get_statistics
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.queens -n 10
+# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.queens -n 10
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", type=int, default=10)
@@ -46,4 +45,4 @@ if __name__ == "__main__":
         ]
     )
     solver.solve_all()
-    print(get_statistics(solver.statistics))
+    print(solver.get_statistics())

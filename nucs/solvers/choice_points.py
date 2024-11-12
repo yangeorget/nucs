@@ -3,8 +3,8 @@ from typing import Optional
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
+from nucs.constants import STATS_IDX_SOLVER_BACKTRACK_NB
 from nucs.propagators.propagators import add_propagators
-from nucs.statistics import STATS_IDX_SOLVER_BACKTRACK_NB
 
 
 @njit(cache=True)

@@ -12,9 +12,9 @@
 ###############################################################################
 import pytest
 
+from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB
 from nucs.problems.latin_square_problem import LatinSquareProblem, LatinSquareRCProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.statistics import STATS_IDX_SOLVER_SOLUTION_NB
 
 
 class TestLatinSquare:

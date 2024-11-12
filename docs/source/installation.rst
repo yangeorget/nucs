@@ -21,12 +21,11 @@ Some of these examples have a command line interface and can be run directly.
 
 Solve the 12-queens problem
 ###########################
-Let's find all solutions to the `12-queens problem <https://www.csplib.org/Problems/prob054>`_:
+Let's find all solutions to the `12-queens problem <https://www.csplib.org/Problems/prob054>`_.
 
 .. code-block:: bash
 
    NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.queens -n 12 --log_level=INFO
-
 
 Produces the following output:
 
@@ -40,29 +39,28 @@ Produces the following output:
    2024-11-12 17:24:49,061 - INFO - nucs.solvers.backtrack_solver - Choice points stack has a maximal height of 128
    2024-11-12 17:24:49,200 - INFO - nucs.solvers.multiprocessing_solver - MultiprocessingSolver has 1 processors
    {
-      'OPTIMIZER_SOLUTION_NB': 0,
-      'PROBLEM_FILTER_NB': 262011,
-      'PROBLEM_SHAVING_NB': 0,
-      'PROBLEM_SHAVING_CHANGE_NB': 0,
-      'PROBLEM_SHAVING_NO_CHANGE_NB': 0,
-      'PROPAGATOR_ENTAILMENT_NB': 0,
-      'PROPAGATOR_FILTER_NB': 2269980,
-      'PROPAGATOR_FILTER_NO_CHANGE_NB': 990450,
-      'PROPAGATOR_INCONSISTENCY_NB': 116806,
-      'SOLVER_BACKTRACK_NB': 131005,
-      'SOLVER_CHOICE_NB': 131005,
-      'SOLVER_CHOICE_DEPTH': 10,
-      'SOLVER_SOLUTION_NB': 14200
+    'ALG_BC_NB': 262011,
+    'ALG_BC_WITH_SHAVING_NB': 0,
+    'ALG_SHAVING_NB': 0,
+    'ALG_SHAVING_CHANGE_NB': 0,
+    'ALG_SHAVING_NO_CHANGE_NB': 0,
+    'PROPAGATOR_ENTAILMENT_NB': 0,
+    'PROPAGATOR_FILTER_NB': 2269980,
+    'PROPAGATOR_FILTER_NO_CHANGE_NB': 990450,
+    'PROPAGATOR_INCONSISTENCY_NB': 116806,
+    'SOLVER_BACKTRACK_NB': 131005,
+    'SOLVER_CHOICE_NB': 131005,
+    'SOLVER_CHOICE_DEPTH': 10,
+    'SOLVER_SOLUTION_NB': 14200
    }
 
 Solve the Golomb ruler problem
 ##############################
-Let's find the optimal solution to the `Golomb ruler problem <https://www.csplib.org/Problems/prob006>`_ with 10 marks:
+Let's find the optimal solution to the `Golomb ruler problem <https://www.csplib.org/Problems/prob006>`_ with 10 marks.
 
 .. code-block:: bash
 
    NUMBA_CACHE_DIR=.numba/cache -m nucs.examples.golomb -n 10 --symmetry_breaking --log_level=INFO
-
 
 Produces the following output:
 
@@ -86,19 +84,19 @@ Produces the following output:
    2024-11-12 17:27:45,717 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 60
    2024-11-12 17:27:45,977 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 55
    {
-       'OPTIMIZER_SOLUTION_NB': 10,
-       'PROBLEM_FILTER_NB': 22652,
-       'PROBLEM_SHAVING_NB': 0,
-       'PROBLEM_SHAVING_CHANGE_NB': 0,
-       'PROBLEM_SHAVING_NO_CHANGE_NB': 0,
-       'PROPAGATOR_ENTAILMENT_NB': 107911,
-       'PROPAGATOR_FILTER_NB': 2813035,
-       'PROPAGATOR_FILTER_NO_CHANGE_NB': 1745836,
-       'PROPAGATOR_INCONSISTENCY_NB': 11289,
-       'SOLVER_BACKTRACK_NB': 11288,
-       'SOLVER_CHOICE_NB': 11353,
-       'SOLVER_CHOICE_DEPTH': 9,
-       'SOLVER_SOLUTION_NB': 10
+    'ALG_BC_NB': 22652,
+    'ALG_BC_WITH_SHAVING_NB': 0,
+    'ALG_SHAVING_NB': 0,
+    'ALG_SHAVING_CHANGE_NB': 0,
+    'ALG_SHAVING_NO_CHANGE_NB': 0,
+    'PROPAGATOR_ENTAILMENT_NB': 107911,
+    'PROPAGATOR_FILTER_NB': 2813035,
+    'PROPAGATOR_FILTER_NO_CHANGE_NB': 1745836,
+    'PROPAGATOR_INCONSISTENCY_NB': 11289,
+    'SOLVER_BACKTRACK_NB': 11288,
+    'SOLVER_CHOICE_NB': 11353,
+    'SOLVER_CHOICE_DEPTH': 9,
+    'SOLVER_SOLUTION_NB': 10
    }
    [ 1  6 10 23 26 34 41 53 55]
 

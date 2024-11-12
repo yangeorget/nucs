@@ -13,7 +13,16 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN, PROBLEM_INCONSISTENT, PROBLEM_UNBOUND
+from nucs.constants import (
+    MAX,
+    MIN,
+    PROBLEM_INCONSISTENT,
+    PROBLEM_UNBOUND,
+    STATS_IDX_ALG_BC_WITH_SHAVING_NB,
+    STATS_IDX_ALG_SHAVING_CHANGE_NB,
+    STATS_IDX_ALG_SHAVING_NB,
+    STATS_IDX_ALG_SHAVING_NO_CHANGE_NB,
+)
 from nucs.propagators.propagators import add_propagators
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
 from nucs.solvers.choice_points import backtrack, cp_put
@@ -21,11 +30,6 @@ from nucs.solvers.heuristics import (
     first_not_instantiated_var_heuristic_from_index,
     max_value_dom_heuristic,
     min_value_dom_heuristic,
-)
-from nucs.statistics import (
-    STATS_IDX_PROBLEM_SHAVING_CHANGE_NB,
-    STATS_IDX_PROBLEM_SHAVING_NB,
-    STATS_IDX_PROBLEM_SHAVING_NO_CHANGE_NB,
 )
 
 
@@ -177,6 +181,7 @@ def shaving_consistency_algorithm(
     :param compute_domains_addrs: the addresses of the compute_domains functions
     :return: a status (consistency, inconsistency or entailment) as an integer
     """
+    statistics[STATS_IDX_ALG_BC_WITH_SHAVING_NB] += 1
     shr_domains_nb = len(shr_domains_stack[0])
     start_idx = 0
     bound = MIN
@@ -205,7 +210,7 @@ def shaving_consistency_algorithm(
             if status != PROBLEM_UNBOUND:
                 return status
         dom_idx = first_not_instantiated_var_heuristic_from_index(shr_domains_stack[0], start_idx)
-        statistics[STATS_IDX_PROBLEM_SHAVING_NB] += 1
+        statistics[STATS_IDX_ALG_SHAVING_NB] += 1
         cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_height, dom_idx)
         needs_bc = (
             shave_min(
@@ -258,9 +263,9 @@ def shaving_consistency_algorithm(
             shr_domains_propagators,
         )
         if needs_bc:  # there's been some shaving
-            statistics[STATS_IDX_PROBLEM_SHAVING_CHANGE_NB] += 1
+            statistics[STATS_IDX_ALG_SHAVING_CHANGE_NB] += 1
         else:  # no change
-            statistics[STATS_IDX_PROBLEM_SHAVING_NO_CHANGE_NB] += 1
+            statistics[STATS_IDX_ALG_SHAVING_NO_CHANGE_NB] += 1
             # this is one of the many shaving strategies
             bound += 1
             if bound > MAX:

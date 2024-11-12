@@ -38,11 +38,11 @@ NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.queens -n 12 --log_level=IN
 2024-11-12 17:24:49,061 - INFO - nucs.solvers.backtrack_solver - Choice points stack has a maximal height of 128
 2024-11-12 17:24:49,200 - INFO - nucs.solvers.multiprocessing_solver - MultiprocessingSolver has 1 processors
 {
-    'OPTIMIZER_SOLUTION_NB': 0,
-    'PROBLEM_FILTER_NB': 262011,
-    'PROBLEM_SHAVING_NB': 0,
-    'PROBLEM_SHAVING_CHANGE_NB': 0,
-    'PROBLEM_SHAVING_NO_CHANGE_NB': 0,
+    'ALG_BC_NB': 262011,
+    'ALG_BC_WITH_SHAVING_NB': 0,
+    'ALG_SHAVING_NB': 0,
+    'ALG_SHAVING_CHANGE_NB': 0,
+    'ALG_SHAVING_NO_CHANGE_NB': 0,
     'PROPAGATOR_ENTAILMENT_NB': 0,
     'PROPAGATOR_FILTER_NB': 2269980,
     'PROPAGATOR_FILTER_NO_CHANGE_NB': 990450,
@@ -66,11 +66,11 @@ NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -
 2024-11-12 17:26:39,734 - INFO - nucs.solvers.backtrack_solver - BacktrackSolver uses consistency algorithm 0
 2024-11-12 17:26:39,734 - INFO - nucs.solvers.backtrack_solver - Choice points stack has a maximal height of 128
 {
-    'OPTIMIZER_SOLUTION_NB': 0,
-    'PROBLEM_FILTER_NB': 1425,
-    'PROBLEM_SHAVING_NB': 0,
-    'PROBLEM_SHAVING_CHANGE_NB': 0,
-    'PROBLEM_SHAVING_NO_CHANGE_NB': 0,
+    'ALG_BC_NB': 1425,
+    'ALG_BC_WITH_SHAVING_NB': 0,
+    'ALG_SHAVING_NB': 0,
+    'ALG_SHAVING_CHANGE_NB': 0,
+    'ALG_SHAVING_NO_CHANGE_NB': 0,
     'PROPAGATOR_ENTAILMENT_NB': 4711,
     'PROPAGATOR_FILTER_NB': 104392,
     'PROPAGATOR_FILTER_NO_CHANGE_NB': 73792,
@@ -105,11 +105,11 @@ NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.golomb -n 10 --symmetry_bre
 2024-11-12 17:27:45,717 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 60
 2024-11-12 17:27:45,977 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 55
 {
-    'OPTIMIZER_SOLUTION_NB': 10,
-    'PROBLEM_FILTER_NB': 22652,
-    'PROBLEM_SHAVING_NB': 0,
-    'PROBLEM_SHAVING_CHANGE_NB': 0,
-    'PROBLEM_SHAVING_NO_CHANGE_NB': 0,
+    'ALG_BC_NB': 22652,
+    'ALG_BC_WITH_SHAVING_NB': 0,
+    'ALG_SHAVING_NB': 0,
+    'ALG_SHAVING_CHANGE_NB': 0,
+    'ALG_SHAVING_NO_CHANGE_NB': 0,
     'PROPAGATOR_ENTAILMENT_NB': 107911,
     'PROPAGATOR_FILTER_NB': 2813035,
     'PROPAGATOR_FILTER_NO_CHANGE_NB': 1745836,

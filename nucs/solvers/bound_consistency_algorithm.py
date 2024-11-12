@@ -25,18 +25,16 @@ from nucs.constants import (
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
     START,
+    STATS_IDX_ALG_BC_NB,
+    STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
+    STATS_IDX_PROPAGATOR_FILTER_NB,
+    STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
+    STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
     TYPE_COMPUTE_DOMAINS,
 )
 from nucs.numba_helper import function_from_address
 from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, add_propagators, pop_propagator
 from nucs.solvers.solver import is_solved
-from nucs.statistics import (
-    STATS_IDX_PROBLEM_FILTER_NB,
-    STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
-    STATS_IDX_PROPAGATOR_FILTER_NB,
-    STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
-    STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
-)
 
 
 @njit(cache=True)
@@ -81,7 +79,7 @@ def bound_consistency_algorithm(
     :param compute_domains_addrs: the addresses of the compute_domains functions
     :return: a status (consistency, inconsistency or entailment) as an integer
     """
-    statistics[STATS_IDX_PROBLEM_FILTER_NB] += 1
+    statistics[STATS_IDX_ALG_BC_NB] += 1
     prop_idx = -1
     while True:
         prop_idx = pop_propagator(triggered_propagators, prop_idx)

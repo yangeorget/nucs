@@ -12,7 +12,7 @@
 ###############################################################################
 import logging
 from abc import abstractmethod
-from typing import Callable, Iterator, List, Optional
+from typing import Callable, Dict, Iterator, List, Optional
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -37,6 +37,14 @@ class Solver:
             logger.debug("Problem initialized")
             logger.info(f"Problem has {problem.propagator_nb} propagators")
             logger.info(f"Problem has {problem.variable_nb} variables")
+
+    @abstractmethod
+    def get_statistics(self) -> Dict[str, int]:
+        """
+        Returns the statistics as a dictionary.
+        :return: a dictionary
+        """
+        ...
 
     @abstractmethod
     def solve(self) -> Iterator[NDArray]:

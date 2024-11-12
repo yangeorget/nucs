@@ -18,10 +18,9 @@ from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
 from nucs.examples.knapsack.knapsack_problem import KnapsackProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
-from nucs.statistics import get_statistics
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.knapsack
+# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.knapsack
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
@@ -38,5 +37,5 @@ if __name__ == "__main__":
         log_level=args.log_level,
     )
     solution = solver.maximize(problem.weight)
-    print(get_statistics(solver.statistics))
+    print(solver.get_statistics())
     print(solution)
