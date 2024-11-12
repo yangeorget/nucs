@@ -20,6 +20,7 @@ from numpy.typing import NDArray
 
 from nucs.constants import (
     LOG_FORMAT,
+    LOG_LEVEL_INFO,
     NUMBA_DISABLE_JIT,
     PROBLEM_BOUND,
     PROBLEM_UNBOUND,
@@ -82,7 +83,7 @@ class BacktrackSolver(Solver):
         var_heuristic_idx: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
         stack_max_height: int = 128,
-        log_level: int = logging.INFO,
+        log_level: str = LOG_LEVEL_INFO,
     ):
         """
         Inits the solver.
@@ -92,15 +93,17 @@ class BacktrackSolver(Solver):
         :param dom_heuristic_idx: the index of the heuristic for reducing a domain
         :param stack_max_height: the maximal choice point stack height
         """
-        logging.basicConfig(format=LOG_FORMAT, level=log_level)
-        logger.info("Initializing BacktrackSolver")
+        logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, log_level))
+        logger.debug("Initializing BacktrackSolver")
         super().__init__(problem)
-        # heuristics and consistency algorithms
+        logger.info(f"BacktrackSolver uses variable heuristic {var_heuristic_idx}")
         self.var_heuristic_idx = var_heuristic_idx
+        logger.info(f"BacktrackSolver uses domain heuristic {dom_heuristic_idx}")
         self.dom_heuristic_idx = dom_heuristic_idx
+        logger.info(f"BacktrackSolver uses consistency algorithm {consistency_alg_idx}")
         self.consistency_alg_idx = consistency_alg_idx
         self.triggered_propagators = np.ones(problem.propagator_nb, dtype=np.bool)
-        logger.info("Initializing choice points")
+        logger.debug("Initializing choice points")
         self.shr_domains_stack = np.empty((stack_max_height, self.problem.variable_nb, 2), dtype=np.int32)
         self.not_entailed_propagators_stack = np.empty((stack_max_height, self.problem.propagator_nb), dtype=np.bool)
         self.dom_update_stack = np.empty((stack_max_height, 2), dtype=np.uint16)
@@ -113,11 +116,11 @@ class BacktrackSolver(Solver):
             self.stacks_height,
             np.array(problem.shr_domains_lst),
         )
-        logger.info("Choice points initialized")
-        logger.info("Initializing statistics")
+        logger.debug("Choice points initialized")
+        logger.debug("Initializing statistics")
         self.statistics = init_statistics()
-        logger.info("Statistics initialized")
-        logger.info("BacktrackSolver initialized")
+        logger.debug("Statistics initialized")
+        logger.debug("BacktrackSolver initialized")
 
     def minimize(self, variable_idx: int) -> Optional[NDArray]:
         """

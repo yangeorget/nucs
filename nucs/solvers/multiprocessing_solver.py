@@ -17,7 +17,7 @@ from typing import Callable, Iterator, List, Optional
 
 from numpy.typing import NDArray
 
-from nucs.constants import LOG_FORMAT
+from nucs.constants import LOG_FORMAT, LOG_LEVEL_INFO
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.solver import Solver
 from nucs.statistics import init_statistics
@@ -31,15 +31,16 @@ class MultiprocessingSolver(Solver):
     This solver delegates resolution to a set of solvers.
     """
 
-    def __init__(self, solvers: List[BacktrackSolver], log_level: int = logging.INFO):
-        logging.basicConfig(format=LOG_FORMAT, level=log_level)
-        logger.info(f"Initializing MultiprocessingSolver with {len(solvers)} processors")
+    def __init__(self, solvers: List[BacktrackSolver], log_level: str = LOG_LEVEL_INFO):
+        logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, log_level))
+        logger.debug("Initializing MultiprocessingSolver")
         super().__init__(None)
+        logger.info(f"MultiprocessingSolver has {len(solvers)} processors")
         self.solvers = solvers
-        logger.info("Initializing statistics")
+        logger.debug("Initializing statistics")
         self.statistics = [init_statistics() for _ in solvers]
-        logger.info("Statistics initialized")
-        logger.info("MultiprocessingSolver initialized")
+        logger.debug("Statistics initialized")
+        logger.debug("MultiprocessingSolver initialized")
 
     def solve(self) -> Iterator[NDArray]:
         solutions: Queue = Queue()

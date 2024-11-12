@@ -14,6 +14,7 @@ import argparse
 
 from rich import print
 
+from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
 from nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem import (
     SportsTournamentSchedulingProblem,
 )
@@ -26,11 +27,15 @@ from nucs.statistics import get_statistics
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", type=int, default=8)
+    parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
     parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
     args = parser.parse_args()
     problem = SportsTournamentSchedulingProblem(args.n, args.symmetry_breaking)
     solver = BacktrackSolver(
-        problem, var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE
+        problem,
+        var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
+        dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE,
+        log_level=args.log_level,
     )
     solution = next(solver.solve())
     print(get_statistics(solver.statistics))

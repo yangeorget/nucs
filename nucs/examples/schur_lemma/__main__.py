@@ -14,6 +14,7 @@ import argparse
 
 from rich import print
 
+from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
 from nucs.examples.schur_lemma.schur_lemma_problem import SchurLemmaProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.statistics import get_statistics
@@ -23,9 +24,10 @@ from nucs.statistics import get_statistics
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", type=int, default=20)
+    parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
     parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
     args = parser.parse_args()
     problem = SchurLemmaProblem(args.n, args.symmetry_breaking)
-    solver = BacktrackSolver(problem)
+    solver = BacktrackSolver(problem, log_level=args.log_level)
     solver.solve_all()
     print(get_statistics(solver.statistics))

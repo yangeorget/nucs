@@ -32,9 +32,9 @@ class Solver:
     def __init__(self, problem: Optional[Problem]):
         if problem is not None:
             self.problem = problem
-            logger.info("Initializing the problem")
+            logger.debug("Initializing the problem")
             problem.init()
-            logger.info("Problem initialized")
+            logger.debug("Problem initialized")
             logger.info(f"Problem has {problem.propagator_nb} propagators")
             logger.info(f"Problem has {problem.variable_nb} variables")
 

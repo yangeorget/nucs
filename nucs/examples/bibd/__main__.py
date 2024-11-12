@@ -14,6 +14,7 @@ import argparse
 
 from rich import print
 
+from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
 from nucs.examples.bibd.bibd_problem import BIBDProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.heuristics import DOM_HEURISTIC_MAX_VALUE
@@ -29,8 +30,9 @@ if __name__ == "__main__":
     parser.add_argument("-k", type=int)
     parser.add_argument("-l", type=int)
     parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
     args = parser.parse_args()
     problem = BIBDProblem(args.v, args.b, args.r, args.k, args.l, args.symmetry_breaking)
-    solver = BacktrackSolver(problem, dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE)
+    solver = BacktrackSolver(problem, dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE, log_level=args.log_level)
     solver.solve_all()
     print(get_statistics(solver.statistics))
