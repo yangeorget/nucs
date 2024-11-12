@@ -25,20 +25,34 @@ Let's find all solutions to the `12-queens problem <https://www.csplib.org/Probl
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.queens -n 12
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.queens -n 12 --log_level=INFO
+
+
+Produces the following output:
+
+.. code-block:: bash
+
+   2024-11-12 17:24:49,061 - INFO - nucs.solvers.solver - Problem has 3 propagators
+   2024-11-12 17:24:49,061 - INFO - nucs.solvers.solver - Problem has 12 variables
+   2024-11-12 17:24:49,061 - INFO - nucs.solvers.backtrack_solver - BacktrackSolver uses variable heuristic 0
+   2024-11-12 17:24:49,061 - INFO - nucs.solvers.backtrack_solver - BacktrackSolver uses domain heuristic 0
+   2024-11-12 17:24:49,061 - INFO - nucs.solvers.backtrack_solver - BacktrackSolver uses consistency algorithm 0
+   2024-11-12 17:24:49,061 - INFO - nucs.solvers.backtrack_solver - Choice points stack has a maximal height of 128
+   2024-11-12 17:24:49,200 - INFO - nucs.solvers.multiprocessing_solver - MultiprocessingSolver has 1 processors
    {
-       'OPTIMIZER_SOLUTION_NB': 0,
-       'PROBLEM_FILTER_NB': 262011,
-       'PROBLEM_PROPAGATOR_NB': 3,
-       'PROBLEM_VARIABLE_NB': 36,
-       'PROPAGATOR_ENTAILMENT_NB': 0,
-       'PROPAGATOR_FILTER_NB': 2269980,
-       'PROPAGATOR_FILTER_NO_CHANGE_NB': 990450,
-       'PROPAGATOR_INCONSISTENCY_NB': 116806,
-       'SOLVER_BACKTRACK_NB': 131005,
-       'SOLVER_CHOICE_NB': 131005,
-       'SOLVER_CHOICE_DEPTH': 10,
-       'SOLVER_SOLUTION_NB': 14200
+      'OPTIMIZER_SOLUTION_NB': 0,
+      'PROBLEM_FILTER_NB': 262011,
+      'PROBLEM_SHAVING_NB': 0,
+      'PROBLEM_SHAVING_CHANGE_NB': 0,
+      'PROBLEM_SHAVING_NO_CHANGE_NB': 0,
+      'PROPAGATOR_ENTAILMENT_NB': 0,
+      'PROPAGATOR_FILTER_NB': 2269980,
+      'PROPAGATOR_FILTER_NO_CHANGE_NB': 990450,
+      'PROPAGATOR_INCONSISTENCY_NB': 116806,
+      'SOLVER_BACKTRACK_NB': 131005,
+      'SOLVER_CHOICE_NB': 131005,
+      'SOLVER_CHOICE_DEPTH': 10,
+      'SOLVER_SOLUTION_NB': 14200
    }
 
 Solve the Golomb ruler problem
@@ -47,22 +61,46 @@ Let's find the optimal solution to the `Golomb ruler problem <https://www.csplib
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.golomb -n 10 --symmetry_breaking
+   NUMBA_CACHE_DIR=.numba/cache -m nucs.examples.golomb -n 10 --symmetry_breaking --log_level=INFO
+
+
+Produces the following output:
+
+.. code-block:: bash
+
+   2024-11-12 17:27:45,110 - INFO - nucs.solvers.solver - Problem has 82 propagators
+   2024-11-12 17:27:45,110 - INFO - nucs.solvers.solver - Problem has 45 variables
+   2024-11-12 17:27:45,110 - INFO - nucs.solvers.backtrack_solver - BacktrackSolver uses variable heuristic 0
+   2024-11-12 17:27:45,110 - INFO - nucs.solvers.backtrack_solver - BacktrackSolver uses domain heuristic 0
+   2024-11-12 17:27:45,110 - INFO - nucs.solvers.backtrack_solver - BacktrackSolver uses consistency algorithm 2
+   2024-11-12 17:27:45,110 - INFO - nucs.solvers.backtrack_solver - Choice points stack has a maximal height of 128
+   2024-11-12 17:27:45,172 - INFO - nucs.solvers.backtrack_solver - Minimizing variable 8
+   2024-11-12 17:27:45,644 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 80
+   2024-11-12 17:27:45,677 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 75
+   2024-11-12 17:27:45,677 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 73
+   2024-11-12 17:27:45,678 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 72
+   2024-11-12 17:27:45,679 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 70
+   2024-11-12 17:27:45,682 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 68
+   2024-11-12 17:27:45,687 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 66
+   2024-11-12 17:27:45,693 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 62
+   2024-11-12 17:27:45,717 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 60
+   2024-11-12 17:27:45,977 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 55
    {
        'OPTIMIZER_SOLUTION_NB': 10,
-       'PROBLEM_FILTER_NB': 22886,
-       'PROBLEM_PROPAGATOR_NB': 82,
-       'PROBLEM_VARIABLE_NB': 45,
-       'PROPAGATOR_ENTAILMENT_NB': 98080,
-       'PROPAGATOR_FILTER_NB': 2843257,
-       'PROPAGATOR_FILTER_NO_CHANGE_NB': 1806240,
-       'PROPAGATOR_INCONSISTENCY_NB': 11406,
-       'SOLVER_BACKTRACK_NB': 11405,
-       'SOLVER_CHOICE_NB': 11470,
+       'PROBLEM_FILTER_NB': 22652,
+       'PROBLEM_SHAVING_NB': 0,
+       'PROBLEM_SHAVING_CHANGE_NB': 0,
+       'PROBLEM_SHAVING_NO_CHANGE_NB': 0,
+       'PROPAGATOR_ENTAILMENT_NB': 107911,
+       'PROPAGATOR_FILTER_NB': 2813035,
+       'PROPAGATOR_FILTER_NO_CHANGE_NB': 1745836,
+       'PROPAGATOR_INCONSISTENCY_NB': 11289,
+       'SOLVER_BACKTRACK_NB': 11288,
+       'SOLVER_CHOICE_NB': 11353,
        'SOLVER_CHOICE_DEPTH': 9,
        'SOLVER_SOLUTION_NB': 10
    }
-   [1, 6, 10, 23, 26, 34, 41, 53, 55]
+   [ 1  6 10 23 26 34 41 53 55]
 
 **********************
 Write your first model
