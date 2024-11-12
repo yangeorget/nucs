@@ -54,3 +54,5 @@ TYPE_VAR_HEURISTIC = types.FunctionType(SIGNATURE_VAR_HEURISTIC)
 TYPE_CONSISTENCY_ALG = types.FunctionType(SIGNATURE_CONSISTENCY_ALG)
 
 NUMBA_DISABLE_JIT = os.getenv("NUMBA_DISABLE_JIT")
+
+LOG_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"

@@ -10,6 +10,7 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
+import logging
 from multiprocessing import Queue
 from typing import Callable, Iterator, Optional, Tuple
 
@@ -18,6 +19,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
+    LOG_FORMAT,
     NUMBA_DISABLE_JIT,
     PROBLEM_BOUND,
     PROBLEM_UNBOUND,
@@ -42,14 +44,14 @@ from nucs.solvers.heuristics import (
 from nucs.solvers.solver import Solver, decrease_max, get_solution, increase_min
 from nucs.statistics import (
     STATS_IDX_OPTIMIZER_SOLUTION_NB,
-    STATS_IDX_PROBLEM_PROPAGATOR_NB,
-    STATS_IDX_PROBLEM_VARIABLE_NB,
     STATS_IDX_SOLVER_BACKTRACK_NB,
     STATS_IDX_SOLVER_CHOICE_DEPTH,
     STATS_IDX_SOLVER_CHOICE_NB,
     STATS_IDX_SOLVER_SOLUTION_NB,
     init_statistics,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def get_function_addresses() -> Tuple[NDArray, NDArray, NDArray, NDArray]:
@@ -80,6 +82,7 @@ class BacktrackSolver(Solver):
         var_heuristic_idx: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
         stack_max_height: int = 128,
+        log_level: int = logging.INFO,
     ):
         """
         Inits the solver.
@@ -89,23 +92,24 @@ class BacktrackSolver(Solver):
         :param dom_heuristic_idx: the index of the heuristic for reducing a domain
         :param stack_max_height: the maximal choice point stack height
         """
+        logging.basicConfig(format=LOG_FORMAT, level=log_level)
+        logger.info("Initializing BacktrackSolver")
+        super().__init__(problem)
         # heuristics and consistency algorithms
         self.var_heuristic_idx = var_heuristic_idx
         self.dom_heuristic_idx = dom_heuristic_idx
         self.consistency_alg_idx = consistency_alg_idx
         self.triggered_propagators = np.ones(problem.propagator_nb, dtype=np.bool)
-        problem.init()
-        self.problem = problem
         # choice points
         self.shr_domains_stack = np.empty((stack_max_height, self.problem.variable_nb, 2), dtype=np.int32)
         self.shr_domains_stack[0] = problem.shr_domains_lst
         self.not_entailed_propagators_stack = np.empty((stack_max_height, self.problem.propagator_nb), dtype=np.bool)
         self.not_entailed_propagators_stack[0] = True
         self.stacks_height = np.ones((1,), dtype=np.uint8)
-        # statistics
+        logger.info(f"CP stack has a maximal height of {self.stacks_height[0]}")
+        logger.info("Initializing statistics")
         self.statistics = init_statistics()
-        self.statistics[STATS_IDX_PROBLEM_PROPAGATOR_NB] = self.problem.propagator_nb
-        self.statistics[STATS_IDX_PROBLEM_VARIABLE_NB] = self.problem.variable_nb
+        logger.info("BacktrackSolver initialized")
 
     def minimize(self, variable_idx: int) -> Optional[NDArray]:
         """
@@ -113,6 +117,7 @@ class BacktrackSolver(Solver):
         :param variable_idx: the index of the variable to minimize
         :return: the optimal solution if it exists or None
         """
+        logger.info(f"Minimizing variable {variable_idx}")
         return self.optimize(variable_idx, decrease_max)
 
     def maximize(self, variable_idx: int) -> Optional[NDArray]:
@@ -121,6 +126,7 @@ class BacktrackSolver(Solver):
         :param variable_idx: the index of the variable to maximize
         :return: the optimal solution if it exists or None
         """
+        logger.info(f"Maximizing variable {variable_idx}")
         return self.optimize(variable_idx, increase_min)
 
     def optimize(self, variable_idx: int, update_domain_fct: Callable) -> Optional[NDArray]:
@@ -159,6 +165,7 @@ class BacktrackSolver(Solver):
                 dom_heuristic_addrs,
             )
         ) is not None:
+            logger.info(f"Found a (new) solution: {solution[variable_idx]}")
             best_solution = solution
             self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
             reset(
@@ -228,6 +235,7 @@ class BacktrackSolver(Solver):
         :param processor_idx: the index of the processor running the minimizer
         :param solution_queue: the solution queue
         """
+        logger.info(f"Minimizing variable {variable_idx} and queuing solutions found")
         self.optimize_and_queue(variable_idx, decrease_max, processor_idx, solution_queue)
 
     def maximize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue) -> None:
@@ -237,6 +245,7 @@ class BacktrackSolver(Solver):
         :param processor_idx: the index of the processor running the maximizer
         :param solution_queue: the solution queue
         """
+        logger.info(f"Maximizing variable {variable_idx} and queuing solutions found")
         self.optimize_and_queue(variable_idx, increase_min, processor_idx, solution_queue)
 
     def optimize_and_queue(
@@ -277,6 +286,7 @@ class BacktrackSolver(Solver):
             )
             if solution is None:
                 break
+            logger.info(f"Found a (new) solution: {solution[variable_idx]}")
             self.statistics[STATS_IDX_OPTIMIZER_SOLUTION_NB] += 1
             solution_queue.put((processor_idx, solution, self.statistics))
             reset(

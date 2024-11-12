@@ -10,6 +10,7 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
+import logging
 from abc import abstractmethod
 from typing import Callable, Iterator, List, Optional
 
@@ -18,12 +19,24 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN
+from nucs.problems.problem import Problem
+
+logger = logging.getLogger(__name__)
 
 
 class Solver:
     """
     A solver.
     """
+
+    def __init__(self, problem: Optional[Problem]):
+        if problem is not None:
+            self.problem = problem
+            logger.info("Initializing the problem")
+            problem.init()
+            logger.info("Problem initialized")
+            logger.info(f"Problem has {problem.propagator_nb} propagators")
+            logger.info(f"Problem has {problem.variable_nb} variables")
 
     @abstractmethod
     def solve(self) -> Iterator[NDArray]:
@@ -47,6 +60,7 @@ class Solver:
         Finds all solutions.
         :return: the list of all solutions
         """
+        logger.info("Finding all solutions")
         solutions = []
         self.solve_all(lambda solution: solutions.append(solution))
         return solutions
