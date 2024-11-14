@@ -458,7 +458,7 @@ NuCS comes with the following solvers.
 
 
 .. py:module:: nucs.solvers.backtrack_solver
-.. py:function:: nucs.solvers.backtrack_solver.__init__(problem, consistency_alg_idx, var_heuristic_idx, dom_heuristic_idx, stack_max_height)
+.. py:function:: nucs.solvers.backtrack_solver.__init__(problem, consistency_alg_idx, var_heuristic_idx, dom_heuristic_idx, stack_max_height, log_level)
 
    A backtrack-based solver.
 
@@ -472,14 +472,41 @@ NuCS comes with the following solvers.
    :type dom_heuristic_idx: int
    :param stack_max_height: the maximal height of the choice point stack
    :type stack_max_height: int
+   :param log_level: the log level
+   :type log_level: str
 
 .. py:module:: nucs.solvers.multiprocessing_solver
-.. py:function:: nucs.solvers.multiprocessing_solver.__init__(solvers)
+.. py:function:: nucs.solvers.multiprocessing_solver.__init__(solvers, log_level)
 
    A solver relying on the multiprocessing package. This solver delegates resolution to a set of solvers.
 
    :param solvers: the solvers used in different processes
    :type solvers: List[BacktrackSolver]
+   :param log_level: the log level
+   :type log_level: str
+
+
+.. _statistics:
+
+**********
+Statistics
+**********
+
+NUCS aggregates the following statistics:
+
+* ALG_BC_NB: the number of calls to the bound consistency algorithm
+* ALG_BC_WITH_SHAVING_NB: the number of calls to the bound consistency with shaving algorithm
+* ALG_SHAVING_NB: the number of attempts to shave a value
+* ALG_SHAVING_CHANGE_NB: the number of successes when attempting to shave a value
+* ALG_SHAVING_NO_CHANGE_NB: the number of failures when attempting to shave a value
+* PROPAGATOR_ENTAILMENT_NB: the number of calls to a propagator's :code:`compute_domains` method resulting in an entailment
+* PROPAGATOR_FILTER_NB: the number of calls to a propagator's :code:`compute_domains` method
+* PROPAGATOR_FILTER_NO_CHANGE_NB: the number of calls to a propagator's :code:`compute_domains` method resulting in no domain change
+* PROPAGATOR_INCONSISTENCY_NB: the number of calls to a propagator's :code:`compute_domains` method resulting in an inconsistency
+* SOLVER_BACKTRACK_NB: the number of calls to the solver's :code:`backtrack` method
+* SOLVER_CHOICE_NB: the number of choices that have been made
+* SOLVER_CHOICE_DEPTH: the maximal depth of choices
+* SOLVER_SOLUTION_NB: the number of solutions that have been found
 
 
 .. _examples:

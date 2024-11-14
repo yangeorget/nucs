@@ -33,4 +33,5 @@ Contents
    variables_domains
    consistency_propagators
    solvers_heuristics
+   stats_logging
    reference
