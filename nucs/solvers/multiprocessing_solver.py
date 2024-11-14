@@ -18,7 +18,6 @@ from typing import Any, Callable, Dict, Iterator, List, Optional
 from numpy.typing import NDArray
 
 from nucs.constants import (
-    LOG_FORMAT,
     LOG_LEVEL_INFO,
     STATS_IDX_ALG_BC_NB,
     STATS_IDX_ALG_BC_WITH_SHAVING_NB,
@@ -60,9 +59,7 @@ class MultiprocessingSolver(Solver):
     """
 
     def __init__(self, solvers: List[BacktrackSolver], log_level: str = LOG_LEVEL_INFO):
-        logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, log_level))
-        logger.debug("Initializing MultiprocessingSolver")
-        super().__init__(None)
+        super().__init__(None, log_level)
         logger.info(f"MultiprocessingSolver has {len(solvers)} processors")
         self.solvers = solvers
         logger.debug("Initializing statistics")

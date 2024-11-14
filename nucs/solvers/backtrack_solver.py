@@ -19,7 +19,6 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
-    LOG_FORMAT,
     LOG_LEVEL_INFO,
     NUMBA_DISABLE_JIT,
     PROBLEM_BOUND,
@@ -97,9 +96,7 @@ class BacktrackSolver(Solver):
         :param dom_heuristic_idx: the index of the heuristic for reducing a domain
         :param stack_max_height: the maximal choice point stack height
         """
-        logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, log_level))
-        logger.debug("Initializing BacktrackSolver")
-        super().__init__(problem)
+        super().__init__(problem, log_level)
         logger.info(f"BacktrackSolver uses variable heuristic {var_heuristic_idx}")
         self.var_heuristic_idx = var_heuristic_idx
         logger.info(f"BacktrackSolver uses domain heuristic {dom_heuristic_idx}")
@@ -168,6 +165,7 @@ class BacktrackSolver(Solver):
         :param update_domain_fct: the function to update the domain of the variable
         :return: the solution if it exists or None
         """
+        logger.debug(f"Optimizing variable {variable_idx}")
         compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
             get_function_addresses()
         )
@@ -222,6 +220,7 @@ class BacktrackSolver(Solver):
         Returns an iterator over the solutions.
         :return: an iterator
         """
+        logger.info("Solving and iterating over the solutions")
         compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
             get_function_addresses()
         )
@@ -293,6 +292,7 @@ class BacktrackSolver(Solver):
         :param update_domain_fct: the function to update the domain of the variable
         :param solution_queue: the solution queue
         """
+        logger.debug(f"Optimizing variable {variable_idx} and queuing solutions found")
         compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
             get_function_addresses()
         )
@@ -348,6 +348,7 @@ class BacktrackSolver(Solver):
         :param processor_idx: the index of the processor
         :param solution_queue: the solution queue
         """
+        logger.info("Solving and queuing solutions found")
         compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
             get_function_addresses()
         )

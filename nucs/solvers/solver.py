@@ -18,7 +18,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN
+from nucs.constants import LOG_FORMAT, LOG_LEVEL_INFO, MAX, MIN
 from nucs.problems.problem import Problem
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,9 @@ class Solver:
     A solver.
     """
 
-    def __init__(self, problem: Optional[Problem]):
+    def __init__(self, problem: Optional[Problem], log_level: str = LOG_LEVEL_INFO):
+        logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, log_level))
+        logger.debug("Initializing Solver")
         if problem is not None:
             self.problem = problem
             logger.debug("Initializing the problem")
