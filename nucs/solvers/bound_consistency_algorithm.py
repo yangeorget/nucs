@@ -84,7 +84,7 @@ def bound_consistency_algorithm(
     while True:
         prop_idx = pop_propagator(triggered_propagators, prop_idx)
         if prop_idx == -1:
-            return PROBLEM_BOUND if is_solved(shr_domains_stack[stacks_top[0]]) else PROBLEM_UNBOUND
+            return PROBLEM_BOUND if is_solved(shr_domains_stack, stacks_top) else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = var_bounds[prop_idx, START]
         prop_var_end = var_bounds[prop_idx, END]
@@ -118,7 +118,8 @@ def bound_consistency_algorithm(
                     shr_domains_changes = True
                     add_propagators(
                         triggered_propagators,
-                        not_entailed_propagators_stack[stacks_top[0]],
+                        not_entailed_propagators_stack,
+                        stacks_top,
                         shr_domains_propagators,
                         shr_domain_idx,
                         bound,

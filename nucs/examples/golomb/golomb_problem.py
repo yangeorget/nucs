@@ -139,9 +139,7 @@ def golomb_consistency_algorithm(
     """
     # first prune the search space
     mark_nb = (1 + int(math.sqrt(8 * len(dom_indices_arr) + 1))) // 2
-    ni_var_idx = first_not_instantiated_var_heuristic(
-        shr_domains_stack[stacks_top[0]]
-    )  # no domains shared between vars
+    ni_var_idx = first_not_instantiated_var_heuristic(shr_domains_stack, stacks_top)  # no domains shared between vars
     if 1 < ni_var_idx < mark_nb - 1:  # otherwise useless
         used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=np.bool)
         # a reusable array for storing the minimal sum of different integers:
@@ -166,7 +164,8 @@ def golomb_consistency_algorithm(
                 shr_domains_stack[stacks_top[0], dom_idx, MIN] = minimal_sum[j - i]  # no offset
                 add_propagators(
                     triggered_propagators,
-                    not_entailed_propagators_stack[stacks_top[0]],
+                    not_entailed_propagators_stack,
+                    stacks_top,
                     shr_domains_propagators,
                     dom_idx,
                     MIN,

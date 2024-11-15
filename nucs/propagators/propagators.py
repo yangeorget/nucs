@@ -141,13 +141,17 @@ def pop_propagator(triggered_propagators: NDArray, previous_prop_idx: int) -> in
 @njit(cache=True)
 def add_propagators(
     triggered_propagators: NDArray,
-    not_entailed_propagators: NDArray,
+    not_entailed_propagators_stack: NDArray,
+    stacks_top: NDArray,
     shr_domains_propagators: NDArray,
     dom_idx: int,
     bound: int,
 ) -> None:
     for prop_idx in range(len(triggered_propagators)):
-        if shr_domains_propagators[dom_idx, bound, prop_idx] and not_entailed_propagators[prop_idx]:
+        if (
+            shr_domains_propagators[dom_idx, bound, prop_idx]
+            and not_entailed_propagators_stack[stacks_top[0], prop_idx]
+        ):
             triggered_propagators[prop_idx] = True
     # np.logical_or(triggered_propagators, shr_domains_propagators[dom_idx, bound], triggered_propagators)
     # np.logical_and(triggered_propagators, not_entailed_propagators, triggered_propagators)

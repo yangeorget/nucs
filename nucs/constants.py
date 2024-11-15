@@ -29,8 +29,10 @@ PROBLEM_UNBOUND = 1  # returned when the filtering of a problem has been complet
 PROBLEM_BOUND = 2  # returned when a problem is solved
 
 SIGNATURE_COMPUTE_DOMAINS = int64(int32[:, :], int32[:])  # domains, parameters
-SIGNATURE_DOM_HEURISTIC = int64(int32[:], int32[:])  # shr_domain, shr_domain_copy
-SIGNATURE_VAR_HEURISTIC = int64(int32[:, :])  # shr_domains
+SIGNATURE_DOM_HEURISTIC = int64(
+    int32[:, :, :], uint16[:, :], uint8[:], int64  # shr_domains_stack  # dom_update_stack  # stacks_top  # dom_idx
+)
+SIGNATURE_VAR_HEURISTIC = int64(int32[:, :, :], uint8[:])  # shr_domains_stack, stacks_top
 SIGNATURE_CONSISTENCY_ALG = int64(
     int64[:],  # statistics
     uint8[:],  # algorithms

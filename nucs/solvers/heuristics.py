@@ -20,46 +20,48 @@ from nucs.constants import MAX, MIN
 
 
 @njit(cache=True)
-def first_not_instantiated_var_heuristic(shr_domains: NDArray) -> int:
+def first_not_instantiated_var_heuristic(shr_domains_stack: NDArray, stacks_top: NDArray) -> int:
     """
     Chooses the first non-instantiated shared domain.
     :param shr_domains: the shared domains of the problem
     :return: the index of the shared domain
     """
-    for dom_idx in range(len(shr_domains)):
-        if shr_domains[dom_idx, MIN] < shr_domains[dom_idx, MAX]:
+    for dom_idx in range(len(shr_domains_stack[0])):
+        if shr_domains_stack[stacks_top[0], dom_idx, MIN] < shr_domains_stack[stacks_top[0], dom_idx, MAX]:
             return dom_idx
     return -1  # cannot happen
 
 
 @njit(cache=True)
-def first_not_instantiated_var_heuristic_from_index(shr_domains: NDArray, start_idx: int) -> int:
+def first_not_instantiated_var_heuristic_from_index(
+    shr_domains_stack: NDArray, stacks_top: NDArray, start_idx: int
+) -> int:
     """
     Chooses the first non-instantiated shared domain.
     :param shr_domains: the shared domains of the problem
     :return: the index of the shared domain
     """
-    for dom_idx in range(start_idx, len(shr_domains)):
-        if shr_domains[dom_idx, MIN] < shr_domains[dom_idx, MAX]:
+    for dom_idx in range(start_idx, len(shr_domains_stack[0])):
+        if shr_domains_stack[stacks_top[0], dom_idx, MIN] < shr_domains_stack[stacks_top[0], dom_idx, MAX]:
             return dom_idx
     return -1  # cannot happen
 
 
 @njit(cache=True)
-def last_not_instantiated_var_heuristic(shr_domains: NDArray) -> int:
+def last_not_instantiated_var_heuristic(shr_domains_stack: NDArray, stacks_top: NDArray) -> int:
     """
     Chooses the last non-instantiated shared domain.
     :param shr_domains: the shared domains of the problem
     :return: the index of the shared domain
     """
-    for dom_idx in range(len(shr_domains) - 1, -1, -1):
-        if shr_domains[dom_idx, MIN] < shr_domains[dom_idx, MAX]:
+    for dom_idx in range(len(shr_domains_stack[0]) - 1, -1, -1):
+        if shr_domains_stack[stacks_top[0], dom_idx, MIN] < shr_domains_stack[stacks_top[0], dom_idx, MAX]:
             return dom_idx
     return -1  # cannot happen
 
 
 @njit(cache=True)
-def smallest_domain_var_heuristic(shr_domains: NDArray) -> int:
+def smallest_domain_var_heuristic(shr_domains_stack: NDArray, stacks_top: NDArray) -> int:
     """
     Chooses the smallest shared domain and which is not instantiated.
     :param shr_domains: the shared domains of the problem
@@ -67,7 +69,7 @@ def smallest_domain_var_heuristic(shr_domains: NDArray) -> int:
     """
     min_size = sys.maxsize
     min_idx = -1
-    for dom_idx, shr_domain in enumerate(shr_domains):
+    for dom_idx, shr_domain in enumerate(shr_domains_stack[stacks_top[0]]):
         size = shr_domain[MAX] - shr_domain[MIN]  # actually this is size - 1
         if 0 < size < min_size:
             min_idx = dom_idx
@@ -76,7 +78,7 @@ def smallest_domain_var_heuristic(shr_domains: NDArray) -> int:
 
 
 @njit(cache=True)
-def greatest_domain_var_heuristic(shr_domains: NDArray) -> int:
+def greatest_domain_var_heuristic(shr_domains_stack: NDArray, stacks_top: NDArray) -> int:
     """
     Chooses the greatest shared domain and which is not instantiated.
     :param shr_domains: the shared domains of the problem
@@ -84,7 +86,7 @@ def greatest_domain_var_heuristic(shr_domains: NDArray) -> int:
     """
     max_size = 0
     max_idx = -1
-    for dom_index, shr_domain in enumerate(shr_domains):
+    for dom_index, shr_domain in enumerate(shr_domains_stack[stacks_top[0]]):
         size = shr_domain[MAX] - shr_domain[MIN]  # actually this is size - 1
         if max_size < size:
             max_idx = dom_index
@@ -93,41 +95,50 @@ def greatest_domain_var_heuristic(shr_domains: NDArray) -> int:
 
 
 @njit(cache=True)
-def min_value_dom_heuristic(shr_domain: NDArray, shr_domain_copy: NDArray) -> int:
+def min_value_dom_heuristic(
+    shr_domains_stack: NDArray, dom_update_stack: NDArray, stacks_top: NDArray, dom_idx: int
+) -> int:
     """
     Chooses the first value of the domain.
     :param shr_domain: a shared domain
     :param shr_domain: a copy of this shared domain to be stored in choice points stack
     """
-    value = shr_domain[MIN]
-    shr_domain_copy[MIN] = value + 1
-    shr_domain[MAX] = value
+    value = shr_domains_stack[stacks_top[0], dom_idx, MIN]
+    shr_domains_stack[stacks_top[0] - 1, dom_idx, MIN] = value + 1
+    shr_domains_stack[stacks_top[0], dom_idx, MAX] = value
+    dom_update_stack[stacks_top[0] - 1, 1] = MAX
     return MAX
 
 
 @njit(cache=True)
-def max_value_dom_heuristic(shr_domain: NDArray, shr_domain_copy: NDArray) -> int:
+def max_value_dom_heuristic(
+    shr_domains_stack: NDArray, dom_update_stack: NDArray, stacks_top: NDArray, dom_idx: int
+) -> int:
     """
     Chooses the last value of the domain.
     :param shr_domain: a shared domain
     :param shr_domain: a copy of this shared domain to be stored in choice points stack
     """
-    value = shr_domain[MAX]
-    shr_domain_copy[MAX] = value - 1
-    shr_domain[MIN] = value
+    value = shr_domains_stack[stacks_top[0], dom_idx, MAX]
+    shr_domains_stack[stacks_top[0] - 1, dom_idx, MAX] = value - 1
+    shr_domains_stack[stacks_top[0], dom_idx, MIN] = value
+    dom_update_stack[stacks_top[0] - 1, 1] = MIN
     return MIN
 
 
 @njit(cache=True)
-def split_low_dom_heuristic(shr_domain: NDArray, shr_domain_copy: NDArray) -> int:
+def split_low_dom_heuristic(
+    shr_domains_stack: NDArray, dom_update_stack: NDArray, stacks_top: NDArray, dom_idx: int
+) -> int:
     """
     Chooses the first half of the domain.
     :param shr_domain: a shared domain
     :param shr_domain: a copy of this shared domain to be stored in choice points stack
     """
-    value = (shr_domain[MIN] + shr_domain[MAX]) // 2
-    shr_domain_copy[MIN] = value + 1
-    shr_domain[MAX] = value
+    value = (shr_domains_stack[stacks_top[0], dom_idx, MIN] + shr_domains_stack[stacks_top[0], dom_idx, MAX]) // 2
+    shr_domains_stack[stacks_top[0] - 1, dom_idx, MIN] = value + 1
+    shr_domains_stack[stacks_top[0], dom_idx, MAX] = value
+    dom_update_stack[stacks_top[0] - 1, 1] = MAX
     return MAX
 
 

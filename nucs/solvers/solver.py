@@ -95,42 +95,54 @@ class Solver:
 
 
 @njit(cache=True)
-def get_solution(shr_domains_arr: NDArray, dom_indices_arr: NDArray, dom_offsets_arr: NDArray) -> NDArray:
+def get_solution(
+    shr_domains_stack: NDArray, stacks_top: NDArray, dom_indices_arr: NDArray, dom_offsets_arr: NDArray
+) -> NDArray:
     """
     Returns the solution to the problem.
     :return: a Numpy array
     """
-    return shr_domains_arr[dom_indices_arr, MIN] + dom_offsets_arr
+    return shr_domains_stack[stacks_top[0], dom_indices_arr, MIN] + dom_offsets_arr
 
 
 @njit(cache=True)
-def is_solved(shr_domains: NDArray) -> bool:
+def is_solved(shr_domains_stack: NDArray, stacks_top: NDArray) -> bool:
     """
     Returns true iff the problem is solved.
     :return: a boolean
     """
-    return bool(np.all(np.equal(shr_domains[:, MIN], shr_domains[:, MAX])))
+    return bool(np.all(np.equal(shr_domains_stack[stacks_top[0], :, MIN], shr_domains_stack[stacks_top[0], :, MAX])))
 
 
 @njit(cache=True)
 def decrease_max(
-    shr_domains_arr: NDArray, dom_indices_arr: NDArray, dom_offsets_arr: NDArray, var_idx: int, value: int
+    shr_domains_stack: NDArray,
+    stacks_top: NDArray,
+    dom_indices_arr: NDArray,
+    dom_offsets_arr: NDArray,
+    var_idx: int,
+    value: int,
 ) -> None:
     """
     Decreases the max of a variable
     :param var_idx: the index of the variable
     :param value: the current max
     """
-    shr_domains_arr[dom_indices_arr[var_idx], MAX] = value - 1 - dom_offsets_arr[var_idx]
+    shr_domains_stack[stacks_top[0], dom_indices_arr[var_idx], MAX] = value - 1 - dom_offsets_arr[var_idx]
 
 
 @njit(cache=True)
 def increase_min(
-    shr_domains_arr: NDArray, dom_indices_arr: NDArray, dom_offsets_arr: NDArray, var_idx: int, value: int
+    shr_domains_stack: NDArray,
+    stacks_top: NDArray,
+    dom_indices_arr: NDArray,
+    dom_offsets_arr: NDArray,
+    var_idx: int,
+    value: int,
 ) -> None:
     """
     Increases the min of a variable
     :param var_idx: the index of the variable
     :param value: the current min
     """
-    shr_domains_arr[dom_indices_arr[var_idx], MIN] = value + 1 - dom_offsets_arr[var_idx]
+    shr_domains_stack[stacks_top[0], dom_indices_arr[var_idx], MIN] = value + 1 - dom_offsets_arr[var_idx]

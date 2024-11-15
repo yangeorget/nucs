@@ -207,7 +207,8 @@ class BacktrackSolver(Solver):
                 self.triggered_propagators,
             )
             update_domain_fct(
-                self.shr_domains_stack[self.stacks_top[0]],
+                self.shr_domains_stack,
+                self.stacks_top,
                 self.problem.dom_indices_arr,
                 self.problem.dom_offsets_arr,
                 variable_idx,
@@ -334,7 +335,8 @@ class BacktrackSolver(Solver):
                 self.triggered_propagators,
             )
             update_domain_fct(
-                self.shr_domains_stack[self.stacks_top[0]],
+                self.shr_domains_stack,
+                self.stacks_top,
                 self.problem.dom_indices_arr,
                 self.problem.dom_offsets_arr,
                 variable_idx,
@@ -500,17 +502,15 @@ def solve_one(
         )
         if status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLVER_SOLUTION_NB] += 1
-            return get_solution(shr_domains_stack[stacks_top[0]], dom_indices_arr, dom_offsets_arr)
+            return get_solution(shr_domains_stack, stacks_top, dom_indices_arr, dom_offsets_arr)
         elif status == PROBLEM_UNBOUND:
-            dom_idx = var_heuristic_fct(shr_domains_stack[stacks_top[0]])
+            dom_idx = var_heuristic_fct(shr_domains_stack, stacks_top)
             cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx)
-            event = dom_heuristic_fct(
-                shr_domains_stack[stacks_top[0], dom_idx], shr_domains_stack[stacks_top[0] - 1, dom_idx]
-            )
-            dom_update_stack[stacks_top[0] - 1, 1] = event
+            event = dom_heuristic_fct(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
             add_propagators(
                 triggered_propagators,
-                not_entailed_propagators_stack[stacks_top[0]],
+                not_entailed_propagators_stack,
+                stacks_top,
                 shr_domains_propagators,
                 dom_idx,
                 event,

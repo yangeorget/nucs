@@ -34,7 +34,8 @@ from nucs.solvers.heuristics import (
 
 
 @njit(cache=True)
-def shave_max(
+def shave_bound(
+    bound: int,
     dom_idx: int,
     statistics: NDArray,
     algorithms: NDArray,
@@ -53,90 +54,37 @@ def shave_max(
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
 ) -> bool:
-    max_value_dom_heuristic(shr_domains_stack[stacks_top[0], dom_idx], shr_domains_stack[stacks_top[0] - 1, dom_idx])
-    add_propagators(
-        triggered_propagators,
-        not_entailed_propagators_stack[stacks_top[0]],
-        shr_domains_propagators,
-        dom_idx,
-        MIN,
-    )
-    status = bound_consistency_algorithm(
-        statistics,
-        algorithms,
-        var_bounds,
-        param_bounds,
-        dom_indices_arr,
-        dom_offsets_arr,
-        props_dom_indices,
-        props_dom_offsets,
-        props_parameters,
-        shr_domains_propagators,
-        shr_domains_stack,
-        not_entailed_propagators_stack,
-        dom_update_stack,
-        stacks_top,
-        triggered_propagators,
-        compute_domains_addrs,
-    )
-    if status == PROBLEM_INCONSISTENT:
-        return True
+    if bound == MAX:
+        max_value_dom_heuristic(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
     else:
-        shr_domains_stack[stacks_top[0] - 1, dom_idx, MAX] += 1
-        return False
-
-
-@njit(cache=True)
-def shave_min(
-    dom_idx: int,
-    statistics: NDArray,
-    algorithms: NDArray,
-    var_bounds: NDArray,
-    param_bounds: NDArray,
-    dom_indices_arr: NDArray,
-    dom_offsets_arr: NDArray,
-    props_dom_indices: NDArray,
-    props_dom_offsets: NDArray,
-    props_parameters: NDArray,
-    shr_domains_propagators: NDArray,
-    shr_domains_stack: NDArray,
-    not_entailed_propagators_stack: NDArray,
-    dom_update_stack: NDArray,
-    stacks_top: NDArray,
-    triggered_propagators: NDArray,
-    compute_domains_addrs: NDArray,
-) -> bool:
-    min_value_dom_heuristic(shr_domains_stack[stacks_top[0], dom_idx], shr_domains_stack[stacks_top[0] - 1, dom_idx])
+        min_value_dom_heuristic(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
     add_propagators(
-        triggered_propagators,
-        not_entailed_propagators_stack[stacks_top[0]],
-        shr_domains_propagators,
-        dom_idx,
-        MAX,
+        triggered_propagators, not_entailed_propagators_stack, stacks_top, shr_domains_propagators, dom_idx, 1 - bound
     )
-    status = bound_consistency_algorithm(
-        statistics,
-        algorithms,
-        var_bounds,
-        param_bounds,
-        dom_indices_arr,
-        dom_offsets_arr,
-        props_dom_indices,
-        props_dom_offsets,
-        props_parameters,
-        shr_domains_propagators,
-        shr_domains_stack,
-        not_entailed_propagators_stack,
-        dom_update_stack,
-        stacks_top,
-        triggered_propagators,
-        compute_domains_addrs,
-    )
-    if status == PROBLEM_INCONSISTENT:
+    if (
+        bound_consistency_algorithm(
+            statistics,
+            algorithms,
+            var_bounds,
+            param_bounds,
+            dom_indices_arr,
+            dom_offsets_arr,
+            props_dom_indices,
+            props_dom_offsets,
+            props_parameters,
+            shr_domains_propagators,
+            shr_domains_stack,
+            not_entailed_propagators_stack,
+            dom_update_stack,
+            stacks_top,
+            triggered_propagators,
+            compute_domains_addrs,
+        )
+        == PROBLEM_INCONSISTENT
+    ):
         return True
-    else:
-        shr_domains_stack[stacks_top[0] - 1, dom_idx, MIN] -= 1
-        return False
+    shr_domains_stack[stacks_top[0] - 1, dom_idx, bound] += 1 if bound == MAX else -1
+    return False
 
 
 @njit(cache=True)
@@ -209,49 +157,28 @@ def shaving_consistency_algorithm(
             )
             if status != PROBLEM_UNBOUND:
                 return status
-        dom_idx = first_not_instantiated_var_heuristic_from_index(shr_domains_stack[stacks_top[0]], start_idx)
+        dom_idx = first_not_instantiated_var_heuristic_from_index(shr_domains_stack, stacks_top, start_idx)
         statistics[STATS_IDX_ALG_SHAVING_NB] += 1
         cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx)
-        needs_bc = (
-            shave_min(
-                dom_idx,
-                statistics,
-                algorithms,
-                var_bounds,
-                param_bounds,
-                dom_indices_arr,
-                dom_offsets_arr,
-                props_dom_indices,
-                props_dom_offsets,
-                props_parameters,
-                shr_domains_propagators,
-                shr_domains_stack,
-                not_entailed_propagators_stack,
-                dom_update_stack,
-                stacks_top,
-                triggered_propagators,
-                compute_domains_addrs,
-            )
-            if bound == MIN
-            else shave_max(
-                dom_idx,
-                statistics,
-                algorithms,
-                var_bounds,
-                param_bounds,
-                dom_indices_arr,
-                dom_offsets_arr,
-                props_dom_indices,
-                props_dom_offsets,
-                props_parameters,
-                shr_domains_propagators,
-                shr_domains_stack,
-                not_entailed_propagators_stack,
-                dom_update_stack,
-                stacks_top,
-                triggered_propagators,
-                compute_domains_addrs,
-            )
+        needs_bc = shave_bound(
+            bound,
+            dom_idx,
+            statistics,
+            algorithms,
+            var_bounds,
+            param_bounds,
+            dom_indices_arr,
+            dom_offsets_arr,
+            props_dom_indices,
+            props_dom_offsets,
+            props_parameters,
+            shr_domains_propagators,
+            shr_domains_stack,
+            not_entailed_propagators_stack,
+            dom_update_stack,
+            stacks_top,
+            triggered_propagators,
+            compute_domains_addrs,
         )
         backtrack(
             statistics,
