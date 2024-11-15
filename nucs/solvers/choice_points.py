@@ -12,13 +12,13 @@ def cp_init(
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
-    stacks_height: NDArray,
+    stacks_top: NDArray,
     shr_domains_arr: NDArray,
 ) -> None:
-    shr_domains_stack[0] = shr_domains_arr
-    not_entailed_propagators_stack[0] = True
-    dom_update_stack[0, :] = 0
-    stacks_height[0] = 1
+    stacks_top[0] = 0
+    shr_domains_stack[stacks_top[0]] = shr_domains_arr
+    not_entailed_propagators_stack[stacks_top[0]] = True
+    dom_update_stack[stacks_top[0], :] = 0
 
 
 @njit(cache=True)
@@ -26,31 +26,15 @@ def cp_put(
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
-    stacks_height: NDArray,
+    stacks_top: NDArray,
     dom_index: int,
     bound: Optional[int] = 0,
 ) -> None:
-    shr_domains_stack[stacks_height[0], :, :] = shr_domains_stack[0, :, :]
-    not_entailed_propagators_stack[stacks_height[0], :] = not_entailed_propagators_stack[0, :]
-    dom_update_stack[stacks_height[0], 0] = dom_index
-    dom_update_stack[stacks_height[0], 1] = bound
-    stacks_height[0] += 1
-
-
-@njit(cache=True)
-def cp_pop(
-    shr_domains_stack: NDArray,
-    not_entailed_propagators_stack: NDArray,
-    dom_update_stack: NDArray,
-    stacks_height: NDArray,
-) -> bool:
-    if stacks_height[0] == 1:
-        return False
-    stacks_height[0] -= 1
-    shr_domains_stack[0, :, :] = shr_domains_stack[stacks_height[0], :, :]
-    not_entailed_propagators_stack[0, :] = not_entailed_propagators_stack[stacks_height[0], :]
-    dom_update_stack[0] = dom_update_stack[stacks_height[0]]
-    return True
+    dom_update_stack[stacks_top[0], 0] = dom_index
+    dom_update_stack[stacks_top[0], 1] = bound
+    shr_domains_stack[stacks_top[0] + 1, :, :] = shr_domains_stack[stacks_top[0], :, :]
+    not_entailed_propagators_stack[stacks_top[0] + 1, :] = not_entailed_propagators_stack[stacks_top[0], :]
+    stacks_top[0] += 1
 
 
 @njit(cache=True)
@@ -59,7 +43,7 @@ def backtrack(
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
-    stacks_height: NDArray,
+    stacks_top: NDArray,
     triggered_propagators: NDArray,
     shr_domains_propagators: NDArray,
 ) -> bool:
@@ -68,17 +52,17 @@ def backtrack(
     :param statistics: the statistics array
     :param shr_domains_stack: the stack of shared domains
     :param not_entailed_propagators_stack: the stack of not entailed propagators
-    :param stacks_height: the height of both stacks
     :return: true iff it is possible to backtrack
     """
-    if not cp_pop(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_height):
+    if stacks_top[0] == 0:
         return False
+    stacks_top[0] -= 1
     statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
     add_propagators(
         triggered_propagators,
-        not_entailed_propagators_stack[0],
+        not_entailed_propagators_stack[stacks_top[0]],
         shr_domains_propagators,
-        dom_update_stack[0, 0],
-        1 - dom_update_stack[0, 1],
+        dom_update_stack[stacks_top[0], 0],
+        1 - dom_update_stack[stacks_top[0], 1],
     )
     return True

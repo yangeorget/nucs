@@ -108,13 +108,13 @@ class BacktrackSolver(Solver):
         self.shr_domains_stack = np.empty((stack_max_height, self.problem.variable_nb, 2), dtype=np.int32)
         self.not_entailed_propagators_stack = np.empty((stack_max_height, self.problem.propagator_nb), dtype=np.bool)
         self.dom_update_stack = np.empty((stack_max_height, 2), dtype=np.uint16)
-        self.stacks_height = np.ones((1,), dtype=np.uint8)
+        self.stacks_top = np.ones((1,), dtype=np.uint8)
         logger.info(f"Choice points stack has a maximal height of {stack_max_height}")
         cp_init(
             self.shr_domains_stack,
             self.not_entailed_propagators_stack,
             self.dom_update_stack,
-            self.stacks_height,
+            self.stacks_top,
             np.array(problem.shr_domains_lst),
         )
         logger.debug("Choice points initialized")
@@ -185,7 +185,7 @@ class BacktrackSolver(Solver):
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
-                self.stacks_height,
+                self.stacks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
                 self.var_heuristic_idx,
@@ -203,11 +203,11 @@ class BacktrackSolver(Solver):
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
-                self.stacks_height,
+                self.stacks_top,
                 self.triggered_propagators,
             )
             update_domain_fct(
-                self.shr_domains_stack[0],
+                self.shr_domains_stack[self.stacks_top[0]],
                 self.problem.dom_indices_arr,
                 self.problem.dom_offsets_arr,
                 variable_idx,
@@ -239,7 +239,7 @@ class BacktrackSolver(Solver):
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
-                self.stacks_height,
+                self.stacks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
                 self.var_heuristic_idx,
@@ -257,7 +257,7 @@ class BacktrackSolver(Solver):
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
-                self.stacks_height,
+                self.stacks_top,
                 self.triggered_propagators,
                 self.problem.shr_domains_propagators,
             ):
@@ -311,7 +311,7 @@ class BacktrackSolver(Solver):
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
-                self.stacks_height,
+                self.stacks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
                 self.var_heuristic_idx,
@@ -330,11 +330,11 @@ class BacktrackSolver(Solver):
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
-                self.stacks_height,
+                self.stacks_top,
                 self.triggered_propagators,
             )
             update_domain_fct(
-                self.shr_domains_stack[0],
+                self.shr_domains_stack[self.stacks_top[0]],
                 self.problem.dom_indices_arr,
                 self.problem.dom_offsets_arr,
                 variable_idx,
@@ -367,7 +367,7 @@ class BacktrackSolver(Solver):
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
-                self.stacks_height,
+                self.stacks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
                 self.var_heuristic_idx,
@@ -385,7 +385,7 @@ class BacktrackSolver(Solver):
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
-                self.stacks_height,
+                self.stacks_top,
                 self.triggered_propagators,
                 self.problem.shr_domains_propagators,
             ):
@@ -398,7 +398,7 @@ def reset(
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
-    stacks_height: NDArray,
+    stacks_top: NDArray,
     triggered_propagators: NDArray,
 ) -> None:
     """
@@ -406,14 +406,13 @@ def reset(
     :param problem: the problem
     :param shr_domains_stack: the stack of shared domains
     :param not_entailed_propagators_stack: the stack of not entailed propagators
-    :param stacks_height: the height of both stacks
     :param triggered_propagators: the list of triggered propagators
     """
     cp_init(
         shr_domains_stack,
         not_entailed_propagators_stack,
         dom_update_stack,
-        stacks_height,
+        stacks_top,
         np.array(problem.shr_domains_lst),
     )
     triggered_propagators.fill(True)
@@ -434,7 +433,7 @@ def solve_one(
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
-    stacks_height: NDArray,
+    stacks_top: NDArray,
     triggered_propagators: NDArray,
     consistency_alg_idx: int,
     var_heuristic_idx: int,
@@ -462,7 +461,6 @@ def solve_one(
     the first level correspond to the current shared domains, the rest correspond to the choice points
     :param not_entailed_propagators_stack: a stack not entailed propagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
-    :param stacks_height: the height of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param consistency_alg_idx: the index of the consistency algorithm
     :param var_heuristic_idx: the index of the variable heuristic
@@ -496,35 +494,36 @@ def solve_one(
             shr_domains_stack,
             not_entailed_propagators_stack,
             dom_update_stack,
-            stacks_height,
+            stacks_top,
             triggered_propagators,
             compute_domains_addrs,
         )
         if status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLVER_SOLUTION_NB] += 1
-            return get_solution(shr_domains_stack[0], dom_indices_arr, dom_offsets_arr)
+            return get_solution(shr_domains_stack[stacks_top[0]], dom_indices_arr, dom_offsets_arr)
         elif status == PROBLEM_UNBOUND:
-            dom_idx = var_heuristic_fct(shr_domains_stack[0])
-            cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_height, dom_idx)
-            cp_idx = stacks_height[0] - 1
-            event = dom_heuristic_fct(shr_domains_stack[0, dom_idx], shr_domains_stack[cp_idx, dom_idx])
-            dom_update_stack[cp_idx, 1] = event
+            dom_idx = var_heuristic_fct(shr_domains_stack[stacks_top[0]])
+            cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx)
+            event = dom_heuristic_fct(
+                shr_domains_stack[stacks_top[0], dom_idx], shr_domains_stack[stacks_top[0] - 1, dom_idx]
+            )
+            dom_update_stack[stacks_top[0] - 1, 1] = event
             add_propagators(
                 triggered_propagators,
-                not_entailed_propagators_stack[0],
+                not_entailed_propagators_stack[stacks_top[0]],
                 shr_domains_propagators,
                 dom_idx,
                 event,
             )
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
-            if stacks_height[0] - 1 > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
-                statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = stacks_height[0] - 1
+            if stacks_top[0] > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
+                statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = stacks_top[0]
         elif not backtrack(
             statistics,
             shr_domains_stack,
             not_entailed_propagators_stack,
             dom_update_stack,
-            stacks_height,
+            stacks_top,
             triggered_propagators,
             shr_domains_propagators,
         ):

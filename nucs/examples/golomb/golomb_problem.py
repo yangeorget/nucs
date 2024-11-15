@@ -127,7 +127,7 @@ def golomb_consistency_algorithm(
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
-    stacks_height: NDArray,
+    stacks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
 ) -> int:
@@ -139,7 +139,9 @@ def golomb_consistency_algorithm(
     """
     # first prune the search space
     mark_nb = (1 + int(math.sqrt(8 * len(dom_indices_arr) + 1))) // 2
-    ni_var_idx = first_not_instantiated_var_heuristic(shr_domains_stack[0])  # no domains shared between vars
+    ni_var_idx = first_not_instantiated_var_heuristic(
+        shr_domains_stack[stacks_top[0]]
+    )  # no domains shared between vars
     if 1 < ni_var_idx < mark_nb - 1:  # otherwise useless
         used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=np.bool)
         # a reusable array for storing the minimal sum of different integers:
@@ -148,7 +150,7 @@ def golomb_consistency_algorithm(
         # the following will mark at most sum(n-3) numbers as used
         # hence there will be at least n-2 unused numbers greater than 0
         for var_idx in range(index(mark_nb, ni_var_idx - 2, ni_var_idx - 1) + 1):
-            dist = shr_domains_stack[0, dom_indices_arr[var_idx], MIN]  # no offset
+            dist = shr_domains_stack[stacks_top[0], dom_indices_arr[var_idx], MIN]  # no offset
             if dist < len(used_distance):
                 used_distance[dist] = True
         # let's compute the sum of non-used numbers
@@ -161,9 +163,13 @@ def golomb_consistency_algorithm(
         for i in range(ni_var_idx - 1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
                 dom_idx = dom_indices_arr[index(mark_nb, i, j)]
-                shr_domains_stack[0, dom_idx, MIN] = minimal_sum[j - i]  # no offset
+                shr_domains_stack[stacks_top[0], dom_idx, MIN] = minimal_sum[j - i]  # no offset
                 add_propagators(
-                    triggered_propagators, not_entailed_propagators_stack[0], shr_domains_propagators, dom_idx, MIN
+                    triggered_propagators,
+                    not_entailed_propagators_stack[stacks_top[0]],
+                    shr_domains_propagators,
+                    dom_idx,
+                    MIN,
                 )
     return bound_consistency_algorithm(
         statistics,
@@ -179,7 +185,7 @@ def golomb_consistency_algorithm(
         shr_domains_stack,
         not_entailed_propagators_stack,
         dom_update_stack,
-        stacks_height,
+        stacks_top,
         triggered_propagators,
         compute_domains_addrs,
     )

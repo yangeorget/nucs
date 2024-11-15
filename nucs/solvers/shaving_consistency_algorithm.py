@@ -49,14 +49,14 @@ def shave_max(
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
-    stacks_height: NDArray,
+    stacks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
 ) -> bool:
-    max_value_dom_heuristic(shr_domains_stack[0, dom_idx], shr_domains_stack[stacks_height[0] - 1, dom_idx])
+    max_value_dom_heuristic(shr_domains_stack[stacks_top[0], dom_idx], shr_domains_stack[stacks_top[0] - 1, dom_idx])
     add_propagators(
         triggered_propagators,
-        not_entailed_propagators_stack[0],
+        not_entailed_propagators_stack[stacks_top[0]],
         shr_domains_propagators,
         dom_idx,
         MIN,
@@ -75,14 +75,14 @@ def shave_max(
         shr_domains_stack,
         not_entailed_propagators_stack,
         dom_update_stack,
-        stacks_height,
+        stacks_top,
         triggered_propagators,
         compute_domains_addrs,
     )
     if status == PROBLEM_INCONSISTENT:
         return True
     else:
-        shr_domains_stack[stacks_height[0] - 1, dom_idx, MAX] += 1
+        shr_domains_stack[stacks_top[0] - 1, dom_idx, MAX] += 1
         return False
 
 
@@ -102,14 +102,14 @@ def shave_min(
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
-    stacks_height: NDArray,
+    stacks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
 ) -> bool:
-    min_value_dom_heuristic(shr_domains_stack[0, dom_idx], shr_domains_stack[stacks_height[0] - 1, dom_idx])
+    min_value_dom_heuristic(shr_domains_stack[stacks_top[0], dom_idx], shr_domains_stack[stacks_top[0] - 1, dom_idx])
     add_propagators(
         triggered_propagators,
-        not_entailed_propagators_stack[0],
+        not_entailed_propagators_stack[stacks_top[0]],
         shr_domains_propagators,
         dom_idx,
         MAX,
@@ -128,14 +128,14 @@ def shave_min(
         shr_domains_stack,
         not_entailed_propagators_stack,
         dom_update_stack,
-        stacks_height,
+        stacks_top,
         triggered_propagators,
         compute_domains_addrs,
     )
     if status == PROBLEM_INCONSISTENT:
         return True
     else:
-        shr_domains_stack[stacks_height[0] - 1, dom_idx, MIN] -= 1
+        shr_domains_stack[stacks_top[0] - 1, dom_idx, MIN] -= 1
         return False
 
 
@@ -154,7 +154,7 @@ def shaving_consistency_algorithm(
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
-    stacks_height: NDArray,
+    stacks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
 ) -> int:
@@ -176,7 +176,7 @@ def shaving_consistency_algorithm(
     the first level correspond to the current shared domains, the rest correspond to the choice points
     :param not_entailed_propagators_stack: a stack not entailed propagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
-    :param stacks_height: the height of the stacks as a Numpy array
+    :param stacks_top: the height of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param compute_domains_addrs: the addresses of the compute_domains functions
     :return: a status (consistency, inconsistency or entailment) as an integer
@@ -203,15 +203,15 @@ def shaving_consistency_algorithm(
                 shr_domains_stack,
                 not_entailed_propagators_stack,
                 dom_update_stack,
-                stacks_height,
+                stacks_top,
                 triggered_propagators,
                 compute_domains_addrs,
             )
             if status != PROBLEM_UNBOUND:
                 return status
-        dom_idx = first_not_instantiated_var_heuristic_from_index(shr_domains_stack[0], start_idx)
+        dom_idx = first_not_instantiated_var_heuristic_from_index(shr_domains_stack[stacks_top[0]], start_idx)
         statistics[STATS_IDX_ALG_SHAVING_NB] += 1
-        cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_height, dom_idx)
+        cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx)
         needs_bc = (
             shave_min(
                 dom_idx,
@@ -228,7 +228,7 @@ def shaving_consistency_algorithm(
                 shr_domains_stack,
                 not_entailed_propagators_stack,
                 dom_update_stack,
-                stacks_height,
+                stacks_top,
                 triggered_propagators,
                 compute_domains_addrs,
             )
@@ -248,7 +248,7 @@ def shaving_consistency_algorithm(
                 shr_domains_stack,
                 not_entailed_propagators_stack,
                 dom_update_stack,
-                stacks_height,
+                stacks_top,
                 triggered_propagators,
                 compute_domains_addrs,
             )
@@ -258,7 +258,7 @@ def shaving_consistency_algorithm(
             shr_domains_stack,
             not_entailed_propagators_stack,
             dom_update_stack,
-            stacks_height,
+            stacks_top,
             triggered_propagators,
             shr_domains_propagators,
         )
