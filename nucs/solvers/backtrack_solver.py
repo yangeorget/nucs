@@ -255,7 +255,6 @@ class BacktrackSolver(Solver):
             yield solution
             if not backtrack(
                 self.statistics,
-                self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
                 self.stacks_top,
@@ -384,7 +383,6 @@ class BacktrackSolver(Solver):
             solution_queue.put((processor_idx, solution, self.statistics))
             if not backtrack(
                 self.statistics,
-                self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
                 self.stacks_top,
@@ -520,7 +518,6 @@ def solve_one(
                 statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = stacks_top[0]
         elif not backtrack(
             statistics,
-            shr_domains_stack,
             not_entailed_propagators_stack,
             dom_update_stack,
             stacks_top,

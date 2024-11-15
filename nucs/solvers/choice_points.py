@@ -15,10 +15,10 @@ def cp_init(
     stacks_top: NDArray,
     shr_domains_arr: NDArray,
 ) -> None:
+    shr_domains_stack[0] = shr_domains_arr
+    not_entailed_propagators_stack[0] = True
+    dom_update_stack[0, :] = 0
     stacks_top[0] = 0
-    shr_domains_stack[stacks_top[0]] = shr_domains_arr
-    not_entailed_propagators_stack[stacks_top[0]] = True
-    dom_update_stack[stacks_top[0], :] = 0
 
 
 @njit(cache=True)
@@ -40,7 +40,6 @@ def cp_put(
 @njit(cache=True)
 def backtrack(
     statistics: NDArray,
-    shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
     stacks_top: NDArray,

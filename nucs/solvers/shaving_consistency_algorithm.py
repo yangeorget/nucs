@@ -82,9 +82,19 @@ def shave_bound(
         )
         == PROBLEM_INCONSISTENT
     ):
-        return True
-    shr_domains_stack[stacks_top[0] - 1, dom_idx, bound] += 1 if bound == MAX else -1
-    return False
+        has_shaved = True
+    else:
+        shr_domains_stack[stacks_top[0] - 1, dom_idx, bound] += 1 if bound == MAX else -1
+        has_shaved = False
+    backtrack(
+        statistics,
+        not_entailed_propagators_stack,
+        dom_update_stack,
+        stacks_top,
+        triggered_propagators,
+        shr_domains_propagators,
+    )
+    return has_shaved
 
 
 @njit(cache=True)
@@ -133,10 +143,10 @@ def shaving_consistency_algorithm(
     shr_domains_nb = len(shr_domains_stack[0])
     start_idx = 0
     bound = MIN
-    needs_bc = True
+    has_shaved = True
     # we could iterate until no domain is shaved, but that would be a lot of extra computation for a small impact
     while start_idx < shr_domains_nb:
-        if needs_bc:
+        if has_shaved:
             status = bound_consistency_algorithm(
                 statistics,
                 algorithms,
@@ -160,7 +170,7 @@ def shaving_consistency_algorithm(
         dom_idx = first_not_instantiated_var_heuristic_from_index(shr_domains_stack, stacks_top, start_idx)
         statistics[STATS_IDX_ALG_SHAVING_NB] += 1
         cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx)
-        needs_bc = shave_bound(
+        has_shaved = shave_bound(
             bound,
             dom_idx,
             statistics,
@@ -180,18 +190,9 @@ def shaving_consistency_algorithm(
             triggered_propagators,
             compute_domains_addrs,
         )
-        backtrack(
-            statistics,
-            shr_domains_stack,
-            not_entailed_propagators_stack,
-            dom_update_stack,
-            stacks_top,
-            triggered_propagators,
-            shr_domains_propagators,
-        )
-        if needs_bc:  # there's been some shaving
+        if has_shaved:
             statistics[STATS_IDX_ALG_SHAVING_CHANGE_NB] += 1
-        else:  # no change
+        else:
             statistics[STATS_IDX_ALG_SHAVING_NO_CHANGE_NB] += 1
             # this is one of the many shaving strategies
             bound += 1
