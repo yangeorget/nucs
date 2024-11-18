@@ -10,7 +10,6 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -91,15 +90,13 @@ def bound_consistency_algorithm(
         prop_var_end = var_bounds[prop_idx, END]
         prop_indices = props_dom_indices[prop_var_start:prop_var_end]
         prop_offsets = props_dom_offsets[prop_var_start:prop_var_end]
-        prop_var_nb = prop_var_end - prop_var_start
-        prop_domains = np.empty((prop_var_nb, 2), dtype=np.int32)
-        np.add(shr_domains_stack[stacks_top[0], prop_indices], prop_offsets, prop_domains)
-        compute_domains_function = (
+        prop_domains = shr_domains_stack[stacks_top[0], prop_indices] + prop_offsets
+        compute_domains_fct = (
             COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]]
             if NUMBA_DISABLE_JIT
             else function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[algorithms[prop_idx]])
         )
-        status = compute_domains_function(
+        status = compute_domains_fct(
             prop_domains, props_parameters[param_bounds[prop_idx, START] : param_bounds[prop_idx, END]]
         )
         if status == PROP_INCONSISTENCY:
@@ -109,13 +106,14 @@ def bound_consistency_algorithm(
             not_entailed_propagators_stack[stacks_top[0], prop_idx] = False
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
         shr_domains_changes = False
-        for var_idx in range(prop_var_nb):
+        top = stacks_top[0]
+        for var_idx in range(prop_var_end - prop_var_start):
             shr_domain_idx = prop_indices[var_idx]
             prop_offset = prop_offsets[var_idx, 0]  # because of vertical shape
             for bound in [MIN, MAX]:
                 shr_domain_bound = prop_domains[var_idx, bound] - prop_offset
-                if shr_domains_stack[stacks_top[0], shr_domain_idx, bound] != shr_domain_bound:
-                    shr_domains_stack[stacks_top[0], shr_domain_idx, bound] = shr_domain_bound
+                if shr_domains_stack[top, shr_domain_idx, bound] != shr_domain_bound:
+                    shr_domains_stack[top, shr_domain_idx, bound] = shr_domain_bound
                     shr_domains_changes = True
                     add_propagators(
                         triggered_propagators,

@@ -205,7 +205,7 @@ class BacktrackSolver(Solver):
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
                 self.stacks_top,
-                self.triggered_propagators
+                self.triggered_propagators,
             )
             update_domain_fct(
                 self.shr_domains_stack,
@@ -213,7 +213,7 @@ class BacktrackSolver(Solver):
                 self.problem.dom_indices_arr,
                 self.problem.dom_offsets_arr,
                 variable_idx,
-                best_solution[variable_idx]
+                best_solution[variable_idx],
             )
         return best_solution
 
