@@ -23,14 +23,11 @@ from nucs.constants import MAX, MIN
 def first_not_instantiated_var_heuristic(shr_domains_stack: NDArray, stacks_top: NDArray) -> int:
     """
     Chooses the first non-instantiated shared domain.
-    :param shr_domains: the shared domains of the problem
+    :param shr_domains_stack: the stack of shared domains
+    :param stacks_top: the index of the top of the stacks as a Numpy array
     :return: the index of the shared domain
     """
-    cp_top_idx = stacks_top[0]
-    for dom_idx in range(len(shr_domains_stack[0])):
-        if shr_domains_stack[cp_top_idx, dom_idx, MIN] < shr_domains_stack[cp_top_idx, dom_idx, MAX]:
-            return dom_idx
-    return -1  # cannot happen
+    return first_not_instantiated_var_heuristic_from_index(shr_domains_stack, stacks_top, 0)
 
 
 @njit(cache=True)
@@ -39,7 +36,9 @@ def first_not_instantiated_var_heuristic_from_index(
 ) -> int:
     """
     Chooses the first non-instantiated shared domain.
-    :param shr_domains: the shared domains of the problem
+    :param shr_domains_stack: the stack of shared domains
+    :param stacks_top: the index of the top of the stacks as a Numpy array
+    :param start_idx: the index where to start the search
     :return: the index of the shared domain
     """
     cp_top_idx = stacks_top[0]
@@ -53,7 +52,8 @@ def first_not_instantiated_var_heuristic_from_index(
 def last_not_instantiated_var_heuristic(shr_domains_stack: NDArray, stacks_top: NDArray) -> int:
     """
     Chooses the last non-instantiated shared domain.
-    :param shr_domains: the shared domains of the problem
+    :param shr_domains_stack: the stack of shared domains
+    :param stacks_top: the index of the top of the stacks as a Numpy array
     :return: the index of the shared domain
     """
     cp_top_idx = stacks_top[0]
@@ -67,7 +67,8 @@ def last_not_instantiated_var_heuristic(shr_domains_stack: NDArray, stacks_top: 
 def smallest_domain_var_heuristic(shr_domains_stack: NDArray, stacks_top: NDArray) -> int:
     """
     Chooses the smallest shared domain and which is not instantiated.
-    :param shr_domains: the shared domains of the problem
+    :param shr_domains_stack: the stack of shared domains
+    :param stacks_top: the index of the top of the stacks as a Numpy array
     :return: the index of the shared domain
     """
     min_size = sys.maxsize
@@ -84,7 +85,8 @@ def smallest_domain_var_heuristic(shr_domains_stack: NDArray, stacks_top: NDArra
 def greatest_domain_var_heuristic(shr_domains_stack: NDArray, stacks_top: NDArray) -> int:
     """
     Chooses the greatest shared domain and which is not instantiated.
-    :param shr_domains: the shared domains of the problem
+    :param shr_domains_stack: the stack of shared domains
+    :param stacks_top: the index of the top of the stacks as a Numpy array
     :return: the index of the shared domain
     """
     max_size = 0
@@ -103,8 +105,11 @@ def min_value_dom_heuristic(
 ) -> int:
     """
     Chooses the first value of the domain.
-    :param shr_domain: a shared domain
-    :param shr_domain: a copy of this shared domain to be stored in choice points stack
+    :param shr_domains_stack: the stack of shared domains
+    :param dom_update_stack: the stack of domain updates
+    :param stacks_top: the index of the top of the stacks as a Numpy array
+    :param dom_idx: the index of the shared domain
+    :return: the bound which is modified
     """
     cp_top_idx = stacks_top[0]
     value = shr_domains_stack[cp_top_idx, dom_idx, MIN]
@@ -120,8 +125,11 @@ def max_value_dom_heuristic(
 ) -> int:
     """
     Chooses the last value of the domain.
-    :param shr_domain: a shared domain
-    :param shr_domain: a copy of this shared domain to be stored in choice points stack
+    :param shr_domains_stack: the stack of shared domains
+    :param dom_update_stack: the stack of domain updates
+    :param stacks_top: the index of the top of the stacks as a Numpy array
+    :param dom_idx: the index of the shared domain
+    :return: the bound which is modified
     """
     cp_top_idx = stacks_top[0]
     value = shr_domains_stack[cp_top_idx, dom_idx, MAX]
@@ -137,8 +145,11 @@ def split_low_dom_heuristic(
 ) -> int:
     """
     Chooses the first half of the domain.
-    :param shr_domain: a shared domain
-    :param shr_domain: a copy of this shared domain to be stored in choice points stack
+    :param shr_domains_stack: the stack of shared domains
+    :param dom_update_stack: the stack of domain updates
+    :param stacks_top: the index of the top of the stacks as a Numpy array
+    :param dom_idx: the index of the shared domain
+    :return: the bound which is modified
     """
     cp_top_idx = stacks_top[0]
     value = (shr_domains_stack[cp_top_idx, dom_idx, MIN] + shr_domains_stack[cp_top_idx, dom_idx, MAX]) // 2
