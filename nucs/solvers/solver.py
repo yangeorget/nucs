@@ -30,6 +30,11 @@ class Solver:
     """
 
     def __init__(self, problem: Optional[Problem], log_level: str = LOG_LEVEL_INFO):
+        """
+        Inits the solver.
+        :param problem: a problem or None
+        :param log_level: the log level as a string
+        """
         logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, log_level))
         logger.debug("Initializing Solver")
         if problem is not None:
@@ -100,6 +105,10 @@ def get_solution(
 ) -> NDArray:
     """
     Returns the solution to the problem.
+    :param shr_domains_stack: the stack of shared domains
+    :param stacks_top: the index of the top of the stacks as a Numpy array
+    :param dom_indices_arr: the domain indices
+    :param dom_offsets_arr: the domain offsets
     :return: a Numpy array
     """
     return shr_domains_stack[stacks_top[0], dom_indices_arr, MIN] + dom_offsets_arr
@@ -109,6 +118,8 @@ def get_solution(
 def is_solved(shr_domains_stack: NDArray, stacks_top: NDArray) -> bool:
     """
     Returns true iff the problem is solved.
+    :param shr_domains_stack: the stack of shared domains
+    :param stacks_top: the index of the top of the stacks as a Numpy array
     :return: a boolean
     """
     return bool(np.all(np.equal(shr_domains_stack[stacks_top[0], :, MIN], shr_domains_stack[stacks_top[0], :, MAX])))
@@ -125,6 +136,10 @@ def decrease_max(
 ) -> None:
     """
     Decreases the max of a variable
+    :param shr_domains_stack: the stack of shared domains
+    :param stacks_top: the index of the top of the stacks as a Numpy array
+    :param dom_indices_arr: the domain indices
+    :param dom_offsets_arr: the domain offsets
     :param var_idx: the index of the variable
     :param value: the current max
     """
@@ -142,7 +157,11 @@ def increase_min(
 ) -> None:
     """
     Increases the min of a variable
+    :param shr_domains_stack: the stack of shared domains
+    :param stacks_top: the index of the top of the stacks as a Numpy array
+    :param dom_indices_arr: the domain indices
+    :param dom_offsets_arr: the domain offsets
     :param var_idx: the index of the variable
-    :param value: the current min
+    :param value: the current max
     """
     shr_domains_stack[stacks_top[0], dom_indices_arr[var_idx], MIN] = value + 1 - dom_offsets_arr[var_idx]

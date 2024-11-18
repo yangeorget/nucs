@@ -26,8 +26,9 @@ def first_not_instantiated_var_heuristic(shr_domains_stack: NDArray, stacks_top:
     :param shr_domains: the shared domains of the problem
     :return: the index of the shared domain
     """
+    cp_top_idx = stacks_top[0]
     for dom_idx in range(len(shr_domains_stack[0])):
-        if shr_domains_stack[stacks_top[0], dom_idx, MIN] < shr_domains_stack[stacks_top[0], dom_idx, MAX]:
+        if shr_domains_stack[cp_top_idx, dom_idx, MIN] < shr_domains_stack[cp_top_idx, dom_idx, MAX]:
             return dom_idx
     return -1  # cannot happen
 
@@ -41,8 +42,9 @@ def first_not_instantiated_var_heuristic_from_index(
     :param shr_domains: the shared domains of the problem
     :return: the index of the shared domain
     """
+    cp_top_idx = stacks_top[0]
     for dom_idx in range(start_idx, len(shr_domains_stack[0])):
-        if shr_domains_stack[stacks_top[0], dom_idx, MIN] < shr_domains_stack[stacks_top[0], dom_idx, MAX]:
+        if shr_domains_stack[cp_top_idx, dom_idx, MIN] < shr_domains_stack[cp_top_idx, dom_idx, MAX]:
             return dom_idx
     return -1  # cannot happen
 
@@ -54,8 +56,9 @@ def last_not_instantiated_var_heuristic(shr_domains_stack: NDArray, stacks_top: 
     :param shr_domains: the shared domains of the problem
     :return: the index of the shared domain
     """
+    cp_top_idx = stacks_top[0]
     for dom_idx in range(len(shr_domains_stack[0]) - 1, -1, -1):
-        if shr_domains_stack[stacks_top[0], dom_idx, MIN] < shr_domains_stack[stacks_top[0], dom_idx, MAX]:
+        if shr_domains_stack[cp_top_idx, dom_idx, MIN] < shr_domains_stack[cp_top_idx, dom_idx, MAX]:
             return dom_idx
     return -1  # cannot happen
 
@@ -103,10 +106,11 @@ def min_value_dom_heuristic(
     :param shr_domain: a shared domain
     :param shr_domain: a copy of this shared domain to be stored in choice points stack
     """
-    value = shr_domains_stack[stacks_top[0], dom_idx, MIN]
-    shr_domains_stack[stacks_top[0] - 1, dom_idx, MIN] = value + 1
-    shr_domains_stack[stacks_top[0], dom_idx, MAX] = value
-    dom_update_stack[stacks_top[0] - 1, 1] = MAX
+    cp_top_idx = stacks_top[0]
+    value = shr_domains_stack[cp_top_idx, dom_idx, MIN]
+    shr_domains_stack[cp_top_idx - 1, dom_idx, MIN] = value + 1
+    shr_domains_stack[cp_top_idx, dom_idx, MAX] = value
+    dom_update_stack[cp_top_idx - 1, 1] = MAX
     return MAX
 
 
@@ -119,10 +123,11 @@ def max_value_dom_heuristic(
     :param shr_domain: a shared domain
     :param shr_domain: a copy of this shared domain to be stored in choice points stack
     """
-    value = shr_domains_stack[stacks_top[0], dom_idx, MAX]
-    shr_domains_stack[stacks_top[0] - 1, dom_idx, MAX] = value - 1
-    shr_domains_stack[stacks_top[0], dom_idx, MIN] = value
-    dom_update_stack[stacks_top[0] - 1, 1] = MIN
+    cp_top_idx = stacks_top[0]
+    value = shr_domains_stack[cp_top_idx, dom_idx, MAX]
+    shr_domains_stack[cp_top_idx - 1, dom_idx, MAX] = value - 1
+    shr_domains_stack[cp_top_idx, dom_idx, MIN] = value
+    dom_update_stack[cp_top_idx - 1, 1] = MIN
     return MIN
 
 
@@ -135,10 +140,11 @@ def split_low_dom_heuristic(
     :param shr_domain: a shared domain
     :param shr_domain: a copy of this shared domain to be stored in choice points stack
     """
-    value = (shr_domains_stack[stacks_top[0], dom_idx, MIN] + shr_domains_stack[stacks_top[0], dom_idx, MAX]) // 2
-    shr_domains_stack[stacks_top[0] - 1, dom_idx, MIN] = value + 1
-    shr_domains_stack[stacks_top[0], dom_idx, MAX] = value
-    dom_update_stack[stacks_top[0] - 1, 1] = MAX
+    cp_top_idx = stacks_top[0]
+    value = (shr_domains_stack[cp_top_idx, dom_idx, MIN] + shr_domains_stack[cp_top_idx, dom_idx, MAX]) // 2
+    shr_domains_stack[cp_top_idx - 1, dom_idx, MIN] = value + 1
+    shr_domains_stack[cp_top_idx, dom_idx, MAX] = value
+    dom_update_stack[cp_top_idx - 1, 1] = MAX
     return MAX
 
 

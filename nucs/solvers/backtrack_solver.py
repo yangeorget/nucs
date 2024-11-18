@@ -95,6 +95,7 @@ class BacktrackSolver(Solver):
         :param var_heuristic_idx: the index of the heuristic for selecting a variable/domain
         :param dom_heuristic_idx: the index of the heuristic for reducing a domain
         :param stack_max_height: the maximal choice point stack height
+        :param log_level: the log level as a string
         """
         super().__init__(problem, log_level)
         logger.info(f"BacktrackSolver uses variable heuristic {var_heuristic_idx}")
@@ -204,7 +205,7 @@ class BacktrackSolver(Solver):
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
                 self.stacks_top,
-                self.triggered_propagators,
+                self.triggered_propagators
             )
             update_domain_fct(
                 self.shr_domains_stack,
@@ -212,7 +213,7 @@ class BacktrackSolver(Solver):
                 self.problem.dom_indices_arr,
                 self.problem.dom_offsets_arr,
                 variable_idx,
-                best_solution[variable_idx],
+                best_solution[variable_idx]
             )
         return best_solution
 
@@ -290,6 +291,7 @@ class BacktrackSolver(Solver):
         Enqueues the solution that optimizes a variable.
         :param variable_idx: the index of the variable
         :param update_domain_fct: the function to update the domain of the variable
+        :param processor_idx: the index of the processor
         :param solution_queue: the solution queue
         """
         logger.debug(f"Optimizing variable {variable_idx} and queuing solutions found")
@@ -406,6 +408,8 @@ def reset(
     :param problem: the problem
     :param shr_domains_stack: the stack of shared domains
     :param not_entailed_propagators_stack: the stack of not entailed propagators
+    :param dom_update_stack: the stack of domain updates
+    :param stacks_top: the index of the top of the stacks as a Numpy array
     :param triggered_propagators: the list of triggered propagators
     """
     cp_init(
@@ -461,6 +465,8 @@ def solve_one(
     the first level correspond to the current shared domains, the rest correspond to the choice points
     :param not_entailed_propagators_stack: a stack not entailed propagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
+    :param dom_update_stack: the stack of domain updates
+    :param stacks_top: the index of the top of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param consistency_alg_idx: the index of the consistency algorithm
     :param var_heuristic_idx: the index of the variable heuristic

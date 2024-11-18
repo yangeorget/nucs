@@ -147,11 +147,9 @@ def add_propagators(
     dom_idx: int,
     bound: int,
 ) -> None:
+    cp_top_idx = stacks_top[0]
     for prop_idx in range(len(triggered_propagators)):
-        if (
-            shr_domains_propagators[dom_idx, bound, prop_idx]
-            and not_entailed_propagators_stack[stacks_top[0], prop_idx]
-        ):
+        if shr_domains_propagators[dom_idx, bound, prop_idx] and not_entailed_propagators_stack[cp_top_idx, prop_idx]:
             triggered_propagators[prop_idx] = True
     # np.logical_or(triggered_propagators, shr_domains_propagators[dom_idx, bound], triggered_propagators)
     # np.logical_and(triggered_propagators, not_entailed_propagators, triggered_propagators)
