@@ -11,7 +11,7 @@ Consistency algorithms
 NuCS provides the following consistency algorithms.
 
 .. py:module:: nucs.solvers.bound_consistency_algorithm
-.. py:function:: nucs.solvers.bound_consistency_algorithm.bound_consistency_algorithm(statistics, algorithms, var_bounds, param_bounds, dom_indices_arr, dom_offsets_arr, props_dom_indices, props_dom_offsets, props_parameters,shr_domains_propagators, shr_domains_arr, not_entailed_propagators, triggered_propagators, compute_domains_addrs)
+.. py:function:: nucs.solvers.bound_consistency_algorithm.bound_consistency_algorithm(statistics, algorithms, var_bounds, param_bounds, dom_indices_arr, dom_offsets_arr, props_dom_indices, props_dom_offsets, props_parameters,shr_domains_propagators, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, triggered_propagators, compute_domains_addrs)
 
    This is the default consistency algorithm used by the :mod:`nucs.solvers.backtrack_solver`.
 
@@ -41,8 +41,8 @@ NuCS provides the following consistency algorithms.
    :type not_entailed_propagators_stack: NDArray
    :param dom_update_stack: a stack of domain updates (domain index and bound)
    :type dom_update_stack: NDArray
-   :param stacks_height: the height of the 3 previous stacks
-   :type stacks_height: NDArray
+   :param stacks_top: the height of the stacks as a Numpy array
+   :type stacks_top: NDArray
    :param triggered_propagators: the Numpy array of triggered propagators
    :type triggered_propagators: NDArray
    :param compute_domains_addrs: the addresses of the compute_domains functions
@@ -52,7 +52,7 @@ NuCS provides the following consistency algorithms.
 
 
 .. py:module:: nucs.solvers.shaving_consistency_algorithm
-.. py:function:: nucs.solvers.shaving_consistency_algorithm.shaving_consistency_algorithm(statistics, algorithms, var_bounds, param_bounds, dom_indices_arr, dom_offsets_arr, props_dom_indices, props_dom_offsets, props_parameters,shr_domains_propagators, shr_domains_arr, not_entailed_propagators, triggered_propagators, compute_domains_addrs)
+.. py:function:: nucs.solvers.shaving_consistency_algorithm.shaving_consistency_algorithm(statistics, algorithms, var_bounds, param_bounds, dom_indices_arr, dom_offsets_arr, props_dom_indices, props_dom_offsets, props_parameters,shr_domains_propagators, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, triggered_propagators, compute_domains_addrs)
 
    This algorithm reduces the need of searching by shaving the domains.
    It is experimental.
@@ -83,8 +83,8 @@ NuCS provides the following consistency algorithms.
    :type not_entailed_propagators_stack: NDArray
    :param dom_update_stack: a stack of domain updates (domain index and bound)
    :type dom_update_stack: NDArray
-   :param stacks_height: the height of the 3 previous stacks
-   :type stacks_height: NDArray
+   :param stacks_top: the height of the stacks as a Numpy array
+   :type stacks_top: NDArray
    :param triggered_propagators: the Numpy array of triggered propagators
    :type triggered_propagators: NDArray
    :param compute_domains_addrs: the addresses of the compute_domains functions
@@ -366,42 +366,50 @@ Heuristics for selecting a shared domain
 NUCS provides the following functions for selecting a shared domain.
 
 
-.. py:function:: nucs.solvers.heuristics.first_not_instantiated_var_heuristic(shr_domains)
+.. py:function:: nucs.solvers.heuristics.first_not_instantiated_var_heuristic(shr_domains_stack, stacks_top)
 
    This heuristics chooses the first non-instantiated shared domain.
 
-   :param shr_domains: the shared domains of the variables
-   :type shr_domains: NDArray
+   :param shr_domains_stack: the stack of shared domains
+   :type shr_domains_stack: NDArray
+   :param stacks_top: the index of the top of the stacks as a Numpy array
+   :type stacks_top: NDArray
    :return: the index of the shared domain
    :rtype: int
 
 
-.. py:function:: nucs.solvers.heuristics.last_not_instantiated_var_heuristic(shr_domains)
+.. py:function:: nucs.solvers.heuristics.last_not_instantiated_var_heuristic(shr_domains_stack, stacks_top)
 
    This heuristics chooses the last non-instantiated shared domain.
 
-   :param shr_domains: the shared domains of the variables
-   :type shr_domains: NDArray
+   :param shr_domains_stack: the stack of shared domains
+   :type shr_domains_stack: NDArray
+   :param stacks_top: the index of the top of the stacks as a Numpy array
+   :type stacks_top: NDArray
    :return: the index of the shared domain
    :rtype: int
 
 
-.. py:function:: nucs.solvers.heuristics.smallest_domain_var_heuristic(shr_domains)
+.. py:function:: nucs.solvers.heuristics.smallest_domain_var_heuristic(shr_domains_stack, stacks_top)
 
    This heuristics chooses the smallest shared domain and which is not instantiated.
 
-   :param shr_domains: the shared domains of the variables
-   :type shr_domains: NDArray
+   :param shr_domains_stack: the stack of shared domains
+   :type shr_domains_stack: NDArray
+   :param stacks_top: the index of the top of the stacks as a Numpy array
+   :type stacks_top: NDArray
    :return: the index of the shared domain
    :rtype: int
 
 
-.. py:function:: nucs.solvers.heuristics.greatest_domain_var_heuristic(shr_domains)
+.. py:function:: nucs.solvers.heuristics.greatest_domain_var_heuristic(shr_domains_stack, stacks_top)
 
    This heuristics chooses the greatest shared domain and which is not instantiated.
 
-   :param shr_domains: the shared domains of the variables
-   :type shr_domains: NDArray
+   :param shr_domains_stack: the stack of shared domains
+   :type shr_domains_stack: NDArray
+   :param stacks_top: the index of the top of the stacks as a Numpy array
+   :type stacks_top: NDArray
    :return: the index of the shared domain
    :rtype: int
 
@@ -412,38 +420,50 @@ Heuristics for reducing the chosen shared domain
 NUCS provides the following functions for reducing a shared domain.
 
 
-.. py:function:: nucs.solvers.heuristics.min_value_dom_heuristic(shr_domains, shr_domains_copy)
+.. py:function:: nucs.solvers.heuristics.min_value_dom_heuristic(shr_domains_stack, dom_update_stacks, stacks_top, dom_idx)
 
    This heuristics chooses the first value of the domain.
 
-   :param shr_domains: the shared domains of the variables
-   :type shr_domains: NDArray
-   :param shr_domains_copy: the copy of the shared domains to be added to the choice points
-   :type shr_domains_copy: NDArray
+   :param shr_domains_stack: the stack of shared domains
+   :type shr_domains_stack: NDArray
+   :param dom_update_stack: the stack of domain updates
+   :type dom_update_stack: NDArray
+   :param stacks_top: the index of the top of the stacks as a Numpy array
+   :type stack_top: NDArray
+   :param dom_idx: the index of the shared domain
+   :type dom_idx: int
    :return: the MAX event
    :rtype: int
 
 
-.. py:function:: nucs.solvers.heuristics.max_value_dom_heuristic(shr_domains, shr_domains_copy)
+.. py:function:: nucs.solvers.heuristics.max_value_dom_heuristic(shr_domains_stack, dom_update_stacks, stacks_top, dom_idx)
 
    This heuristics chooses the last value of the domain.
 
-   :param shr_domains: the shared domains of the variables
-   :type shr_domains: NDArray
-   :param shr_domains_copy: the copy of the shared domains to be added to the choice points
-   :type shr_domains_copy: NDArray
+   :param shr_domains_stack: the stack of shared domains
+   :type shr_domains_stack: NDArray
+   :param dom_update_stack: the stack of domain updates
+   :type dom_update_stack: NDArray
+   :param stacks_top: the index of the top of the stacks as a Numpy array
+   :type stack_top: NDArray
+   :param dom_idx: the index of the shared domain
+   :type dom_idx: int
    :return: the MIN event
    :rtype: int
 
 
-.. py:function:: nucs.solvers.heuristics.split_low_dom_heuristic(shr_domains, shr_domains_copy)
+.. py:function:: nucs.solvers.heuristics.split_low_dom_heuristic(shr_domains_stack, dom_update_stacks, stacks_top, dom_idx)
 
    This heuristics chooses the first half of the domain.
 
-   :param shr_domains: the shared domains of the variables
-   :type shr_domains: NDArray
-   :param shr_domains_copy: the copy of the shared domains to be added to the choice points
-   :type shr_domains_copy: NDArray
+   :param shr_domains_stack: the stack of shared domains
+   :type shr_domains_stack: NDArray
+   :param dom_update_stack: the stack of domain updates
+   :type dom_update_stack: NDArray
+   :param stacks_top: the index of the top of the stacks as a Numpy array
+   :type stack_top: NDArray
+   :param dom_idx: the index of the shared domain
+   :type dom_idx: int
    :return: the MAX event
    :rtype: int
 
