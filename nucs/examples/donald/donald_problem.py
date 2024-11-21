@@ -38,9 +38,7 @@ class DonaldProblem(Problem):
                 [200, -1000, 100002, 9900, 100000, 20, 1000, 0, -99010, -1, 0],
             )
         )
-        self.add_propagator(
-            ([A, B, D, E, G, L, N, O, R, T], ALG_ALLDIFFERENT, []),
-        )
+        self.add_propagator(([A, B, D, E, G, L, N, O, R, T], ALG_ALLDIFFERENT, []))
 
     def solution_as_dict(self, solution: NDArray) -> Dict[str, int]:
         """

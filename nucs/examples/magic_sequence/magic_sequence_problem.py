@@ -27,7 +27,6 @@ class MagicSequenceProblem(Problem):
         Inits the problem.
         :param n: the size of the sequence
         """
-        self.n = n
         super().__init__([(0, n)] * n)
         for i in range(n):
             self.add_propagator((list(range(n)) + [i], ALG_COUNT_EQ, [i]))
