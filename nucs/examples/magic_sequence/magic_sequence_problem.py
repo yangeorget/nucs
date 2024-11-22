@@ -16,8 +16,7 @@ from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_COUNT_EQ
 
 class MagicSequenceProblem(Problem):
     """
-    Find a sequence x_0, ... x_n-1
-    such that each x_i is the number of occurences of i in the sequence.
+    Find a sequence x_0, ... x_n-1 such that each x_i is the number of occurrences of i in the sequence.
 
     CSPLIB problem #19 - https://www.csplib.org/Problems/prob019/
     """
