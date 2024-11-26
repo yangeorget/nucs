@@ -52,35 +52,29 @@ def compute_domains_element_liv(domains: NDArray, parameters: NDArray) -> int:
     """
     l = domains[:-2]
     i = domains[-2]
+    v = domains[-1]
+    # i could be updated only once
     i[MIN] = max(i[MIN], 0)
     i[MAX] = min(i[MAX], len(l) - 1)
-    if i[MAX] < i[MIN]:
-        return PROP_INCONSISTENCY
-    v = domains[-1]
     v_min = sys.maxsize
     v_max = -sys.maxsize
-    i_min = i[MIN]
-    i_max = i[MAX]
     for idx in range(i[MIN], i[MAX] + 1):
         if v[MAX] < l[idx, MIN] or v[MIN] > l[idx, MAX]:  # no intersection
-            if idx == i_min:
-                i_min += 1
-            elif idx == i_max:
-                i_max -= 1
+            if idx == i[MIN]:
+                i[MIN] += 1
+            if idx == i[MAX]:
+                i[MAX] -= 1
         else:  # intersection
             if l[idx, MIN] < v_min:
                 v_min = l[idx, MIN]
             if l[idx, MAX] > v_max:
                 v_max = l[idx, MAX]
-    if i_max < i_min:
+    if i[MAX] < i[MIN]:
         return PROP_INCONSISTENCY
-    i[MIN] = i_min
-    i[MAX] = i_max
     v[MIN] = max(v[MIN], v_min)
     v[MAX] = min(v[MAX], v_max)
-    if i_min == i_max:
-        l[i_min, MIN] = max(l[i_min, MIN], v[MIN])
-        l[i_max, MAX] = min(l[i_max, MAX], v[MAX])
+    if i[MIN] == i[MAX]:
+        l[i[MIN], :] = v[:]
         if v[MIN] == v[MAX]:
             return PROP_ENTAILMENT
     return PROP_CONSISTENCY
