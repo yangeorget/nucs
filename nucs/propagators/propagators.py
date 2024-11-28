@@ -42,6 +42,11 @@ from nucs.propagators.count_eq_propagator import (
     get_triggers_count_eq,
 )
 from nucs.propagators.dummy_propagator import compute_domains_dummy, get_complexity_dummy, get_triggers_dummy
+from nucs.propagators.element_iv_propagator import (
+    compute_domains_element_iv,
+    get_complexity_element_iv,
+    get_triggers_element_iv,
+)
 from nucs.propagators.element_lic_propagator import (
     compute_domains_element_lic,
     get_complexity_element_lic,
@@ -106,6 +111,7 @@ ALG_ALLDIFFERENT = register_propagator(
 )
 ALG_COUNT_EQ = register_propagator(get_triggers_count_eq, get_complexity_count_eq, compute_domains_count_eq)
 ALG_DUMMY = register_propagator(get_triggers_dummy, get_complexity_dummy, compute_domains_dummy)
+ALG_ELEMENT_IV = register_propagator(get_triggers_element_iv, get_complexity_element_iv, compute_domains_element_iv)
 ALG_ELEMENT_LIV = register_propagator(get_triggers_element_liv, get_complexity_element_liv, compute_domains_element_liv)
 ALG_ELEMENT_LIC = register_propagator(get_triggers_element_lic, get_complexity_element_lic, compute_domains_element_lic)
 ALG_EXACTLY_EQ = register_propagator(get_triggers_exactly_eq, get_complexity_exactly_eq, compute_domains_exactly_eq)

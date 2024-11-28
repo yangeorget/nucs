@@ -97,7 +97,7 @@ def bound_consistency_algorithm(
             else function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[algorithms[prop_idx]])
         )
         status = compute_domains_fct(
-            prop_domains, props_parameters[param_bounds[prop_idx, START]:param_bounds[prop_idx, END]]
+            prop_domains, props_parameters[param_bounds[prop_idx, START] : param_bounds[prop_idx, END]]
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1

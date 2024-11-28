@@ -12,7 +12,7 @@
 ###############################################################################
 from typing import Dict
 
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ALLDIFFERENT

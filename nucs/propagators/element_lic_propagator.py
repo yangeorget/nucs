@@ -10,6 +10,8 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
+from typing import List
+
 import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -51,12 +53,16 @@ def compute_domains_element_lic(domains: NDArray, parameters: NDArray) -> int:
     # i could be updated only once
     i[MIN] = max(i[MIN], 0)
     i[MAX] = min(i[MAX], len(l) - 1)
+    indices: List[int] = []
     for idx in range(i[MIN], i[MAX] + 1):
         if c < l[idx, MIN] or c > l[idx, MAX]:  # no intersection
+            indices.insert(0, idx)
             if idx == i[MIN]:
                 i[MIN] += 1
-            if idx == i[MAX]:
-                i[MAX] -= 1
+    for idx in indices:
+        if idx != i[MAX]:
+            break
+        i[MAX] -= 1
     if i[MAX] < i[MIN]:
         return PROP_INCONSISTENCY
     if i[MIN] == i[MAX]:

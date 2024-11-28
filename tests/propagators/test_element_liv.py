@@ -31,6 +31,11 @@ class TestElementLIV:
         assert np.all(domains == np.array([[-4, -2], [1, 1], [1, 1], [1, 1]]))
 
     def test_compute_domains_3(self) -> None:
+        domains = new_shr_domains_by_values([3, 0, 1, 2, 4, (0, 4), (-2, 0)])
+        data = new_parameters_by_values([])
+        assert compute_domains_element_liv(domains, data) == PROP_ENTAILMENT
+
+    def test_compute_domains_4(self) -> None:
         domains = new_shr_domains_by_values([(-4, -2), (1, 2), (0, 1), (0, 0)])
         data = new_parameters_by_values([])
         assert compute_domains_element_liv(domains, data) == PROP_INCONSISTENCY
