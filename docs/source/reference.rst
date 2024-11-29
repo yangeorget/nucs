@@ -182,10 +182,27 @@ NuCS currently provides the following highly-optimized propagators.
    :type parameters: NDArray
 
 
+.. py:module:: nucs.propagators.element_iv_propagator
+.. py:function:: nucs.propagators.element_iv_propagator.compute_domains(domains, parameters)
+
+   This propagator implements the relation :math:`l_i = v` where :math:`l` is a list of constants,
+   :math:`i` and :math:`v` two variables.
+
+   It has the time complexity: :math:`O(1)`.
+
+   :param domains: the domains of the variables,
+          :math:`i` is the first domain,
+          :math:`v` is the second domain
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, :math:`l` is an alias for parameters
+   :type parameters: NDArray
+
+
 .. py:module:: nucs.propagators.element_lic_propagator
 .. py:function:: nucs.propagators.element_lic_propagator.compute_domains(domains, parameters)
 
-   This propagator implements the relation :math:`l_i = c`.
+   This propagator implements the relation :math:`l_i = c` where :math:`l` is a list of variables,
+   :math:`i` a variable and :math:`c` a constant.
 
    It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
 
@@ -200,7 +217,8 @@ NuCS currently provides the following highly-optimized propagators.
 .. py:module:: nucs.propagators.element_liv_propagator
 .. py:function:: nucs.propagators.element_liv_propagator.compute_domains(domains, parameters)
 
-   This propagator implements the relation :math:`l_i = v`.
+   This propagator implements the relation :math:`l_i = v` where :math:`l` is a list of variables,
+   :math:`i` and :math:`v` two variables.
 
    It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
 
