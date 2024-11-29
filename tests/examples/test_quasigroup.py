@@ -14,8 +14,8 @@ import pytest
 
 from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB
 from nucs.examples.quasigroup.quasigroup_problem import Quasigroup5Problem
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 
 
 class TestQuasigroup:

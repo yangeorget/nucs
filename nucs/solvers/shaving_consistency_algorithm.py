@@ -23,14 +23,11 @@ from nucs.constants import (
     STATS_IDX_ALG_SHAVING_NB,
     STATS_IDX_ALG_SHAVING_NO_CHANGE_NB,
 )
+from nucs.heuristics.first_not_instantiated_var_heuristic import first_not_instantiated_var_heuristic_from_index
+from nucs.heuristics.heuristics import max_value_dom_heuristic, min_value_dom_heuristic
 from nucs.propagators.propagators import add_propagators
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
 from nucs.solvers.choice_points import backtrack, cp_put
-from nucs.solvers.heuristics import (
-    first_not_instantiated_var_heuristic_from_index,
-    max_value_dom_heuristic,
-    min_value_dom_heuristic,
-)
 
 
 @njit(cache=True)

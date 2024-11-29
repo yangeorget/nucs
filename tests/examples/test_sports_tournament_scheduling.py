@@ -13,8 +13,8 @@
 from nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem import (
     SportsTournamentSchedulingProblem,
 )
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 
 
 class TestSportsTournamentScheduling:

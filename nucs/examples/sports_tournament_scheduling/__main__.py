@@ -18,8 +18,8 @@ from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
 from nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem import (
     SportsTournamentSchedulingProblem,
 )
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.sports_tournament_scheduling -n 8

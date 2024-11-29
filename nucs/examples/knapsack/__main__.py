@@ -16,8 +16,8 @@ from rich import print
 
 from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
 from nucs.examples.knapsack.knapsack_problem import KnapsackProblem
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.knapsack

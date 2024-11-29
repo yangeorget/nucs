@@ -16,8 +16,8 @@ from rich import print
 
 from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_LAST_NOT_INSTANTIATED
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_LAST_NOT_INSTANTIATED
 
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.magic_sequence -n 100

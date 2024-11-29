@@ -58,17 +58,17 @@ from nucs.constants import (
     TYPE_DOM_HEURISTIC,
     TYPE_VAR_HEURISTIC,
 )
-from nucs.numba_helper import build_function_address_list, function_from_address
-from nucs.problems.problem import Problem
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, add_propagators
-from nucs.solvers.choice_points import backtrack, cp_init, cp_put
-from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
-from nucs.solvers.heuristics import (
+from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_FCTS,
     DOM_HEURISTIC_MIN_VALUE,
     VAR_HEURISTIC_FCTS,
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
 )
+from nucs.numba_helper import build_function_address_list, function_from_address
+from nucs.problems.problem import Problem
+from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, add_propagators
+from nucs.solvers.choice_points import backtrack, cp_init, cp_put
+from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.solver import Solver, decrease_max, get_solution, increase_min
 
 logger = logging.getLogger(__name__)

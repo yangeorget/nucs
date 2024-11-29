@@ -384,7 +384,7 @@ Heuristics for selecting a shared domain
 NUCS provides the following functions for selecting a shared domain.
 
 
-.. py:function:: nucs.solvers.heuristics.first_not_instantiated_var_heuristic(shr_domains_stack, stacks_top)
+.. py:function:: nucs.solvers.heuristics.first_not_instantiated_var_heuristic.first_not_instantiated_var_heuristic(shr_domains_stack, stacks_top)
 
    This heuristics chooses the first non-instantiated shared domain.
 
@@ -396,7 +396,7 @@ NUCS provides the following functions for selecting a shared domain.
    :rtype: int
 
 
-.. py:function:: nucs.solvers.heuristics.last_not_instantiated_var_heuristic(shr_domains_stack, stacks_top)
+.. py:function:: nucs.solvers.heuristics.last_not_instantiated_var_heuristic.last_not_instantiated_var_heuristic(shr_domains_stack, stacks_top)
 
    This heuristics chooses the last non-instantiated shared domain.
 
@@ -408,7 +408,7 @@ NUCS provides the following functions for selecting a shared domain.
    :rtype: int
 
 
-.. py:function:: nucs.solvers.heuristics.smallest_domain_var_heuristic(shr_domains_stack, stacks_top)
+.. py:function:: nucs.solvers.heuristics.smallest_domain_var_heuristic.smallest_domain_var_heuristic(shr_domains_stack, stacks_top)
 
    This heuristics chooses the smallest shared domain and which is not instantiated.
 
@@ -420,7 +420,7 @@ NUCS provides the following functions for selecting a shared domain.
    :rtype: int
 
 
-.. py:function:: nucs.solvers.heuristics.greatest_domain_var_heuristic(shr_domains_stack, stacks_top)
+.. py:function:: nucs.solvers.heuristics.greatest_domain_var_heuristic.greatest_domain_var_heuristic(shr_domains_stack, stacks_top)
 
    This heuristics chooses the greatest shared domain and which is not instantiated.
 
@@ -438,7 +438,7 @@ Heuristics for reducing the chosen shared domain
 NUCS provides the following functions for reducing a shared domain.
 
 
-.. py:function:: nucs.solvers.heuristics.min_value_dom_heuristic(shr_domains_stack, dom_update_stacks, stacks_top, dom_idx)
+.. py:function:: nucs.solvers.heuristics.min_value_dom_heuristic.min_value_dom_heuristic(shr_domains_stack, dom_update_stacks, stacks_top, dom_idx)
 
    This heuristics chooses the first value of the domain.
 
@@ -454,7 +454,7 @@ NUCS provides the following functions for reducing a shared domain.
    :rtype: int
 
 
-.. py:function:: nucs.solvers.heuristics.max_value_dom_heuristic(shr_domains_stack, dom_update_stacks, stacks_top, dom_idx)
+.. py:function:: nucs.solvers.heuristics.max_value_dom_heuristic.max_value_dom_heuristic(shr_domains_stack, dom_update_stacks, stacks_top, dom_idx)
 
    This heuristics chooses the last value of the domain.
 
@@ -470,7 +470,7 @@ NUCS provides the following functions for reducing a shared domain.
    :rtype: int
 
 
-.. py:function:: nucs.solvers.heuristics.split_low_dom_heuristic(shr_domains_stack, dom_update_stacks, stacks_top, dom_idx)
+.. py:function:: nucs.solvers.heuristics.split_low_dom_heuristic.split_low_dom_heuristic(shr_domains_stack, dom_update_stacks, stacks_top, dom_idx)
 
    This heuristics chooses the first half of the domain.
 

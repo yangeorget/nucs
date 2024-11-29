@@ -16,9 +16,9 @@ from rich import print
 
 from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
 from nucs.examples.queens.queens_problem import QueensProblem
+from nucs.heuristics.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_SHAVING
-from nucs.solvers.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):

@@ -17,10 +17,10 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN
+from nucs.heuristics.heuristics import first_not_instantiated_var_heuristic
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, add_propagators
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
-from nucs.solvers.heuristics import first_not_instantiated_var_heuristic
 
 GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])
 
