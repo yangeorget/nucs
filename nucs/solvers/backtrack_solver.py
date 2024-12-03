@@ -12,7 +12,7 @@
 ###############################################################################
 import logging
 from multiprocessing import Queue
-from typing import Callable, Dict, Iterator, Optional, Tuple
+from typing import Callable, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -83,6 +83,7 @@ class BacktrackSolver(Solver):
         self,
         problem: Problem,
         consistency_alg_idx: int = CONSISTENCY_ALG_BC,
+        decision_domains: Optional[List[int]] = None,
         var_heuristic_idx: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
         stack_max_height: int = 128,
@@ -98,6 +99,9 @@ class BacktrackSolver(Solver):
         :param log_level: the log level as a string
         """
         super().__init__(problem, log_level)
+        decision_domains = list(range(problem.shr_domain_nb)) if decision_domains is None else decision_domains
+        logger.info(f"BacktrackSolver uses decision domains {decision_domains}")
+        self.decision_domains = np.array(decision_domains, dtype=np.uint16)
         logger.info(f"BacktrackSolver uses variable heuristic {var_heuristic_idx}")
         self.var_heuristic_idx = var_heuristic_idx
         logger.info(f"BacktrackSolver uses domain heuristic {dom_heuristic_idx}")
@@ -106,7 +110,7 @@ class BacktrackSolver(Solver):
         self.consistency_alg_idx = consistency_alg_idx
         self.triggered_propagators = np.ones(problem.propagator_nb, dtype=np.bool)
         logger.debug("Initializing choice points")
-        self.shr_domains_stack = np.empty((stack_max_height, self.problem.variable_nb, 2), dtype=np.int32)
+        self.shr_domains_stack = np.empty((stack_max_height, self.problem.shr_domain_nb, 2), dtype=np.int32)
         self.not_entailed_propagators_stack = np.empty((stack_max_height, self.problem.propagator_nb), dtype=np.bool)
         self.dom_update_stack = np.empty((stack_max_height, 2), dtype=np.uint16)
         self.stacks_top = np.ones((1,), dtype=np.uint8)
@@ -189,6 +193,7 @@ class BacktrackSolver(Solver):
                 self.stacks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
+                self.decision_domains,
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
@@ -244,6 +249,7 @@ class BacktrackSolver(Solver):
                 self.stacks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
+                self.decision_domains,
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
@@ -316,6 +322,7 @@ class BacktrackSolver(Solver):
                 self.stacks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
+                self.decision_domains,
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
@@ -373,6 +380,7 @@ class BacktrackSolver(Solver):
                 self.stacks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
+                self.decision_domains,
                 self.var_heuristic_idx,
                 self.dom_heuristic_idx,
                 compute_domains_addrs,
@@ -440,6 +448,7 @@ def solve_one(
     stacks_top: NDArray,
     triggered_propagators: NDArray,
     consistency_alg_idx: int,
+    decision_domains: NDArray,
     var_heuristic_idx: int,
     dom_heuristic_idx: int,
     compute_domains_addrs: NDArray,
@@ -503,12 +512,13 @@ def solve_one(
             stacks_top,
             triggered_propagators,
             compute_domains_addrs,
+            decision_domains,
         )
         if status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLVER_SOLUTION_NB] += 1
             return get_solution(shr_domains_stack, stacks_top, dom_indices_arr, dom_offsets_arr)
         elif status == PROBLEM_UNBOUND:
-            dom_idx = var_heuristic_fct(shr_domains_stack, stacks_top)
+            dom_idx = var_heuristic_fct(decision_domains, shr_domains_stack, stacks_top)
             cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx)
             event = dom_heuristic_fct(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
             add_propagators(

@@ -16,7 +16,7 @@ from rich import print
 
 from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
-from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_LAST_NOT_INSTANTIATED
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -29,7 +29,8 @@ if __name__ == "__main__":
     problem = MagicSequenceProblem(args.n)
     solver = BacktrackSolver(
         problem,
-        var_heuristic_idx=VAR_HEURISTIC_LAST_NOT_INSTANTIATED,
+        decision_domains=list(range(args.n - 1, -1, -1)),
+        var_heuristic_idx=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE,
         log_level=args.log_level,
     )

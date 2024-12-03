@@ -18,7 +18,10 @@ from nucs.constants import MAX, MIN
 
 @njit(cache=True)
 def split_low_dom_heuristic(
-    shr_domains_stack: NDArray, dom_update_stack: NDArray, stacks_top: NDArray, dom_idx: int
+    shr_domains_stack: NDArray,
+    dom_update_stack: NDArray,
+    stacks_top: NDArray,
+    dom_idx: int,
 ) -> int:
     """
     Chooses the first half of the domain.

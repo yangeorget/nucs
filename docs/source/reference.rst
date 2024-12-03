@@ -382,23 +382,12 @@ Heuristics for selecting a shared domain
 NUCS provides the following functions for selecting a shared domain.
 
 .. py:module:: nucs.heuristics.first_not_instantiated_var_heuristic
-.. py:function:: nucs.heuristics.first_not_instantiated_var_heuristic.first_not_instantiated_var_heuristic(shr_domains_stack, stacks_top)
+.. py:function:: nucs.heuristics.first_not_instantiated_var_heuristic.first_not_instantiated_var_heuristic(decision_domains, shr_domains_stack, stacks_top)
 
    This heuristics chooses the first non-instantiated shared domain.
 
-   :param shr_domains_stack: the stack of shared domains
-   :type shr_domains_stack: NDArray
-   :param stacks_top: the index of the top of the stacks as a Numpy array
-   :type stacks_top: NDArray
-   :return: the index of the shared domain
-   :rtype: int
-
-
-.. py:module:: nucs.heuristics.last_not_instantiated_var_heuristic
-.. py:function:: nucs.heuristics.last_not_instantiated_var_heuristic.last_not_instantiated_var_heuristic(shr_domains_stack, stacks_top)
-
-   This heuristics chooses the last non-instantiated shared domain.
-
+   :param decision_domains: the indices of the domains on which choices will be made
+   :type decision_domains: NDArray
    :param shr_domains_stack: the stack of shared domains
    :type shr_domains_stack: NDArray
    :param stacks_top: the index of the top of the stacks as a Numpy array
@@ -408,10 +397,12 @@ NUCS provides the following functions for selecting a shared domain.
 
 
 .. py:module:: nucs.heuristics.smallest_domain_var_heuristic
-.. py:function:: nucs.heuristics.smallest_domain_var_heuristic.smallest_domain_var_heuristic(shr_domains_stack, stacks_top)
+.. py:function:: nucs.heuristics.smallest_domain_var_heuristic.smallest_domain_var_heuristic(decision_domains, shr_domains_stack, stacks_top)
 
    This heuristics chooses the smallest shared domain and which is not instantiated.
 
+   :param decision_domains: the indices of the domains on which choices will be made
+   :type decision_domains: NDArray
    :param shr_domains_stack: the stack of shared domains
    :type shr_domains_stack: NDArray
    :param stacks_top: the index of the top of the stacks as a Numpy array
@@ -421,10 +412,12 @@ NUCS provides the following functions for selecting a shared domain.
 
 
 .. py:module:: nucs.heuristics.greatest_domain_var_heuristic
-.. py:function:: nucs.heuristics.greatest_domain_var_heuristic.greatest_domain_var_heuristic(shr_domains_stack, stacks_top)
+.. py:function:: nucs.heuristics.greatest_domain_var_heuristic.greatest_domain_var_heuristic(decision_domains, shr_domains_stack, stacks_top)
 
    This heuristics chooses the greatest shared domain and which is not instantiated.
 
+   :param decision_domains: the indices of the domains on which choices will be made
+   :type decision_domains: NDArray
    :param shr_domains_stack: the stack of shared domains
    :type shr_domains_stack: NDArray
    :param stacks_top: the index of the top of the stacks as a Numpy array

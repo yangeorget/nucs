@@ -48,7 +48,7 @@ class Problem:
         ]
         self.dom_indices_lst = dom_indices_lst
         self.dom_offsets_lst = dom_offsets_lst
-        self.variable_nb = len(shr_domains_lst)
+        self.shr_domain_nb = len(shr_domains_lst)
         self.propagators: List[Tuple[List[int], int, List[int]]] = []
         self.propagator_nb = 0
 
@@ -92,7 +92,7 @@ class Problem:
         )
         self.dom_indices_lst.append(dom_index)
         self.dom_offsets_lst.append(dom_offset)
-        self.variable_nb = len(self.dom_indices_lst)
+        self.shr_domain_nb = len(self.dom_indices_lst)
 
     def add_variables(
         self,
@@ -120,7 +120,7 @@ class Problem:
         )
         self.dom_indices_lst.extend(dom_indices_list)
         self.dom_offsets_lst.extend(dom_offsets_list)
-        self.variable_nb = len(self.dom_indices_lst)
+        self.shr_domain_nb = len(self.dom_indices_lst)
 
     def add_propagator(self, propagator: Tuple[List[int], int, List[int]]) -> None:
         """
@@ -176,7 +176,7 @@ class Problem:
             param_end = self.param_bounds[propagator_idx, END]
             self.props_parameters[param_start:param_end] = prop_params
         self.props_dom_offsets = self.props_dom_offsets.reshape((-1, 1))
-        self.shr_domains_propagators = np.zeros((self.variable_nb, 2, self.propagator_nb), dtype=np.bool)
+        self.shr_domains_propagators = np.zeros((self.shr_domain_nb, 2, self.propagator_nb), dtype=np.bool)
         for propagator_idx, propagator in enumerate(self.propagators):
             prop_vars, prop_algorithm, prop_params = propagator
             triggers = GET_TRIGGERS_FCTS[prop_algorithm](len(prop_vars), prop_params)

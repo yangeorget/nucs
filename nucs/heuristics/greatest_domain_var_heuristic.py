@@ -17,7 +17,7 @@ from nucs.constants import MAX, MIN
 
 
 @njit(cache=True)
-def greatest_domain_var_heuristic(shr_domains_stack: NDArray, stacks_top: NDArray) -> int:
+def greatest_domain_var_heuristic(decision_domains: NDArray, shr_domains_stack: NDArray, stacks_top: NDArray) -> int:
     """
     Chooses the greatest shared domain and which is not instantiated.
     :param shr_domains_stack: the stack of shared domains
@@ -26,9 +26,11 @@ def greatest_domain_var_heuristic(shr_domains_stack: NDArray, stacks_top: NDArra
     """
     max_size = 0
     max_idx = -1
-    for dom_index, shr_domain in enumerate(shr_domains_stack[stacks_top[0]]):
+    cp_top_idx = stacks_top[0]
+    for dom_idx in decision_domains:
+        shr_domain = shr_domains_stack[cp_top_idx, dom_idx]
         size = shr_domain[MAX] - shr_domain[MIN]  # actually this is size - 1
         if max_size < size:
-            max_idx = dom_index
+            max_idx = dom_idx
             max_size = size
     return max_idx

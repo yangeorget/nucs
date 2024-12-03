@@ -90,7 +90,7 @@ class GolombProblem(Problem):
                         [1, -1, -1, 0],
                     )
                 )
-        self.add_propagator((list(range(self.variable_nb)), ALG_ALLDIFFERENT, []))
+        self.add_propagator((list(range(self.shr_domain_nb)), ALG_ALLDIFFERENT, []))
         # redundant constraints
         for i in range(mark_nb - 1):
             for j in range(i + 1, mark_nb):
@@ -130,6 +130,7 @@ def golomb_consistency_algorithm(
     stacks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
+    decision_domains: NDArray,
 ) -> int:
     """
     Applies a custom consistency algorithm for the Golomb Ruler problem.
@@ -139,7 +140,9 @@ def golomb_consistency_algorithm(
     """
     # first prune the search space
     mark_nb = (1 + int(math.sqrt(8 * len(dom_indices_arr) + 1))) // 2
-    ni_var_idx = first_not_instantiated_var_heuristic(shr_domains_stack, stacks_top)  # no domains shared between vars
+    ni_var_idx = first_not_instantiated_var_heuristic(
+        decision_domains, shr_domains_stack, stacks_top
+    )  # no domains shared between vars
     if 1 < ni_var_idx < mark_nb - 1:  # otherwise useless
         used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=np.bool)
         # a reusable array for storing the minimal sum of different integers:
@@ -187,4 +190,5 @@ def golomb_consistency_algorithm(
         stacks_top,
         triggered_propagators,
         compute_domains_addrs,
+        decision_domains,
     )

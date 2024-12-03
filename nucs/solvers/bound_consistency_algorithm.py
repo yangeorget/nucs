@@ -54,6 +54,7 @@ def bound_consistency_algorithm(
     stacks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
+    decision_domains: NDArray,
 ) -> int:
     """
     Bound consistency algorithm.

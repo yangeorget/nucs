@@ -14,7 +14,6 @@ from typing import Callable
 
 from nucs.heuristics.first_not_instantiated_var_heuristic import first_not_instantiated_var_heuristic
 from nucs.heuristics.greatest_domain_var_heuristic import greatest_domain_var_heuristic
-from nucs.heuristics.last_not_instantiated_var_heuristic import last_not_instantiated_var_heuristic
 from nucs.heuristics.max_value_dom_heuristic import max_value_dom_heuristic
 from nucs.heuristics.min_value_dom_heuristic import min_value_dom_heuristic
 from nucs.heuristics.smallest_domain_var_heuristic import smallest_domain_var_heuristic
@@ -45,7 +44,6 @@ def register_dom_heuristic(dom_heuristic_fct: Callable) -> int:
 
 
 VAR_HEURISTIC_FIRST_NOT_INSTANTIATED = register_var_heuristic(first_not_instantiated_var_heuristic)
-VAR_HEURISTIC_LAST_NOT_INSTANTIATED = register_var_heuristic(last_not_instantiated_var_heuristic)
 VAR_HEURISTIC_SMALLEST_DOMAIN = register_var_heuristic(smallest_domain_var_heuristic)
 VAR_HEURISTIC_GREATEST_DOMAIN = register_var_heuristic(greatest_domain_var_heuristic)
 

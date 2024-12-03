@@ -23,7 +23,7 @@ from nucs.constants import (
     STATS_IDX_ALG_SHAVING_NB,
     STATS_IDX_ALG_SHAVING_NO_CHANGE_NB,
 )
-from nucs.heuristics.first_not_instantiated_var_heuristic import first_not_instantiated_var_heuristic_from_index
+from nucs.heuristics.first_not_instantiated_var_heuristic import first_not_instantiated_var_heuristic
 from nucs.heuristics.heuristics import max_value_dom_heuristic, min_value_dom_heuristic
 from nucs.propagators.propagators import add_propagators
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
@@ -50,6 +50,7 @@ def shave_bound(
     stacks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
+    decision_variables: NDArray,
 ) -> bool:
     if bound == MAX:
         max_value_dom_heuristic(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
@@ -76,6 +77,7 @@ def shave_bound(
             stacks_top,
             triggered_propagators,
             compute_domains_addrs,
+            decision_variables,
         )
         == PROBLEM_INCONSISTENT
     ):
@@ -112,6 +114,7 @@ def shaving_consistency_algorithm(
     stacks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
+    decision_domains: NDArray,
 ) -> int:
     """
     Shaving consistency algorithm.
@@ -161,10 +164,13 @@ def shaving_consistency_algorithm(
                 stacks_top,
                 triggered_propagators,
                 compute_domains_addrs,
+                decision_domains,
             )
             if status != PROBLEM_UNBOUND:
                 return status
-        dom_idx = first_not_instantiated_var_heuristic_from_index(shr_domains_stack, stacks_top, start_idx)
+        dom_idx = first_not_instantiated_var_heuristic(
+            decision_domains[decision_domains >= start_idx], shr_domains_stack, stacks_top
+        )
         statistics[STATS_IDX_ALG_SHAVING_NB] += 1
         cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx)
         has_shaved = shave_bound(
@@ -186,6 +192,7 @@ def shaving_consistency_algorithm(
             stacks_top,
             triggered_propagators,
             compute_domains_addrs,
+            decision_domains,
         )
         if has_shaved:
             statistics[STATS_IDX_ALG_SHAVING_CHANGE_NB] += 1
@@ -195,5 +202,5 @@ def shaving_consistency_algorithm(
             bound += 1
             if bound > MAX:
                 bound = MIN
-                start_idx += 1
+                start_idx += 1  # TODO: dom_idx ???
     return PROBLEM_UNBOUND
