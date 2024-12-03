@@ -28,6 +28,7 @@ from nucs.heuristics.heuristics import max_value_dom_heuristic, min_value_dom_he
 from nucs.propagators.propagators import add_propagators
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
 from nucs.solvers.choice_points import backtrack, cp_put
+from nucs.solvers.solver import is_solved
 
 
 @njit(cache=True)
@@ -141,10 +142,9 @@ def shaving_consistency_algorithm(
     """
     statistics[STATS_IDX_ALG_BC_WITH_SHAVING_NB] += 1
     shr_domains_nb = len(shr_domains_stack[0])
-    start_idx = 0
     bound = MIN
     has_shaved = True
-    # we could iterate until no domain is shaved, but that would be a lot of extra computation for a small impact
+    start_idx = 0
     while start_idx < shr_domains_nb:
         if has_shaved:
             status = bound_consistency_algorithm(
@@ -171,6 +171,8 @@ def shaving_consistency_algorithm(
         dom_idx = first_not_instantiated_var_heuristic(
             decision_domains[decision_domains >= start_idx], shr_domains_stack, stacks_top
         )
+        if dom_idx == -1:  # all variables after start_idx are instantiated
+            break
         statistics[STATS_IDX_ALG_SHAVING_NB] += 1
         cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx)
         has_shaved = shave_bound(
@@ -194,6 +196,7 @@ def shaving_consistency_algorithm(
             compute_domains_addrs,
             decision_domains,
         )
+        start_idx = dom_idx
         if has_shaved:
             statistics[STATS_IDX_ALG_SHAVING_CHANGE_NB] += 1
         else:
@@ -202,5 +205,5 @@ def shaving_consistency_algorithm(
             bound += 1
             if bound > MAX:
                 bound = MIN
-                start_idx += 1  # TODO: dom_idx ???
+                start_idx += 1
     return PROBLEM_UNBOUND
