@@ -18,7 +18,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 class TestTSP:
     def test_tsp_1(self) -> None:
         problem = TSPProblem([[0, 2, 1, 2], [2, 0, 2, 1], [1, 2, 0, 2], [2, 1, 2, 0]])
-        solver = BacktrackSolver(problem)
+        solver = BacktrackSolver(problem, decision_domains=[0, 1, 2, 3])
         solution = solver.minimize(problem.shr_domain_nb - 1)
         assert solution is not None
         assert solution[:4].tolist() == [1, 3, 0, 2]

@@ -15,7 +15,6 @@ import sys
 
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
-from rich import print
 
 from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, MAX, MIN
 from nucs.examples.tsp.tsp_instances import GR17
@@ -27,7 +26,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
 @njit(cache=True)
-def max_regret_var_heuristic(shr_domains_stack: NDArray, stacks_top: NDArray) -> int:
+def max_regret_var_heuristic(decision_domains: NDArray, shr_domains_stack: NDArray, stacks_top: NDArray) -> int:
     """
     :param shr_domains_stack: the stack of shared domains
     :param stacks_top: the index of the top of the stacks as a Numpy array
@@ -54,21 +53,24 @@ def max_regret_var_heuristic(shr_domains_stack: NDArray, stacks_top: NDArray) ->
     ]
     max_regret = 0
     max_idx = -1
-    for dom_index, shr_domain in enumerate(shr_domains_stack[stacks_top[0]][: len(parameters)]):
+    cp_top_idx = stacks_top[0]
+    for dom_idx in decision_domains:
+        shr_domain = shr_domains_stack[cp_top_idx, dom_idx]
         size = shr_domain[MAX] - shr_domain[MIN]  # actually this is size - 1
         if 0 < size:
             cost0 = sys.maxsize  # smallest cost
             cost1 = sys.maxsize  # second smallest cost
             for val_idx in range(shr_domain[MIN], shr_domain[MAX] + 1):
-                cost = parameters[dom_index][val_idx]
-                if cost < cost0:
-                    cost1 = cost0
-                    cost0 = cost
-                elif cost < cost1:
-                    cost1 = cost
+                cost = parameters[dom_idx][val_idx]
+                if cost > 0:
+                    if cost < cost0:
+                        cost1 = cost0
+                        cost0 = cost
+                    elif cost < cost1:
+                        cost1 = cost
             regret = cost1 - cost0
             if max_regret < regret:
-                max_idx = dom_index
+                max_idx = dom_idx
                 max_regret = regret
     return max_idx
 
@@ -106,11 +108,16 @@ def min_cost_dom_heuristic(
     cp_top_idx = stacks_top[0]
     min_value = shr_domains_stack[cp_top_idx, dom_idx, MIN]
     max_value = shr_domains_stack[cp_top_idx, dom_idx, MAX]
-    return (
+    if parameters[dom_idx][min_value] == 0:
+        return max_value_dom_heuristic(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
+    if parameters[dom_idx][max_value] == 0:
+        return min_value_dom_heuristic(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
+    value = (
         min_value_dom_heuristic(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
         if parameters[dom_idx][min_value] < parameters[dom_idx][max_value]
         else max_value_dom_heuristic(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
     )
+    return value
 
 
 VAR_HEURISTIC_MAX_REGRET = register_var_heuristic(max_regret_var_heuristic)
@@ -124,6 +131,12 @@ if __name__ == "__main__":
     parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
     args = parser.parse_args()
     problem = TSPProblem(GR17)
-    solver = BacktrackSolver(problem, dom_heuristic_idx=DOM_HEURISTIC_MIN_COST, log_level=args.log_level)
+    solver = BacktrackSolver(
+        problem,
+        decision_domains=list(range(len(GR17))),
+        var_heuristic_idx=VAR_HEURISTIC_MAX_REGRET,
+        dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
+        log_level=args.log_level,
+    )
     solution = solver.minimize(problem.shr_domain_nb - 1)
     print(solver.get_statistics())
