@@ -53,9 +53,13 @@ def shave_bound(
     decision_variables: NDArray,
 ) -> bool:
     if bound == MAX:
-        max_value_dom_heuristic(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
+        max_value_dom_heuristic(
+            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
+        )
     else:
-        min_value_dom_heuristic(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
+        min_value_dom_heuristic(
+            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
+        )
     add_propagators(
         triggered_propagators, not_entailed_propagators_stack, stacks_top, shr_domains_propagators, dom_idx, 1 - bound
     )
@@ -173,7 +177,6 @@ def shaving_consistency_algorithm(
         if dom_idx == -1:  # all variables after start_idx are instantiated
             break
         statistics[STATS_IDX_ALG_SHAVING_NB] += 1
-        cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx)
         has_shaved = shave_bound(
             bound,
             dom_idx,

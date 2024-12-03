@@ -31,6 +31,7 @@ PROBLEM_BOUND = 2  # returned when a problem is solved
 SIGNATURE_COMPUTE_DOMAINS = int64(int32[:, :], int32[:])  # domains, parameters
 SIGNATURE_DOM_HEURISTIC = int64(
     int32[:, :, :],  # shr_domains_stack
+    bool[:, :],  # not_entailed_propagators_stack
     uint16[:, :],  # dom_update_stack
     uint8[:],  # stacks_top
     int64,  # dom_idx
@@ -54,10 +55,10 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     int32[:, :, :],  # shr_domains_stack
     bool[:, :],  # not_entailed_propagators_stack
     uint16[:, :],  # dom_update_stack
-    uint8[:],  # stacks_height
+    uint8[:],  # stacks_top
     bool[:],  # triggered_propagators
     int64[:],  # compute_domains_addrs
-    uint16[:],  # decision_variables
+    uint16[:],  # decision_domains
 )
 
 TYPE_COMPUTE_DOMAINS = types.FunctionType(SIGNATURE_COMPUTE_DOMAINS)

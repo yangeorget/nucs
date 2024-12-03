@@ -67,7 +67,7 @@ from nucs.heuristics.heuristics import (
 from nucs.numba_helper import build_function_address_list, function_from_address
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, add_propagators
-from nucs.solvers.choice_points import backtrack, cp_init, cp_put
+from nucs.solvers.choice_points import backtrack, cp_init
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.solver import Solver, decrease_max, get_solution, increase_min
 
@@ -519,8 +519,9 @@ def solve_one(
             return get_solution(shr_domains_stack, stacks_top, dom_indices_arr, dom_offsets_arr)
         elif status == PROBLEM_UNBOUND:
             dom_idx = var_heuristic_fct(decision_domains, shr_domains_stack, stacks_top)
-            cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx)
-            event = dom_heuristic_fct(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
+            event = dom_heuristic_fct(
+                shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
+            )
             add_propagators(
                 triggered_propagators,
                 not_entailed_propagators_stack,

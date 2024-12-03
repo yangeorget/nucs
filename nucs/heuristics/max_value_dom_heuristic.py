@@ -14,11 +14,13 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN
+from nucs.solvers.choice_points import cp_put
 
 
 @njit(cache=True)
 def max_value_dom_heuristic(
     shr_domains_stack: NDArray,
+    not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
     stacks_top: NDArray,
     dom_idx: int,
@@ -31,6 +33,7 @@ def max_value_dom_heuristic(
     :param dom_idx: the index of the shared domain
     :return: the bound which is modified
     """
+    cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx)
     cp_top_idx = stacks_top[0]
     value = shr_domains_stack[cp_top_idx, dom_idx, MAX]
     shr_domains_stack[cp_top_idx - 1, dom_idx, MAX] = value - 1

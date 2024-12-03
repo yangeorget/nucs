@@ -77,7 +77,11 @@ def max_regret_var_heuristic(decision_domains: NDArray, shr_domains_stack: NDArr
 
 @njit(cache=True)
 def min_cost_dom_heuristic(
-    shr_domains_stack: NDArray, dom_update_stack: NDArray, stacks_top: NDArray, dom_idx: int
+    shr_domains_stack: NDArray,
+    not_entailed_propagators_stack: NDArray,
+    dom_update_stack: NDArray,
+    stacks_top: NDArray,
+    dom_idx: int,
 ) -> int:
     """
     :param shr_domains_stack: the stack of shared domains
@@ -109,13 +113,21 @@ def min_cost_dom_heuristic(
     min_value = shr_domains_stack[cp_top_idx, dom_idx, MIN]
     max_value = shr_domains_stack[cp_top_idx, dom_idx, MAX]
     if parameters[dom_idx][min_value] == 0:
-        return max_value_dom_heuristic(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
+        return max_value_dom_heuristic(
+            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
+        )
     if parameters[dom_idx][max_value] == 0:
-        return min_value_dom_heuristic(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
+        return min_value_dom_heuristic(
+            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
+        )
     value = (
-        min_value_dom_heuristic(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
+        min_value_dom_heuristic(
+            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
+        )
         if parameters[dom_idx][min_value] < parameters[dom_idx][max_value]
-        else max_value_dom_heuristic(shr_domains_stack, dom_update_stack, stacks_top, dom_idx)
+        else max_value_dom_heuristic(
+            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
+        )
     )
     return value
 
