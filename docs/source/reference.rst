@@ -493,7 +493,7 @@ NuCS comes with the following solvers.
 
 
 .. py:module:: nucs.solvers.backtrack_solver
-.. py:function:: nucs.solvers.backtrack_solver.__init__(problem, consistency_alg_idx, var_heuristic_idx, dom_heuristic_idx, stack_max_height, log_level)
+.. py:function:: nucs.solvers.backtrack_solver.__init__(problem, consistency_alg_idx, decision_domains, var_heuristic_idx, dom_heuristic_idx, stack_max_height, log_level)
 
    A backtrack-based solver.
 
@@ -501,6 +501,8 @@ NuCS comes with the following solvers.
    :type problem: Problem
    :param consistency_alg_idx: the index of the consistency algorithm
    :type consistency_alg_idx: int
+   :type decision_domains: Optional[List[int]]
+   :param decision_domains: the list of domain indices on which choices will be made or None in which case all domains are used
    :param var_heuristic_idx: the index of the heuristic for selecting a variable/domain
    :type var_heuristic_idx: int
    :param dom_heuristic_idx: the index of the heuristic for reducing a domain
