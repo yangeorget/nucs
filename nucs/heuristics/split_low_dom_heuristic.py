@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN
+from nucs.constants import BOUNDS, DOM_IDX, MAX, MIN
 from nucs.solvers.choice_points import cp_put
 
 
@@ -33,10 +33,11 @@ def split_low_dom_heuristic(
     :param dom_idx: the index of the shared domain
     :return: the bound which is modified
     """
-    cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx)
-    cp_top_idx = stacks_top[0]
-    value = (shr_domains_stack[cp_top_idx, dom_idx, MIN] + shr_domains_stack[cp_top_idx, dom_idx, MAX]) // 2
-    shr_domains_stack[cp_top_idx - 1, dom_idx, MIN] = value + 1
-    shr_domains_stack[cp_top_idx, dom_idx, MAX] = value
-    dom_update_stack[cp_top_idx - 1, 1] = MAX
+    cp_cur_idx = stacks_top[0]
+    value = (shr_domains_stack[cp_cur_idx, dom_idx, MIN] + shr_domains_stack[cp_cur_idx, dom_idx, MAX]) // 2
+    cp_put(shr_domains_stack, not_entailed_propagators_stack, stacks_top)
+    shr_domains_stack[cp_cur_idx + 1, dom_idx, MAX] = value + 1
+    shr_domains_stack[cp_cur_idx, dom_idx, MIN] = value
+    dom_update_stack[cp_cur_idx, DOM_IDX] = dom_idx
+    dom_update_stack[cp_cur_idx, BOUNDS] = MIN
     return MAX

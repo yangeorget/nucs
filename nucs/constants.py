@@ -19,6 +19,10 @@ END = 1  # index corresponding the end of a values range
 
 MIN = 0  # min value of a domain
 MAX = 1  # max value of a domain
+MIN_MAX = 2  # min and max
+
+DOM_IDX = 0
+BOUNDS = 1
 
 PROP_INCONSISTENCY = 0  # returned by a propagator when inconsistent
 PROP_CONSISTENCY = 1  # returned by a propagator when consistent

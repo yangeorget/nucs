@@ -1,9 +1,7 @@
-from typing import Optional
-
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import STATS_IDX_SOLVER_BACKTRACK_NB
+from nucs.constants import BOUNDS, DOM_IDX, STATS_IDX_SOLVER_BACKTRACK_NB
 from nucs.propagators.propagators import add_propagators
 
 
@@ -30,28 +28,17 @@ def cp_init(
 
 
 @njit(cache=True)
-def cp_put(
-    shr_domains_stack: NDArray,
-    not_entailed_propagators_stack: NDArray,
-    dom_update_stack: NDArray,
-    stacks_top: NDArray,
-    dom_index: int,
-    bound: Optional[int] = 0,
-) -> None:
+def cp_put(shr_domains_stack: NDArray, not_entailed_propagators_stack: NDArray, stacks_top: NDArray) -> None:
     """
     Adds a choice point to the stack of choice points.
     :param shr_domains_stack: the stack of shared domains
     :param not_entailed_propagators_stack: the stack of not entailed propagators
-    :param dom_update_stack: the stack of domain updates
     :param stacks_top: the index of the top of the stacks as a Numpy array
-    :param dom_index: the index of the shared domain which is changed
-    :param bound: the bound (MIN or MAX) which is changed
     """
-    dom_update_stack[stacks_top[0], 0] = dom_index
-    dom_update_stack[stacks_top[0], 1] = bound
-    shr_domains_stack[stacks_top[0] + 1, :, :] = shr_domains_stack[stacks_top[0], :, :]
-    not_entailed_propagators_stack[stacks_top[0] + 1, :] = not_entailed_propagators_stack[stacks_top[0], :]
-    stacks_top[0] += 1
+    cp_top_idx = stacks_top[0]
+    shr_domains_stack[cp_top_idx + 1, :, :] = shr_domains_stack[cp_top_idx, :, :]
+    not_entailed_propagators_stack[cp_top_idx + 1, :] = not_entailed_propagators_stack[cp_top_idx, :]
+    stacks_top[0] = cp_top_idx + 1
 
 
 @njit(cache=True)
@@ -82,7 +69,7 @@ def backtrack(
         not_entailed_propagators_stack,
         stacks_top,
         shr_domains_propagators,
-        dom_update_stack[stacks_top[0], 0],
-        1 - dom_update_stack[stacks_top[0], 1],
+        dom_update_stack[stacks_top[0], DOM_IDX],
+        dom_update_stack[stacks_top[0], BOUNDS],
     )
     return True

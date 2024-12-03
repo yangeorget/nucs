@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN
+from nucs.constants import BOUNDS, DOM_IDX, MAX, MIN
 from nucs.solvers.choice_points import cp_put
 
 
@@ -26,17 +26,18 @@ def min_value_dom_heuristic(
     dom_idx: int,
 ) -> int:
     """
-    Chooses the first value of the domain.
+    Chooses the min value of the domain.
     :param shr_domains_stack: the stack of shared domains
     :param dom_update_stack: the stack of domain updates
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param dom_idx: the index of the shared domain
-    :return: the bound which is modified
+    :return: the bounds which are modified
     """
-    cp_put(shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx)
-    cp_top_idx = stacks_top[0]
-    value = shr_domains_stack[cp_top_idx, dom_idx, MIN]
-    shr_domains_stack[cp_top_idx - 1, dom_idx, MIN] = value + 1
-    shr_domains_stack[cp_top_idx, dom_idx, MAX] = value
-    dom_update_stack[cp_top_idx - 1, 1] = MAX
+    cp_cur_idx = stacks_top[0]
+    value = shr_domains_stack[cp_cur_idx, dom_idx, MIN]
+    cp_put(shr_domains_stack, not_entailed_propagators_stack, stacks_top)
+    shr_domains_stack[cp_cur_idx + 1, dom_idx, MAX] = value
+    shr_domains_stack[cp_cur_idx, dom_idx, MIN] = value + 1
+    dom_update_stack[cp_cur_idx, DOM_IDX] = dom_idx
+    dom_update_stack[cp_cur_idx, BOUNDS] = MIN
     return MAX

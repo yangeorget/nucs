@@ -519,7 +519,7 @@ def solve_one(
             return get_solution(shr_domains_stack, stacks_top, dom_indices_arr, dom_offsets_arr)
         elif status == PROBLEM_UNBOUND:
             dom_idx = var_heuristic_fct(decision_domains, shr_domains_stack, stacks_top)
-            event = dom_heuristic_fct(
+            bounds = dom_heuristic_fct(
                 shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
             )
             add_propagators(
@@ -528,7 +528,7 @@ def solve_one(
                 stacks_top,
                 shr_domains_propagators,
                 dom_idx,
-                event,
+                bounds,
             )
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
             if stacks_top[0] > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:

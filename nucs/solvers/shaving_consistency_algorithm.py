@@ -27,7 +27,7 @@ from nucs.heuristics.first_not_instantiated_var_heuristic import first_not_insta
 from nucs.heuristics.heuristics import max_value_dom_heuristic, min_value_dom_heuristic
 from nucs.propagators.propagators import add_propagators
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
-from nucs.solvers.choice_points import backtrack, cp_put
+from nucs.solvers.choice_points import backtrack
 
 
 @njit(cache=True)
