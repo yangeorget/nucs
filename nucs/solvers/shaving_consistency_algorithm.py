@@ -28,7 +28,6 @@ from nucs.heuristics.heuristics import max_value_dom_heuristic, min_value_dom_he
 from nucs.propagators.propagators import add_propagators
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
 from nucs.solvers.choice_points import backtrack, cp_put
-from nucs.solvers.solver import is_solved
 
 
 @njit(cache=True)
