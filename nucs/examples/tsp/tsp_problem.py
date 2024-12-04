@@ -19,16 +19,17 @@ from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ELEMENT_IV
 class TSPProblem(CircuitProblem):
     """ """
 
-    def __init__(self, weights: List[List[int]]) -> None:
+    def __init__(self, cost_rows: List[List[int]]) -> None:
         """
         Inits the problem.
-        :param weights: the weights between vertices
+        :param cost_rows: the costs between vertices
         """
-        n = len(weights)
+        n = len(cost_rows)
         super().__init__(n)
-        max_weights = [max(weights_row) for weights_row in weights]
-        self.add_variables([(0, max_weights[i]) for i in range(n)])
-        self.add_variable((0, sum(max_weights)))
+        max_costs = [max(cost_row) for cost_row in cost_rows]
+        min_costs = [min([cost for cost in cost_row if cost > 0]) for cost_row in cost_rows]
+        self.add_variables([(min_costs[i], max_costs[i]) for i in range(n)])  # the costs
+        self.add_variable((sum(min_costs), sum(max_costs)))  # the total cost
         for i in range(n):
-            self.add_propagator(([i, 2 * n - 2 + i], ALG_ELEMENT_IV, weights[i]))
+            self.add_propagator(([i, 2 * n - 2 + i], ALG_ELEMENT_IV, cost_rows[i]))
         self.add_propagator((list(range(2 * n - 2, 3 * n - 2)) + [3 * n - 2], ALG_AFFINE_EQ, [1] * n + [-1, 0]))

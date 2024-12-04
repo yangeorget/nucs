@@ -15,6 +15,7 @@ from typing import Callable
 from nucs.heuristics.first_not_instantiated_var_heuristic import first_not_instantiated_var_heuristic
 from nucs.heuristics.greatest_domain_var_heuristic import greatest_domain_var_heuristic
 from nucs.heuristics.max_value_dom_heuristic import max_value_dom_heuristic
+from nucs.heuristics.mid_value_dom_heuristic import mid_value_dom_heuristic
 from nucs.heuristics.min_value_dom_heuristic import min_value_dom_heuristic
 from nucs.heuristics.smallest_domain_var_heuristic import smallest_domain_var_heuristic
 from nucs.heuristics.split_low_dom_heuristic import split_low_dom_heuristic
@@ -50,3 +51,4 @@ VAR_HEURISTIC_GREATEST_DOMAIN = register_var_heuristic(greatest_domain_var_heuri
 DOM_HEURISTIC_MIN_VALUE = register_dom_heuristic(min_value_dom_heuristic)
 DOM_HEURISTIC_MAX_VALUE = register_dom_heuristic(max_value_dom_heuristic)
 DOM_HEURISTIC_SPLIT_LOW = register_dom_heuristic(split_low_dom_heuristic)
+DOM_HEURISTIC_MID_VALUE = register_dom_heuristic(mid_value_dom_heuristic)

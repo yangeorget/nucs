@@ -259,6 +259,7 @@ class BacktrackSolver(Solver):
             )
             if solution is None:
                 break
+            logger.debug("Found a solution")
             yield solution
             if not backtrack(
                 self.statistics,

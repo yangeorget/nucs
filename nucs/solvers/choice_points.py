@@ -23,7 +23,7 @@ def cp_init(
     """
     shr_domains_stack[0] = shr_domains_arr
     not_entailed_propagators_stack[0] = True
-    dom_update_stack[0, :] = 0
+    dom_update_stack[:, :] = 0
     stacks_top[0] = 0
 
 

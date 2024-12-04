@@ -20,8 +20,7 @@ from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, MAX, MIN
 from nucs.examples.tsp.tsp_instances import GR17
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.heuristics.heuristics import register_dom_heuristic, register_var_heuristic
-from nucs.heuristics.max_value_dom_heuristic import max_value_dom_heuristic
-from nucs.heuristics.min_value_dom_heuristic import min_value_dom_heuristic
+from nucs.heuristics.value_dom_heuristic import value_dom_heuristic
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
@@ -52,27 +51,27 @@ def max_regret_var_heuristic(decision_domains: NDArray, shr_domains_stack: NDArr
         [121, 518, 142, 84, 297, 35, 29, 36, 236, 390, 238, 301, 55, 96, 153, 336, 0],
     ]
     max_regret = 0
-    max_idx = -1
+    best_idx = -1
     cp_top_idx = stacks_top[0]
     for dom_idx in decision_domains:
         shr_domain = shr_domains_stack[cp_top_idx, dom_idx]
         size = shr_domain[MAX] - shr_domain[MIN]  # actually this is size - 1
         if 0 < size:
-            cost0 = sys.maxsize  # smallest cost
-            cost1 = sys.maxsize  # second smallest cost
-            for val_idx in range(shr_domain[MIN], shr_domain[MAX] + 1):
-                cost = parameters[dom_idx][val_idx]
+            best_cost = sys.maxsize
+            second_cost = sys.maxsize
+            for value in range(shr_domain[MIN], shr_domain[MAX] + 1):
+                cost = parameters[dom_idx][value]
                 if cost > 0:
-                    if cost < cost0:
-                        cost1 = cost0
-                        cost0 = cost
-                    elif cost < cost1:
-                        cost1 = cost
-            regret = cost1 - cost0
+                    if cost < best_cost:
+                        second_cost = best_cost
+                        best_cost = cost
+                    elif cost < second_cost:
+                        second_cost = cost
+            regret = second_cost - best_cost
             if max_regret < regret:
-                max_idx = dom_idx
+                best_idx = dom_idx
                 max_regret = regret
-    return max_idx
+    return best_idx
 
 
 @njit(cache=True)
@@ -88,7 +87,7 @@ def min_cost_dom_heuristic(
     :param dom_update_stack: the stack of domain updates
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param dom_idx: the index of the shared domain
-    :return: the bound which is modified
+    :return: the bounds which are modified
     """
     parameters = [
         [0, 633, 257, 91, 412, 150, 80, 134, 259, 505, 353, 324, 70, 211, 268, 246, 121],
@@ -110,25 +109,18 @@ def min_cost_dom_heuristic(
         [121, 518, 142, 84, 297, 35, 29, 36, 236, 390, 238, 301, 55, 96, 153, 336, 0],
     ]
     cp_top_idx = stacks_top[0]
-    min_value = shr_domains_stack[cp_top_idx, dom_idx, MIN]
-    max_value = shr_domains_stack[cp_top_idx, dom_idx, MAX]
-    if parameters[dom_idx][min_value] == 0:
-        return max_value_dom_heuristic(
-            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
-        )
-    if parameters[dom_idx][max_value] == 0:
-        return min_value_dom_heuristic(
-            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
-        )
-    value = (
-        min_value_dom_heuristic(
-            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
-        )
-        if parameters[dom_idx][min_value] < parameters[dom_idx][max_value]
-        else max_value_dom_heuristic(
-            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
-        )
+    best_cost = sys.maxsize
+    best_value = -1
+    shr_domain = shr_domains_stack[cp_top_idx, dom_idx]
+    for value in range(shr_domain[MIN], shr_domain[MAX] + 1):
+        cost = parameters[dom_idx][value]
+        if 0 < cost < best_cost:
+            best_cost = cost
+            best_value = value
+    value = value_dom_heuristic(
+        shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx, best_value
     )
+    # print(f"{dom_idx}={value}")
     return value
 
 
