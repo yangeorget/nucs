@@ -11,6 +11,7 @@
 # Copyright 2024 - Yan Georget
 ###############################################################################
 import copy
+import logging
 from typing import Optional, Self, Tuple, Union
 
 import numpy as np
@@ -18,6 +19,8 @@ from numba.typed import List
 
 from nucs.constants import END, START
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
+
+logger = logging.getLogger(__name__)
 
 
 class Problem:
@@ -142,6 +145,7 @@ class Problem:
         """
         Completes the initialization of the problem.
         """
+        logger.debug("Initializing Problem")
         # Sort the propagators based on their estimated amortized complexities.
         self.propagators.sort(key=lambda prop: GET_COMPLEXITY_FCTS[prop[1]](len(prop[0]), prop[2]))
         # Variable and domain initialization
@@ -184,3 +188,6 @@ class Problem:
                 self.shr_domains_propagators[self.dom_indices_arr[prop_var], :, propagator_idx] = triggers[
                     prop_var_idx, :
                 ]
+        logger.debug("Problem initialized")
+        logger.info(f"Problem has {self.propagator_nb} propagators")
+        logger.info(f"Problem has {self.shr_domain_nb} variables")

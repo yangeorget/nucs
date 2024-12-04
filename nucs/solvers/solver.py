@@ -39,11 +39,7 @@ class Solver:
         logger.debug("Initializing Solver")
         if problem is not None:
             self.problem = problem
-            logger.debug("Initializing the problem")
             problem.init()
-            logger.debug("Problem initialized")
-            logger.info(f"Problem has {problem.propagator_nb} propagators")
-            logger.info(f"Problem has {problem.shr_domain_nb} variables")
 
     @abstractmethod
     def get_statistics(self) -> Dict[str, int]:

@@ -117,11 +117,10 @@ def min_cost_dom_heuristic(
         if 0 < cost < best_cost:
             best_cost = cost
             best_value = value
-    value = value_dom_heuristic(
+    bounds = value_dom_heuristic(
         shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx, best_value
     )
-    # print(f"{dom_idx}={value}")
-    return value
+    return bounds
 
 
 VAR_HEURISTIC_MAX_REGRET = register_var_heuristic(max_regret_var_heuristic)
