@@ -12,7 +12,7 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import STATS_IDX_ALG_BC_NB, STATS_IDX_SOLVER_CHOICE_NB, STATS_IDX_SOLVER_SOLUTION_NB
+from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB
 from nucs.problems.circuit_problem import CircuitProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
