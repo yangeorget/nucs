@@ -83,6 +83,7 @@ from nucs.propagators.relation_propagator import (
     get_complexity_relation,
     get_triggers_relation,
 )
+from nucs.propagators.scc_propagator import compute_domains_scc, get_complexity_scc, get_triggers_scc
 
 GET_TRIGGERS_FCTS = []
 GET_COMPLEXITY_FCTS = []
@@ -128,6 +129,7 @@ ALG_MAX_LEQ = register_propagator(get_triggers_max_leq, get_complexity_max_leq, 
 ALG_MIN_EQ = register_propagator(get_triggers_min_eq, get_complexity_min_eq, compute_domains_min_eq)
 ALG_MIN_GEQ = register_propagator(get_triggers_min_geq, get_complexity_min_geq, compute_domains_min_geq)
 ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relation, compute_domains_relation)
+ALG_SCC = register_propagator(get_triggers_scc, get_complexity_scc, compute_domains_scc)
 
 
 @njit(cache=True)

@@ -22,6 +22,7 @@ from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.heuristics.heuristics import register_dom_heuristic, register_var_heuristic
 from nucs.heuristics.value_dom_heuristic import value_dom_heuristic
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_SHAVING
 
 
 @njit(cache=True)
@@ -31,6 +32,7 @@ def max_regret_var_heuristic(decision_domains: NDArray, shr_domains_stack: NDArr
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :return: the index of the shared domain
     """
+    # TODO: pass parameters
     parameters = [
         [0, 633, 257, 91, 412, 150, 80, 134, 259, 505, 353, 324, 70, 211, 268, 246, 121],
         [633, 0, 390, 661, 227, 488, 572, 530, 555, 289, 282, 638, 567, 466, 420, 745, 518],
@@ -53,6 +55,7 @@ def max_regret_var_heuristic(decision_domains: NDArray, shr_domains_stack: NDArr
     max_regret = 0
     best_idx = -1
     cp_top_idx = stacks_top[0]
+    # TODO: optimize with Numpy ???
     for dom_idx in decision_domains:
         shr_domain = shr_domains_stack[cp_top_idx, dom_idx]
         size = shr_domain[MAX] - shr_domain[MIN]  # actually this is size - 1
@@ -89,6 +92,7 @@ def min_cost_dom_heuristic(
     :param dom_idx: the index of the shared domain
     :return: the bounds which are modified
     """
+    # TODO: pass parameters
     parameters = [
         [0, 633, 257, 91, 412, 150, 80, 134, 259, 505, 353, 324, 70, 211, 268, 246, 121],
         [633, 0, 390, 661, 227, 488, 572, 530, 555, 289, 282, 638, 567, 466, 420, 745, 518],
@@ -112,15 +116,15 @@ def min_cost_dom_heuristic(
     best_cost = sys.maxsize
     best_value = -1
     shr_domain = shr_domains_stack[cp_top_idx, dom_idx]
+    # TODO: optimize with Numpy ?
     for value in range(shr_domain[MIN], shr_domain[MAX] + 1):
         cost = parameters[dom_idx][value]
         if 0 < cost < best_cost:
             best_cost = cost
             best_value = value
-    bounds = value_dom_heuristic(
+    return value_dom_heuristic(
         shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx, best_value
     )
-    return bounds
 
 
 VAR_HEURISTIC_MAX_REGRET = register_var_heuristic(max_regret_var_heuristic)
@@ -136,6 +140,7 @@ if __name__ == "__main__":
     problem = TSPProblem(GR17)
     solver = BacktrackSolver(
         problem,
+        consistency_alg_idx=CONSISTENCY_ALG_SHAVING,
         decision_domains=list(range(len(GR17))),
         var_heuristic_idx=VAR_HEURISTIC_MAX_REGRET,
         dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,

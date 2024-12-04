@@ -78,7 +78,7 @@ class Problem:
 
     def add_variable(
         self, shr_domain: Union[int, Tuple[int, int]], dom_index: Optional[int] = None, dom_offset: Optional[int] = None
-    ) -> None:
+    ) -> int:
         """
         Adds an extra variable to the problem.
         :param shr_domain: the shared domain of the variable
@@ -96,13 +96,14 @@ class Problem:
         self.dom_indices_lst.append(dom_index)
         self.dom_offsets_lst.append(dom_offset)
         self.shr_domain_nb = len(self.dom_indices_lst)
+        return start
 
     def add_variables(
         self,
         shr_domains_list: List[Union[int, Tuple[int, int]]],
         dom_indices_list: Optional[List[int]] = None,
         dom_offsets_list: Optional[List[int]] = None,
-    ) -> None:
+    ) -> int:
         """
         Adds extra variables to the problem.
         :param shr_domains_list: the shared domains of the variables
@@ -124,6 +125,7 @@ class Problem:
         self.dom_indices_lst.extend(dom_indices_list)
         self.dom_offsets_lst.extend(dom_offsets_list)
         self.shr_domain_nb = len(self.dom_indices_lst)
+        return start
 
     def add_propagator(self, propagator: Tuple[List[int], int, List[int]]) -> None:
         """

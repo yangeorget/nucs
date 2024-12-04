@@ -28,8 +28,8 @@ class TSPProblem(CircuitProblem):
         super().__init__(n)
         max_costs = [max(cost_row) for cost_row in cost_rows]
         min_costs = [min([cost for cost in cost_row if cost > 0]) for cost_row in cost_rows]
-        self.add_variables([(min_costs[i], max_costs[i]) for i in range(n)])  # the costs
+        start = self.add_variables([(min_costs[i], max_costs[i]) for i in range(n)])  # the costs
         self.add_variable((sum(min_costs), sum(max_costs)))  # the total cost
         for i in range(n):
-            self.add_propagator(([i, 2 * n - 2 + i], ALG_ELEMENT_IV, cost_rows[i]))
-        self.add_propagator((list(range(2 * n - 2, 3 * n - 2)) + [3 * n - 2], ALG_AFFINE_EQ, [1] * n + [-1, 0]))
+            self.add_propagator(([i, start + i], ALG_ELEMENT_IV, cost_rows[i]))
+        self.add_propagator((list(range(start, start + n + 1)), ALG_AFFINE_EQ, [1] * n + [-1, 0]))
