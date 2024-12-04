@@ -12,15 +12,30 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB
+from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB, STATS_IDX_ALG_BC_NB, \
+    LOG_LEVEL_DEBUG
+from nucs.examples.tsp.tsp_instances import GR17
 from nucs.problems.circuit_problem import CircuitProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
 class TestCircuitProblem:
     @pytest.mark.parametrize("size, solution_nb", [(2, 1), (3, 2), (4, 6)])
-    def test_circuit(self, size: int, solution_nb: int) -> None:
+    def test_solve_all(self, size: int, solution_nb: int) -> None:
         problem = CircuitProblem(size)
         solver = BacktrackSolver(problem)
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == solution_nb
+
+    def test_no_sub_cycle(self) -> None:
+        problem = CircuitProblem(8)
+        problem.shr_domains_lst[4] = [6, 6]
+        problem.shr_domains_lst[6] = [0, 0]
+        problem.shr_domains_lst[0] = [4, 4]
+        solver = BacktrackSolver(problem)
+        solver.solve_all()
+        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 0
+        assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == 0
+        assert solver.statistics[STATS_IDX_ALG_BC_NB] == 1
+
+

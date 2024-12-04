@@ -59,7 +59,7 @@ def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
     Implements Sigma_i a_i * x_i = a_{n-1}.
     :param domains: the domains of the variables, x is an alias for domains
     :param parameters: the parameters of the propagator, a is an alias for parameters
-    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
+    :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     domain_sum_min = compute_domain_sum_min(domains, parameters)
     domain_sum_max = compute_domain_sum_max(domains, parameters)
