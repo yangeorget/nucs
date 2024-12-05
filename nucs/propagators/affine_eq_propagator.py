@@ -24,7 +24,7 @@ def get_complexity_affine_eq(n: int, parameters: NDArray) -> float:
     :param parameters: the parameters, unused here
     :return: a float
     """
-    return 5 * n
+    return 2 * n
 
 
 def get_triggers_affine_eq(n: int, parameters: NDArray) -> NDArray:
