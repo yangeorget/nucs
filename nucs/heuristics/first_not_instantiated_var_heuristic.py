@@ -18,7 +18,7 @@ from nucs.constants import MAX, MIN
 
 @njit(cache=True)
 def first_not_instantiated_var_heuristic(
-    decision_domains: NDArray, shr_domains_stack: NDArray, stacks_top: NDArray
+    params: NDArray, decision_domains: NDArray, shr_domains_stack: NDArray, stacks_top: NDArray
 ) -> int:
     """
     Chooses the first non-instantiated shared domain.

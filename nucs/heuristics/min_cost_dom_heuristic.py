@@ -1,4 +1,4 @@
-####################################################################
+###############################################################################
 # __   _            _____    _____
 # | \ | |          / ____|  / ____|
 # |  \| |  _   _  | |      | (___
@@ -10,15 +10,17 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
+import sys
+
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import BOUNDS, DOM_IDX, MAX, MIN
-from nucs.solvers.choice_points import cp_put
+from nucs.constants import MAX, MIN
+from nucs.heuristics.value_dom_heuristic import value_dom_heuristic
 
 
 @njit(cache=True)
-def max_value_dom_heuristic(
+def min_cost_dom_heuristic(
     params: NDArray,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
@@ -27,18 +29,22 @@ def max_value_dom_heuristic(
     dom_idx: int,
 ) -> int:
     """
-    Chooses the max value of the domain.
     :param shr_domains_stack: the stack of shared domains
     :param dom_update_stack: the stack of domain updates
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param dom_idx: the index of the shared domain
-    :return: the bound which is modified
+    :return: the bounds which are modified
     """
-    cp_cur_idx = stacks_top[0]
-    value = shr_domains_stack[cp_cur_idx, dom_idx, MAX]
-    cp_put(shr_domains_stack, not_entailed_propagators_stack, stacks_top)
-    shr_domains_stack[cp_cur_idx + 1, dom_idx, MIN] = value
-    shr_domains_stack[cp_cur_idx, dom_idx, MAX] = value - 1
-    dom_update_stack[cp_cur_idx, DOM_IDX] = dom_idx
-    dom_update_stack[cp_cur_idx, BOUNDS] = MAX
-    return MIN
+    cp_top_idx = stacks_top[0]
+    best_cost = sys.maxsize
+    best_value = -1
+    shr_domain = shr_domains_stack[cp_top_idx, dom_idx]
+    # TODO: optimize with Numpy ?
+    for value in range(shr_domain[MIN], shr_domain[MAX] + 1):
+        cost = params[dom_idx][value]
+        if 0 < cost < best_cost:
+            best_cost = cost
+            best_value = value
+    return value_dom_heuristic(
+        params, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx, best_value
+    )

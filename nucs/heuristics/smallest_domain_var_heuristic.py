@@ -19,7 +19,9 @@ from nucs.constants import MAX, MIN
 
 
 @njit(cache=True)
-def smallest_domain_var_heuristic(decision_domains: NDArray, shr_domains_stack: NDArray, stacks_top: NDArray) -> int:
+def smallest_domain_var_heuristic(
+    params: NDArray, decision_domains: NDArray, shr_domains_stack: NDArray, stacks_top: NDArray
+) -> int:
     """
     Chooses the smallest shared domain and which is not instantiated.
     :param shr_domains_stack: the stack of shared domains

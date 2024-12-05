@@ -21,6 +21,7 @@ from nucs.solvers.choice_points import cp_put
 
 @njit(cache=True)
 def value_dom_heuristic(
+    params: NDArray,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
@@ -38,11 +39,11 @@ def value_dom_heuristic(
     cp_cur_idx = stacks_top[0]
     if value == shr_domains_stack[cp_cur_idx, dom_idx, MIN]:
         return min_value_dom_heuristic(
-            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
+            params, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
         )
     if value == shr_domains_stack[cp_cur_idx, dom_idx, MAX]:
         return max_value_dom_heuristic(
-            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
+            params, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
         )
     cp_put(shr_domains_stack, not_entailed_propagators_stack, stacks_top)
     cp_put(shr_domains_stack, not_entailed_propagators_stack, stacks_top)

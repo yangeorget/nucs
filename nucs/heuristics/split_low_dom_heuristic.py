@@ -19,6 +19,7 @@ from nucs.solvers.choice_points import cp_put
 
 @njit(cache=True)
 def split_low_dom_heuristic(
+    params: NDArray,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,

@@ -85,7 +85,9 @@ class BacktrackSolver(Solver):
         consistency_alg_idx: int = CONSISTENCY_ALG_BC,
         decision_domains: Optional[List[int]] = None,
         var_heuristic_idx: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
+        var_heuristic_params: List[List[int]] = [[]],
         dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
+        dom_heuristic_params: List[List[int]] = [[]],
         stack_max_height: int = 128,
         log_level: str = LOG_LEVEL_INFO,
     ):
@@ -104,8 +106,10 @@ class BacktrackSolver(Solver):
         self.decision_domains = np.array(decision_domains, dtype=np.uint16)
         logger.info(f"BacktrackSolver uses variable heuristic {var_heuristic_idx}")
         self.var_heuristic_idx = var_heuristic_idx
+        self.var_heuristic_params = np.array(var_heuristic_params, dtype=np.int64)
         logger.info(f"BacktrackSolver uses domain heuristic {dom_heuristic_idx}")
         self.dom_heuristic_idx = dom_heuristic_idx
+        self.dom_heuristic_params = np.array(dom_heuristic_params, dtype=np.int64)
         logger.info(f"BacktrackSolver uses consistency algorithm {consistency_alg_idx}")
         self.consistency_alg_idx = consistency_alg_idx
         self.triggered_propagators = np.ones(problem.propagator_nb, dtype=np.bool)
@@ -195,7 +199,9 @@ class BacktrackSolver(Solver):
                 self.consistency_alg_idx,
                 self.decision_domains,
                 self.var_heuristic_idx,
+                self.var_heuristic_params,
                 self.dom_heuristic_idx,
+                self.dom_heuristic_params,
                 compute_domains_addrs,
                 consistency_alg_addrs,
                 var_heuristic_addrs,
@@ -251,7 +257,9 @@ class BacktrackSolver(Solver):
                 self.consistency_alg_idx,
                 self.decision_domains,
                 self.var_heuristic_idx,
+                self.var_heuristic_params,
                 self.dom_heuristic_idx,
+                self.dom_heuristic_params,
                 compute_domains_addrs,
                 consistency_alg_addrs,
                 var_heuristic_addrs,
@@ -325,7 +333,9 @@ class BacktrackSolver(Solver):
                 self.consistency_alg_idx,
                 self.decision_domains,
                 self.var_heuristic_idx,
+                self.var_heuristic_params,
                 self.dom_heuristic_idx,
+                self.dom_heuristic_params,
                 compute_domains_addrs,
                 consistency_alg_addrs,
                 var_heuristic_addrs,
@@ -383,7 +393,9 @@ class BacktrackSolver(Solver):
                 self.consistency_alg_idx,
                 self.decision_domains,
                 self.var_heuristic_idx,
+                self.var_heuristic_params,
                 self.dom_heuristic_idx,
+                self.dom_heuristic_params,
                 compute_domains_addrs,
                 consistency_alg_addrs,
                 var_heuristic_addrs,
@@ -451,7 +463,9 @@ def solve_one(
     consistency_alg_idx: int,
     decision_domains: NDArray,
     var_heuristic_idx: int,
+    var_heuristic_params: NDArray,
     dom_heuristic_idx: int,
+    dom_heuristic_params: NDArray,
     compute_domains_addrs: NDArray,
     consistency_alg_addrs: NDArray,
     var_heuristic_addrs: NDArray,
@@ -519,9 +533,14 @@ def solve_one(
             statistics[STATS_IDX_SOLVER_SOLUTION_NB] += 1
             return get_solution(shr_domains_stack, stacks_top, dom_indices_arr, dom_offsets_arr)
         elif status == PROBLEM_UNBOUND:
-            dom_idx = var_heuristic_fct(decision_domains, shr_domains_stack, stacks_top)
+            dom_idx = var_heuristic_fct(var_heuristic_params, decision_domains, shr_domains_stack, stacks_top)
             bounds = dom_heuristic_fct(
-                shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
+                dom_heuristic_params,
+                shr_domains_stack,
+                not_entailed_propagators_stack,
+                dom_update_stack,
+                stacks_top,
+                dom_idx,
             )
             add_propagators(
                 triggered_propagators,

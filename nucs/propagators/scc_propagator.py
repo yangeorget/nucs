@@ -37,7 +37,7 @@ def get_triggers_scc(n: int, parameters: NDArray) -> NDArray:
     return np.ones((n, 2), dtype=np.bool)
 
 
-@njit(cache=False)  # Numba issue with recursive functions  # TODO: make iterative
+@njit(cache=False)  # Numba issue with cached recursive functions
 def dfs_row(n: int, graph: NDArray, i: int, visited: NDArray) -> None:
     visited[i] = True
     for j in range(n):
@@ -45,7 +45,7 @@ def dfs_row(n: int, graph: NDArray, i: int, visited: NDArray) -> None:
             dfs_row(n, graph, j, visited)
 
 
-@njit(cache=False)  # Numba issue with recursive functions
+@njit(cache=False)  # Numba issue with cached recursive functions
 def dfs_col(n: int, graph: NDArray, j: int, visited: NDArray) -> None:
     visited[j] = True
     for i in range(n):
