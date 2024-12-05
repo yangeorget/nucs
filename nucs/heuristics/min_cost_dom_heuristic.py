@@ -39,7 +39,6 @@ def min_cost_dom_heuristic(
     best_cost = sys.maxsize
     best_value = -1
     shr_domain = shr_domains_stack[cp_top_idx, dom_idx]
-    # TODO: optimize with Numpy ?
     for value in range(shr_domain[MIN], shr_domain[MAX] + 1):
         cost = params[dom_idx][value]
         if 0 < cost < best_cost:

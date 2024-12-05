@@ -12,7 +12,7 @@
 ###############################################################################
 from nucs.constants import STATS_LBL_SOLVER_CHOICE_DEPTH, STATS_LBL_SOLVER_SOLUTION_NB
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_RELATION
+from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, ALG_RELATION
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
@@ -53,7 +53,7 @@ class TestBacktrackSolver:
         statistics = solver.get_statistics()
         assert statistics[STATS_LBL_SOLVER_SOLUTION_NB] == 6
 
-    def test_optimize_relation(self) -> None:
+    def test_minimize_relation(self) -> None:
         problem = Problem([(-5, 5), (-100, 100)])
         problem.add_propagator(
             ([0, 1], ALG_RELATION, [-5, 25, -4, 16, -3, 9, -2, 4, -1, 1, 0, 0, 1, 1, 2, 4, 3, 9, 4, 16, 5, 25])
@@ -64,3 +64,13 @@ class TestBacktrackSolver:
         assert solution.tolist() == [0, 0]
         statistics = solver.get_statistics()
         assert statistics[STATS_LBL_SOLVER_SOLUTION_NB] == 6
+
+    def test_minimize_affine_leq(self) -> None:
+        problem = Problem([(2, 5), (2, 5), (0, 10)])
+        problem.add_propagator(([0, 1, 2], ALG_AFFINE_LEQ, [1, 1, -1, 0]))
+        solver = BacktrackSolver(problem)
+        solution = solver.minimize(2)
+        assert solution is not None
+        assert solution.tolist() == [2, 2, 4]
+        statistics = solver.get_statistics()
+        assert statistics[STATS_LBL_SOLVER_SOLUTION_NB] == 1

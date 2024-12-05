@@ -30,7 +30,6 @@ def max_regret_var_heuristic(
     max_regret = 0
     best_idx = -1
     cp_top_idx = stacks_top[0]
-    # TODO: optimize with Numpy ???
     for dom_idx in decision_domains:
         shr_domain = shr_domains_stack[cp_top_idx, dom_idx]
         size = shr_domain[MAX] - shr_domain[MIN]  # actually this is size - 1

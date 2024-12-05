@@ -63,18 +63,17 @@ def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     domain_sum_min = compute_domain_sum_min(domains, parameters)
     domain_sum_max = compute_domain_sum_max(domains, parameters)
-    new_domains = np.copy(domains)
+    old_domains = np.copy(domains)
     for i, c in enumerate(parameters[:-1]):
         if c != 0:
             if c > 0:
-                new_min = domains[i, MAX] - (domain_sum_min // -c)
-                new_max = domains[i, MIN] + (domain_sum_max // c)
+                new_min = old_domains[i, MAX] - (domain_sum_min // -c)
+                new_max = old_domains[i, MIN] + (domain_sum_max // c)
             else:
-                new_min = domains[i, MAX] - (-domain_sum_max // c)
-                new_max = domains[i, MIN] + (-domain_sum_min // -c)
-            new_domains[i, MIN] = max(domains[i, MIN], new_min)
-            new_domains[i, MAX] = min(domains[i, MAX], new_max)
-            if new_domains[i, MIN] > new_domains[i, MAX]:
+                new_min = old_domains[i, MAX] - (-domain_sum_max // c)
+                new_max = old_domains[i, MIN] + (-domain_sum_min // -c)
+            domains[i, MIN] = max(domains[i, MIN], new_min)
+            domains[i, MAX] = min(domains[i, MAX], new_max)
+            if domains[i, MIN] > domains[i, MAX]:
                 return PROP_INCONSISTENCY
-    domains[:] = new_domains[:]  # numba does not support copyto
     return PROP_CONSISTENCY
