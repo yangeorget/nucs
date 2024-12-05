@@ -15,7 +15,7 @@ from typing import Callable
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN, MIN_MAX
+from nucs.constants import MAX, MIN, MIN_AND_MAX
 from nucs.propagators.affine_eq_propagator import (
     compute_domains_affine_eq,
     get_complexity_affine_eq,
@@ -78,6 +78,11 @@ from nucs.propagators.max_eq_propagator import compute_domains_max_eq, get_compl
 from nucs.propagators.max_leq_propagator import compute_domains_max_leq, get_complexity_max_leq, get_triggers_max_leq
 from nucs.propagators.min_eq_propagator import compute_domains_min_eq, get_complexity_min_eq, get_triggers_min_eq
 from nucs.propagators.min_geq_propagator import compute_domains_min_geq, get_complexity_min_geq, get_triggers_min_geq
+from nucs.propagators.no_sub_cycle_propagator import (
+    compute_domains_no_sub_cycle,
+    get_complexity_no_sub_cycle,
+    get_triggers_no_sub_cycle,
+)
 from nucs.propagators.relation_propagator import (
     compute_domains_relation,
     get_complexity_relation,
@@ -128,6 +133,10 @@ ALG_MAX_EQ = register_propagator(get_triggers_max_eq, get_complexity_max_eq, com
 ALG_MAX_LEQ = register_propagator(get_triggers_max_leq, get_complexity_max_leq, compute_domains_max_leq)
 ALG_MIN_EQ = register_propagator(get_triggers_min_eq, get_complexity_min_eq, compute_domains_min_eq)
 ALG_MIN_GEQ = register_propagator(get_triggers_min_geq, get_complexity_min_geq, compute_domains_min_geq)
+ALG_MIN_GEQ = register_propagator(get_triggers_min_geq, get_complexity_min_geq, compute_domains_min_geq)
+ALG_NO_SUB_CYCLE = register_propagator(
+    get_triggers_no_sub_cycle, get_complexity_no_sub_cycle, compute_domains_no_sub_cycle
+)
 ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relation, compute_domains_relation)
 ALG_SCC = register_propagator(get_triggers_scc, get_complexity_scc, compute_domains_scc)
 
@@ -157,7 +166,7 @@ def add_propagators(
     bounds: int,
 ) -> None:
     cp_top_idx = stacks_top[0]
-    if bounds == MIN_MAX:  # MIN and MAX have changed
+    if bounds == MIN_AND_MAX:  # MIN and MAX have changed
         for prop_idx in range(len(triggered_propagators)):
             if (
                 shr_domains_propagators[dom_idx, MIN, prop_idx] or shr_domains_propagators[dom_idx, MAX, prop_idx]

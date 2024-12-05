@@ -11,7 +11,7 @@
 # Copyright 2024 - Yan Georget
 ###############################################################################
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_SCC
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_NO_SUB_CYCLE
 
 
 class CircuitProblem(Problem):
@@ -29,5 +29,5 @@ class CircuitProblem(Problem):
         super().__init__(shr_domains)
         s_indices = list(range(n))
         self.add_propagator((s_indices, ALG_ALLDIFFERENT, []))
-        self.add_propagator((s_indices, ALG_SCC, []))
-        # TODO: add a nocycle constraint ?
+        self.add_propagator((s_indices, ALG_NO_SUB_CYCLE, []))
+        # self.add_propagator((s_indices, ALG_SCC, []))  # not worth the cost
