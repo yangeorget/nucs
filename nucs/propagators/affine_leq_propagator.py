@@ -15,7 +15,6 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
-from nucs.propagators.affine_eq_propagator import compute_domain_sum_max, compute_domain_sum_min
 
 
 def get_complexity_affine_leq(n: int, parameters: NDArray) -> float:
@@ -50,9 +49,16 @@ def compute_domains_affine_leq(domains: NDArray, parameters: NDArray) -> int:
     :param parameters: the parameters of the propagator, a is an alias for parameters
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
-    if compute_domain_sum_min(domains, parameters) >= 0:
+    domain_sum_min = domain_sum_max = parameters[-1]
+    for i, c in enumerate(parameters[:-1]):
+        if c > 0:
+            domain_sum_min -= c * domains[i, MAX]
+            domain_sum_max -= c * domains[i, MIN]
+        else:
+            domain_sum_min -= c * domains[i, MIN]
+            domain_sum_max -= c * domains[i, MAX]
+    if domain_sum_min >= 0:
         return PROP_ENTAILMENT
-    domain_sum_max = compute_domain_sum_max(domains, parameters)
     old_domains = np.copy(domains)
     for i, c in enumerate(parameters[:-1]):
         if c != 0:
