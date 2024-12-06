@@ -65,8 +65,8 @@ def bound_consistency_algorithm(
     :param algorithms: the algorithms indexed by propagators
     :param var_bounds: the variable bounds indexed by propagators
     :param param_bounds: the parameters bounds indexed by propagators
-    :param dom_indices_arr: the domain indices indexed by variables
-    :param dom_offsets_arr: the domain offsets indexed by variables
+    :param dom_indices_arr: the domain indices indexed by variables, unused here
+    :param dom_offsets_arr: the domain offsets indexed by variables, unused here
     :param props_dom_indices: the domain indices indexed by propagator variables
     :param props_dom_offsets: the domain offsets indexed by propagator variables
     :param props_parameters: the parameters indexed by propagator variables
@@ -75,10 +75,11 @@ def bound_consistency_algorithm(
     the first level correspond to the current shared domains, the rest correspond to the choice points
     :param not_entailed_propagators_stack: a stack not entailed propagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
-    :param dom_update_stack: the stack of domain updates
+    :param dom_update_stack: the stack of domain updates, unused here
     :param stacks_top: the height of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param compute_domains_addrs: the addresses of the compute_domains functions
+    :param decision_domains: the indices of the shared domains on which decisions will be made
     :return: a status (consistency, inconsistency or entailment) as an integer
     """
     top = stacks_top[0]

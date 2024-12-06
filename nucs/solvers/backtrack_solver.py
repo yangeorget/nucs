@@ -95,8 +95,13 @@ class BacktrackSolver(Solver):
         Inits the solver.
         :param problem: the problem to be solved
         :param consistency_alg_idx: the index of the consistency algorithm
-        :param var_heuristic_idx: the index of the heuristic for selecting a variable/domain
+        :param decision_domains: the indices of the shared domains on which decisions will be made
+        :param var_heuristic_idx: the index of the heuristic for selecting a variable/shared domain
+        :param var_heuristic_params: a list of lists of parameters,
+        usually parameters are costs and there is a list of value costs per variable/shared domain
         :param dom_heuristic_idx: the index of the heuristic for reducing a domain
+        :param dom_heuristic_params: a list of lists of parameters,
+        usually parameters are costs and there is a list of value costs per variable/shared domain
         :param stack_max_height: the maximal choice point stack height
         :param log_level: the log level as a string
         """
@@ -491,8 +496,13 @@ def solve_one(
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param consistency_alg_idx: the index of the consistency algorithm
+    :param decision_domains: the indices of the shared domains on which decisions will be made
     :param var_heuristic_idx: the index of the variable heuristic
+    :param var_heuristic_params: a list of lists of parameters,
+    usually parameters are costs and there is a list of value costs per variable/shared domain
     :param dom_heuristic_idx: the index of the domain heuristic
+    :param dom_heuristic_params: a list of lists of parameters,
+    usually parameters are costs and there is a list of value costs per variable/shared domain
     :param compute_domains_addrs: the addresses of the compute_domains functions
     :param consistency_alg_addrs: the addresses of the functions implementing the consistency algorithms
     :param var_heuristic_addrs: the addresses of the functions implementing the variable heuristics

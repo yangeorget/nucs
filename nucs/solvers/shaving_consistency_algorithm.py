@@ -138,9 +138,11 @@ def shaving_consistency_algorithm(
     the first level correspond to the current shared domains, the rest correspond to the choice points
     :param not_entailed_propagators_stack: a stack not entailed propagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
+    :param dom_update_stack: the stack of domain updates
     :param stacks_top: the height of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param compute_domains_addrs: the addresses of the compute_domains functions
+    :param decision_domains: the indices of the shared domains on which decisions will be made
     :return: a status (consistency, inconsistency or entailment) as an integer
     """
     statistics[STATS_IDX_ALG_BC_WITH_SHAVING_NB] += 1

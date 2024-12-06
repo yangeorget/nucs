@@ -17,6 +17,7 @@ def cp_init(
     Inits the choice points.
     :param shr_domains_stack: the stack of shared domains
     :param not_entailed_propagators_stack: the stack of not entailed propagators
+    :param dom_update_stack: the stack of domain updates
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param shr_domains_arr: the shared domains
     :return: a Numpy array
