@@ -66,8 +66,7 @@ def backtrack(
     statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
     add_propagators(
         triggered_propagators,
-        not_entailed_propagators_stack,
-        stacks_top,
+        not_entailed_propagators_stack[stacks_top[0]],
         triggers,
         dom_update_stack[stacks_top[0], DOM_UPDATE_IDX],
         dom_update_stack[stacks_top[0], DOM_UPDATE_EVENTS],

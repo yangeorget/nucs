@@ -138,6 +138,7 @@ def golomb_consistency_algorithm(
     :param problem: the problem
     :return: the status as an int
     """
+    top = stacks_top[0]
     # first prune the search space
     mark_nb = (1 + int(math.sqrt(8 * len(dom_indices_arr) + 1))) // 2
     ni_var_idx = first_not_instantiated_var_heuristic(
@@ -151,7 +152,7 @@ def golomb_consistency_algorithm(
         # the following will mark at most sum(n-3) numbers as used
         # hence there will be at least n-2 unused numbers greater than 0
         for var_idx in range(index(mark_nb, ni_var_idx - 2, ni_var_idx - 1) + 1):
-            dist = shr_domains_stack[stacks_top[0], dom_indices_arr[var_idx], MIN]  # no offset
+            dist = shr_domains_stack[top, dom_indices_arr[var_idx], MIN]  # no offset
             if dist < len(used_distance):
                 used_distance[dist] = True
         # let's compute the sum of non-used numbers
@@ -164,14 +165,13 @@ def golomb_consistency_algorithm(
         for i in range(ni_var_idx - 1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
                 dom_idx = dom_indices_arr[index(mark_nb, i, j)]
-                shr_domains_stack[stacks_top[0], dom_idx, MIN] = minimal_sum[j - i]  # no offset
+                shr_domains_stack[top, dom_idx, MIN] = minimal_sum[j - i]  # no offset
                 events = EVENT_MASK_MIN
-                if shr_domains_stack[stacks_top[0], dom_idx, MIN] == shr_domains_stack[stacks_top[0], dom_idx, MAX]:
+                if shr_domains_stack[top, dom_idx, MIN] == shr_domains_stack[top, dom_idx, MAX]:
                     events |= EVENT_MASK_GROUND
                 add_propagators(
                     triggered_propagators,
-                    not_entailed_propagators_stack,
-                    stacks_top,
+                    not_entailed_propagators_stack[top],
                     shr_domains_propagators,
                     dom_idx,
                     events,

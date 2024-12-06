@@ -542,8 +542,7 @@ def solve_one(
             )
             add_propagators(
                 triggered_propagators,
-                not_entailed_propagators_stack,
-                stacks_top,
+                not_entailed_propagators_stack[stacks_top[0]],
                 triggers,
                 dom_idx,
                 events,

@@ -34,7 +34,12 @@ def mid_value_dom_heuristic(
     :param dom_idx: the index of the shared domain
     :return: the events
     """
-    value = (shr_domains_stack[stacks_top[0], dom_idx, MIN] + shr_domains_stack[stacks_top[0], dom_idx, MAX]) // 2
     return value_dom_heuristic(
-        params, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx, value
+        params,
+        shr_domains_stack,
+        not_entailed_propagators_stack,
+        dom_update_stack,
+        stacks_top,
+        dom_idx,
+        (shr_domains_stack[stacks_top[0], dom_idx, MIN] + shr_domains_stack[stacks_top[0], dom_idx, MAX]) // 2,
     )

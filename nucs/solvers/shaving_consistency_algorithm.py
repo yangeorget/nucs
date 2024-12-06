@@ -64,7 +64,7 @@ def shave_bound(
     )
     if shr_domains_stack[stacks_top[0], dom_idx, MIN] == shr_domains_stack[stacks_top[0], dom_idx, MAX]:
         events |= EVENT_MASK_GROUND
-    add_propagators(triggered_propagators, not_entailed_propagators_stack, stacks_top, triggers, dom_idx, events)
+    add_propagators(triggered_propagators, not_entailed_propagators_stack[stacks_top[0]], triggers, dom_idx, events)
     if (
         bound_consistency_algorithm(
             statistics,

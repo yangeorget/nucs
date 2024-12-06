@@ -81,6 +81,7 @@ def bound_consistency_algorithm(
     :param compute_domains_addrs: the addresses of the compute_domains functions
     :return: a status (consistency, inconsistency or entailment) as an integer
     """
+    top = stacks_top[0]
     statistics[STATS_IDX_ALG_BC_NB] += 1
     prop_idx = -1
     while True:
@@ -92,7 +93,7 @@ def bound_consistency_algorithm(
         prop_var_end = var_bounds[prop_idx, RG_END]
         prop_indices = props_dom_indices[prop_var_start:prop_var_end]
         prop_offsets = props_dom_offsets[prop_var_start:prop_var_end]
-        prop_domains = shr_domains_stack[stacks_top[0], prop_indices] + prop_offsets
+        prop_domains = shr_domains_stack[top, prop_indices] + prop_offsets
         compute_domains_fct = (
             COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]]
             if NUMBA_DISABLE_JIT
@@ -105,10 +106,9 @@ def bound_consistency_algorithm(
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
-            not_entailed_propagators_stack[stacks_top[0], prop_idx] = False
+            not_entailed_propagators_stack[top, prop_idx] = False
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
         shr_domains_changes = False
-        top = stacks_top[0]
         for var_idx in range(prop_var_end - prop_var_start):
             shr_domain_idx = prop_indices[var_idx]
             events = 0
@@ -126,8 +126,7 @@ def bound_consistency_algorithm(
                 shr_domains_changes = True
                 add_propagators(
                     triggered_propagators,
-                    not_entailed_propagators_stack,
-                    stacks_top,
+                    not_entailed_propagators_stack[top],
                     triggers,
                     shr_domain_idx,
                     events,

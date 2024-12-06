@@ -16,9 +16,9 @@ from numpy.typing import NDArray
 from nucs.constants import (
     DOM_UPDATE_EVENTS,
     DOM_UPDATE_IDX,
-    EVENT_MASK_GROUND,
     EVENT_MASK_MAX,
     EVENT_MASK_MIN,
+    EVENT_MASK_MIN_GROUND,
     MAX,
     MIN,
 )
@@ -47,9 +47,10 @@ def split_low_dom_heuristic(
     cp_put(shr_domains_stack, not_entailed_propagators_stack, stacks_top)
     shr_domains_stack[cp_cur_idx + 1, dom_idx, MAX] = value
     shr_domains_stack[cp_cur_idx, dom_idx, MIN] = value + 1
-    events = EVENT_MASK_MIN
-    if shr_domains_stack[cp_cur_idx, dom_idx, MIN] == shr_domains_stack[cp_cur_idx, dom_idx, MAX]:
-        events |= EVENT_MASK_GROUND
     dom_update_stack[cp_cur_idx, DOM_UPDATE_IDX] = dom_idx
-    dom_update_stack[cp_cur_idx, DOM_UPDATE_EVENTS] = events
+    dom_update_stack[cp_cur_idx, DOM_UPDATE_EVENTS] = (
+        EVENT_MASK_MIN_GROUND
+        if shr_domains_stack[cp_cur_idx, dom_idx, MIN] == shr_domains_stack[cp_cur_idx, dom_idx, MAX]
+        else EVENT_MASK_MIN
+    )
     return EVENT_MASK_MAX

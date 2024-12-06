@@ -14,7 +14,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MAX, EVENT_MASK_MIN, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 
 
 def get_complexity_affine_eq(n: int, parameters: NDArray) -> float:
@@ -34,7 +34,7 @@ def get_triggers_affine_eq(n: int, parameters: NDArray) -> NDArray:
     :param parameters: the parameters, unused here
     :return: an array of triggers
     """
-    return np.full(n, dtype=np.uint8, fill_value=EVENT_MASK_MIN | EVENT_MASK_MAX)
+    return np.full(n, dtype=np.uint8, fill_value=EVENT_MASK_MIN_MAX)
 
 
 @njit(cache=True)
