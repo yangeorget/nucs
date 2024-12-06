@@ -36,7 +36,9 @@ def split_low_dom_heuristic(
 ) -> int:
     """
     Chooses the first half of the domain.
+    :param params: a two-dimensional parameters array, unused here
     :param shr_domains_stack: the stack of shared domains
+    :param not_entailed_propagators_stack: the stack of not entailed propagators
     :param dom_update_stack: the stack of domain updates
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param dom_idx: the index of the shared domain

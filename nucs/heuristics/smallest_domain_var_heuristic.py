@@ -24,6 +24,8 @@ def smallest_domain_var_heuristic(
 ) -> int:
     """
     Chooses the smallest shared domain and which is not instantiated.
+    :param params: a two-dimensional parameters array, unused here
+    :param decision_domains: the indices of a subset of the shared domains
     :param shr_domains_stack: the stack of shared domains
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :return: the index of the shared domain

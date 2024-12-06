@@ -23,6 +23,9 @@ def max_regret_var_heuristic(
     params: NDArray, decision_domains: NDArray, shr_domains_stack: NDArray, stacks_top: NDArray
 ) -> int:
     """
+    Chooses the variable with the maximal regret (difference between best and second-best value).
+    :param params: a two-dimensional (first dimension correspond to variables, second to values) costs array
+    :param decision_domains: the indices of a subset of the shared domains
     :param shr_domains_stack: the stack of shared domains
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :return: the index of the shared domain
