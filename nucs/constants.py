@@ -75,7 +75,7 @@ TYPE_CONSISTENCY_ALG = types.FunctionType(SIGNATURE_CONSISTENCY_ALG)
 
 NUMBA_DISABLE_JIT = os.getenv("NUMBA_DISABLE_JIT")
 
-LOG_FORMAT = "[%(asctime)s | %(processName)s | %(levelname)s] %(name)s.%(funcName)s - %(message)s"
+LOG_FORMAT = "[ %(asctime)s | %(processName)s | %(levelname)s ] %(name)s.%(funcName)s - %(message)s"
 LOG_LEVEL_DEBUG = "DEBUG"
 LOG_LEVEL_INFO = "INFO"
 LOG_LEVEL_WARNING = "WARNING"
