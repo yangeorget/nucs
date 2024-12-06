@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import BOUNDS, DOM_IDX, MAX, MIN
+from nucs.constants import DOM_UPDATE_BOUNDS, DOM_UPDATE_IDX, MAX, MIN
 from nucs.solvers.choice_points import cp_put
 
 
@@ -39,6 +39,6 @@ def split_low_dom_heuristic(
     cp_put(shr_domains_stack, not_entailed_propagators_stack, stacks_top)
     shr_domains_stack[cp_cur_idx + 1, dom_idx, MAX] = value + 1
     shr_domains_stack[cp_cur_idx, dom_idx, MIN] = value
-    dom_update_stack[cp_cur_idx, DOM_IDX] = dom_idx
-    dom_update_stack[cp_cur_idx, BOUNDS] = MIN
+    dom_update_stack[cp_cur_idx, DOM_UPDATE_IDX] = dom_idx
+    dom_update_stack[cp_cur_idx, DOM_UPDATE_BOUNDS] = MIN
     return MAX

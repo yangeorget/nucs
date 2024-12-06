@@ -1,7 +1,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import BOUNDS, DOM_IDX, STATS_IDX_SOLVER_BACKTRACK_NB
+from nucs.constants import DOM_UPDATE_BOUNDS, DOM_UPDATE_IDX, STATS_IDX_SOLVER_BACKTRACK_NB
 from nucs.propagators.propagators import add_propagators
 
 
@@ -69,7 +69,7 @@ def backtrack(
         not_entailed_propagators_stack,
         stacks_top,
         shr_domains_propagators,
-        dom_update_stack[stacks_top[0], DOM_IDX],
-        dom_update_stack[stacks_top[0], BOUNDS],
+        dom_update_stack[stacks_top[0], DOM_UPDATE_IDX],
+        dom_update_stack[stacks_top[0], DOM_UPDATE_BOUNDS],
     )
     return True

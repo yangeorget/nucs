@@ -14,7 +14,6 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
-    END,
     MAX,
     MIN,
     NUMBA_DISABLE_JIT,
@@ -23,7 +22,8 @@ from nucs.constants import (
     PROBLEM_UNBOUND,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
-    START,
+    RG_END,
+    RG_START,
     STATS_IDX_ALG_BC_NB,
     STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
     STATS_IDX_PROPAGATOR_FILTER_NB,
@@ -87,8 +87,8 @@ def bound_consistency_algorithm(
         if prop_idx == -1:
             return PROBLEM_BOUND if is_solved(shr_domains_stack, stacks_top) else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
-        prop_var_start = var_bounds[prop_idx, START]
-        prop_var_end = var_bounds[prop_idx, END]
+        prop_var_start = var_bounds[prop_idx, RG_START]
+        prop_var_end = var_bounds[prop_idx, RG_END]
         prop_indices = props_dom_indices[prop_var_start:prop_var_end]
         prop_offsets = props_dom_offsets[prop_var_start:prop_var_end]
         prop_domains = shr_domains_stack[stacks_top[0], prop_indices] + prop_offsets
@@ -98,7 +98,7 @@ def bound_consistency_algorithm(
             else function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[algorithms[prop_idx]])
         )
         status = compute_domains_fct(
-            prop_domains, props_parameters[param_bounds[prop_idx, START] : param_bounds[prop_idx, END]]
+            prop_domains, props_parameters[param_bounds[prop_idx, RG_START] : param_bounds[prop_idx, RG_END]]
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1

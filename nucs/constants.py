@@ -14,15 +14,15 @@ import os
 
 from numba import bool, int32, int64, types, uint8, uint16  # type: ignore
 
-START = 0  # index corresponding the start of a values range
-END = 1  # index corresponding the end of a values range
+RG_START = 0  # index corresponding the start of a values range
+RG_END = 1  # index corresponding the end of a values range
 
 MIN = 0  # min value of a domain
 MAX = 1  # max value of a domain
 MIN_AND_MAX = 2  # min and max
 
-DOM_IDX = 0
-BOUNDS = 1
+DOM_UPDATE_IDX = 0
+DOM_UPDATE_BOUNDS = 1
 
 PROP_INCONSISTENCY = 0  # returned by a propagator when inconsistent
 PROP_CONSISTENCY = 1  # returned by a propagator when consistent
@@ -75,7 +75,7 @@ TYPE_CONSISTENCY_ALG = types.FunctionType(SIGNATURE_CONSISTENCY_ALG)
 
 NUMBA_DISABLE_JIT = os.getenv("NUMBA_DISABLE_JIT")
 
-LOG_FORMAT = "%(asctime)s - %(processName)s - %(levelname)s - %(name)s - %(funcName)s - %(message)s"
+LOG_FORMAT = "[%(asctime)s | %(processName)s | %(levelname)s] %(name)s.%(funcName)s - %(message)s"
 LOG_LEVEL_DEBUG = "DEBUG"
 LOG_LEVEL_INFO = "INFO"
 LOG_LEVEL_WARNING = "WARNING"

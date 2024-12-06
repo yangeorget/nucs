@@ -17,7 +17,7 @@ from typing import Optional, Self, Tuple, Union
 import numpy as np
 from numba.typed import List
 
-from nucs.constants import END, START
+from nucs.constants import RG_END, RG_START
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
 
 logger = logging.getLogger(__name__)
@@ -159,27 +159,27 @@ class Problem:
         bound_nb = max(1, self.propagator_nb)
         self.var_bounds = np.zeros((bound_nb, 2), dtype=np.uint16)  # some redundancy here
         self.param_bounds = np.zeros((bound_nb, 2), dtype=np.uint16)  # some redundancy here
-        self.var_bounds[0, START] = self.param_bounds[0, START] = 0
+        self.var_bounds[0, RG_START] = self.param_bounds[0, RG_START] = 0
         for propagator_idx, propagator in enumerate(self.propagators):
             prop_vars, prop_algorithm, prop_params = propagator
             self.algorithms[propagator_idx] = prop_algorithm
             if propagator_idx > 0:
-                self.var_bounds[propagator_idx, START] = self.var_bounds[propagator_idx - 1, END]
-                self.param_bounds[propagator_idx, START] = self.param_bounds[propagator_idx - 1, END]
-            self.var_bounds[propagator_idx, END] = self.var_bounds[propagator_idx, START] + len(prop_vars)
-            self.param_bounds[propagator_idx, END] = self.param_bounds[propagator_idx, START] + len(prop_params)
+                self.var_bounds[propagator_idx, RG_START] = self.var_bounds[propagator_idx - 1, RG_END]
+                self.param_bounds[propagator_idx, RG_START] = self.param_bounds[propagator_idx - 1, RG_END]
+            self.var_bounds[propagator_idx, RG_END] = self.var_bounds[propagator_idx, RG_START] + len(prop_vars)
+            self.param_bounds[propagator_idx, RG_END] = self.param_bounds[propagator_idx, RG_START] + len(prop_params)
         # Bounds have been computed and can now be used. The global arrays are the following:
-        self.props_dom_indices = np.empty(self.var_bounds[-1, END], dtype=np.uint16)
-        self.props_dom_offsets = np.empty(self.var_bounds[-1, END], dtype=np.int32)
-        self.props_parameters = np.empty(self.param_bounds[-1, END], dtype=np.int32)
+        self.props_dom_indices = np.empty(self.var_bounds[-1, RG_END], dtype=np.uint16)
+        self.props_dom_offsets = np.empty(self.var_bounds[-1, RG_END], dtype=np.int32)
+        self.props_parameters = np.empty(self.param_bounds[-1, RG_END], dtype=np.int32)
         for propagator_idx, propagator in enumerate(self.propagators):
             prop_vars, _, prop_params = propagator
-            var_start = self.var_bounds[propagator_idx, START]
-            var_end = self.var_bounds[propagator_idx, END]
+            var_start = self.var_bounds[propagator_idx, RG_START]
+            var_end = self.var_bounds[propagator_idx, RG_END]
             self.props_dom_indices[var_start:var_end] = self.dom_indices_arr[prop_vars]  # cached for faster access
             self.props_dom_offsets[var_start:var_end] = self.dom_offsets_arr[prop_vars]  # cached for faster access
-            param_start = self.param_bounds[propagator_idx, START]
-            param_end = self.param_bounds[propagator_idx, END]
+            param_start = self.param_bounds[propagator_idx, RG_START]
+            param_end = self.param_bounds[propagator_idx, RG_END]
             self.props_parameters[param_start:param_end] = prop_params
         self.props_dom_offsets = self.props_dom_offsets.reshape((-1, 1))
         self.shr_domains_propagators = np.zeros((self.shr_domain_nb, 2, self.propagator_nb), dtype=np.bool)

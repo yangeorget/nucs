@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import BOUNDS, DOM_IDX, MAX, MIN, MIN_AND_MAX
+from nucs.constants import DOM_UPDATE_BOUNDS, DOM_UPDATE_IDX, MAX, MIN, MIN_AND_MAX
 from nucs.heuristics.max_value_dom_heuristic import max_value_dom_heuristic
 from nucs.heuristics.min_value_dom_heuristic import min_value_dom_heuristic
 from nucs.solvers.choice_points import cp_put
@@ -50,8 +50,8 @@ def value_dom_heuristic(
     shr_domains_stack[cp_cur_idx + 2, dom_idx, :] = value
     shr_domains_stack[cp_cur_idx + 1, dom_idx, MAX] = value - 1
     shr_domains_stack[cp_cur_idx, dom_idx, MIN] = value + 1
-    dom_update_stack[cp_cur_idx + 1, DOM_IDX] = dom_idx
-    dom_update_stack[cp_cur_idx + 1, BOUNDS] = MIN_AND_MAX
-    dom_update_stack[cp_cur_idx, DOM_IDX] = dom_idx
-    dom_update_stack[cp_cur_idx, BOUNDS] = MIN_AND_MAX
+    dom_update_stack[cp_cur_idx + 1, DOM_UPDATE_IDX] = dom_idx
+    dom_update_stack[cp_cur_idx + 1, DOM_UPDATE_BOUNDS] = MIN_AND_MAX
+    dom_update_stack[cp_cur_idx, DOM_UPDATE_IDX] = dom_idx
+    dom_update_stack[cp_cur_idx, DOM_UPDATE_BOUNDS] = MIN_AND_MAX
     return MIN_AND_MAX
