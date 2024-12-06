@@ -22,7 +22,11 @@ MAX = 1  # max value of a domain
 MIN_AND_MAX = 2  # min and max
 
 DOM_UPDATE_IDX = 0
-DOM_UPDATE_BOUNDS = 1
+DOM_UPDATE_EVENTS = 1
+
+EVENT_MASK_MIN = 1 << 0
+EVENT_MASK_MAX = 1 << 1
+EVENT_MASK_GROUND = 1 << 2
 
 PROP_INCONSISTENCY = 0  # returned by a propagator when inconsistent
 PROP_CONSISTENCY = 1  # returned by a propagator when consistent

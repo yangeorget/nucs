@@ -116,13 +116,14 @@ def bound_consistency_algorithm(
                 if shr_domains_stack[top, shr_domain_idx, bound] != shr_domain_bound:
                     shr_domains_stack[top, shr_domain_idx, bound] = shr_domain_bound
                     shr_domains_changes = True
+                    events = bound  # TODO: fix
                     add_propagators(
                         triggered_propagators,
                         not_entailed_propagators_stack,
                         stacks_top,
                         shr_domains_propagators,
                         shr_domain_idx,
-                        bound,
+                        events,
                     )
         if not shr_domains_changes:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1

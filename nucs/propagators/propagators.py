@@ -163,10 +163,10 @@ def add_propagators(
     stacks_top: NDArray,
     shr_domains_propagators: NDArray,
     dom_idx: int,
-    bounds: int,
+    events: int,
 ) -> None:
     cp_top_idx = stacks_top[0]
-    if bounds == MIN_AND_MAX:  # MIN and MAX have changed
+    if events == MIN_AND_MAX:  # MIN and MAX have changed
         for prop_idx in range(len(triggered_propagators)):
             if (
                 shr_domains_propagators[dom_idx, MIN, prop_idx] or shr_domains_propagators[dom_idx, MAX, prop_idx]
@@ -175,7 +175,7 @@ def add_propagators(
     else:  # MIN or MAX has changed
         for prop_idx in range(len(triggered_propagators)):
             if (
-                shr_domains_propagators[dom_idx, bounds, prop_idx]
+                shr_domains_propagators[dom_idx, events, prop_idx]
                 and not_entailed_propagators_stack[cp_top_idx, prop_idx]
             ):
                 triggered_propagators[prop_idx] = True

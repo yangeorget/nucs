@@ -52,7 +52,7 @@ def shave_bound(
     compute_domains_addrs: NDArray,
     decision_variables: NDArray,
 ) -> bool:
-    bounds = (
+    events = (
         max_value_dom_heuristic(
             None, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
         )
@@ -62,7 +62,7 @@ def shave_bound(
         )
     )
     add_propagators(
-        triggered_propagators, not_entailed_propagators_stack, stacks_top, shr_domains_propagators, dom_idx, bounds
+        triggered_propagators, not_entailed_propagators_stack, stacks_top, shr_domains_propagators, dom_idx, events
     )
     if (
         bound_consistency_algorithm(
