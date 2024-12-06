@@ -44,7 +44,7 @@ def shave_bound(
     props_dom_indices: NDArray,
     props_dom_offsets: NDArray,
     props_parameters: NDArray,
-    shr_domains_propagators: NDArray,
+    triggers: NDArray,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
@@ -64,9 +64,7 @@ def shave_bound(
     )
     if shr_domains_stack[stacks_top[0], dom_idx, MIN] == shr_domains_stack[stacks_top[0], dom_idx, MAX]:
         events |= EVENT_MASK_GROUND
-    add_propagators(
-        triggered_propagators, not_entailed_propagators_stack, stacks_top, shr_domains_propagators, dom_idx, events
-    )
+    add_propagators(triggered_propagators, not_entailed_propagators_stack, stacks_top, triggers, dom_idx, events)
     if (
         bound_consistency_algorithm(
             statistics,
@@ -78,7 +76,7 @@ def shave_bound(
             props_dom_indices,
             props_dom_offsets,
             props_parameters,
-            shr_domains_propagators,
+            triggers,
             shr_domains_stack,
             not_entailed_propagators_stack,
             dom_update_stack,
@@ -99,7 +97,7 @@ def shave_bound(
         dom_update_stack,
         stacks_top,
         triggered_propagators,
-        shr_domains_propagators,
+        triggers,
     )
     return has_shaved
 
@@ -115,7 +113,7 @@ def shaving_consistency_algorithm(
     props_dom_indices: NDArray,
     props_dom_offsets: NDArray,
     props_parameters: NDArray,
-    shr_domains_propagators: NDArray,
+    triggers: NDArray,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
@@ -135,9 +133,7 @@ def shaving_consistency_algorithm(
     :param props_dom_indices: the domain indices indexed by propagator variables
     :param props_dom_offsets: the domain offsets indexed by propagator variables
     :param props_parameters: the parameters indexed by propagator variables
-    :param shr_domains_propagators: a Numpy array of booleans indexed
-    by shared domain indices, MIN/MAX and propagators; true means that the propagator has to be triggered when the MIN
-    or MAX of the shared domain has changed
+    :param triggers: a Numpy array of event masks indexed by shared domain indices and propagators
     :param shr_domains_stack: a stack of shared domains;
     the first level correspond to the current shared domains, the rest correspond to the choice points
     :param not_entailed_propagators_stack: a stack not entailed propagators;
@@ -164,7 +160,7 @@ def shaving_consistency_algorithm(
                 props_dom_indices,
                 props_dom_offsets,
                 props_parameters,
-                shr_domains_propagators,
+                triggers,
                 shr_domains_stack,
                 not_entailed_propagators_stack,
                 dom_update_stack,
@@ -193,7 +189,7 @@ def shaving_consistency_algorithm(
             props_dom_indices,
             props_dom_offsets,
             props_parameters,
-            shr_domains_propagators,
+            triggers,
             shr_domains_stack,
             not_entailed_propagators_stack,
             dom_update_stack,

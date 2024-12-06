@@ -160,14 +160,11 @@ def add_propagators(
     triggered_propagators: NDArray,
     not_entailed_propagators_stack: NDArray,
     stacks_top: NDArray,
-    shr_domains_propagators: NDArray,
+    triggers: NDArray,
     dom_idx: int,
     events: int,
 ) -> None:
     cp_top_idx = stacks_top[0]
     for prop_idx in range(len(triggered_propagators)):
-        if (
-            shr_domains_propagators[dom_idx, prop_idx] & events != 0
-            and not_entailed_propagators_stack[cp_top_idx, prop_idx]
-        ):
+        if triggers[dom_idx, prop_idx] & events != 0 and not_entailed_propagators_stack[cp_top_idx, prop_idx]:
             triggered_propagators[prop_idx] = True

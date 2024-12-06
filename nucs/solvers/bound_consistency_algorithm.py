@@ -50,7 +50,7 @@ def bound_consistency_algorithm(
     props_dom_indices: NDArray,
     props_dom_offsets: NDArray,
     props_parameters: NDArray,
-    shr_domains_propagators: NDArray,
+    triggers: NDArray,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
@@ -70,9 +70,7 @@ def bound_consistency_algorithm(
     :param props_dom_indices: the domain indices indexed by propagator variables
     :param props_dom_offsets: the domain offsets indexed by propagator variables
     :param props_parameters: the parameters indexed by propagator variables
-    :param shr_domains_propagators: a Numpy array of booleans indexed
-    by shared domain indices, MIN/MAX and propagators; true means that the propagator has to be triggered when the MIN
-    or MAX of the shared domain has changed
+    :param triggers: a Numpy array of event masks indexed by shared domain indices and propagators
     :param shr_domains_stack: a stack of shared domains;
     the first level correspond to the current shared domains, the rest correspond to the choice points
     :param not_entailed_propagators_stack: a stack not entailed propagators;
@@ -124,13 +122,13 @@ def bound_consistency_algorithm(
                 events |= EVENT_MASK_MAX
             if shr_domain_min == shr_domain_max:
                 events |= EVENT_MASK_GROUND
-            if events > 0:
+            if events != 0:
                 shr_domains_changes = True
                 add_propagators(
                     triggered_propagators,
                     not_entailed_propagators_stack,
                     stacks_top,
-                    shr_domains_propagators,
+                    triggers,
                     shr_domain_idx,
                     events,
                 )

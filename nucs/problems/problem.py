@@ -182,12 +182,12 @@ class Problem:
             param_end = self.param_bounds[propagator_idx, RG_END]
             self.props_parameters[param_start:param_end] = prop_params
         self.props_dom_offsets = self.props_dom_offsets.reshape((-1, 1))
-        self.shr_domains_propagators = np.zeros((self.shr_domain_nb, self.propagator_nb), dtype=np.uint8)
+        self.triggers = np.zeros((self.shr_domain_nb, self.propagator_nb), dtype=np.uint8)
         for propagator_idx, propagator in enumerate(self.propagators):
             prop_vars, prop_algorithm, prop_params = propagator
             triggers = GET_TRIGGERS_FCTS[prop_algorithm](len(prop_vars), prop_params)
             for prop_var_idx, prop_var in enumerate(prop_vars):
-                self.shr_domains_propagators[self.dom_indices_arr[prop_var], propagator_idx] = triggers[prop_var_idx]
+                self.triggers[self.dom_indices_arr[prop_var], propagator_idx] = triggers[prop_var_idx]
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.propagator_nb} propagators")
         logger.info(f"Problem has {self.shr_domain_nb} variables")

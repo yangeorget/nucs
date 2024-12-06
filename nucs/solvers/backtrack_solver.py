@@ -190,7 +190,7 @@ class BacktrackSolver(Solver):
                 self.problem.props_dom_indices,
                 self.problem.props_dom_offsets,
                 self.problem.props_parameters,
-                self.problem.shr_domains_propagators,
+                self.problem.triggers,
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
@@ -248,7 +248,7 @@ class BacktrackSolver(Solver):
                 self.problem.props_dom_indices,
                 self.problem.props_dom_offsets,
                 self.problem.props_parameters,
-                self.problem.shr_domains_propagators,
+                self.problem.triggers,
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
@@ -275,7 +275,7 @@ class BacktrackSolver(Solver):
                 self.dom_update_stack,
                 self.stacks_top,
                 self.triggered_propagators,
-                self.problem.shr_domains_propagators,
+                self.problem.triggers,
             ):
                 break
 
@@ -324,7 +324,7 @@ class BacktrackSolver(Solver):
                 self.problem.props_dom_indices,
                 self.problem.props_dom_offsets,
                 self.problem.props_parameters,
-                self.problem.shr_domains_propagators,
+                self.problem.triggers,
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
@@ -384,7 +384,7 @@ class BacktrackSolver(Solver):
                 self.problem.props_dom_indices,
                 self.problem.props_dom_offsets,
                 self.problem.props_parameters,
-                self.problem.shr_domains_propagators,
+                self.problem.triggers,
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
@@ -410,7 +410,7 @@ class BacktrackSolver(Solver):
                 self.dom_update_stack,
                 self.stacks_top,
                 self.triggered_propagators,
-                self.problem.shr_domains_propagators,
+                self.problem.triggers,
             ):
                 break
         solution_queue.put((processor_idx, None, self.statistics))
@@ -454,7 +454,7 @@ def solve_one(
     props_dom_indices: NDArray,
     props_dom_offsets: NDArray,
     props_parameters: NDArray,
-    shr_domains_propagators: NDArray,
+    triggers: NDArray,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
@@ -482,9 +482,7 @@ def solve_one(
     :param props_dom_indices: the domain indices indexed by propagator variables
     :param props_dom_offsets: the domain offsets indexed by propagator variables
     :param props_parameters: the parameters indexed by propagator variables
-    :param shr_domains_propagators: a Numpy array of booleans indexed
-    by shared domain indices, MIN/MAX and propagators; true means that the propagator has to be triggered when the MIN
-    or MAX of the shared domain has changed
+    :param triggers: a Numpy array of event masks indexed by shared domain indices and propagators
     :param shr_domains_stack: a stack of shared domains;
     the first level correspond to the current shared domains, the rest correspond to the choice points
     :param not_entailed_propagators_stack: a stack not entailed propagators;
@@ -520,7 +518,7 @@ def solve_one(
             props_dom_indices,
             props_dom_offsets,
             props_parameters,
-            shr_domains_propagators,
+            triggers,
             shr_domains_stack,
             not_entailed_propagators_stack,
             dom_update_stack,
@@ -546,7 +544,7 @@ def solve_one(
                 triggered_propagators,
                 not_entailed_propagators_stack,
                 stacks_top,
-                shr_domains_propagators,
+                triggers,
                 dom_idx,
                 events,
             )
@@ -559,7 +557,7 @@ def solve_one(
             dom_update_stack,
             stacks_top,
             triggered_propagators,
-            shr_domains_propagators,
+            triggers,
         ):
             return None
 

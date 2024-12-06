@@ -48,7 +48,7 @@ def backtrack(
     dom_update_stack: NDArray,
     stacks_top: NDArray,
     triggered_propagators: NDArray,
-    shr_domains_propagators: NDArray,
+    triggers: NDArray,
 ) -> bool:
     """
     Backtracks and updates the problem's domains.
@@ -57,7 +57,7 @@ def backtrack(
     :param dom_update_stack: the stack of domain updates
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param triggered_propagators: the set propagators that are currently triggered as a Numpy array
-    :param shr_domains_propagators: a Numpy array indicating which propagators to trigger for a domain change
+    :param triggers: a Numpy array of event masks indexed by shared domain indices and propagators
     :return: true iff it is possible to backtrack
     """
     if stacks_top[0] == 0:
@@ -68,7 +68,7 @@ def backtrack(
         triggered_propagators,
         not_entailed_propagators_stack,
         stacks_top,
-        shr_domains_propagators,
+        triggers,
         dom_update_stack[stacks_top[0], DOM_UPDATE_IDX],
         dom_update_stack[stacks_top[0], DOM_UPDATE_EVENTS],
     )
