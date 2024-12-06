@@ -16,7 +16,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN
+from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MIN, MAX, MIN
 from nucs.heuristics.heuristics import first_not_instantiated_var_heuristic
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, add_propagators
@@ -165,13 +165,16 @@ def golomb_consistency_algorithm(
             for j in range(i + 1, mark_nb):
                 dom_idx = dom_indices_arr[index(mark_nb, i, j)]
                 shr_domains_stack[stacks_top[0], dom_idx, MIN] = minimal_sum[j - i]  # no offset
+                events = EVENT_MASK_MIN
+                if shr_domains_stack[stacks_top[0], dom_idx, MIN] == shr_domains_stack[stacks_top[0], dom_idx, MAX]:
+                    events |= EVENT_MASK_GROUND
                 add_propagators(
                     triggered_propagators,
                     not_entailed_propagators_stack,
                     stacks_top,
                     shr_domains_propagators,
                     dom_idx,
-                    MIN,
+                    events,
                 )
     return bound_consistency_algorithm(
         statistics,

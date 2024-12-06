@@ -38,8 +38,6 @@ if __name__ == "__main__":
         dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
         dom_heuristic_params=tsp_instance,
         log_level=args.log_level,
-        stack_max_height=512,
     )
     solution = solver.minimize(problem.shr_domain_nb - 1)
-    print(solution)
     print(solver.get_statistics())

@@ -14,6 +14,9 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
+    EVENT_MASK_GROUND,
+    EVENT_MASK_MAX,
+    EVENT_MASK_MIN,
     MAX,
     MIN,
     NUMBA_DISABLE_JIT,
@@ -110,20 +113,26 @@ def bound_consistency_algorithm(
         top = stacks_top[0]
         for var_idx in range(prop_var_end - prop_var_start):
             shr_domain_idx = prop_indices[var_idx]
-            prop_offset = prop_offsets[var_idx, 0]  # because of vertical shape
-            for bound in [MIN, MAX]:
-                shr_domain_bound = prop_domains[var_idx, bound] - prop_offset
-                if shr_domains_stack[top, shr_domain_idx, bound] != shr_domain_bound:
-                    shr_domains_stack[top, shr_domain_idx, bound] = shr_domain_bound
-                    shr_domains_changes = True
-                    events = bound  # TODO: fix
-                    add_propagators(
-                        triggered_propagators,
-                        not_entailed_propagators_stack,
-                        stacks_top,
-                        shr_domains_propagators,
-                        shr_domain_idx,
-                        events,
-                    )
+            events = 0
+            shr_domain_min = prop_domains[var_idx, MIN] - prop_offsets[var_idx, 0]  # because of vertical shape
+            if shr_domains_stack[top, shr_domain_idx, MIN] != shr_domain_min:
+                shr_domains_stack[top, shr_domain_idx, MIN] = shr_domain_min
+                events |= EVENT_MASK_MIN
+            shr_domain_max = prop_domains[var_idx, MAX] - prop_offsets[var_idx, 0]  # because of vertical shape
+            if shr_domains_stack[top, shr_domain_idx, MAX] != shr_domain_max:
+                shr_domains_stack[top, shr_domain_idx, MAX] = shr_domain_max
+                events |= EVENT_MASK_MAX
+            if shr_domain_min == shr_domain_max:
+                events |= EVENT_MASK_GROUND
+            if events > 0:
+                shr_domains_changes = True
+                add_propagators(
+                    triggered_propagators,
+                    not_entailed_propagators_stack,
+                    stacks_top,
+                    shr_domains_propagators,
+                    shr_domain_idx,
+                    events,
+                )
         if not shr_domains_changes:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1

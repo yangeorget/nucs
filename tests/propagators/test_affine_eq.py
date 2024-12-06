@@ -20,7 +20,7 @@ from nucs.propagators.affine_eq_propagator import compute_domains_affine_eq, get
 class TestAffineEQ:
     def test_get_triggers(self) -> None:
         data = new_parameters_by_values([8, 1, -1])
-        assert np.all(get_triggers_affine_eq(2, data) == np.array([[True, True], [True, True]]))
+        assert np.all(get_triggers_affine_eq(2, data) == np.array([3, 3]))
 
     def test_compute_domains_1(self) -> None:
         domains = new_shr_domains_by_values([(1, 10), (1, 10)])

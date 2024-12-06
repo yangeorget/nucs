@@ -33,7 +33,7 @@ def min_cost_dom_heuristic(
     :param dom_update_stack: the stack of domain updates
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param dom_idx: the index of the shared domain
-    :return: the bounds which are modified
+    :return: the events
     """
     cp_top_idx = stacks_top[0]
     best_cost = sys.maxsize

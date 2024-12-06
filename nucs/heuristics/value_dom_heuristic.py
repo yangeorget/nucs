@@ -13,7 +13,15 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import DOM_UPDATE_EVENTS, DOM_UPDATE_IDX, MAX, MIN, MIN_AND_MAX
+from nucs.constants import (
+    DOM_UPDATE_EVENTS,
+    DOM_UPDATE_IDX,
+    EVENT_MASK_GROUND,
+    EVENT_MASK_MAX,
+    EVENT_MASK_MIN,
+    MAX,
+    MIN,
+)
 from nucs.heuristics.max_value_dom_heuristic import max_value_dom_heuristic
 from nucs.heuristics.min_value_dom_heuristic import min_value_dom_heuristic
 from nucs.solvers.choice_points import cp_put
@@ -34,7 +42,7 @@ def value_dom_heuristic(
     :param dom_update_stack: the stack of domain updates
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param dom_idx: the index of the shared domain
-    :return: the bound which is modified
+    :return: the events
     """
     cp_cur_idx = stacks_top[0]
     if value == shr_domains_stack[cp_cur_idx, dom_idx, MIN]:
@@ -50,8 +58,14 @@ def value_dom_heuristic(
     shr_domains_stack[cp_cur_idx + 2, dom_idx, :] = value
     shr_domains_stack[cp_cur_idx + 1, dom_idx, MAX] = value - 1
     shr_domains_stack[cp_cur_idx, dom_idx, MIN] = value + 1
+    events = EVENT_MASK_MAX
+    if shr_domains_stack[cp_cur_idx + 1, dom_idx, MIN] == shr_domains_stack[cp_cur_idx + 1, dom_idx, MAX]:
+        events |= EVENT_MASK_GROUND
     dom_update_stack[cp_cur_idx + 1, DOM_UPDATE_IDX] = dom_idx
-    dom_update_stack[cp_cur_idx + 1, DOM_UPDATE_EVENTS] = MIN_AND_MAX
+    dom_update_stack[cp_cur_idx + 1, DOM_UPDATE_EVENTS] = events
+    events = EVENT_MASK_MIN
+    if shr_domains_stack[cp_cur_idx, dom_idx, MIN] == shr_domains_stack[cp_cur_idx, dom_idx, MAX]:
+        events |= EVENT_MASK_GROUND
     dom_update_stack[cp_cur_idx, DOM_UPDATE_IDX] = dom_idx
-    dom_update_stack[cp_cur_idx, DOM_UPDATE_EVENTS] = MIN_AND_MAX
-    return MIN_AND_MAX
+    dom_update_stack[cp_cur_idx, DOM_UPDATE_EVENTS] = events
+    return EVENT_MASK_MIN | EVENT_MASK_MAX | EVENT_MASK_GROUND

@@ -19,7 +19,6 @@ RG_END = 1  # index corresponding the end of a values range
 
 MIN = 0  # min value of a domain
 MAX = 1  # max value of a domain
-MIN_AND_MAX = 2  # min and max
 
 DOM_UPDATE_IDX = 0
 DOM_UPDATE_EVENTS = 1
@@ -47,7 +46,7 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     uint16[:],  # props_dom_indices
     int32[:, :],  # props_dom_offsets
     int32[:],  # props_parameters
-    bool[:, :, :],  # shr_domains_propagators
+    uint8[:, :],  # shr_domains_propagators
     int32[:, :, :],  # shr_domains_stack
     bool[:, :],  # not_entailed_propagators_stack
     uint16[:, :],  # dom_update_stack

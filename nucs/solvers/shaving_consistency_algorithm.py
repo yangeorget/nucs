@@ -14,6 +14,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
+    EVENT_MASK_GROUND,
     MAX,
     MIN,
     PROBLEM_INCONSISTENT,
@@ -61,6 +62,8 @@ def shave_bound(
             None, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
         )
     )
+    if shr_domains_stack[stacks_top[0], dom_idx, MIN] == shr_domains_stack[stacks_top[0], dom_idx, MAX]:
+        events |= EVENT_MASK_GROUND
     add_propagators(
         triggered_propagators, not_entailed_propagators_stack, stacks_top, shr_domains_propagators, dom_idx, events
     )

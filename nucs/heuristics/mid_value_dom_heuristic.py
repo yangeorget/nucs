@@ -32,7 +32,7 @@ def mid_value_dom_heuristic(
     :param dom_update_stack: the stack of domain updates
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param dom_idx: the index of the shared domain
-    :return: the bounds which are modified
+    :return: the events
     """
     value = (shr_domains_stack[stacks_top[0], dom_idx, MIN] + shr_domains_stack[stacks_top[0], dom_idx, MAX]) // 2
     return value_dom_heuristic(

@@ -14,7 +14,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import EVENT_MASK_GROUND, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 
 PATH_START = 0
 PATH_END = 1
@@ -28,7 +28,7 @@ def get_complexity_no_sub_cycle(n: int, parameters: NDArray) -> float:
     :param parameters: the parameters, unused here
     :return: a float
     """
-    return n
+    return n * n
 
 
 def get_triggers_no_sub_cycle(n: int, parameters: NDArray) -> NDArray:
@@ -38,7 +38,7 @@ def get_triggers_no_sub_cycle(n: int, parameters: NDArray) -> NDArray:
     :param parameters: the parameters, unused here
     :return: an array of triggers
     """
-    return np.ones((n, 2), dtype=np.bool)
+    return np.full(n, dtype=np.uint8, fill_value=EVENT_MASK_GROUND)
 
 
 @njit(cache=True)
@@ -49,23 +49,30 @@ def compute_domains_no_sub_cycle(domains: NDArray, parameters: NDArray) -> int:
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     n = len(domains)
-    paths = np.zeros((n, 3), dtype=np.uint16)
+    paths = np.zeros((n, 3), dtype=np.int16)
     for i in range(n):
         paths[i, :PATH_LENGTH] = i
-    for i in range(n):
-        if domains[i, MIN] == domains[i, MAX] and paths[i, PATH_END] == i:
-            j = domains[i, MIN]
-            end = paths[i, PATH_END] = paths[j, PATH_END]
-            start = paths[j, PATH_START] = paths[i, PATH_START]
-            paths[start, PATH_END] = end
-            paths[end, PATH_START] = start
-            length = paths[i, PATH_LENGTH] + 1 + paths[j, PATH_LENGTH]
-            paths[i, PATH_LENGTH] = paths[j, PATH_LENGTH] = paths[start, PATH_LENGTH] = paths[end, PATH_LENGTH] = length
-            if length < n - 1:
-                if domains[end, MIN] == start:
-                    domains[end, MIN] = start + 1
-                if domains[end, MAX] == start:
-                    domains[end, MAX] = start - 1
-                if domains[end, MIN] > domains[end, MAX]:
-                    return PROP_INCONSISTENCY
+    loop = True
+    while loop:
+        loop = False
+        for i in range(n):
+            if domains[i, MIN] == domains[i, MAX] and paths[i, PATH_END] == i:
+                j = domains[i, MIN]
+                end = paths[i, PATH_END] = paths[j, PATH_END]
+                start = paths[j, PATH_START] = paths[i, PATH_START]
+                paths[start, PATH_END] = end
+                paths[end, PATH_START] = start
+                length = paths[i, PATH_LENGTH] + 1 + paths[j, PATH_LENGTH]
+                paths[i, PATH_LENGTH] = paths[j, PATH_LENGTH] = paths[start, PATH_LENGTH] = paths[end, PATH_LENGTH] = (
+                    length
+                )
+                if length < n - 1:
+                    if domains[end, MIN] == start:
+                        domains[end, MIN] = start + 1
+                    if domains[end, MAX] == start:
+                        domains[end, MAX] = start - 1
+                    if domains[end, MIN] > domains[end, MAX]:
+                        return PROP_INCONSISTENCY
+                    if end < i:
+                        loop = True
     return PROP_CONSISTENCY

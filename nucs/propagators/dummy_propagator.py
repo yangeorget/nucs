@@ -14,7 +14,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import PROP_CONSISTENCY
+from nucs.constants import EVENT_MASK_MAX, EVENT_MASK_MIN, PROP_CONSISTENCY
 
 
 def get_complexity_dummy(n: int, parameters: NDArray) -> float:
@@ -34,7 +34,7 @@ def get_triggers_dummy(n: int, parameters: NDArray) -> NDArray:
     :param parameters: the parameters, unused here
     :return: an array of triggers
     """
-    return np.ones((n, 2), dtype=np.bool)
+    return np.full(n, dtype=np.uint8, fill_value=EVENT_MASK_MIN | EVENT_MASK_MAX)
 
 
 @njit(cache=True)

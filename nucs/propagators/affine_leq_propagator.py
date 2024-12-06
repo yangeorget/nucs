@@ -14,7 +14,15 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    EVENT_MASK_MAX,
+    EVENT_MASK_MIN,
+    MAX,
+    MIN,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_affine_leq(n: int, parameters: NDArray) -> float:
@@ -34,10 +42,12 @@ def get_triggers_affine_leq(n: int, parameters: NDArray) -> NDArray:
     :param parameters: the parameters
     :return: an array of triggers
     """
-    triggers = np.zeros((n, 2), dtype=np.bool)
+    triggers = np.zeros(n, dtype=np.uint8)
     for i, c in enumerate(parameters[:-1]):
-        triggers[i, MIN] = c > 0
-        triggers[i, MAX] = c < 0
+        if c < 0:
+            triggers[i] = EVENT_MASK_MAX
+        elif c > 0:
+            triggers[i] = EVENT_MASK_MIN
     return triggers
 
 

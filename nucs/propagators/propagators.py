@@ -15,7 +15,6 @@ from typing import Callable
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN, MIN_AND_MAX
 from nucs.propagators.affine_eq_propagator import (
     compute_domains_affine_eq,
     get_complexity_affine_eq,
@@ -166,16 +165,9 @@ def add_propagators(
     events: int,
 ) -> None:
     cp_top_idx = stacks_top[0]
-    if events == MIN_AND_MAX:  # MIN and MAX have changed
-        for prop_idx in range(len(triggered_propagators)):
-            if (
-                shr_domains_propagators[dom_idx, MIN, prop_idx] or shr_domains_propagators[dom_idx, MAX, prop_idx]
-            ) and not_entailed_propagators_stack[cp_top_idx, prop_idx]:
-                triggered_propagators[prop_idx] = True
-    else:  # MIN or MAX has changed
-        for prop_idx in range(len(triggered_propagators)):
-            if (
-                shr_domains_propagators[dom_idx, events, prop_idx]
-                and not_entailed_propagators_stack[cp_top_idx, prop_idx]
-            ):
-                triggered_propagators[prop_idx] = True
+    for prop_idx in range(len(triggered_propagators)):
+        if (
+            shr_domains_propagators[dom_idx, prop_idx] & events != 0
+            and not_entailed_propagators_stack[cp_top_idx, prop_idx]
+        ):
+            triggered_propagators[prop_idx] = True
