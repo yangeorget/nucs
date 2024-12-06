@@ -84,10 +84,11 @@ class Problem:
         :param shr_domain: the shared domain of the variable
         :param dom_index: the domain index (automatically computed if not defined)
         :param dom_offset: the domain offset (set to 0 if not defined)
+        :return: the index of the extra variable
         """
-        start = len(self.shr_domains_lst)
+        insertion_idx = len(self.shr_domains_lst)
         if dom_index is None:
-            dom_index = start
+            dom_index = insertion_idx
         if dom_offset is None:
             dom_offset = 0
         self.shr_domains_lst.append(
@@ -96,7 +97,7 @@ class Problem:
         self.dom_indices_lst.append(dom_index)
         self.dom_offsets_lst.append(dom_offset)
         self.shr_domain_nb = len(self.dom_indices_lst)
-        return start
+        return insertion_idx
 
     def add_variables(
         self,
@@ -109,11 +110,12 @@ class Problem:
         :param shr_domains_list: the shared domains of the variables
         :param dom_indices_list: the domain indices (automatically computed if not defined)
         :param dom_offsets_list: the domain offsets (set to 0 if not defined)
+        :return: the index where the extra variables have been added
         """
-        start = len(self.shr_domains_lst)
+        insertion_idx = len(self.shr_domains_lst)
         n = len(shr_domains_list)
         if dom_indices_list is None:
-            dom_indices_list = [start + i for i in range(n)]
+            dom_indices_list = [insertion_idx + i for i in range(n)]
         if dom_offsets_list is None:
             dom_offsets_list = [0] * n
         self.shr_domains_lst.extend(
@@ -125,7 +127,7 @@ class Problem:
         self.dom_indices_lst.extend(dom_indices_list)
         self.dom_offsets_lst.extend(dom_offsets_list)
         self.shr_domain_nb = len(self.dom_indices_lst)
-        return start
+        return insertion_idx
 
     def add_propagator(self, propagator: Tuple[List[int], int, List[int]]) -> None:
         """
