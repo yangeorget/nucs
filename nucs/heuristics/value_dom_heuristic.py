@@ -19,6 +19,7 @@ from nucs.constants import (
     EVENT_MASK_GROUND,
     EVENT_MASK_MAX,
     EVENT_MASK_MIN,
+    EVENT_MASK_MIN_MAX_GROUND,
     MAX,
     MIN,
 )
@@ -68,4 +69,4 @@ def value_dom_heuristic(
         events |= EVENT_MASK_GROUND
     dom_update_stack[cp_cur_idx, DOM_UPDATE_IDX] = dom_idx
     dom_update_stack[cp_cur_idx, DOM_UPDATE_EVENTS] = events
-    return EVENT_MASK_MIN | EVENT_MASK_MAX | EVENT_MASK_GROUND
+    return EVENT_MASK_MIN_MAX_GROUND
