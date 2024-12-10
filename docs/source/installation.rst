@@ -12,12 +12,14 @@ Let's install the NuCS package with pip:
 
    pip install nucs
 
+
 *****************
 Run some examples
 *****************
 
 NuCS comes with some models and :ref:`heuristics <heuristics>` for some well-known :ref:`examples <examples>`.
 Some of these examples have a command line interface and can be run directly.
+
 
 Solve the 12-queens problem
 ###########################
@@ -53,6 +55,7 @@ Produces the following output:
     'SOLVER_CHOICE_DEPTH': 10,
     'SOLVER_SOLUTION_NB': 14200
    }
+
 
 Solve the Golomb ruler problem
 ##############################
@@ -99,6 +102,7 @@ Produces the following output:
     'SOLVER_SOLUTION_NB': 10
    }
    [ 1  6 10 23 26 34 41 53 55]
+
 
 **********************
 Write your first model

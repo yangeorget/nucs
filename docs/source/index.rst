@@ -24,14 +24,20 @@ Check out the :doc:`installation` section for further information to get started
 
    This project is under active development.
 
+********
 Contents
-########
+********
 
 .. toctree::
+   :glob:
 
    installation
-   variables_domains
-   consistency_propagators
-   solvers_heuristics
-   stats_logging
-   reference
+   variables
+   domains
+   propagators
+   consistency
+   solvers
+   heuristics
+   stats
+   logging
+   reference/reference_index.rst
