@@ -21,8 +21,8 @@ def new_shr_domains_by_values(domains: List[Union[int, Tuple[int, int]]]) -> NDA
     Only used in tests.
     """
     return np.array(
-        [(domain, domain) if isinstance(domain, int) else domain for domain in domains], dtype=np.int32  # , order="F"
-    )
+        [(domain, domain) if isinstance(domain, int) else domain for domain in domains], dtype=np.int32
+    )  # , order="F"
 
 
 def new_parameters_by_values(data: List[int]) -> NDArray:
