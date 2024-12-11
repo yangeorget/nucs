@@ -12,6 +12,7 @@
 ###############################################################################
 import sys
 
+import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -19,7 +20,7 @@ from nucs.constants import MAX, MIN
 
 
 @njit(cache=True)
-def max_regret_var_heuristic(
+def mrp_var_heuristic(
     params: NDArray, decision_domains: NDArray, shr_domains_stack: NDArray, stacks_top: NDArray
 ) -> int:
     """
@@ -30,22 +31,29 @@ def max_regret_var_heuristic(
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :return: the index of the shared domain
     """
+    cp_top_idx = stacks_top[0]
+    used = np.zeros(len(decision_domains), dtype=np.bool)
+    for dom_idx in decision_domains:
+        used[shr_domains_stack[cp_top_idx, dom_idx, MIN]] = (
+            shr_domains_stack[cp_top_idx, dom_idx, MIN] == shr_domains_stack[cp_top_idx, dom_idx, MAX]
+        )
     max_regret = 0
     best_idx = -1
-    cp_top_idx = stacks_top[0]
     for dom_idx in decision_domains:
         shr_domain = shr_domains_stack[cp_top_idx, dom_idx]
-        if 0 < shr_domain[MAX] - shr_domain[MIN]:
+        size = shr_domain[MAX] - shr_domain[MIN]  # actually this is size - 1
+        if 0 < size:
             best_cost = sys.maxsize
             second_cost = sys.maxsize
             for value in range(shr_domain[MIN], shr_domain[MAX] + 1):
-                cost = params[dom_idx][value]
-                if cost > 0:
-                    if cost < best_cost:
-                        second_cost = best_cost
-                        best_cost = cost
-                    elif cost < second_cost:
-                        second_cost = cost
+                if not used[value]:
+                    cost = params[dom_idx][value]
+                    if cost > 0:
+                        if cost < best_cost:
+                            second_cost = best_cost
+                            best_cost = cost
+                        elif cost < second_cost:
+                            second_cost = cost
             regret = second_cost - best_cost
             if max_regret < regret:
                 best_idx = dom_idx

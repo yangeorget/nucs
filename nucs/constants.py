@@ -14,6 +14,9 @@ import os
 
 from numba import bool, int32, int64, types, uint8, uint16  # type: ignore
 
+OM_RESTART = 0
+OM_CONTINUE = 1
+
 RG_START = 0  # index corresponding the start of a values range
 RG_END = 1  # index corresponding the end of a values range
 

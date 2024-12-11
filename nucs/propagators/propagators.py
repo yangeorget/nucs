@@ -164,5 +164,5 @@ def add_propagators(
     events: int,
 ) -> None:
     for prop_idx in range(len(triggered_propagators)):
-        if not_entailed_propagators[prop_idx] and triggers[dom_idx, prop_idx] & events != 0:
+        if triggers[dom_idx, prop_idx] & events != 0 and not_entailed_propagators[prop_idx]:
             triggered_propagators[prop_idx] = True

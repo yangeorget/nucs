@@ -21,6 +21,7 @@ from numpy.typing import NDArray
 from nucs.constants import (
     LOG_LEVEL_INFO,
     NUMBA_DISABLE_JIT,
+    OM_RESTART,
     PROBLEM_BOUND,
     PROBLEM_UNBOUND,
     SIGNATURE_COMPUTE_DOMAINS,
@@ -154,25 +155,25 @@ class BacktrackSolver(Solver):
             STATS_LBL_SOLVER_SOLUTION_NB: int(self.statistics[STATS_IDX_SOLVER_SOLUTION_NB]),
         }
 
-    def minimize(self, variable_idx: int) -> Optional[NDArray]:
+    def minimize(self, variable_idx: int, mode: int = OM_RESTART) -> Optional[NDArray]:
         """
         Return the solution that minimizes a variable.
         :param variable_idx: the index of the variable to minimize
         :return: the optimal solution if it exists or None
         """
         logger.info(f"Minimizing variable {variable_idx}")
-        return self.optimize(variable_idx, decrease_max)
+        return self.optimize(variable_idx, mode, decrease_max)
 
-    def maximize(self, variable_idx: int) -> Optional[NDArray]:
+    def maximize(self, variable_idx: int, mode: int = OM_RESTART) -> Optional[NDArray]:
         """
         Return the solution that maximizes a variable.
         :param variable_idx: the index of the variable to maximize
         :return: the optimal solution if it exists or None
         """
         logger.info(f"Maximizing variable {variable_idx}")
-        return self.optimize(variable_idx, increase_min)
+        return self.optimize(variable_idx, mode, increase_min)
 
-    def optimize(self, variable_idx: int, update_domain_fct: Callable) -> Optional[NDArray]:
+    def optimize(self, variable_idx: int, mode: int, update_domain_fct: Callable) -> Optional[NDArray]:
         """
         Finds, if it exists, the solution to the problem that optimizes a given variable.
         :param variable_idx: the index of the variable
@@ -214,23 +215,26 @@ class BacktrackSolver(Solver):
             )
         ) is not None:
             logger.info(f"Found a local optimum: {solution[variable_idx]}")
-            best_solution = solution
-            reset(
-                self.problem,
-                self.shr_domains_stack,
-                self.not_entailed_propagators_stack,
-                self.dom_update_stack,
-                self.stacks_top,
-                self.triggered_propagators,
-            )
-            update_domain_fct(
-                self.shr_domains_stack,
-                self.stacks_top,
-                self.problem.dom_indices_arr,
-                self.problem.dom_offsets_arr,
-                variable_idx,
-                best_solution[variable_idx],
-            )
+            if mode == OM_RESTART:
+                best_solution = solution
+                reset(
+                    self.problem,
+                    self.shr_domains_stack,
+                    self.not_entailed_propagators_stack,
+                    self.dom_update_stack,
+                    self.stacks_top,
+                    self.triggered_propagators,
+                )
+                update_domain_fct(
+                    self.shr_domains_stack,
+                    self.stacks_top,
+                    self.problem.dom_indices_arr,
+                    self.problem.dom_offsets_arr,
+                    variable_idx,
+                    best_solution[variable_idx],
+                )
+            else:
+                pass
         return best_solution
 
     def solve(self) -> Iterator[NDArray]:

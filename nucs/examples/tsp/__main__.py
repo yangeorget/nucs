@@ -29,6 +29,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     tsp_instance = TSP_INSTANCES[args.name]
     problem = TSPProblem(tsp_instance)
+    # mrp_var_heuristic_idx = register_var_heuristic(mrp_var_heuristic)
+    # mcp_dom_heuristic_idx = register_dom_heuristic(mcp_dom_heuristic)
     solver = BacktrackSolver(
         problem,
         consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
