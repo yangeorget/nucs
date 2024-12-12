@@ -15,7 +15,7 @@ import argparse
 from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPT_MODES, OPT_PRUNE
 from nucs.examples.tsp.tsp_instances import TSP_INSTANCES
 from nucs.examples.tsp.tsp_problem import TSPProblem
-from nucs.heuristics.heuristics import VAR_HEURISTIC_MAX_REGRET, DOM_HEURISTIC_MIN_COST
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, VAR_HEURISTIC_MAX_REGRET
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_SHAVING
 

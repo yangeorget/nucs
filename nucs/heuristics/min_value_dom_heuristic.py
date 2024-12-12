@@ -44,15 +44,15 @@ def min_value_dom_heuristic(
     :param params: a two-dimensional parameters array, unused here
     :return: the events
     """
-    cp_cur_idx = stacks_top[0]
-    value = shr_domains_stack[cp_cur_idx, dom_idx, MIN]
+    top = stacks_top[0]
+    value = shr_domains_stack[top, dom_idx, MIN]
     cp_put(shr_domains_stack, not_entailed_propagators_stack, stacks_top)
-    shr_domains_stack[cp_cur_idx + 1, dom_idx, MAX] = value
-    shr_domains_stack[cp_cur_idx, dom_idx, MIN] = value + 1
-    dom_update_stack[cp_cur_idx, DOM_UPDATE_IDX] = dom_idx
-    dom_update_stack[cp_cur_idx, DOM_UPDATE_EVENTS] = (
+    shr_domains_stack[top + 1, dom_idx, MAX] = value
+    shr_domains_stack[top, dom_idx, MIN] = value + 1
+    dom_update_stack[top, DOM_UPDATE_IDX] = dom_idx
+    dom_update_stack[top, DOM_UPDATE_EVENTS] = (
         EVENT_MASK_MIN_GROUND
-        if shr_domains_stack[cp_cur_idx, dom_idx, MIN] == shr_domains_stack[cp_cur_idx, dom_idx, MAX]
+        if shr_domains_stack[top, dom_idx, MIN] == shr_domains_stack[top, dom_idx, MAX]
         else EVENT_MASK_MIN
     )
     return EVENT_MASK_MAX_GROUND

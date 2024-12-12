@@ -38,10 +38,10 @@ def min_cost_dom_heuristic(
     :param params: a two-dimensional (first dimension correspond to variables, second to values) costs array
     :return: the events
     """
-    cp_top_idx = stacks_top[0]
+    top = stacks_top[0]
     best_cost = sys.maxsize
     best_value = -1
-    shr_domain = shr_domains_stack[cp_top_idx, dom_idx]
+    shr_domain = shr_domains_stack[top, dom_idx]
     for value in range(shr_domain[MIN], shr_domain[MAX] + 1):
         cost = params[dom_idx][value]
         if 0 < cost < best_cost:

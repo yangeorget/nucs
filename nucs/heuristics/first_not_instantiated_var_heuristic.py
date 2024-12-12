@@ -28,8 +28,8 @@ def first_not_instantiated_var_heuristic(
     :param params: a two-dimensional parameters array, unused here
     :return: the index of the shared domain
     """
-    cp_top_idx = stacks_top[0]
+    top = stacks_top[0]
     for dom_idx in decision_domains:
-        if shr_domains_stack[cp_top_idx, dom_idx, MIN] < shr_domains_stack[cp_top_idx, dom_idx, MAX]:
+        if shr_domains_stack[top, dom_idx, MIN] < shr_domains_stack[top, dom_idx, MAX]:
             return dom_idx
     return -1  # cannot happen

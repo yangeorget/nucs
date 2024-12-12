@@ -32,9 +32,9 @@ def smallest_domain_var_heuristic(
     """
     min_size = sys.maxsize
     min_idx = -1
-    cp_top_idx = stacks_top[0]
+    top = stacks_top[0]
     for dom_idx in decision_domains:
-        shr_domain = shr_domains_stack[cp_top_idx, dom_idx]
+        shr_domain = shr_domains_stack[top, dom_idx]
         size = shr_domain[MAX] - shr_domain[MIN]  # actually this is size - 1
         if 0 < size < min_size:
             min_idx = dom_idx

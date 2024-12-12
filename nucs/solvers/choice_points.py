@@ -1,7 +1,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import DOM_UPDATE_EVENTS, DOM_UPDATE_IDX, MIN, STATS_IDX_SOLVER_BACKTRACK_NB
+from nucs.constants import DOM_UPDATE_EVENTS, DOM_UPDATE_IDX, MAX, MIN, STATS_IDX_SOLVER_BACKTRACK_NB
 from nucs.propagators.propagators import add_propagators
 
 
@@ -84,7 +84,7 @@ def fix_choice_points(
     variable_idx: int,
     value: int,
     bound: int,
-) -> None:
+) -> bool:
     """
     :param problem: the problem
     :param shr_domains_stack: the stack of shared domains
@@ -93,9 +93,15 @@ def fix_choice_points(
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param triggered_propagators: the list of triggered propagators
     """
-    shr_domains_stack[0 : stacks_top[0], dom_indices_arr[variable_idx], bound] = (
+    dom_idx = dom_indices_arr[variable_idx]
+    shr_domains_stack[0 : stacks_top[0] + 1, dom_idx, bound] = (
         value + (1 if bound == MIN else -1) - dom_offsets_arr[variable_idx]
     )
+    while shr_domains_stack[stacks_top[0], dom_idx, MIN] > shr_domains_stack[stacks_top[0], dom_idx, MAX]:
+        if stacks_top[0] == 0:
+            return False
+        stacks_top[0] -= 1
+    return True
 
 
 @njit(cache=True)
@@ -107,7 +113,7 @@ def fix_top_choice_point(
     variable_idx: int,
     value: int,
     bound: int,
-) -> None:
+) -> bool:
     """
     :param problem: the problem
     :param shr_domains_stack: the stack of shared domains
@@ -116,6 +122,12 @@ def fix_top_choice_point(
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param triggered_propagators: the list of triggered propagators
     """
-    shr_domains_stack[stacks_top[0], dom_indices_arr[variable_idx], bound] = (
+    dom_idx = dom_indices_arr[variable_idx]
+    shr_domains_stack[stacks_top[0], dom_idx, bound] = (
         value + (1 if bound == MIN else -1) - dom_offsets_arr[variable_idx]
     )
+    while shr_domains_stack[stacks_top[0], dom_idx, MIN] > shr_domains_stack[stacks_top[0], dom_idx, MAX]:
+        if stacks_top[0] == 0:
+            return False
+        stacks_top[0] -= 1
+    return True

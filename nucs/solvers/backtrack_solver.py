@@ -219,15 +219,14 @@ class BacktrackSolver(Solver):
             best_solution = solution
             if mode == OPT_RESET:
                 logger.debug("Resetting solver")
-                reset(
-                    self.problem,
+                cp_init(
                     self.shr_domains_stack,
                     self.not_entailed_propagators_stack,
                     self.dom_update_stack,
                     self.stacks_top,
-                    self.triggered_propagators,
+                    np.array(self.problem.shr_domains_lst),
                 )
-                fix_top_choice_point(
+                if not fix_top_choice_point(
                     self.shr_domains_stack,
                     self.stacks_top,
                     self.problem.dom_indices_arr,
@@ -235,27 +234,24 @@ class BacktrackSolver(Solver):
                     variable_idx,
                     best_solution[variable_idx],
                     bound,
-                )
-            else:
-                logger.debug("Pruning choice points")
-                fix_choice_points(
-                    self.shr_domains_stack,
-                    self.stacks_top,
-                    self.problem.dom_indices_arr,
-                    self.problem.dom_offsets_arr,
-                    variable_idx,
-                    best_solution[variable_idx],
-                    bound,
-                )
-                if not backtrack(
-                    self.statistics,
-                    self.not_entailed_propagators_stack,
-                    self.dom_update_stack,
-                    self.stacks_top,
-                    self.triggered_propagators,
-                    self.problem.triggers,
                 ):
                     break
+            else:
+                logger.debug("Pruning choice points")
+                if self.stacks_top[0] == 0:
+                    break
+                self.stacks_top[0] -= 1
+                if not fix_choice_points(
+                    self.shr_domains_stack,
+                    self.stacks_top,
+                    self.problem.dom_indices_arr,
+                    self.problem.dom_offsets_arr,
+                    variable_idx,
+                    best_solution[variable_idx],
+                    bound,
+                ):
+                    break
+            self.triggered_propagators.fill(True)
         return best_solution
 
     def solve(self) -> Iterator[NDArray]:
@@ -373,14 +369,14 @@ class BacktrackSolver(Solver):
                 break
             logger.info(f"Found a local optimum: {solution[variable_idx]}")
             solution_queue.put((processor_idx, solution, self.statistics))
-            reset(
-                self.problem,
+            cp_init(
                 self.shr_domains_stack,
                 self.not_entailed_propagators_stack,
                 self.dom_update_stack,
                 self.stacks_top,
-                self.triggered_propagators,
+                np.array(self.problem.shr_domains_lst),
             )
+            self.triggered_propagators.fill(True)
             fix_top_choice_point(
                 self.shr_domains_stack,
                 self.stacks_top,
@@ -443,33 +439,6 @@ class BacktrackSolver(Solver):
             ):
                 break
         solution_queue.put((processor_idx, None, self.statistics))
-
-
-def reset(
-    problem: Problem,
-    shr_domains_stack: NDArray,
-    not_entailed_propagators_stack: NDArray,
-    dom_update_stack: NDArray,
-    stacks_top: NDArray,
-    triggered_propagators: NDArray,
-) -> None:
-    """
-    Resets the solver.
-    :param problem: the problem
-    :param shr_domains_stack: the stack of shared domains
-    :param not_entailed_propagators_stack: the stack of not entailed propagators
-    :param dom_update_stack: the stack of domain updates
-    :param stacks_top: the index of the top of the stacks as a Numpy array
-    :param triggered_propagators: the list of triggered propagators
-    """
-    cp_init(
-        shr_domains_stack,
-        not_entailed_propagators_stack,
-        dom_update_stack,
-        stacks_top,
-        np.array(problem.shr_domains_lst),
-    )
-    triggered_propagators.fill(True)
 
 
 @njit(cache=True)

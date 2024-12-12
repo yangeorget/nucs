@@ -32,9 +32,9 @@ def max_regret_var_heuristic(
     """
     max_regret = 0
     best_idx = -1
-    cp_top_idx = stacks_top[0]
+    top = stacks_top[0]
     for dom_idx in decision_domains:
-        shr_domain = shr_domains_stack[cp_top_idx, dom_idx]
+        shr_domain = shr_domains_stack[top, dom_idx]
         if 0 < shr_domain[MAX] - shr_domain[MIN]:
             best_cost = sys.maxsize
             second_cost = sys.maxsize
