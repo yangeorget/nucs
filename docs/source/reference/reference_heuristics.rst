@@ -17,14 +17,14 @@ NUCS provides the following functions for selecting a shared domain.
 
    This heuristics chooses the first non-instantiated shared domain.
 
-   :param params: a two-dimensional parameters array, unused here
-   :type params: NDArray
    :param decision_domains: the indices of the domains on which choices will be made
    :type decision_domains: NDArray
    :param shr_domains_stack: the stack of shared domains
    :type shr_domains_stack: NDArray
    :param stacks_top: the index of the top of the stacks as a Numpy array
    :type stacks_top: NDArray
+   :param params: a two-dimensional parameters array, unused here
+   :type params: NDArray
    :return: the index of the shared domain
    :rtype: int
 
@@ -34,14 +34,14 @@ NUCS provides the following functions for selecting a shared domain.
 
    This heuristics chooses the greatest shared domain and which is not instantiated.
 
-   :param params: a two-dimensional parameters array, unused here
-   :type params: NDArray
    :param decision_domains: the indices of the domains on which choices will be made
    :type decision_domains: NDArray
    :param shr_domains_stack: the stack of shared domains
    :type shr_domains_stack: NDArray
    :param stacks_top: the index of the top of the stacks as a Numpy array
    :type stacks_top: NDArray
+   :param params: a two-dimensional parameters array, unused here
+   :type params: NDArray
    :return: the index of the shared domain
    :rtype: int
 
@@ -51,14 +51,14 @@ NUCS provides the following functions for selecting a shared domain.
 
    This heuristics chooses the domain with the maximal regret (difference between best and second best values).
 
-   :param params: a two-dimensional costs array, by variable then by value
-   :type params: NDArray
    :param decision_domains: the indices of the domains on which choices will be made
    :type decision_domains: NDArray
    :param shr_domains_stack: the stack of shared domains
    :type shr_domains_stack: NDArray
    :param stacks_top: the index of the top of the stacks as a Numpy array
    :type stacks_top: NDArray
+   :param params: a two-dimensional costs array, by variable then by value
+   :type params: NDArray
    :return: the index of the shared domain
    :rtype: int
 
@@ -68,14 +68,14 @@ NUCS provides the following functions for selecting a shared domain.
 
    This heuristics chooses the smallest shared domain and which is not instantiated.
 
-   :param params: a two-dimensional parameters array, unused here
-   :type params: NDArray
    :param decision_domains: the indices of the domains on which choices will be made
    :type decision_domains: NDArray
    :param shr_domains_stack: the stack of shared domains
    :type shr_domains_stack: NDArray
    :param stacks_top: the index of the top of the stacks as a Numpy array
    :type stacks_top: NDArray
+   :param params: a two-dimensional parameters array, unused here
+   :type params: NDArray
    :return: the index of the shared domain
    :rtype: int
 
@@ -91,8 +91,6 @@ NUCS provides the following functions for reducing a shared domain.
 
    This heuristics chooses the last value of the domain.
 
-   :param params: a two-dimensional parameters array, unused here
-   :type params: NDArray
    :param shr_domains_stack: the stack of shared domains
    :type shr_domains_stack: NDArray
    :param not_entailed_propagators_stack: the stack of not entailed propagators
@@ -103,6 +101,8 @@ NUCS provides the following functions for reducing a shared domain.
    :type stack_top: NDArray
    :param dom_idx: the index of the shared domain
    :type dom_idx: int
+   :param params: a two-dimensional parameters array, unused here
+   :type params: NDArray
    :return: the MIN event
    :rtype: int
 
@@ -112,8 +112,6 @@ NUCS provides the following functions for reducing a shared domain.
 
    This heuristics chooses the middle value of the domain.
 
-   :param params: a two-dimensional parameters array, unused here
-   :type params: NDArray
    :param shr_domains_stack: the stack of shared domains
    :type shr_domains_stack: NDArray
    :param not_entailed_propagators_stack: the stack of not entailed propagators
@@ -124,6 +122,8 @@ NUCS provides the following functions for reducing a shared domain.
    :type stack_top: NDArray
    :param dom_idx: the index of the shared domain
    :type dom_idx: int
+   :param params: a two-dimensional parameters array, unused here
+   :type params: NDArray
    :return: an event (MIN, MAX or MIN and MAX)
    :rtype: int
 
@@ -133,8 +133,6 @@ NUCS provides the following functions for reducing a shared domain.
 
    This heuristics chooses the value of the domain that minimizes the cost.
 
-   :param params: a two-dimensional costs array, by variable then by value
-   :type params: NDArray
    :param shr_domains_stack: the stack of shared domains
    :type shr_domains_stack: NDArray
    :param not_entailed_propagators_stack: the stack of not entailed propagators
@@ -145,6 +143,8 @@ NUCS provides the following functions for reducing a shared domain.
    :type stack_top: NDArray
    :param dom_idx: the index of the shared domain
    :type dom_idx: int
+   :param params: a two-dimensional costs array, by variable then by value
+   :type params: NDArray
    :return: an event (MIN, MAX or MIN and MAX)
    :rtype: int
 
@@ -154,8 +154,6 @@ NUCS provides the following functions for reducing a shared domain.
 
    This heuristics chooses the first value of the domain.
 
-   :param params: a two-dimensional parameters array, unused here
-   :type params: NDArray
    :param shr_domains_stack: the stack of shared domains
    :type shr_domains_stack: NDArray
    :param not_entailed_propagators_stack: the stack of not entailed propagators
@@ -166,6 +164,8 @@ NUCS provides the following functions for reducing a shared domain.
    :type stack_top: NDArray
    :param dom_idx: the index of the shared domain
    :type dom_idx: int
+   :param params: a two-dimensional parameters array, unused here
+   :type params: NDArray
    :return: the MAX event
    :rtype: int
 
@@ -175,8 +175,6 @@ NUCS provides the following functions for reducing a shared domain.
 
    This heuristics chooses the first half of the domain.
 
-   :param params: a two-dimensional parameters array, unused here
-   :type params: NDArray
    :param shr_domains_stack: the stack of shared domains
    :type shr_domains_stack: NDArray
    :param not_entailed_propagators_stack: the stack of not entailed propagators
@@ -187,6 +185,8 @@ NUCS provides the following functions for reducing a shared domain.
    :type stack_top: NDArray
    :param dom_idx: the index of the shared domain
    :type dom_idx: int
+   :param params: a two-dimensional parameters array, unused here
+   :type params: NDArray
    :return: the MAX event
    :rtype: int
 

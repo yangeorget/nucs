@@ -12,7 +12,7 @@
 ###############################################################################
 import argparse
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
+from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPT_MODES, OPT_RESET
 from nucs.examples.tsp.tsp_instances import TSP_INSTANCES
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, VAR_HEURISTIC_MAX_REGRET
@@ -25,7 +25,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
     parser.add_argument("--name", choices=["GR17", "GR21", "GR24"], default="GR17")
-    parser.add_argument("--shaving", type=bool, action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--shaving", type=bool, action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--opt_mode", choices=OPT_MODES, default=OPT_RESET)
     args = parser.parse_args()
     tsp_instance = TSP_INSTANCES[args.name]
     problem = TSPProblem(tsp_instance)
@@ -41,5 +42,5 @@ if __name__ == "__main__":
         dom_heuristic_params=tsp_instance,
         log_level=args.log_level,
     )
-    solution = solver.minimize(problem.shr_domain_nb - 1)
+    solution = solver.minimize(problem.shr_domain_nb - 1, mode=args.opt_mode)
     print(solver.get_statistics())

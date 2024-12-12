@@ -14,7 +14,7 @@ import argparse
 
 from rich import print
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
+from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPT_MODES, OPT_RESET
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import register_consistency_algorithm
@@ -26,11 +26,12 @@ if __name__ == "__main__":
     parser.add_argument("-n", type=int, default=10)
     parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
+    parser.add_argument("--opt_mode", choices=OPT_MODES, default=OPT_RESET)
     args = parser.parse_args()
     problem = GolombProblem(args.n, args.symmetry_breaking)
     consistency_alg_golomb = register_consistency_algorithm(golomb_consistency_algorithm)
     solver = BacktrackSolver(problem, consistency_alg_idx=consistency_alg_golomb, log_level=args.log_level)
-    solution = solver.minimize(problem.length_idx)
+    solution = solver.minimize(problem.length_idx, mode=args.opt_mode)
     print(solver.get_statistics())
     if solution is not None:
         print(solution[: (args.n - 1)])

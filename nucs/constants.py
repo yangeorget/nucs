@@ -14,8 +14,9 @@ import os
 
 from numba import bool, int32, int64, types, uint8, uint16  # type: ignore
 
-OM_RESTART = 0
-OM_CONTINUE = 1
+OPT_RESET = "RESET"
+OPT_PRUNE = "PRUNE"
+OPT_MODES = [OPT_RESET, OPT_PRUNE]
 
 RG_START = 0  # index corresponding the start of a values range
 RG_END = 1  # index corresponding the end of a values range
@@ -64,18 +65,18 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     uint16[:],  # decision_domains
 )
 SIGNATURE_DOM_HEURISTIC = int64(
-    int64[:, :],  # dom_heuristic_params
     int32[:, :, :],  # shr_domains_stack
     bool[:, :],  # not_entailed_propagators_stack
     uint16[:, :],  # dom_update_stack
     uint8[:],  # stacks_top
     int64,  # dom_idx
+    int64[:, :],  # dom_heuristic_params
 )
 SIGNATURE_VAR_HEURISTIC = int64(
-    int64[:, :],  # var_heuristic_params
     uint16[:],  # decision_variables
     int32[:, :, :],  # shr_domains_stack
     uint8[:],  # stacks_top
+    int64[:, :],  # var_heuristic_params
 )
 
 

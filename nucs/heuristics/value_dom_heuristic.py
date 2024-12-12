@@ -31,33 +31,33 @@ from nucs.solvers.choice_points import cp_put
 
 @njit(cache=True)
 def value_dom_heuristic(
-    params: NDArray,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
     stacks_top: NDArray,
     dom_idx: int,
     value: int,
+    params: NDArray,
 ) -> int:
     """
     Chooses a value given as a parameter.
-    :param params: a two-dimensional parameters array
     :param shr_domains_stack: the stack of shared domains
     :param not_entailed_propagators_stack: the stack of not entailed propagators
     :param dom_update_stack: the stack of domain updates
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param dom_idx: the index of the shared domain
     :param value: the value
+    :param params: a two-dimensional parameters array
     :return: the events
     """
     cp_cur_idx = stacks_top[0]
     if value == shr_domains_stack[cp_cur_idx, dom_idx, MIN]:
         return min_value_dom_heuristic(
-            params, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
+            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx, params
         )
     if value == shr_domains_stack[cp_cur_idx, dom_idx, MAX]:
         return max_value_dom_heuristic(
-            params, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
+            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx, params
         )
     cp_put(shr_domains_stack, not_entailed_propagators_stack, stacks_top)
     cp_put(shr_domains_stack, not_entailed_propagators_stack, stacks_top)

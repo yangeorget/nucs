@@ -1,7 +1,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import DOM_UPDATE_EVENTS, DOM_UPDATE_IDX, STATS_IDX_SOLVER_BACKTRACK_NB
+from nucs.constants import DOM_UPDATE_EVENTS, DOM_UPDATE_IDX, MIN, STATS_IDX_SOLVER_BACKTRACK_NB
 from nucs.propagators.propagators import add_propagators
 
 
@@ -73,3 +73,49 @@ def backtrack(
         dom_update_stack[stacks_top[0], DOM_UPDATE_EVENTS],
     )
     return True
+
+
+@njit(cache=True)
+def fix_choice_points(
+    shr_domains_stack: NDArray,
+    stacks_top: NDArray,
+    dom_indices_arr: NDArray,
+    dom_offsets_arr: NDArray,
+    variable_idx: int,
+    value: int,
+    bound: int,
+) -> None:
+    """
+    :param problem: the problem
+    :param shr_domains_stack: the stack of shared domains
+    :param not_entailed_propagators_stack: the stack of not entailed propagators
+    :param dom_update_stack: the stack of domain updates
+    :param stacks_top: the index of the top of the stacks as a Numpy array
+    :param triggered_propagators: the list of triggered propagators
+    """
+    shr_domains_stack[0 : stacks_top[0], dom_indices_arr[variable_idx], bound] = (
+        value + (1 if bound == MIN else -1) - dom_offsets_arr[variable_idx]
+    )
+
+
+@njit(cache=True)
+def fix_top_choice_point(
+    shr_domains_stack: NDArray,
+    stacks_top: NDArray,
+    dom_indices_arr: NDArray,
+    dom_offsets_arr: NDArray,
+    variable_idx: int,
+    value: int,
+    bound: int,
+) -> None:
+    """
+    :param problem: the problem
+    :param shr_domains_stack: the stack of shared domains
+    :param not_entailed_propagators_stack: the stack of not entailed propagators
+    :param dom_update_stack: the stack of domain updates
+    :param stacks_top: the index of the top of the stacks as a Numpy array
+    :param triggered_propagators: the list of triggered propagators
+    """
+    shr_domains_stack[stacks_top[0], dom_indices_arr[variable_idx], bound] = (
+        value + (1 if bound == MIN else -1) - dom_offsets_arr[variable_idx]
+    )

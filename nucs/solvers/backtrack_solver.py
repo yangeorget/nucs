@@ -12,7 +12,7 @@
 ###############################################################################
 import logging
 from multiprocessing import Queue
-from typing import Callable, Dict, Iterator, List, Optional, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -20,8 +20,10 @@ from numpy.typing import NDArray
 
 from nucs.constants import (
     LOG_LEVEL_INFO,
+    MAX,
+    MIN,
     NUMBA_DISABLE_JIT,
-    OM_RESTART,
+    OPT_RESET,
     PROBLEM_BOUND,
     PROBLEM_UNBOUND,
     SIGNATURE_COMPUTE_DOMAINS,
@@ -68,9 +70,9 @@ from nucs.heuristics.heuristics import (
 from nucs.numba_helper import build_function_address_list, function_from_address
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, add_propagators
-from nucs.solvers.choice_points import backtrack, cp_init
+from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_points, fix_top_choice_point
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
-from nucs.solvers.solver import Solver, decrease_max, get_solution, increase_min
+from nucs.solvers.solver import Solver, get_solution
 
 logger = logging.getLogger(__name__)
 
@@ -155,32 +157,31 @@ class BacktrackSolver(Solver):
             STATS_LBL_SOLVER_SOLUTION_NB: int(self.statistics[STATS_IDX_SOLVER_SOLUTION_NB]),
         }
 
-    def minimize(self, variable_idx: int, mode: int = OM_RESTART) -> Optional[NDArray]:
+    def minimize(self, variable_idx: int, mode: str = OPT_RESET) -> Optional[NDArray]:
         """
         Return the solution that minimizes a variable.
         :param variable_idx: the index of the variable to minimize
         :return: the optimal solution if it exists or None
         """
-        logger.info(f"Minimizing variable {variable_idx}")
-        return self.optimize(variable_idx, mode, decrease_max)
+        logger.info(f"Minimizing variable {variable_idx} with mode {mode}")
+        return self.optimize(variable_idx, MAX, mode)
 
-    def maximize(self, variable_idx: int, mode: int = OM_RESTART) -> Optional[NDArray]:
+    def maximize(self, variable_idx: int, mode: str = OPT_RESET) -> Optional[NDArray]:
         """
         Return the solution that maximizes a variable.
         :param variable_idx: the index of the variable to maximize
         :return: the optimal solution if it exists or None
         """
-        logger.info(f"Maximizing variable {variable_idx}")
-        return self.optimize(variable_idx, mode, increase_min)
+        logger.info(f"Maximizing variable {variable_idx} with mode {mode}")
+        return self.optimize(variable_idx, MIN, mode)
 
-    def optimize(self, variable_idx: int, mode: int, update_domain_fct: Callable) -> Optional[NDArray]:
+    def optimize(self, variable_idx: int, bound: int, mode: str) -> Optional[NDArray]:
         """
         Finds, if it exists, the solution to the problem that optimizes a given variable.
         :param variable_idx: the index of the variable
-        :param update_domain_fct: the function to update the domain of the variable
         :return: the solution if it exists or None
         """
-        logger.debug(f"Optimizing variable {variable_idx}")
+        logger.debug(f"Optimizing bound {bound} of variable {variable_idx} with mode {mode}")
         compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
             get_function_addresses()
         )
@@ -215,8 +216,9 @@ class BacktrackSolver(Solver):
             )
         ) is not None:
             logger.info(f"Found a local optimum: {solution[variable_idx]}")
-            if mode == OM_RESTART:
-                best_solution = solution
+            best_solution = solution
+            if mode == OPT_RESET:
+                logger.debug("Resetting solver")
                 reset(
                     self.problem,
                     self.shr_domains_stack,
@@ -225,16 +227,35 @@ class BacktrackSolver(Solver):
                     self.stacks_top,
                     self.triggered_propagators,
                 )
-                update_domain_fct(
+                fix_top_choice_point(
                     self.shr_domains_stack,
                     self.stacks_top,
                     self.problem.dom_indices_arr,
                     self.problem.dom_offsets_arr,
                     variable_idx,
                     best_solution[variable_idx],
+                    bound,
                 )
             else:
-                pass
+                logger.debug("Pruning choice points")
+                fix_choice_points(
+                    self.shr_domains_stack,
+                    self.stacks_top,
+                    self.problem.dom_indices_arr,
+                    self.problem.dom_offsets_arr,
+                    variable_idx,
+                    best_solution[variable_idx],
+                    bound,
+                )
+                if not backtrack(
+                    self.statistics,
+                    self.not_entailed_propagators_stack,
+                    self.dom_update_stack,
+                    self.stacks_top,
+                    self.triggered_propagators,
+                    self.problem.triggers,
+                ):
+                    break
         return best_solution
 
     def solve(self) -> Iterator[NDArray]:
@@ -296,7 +317,7 @@ class BacktrackSolver(Solver):
         :param solution_queue: the solution queue
         """
         logger.info(f"Minimizing variable {variable_idx} and queuing solutions found")
-        self.optimize_and_queue(variable_idx, decrease_max, processor_idx, solution_queue)
+        self.optimize_and_queue(variable_idx, MAX, processor_idx, solution_queue)
 
     def maximize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue) -> None:
         """
@@ -306,11 +327,9 @@ class BacktrackSolver(Solver):
         :param solution_queue: the solution queue
         """
         logger.info(f"Maximizing variable {variable_idx} and queuing solutions found")
-        self.optimize_and_queue(variable_idx, increase_min, processor_idx, solution_queue)
+        self.optimize_and_queue(variable_idx, MIN, processor_idx, solution_queue)
 
-    def optimize_and_queue(
-        self, variable_idx: int, update_domain_fct: Callable, processor_idx: int, solution_queue: Queue
-    ) -> None:
+    def optimize_and_queue(self, variable_idx: int, bound: int, processor_idx: int, solution_queue: Queue) -> None:
         """
         Enqueues the solution that optimizes a variable.
         :param variable_idx: the index of the variable
@@ -362,13 +381,14 @@ class BacktrackSolver(Solver):
                 self.stacks_top,
                 self.triggered_propagators,
             )
-            update_domain_fct(
+            fix_top_choice_point(
                 self.shr_domains_stack,
                 self.stacks_top,
                 self.problem.dom_indices_arr,
                 self.problem.dom_offsets_arr,
                 variable_idx,
                 solution[variable_idx],
+                bound,
             )
         solution_queue.put((processor_idx, None, self.statistics))
 
@@ -545,14 +565,14 @@ def solve_one(
             statistics[STATS_IDX_SOLVER_SOLUTION_NB] += 1
             return get_solution(shr_domains_stack, stacks_top, dom_indices_arr, dom_offsets_arr)
         elif status == PROBLEM_UNBOUND:
-            dom_idx = var_heuristic_fct(var_heuristic_params, decision_domains, shr_domains_stack, stacks_top)
+            dom_idx = var_heuristic_fct(decision_domains, shr_domains_stack, stacks_top, var_heuristic_params)
             events = dom_heuristic_fct(
-                dom_heuristic_params,
                 shr_domains_stack,
                 not_entailed_propagators_stack,
                 dom_update_stack,
                 stacks_top,
                 dom_idx,
+                dom_heuristic_params,
             )
             add_propagators(
                 triggered_propagators,

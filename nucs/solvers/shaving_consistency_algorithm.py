@@ -55,11 +55,11 @@ def shave_bound(
 ) -> bool:
     events = (
         max_value_dom_heuristic(
-            None, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
+            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx, None
         )
         if bound == MAX
         else min_value_dom_heuristic(
-            None, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx
+            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx, None
         )
     )
     if shr_domains_stack[stacks_top[0], dom_idx, MIN] == shr_domains_stack[stacks_top[0], dom_idx, MAX]:
@@ -174,7 +174,7 @@ def shaving_consistency_algorithm(
             if status != PROBLEM_UNBOUND:
                 return status
         dom_idx = first_not_instantiated_var_heuristic(
-            None, decision_domains[decision_domains >= start_idx], shr_domains_stack, stacks_top
+            decision_domains[decision_domains >= start_idx], shr_domains_stack, stacks_top, None
         )
         if dom_idx == -1:  # all variables after start_idx are instantiated
             break

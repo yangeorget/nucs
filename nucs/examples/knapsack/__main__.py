@@ -14,7 +14,7 @@ import argparse
 
 from rich import print
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
+from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPT_MODES, OPT_RESET
 from nucs.examples.knapsack.knapsack_problem import KnapsackProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -24,6 +24,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
+    parser.add_argument("--opt_mode", choices=OPT_MODES, default=OPT_RESET)
     args = parser.parse_args()
     problem = KnapsackProblem(
         [40, 40, 38, 38, 36, 36, 34, 34, 32, 32, 30, 30, 28, 28, 26, 26, 24, 24, 22, 22],
@@ -36,6 +37,6 @@ if __name__ == "__main__":
         dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE,
         log_level=args.log_level,
     )
-    solution = solver.maximize(problem.weight)
+    solution = solver.maximize(problem.weight, mode=args.opt_mode)
     print(solver.get_statistics())
     print(solution)
