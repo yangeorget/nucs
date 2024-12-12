@@ -62,6 +62,7 @@ class Problem:
         :param var_idx: the index of the variable
         :return: a list of sub-problems
         """
+        logger.debug(f"Splitting in {split_nb} problems with variable {var_idx}")
         shr_dom = self.shr_domains_lst[var_idx]
         shr_dom_min = shr_dom[0]
         shr_dom_max = shr_dom[1]

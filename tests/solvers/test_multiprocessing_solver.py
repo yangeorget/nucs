@@ -54,11 +54,11 @@ class TestMultiprocessingSolver:
             (OPT_RESET, 1, 3, 6),
         ],
     )
-    def test_minimize_relation(self, mode: int, split_var: int, split_nb: int, solution_nb: int) -> None:
+    def test_minimize_relation(self, mode: str, split_var: int, split_nb: int, solution_nb: int) -> None:
         problem = Problem([(-5, 0), (-60, 60)])
         problem.add_propagator(([0, 1], ALG_RELATION, [-5, 25, -4, 16, -3, 9, -2, 4, -1, 1, 0, 0]))
         solver = MultiprocessingSolver([BacktrackSolver(prob) for prob in problem.split(split_nb, split_var)])
-        solution = solver.minimize(1)
+        solution = solver.minimize(1, mode=mode)
         assert solution is not None
         assert solution.tolist() == [0, 0]
         statistics = solver.get_statistics()

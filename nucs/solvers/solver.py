@@ -35,7 +35,7 @@ class Solver:
         :param problem: a problem or None
         :param log_level: the log level as a string
         """
-        logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, log_level))
+        logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, log_level))  # TODO: move to examples
         logger.debug("Initializing Solver")
         if problem is not None:
             self.problem = problem

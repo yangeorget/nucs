@@ -19,7 +19,6 @@ from numpy.typing import NDArray
 
 from nucs.constants import (
     LOG_LEVEL_INFO,
-    OPT_RESET,
     STATS_IDX_ALG_BC_NB,
     STATS_IDX_ALG_BC_WITH_SHAVING_NB,
     STATS_IDX_ALG_SHAVING_CHANGE_NB,
@@ -101,10 +100,10 @@ class MultiprocessingSolver(Solver):
             else:
                 yield solution
 
-    def minimize(self, variable_idx: int, mode: str = OPT_RESET) -> Optional[NDArray]:
+    def minimize(self, variable_idx: int, mode: str) -> Optional[NDArray]:
         return self.optimize(variable_idx, "minimize_and_queue", operator.lt, mode)
 
-    def maximize(self, variable_idx: int, mode: str = OPT_RESET) -> Optional[NDArray]:
+    def maximize(self, variable_idx: int, mode: str) -> Optional[NDArray]:
         return self.optimize(variable_idx, "maximize_and_queue", operator.gt, mode)
 
     def optimize(

@@ -163,7 +163,8 @@ class BacktrackSolver(Solver):
         :param variable_idx: the index of the variable to minimize
         :return: the optimal solution if it exists or None
         """
-        logger.info(f"Minimizing variable {variable_idx} with mode {mode}")
+        domain = self.shr_domains_stack[self.stacks_top[0], self.problem.dom_indices_arr[variable_idx]]
+        logger.info(f"Minimizing (mode {mode}) variable {variable_idx} (domain {domain}))")
         return self.optimize(variable_idx, MAX, mode)
 
     def maximize(self, variable_idx: int, mode: str = OPT_RESET) -> Optional[NDArray]:
@@ -172,7 +173,8 @@ class BacktrackSolver(Solver):
         :param variable_idx: the index of the variable to maximize
         :return: the optimal solution if it exists or None
         """
-        logger.info(f"Maximizing variable {variable_idx} with mode {mode}")
+        domain = self.shr_domains_stack[self.stacks_top[0], self.problem.dom_indices_arr[variable_idx]]
+        logger.info(f"Maximizing (mode {mode}) variable {variable_idx} (domain {domain}))")
         return self.optimize(variable_idx, MIN, mode)
 
     def optimize(self, variable_idx: int, bound: int, mode: str) -> Optional[NDArray]:
@@ -181,7 +183,6 @@ class BacktrackSolver(Solver):
         :param variable_idx: the index of the variable
         :return: the solution if it exists or None
         """
-        logger.debug(f"Optimizing bound {bound} of variable {variable_idx} with mode {mode}")
         compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
             get_function_addresses()
         )
@@ -312,7 +313,8 @@ class BacktrackSolver(Solver):
         :param processor_idx: the index of the processor running the minimizer
         :param solution_queue: the solution queue
         """
-        logger.info(f"Minimizing variable {variable_idx} and queuing solutions found")
+        domain = self.shr_domains_stack[self.stacks_top[0], self.problem.dom_indices_arr[variable_idx]]
+        logger.info(f"Minimizing (mode {mode}) variable {variable_idx} (domain {domain})) and queuing solutions")
         self.optimize_and_queue(variable_idx, MAX, processor_idx, solution_queue, mode)
 
     def maximize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
@@ -322,7 +324,8 @@ class BacktrackSolver(Solver):
         :param processor_idx: the index of the processor running the maximizer
         :param solution_queue: the solution queue
         """
-        logger.info(f"Maximizing variable {variable_idx} and queuing solutions found")
+        domain = self.shr_domains_stack[self.stacks_top[0], self.problem.dom_indices_arr[variable_idx]]
+        logger.info(f"Minimizing (mode {mode}) variable {variable_idx} (domain {domain})) and queuing solutions")
         self.optimize_and_queue(variable_idx, MIN, processor_idx, solution_queue, mode)
 
     def optimize_and_queue(
@@ -335,9 +338,6 @@ class BacktrackSolver(Solver):
         :param processor_idx: the index of the processor
         :param solution_queue: the solution queue
         """
-        logger.debug(
-            f"Optimizing bound {bound} of variable {variable_idx} with mode {mode} and queuing solutions found"
-        )
         compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
             get_function_addresses()
         )
