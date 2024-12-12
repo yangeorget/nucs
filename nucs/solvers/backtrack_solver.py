@@ -305,7 +305,7 @@ class BacktrackSolver(Solver):
             ):
                 break
 
-    def minimize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue) -> None:
+    def minimize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
         """
         Enqueues the solution that minimizes a variable.
         :param variable_idx: the index of the variable to minimize
@@ -313,9 +313,9 @@ class BacktrackSolver(Solver):
         :param solution_queue: the solution queue
         """
         logger.info(f"Minimizing variable {variable_idx} and queuing solutions found")
-        self.optimize_and_queue(variable_idx, MAX, processor_idx, solution_queue)
+        self.optimize_and_queue(variable_idx, MAX, processor_idx, solution_queue, mode)
 
-    def maximize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue) -> None:
+    def maximize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
         """
         Enqueues the solution that maximizes a variable.
         :param variable_idx: the index of the variable to maximizer
@@ -323,9 +323,11 @@ class BacktrackSolver(Solver):
         :param solution_queue: the solution queue
         """
         logger.info(f"Maximizing variable {variable_idx} and queuing solutions found")
-        self.optimize_and_queue(variable_idx, MIN, processor_idx, solution_queue)
+        self.optimize_and_queue(variable_idx, MIN, processor_idx, solution_queue, mode)
 
-    def optimize_and_queue(self, variable_idx: int, bound: int, processor_idx: int, solution_queue: Queue) -> None:
+    def optimize_and_queue(
+        self, variable_idx: int, bound: int, processor_idx: int, solution_queue: Queue, mode: str
+    ) -> None:
         """
         Enqueues the solution that optimizes a variable.
         :param variable_idx: the index of the variable
@@ -333,7 +335,9 @@ class BacktrackSolver(Solver):
         :param processor_idx: the index of the processor
         :param solution_queue: the solution queue
         """
-        logger.debug(f"Optimizing variable {variable_idx} and queuing solutions found")
+        logger.debug(
+            f"Optimizing bound {bound} of variable {variable_idx} with mode {mode} and queuing solutions found"
+        )
         compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
             get_function_addresses()
         )
@@ -369,23 +373,41 @@ class BacktrackSolver(Solver):
                 break
             logger.info(f"Found a local optimum: {solution[variable_idx]}")
             solution_queue.put((processor_idx, solution, self.statistics))
-            cp_init(
-                self.shr_domains_stack,
-                self.not_entailed_propagators_stack,
-                self.dom_update_stack,
-                self.stacks_top,
-                np.array(self.problem.shr_domains_lst),
-            )
+            if mode == OPT_RESET:
+                logger.debug("Resetting solver")
+                cp_init(
+                    self.shr_domains_stack,
+                    self.not_entailed_propagators_stack,
+                    self.dom_update_stack,
+                    self.stacks_top,
+                    np.array(self.problem.shr_domains_lst),
+                )
+                if not fix_top_choice_point(
+                    self.shr_domains_stack,
+                    self.stacks_top,
+                    self.problem.dom_indices_arr,
+                    self.problem.dom_offsets_arr,
+                    variable_idx,
+                    solution[variable_idx],
+                    bound,
+                ):
+                    break
+            else:
+                logger.debug("Pruning choice points")
+                if self.stacks_top[0] == 0:
+                    break
+                self.stacks_top[0] -= 1
+                if not fix_choice_points(
+                    self.shr_domains_stack,
+                    self.stacks_top,
+                    self.problem.dom_indices_arr,
+                    self.problem.dom_offsets_arr,
+                    variable_idx,
+                    solution[variable_idx],
+                    bound,
+                ):
+                    break
             self.triggered_propagators.fill(True)
-            fix_top_choice_point(
-                self.shr_domains_stack,
-                self.stacks_top,
-                self.problem.dom_indices_arr,
-                self.problem.dom_offsets_arr,
-                variable_idx,
-                solution[variable_idx],
-                bound,
-            )
         solution_queue.put((processor_idx, None, self.statistics))
 
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:

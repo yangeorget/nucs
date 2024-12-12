@@ -23,9 +23,9 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.magic_square -n 4 --symmetry_breaking
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
     parser.add_argument("-n", type=int)
     parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
     args = parser.parse_args()
     problem = MagicSquareProblem(args.n, args.symmetry_breaking)
     solver = BacktrackSolver(

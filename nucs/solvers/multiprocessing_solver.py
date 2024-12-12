@@ -19,6 +19,7 @@ from numpy.typing import NDArray
 
 from nucs.constants import (
     LOG_LEVEL_INFO,
+    OPT_RESET,
     STATS_IDX_ALG_BC_NB,
     STATS_IDX_ALG_BC_WITH_SHAVING_NB,
     STATS_IDX_ALG_SHAVING_CHANGE_NB,
@@ -99,16 +100,18 @@ class MultiprocessingSolver(Solver):
             else:
                 yield solution
 
-    def minimize(self, variable_idx: int) -> Optional[NDArray]:
-        return self.optimize(variable_idx, "minimize_and_queue", operator.lt)
+    def minimize(self, variable_idx: int, mode: str = OPT_RESET) -> Optional[NDArray]:
+        return self.optimize(variable_idx, "minimize_and_queue", operator.lt, mode)
 
-    def maximize(self, variable_idx: int) -> Optional[NDArray]:
-        return self.optimize(variable_idx, "maximize_and_queue", operator.gt)
+    def maximize(self, variable_idx: int, mode: str = OPT_RESET) -> Optional[NDArray]:
+        return self.optimize(variable_idx, "maximize_and_queue", operator.gt, mode)
 
-    def optimize(self, variable_idx: int, proc_func_name: str, comparison_func: Callable) -> Optional[NDArray]:
+    def optimize(
+        self, variable_idx: int, proc_func_name: str, comparison_func: Callable, mode: str
+    ) -> Optional[NDArray]:
         solutions: Queue = Queue()
         for proc_idx, solver in enumerate(self.solvers):
-            Process(target=(getattr(solver, proc_func_name)), args=(variable_idx, proc_idx, solutions)).start()
+            Process(target=(getattr(solver, proc_func_name)), args=(variable_idx, proc_idx, solutions, mode)).start()
         best_solution = None
         nb = len(self.solvers)
         while nb > 0:

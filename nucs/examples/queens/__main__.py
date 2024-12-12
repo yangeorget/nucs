@@ -25,11 +25,11 @@ from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.queens -n 10
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", type=int, default=10)
+    parser.add_argument("--ff", type=bool, action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
+    parser.add_argument("-n", type=int, default=10)
     parser.add_argument("--processors", type=int, default=1)
     parser.add_argument("--shaving", type=bool, action=argparse.BooleanOptionalAction, default=False)
-    parser.add_argument("--ff", type=bool, action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     problem = QueensProblem(args.n)
     solver = (

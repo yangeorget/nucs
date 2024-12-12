@@ -25,8 +25,8 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.sports_tournament_scheduling -n 8
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", type=int, default=8)
     parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
+    parser.add_argument("-n", type=int, default=8)
     parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
     args = parser.parse_args()
     problem = SportsTournamentSchedulingProblem(args.n, args.symmetry_breaking)

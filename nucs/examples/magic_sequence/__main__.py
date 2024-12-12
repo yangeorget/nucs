@@ -23,8 +23,8 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.magic_sequence -n 100
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", type=int, default=100)
     parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
+    parser.add_argument("-n", type=int, default=100)
     args = parser.parse_args()
     problem = MagicSequenceProblem(args.n)
     solver = BacktrackSolver(

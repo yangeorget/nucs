@@ -77,7 +77,7 @@ class Solver:
         return solutions
 
     @abstractmethod
-    def minimize(self, variable_idx: int) -> Optional[NDArray]:
+    def minimize(self, variable_idx: int, mode: str) -> Optional[NDArray]:
         """
         Finds, if it exists, the solution to the problem that minimizes a given variable.
         :param variable_idx: the index of the variable
@@ -86,7 +86,7 @@ class Solver:
         ...
 
     @abstractmethod
-    def maximize(self, variable_idx: int) -> Optional[NDArray]:
+    def maximize(self, variable_idx: int, mode: str) -> Optional[NDArray]:
         """
         Finds, if it exists, the solution to the problem that maximizes a given variable.
         :param variable_idx: the index of the variable
