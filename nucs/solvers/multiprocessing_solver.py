@@ -12,7 +12,7 @@
 ###############################################################################
 import logging
 import operator
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, set_start_method
 from typing import Any, Callable, Dict, Iterator, List, Optional
 
 from numpy.typing import NDArray
@@ -62,6 +62,7 @@ class MultiprocessingSolver(Solver):
     def __init__(self, solvers: List[BacktrackSolver], log_level: str = LOG_LEVEL_INFO):
         super().__init__(None, log_level)
         logger.info(f"MultiprocessingSolver has {len(solvers)} processors")
+        set_start_method("fork", force=True)
         self.solvers = solvers
         logger.debug("Initializing statistics")
         self.statistics = [None for _ in solvers]
