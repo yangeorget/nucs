@@ -51,14 +51,15 @@ def compute_domains_total_cost(domains: NDArray, parameters: NDArray) -> int:
     n = len(domains) - 1
     used = np.zeros(n, dtype=np.bool)
     for i in range(n):
-        used[domains[i, MIN]] = domains[i, MIN] == domains[i, MAX]
+        if domains[i, MIN] == domains[i, MAX]:
+            used[domains[i, MIN]] = True
     global_min = global_max = 0
     for i in range(n):
-        local_min = sys.maxsize
-        local_max = 0
         if domains[i, MIN] == domains[i, MAX]:
             local_min = local_max = parameters[i * n + domains[i, MIN]]
         else:
+            local_min = sys.maxsize
+            local_max = 0
             for value in range(domains[i, MIN], domains[i, MAX] + 1):
                 if not used[value]:
                     cost = parameters[i * n + value]

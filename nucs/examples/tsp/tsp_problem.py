@@ -38,13 +38,10 @@ class TSPProblem(CircuitProblem):
         for i in range(n):
             self.add_propagator(([i, cost_vars + i], ALG_ELEMENT_IV, cost_rows[i]))
         self.add_propagator((list(range(cost_vars, cost_vars + n + 1)), ALG_AFFINE_EQ, [1] * n + [-1, 0]))
-        alg_total_cost = register_propagator(
-            get_triggers_total_cost, get_complexity_total_cost, compute_domains_total_cost
-        )
         self.add_propagator(
             (
                 list(range(0, n)) + [total_cost_var],
-                alg_total_cost,
+                register_propagator(get_triggers_total_cost, get_complexity_total_cost, compute_domains_total_cost),
                 [cost for cost_row in cost_rows for cost in cost_row],
             )
         )

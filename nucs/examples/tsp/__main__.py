@@ -12,10 +12,10 @@
 ###############################################################################
 import argparse
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPT_MODES, OPT_RESET
+from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPT_MODES, OPT_PRUNE
 from nucs.examples.tsp.tsp_instances import TSP_INSTANCES
 from nucs.examples.tsp.tsp_problem import TSPProblem
-from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, VAR_HEURISTIC_MAX_REGRET
+from nucs.heuristics.heuristics import VAR_HEURISTIC_MAX_REGRET, DOM_HEURISTIC_MIN_COST
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_SHAVING
 
@@ -26,19 +26,17 @@ if __name__ == "__main__":
     parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
     parser.add_argument("--name", choices=["GR17", "GR21", "GR24"], default="GR17")
     parser.add_argument("--shaving", type=bool, action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--opt_mode", choices=OPT_MODES, default=OPT_RESET)
+    parser.add_argument("--opt_mode", choices=OPT_MODES, default=OPT_PRUNE)
     args = parser.parse_args()
     tsp_instance = TSP_INSTANCES[args.name]
     problem = TSPProblem(tsp_instance)
-    # mrp_var_heuristic_idx = register_var_heuristic(mrp_var_heuristic)
-    # mcp_dom_heuristic_idx = register_dom_heuristic(mcp_dom_heuristic)
     solver = BacktrackSolver(
         problem,
         consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
         decision_domains=list(range(len(tsp_instance))),
-        var_heuristic_idx=VAR_HEURISTIC_MAX_REGRET,
+        var_heuristic_idx=VAR_HEURISTIC_MAX_REGRET,  # register_var_heuristic(mrp_var_heuristic),
         var_heuristic_params=tsp_instance,
-        dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
+        dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,  # register_dom_heuristic(mcp_dom_heuristic),
         dom_heuristic_params=tsp_instance,
         log_level=args.log_level,
     )

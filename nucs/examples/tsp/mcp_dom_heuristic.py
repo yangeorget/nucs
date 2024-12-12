@@ -22,33 +22,32 @@ from nucs.heuristics.value_dom_heuristic import value_dom_heuristic
 
 @njit(cache=True)
 def mcp_dom_heuristic(
-    params: NDArray,
     shr_domains_stack: NDArray,
     not_entailed_propagators_stack: NDArray,
     dom_update_stack: NDArray,
     stacks_top: NDArray,
     dom_idx: int,
+    params: NDArray,
 ) -> int:
     """
     Chooses the value that minimizes the cost.
-    :param params: a two-dimensional (first dimension correspond to variables, second to values) costs array
     :param shr_domains_stack: the stack of shared domains
     :param not_entailed_propagators_stack: the stack of not entailed propagators
     :param dom_update_stack: the stack of domain updates
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param dom_idx: the index of the shared domain
+    :param params: a two-dimensional (first dimension correspond to variables, second to values) costs array
     :return: the events
     """
-    cp_top_idx = stacks_top[0]
+    top = stacks_top[0]
     n = len(params)
     used = np.zeros(n, dtype=np.bool)
-    for idx in range(n):
-        used[shr_domains_stack[cp_top_idx, idx, MIN]] = (
-            shr_domains_stack[cp_top_idx, idx, MIN] == shr_domains_stack[cp_top_idx, idx, MAX]
-        )
+    for i in range(n):
+        if shr_domains_stack[top, i, MIN] == shr_domains_stack[top, i, MAX]:
+            used[shr_domains_stack[top, i, MIN]] = True
     best_cost = sys.maxsize
     best_value = -1
-    shr_domain = shr_domains_stack[cp_top_idx, dom_idx]
+    shr_domain = shr_domains_stack[top, dom_idx]
     for value in range(shr_domain[MIN], shr_domain[MAX] + 1):
         if not used[value]:
             cost = params[dom_idx][value]
@@ -56,5 +55,5 @@ def mcp_dom_heuristic(
                 best_cost = cost
                 best_value = value
     return value_dom_heuristic(
-        params, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx, best_value
+        shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx, best_value, params
     )
