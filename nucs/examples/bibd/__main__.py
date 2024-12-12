@@ -32,6 +32,6 @@ if __name__ == "__main__":
     parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
     args = parser.parse_args()
     problem = BIBDProblem(args.v, args.b, args.r, args.k, args.l, args.symmetry_breaking)
-    solver = BacktrackSolver(problem, dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE, log_level=args.log_level)
+    solver = BacktrackSolver(problem, dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE, log_level=args.log_level, stack_max_height=128)
     solver.solve_all()
     print(solver.get_statistics())

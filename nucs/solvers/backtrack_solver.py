@@ -91,7 +91,7 @@ class BacktrackSolver(Solver):
         var_heuristic_params: List[List[int]] = [[]],
         dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
         dom_heuristic_params: List[List[int]] = [[]],
-        stack_max_height: int = 128,
+        stack_max_height: int = 64,
         log_level: str = LOG_LEVEL_INFO,
     ):
         """

@@ -33,6 +33,7 @@ if __name__ == "__main__":
         var_heuristic_idx=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE,
         log_level=args.log_level,
+        stack_max_height=128
     )
     solver.solve_all()
     print(solver.get_statistics())

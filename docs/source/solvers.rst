@@ -32,7 +32,7 @@ A backtrracking solver accepts the additional following parameters:
 * some parameters for this heuristic (none by default)
 * an heuristic to select a value (the first value is chosen by default)
 * some parameters for this heuristic (none by default)
-* the maximal height for the choice points stack (128 by default)
+* the maximal height for the choice points stack (64 by default)
 
 
 ****************************
