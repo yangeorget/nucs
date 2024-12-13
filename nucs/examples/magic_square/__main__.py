@@ -24,7 +24,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
-    parser.add_argument("-n", type=int)
+    parser.add_argument("-n", type=int, default=4)
     parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
     args = parser.parse_args()
     problem = MagicSquareProblem(args.n, args.symmetry_breaking)

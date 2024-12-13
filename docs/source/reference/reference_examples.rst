@@ -14,7 +14,7 @@ This problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.alpha --log_level=INFO
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.alpha
 
 This problem leverages the propagators:
 
@@ -31,7 +31,7 @@ This problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -l 3 --symmetry_breaking --log_level=INFO
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -l 3
 
 This problem leverages the propagators:
 
@@ -47,7 +47,7 @@ This problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.donald --log_level=INFO
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.donald
 
 This problem leverages the propagators:
 
@@ -64,7 +64,7 @@ This problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.golomb -n 10 --symmetry_breaking --log_level=INFO
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.golomb
 
 This problem leverages the propagators:
 
@@ -82,7 +82,7 @@ This problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.knapsack --log_level=INFO
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.knapsack
 
 This problem leverages the propagators:
 
@@ -99,7 +99,7 @@ This problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.magic_sequence -n 100 --log_level=INFO
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.magic_sequence
 
 This problem leverages the propagators:
 
@@ -116,7 +116,7 @@ This problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.magic_square -n 4 --symmetry_breaking --log_level=INFO
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.magic_square
 
 This problem leverages the propagators:
 
@@ -134,7 +134,7 @@ The problem QG5, a sub-instance of the quasigroup problem, can be run with the c
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.quasigroup -n 10 --symmetry_breaking --log_level=INFO
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.quasigroup
 
 This problem leverages the propagators:
 
@@ -152,7 +152,7 @@ The problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.queens -n 10 --log_level=INFO
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.queens
 
 This problem leverages the propagators:
 
@@ -168,7 +168,7 @@ The problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.schur_lemma -n 20 --symmetry_breaking --log_level=INFO
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.schur_lemma
 
 This problem leverages the propagators:
 
@@ -186,7 +186,7 @@ The problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.sports_tournament_scheduling -n 10 --symmetry_breaking --log_level=INFO
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.sports_tournament_scheduling
 
 This problem leverages the propagators:
 
