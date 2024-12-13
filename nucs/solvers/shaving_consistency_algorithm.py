@@ -26,7 +26,7 @@ from nucs.constants import (
 )
 from nucs.heuristics.first_not_instantiated_var_heuristic import first_not_instantiated_var_heuristic
 from nucs.heuristics.heuristics import max_value_dom_heuristic, min_value_dom_heuristic
-from nucs.propagators.propagators import add_propagators
+from nucs.propagators.propagators import update_propagators
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
 from nucs.solvers.choice_points import backtrack
 
@@ -64,7 +64,7 @@ def shave_bound(
     )
     if shr_domains_stack[stacks_top[0], dom_idx, MIN] == shr_domains_stack[stacks_top[0], dom_idx, MAX]:
         events |= EVENT_MASK_GROUND
-    add_propagators(triggered_propagators, not_entailed_propagators_stack[stacks_top[0]], triggers, dom_idx, events)
+    update_propagators(triggered_propagators, not_entailed_propagators_stack[stacks_top[0]], triggers, dom_idx, events)
     if (
         bound_consistency_algorithm(
             statistics,

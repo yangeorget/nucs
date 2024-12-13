@@ -19,7 +19,7 @@ from numpy.typing import NDArray
 from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MIN, MAX, MIN
 from nucs.heuristics.heuristics import first_not_instantiated_var_heuristic
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, add_propagators
+from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, update_propagators
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
 
 GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])
@@ -161,7 +161,7 @@ def golomb_consistency_algorithm(
                 events = EVENT_MASK_MIN
                 if shr_domains_stack[top, dom_idx, MIN] == shr_domains_stack[top, dom_idx, MAX]:
                     events |= EVENT_MASK_GROUND
-                add_propagators(
+                update_propagators(
                     triggered_propagators,
                     not_entailed_propagators_stack[top],
                     shr_domains_propagators,

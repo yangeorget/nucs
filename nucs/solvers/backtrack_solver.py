@@ -69,7 +69,7 @@ from nucs.heuristics.heuristics import (
 )
 from nucs.numba_helper import build_function_address_list, function_from_address
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, add_propagators
+from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagators
 from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_points, fix_top_choice_point
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.solver import Solver, get_solution
@@ -565,7 +565,7 @@ def solve_one(
                 dom_idx,
                 dom_heuristic_params,
             )
-            add_propagators(
+            update_propagators(
                 triggered_propagators,
                 not_entailed_propagators_stack[stacks_top[0]],
                 triggers,

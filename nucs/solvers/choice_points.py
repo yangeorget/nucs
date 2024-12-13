@@ -2,7 +2,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import DOM_UPDATE_EVENTS, DOM_UPDATE_IDX, MAX, MIN, STATS_IDX_SOLVER_BACKTRACK_NB
-from nucs.propagators.propagators import add_propagators
+from nucs.propagators.propagators import update_propagators
 
 
 @njit(cache=True)
@@ -65,7 +65,7 @@ def backtrack(
         return False
     stacks_top[0] -= 1
     statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
-    add_propagators(
+    update_propagators(
         triggered_propagators,
         not_entailed_propagators_stack[stacks_top[0]],
         triggers,

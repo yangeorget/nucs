@@ -156,13 +156,13 @@ def pop_propagator(triggered_propagators: NDArray, previous_prop_idx: int) -> in
 
 
 @njit(cache=True)
-def add_propagators(
+def update_propagators(
     triggered_propagators: NDArray,
     not_entailed_propagators: NDArray,
     triggers: NDArray,
     dom_idx: int,
     events: int,
 ) -> None:
-    for prop_idx in range(len(triggered_propagators)):
-        if triggers[dom_idx, prop_idx] & events != 0 and not_entailed_propagators[prop_idx]:
+    for prop_idx, prop_triggers in enumerate(triggers[dom_idx]):
+        if prop_triggers & events != 0 and not_entailed_propagators[prop_idx]:
             triggered_propagators[prop_idx] = True

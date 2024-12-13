@@ -35,7 +35,7 @@ from nucs.constants import (
     TYPE_COMPUTE_DOMAINS,
 )
 from nucs.numba_helper import function_from_address
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, add_propagators, pop_propagator
+from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, pop_propagator, update_propagators
 from nucs.solvers.solver import is_solved
 
 
@@ -125,7 +125,7 @@ def bound_consistency_algorithm(
                 events |= EVENT_MASK_GROUND
             if events != 0:
                 shr_domains_changes = True
-                add_propagators(
+                update_propagators(
                     triggered_propagators,
                     not_entailed_propagators_stack[top],
                     triggers,
