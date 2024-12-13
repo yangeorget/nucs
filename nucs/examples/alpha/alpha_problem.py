@@ -24,7 +24,7 @@ class AlphaProblem(Problem):
     """
     The numbers from 1 to 26 are assigned to the letters of the alphabet.
     The numbers beside each word are the total of the values assigned to the letters in the word
-    (e.g for LYRE: L,Y,R,E might be to equal 5,9,20 and 13 or any other combination that add up to 47).
+    (eg for LYRE: L,Y,R,E might be to equal 5,9,20 and 13 or any other combination that add up to 47).
 
     Find the value of each letter under the equations:
     BALLET  45     GLEE  66     POLKA      59     SONG     61
@@ -67,7 +67,8 @@ class AlphaProblem(Problem):
             ]
         )
 
-    def solution_as_dict(self, solution: NDArray) -> Dict[str, int]:
+    @staticmethod
+    def solution_as_dict(solution: NDArray) -> Dict[str, int]:
         """
         Returns the solution as a dict.
         :param solution: the solution as a list of ints

@@ -12,7 +12,7 @@
 ###############################################################################
 from typing import List
 
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_EXACTLY_EQ, ALG_GCC, ALG_RELATION

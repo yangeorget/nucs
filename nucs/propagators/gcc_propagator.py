@@ -44,7 +44,7 @@ def init_partial_sum(first_value: int, m: int, values: NDArray) -> NDArray:
     """
     Inits the partial_sum data structure:
     ---------------------
-    | sum | first_value |
+    | sm | first_value |
     ---------------------
     | ds  | last_value  |
     ---------------------
@@ -52,19 +52,19 @@ def init_partial_sum(first_value: int, m: int, values: NDArray) -> NDArray:
     partial_sum = np.zeros((2, m + 6), dtype=np.int32)
     partial_sum[0, -1] = first_value - 3
     partial_sum[1, -1] = first_value + m + 1
-    sum = partial_sum[0, :-1]
-    sum[0] = 0
-    sum[1] = 1
-    sum[2] = 2
+    sm = partial_sum[0, :-1]
+    sm[0] = 0
+    sm[1] = 1
+    sm[2] = 2
     for i in range(2, m + 2):
-        sum[i + 1] = sum[i] + values[i - 2]
-    sum[m + 3] = sum[m + 2] + 1
-    sum[m + 4] = sum[m + 3] + 1
+        sm[i + 1] = sm[i] + values[i - 2]
+    sm[m + 3] = sm[m + 2] + 1
+    sm[m + 4] = sm[m + 3] + 1
     ds = partial_sum[1, :-1]
     i = m + 3
     j = m + 4
     while i > 0:
-        while sum[i] == sum[i - 1]:
+        while sm[i] == sm[i - 1]:
             ds[i] = j
             i -= 1
         ds[j] = i

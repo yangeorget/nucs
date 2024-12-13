@@ -26,9 +26,9 @@ def function_from_address(typingctx, func_type_ref: types.FunctionType, addr: in
     func_type = func_type_ref.instance_type
 
     def codegen(context, builder, sig, args):  # type: ignore
-        _, addr = args
+        _, address = args
         sfunc = cgutils.create_struct_proxy(func_type)(context, builder)
-        sfunc.addr = builder.inttoptr(addr, context.get_value_type(types.voidptr))
+        sfunc.addr = builder.inttoptr(address, context.get_value_type(types.voidptr))
         return sfunc._getvalue()
 
     return func_type(func_type_ref, addr), codegen

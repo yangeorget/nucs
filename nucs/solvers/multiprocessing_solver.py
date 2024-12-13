@@ -94,8 +94,8 @@ class MultiprocessingSolver(Solver):
         nb = len(self.solvers)
         while nb > 0:
             proc_idx, solution, statistics = solutions.get()
-            self.statistics[proc_idx] = statistics
             if solution is None:
+                self.statistics[proc_idx] = statistics
                 nb -= 1
             else:
                 yield solution
@@ -116,8 +116,8 @@ class MultiprocessingSolver(Solver):
         nb = len(self.solvers)
         while nb > 0:
             proc_idx, solution, statistics = solutions.get()
-            self.statistics[proc_idx] = statistics
             if solution is None:
+                self.statistics[proc_idx] = statistics
                 nb -= 1
             elif best_solution is None or comparison_func(solution[variable_idx], best_solution[variable_idx]):
                 best_solution = solution

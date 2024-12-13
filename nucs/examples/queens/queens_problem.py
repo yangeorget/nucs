@@ -37,6 +37,7 @@ class QueensProblem(Problem):
         self.add_propagator((list(range(n, 2 * n)), ALG_ALLDIFFERENT, []))
         self.add_propagator((list(range(2 * n, 3 * n)), ALG_ALLDIFFERENT, []))
 
-    def solution_as_matrix(self, solution: List[int]) -> List[List[str]]:
+    @staticmethod
+    def solution_as_matrix(solution: List[int]) -> List[List[str]]:
         n = len(solution)
         return [([" "] * i + ["X"] + [" "] * (n - i - 1)) for i in range(n)]

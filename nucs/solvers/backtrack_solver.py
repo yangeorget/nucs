@@ -372,7 +372,7 @@ class BacktrackSolver(Solver):
             if solution is None:
                 break
             logger.info(f"Found a local optimum: {solution[variable_idx]}")
-            solution_queue.put((processor_idx, solution, self.statistics))
+            solution_queue.put((processor_idx, solution, None))
             if mode == OPT_RESET:
                 logger.debug("Resetting solver")
                 cp_init(
@@ -450,7 +450,7 @@ class BacktrackSolver(Solver):
             )
             if solution is None:
                 break
-            solution_queue.put((processor_idx, solution, self.statistics))
+            solution_queue.put((processor_idx, solution, None))
             if not backtrack(
                 self.statistics,
                 self.not_entailed_propagators_stack,
