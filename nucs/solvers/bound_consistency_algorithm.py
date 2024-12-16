@@ -121,7 +121,7 @@ def bound_consistency_algorithm(
             if shr_domains_stack[top, shr_domain_idx, MAX] != shr_domain_max:
                 shr_domains_stack[top, shr_domain_idx, MAX] = shr_domain_max
                 events |= EVENT_MASK_MAX
-            if shr_domain_min == shr_domain_max:
+            if events != 0 and shr_domain_min == shr_domain_max:
                 events |= EVENT_MASK_GROUND
             if events != 0:
                 shr_domains_changes = True
