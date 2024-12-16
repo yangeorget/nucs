@@ -10,7 +10,7 @@
 #
 # Copyright 2024 - Yan Georget
 ###############################################################################
-from typing import Dict, Any
+from typing import Any, Dict
 
 from numpy.typing import NDArray
 
