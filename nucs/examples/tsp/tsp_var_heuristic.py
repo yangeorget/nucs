@@ -48,5 +48,5 @@ def compute_score(shr_domain: NDArray, dom_idx: int, params: NDArray) -> int:
     """
     Minimize [min(5, size(X)), -regret(X)] for lexicographic order.
     """
-    size = min(5, 1 + shr_domain[MAX] - shr_domain[MIN])
-    return -size * 1024 + regret(shr_domain, dom_idx, params)
+    size = min(12, shr_domain[MAX] - shr_domain[MIN] + 1)
+    return -size * 1024 + regret(shr_domain, params[dom_idx])

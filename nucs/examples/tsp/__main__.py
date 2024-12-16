@@ -65,5 +65,5 @@ if __name__ == "__main__":
             log_level=args.log_level,
         )
     )
-    solution = solver.minimize(problem.shr_domain_nb - 1, mode=args.opt_mode)
+    solution = solver.minimize(problem.total_cost, mode=args.opt_mode)
     print(solver.get_statistics())

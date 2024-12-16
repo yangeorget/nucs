@@ -18,7 +18,6 @@ from numpy.typing import NDArray
 
 from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 
-
 def get_complexity_total_cost(n: int, parameters: NDArray) -> float:
     """
     Returns the time complexity of the propagator as a float.
@@ -53,7 +52,18 @@ def compute_domains_total_cost(domains: NDArray, parameters: NDArray) -> int:
     for i in range(n):
         if domains[i, MIN] == domains[i, MAX]:
             used[domains[i, MIN]] = True
-    global_min = global_max = 0
+    global_min = 0
+    # for j in range(n):
+    #     max_regret = 0
+    #     min_cost = min([costs[i, j] for i in range(n) if costs[i,j] > 0])
+    #     for i in range(n):
+    #         if costs[i, j] == min_cost:
+    #             regret = compute_regret(domains[i], costs[i])
+    #             if regret > max_regret:
+    #                 max_regret = regret
+    #             global_min += regret
+    #     global_min -= max_regret
+    global_max = 0
     for i in range(n):
         if domains[i, MIN] == domains[i, MAX]:
             local_min = local_max = parameters[i * n + domains[i, MIN]]
@@ -68,8 +78,8 @@ def compute_domains_total_cost(domains: NDArray, parameters: NDArray) -> int:
                             local_min = cost
                         if cost > local_max:
                             local_max = cost
-            if local_min > local_max:
-                return PROP_INCONSISTENCY
+            # if local_min > local_max:
+            #     return PROP_INCONSISTENCY
         global_min += local_min
         global_max += local_max
     domains[-1, MIN] = max(domains[-1, MIN], global_min)

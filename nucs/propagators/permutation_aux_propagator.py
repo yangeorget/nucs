@@ -29,12 +29,12 @@ def get_complexity_permutation_aux(n: int, parameters: NDArray) -> float:
 
 def get_triggers_permutation_aux(n: int, parameters: NDArray) -> NDArray:
     """
-    This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
     :param parameters: the parameters, unused here
     :return: an array of triggers
     """
     triggers = np.zeros(n, dtype=np.uint8)
+    # triggers[:-1] = EVENT_MASK_MIN_MAX  # not worth the cost
     triggers[-1] = EVENT_MASK_MIN_MAX
     return triggers
 
@@ -42,9 +42,8 @@ def get_triggers_permutation_aux(n: int, parameters: NDArray) -> NDArray:
 @njit(cache=True)
 def compute_domains_permutation_aux(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements Sigma_i a_i * x_i = a_{n-1}.
-    :param domains: the domains of the variables, x is an alias for domains
-    :param parameters: the parameters of the propagator, a is an alias for parameters
+    :param domains: the domains of the variables
+    :param parameters: the parameters of the propagator
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     next = domains[:-1]
@@ -53,7 +52,7 @@ def compute_domains_permutation_aux(domains: NDArray, parameters: NDArray) -> in
     j = parameters[0]
     for i in range(0, n):
         if i < prev_j[MIN] or i > prev_j[MAX]:  # if prev_j != i
-            # next_i != j
+            # then next_i != j
             if next[i, MIN] == j:
                 next[i, MIN] += 1
             if next[i, MAX] == j:

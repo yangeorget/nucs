@@ -25,7 +25,11 @@ class CircuitProblem(PermutationProblem):
         :param n: the number of vertices
         """
         self.n = n
-        super().__init__(n)  # TODO: do we want to specify the domains more precisely ?
+        super().__init__(n)
+        self.shr_domains_lst[0] = [1, n - 1]
+        self.shr_domains_lst[n - 1] = [0, n - 2]
+        self.shr_domains_lst[n] = [1, n - 1]
+        self.shr_domains_lst[2 * n - 1] = [0, n - 2]
         self.add_propagator((list(range(n)), ALG_NO_SUB_CYCLE, []))
         self.add_propagator((list(range(n, 2 * n)), ALG_NO_SUB_CYCLE, []))
         # self.add_propagator((list(range(n)), ALG_SCC, []))  # not worth the cost
