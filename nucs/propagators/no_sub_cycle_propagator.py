@@ -56,23 +56,26 @@ def compute_domains_no_sub_cycle(domains: NDArray, parameters: NDArray) -> int:
     while loop:
         loop = False
         for i in range(n):
-            if domains[i, MIN] == domains[i, MAX] and paths[i, PATH_END] == i:
+            if domains[i, MIN] == domains[i, MAX]:
                 j = domains[i, MIN]
-                end = paths[i, PATH_END] = paths[j, PATH_END]
-                start = paths[j, PATH_START] = paths[i, PATH_START]
-                paths[start, PATH_END] = end
-                paths[end, PATH_START] = start
-                length = paths[i, PATH_LENGTH] + 1 + paths[j, PATH_LENGTH]
-                paths[i, PATH_LENGTH] = paths[j, PATH_LENGTH] = paths[start, PATH_LENGTH] = paths[end, PATH_LENGTH] = (
-                    length
-                )
-                if length < n - 1:
-                    if domains[end, MIN] == start:
-                        domains[end, MIN] = start + 1
-                    if domains[end, MAX] == start:
-                        domains[end, MAX] = start - 1
-                    if domains[end, MIN] > domains[end, MAX]:
-                        return PROP_INCONSISTENCY
-                    if end < i:
-                        loop = True
+                if i == j:
+                    return PROP_INCONSISTENCY
+                if paths[i, PATH_END] == i:
+                    end = paths[i, PATH_END] = paths[j, PATH_END]
+                    start = paths[j, PATH_START] = paths[i, PATH_START]
+                    paths[start, PATH_END] = end
+                    paths[end, PATH_START] = start
+                    length = paths[i, PATH_LENGTH] + 1 + paths[j, PATH_LENGTH]
+                    paths[i, PATH_LENGTH] = paths[j, PATH_LENGTH] = paths[start, PATH_LENGTH] = paths[
+                        end, PATH_LENGTH
+                    ] = length
+                    if length < n - 1:
+                        if domains[end, MIN] == start:
+                            domains[end, MIN] = start + 1
+                        if domains[end, MAX] == start:
+                            domains[end, MAX] = start - 1
+                        if domains[end, MIN] > domains[end, MAX]:
+                            return PROP_INCONSISTENCY
+                        if end < i:
+                            loop = True
     return PROP_CONSISTENCY

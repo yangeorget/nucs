@@ -15,7 +15,8 @@ import argparse
 from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPT_MODES, OPT_PRUNE
 from nucs.examples.tsp.tsp_instances import TSP_INSTANCES
 from nucs.examples.tsp.tsp_problem import TSPProblem
-from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, VAR_HEURISTIC_MAX_REGRET
+from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_SHAVING
 from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
@@ -28,21 +29,25 @@ if __name__ == "__main__":
     parser.add_argument("--name", choices=["GR17", "GR21", "GR24"], default="GR17")
     parser.add_argument("--opt_mode", choices=OPT_MODES, default=OPT_PRUNE)
     parser.add_argument("--processors", type=int, default=1)
-    parser.add_argument("--shaving", type=bool, action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--shaving", type=bool, action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     tsp_instance = TSP_INSTANCES[args.name]
+    n = len(tsp_instance)
+    decision_domains = list(range(0, 2 * n))
     problem = TSPProblem(tsp_instance)
+    costs = tsp_instance + tsp_instance  # symmetry of costs
+    tsp_var_heuristic_idx = register_var_heuristic(tsp_var_heuristic)
     solver = (
         MultiprocessingSolver(
             [
                 BacktrackSolver(
                     prob,
                     consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
-                    decision_domains=list(range(len(tsp_instance))),
-                    var_heuristic_idx=VAR_HEURISTIC_MAX_REGRET,  # register_var_heuristic(mrp_var_heuristic),
-                    var_heuristic_params=tsp_instance,
-                    dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,  # register_dom_heuristic(mcp_dom_heuristic),
-                    dom_heuristic_params=tsp_instance,
+                    decision_domains=decision_domains,
+                    var_heuristic_idx=tsp_var_heuristic_idx,
+                    var_heuristic_params=costs,
+                    dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
+                    dom_heuristic_params=costs,
                     log_level=args.log_level,
                 )
                 for prob in problem.split(args.processors, 0)
@@ -52,11 +57,11 @@ if __name__ == "__main__":
         else BacktrackSolver(
             problem,
             consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
-            decision_domains=list(range(len(tsp_instance))),
-            var_heuristic_idx=VAR_HEURISTIC_MAX_REGRET,  # register_var_heuristic(mrp_var_heuristic),
-            var_heuristic_params=tsp_instance,
-            dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,  # register_dom_heuristic(mcp_dom_heuristic),
-            dom_heuristic_params=tsp_instance,
+            decision_domains=decision_domains,
+            var_heuristic_idx=tsp_var_heuristic_idx,
+            var_heuristic_params=costs,
+            dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
+            dom_heuristic_params=costs,
             log_level=args.log_level,
         )
     )

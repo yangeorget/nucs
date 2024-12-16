@@ -16,12 +16,17 @@ from nucs.propagators.no_sub_cycle_propagator import compute_domains_no_sub_cycl
 
 
 class TestNoSubCycle:
-    def test_compute_domains_1(self) -> None:
+    def test_compute_domains_3_consistency(self) -> None:
         domains = new_shr_domains_by_values([(1, 1), (2, 2), (0, 0)])
         data = new_parameters_by_values([])
         assert compute_domains_no_sub_cycle(domains, data) == PROP_CONSISTENCY
 
-    def test_compute_domains_2(self) -> None:
+    def test_compute_domains_3_inconsistency(self) -> None:
         domains = new_shr_domains_by_values([(1, 1), (0, 0), (2, 2)])
+        data = new_parameters_by_values([])
+        assert compute_domains_no_sub_cycle(domains, data) == PROP_INCONSISTENCY
+
+    def test_compute_domains_single(self) -> None:
+        domains = new_shr_domains_by_values([0])
         data = new_parameters_by_values([])
         assert compute_domains_no_sub_cycle(domains, data) == PROP_INCONSISTENCY

@@ -26,7 +26,7 @@ def get_complexity_total_cost(n: int, parameters: NDArray) -> float:
     :param parameters: the parameters, unused here
     :return: a float
     """
-    return 2 * n
+    return n * n
 
 
 def get_triggers_total_cost(n: int, parameters: NDArray) -> NDArray:

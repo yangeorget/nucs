@@ -30,13 +30,13 @@ def smallest_domain_var_heuristic(
     :param params: a two-dimensional parameters array, unused here
     :return: the index of the shared domain
     """
-    min_size = sys.maxsize
-    min_idx = -1
+    best_score = -sys.maxsize
+    best_idx = -1
     top = stacks_top[0]
     for dom_idx in decision_domains:
         shr_domain = shr_domains_stack[top, dom_idx]
-        size = shr_domain[MAX] - shr_domain[MIN]  # actually this is size - 1
-        if 0 < size < min_size:
-            min_idx = dom_idx
-            min_size = size
-    return min_idx
+        score = shr_domain[MIN] - shr_domain[MAX]
+        if best_score < score < 0:
+            best_idx = dom_idx
+            best_score = score
+    return best_idx

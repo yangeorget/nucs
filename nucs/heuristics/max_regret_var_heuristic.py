@@ -30,24 +30,29 @@ def max_regret_var_heuristic(
     :param params: a two-dimensional (first dimension correspond to variables, second to values) costs array
     :return: the index of the shared domain
     """
-    max_regret = 0
+    best_score = 0
     best_idx = -1
     top = stacks_top[0]
     for dom_idx in decision_domains:
         shr_domain = shr_domains_stack[top, dom_idx]
         if 0 < shr_domain[MAX] - shr_domain[MIN]:
-            best_cost = sys.maxsize
-            second_cost = sys.maxsize
-            for value in range(shr_domain[MIN], shr_domain[MAX] + 1):
-                cost = params[dom_idx][value]
-                if cost > 0:
-                    if cost < best_cost:
-                        second_cost = best_cost
-                        best_cost = cost
-                    elif cost < second_cost:
-                        second_cost = cost
-            regret = second_cost - best_cost
-            if max_regret < regret:
+            score = regret(shr_domain, dom_idx, params)
+            if best_score < score:
                 best_idx = dom_idx
-                max_regret = regret
+                best_score = score
     return best_idx
+
+
+@njit(cache=True)
+def regret(shr_domain: NDArray, dom_idx: int, params: NDArray) -> int:
+    best_cost = sys.maxsize
+    second_cost = sys.maxsize
+    for value in range(shr_domain[MIN], shr_domain[MAX] + 1):
+        cost = params[dom_idx][value]
+        if cost > 0:
+            if cost < best_cost:
+                second_cost = best_cost
+                best_cost = cost
+            elif cost < second_cost:
+                second_cost = cost
+    return second_cost - best_cost

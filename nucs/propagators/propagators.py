@@ -82,6 +82,11 @@ from nucs.propagators.no_sub_cycle_propagator import (
     get_complexity_no_sub_cycle,
     get_triggers_no_sub_cycle,
 )
+from nucs.propagators.permutation_aux_propagator import (
+    compute_domains_permutation_aux,
+    get_complexity_permutation_aux,
+    get_triggers_permutation_aux,
+)
 from nucs.propagators.relation_propagator import (
     compute_domains_relation,
     get_complexity_relation,
@@ -134,6 +139,9 @@ ALG_MIN_EQ = register_propagator(get_triggers_min_eq, get_complexity_min_eq, com
 ALG_MIN_GEQ = register_propagator(get_triggers_min_geq, get_complexity_min_geq, compute_domains_min_geq)
 ALG_NO_SUB_CYCLE = register_propagator(
     get_triggers_no_sub_cycle, get_complexity_no_sub_cycle, compute_domains_no_sub_cycle
+)
+ALG_PERMUTATION_AUX = register_propagator(
+    get_triggers_permutation_aux, get_complexity_permutation_aux, compute_domains_permutation_aux
 )
 ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relation, compute_domains_relation)
 ALG_SCC = register_propagator(get_triggers_scc, get_complexity_scc, compute_domains_scc)
