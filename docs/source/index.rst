@@ -35,6 +35,7 @@ Contents
    variables
    domains
    propagators
+   problems
    consistency
    solvers
    heuristics

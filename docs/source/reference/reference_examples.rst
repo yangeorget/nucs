@@ -8,7 +8,7 @@ NUCS comes with the following examples.
 
 
 .. py:module:: nucs.examples.alpha.alpha_problem
-.. py:class:: nucs.examples.alpha.alpha_problem
+.. py:class:: nucs.examples.alpha.alpha_problem.AlphaProblem
 
 This problem can be run with the command:
 
@@ -23,7 +23,7 @@ This problem leverages the propagators:
 
 
 .. py:module:: nucs.examples.bibd.bibd_problem
-.. py:class:: nucs.examples.bibd.bibd_problem
+.. py:class:: nucs.examples.bibd.bibd_problem.BIBDProblem
 
 This problem is problem `028 <https://www.csplib.org/Problems/prob028>`_ on CSPLib.
 
@@ -41,7 +41,7 @@ This problem leverages the propagators:
 
 
 .. py:module:: nucs.examples.donald.donald_problem
-.. py:class:: nucs.examples.donald.donald_problem
+.. py:class:: nucs.examples.donald.donald_problem.DonaldProblem
 
 This problem can be run with the command:
 
@@ -56,7 +56,7 @@ This problem leverages the propagators:
 
 
 .. py:module:: nucs.examples.golomb.golomb_problem
-.. py:class:: nucs.examples.golomb.golomb_problem
+.. py:class:: nucs.examples.golomb.golomb_problem.GolombProblem
 
 This problem is problem `006 <https://www.csplib.org/Problems/prob006>`_ on CSPLib.
 
@@ -74,7 +74,7 @@ This problem leverages the propagators:
 
 
 .. py:module:: nucs.examples.knapsack.knapsack_problem
-.. py:class:: nucs.examples.knapsack.knapsack_problem
+.. py:class:: nucs.examples.knapsack.knapsack_problem.KnapsackProblem
 
 This problem is problem `133 <https://www.csplib.org/Problems/prob133>`_ on CSPLib.
 
@@ -91,7 +91,7 @@ This problem leverages the propagators:
 
 
 .. py:module:: nucs.examples.magic_sequence.magic_sequence_problem
-.. py:class:: nucs.examples.magic_sequence.magic_sequence_problem
+.. py:class:: nucs.examples.magic_sequence.magic_sequence_problem.MagicSequenceProblem
 
 This problem is problem `019 <https://www.csplib.org/Problems/prob019>`_ on CSPLib.
 
@@ -108,7 +108,7 @@ This problem leverages the propagators:
 
 
 .. py:module:: nucs.examples.magic_square.magic_square_problem
-.. py:class:: nucs.examples.magic_square.magic_square_problem
+.. py:class:: nucs.examples.magic_square.magic_square_problem.MagicSquareProblem
 
 This problem is problem `019 <https://www.csplib.org/Problems/prob019>`_ on CSPLib.
 
@@ -126,7 +126,7 @@ This problem leverages the propagators:
 
 
 .. py:module:: nucs.examples.quasigroup.quasigroup_problem
-.. py:class:: nucs.examples.quasigroup.quasigroup_problem
+.. py:class:: nucs.examples.quasigroup.quasigroup_problem.QuasigroupProblem
 
 This problem is problem `003 <https://www.csplib.org/Problems/prob003>`_ on CSPLib.
 
@@ -144,7 +144,7 @@ This problem leverages the propagators:
 
 
 .. py:module:: nucs.examples.queens.queens_problem
-.. py:class:: nucs.examples.queens.queens_problem
+.. py:class:: nucs.examples.queens.queens_problem.QueensProblem
 
 This problem is problem `054 <https://www.csplib.org/Problems/prob054>`_ on CSPLib.
 
@@ -160,7 +160,7 @@ This problem leverages the propagators:
 
 
 .. py:module:: nucs.examples.schur_lemma.schur_lemma_problem
-.. py:class:: nucs.examples.schur_lemma.schur_lemma_problem
+.. py:class:: nucs.examples.schur_lemma.schur_lemma_problem.SchurLemmaProblem
 
 This problem is problem `015 <https://www.csplib.org/Problems/prob015>`_ on CSPLib.
 
@@ -178,7 +178,7 @@ This problem leverages the propagators:
 
 
 .. py:module:: nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem
-.. py:class:: nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem
+.. py:class:: nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem.SportSchedulingTournamentProblem
 
 This problem is problem `026 <https://www.csplib.org/Problems/prob026>`_ on CSPLib.
 
@@ -197,7 +197,7 @@ This problem leverages the propagators:
 
 
 .. py:module:: nucs.examples.sudoku.sudoku_problem
-.. py:class:: nucs.examples.sudoku.sudoku_problem
+.. py:class:: nucs.examples.sudoku.sudoku_problem.SudokuProblem
 
 This problem leverages the propagators:
 

@@ -18,6 +18,7 @@ from numpy.typing import NDArray
 
 from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 
+
 def get_complexity_total_cost(n: int, parameters: NDArray) -> float:
     """
     Returns the time complexity of the propagator as a float.

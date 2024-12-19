@@ -8,7 +8,7 @@ NuCS comes with the following solvers.
 
 
 .. py:module:: nucs.solvers.backtrack_solver
-.. py:function:: nucs.solvers.backtrack_solver.__init__(problem, consistency_alg_idx, decision_domains, var_heuristic_idx, var_heuristic_params, dom_heuristic_idx, dom_heuristic_params, stack_max_height, log_level)
+.. py:function:: nucs.solvers.backtrack_solver.__init__(self, problem, consistency_alg_idx, decision_domains, var_heuristic_idx, var_heuristic_params, dom_heuristic_idx, dom_heuristic_params, stack_max_height, log_level)
 
    A backtrack-based solver.
 
@@ -33,7 +33,7 @@ NuCS comes with the following solvers.
 
 
 .. py:module:: nucs.solvers.multiprocessing_solver
-.. py:function:: nucs.solvers.multiprocessing_solver.__init__(solvers, log_level)
+.. py:function:: nucs.solvers.multiprocessing_solver.__init__(self, solvers, log_level)
 
    A solver relying on the multiprocessing package. This solver delegates resolution to a set of solvers.
 
