@@ -12,13 +12,8 @@
 ###############################################################################
 from typing import List
 
-from nucs.examples.tsp.total_cost_propagator import (
-    compute_domains_total_cost,
-    get_complexity_total_cost,
-    get_triggers_total_cost,
-)
 from nucs.problems.circuit_problem import CircuitProblem
-from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ELEMENT_IV, register_propagator
+from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ELEMENT_IV
 
 
 class TSPProblem(CircuitProblem):
