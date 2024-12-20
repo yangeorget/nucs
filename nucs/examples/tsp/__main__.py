@@ -20,6 +20,7 @@ from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heur
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_SHAVING
 from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
+from rich import print
 
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.alpha
