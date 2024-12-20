@@ -12,13 +12,12 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB
+from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB, OPT_PRUNE
 from nucs.examples.tsp.tsp_instances import TSP_INSTANCES
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_SHAVING
 
 
 class TestTSP:
@@ -47,13 +46,12 @@ class TestTSP:
         costs = tsp_instance + tsp_instance
         solver = BacktrackSolver(
             problem,
-            consistency_alg_idx=CONSISTENCY_ALG_SHAVING,
             decision_domains=list(range(0, 2 * n)),
             var_heuristic_idx=tsp_var_heuristic_idx,
             var_heuristic_params=costs,
             dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
             dom_heuristic_params=costs,
         )
-        solution = solver.minimize(problem.total_cost)
+        solution = solver.minimize(problem.total_cost, mode=OPT_PRUNE)
         assert solution is not None
         assert solution[problem.total_cost] == minimum
