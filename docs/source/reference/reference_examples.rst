@@ -4,7 +4,18 @@
 Examples
 ********
 
-NUCS comes with the following examples.
+NUCS comes with several examples.
+
+Most of these examples can be run from the command line and support the following options:
+
+* :code:`--ff/--no-ff`: when available, uses the smallest domain variable heuristic
+* :code:`--help`: shows the help
+* :code:`--log_level`: defines the level of logging, can take the values :code:`DEBUG`, :code:`INFO`, :code:`WARNING`, :code:`ERROR`, :code:`CRITICAL`
+* :code:`--n`: when available, defines the size of the problem
+* :code:`--opt_mode`: in the case of optimization, sets the optimizer mode (:code:`RESET` or :code:`PRUNE`)
+* :code:`--processors`: when available, defines the number of processors to use
+* :code:`--shaving/--no-shaving`: when available, uses the shaving consistency algorithm
+* :code:`--symmetry_breaking/--no-symmetry_breaking`: when available, leverages symmetries in the problem
 
 
 .. py:module:: nucs.examples.alpha.alpha_problem
@@ -136,11 +147,9 @@ The problem QG5, a sub-instance of the quasigroup problem, can be run with the c
 
    NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.quasigroup
 
-This problem leverages the propagators:
+This quasigroup problem leverages the problem :mod:`nucs.problems.latin_square_problem` and the propagators:
 
-* :mod:`nucs.propagators.element_liv_propagator`,
-* :mod:`nucs.propagators.element_lic_propagator`,
-* :mod:`nucs.propagators.alldifferent_propagator`.
+* :mod:`nucs.propagators.element_liv_propagator`.
 
 
 .. py:module:: nucs.examples.queens.queens_problem
@@ -199,6 +208,21 @@ This problem leverages the propagators:
 .. py:module:: nucs.examples.sudoku.sudoku_problem
 .. py:class:: nucs.examples.sudoku.sudoku_problem.SudokuProblem
 
-This problem leverages the propagators:
+This problem leverages the :mod:`nucs.problems.latin_square_problem` and the propagators:
 
 * :mod:`nucs.propagators.alldifferent_propagator`.
+
+
+.. py:module:: nucs.examples.tsp.tsp_problem
+.. py:class:: nucs.examples.tsp.tsp_problem.TSPProblem
+
+The problem can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.tsp
+
+This problem leverages the :mod:`nucs.problems.circuit_problem` and the propagators:
+
+* :mod:`nucs.propagators.element_iv_propagator`,
+* :mod:`nucs.propagators.affine_eq_propagator`.
