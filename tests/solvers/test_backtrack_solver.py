@@ -12,7 +12,7 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import OPT_PRUNE, OPT_RESET, STATS_LBL_SOLVER_CHOICE_DEPTH, STATS_LBL_SOLVER_SOLUTION_NB
+from nucs.constants import OPTIM_PRUNE, OPTIM_RESET, STATS_LBL_SOLVER_CHOICE_DEPTH, STATS_LBL_SOLVER_SOLUTION_NB
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MID_VALUE,
     DOM_HEURISTIC_MIN_VALUE,
@@ -86,19 +86,19 @@ class TestBacktrackSolver:
     @pytest.mark.parametrize(
         "mode,dom_heuristic, solution_nb",
         [
-            (OPT_PRUNE, DOM_HEURISTIC_MIN_VALUE, 5),
-            (OPT_PRUNE, DOM_HEURISTIC_MID_VALUE, 3),
-            (OPT_PRUNE, DOM_HEURISTIC_SPLIT_LOW, 5),
-            (OPT_PRUNE, DOM_HEURISTIC_SPLIT_HIGH, 1),
-            (OPT_RESET, DOM_HEURISTIC_MIN_VALUE, 5),
-            (OPT_RESET, DOM_HEURISTIC_MID_VALUE, 3),
-            (OPT_RESET, DOM_HEURISTIC_SPLIT_LOW, 5),
-            (OPT_RESET, DOM_HEURISTIC_SPLIT_HIGH, 1),
+            (OPTIM_PRUNE, DOM_HEURISTIC_MIN_VALUE, 5),
+            (OPTIM_PRUNE, DOM_HEURISTIC_MID_VALUE, 3),
+            (OPTIM_PRUNE, DOM_HEURISTIC_SPLIT_LOW, 5),
+            (OPTIM_PRUNE, DOM_HEURISTIC_SPLIT_HIGH, 1),
+            (OPTIM_RESET, DOM_HEURISTIC_MIN_VALUE, 5),
+            (OPTIM_RESET, DOM_HEURISTIC_MID_VALUE, 3),
+            (OPTIM_RESET, DOM_HEURISTIC_SPLIT_LOW, 5),
+            (OPTIM_RESET, DOM_HEURISTIC_SPLIT_HIGH, 1),
         ],
     )
     def test_maximize(self, mode: str, dom_heuristic: int, solution_nb: int) -> None:
         problem = Problem([(1, 5)])
-        solver = BacktrackSolver(problem, dom_heuristic_idx=dom_heuristic, stack_max_height=8)
+        solver = BacktrackSolver(problem, dom_heuristic_idx=dom_heuristic, stacks_max_height=8)
         solution = solver.maximize(0, mode=mode)
         assert solution is not None
         assert solution.tolist() == [5]

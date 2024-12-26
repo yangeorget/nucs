@@ -14,9 +14,9 @@ import os
 
 from numba import bool, int32, int64, types, uint8, uint16  # type: ignore
 
-OPT_RESET = "RESET"
-OPT_PRUNE = "PRUNE"
-OPT_MODES = [OPT_RESET, OPT_PRUNE]
+OPTIM_RESET = "RESET"
+OPTIM_PRUNE = "PRUNE"
+OPTIM_MODES = [OPTIM_RESET, OPTIM_PRUNE]
 
 RG_START = 0  # index corresponding the start of a values range
 RG_END = 1  # index corresponding the end of a values range

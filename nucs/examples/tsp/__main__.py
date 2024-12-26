@@ -14,7 +14,7 @@ import argparse
 
 from rich import print
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPT_MODES, OPT_PRUNE
+from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPTIM_MODES, OPTIM_PRUNE
 from nucs.examples.tsp.tsp_instances import TSP_INSTANCES
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
     parser.add_argument("--name", choices=["GR17", "GR21", "GR24"], default="GR17")
-    parser.add_argument("--opt_mode", choices=OPT_MODES, default=OPT_PRUNE)
+    parser.add_argument("--opt_mode", choices=OPTIM_MODES, default=OPTIM_PRUNE)
     parser.add_argument("--processors", type=int, default=1)
     parser.add_argument("--shaving", type=bool, action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()

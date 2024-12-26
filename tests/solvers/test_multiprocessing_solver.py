@@ -12,7 +12,7 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import OPT_PRUNE, OPT_RESET, STATS_LBL_SOLVER_SOLUTION_NB
+from nucs.constants import OPTIM_PRUNE, OPTIM_RESET, STATS_LBL_SOLVER_SOLUTION_NB
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_RELATION
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -40,18 +40,18 @@ class TestMultiprocessingSolver:
     @pytest.mark.parametrize(
         "mode, split_var, split_nb, solution_nb",
         [
-            (OPT_PRUNE, 0, 1, 6),
-            (OPT_RESET, 0, 1, 6),
-            (OPT_PRUNE, 0, 2, 6),
-            (OPT_RESET, 0, 2, 6),
-            (OPT_PRUNE, 0, 3, 6),
-            (OPT_RESET, 0, 3, 6),
-            (OPT_PRUNE, 1, 1, 6),
-            (OPT_RESET, 1, 1, 6),
-            (OPT_PRUNE, 1, 2, 6),
-            (OPT_RESET, 1, 2, 6),
-            (OPT_PRUNE, 1, 3, 6),
-            (OPT_RESET, 1, 3, 6),
+            (OPTIM_PRUNE, 0, 1, 6),
+            (OPTIM_RESET, 0, 1, 6),
+            (OPTIM_PRUNE, 0, 2, 6),
+            (OPTIM_RESET, 0, 2, 6),
+            (OPTIM_PRUNE, 0, 3, 6),
+            (OPTIM_RESET, 0, 3, 6),
+            (OPTIM_PRUNE, 1, 1, 6),
+            (OPTIM_RESET, 1, 1, 6),
+            (OPTIM_PRUNE, 1, 2, 6),
+            (OPTIM_RESET, 1, 2, 6),
+            (OPTIM_PRUNE, 1, 3, 6),
+            (OPTIM_RESET, 1, 3, 6),
         ],
     )
     def test_minimize_relation(self, mode: str, split_var: int, split_nb: int, solution_nb: int) -> None:

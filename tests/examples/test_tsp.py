@@ -12,7 +12,7 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import OPT_PRUNE, STATS_IDX_SOLVER_SOLUTION_NB
+from nucs.constants import OPTIM_PRUNE, STATS_IDX_SOLVER_SOLUTION_NB
 from nucs.examples.tsp.tsp_instances import TSP_INSTANCES
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
@@ -52,6 +52,6 @@ class TestTSP:
             dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
             dom_heuristic_params=costs,
         )
-        solution = solver.minimize(problem.total_cost, mode=OPT_PRUNE)
+        solution = solver.minimize(problem.total_cost, mode=OPTIM_PRUNE)
         assert solution is not None
         assert solution[problem.total_cost] == minimum

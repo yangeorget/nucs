@@ -23,7 +23,7 @@ from nucs.constants import (
     MAX,
     MIN,
     NUMBA_DISABLE_JIT,
-    OPT_RESET,
+    OPTIM_RESET,
     PROBLEM_BOUND,
     PROBLEM_UNBOUND,
     SIGNATURE_COMPUTE_DOMAINS,
@@ -91,7 +91,7 @@ class BacktrackSolver(Solver):
         var_heuristic_params: List[List[int]] = [[]],
         dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
         dom_heuristic_params: List[List[int]] = [[]],
-        stack_max_height: int = 64,
+        stacks_max_height: int = 64,
         log_level: str = LOG_LEVEL_INFO,
     ):
         """
@@ -105,7 +105,7 @@ class BacktrackSolver(Solver):
         :param dom_heuristic_idx: the index of the heuristic for reducing a domain
         :param dom_heuristic_params: a list of lists of parameters,
         usually parameters are costs and there is a list of value costs per variable/shared domain
-        :param stack_max_height: the maximal choice point stack height
+        :param stacks_max_height: the maximal height of the choice point stacks
         :param log_level: the log level as a string
         """
         super().__init__(problem, log_level)
@@ -122,11 +122,11 @@ class BacktrackSolver(Solver):
         self.consistency_alg_idx = consistency_alg_idx
         self.triggered_propagators = np.ones(problem.propagator_nb, dtype=np.bool)
         logger.debug("Initializing choice points")
-        self.shr_domains_stack = np.empty((stack_max_height, self.problem.shr_domain_nb, 2), dtype=np.int32)
-        self.not_entailed_propagators_stack = np.empty((stack_max_height, self.problem.propagator_nb), dtype=np.bool)
-        self.dom_update_stack = np.empty((stack_max_height, 2), dtype=np.uint16)
+        self.shr_domains_stack = np.empty((stacks_max_height, self.problem.shr_domain_nb, 2), dtype=np.int32)
+        self.not_entailed_propagators_stack = np.empty((stacks_max_height, self.problem.propagator_nb), dtype=np.bool)
+        self.dom_update_stack = np.empty((stacks_max_height, 2), dtype=np.uint16)
         self.stacks_top = np.ones((1,), dtype=np.uint8)
-        logger.info(f"Choice points stack has a maximal height of {stack_max_height}")
+        logger.info(f"The stacks of the choice points have a maximal height of {stacks_max_height}")
         cp_init(
             self.shr_domains_stack,
             self.not_entailed_propagators_stack,
@@ -157,7 +157,7 @@ class BacktrackSolver(Solver):
             STATS_LBL_SOLVER_SOLUTION_NB: int(self.statistics[STATS_IDX_SOLVER_SOLUTION_NB]),
         }
 
-    def minimize(self, variable_idx: int, mode: str = OPT_RESET) -> Optional[NDArray]:
+    def minimize(self, variable_idx: int, mode: str = OPTIM_RESET) -> Optional[NDArray]:
         """
         Return the solution that minimizes a variable.
         :param variable_idx: the index of the variable to minimize
@@ -167,7 +167,7 @@ class BacktrackSolver(Solver):
         logger.info(f"Minimizing (mode {mode}) variable {variable_idx} (domain {domain}))")
         return self.optimize(variable_idx, MAX, mode)
 
-    def maximize(self, variable_idx: int, mode: str = OPT_RESET) -> Optional[NDArray]:
+    def maximize(self, variable_idx: int, mode: str = OPTIM_RESET) -> Optional[NDArray]:
         """
         Return the solution that maximizes a variable.
         :param variable_idx: the index of the variable to maximize
@@ -218,7 +218,7 @@ class BacktrackSolver(Solver):
         ) is not None:
             logger.info(f"Found a local optimum: {solution[variable_idx]}")
             best_solution = solution
-            if mode == OPT_RESET:
+            if mode == OPTIM_RESET:
                 logger.debug("Resetting solver")
                 cp_init(
                     self.shr_domains_stack,
@@ -373,7 +373,7 @@ class BacktrackSolver(Solver):
                 break
             logger.info(f"Found a local optimum: {solution[variable_idx]}")
             solution_queue.put((processor_idx, solution, None))
-            if mode == OPT_RESET:
+            if mode == OPTIM_RESET:
                 logger.debug("Resetting solver")
                 cp_init(
                     self.shr_domains_stack,
