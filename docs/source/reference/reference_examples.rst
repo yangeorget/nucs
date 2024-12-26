@@ -141,7 +141,7 @@ This problem leverages the propagators:
 
 This problem is problem `003 <https://www.csplib.org/Problems/prob003>`_ on CSPLib.
 
-The problem QG5, a sub-instance of the quasigroup problem, can be run with the command:
+This problem can be run with the command:
 
 .. code-block:: bash
 
