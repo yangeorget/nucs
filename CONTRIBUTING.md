@@ -43,7 +43,7 @@ NUMBA_DISABLE_JIT=1 viztracer --open -m nucs.examples.queens
 time NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. python -m nucs.examples.queens -n 12 
 ```
 
-## Package
+## Pip package
 ### How to build the package
 ```bash
 python -m build
@@ -54,4 +54,23 @@ python -m build
 python -m twine upload --verbose dist/*
 ```
 
+## Docker image
+### How to create an image
+```bash  
+docker build -t nucs .  
+```
 
+### How to tag an image
+```bash  
+docker tag nucs yangeorget/nucs:<version>   
+```
+
+### How to publish an image
+```bash  
+docker push yangeorget/nucs:<version>  
+```
+
+### How to run a container
+```bash  
+docker run -it nucs bash  
+```
