@@ -27,11 +27,40 @@ class QuasigroupProblem(LatinSquareRCProblem):
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
         """
         super().__init__(n)
-        if kind == 5:
+        if kind == 3:
+            # Defined by: (a∗b)∗(b*a)=a
+            # Equivalent to: color[color[i, j], color[j, i]] = i
+            # Equivalent to: column[color[i, j], i] = color[j, i] which avoids the creation of additional variables
+            for i in range(n):
+                for j in range(n):
+                    if i != j:
+                        self.add_propagator(
+                            (
+                                [*self.column(i, M_COLUMN), self.cell(i, j, M_COLOR), self.cell(j, i, M_COLOR)],
+                                ALG_ELEMENT_LIV,
+                                [],
+                            )
+                        )
+        elif kind == 4:
+            # Defined by: (b∗a)∗(a*b)=a
+            # Equivalent to: color[color[j, i], color[i, j]] = i
+            # Equivalent to: column[color[j, i], i] = color[i, j] which avoids the creation of additional variables
+            for i in range(n):
+                for j in range(n):
+                    if i != j:
+                        self.add_propagator(
+                            (
+                                [*self.column(i, M_COLUMN), self.cell(j, i, M_COLOR), self.cell(i, j, M_COLOR)],
+                                ALG_ELEMENT_LIV,
+                                [],
+                            )
+                        )
+        elif kind == 5:
             # Defined by: ((b∗a)∗b)∗b=a
-            # Can be enforced by: color[color[j, i], j] = row[i, j] which avoids the creation of additional variables
-            for j in range(n):
-                for i in range(n):
+            # Equivalent to: color[color[color[j, i], j], j] = i
+            # Equivalent to: row[i, j] = color[color[j, i], j] which avoids the creation of additional variables
+            for i in range(n):
+                for j in range(n):
                     if i != j:
                         self.add_propagator(
                             (

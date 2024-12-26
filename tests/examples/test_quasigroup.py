@@ -22,6 +22,15 @@ class TestQuasigroup:
     @pytest.mark.parametrize(
         "kind, size, idempotent, solution_nb",
         [
+            (3, 5, True, 0),
+            (3, 6, True, 0),
+            (3, 7, True, 0),
+            (3, 8, True, 18),
+            (4, 5, True, 3),
+            (4, 6, True, 0),
+            (4, 7, True, 0),
+            (4, 8, True, 0),
+            (5, 5, True, 1),
             (5, 6, True, 0),
             (5, 7, True, 3),
             (5, 8, True, 1),
