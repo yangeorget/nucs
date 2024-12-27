@@ -11,7 +11,6 @@
 # Copyright 2024 - Yan Georget
 ###############################################################################
 import sys
-from typing import List
 
 import numpy as np
 from numba import njit  # type: ignore
