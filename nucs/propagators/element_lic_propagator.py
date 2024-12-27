@@ -53,16 +53,17 @@ def compute_domains_element_lic(domains: NDArray, parameters: NDArray) -> int:
     # i could be updated only once
     i[MIN] = max(i[MIN], 0)
     i[MAX] = min(i[MAX], len(l) - 1)
-    indices: List[int] = []
+    start = -1
     for idx in range(i[MIN], i[MAX] + 1):
         if c < l[idx, MIN] or c > l[idx, MAX]:  # no intersection
-            indices.append(idx)
+            if start == -1:
+                start = idx
             if idx == i[MIN]:
                 i[MIN] += 1
-    for ix in range(len(indices) - 1, -1, -1):
-        if indices[ix] != i[MAX]:
-            break
-        i[MAX] -= 1
+        else:  # intersection
+            start = -1
+    if start >= 0:
+        i[MAX] = start - 1
     if i[MAX] < i[MIN]:
         return PROP_INCONSISTENCY
     if i[MIN] == i[MAX]:
