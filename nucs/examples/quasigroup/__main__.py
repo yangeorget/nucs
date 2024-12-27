@@ -16,7 +16,7 @@ from rich import print
 
 from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
-from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
+from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_SHAVING
 
@@ -34,8 +34,10 @@ if __name__ == "__main__":
     problem = QuasigroupProblem(args.kind, args.n, args.idempotent, args.symmetry_breaking)
     solver = BacktrackSolver(
         problem,
+        decision_domains=list(range(0, args.n * args.n)),
         consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
         var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
+        dom_heuristic_idx=DOM_HEURISTIC_SPLIT_LOW,
         log_level=args.log_level,
     )
     solver.solve_all()
