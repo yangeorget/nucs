@@ -14,7 +14,8 @@ import pytest
 
 from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
-from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
+from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN, DOM_HEURISTIC_SPLIT_LOW, \
+    VAR_HEURISTIC_GREATEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
@@ -38,12 +39,25 @@ class TestQuasigroup:
             (5, 10, True, 0),
             # (5, 11, True, 5),
             # (5, 12, True, 0),
+            (6, 5, True, 0),
+            (6, 6, True, 0),
+            (6, 7, True, 0),
+            (6, 8, True, 2),
+            (6, 9, True, 4),
+            (7, 5, True, 3),
+            (7, 6, True, 0),
+            (7, 7, True, 0),
+            (7, 8, True, 0),
+            # (7, 9, True, 1),
         ],
     )
     def test_qg(self, kind: int, size: int, idempotent: bool, solution_nb: int) -> None:
         problem = QuasigroupProblem(kind, size, idempotent, True)
         solver = BacktrackSolver(
-            problem, decision_domains=list(range(0, size * size)), var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN
+            problem,
+            decision_domains=list(range(0, size * size)),
+            var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
+            dom_heuristic_idx=DOM_HEURISTIC_SPLIT_LOW,
         )
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == solution_nb

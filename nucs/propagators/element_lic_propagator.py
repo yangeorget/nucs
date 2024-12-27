@@ -56,11 +56,11 @@ def compute_domains_element_lic(domains: NDArray, parameters: NDArray) -> int:
     indices: List[int] = []
     for idx in range(i[MIN], i[MAX] + 1):
         if c < l[idx, MIN] or c > l[idx, MAX]:  # no intersection
-            indices.insert(0, idx)
+            indices.append(idx)
             if idx == i[MIN]:
                 i[MIN] += 1
-    for idx in indices:
-        if idx != i[MAX]:
+    for ix in range(len(indices) - 1, -1, -1):
+        if indices[ix] != i[MAX]:
             break
         i[MAX] -= 1
     if i[MAX] < i[MIN]:

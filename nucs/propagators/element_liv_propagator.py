@@ -59,10 +59,10 @@ def compute_domains_element_liv(domains: NDArray, parameters: NDArray) -> int:
     i[MAX] = min(i[MAX], len(l) - 1)
     v_min = sys.maxsize
     v_max = -sys.maxsize
-    indices: List[int] = []
+    indices: List[int] = []  # TODO: do not allocate a list
     for idx in range(i[MIN], i[MAX] + 1):
         if v[MAX] < l[idx, MIN] or v[MIN] > l[idx, MAX]:  # no intersection
-            indices.insert(0, idx)
+            indices.append(idx)
             if idx == i[MIN]:
                 i[MIN] += 1
         else:  # intersection
@@ -70,8 +70,8 @@ def compute_domains_element_liv(domains: NDArray, parameters: NDArray) -> int:
                 v_min = l[idx, MIN]
             if l[idx, MAX] > v_max:
                 v_max = l[idx, MAX]
-    for idx in indices:
-        if idx != i[MAX]:
+    for ix in range(len(indices) - 1, -1, -1):
+        if indices[ix] != i[MAX]:
             break
         i[MAX] -= 1
     if i[MAX] < i[MIN]:

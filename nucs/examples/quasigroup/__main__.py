@@ -29,7 +29,7 @@ if __name__ == "__main__":
     parser.add_argument("--idempotent", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--shaving", type=bool, action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--kind", type=int, choices=[3, 4, 5], default=5)
+    parser.add_argument("--kind", type=int, choices=[3, 4, 5, 6, 7], default=5)
     args = parser.parse_args()
     problem = QuasigroupProblem(args.kind, args.n, args.idempotent, args.symmetry_breaking)
     solver = BacktrackSolver(

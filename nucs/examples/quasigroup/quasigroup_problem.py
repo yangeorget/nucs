@@ -27,48 +27,86 @@ class QuasigroupProblem(LatinSquareRCProblem):
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
         """
         super().__init__(n)
-        if kind == 3:
-            # Defined by: (a∗b)∗(b*a)=a
+        if kind == 3:  # (a∗b)∗(b*a)=a
             # Equivalent to: color[color[i, j], color[j, i]] = i
             # Equivalent to: column[color[i, j], i] = color[j, i] which avoids the creation of additional variables
-            for i in range(n):
-                for j in range(n):
-                    if i != j:
-                        self.add_propagator(
-                            (
-                                [*self.column(i, M_COLUMN), self.cell(i, j, M_COLOR), self.cell(j, i, M_COLOR)],
-                                ALG_ELEMENT_LIV,
-                                [],
-                            )
-                        )
-        elif kind == 4:
-            # Defined by: (b∗a)∗(a*b)=a
+            self.add_propagators(
+                [
+                    (
+                        [*self.column(i, M_COLUMN), self.cell(i, j, M_COLOR), self.cell(j, i, M_COLOR)],
+                        ALG_ELEMENT_LIV,
+                        [],
+                    )
+                    for i in range(n)
+                    for j in range(n)
+                ]
+            )
+        elif kind == 4:  # (b∗a)∗(a*b) = a
             # Equivalent to: color[color[j, i], color[i, j]] = i
             # Equivalent to: column[color[j, i], i] = color[i, j] which avoids the creation of additional variables
-            for i in range(n):
-                for j in range(n):
-                    if i != j:
-                        self.add_propagator(
-                            (
-                                [*self.column(i, M_COLUMN), self.cell(j, i, M_COLOR), self.cell(i, j, M_COLOR)],
-                                ALG_ELEMENT_LIV,
-                                [],
-                            )
-                        )
-        elif kind == 5:
-            # Defined by: ((b∗a)∗b)∗b=a
+            self.add_propagators(
+                [
+                    (
+                        [*self.column(i, M_COLUMN), self.cell(j, i, M_COLOR), self.cell(i, j, M_COLOR)],
+                        ALG_ELEMENT_LIV,
+                        [],
+                    )
+                    for i in range(n)
+                    for j in range(n)
+                ]
+            )
+        elif kind == 5:  # ((b∗a)∗b)∗b = a
             # Equivalent to: color[color[color[j, i], j], j] = i
             # Equivalent to: row[i, j] = color[color[j, i], j] which avoids the creation of additional variables
+            self.add_propagators(
+                [
+                    (
+                        [*self.column(j, M_COLOR), self.cell(j, i, M_COLOR), self.cell(i, j, M_ROW)],
+                        ALG_ELEMENT_LIV,
+                        [],
+                    )
+                    for i in range(n)
+                    for j in range(n)
+                ]
+            )
+        elif kind == 6:  # (a∗b)∗b = a*(a*b)
+            # Equivalent to: color[color[i, j], j] = color[i, color[i, j]]
+            additional_vars_idx = self.add_variables([(0, n - 1)] * n**2)  # additional variables
             for i in range(n):
                 for j in range(n):
-                    if i != j:
-                        self.add_propagator(
-                            (
-                                [*self.column(j, M_COLOR), self.cell(j, i, M_COLOR), self.cell(i, j, M_ROW)],
-                                ALG_ELEMENT_LIV,
-                                [],
-                            )
+                    self.add_propagator(
+                        (
+                            [*self.column(j, M_COLOR), self.cell(i, j, M_COLOR), additional_vars_idx + i * n + j],
+                            ALG_ELEMENT_LIV,
+                            [],
                         )
+                    )
+                    self.add_propagator(
+                        (
+                            [*self.row(i, M_COLOR), self.cell(i, j, M_COLOR), additional_vars_idx + i * n + j],
+                            ALG_ELEMENT_LIV,
+                            [],
+                        )
+                    )
+        elif kind == 7:  # (b∗a)∗b = a*(b*a)
+            # Equivalent to: color[color[j, i], j] = color[i, color[j, i]]
+            additional_vars_idx = self.add_variables([(0, n - 1)] * n**2)  # additional variables
+            for i in range(n):
+                for j in range(n):
+                    self.add_propagator(
+                        (
+                            [*self.column(j, M_COLOR), self.cell(j, i, M_COLOR), additional_vars_idx + i * n + j],
+                            ALG_ELEMENT_LIV,
+                            [],
+                        )
+                    )
+                    self.add_propagator(
+                        (
+                            [*self.row(i, M_COLOR), self.cell(j, i, M_COLOR), additional_vars_idx + i * n + j],
+                            ALG_ELEMENT_LIV,
+                            [],
+                        )
+                    )
         if idempotent:
             for model in [M_COLOR, M_ROW, M_COLUMN]:
                 for i in range(n):
