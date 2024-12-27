@@ -62,8 +62,8 @@ def compute_domains_element_lic(domains: NDArray, parameters: NDArray) -> int:
             start = -1
     if start >= 0:
         i[MAX] = start - 1
-    if i[MAX] < i[MIN]:
-        return PROP_INCONSISTENCY
+        if i[MAX] < i[MIN]:
+            return PROP_INCONSISTENCY
     if i[MIN] == i[MAX]:
         l[i[MIN]] = c
         return PROP_ENTAILMENT

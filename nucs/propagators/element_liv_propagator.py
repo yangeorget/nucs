@@ -73,8 +73,8 @@ def compute_domains_element_liv(domains: NDArray, parameters: NDArray) -> int:
                 v_max = l[idx, MAX]
     if start >= 0:
         i[MAX] = start - 1
-    if i[MAX] < i[MIN]:
-        return PROP_INCONSISTENCY
+        if i[MAX] < i[MIN]:
+            return PROP_INCONSISTENCY
     v[MIN] = max(v[MIN], v_min)
     v[MAX] = min(v[MAX], v_max)
     if i[MIN] == i[MAX]:
