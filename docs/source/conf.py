@@ -2,7 +2,7 @@
 
 # -- Project information
 
-project = 'NUCS'
+project = 'NuCS'
 copyright = '2024, Yan Georget'
 author = 'Yan Georget'
 
