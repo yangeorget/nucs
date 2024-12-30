@@ -1,6 +1,6 @@
 [project]
 name="NuCS"
-version="4.4.3"
+version="4.4.4"
 authors = [
   { name="Yan Georget", email="yan.georget@gmail.com" },
 ]
@@ -8,7 +8,7 @@ description="A Numpy and Numba based Python library for solving Constraint Satis
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
-    "Development Status :: 5",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
