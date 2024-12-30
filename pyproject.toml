@@ -1,5 +1,5 @@
 [project]
-name="NUCS"
+name="NuCS"
 version="4.4.2"
 authors = [
   { name="Yan Georget", email="yan.georget@gmail.com" },
@@ -8,20 +8,24 @@ description="A Numpy and Numba based Python library for solving Constraint Satis
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dependencies = [
     "numba==0.60.0",
-    "numpy==2.0.1",
-    "rich==13.9.4"
+    "numpy<2.1",
+    "rich"
 ]
 [project.urls]
 Homepage = "https://github.com/yangeorget/nucs"
