@@ -22,7 +22,7 @@ The NuCS solver is also very fast because it is powered by [Numpy](https://numpy
 pip install nucs
 ```
 ## Documentation
-Check out [NUCS documentation](https://nucs.readthedocs.io/).
+Check out [NuCS documentation](https://nucs.readthedocs.io/).
 
 ## With NuCS, in a few seconds you can ...
 ### Find all 14200 solutions to the [12-queens problem](https://www.csplib.org/Problems/prob054/)
