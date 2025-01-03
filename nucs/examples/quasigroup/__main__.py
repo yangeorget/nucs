@@ -40,5 +40,8 @@ if __name__ == "__main__":
         dom_heuristic_idx=DOM_HEURISTIC_SPLIT_LOW,
         log_level=args.log_level,
     )
-    solver.solve_all()
+    try:
+        next(solver.solve())
+    except StopIteration:
+        pass
     print(solver.get_statistics())
