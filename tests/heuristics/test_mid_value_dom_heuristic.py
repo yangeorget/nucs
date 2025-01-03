@@ -8,7 +8,7 @@
 #
 # Fast constraint solving in Python  - https://github.com/yangeorget/nucs
 #
-# Copyright 2024 - Yan Georget
+# Copyright 2024-2025 - Yan Georget
 ###############################################################################
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MID_VALUE
 from nucs.problems.problem import Problem

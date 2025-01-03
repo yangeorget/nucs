@@ -8,7 +8,7 @@
 #
 # Fast constraint solving in Python  - https://github.com/yangeorget/nucs
 #
-# Copyright 2024 - Yan Georget
+# Copyright 2024-2025 - Yan Georget
 ###############################################################################
 from nucs.examples.knapsack.knapsack_problem import KnapsackProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED

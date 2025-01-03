@@ -8,7 +8,7 @@
 #
 # Fast constraint solving in Python  - https://github.com/yangeorget/nucs
 #
-# Copyright 2024 - Yan Georget
+# Copyright 2024-2025 - Yan Georget
 ###############################################################################
 from nucs.constants import PROP_CONSISTENCY, PROP_INCONSISTENCY
 from nucs.numpy_helper import new_parameters_by_values, new_shr_domains_by_values
