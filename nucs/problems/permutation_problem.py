@@ -11,7 +11,7 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_PERMUTATION_AUX
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_PERMUTATION_AUX, ALG_ELEMENT_LIC
 
 
 class PermutationProblem(Problem):
@@ -27,8 +27,12 @@ class PermutationProblem(Problem):
         self.n = n
         shr_domains = [(0, n - 1)] * 2 * n
         super().__init__(shr_domains)
+        self.add_propagator((list(range(n)), ALG_ALLDIFFERENT, []))
+        self.add_propagator((list(range(n, 2 * n)), ALG_ALLDIFFERENT, []))
         for i in range(n):
             self.add_propagator((list(range(n)) + [n + i], ALG_PERMUTATION_AUX, [i]))
             self.add_propagator((list(range(n, 2 * n)) + [i], ALG_PERMUTATION_AUX, [i]))
-        self.add_propagator((list(range(n)), ALG_ALLDIFFERENT, []))
-        self.add_propagator((list(range(n, 2 * n)), ALG_ALLDIFFERENT, []))
+            # self.add_propagator((list(range(n)) + [n + i], ALG_ELEMENT_LIC, [i]))
+            # self.add_propagator((list(range(n, 2 * n)) + [i], ALG_ELEMENT_LIC, [i]))
+
+
