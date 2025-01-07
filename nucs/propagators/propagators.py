@@ -57,8 +57,11 @@ from nucs.propagators.element_liv_propagator import (
     get_complexity_element_liv,
     get_triggers_element_liv,
 )
-from nucs.propagators.equiv_eq_propagator import get_triggers_equiv_eq, get_complexity_equiv_eq, \
-    compute_domains_equiv_eq
+from nucs.propagators.equiv_eq_propagator import (
+    compute_domains_equiv_eq,
+    get_complexity_equiv_eq,
+    get_triggers_equiv_eq,
+)
 from nucs.propagators.exactly_eq_propagator import (
     compute_domains_exactly_eq,
     get_complexity_exactly_eq,
