@@ -11,7 +11,7 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 from nucs.problems.latin_square_problem import M_COLOR, M_COLUMN, M_ROW, LatinSquareProblem, LatinSquareRCProblem
-from nucs.propagators.propagators import ALG_ELEMENT_LIC, ALG_ELEMENT_LIV
+from nucs.propagators.propagators import ALG_ELEMENT_LIC, ALG_ELEMENT_LIV, ALG_ELEMENT_LIV_ALLDIFFERENT
 
 
 class QuasigroupProblem(LatinSquareProblem):
@@ -75,6 +75,10 @@ class QuasigroupProblemRC(LatinSquareRCProblem):
             for model in [M_COLOR, M_ROW, M_COLUMN]:
                 for i in range(n):
                     self.shr_domains_lst[self.cell(i, i, model)] = [i, i]
+                for i in range(1, n):
+                    self.shr_domains_lst[self.cell(0, i, model)] = [1, n - 1]
+                for i in range(0, n - 1):
+                    self.shr_domains_lst[self.cell(n - 1, i, model)] = [0, n - 2]
         for i in range(n):
             for j in range(n):
                 if not idempotent or j != i:
@@ -84,7 +88,7 @@ class QuasigroupProblemRC(LatinSquareRCProblem):
                         self.add_propagator(
                             (
                                 [*self.column(i, M_COLUMN), self.cell(i, j, M_COLOR), self.cell(j, i, M_COLOR)],
-                                ALG_ELEMENT_LIV,
+                                ALG_ELEMENT_LIV_ALLDIFFERENT,
                                 [],
                             )
                         )
@@ -94,7 +98,7 @@ class QuasigroupProblemRC(LatinSquareRCProblem):
                         self.add_propagator(
                             (
                                 [*self.column(i, M_COLUMN), self.cell(j, i, M_COLOR), self.cell(i, j, M_COLOR)],
-                                ALG_ELEMENT_LIV,
+                                ALG_ELEMENT_LIV_ALLDIFFERENT,
                                 [],
                             )
                         )
@@ -104,7 +108,7 @@ class QuasigroupProblemRC(LatinSquareRCProblem):
                         self.add_propagator(
                             (
                                 [*self.column(j, M_COLOR), self.cell(j, i, M_COLOR), self.cell(i, j, M_ROW)],
-                                ALG_ELEMENT_LIV,
+                                ALG_ELEMENT_LIV_ALLDIFFERENT,
                                 [],
                             )
                         )
@@ -112,17 +116,25 @@ class QuasigroupProblemRC(LatinSquareRCProblem):
                         # color[color[i, j], j] = color[i, color[i, j]]
                         ijj = self.add_variable((0, n - 1))
                         self.add_propagator(
-                            ([*self.column(j, M_COLOR), self.cell(i, j, M_COLOR), ijj], ALG_ELEMENT_LIV, [])
+                            (
+                                [*self.column(j, M_COLOR), self.cell(i, j, M_COLOR), ijj],
+                                ALG_ELEMENT_LIV_ALLDIFFERENT,
+                                [],
+                            )
                         )
                         self.add_propagator(
-                            ([*self.row(i, M_COLOR), self.cell(i, j, M_COLOR), ijj], ALG_ELEMENT_LIV, [])
+                            ([*self.row(i, M_COLOR), self.cell(i, j, M_COLOR), ijj], ALG_ELEMENT_LIV_ALLDIFFERENT, [])
                         )
                     elif kind == 7:  # (b∗a)∗b = a*(b*a)
                         # color[color[j, i], j] = color[i, color[j, i]]
                         jij = self.add_variable((0, n - 1))
                         self.add_propagator(
-                            ([*self.column(j, M_COLOR), self.cell(j, i, M_COLOR), jij], ALG_ELEMENT_LIV, [])
+                            (
+                                [*self.column(j, M_COLOR), self.cell(j, i, M_COLOR), jij],
+                                ALG_ELEMENT_LIV_ALLDIFFERENT,
+                                [],
+                            )
                         )
                         self.add_propagator(
-                            ([*self.row(i, M_COLOR), self.cell(j, i, M_COLOR), jij], ALG_ELEMENT_LIV, [])
+                            ([*self.row(i, M_COLOR), self.cell(j, i, M_COLOR), jij], ALG_ELEMENT_LIV_ALLDIFFERENT, [])
                         )
