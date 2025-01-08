@@ -47,6 +47,11 @@ from nucs.propagators.element_iv_propagator import (
     get_complexity_element_iv,
     get_triggers_element_iv,
 )
+from nucs.propagators.element_lic_alldifferent_propagator import (
+    compute_domains_element_lic_alldifferent,
+    get_complexity_element_lic_alldifferent,
+    get_triggers_element_lic_alldifferent,
+)
 from nucs.propagators.element_lic_propagator import (
     compute_domains_element_lic,
     get_complexity_element_lic,
@@ -56,6 +61,11 @@ from nucs.propagators.element_liv_propagator import (
     compute_domains_element_liv,
     get_complexity_element_liv,
     get_triggers_element_liv,
+)
+from nucs.propagators.element_liv_propagator_alldifferent import (
+    compute_domains_element_liv_alldifferent,
+    get_complexity_element_liv_alldifferent,
+    get_triggers_element_liv_alldifferent,
 )
 from nucs.propagators.equiv_eq_propagator import (
     compute_domains_equiv_eq,
@@ -129,7 +139,17 @@ ALG_COUNT_EQ = register_propagator(get_triggers_count_eq, get_complexity_count_e
 ALG_DUMMY = register_propagator(get_triggers_dummy, get_complexity_dummy, compute_domains_dummy)
 ALG_ELEMENT_IV = register_propagator(get_triggers_element_iv, get_complexity_element_iv, compute_domains_element_iv)
 ALG_ELEMENT_LIV = register_propagator(get_triggers_element_liv, get_complexity_element_liv, compute_domains_element_liv)
+ALG_ELEMENT_LIV_ALLDIFFERENT = register_propagator(
+    get_triggers_element_liv_alldifferent,
+    get_complexity_element_liv_alldifferent,
+    compute_domains_element_liv_alldifferent,
+)
 ALG_ELEMENT_LIC = register_propagator(get_triggers_element_lic, get_complexity_element_lic, compute_domains_element_lic)
+ALG_ELEMENT_LIC_ALLDIFFERENT = register_propagator(
+    get_triggers_element_lic_alldifferent,
+    get_complexity_element_lic_alldifferent,
+    compute_domains_element_lic_alldifferent,
+)
 ALG_EQUIV_EQ = register_propagator(get_triggers_equiv_eq, get_complexity_equiv_eq, compute_domains_equiv_eq)
 ALG_EXACTLY_EQ = register_propagator(get_triggers_exactly_eq, get_complexity_exactly_eq, compute_domains_exactly_eq)
 ALG_EXACTLY_TRUE = register_propagator(
