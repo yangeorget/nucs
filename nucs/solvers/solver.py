@@ -76,6 +76,12 @@ class Solver:
         self.solve_all(lambda solution: solutions.append(solution))
         return solutions
 
+    def find_one(self) -> Optional[NDArray]:
+        logger.info("Finding one solution")
+        for solution in self.solve():
+            return solution
+        return None
+
     @abstractmethod
     def minimize(self, variable_idx: int, mode: str) -> Optional[NDArray]:
         """
