@@ -43,7 +43,7 @@ def compute_domains_element_lic_alldifferent(domains: NDArray, parameters: NDArr
     Enforces l_i = c when alldifferent(l).
     :param domains: the domains of the variables, l is the list of the first n-1 domains, i is the last domain
     :param parameters: the parameters of the propagator, c is the first parameter
-    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
+    :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     l = domains[:-1]
     i = domains[-1]

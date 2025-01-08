@@ -53,7 +53,7 @@ def compute_domains_max_leq(domains: NDArray, parameters: NDArray) -> int:
     Implements Max_i x_i <= x_{n-1}.
     :param domains: the domains of the variables, x is an alias for domains
     :param parameters: unused here
-    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
+    :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     x = domains[:-1]
     y = domains[-1]

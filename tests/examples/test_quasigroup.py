@@ -40,6 +40,10 @@ class TestQuasigroup:
             # (5, 12, True, 0),      4s
             # (5, 13, True, 0),     97s
             # (5, 14, True, 0),   1380s
+            # (5, 15, True, 0),   ?
+            # (5, 16, True, 0),   ?
+            # (5, 17, True, 0),   ?
+            # (5, 18, True, 0),   ? open
             (6, 5, True, 0),
             (6, 6, True, 0),
             (6, 7, True, 0),

@@ -43,7 +43,7 @@ def compute_domains_exactly_eq(domains: NDArray, parameters: NDArray) -> int:
     Implements Sigma_i (x_i == a) = c.
     :param domains: the domains of the variables, x is an alias for domains
     :param parameters: the parameters of the propagator, a is the first parameter, c is the second parameter
-    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
+    :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     a = parameters[0]
     c = parameters[1]

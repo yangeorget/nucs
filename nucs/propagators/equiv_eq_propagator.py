@@ -43,7 +43,7 @@ def compute_domains_equiv_eq(domains: NDArray, parameters: NDArray) -> int:
     Implements b <=> x = c.
     :param domains: the domains of the variables, b is the first domain, x is the second domain
     :param parameters: c is the first parameter
-    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
+    :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     b = domains[0]
     x = domains[1]

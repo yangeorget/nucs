@@ -43,7 +43,7 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray) -> int:
     Implements Sigma_i (x_i == a) = x_{n-1}.
     :param domains: the domains of the variables, x is an alias for domains
     :param parameters: the parameters of the propagator, a is the first parameter
-    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
+    :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     a = parameters[0]
     x = domains[:-1]

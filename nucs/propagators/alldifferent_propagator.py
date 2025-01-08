@@ -199,7 +199,7 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
     :param domains: the domains of the variables, x is an alias for domains
     :param parameters: unused here
-    :return: the status of the propagation (consistency, inconsistency or entailement) as an int
+    :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     n = len(domains)
     ranks = np.zeros((n, 2), dtype=np.uint16)
