@@ -13,7 +13,7 @@
 from typing import List, Optional
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_ELEMENT_LIC
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_ELEMENT_LIC_ALLDIFFERENT
 
 M_COLOR = 0  # the color model
 M_ROW = 1  # the row model
@@ -110,18 +110,30 @@ class LatinSquareRCProblem(LatinSquareProblem):
         # row[c,j]=i <=> column[i,c]=j
         for c in range(n):
             for i in range(n):
-                self.add_propagator(([*self.row(c, M_ROW), self.cell(i, c, M_COLUMN)], ALG_ELEMENT_LIC, [i]))
+                self.add_propagator(
+                    ([*self.row(c, M_ROW), self.cell(i, c, M_COLUMN)], ALG_ELEMENT_LIC_ALLDIFFERENT, [i])
+                )
             for j in range(n):
-                self.add_propagator(([*self.column(c, M_COLUMN), self.cell(c, j, M_ROW)], ALG_ELEMENT_LIC, [j]))
+                self.add_propagator(
+                    ([*self.column(c, M_COLUMN), self.cell(c, j, M_ROW)], ALG_ELEMENT_LIC_ALLDIFFERENT, [j])
+                )
         # row[c,j]=i <=> color[i,j]=c
         for j in range(n):
             for i in range(n):
-                self.add_propagator(([*self.column(j, M_ROW), self.cell(i, j, M_COLOR)], ALG_ELEMENT_LIC, [i]))
+                self.add_propagator(
+                    ([*self.column(j, M_ROW), self.cell(i, j, M_COLOR)], ALG_ELEMENT_LIC_ALLDIFFERENT, [i])
+                )
             for c in range(n):
-                self.add_propagator(([*self.column(j, M_COLOR), self.cell(c, j, M_ROW)], ALG_ELEMENT_LIC, [c]))
+                self.add_propagator(
+                    ([*self.column(j, M_COLOR), self.cell(c, j, M_ROW)], ALG_ELEMENT_LIC_ALLDIFFERENT, [c])
+                )
         # color[i,j]=c <=> column[i,c]=j
         for i in range(n):
             for c in range(n):
-                self.add_propagator(([*self.row(i, M_COLOR), self.cell(i, c, M_COLUMN)], ALG_ELEMENT_LIC, [c]))
+                self.add_propagator(
+                    ([*self.row(i, M_COLOR), self.cell(i, c, M_COLUMN)], ALG_ELEMENT_LIC_ALLDIFFERENT, [c])
+                )
             for j in range(n):
-                self.add_propagator(([*self.row(i, M_COLUMN), self.cell(i, j, M_COLOR)], ALG_ELEMENT_LIC, [j]))
+                self.add_propagator(
+                    ([*self.row(i, M_COLUMN), self.cell(i, j, M_COLOR)], ALG_ELEMENT_LIC_ALLDIFFERENT, [j])
+                )
