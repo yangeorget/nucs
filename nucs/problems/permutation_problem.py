@@ -29,6 +29,4 @@ class PermutationProblem(Problem):
         super().__init__(shr_domains)
         self.add_propagator((list(range(n)), ALG_ALLDIFFERENT, []))
         self.add_propagator((list(range(n, 2 * n)), ALG_ALLDIFFERENT, []))
-        for i in range(n):
-            self.add_propagator((list(range(n)) + [n + i], ALG_PERMUTATION_AUX, [i]))
-            self.add_propagator((list(range(n, 2 * n)) + [i], ALG_PERMUTATION_AUX, [i]))
+        self.add_propagator((list(range(2 * n)), ALG_PERMUTATION_AUX, []))

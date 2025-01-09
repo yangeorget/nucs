@@ -13,7 +13,7 @@
 from typing import List, Optional
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_ELEMENT_LIC_ALLDIFFERENT
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_PERMUTATION_AUX
 
 M_COLOR = 0  # the color model
 M_ROW = 1  # the row model
@@ -84,56 +84,12 @@ class LatinSquareRCProblem(LatinSquareProblem):
         self.add_propagators([(self.row(i, M_COLUMN), ALG_ALLDIFFERENT, []) for i in range(self.n)])
         self.add_propagators([(self.column(j, M_COLUMN), ALG_ALLDIFFERENT, []) for j in range(self.n)])
         # # using permutation_aux
-        # for c in range(n):
-        #     for i in range(n):
-        #         self.add_propagator(([*self.row(i, M_COLOR), self.cell(i, c, M_COLUMN)], ALG_PERMUTATION_AUX, [c]))
-        #     for j in range(n):
-        #         self.add_propagator(([*self.column(j, M_COLOR), self.cell(c, j, M_ROW)], ALG_PERMUTATION_AUX, [c]))
-        # for i in range(n):
-        #     for c in range(n):
-        #         self.add_propagator(([*self.row(c, M_ROW), self.cell(i, c, M_COLUMN)], ALG_PERMUTATION_AUX, [i]))
-        #     for j in range(n):
-        #         self.add_propagator(([*self.column(j, M_ROW), self.cell(i, j, M_COLOR)], ALG_PERMUTATION_AUX, [i]))
-        # for j in range(n):
-        #     for i in range(n):
-        #         self.add_propagator(([*self.row(i, M_COLUMN), self.cell(i, j, M_COLOR)], ALG_PERMUTATION_AUX, [j]))
-        #     for c in range(n):
-        #         self.add_propagator(([*self.column(c, M_COLUMN), self.cell(c, j, M_ROW)], ALG_PERMUTATION_AUX, [j]))
-        # # using boolean model
-        # for i in range(n):
-        #     for j in range(n):
-        #         for c in range(n):
-        #             b = self.add_variable((0, 1))
-        #             self.add_propagator(([b, self.cell(i, j, M_COLOR)], ALG_EQUIV_EQ, [c]))
-        #             self.add_propagator(([b, self.cell(c, j, M_ROW)], ALG_EQUIV_EQ, [i]))
-        #             self.add_propagator(([b, self.cell(i, c, M_COLUMN)], ALG_EQUIV_EQ, [j]))
-        # row[c,j]=i <=> column[i,c]=j
-        for c in range(n):
-            for i in range(n):
-                self.add_propagator(
-                    ([*self.row(c, M_ROW), self.cell(i, c, M_COLUMN)], ALG_ELEMENT_LIC_ALLDIFFERENT, [i])
-                )
-            for j in range(n):
-                self.add_propagator(
-                    ([*self.column(c, M_COLUMN), self.cell(c, j, M_ROW)], ALG_ELEMENT_LIC_ALLDIFFERENT, [j])
-                )
         # row[c,j]=i <=> color[i,j]=c
         for j in range(n):
-            for i in range(n):
-                self.add_propagator(
-                    ([*self.column(j, M_ROW), self.cell(i, j, M_COLOR)], ALG_ELEMENT_LIC_ALLDIFFERENT, [i])
-                )
-            for c in range(n):
-                self.add_propagator(
-                    ([*self.column(j, M_COLOR), self.cell(c, j, M_ROW)], ALG_ELEMENT_LIC_ALLDIFFERENT, [c])
-                )
+            self.add_propagator(([*self.column(j, M_COLOR), *self.column(j, M_ROW)], ALG_PERMUTATION_AUX, []))
+        # row[c,j]=i <=> column[i,c]=j
+        for c in range(n):
+            self.add_propagator(([*self.row(c, M_ROW), *self.column(c, M_COLUMN)], ALG_PERMUTATION_AUX, []))
         # color[i,j]=c <=> column[i,c]=j
         for i in range(n):
-            for c in range(n):
-                self.add_propagator(
-                    ([*self.row(i, M_COLOR), self.cell(i, c, M_COLUMN)], ALG_ELEMENT_LIC_ALLDIFFERENT, [c])
-                )
-            for j in range(n):
-                self.add_propagator(
-                    ([*self.row(i, M_COLUMN), self.cell(i, j, M_COLOR)], ALG_ELEMENT_LIC_ALLDIFFERENT, [j])
-                )
+            self.add_propagator(([*self.row(i, M_COLOR), *self.row(i, M_COLUMN)], ALG_PERMUTATION_AUX, []))

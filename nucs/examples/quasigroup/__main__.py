@@ -15,7 +15,7 @@ import argparse
 from rich import print
 
 from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
-from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblemRC
+from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_SHAVING
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("--processors", type=int, default=1)
     parser.add_argument("--kind", type=int, choices=[3, 4, 5, 6, 7], default=5)
     args = parser.parse_args()
-    problem = QuasigroupProblemRC(args.kind, args.n, args.idempotent, args.symmetry_breaking)
+    problem = QuasigroupProblem(args.kind, args.n, args.idempotent, args.symmetry_breaking)
     solver = (
         MultiprocessingSolver(
             [
