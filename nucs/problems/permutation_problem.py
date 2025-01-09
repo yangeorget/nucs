@@ -32,5 +32,3 @@ class PermutationProblem(Problem):
         for i in range(n):
             self.add_propagator((list(range(n)) + [n + i], ALG_PERMUTATION_AUX, [i]))
             self.add_propagator((list(range(n, 2 * n)) + [i], ALG_PERMUTATION_AUX, [i]))
-            # self.add_propagator((list(range(n)) + [n + i], ALG_ELEMENT_LIC_ALLDIFFERENT, [i]))
-            # self.add_propagator((list(range(n, 2 * n)) + [i], ALG_ELEMENT_LIC_ALLDIFFERENT, [i]))
