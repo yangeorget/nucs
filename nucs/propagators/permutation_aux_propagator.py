@@ -48,19 +48,17 @@ def compute_domains_permutation_aux(domains: NDArray, parameters: NDArray) -> in
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     next = domains[:-1]
-    n = len(next)
     prev_j = domains[-1]
     j = parameters[0]
-    for i in range(0, n):
-        if i < prev_j[MIN] or i > prev_j[MAX]:  # if prev_j != i
-            # then next_i != j
+    if prev_j[MIN] == prev_j[MAX]:
+        next[prev_j[MIN]] = j
+        return PROP_ENTAILMENT
+    for i in range(0, len(next)):
+        if i < prev_j[MIN] or i > prev_j[MAX]:  # if prev_j != i then next_i != j
             if next[i, MIN] == j:
                 next[i, MIN] += 1
             if next[i, MAX] == j:
                 next[i, MAX] -= 1
             if next[i, MIN] > next[i, MAX]:
                 return PROP_INCONSISTENCY
-    if prev_j[MIN] == prev_j[MAX]:
-        next[prev_j[MIN]] = j
-        return PROP_ENTAILMENT
     return PROP_CONSISTENCY
