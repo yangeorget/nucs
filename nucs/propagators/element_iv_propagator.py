@@ -46,7 +46,7 @@ def compute_domains_element_iv(domains: NDArray, parameters: NDArray) -> int:
     :param domains: the domains of the variables,
            i is the first domain,
            v is the last domain
-    :param parameters: the parameters of the propagator
+    :param parameters: the parameters of the propagator, l is an alias for parameters
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     l = parameters

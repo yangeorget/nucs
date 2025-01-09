@@ -10,17 +10,55 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
+import time
+from multiprocessing import Queue
+
+import numpy as np
 import pytest
 
-from nucs.constants import OPTIM_PRUNE, OPTIM_RESET, STATS_LBL_SOLVER_SOLUTION_NB
+from nucs.constants import OPTIM_PRUNE, OPTIM_RESET, STATS_LBL_SOLVER_SOLUTION_NB, STATS_MAX
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_RELATION
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
+from nucs.solvers.queue_solver import QueueSolver
 
 
 class TestMultiprocessingSolver:
-    def test_solve1(self) -> None:
+    def test_find_one(self) -> None:
+        class FastSolver(QueueSolver):
+            def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
+                solution_queue.put((processor_idx, np.array(0), np.array([0] * STATS_MAX, dtype=np.int64)))
+
+            def minimize_and_queue(
+                self, variable_idx: int, processor_idx: int, solution_queue: Queue, mode: str
+            ) -> None:
+                pass
+
+            def maximize_and_queue(
+                self, variable_idx: int, processor_idx: int, solution_queue: Queue, mode: str
+            ) -> None:
+                pass
+
+        class SlowSolver(QueueSolver):
+            def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
+                time.sleep(10)
+                solution_queue.put((processor_idx, None, np.array([0] * STATS_MAX, dtype=np.int64)))
+
+            def minimize_and_queue(
+                self, variable_idx: int, processor_idx: int, solution_queue: Queue, mode: str
+            ) -> None:
+                pass
+
+            def maximize_and_queue(
+                self, variable_idx: int, processor_idx: int, solution_queue: Queue, mode: str
+            ) -> None:
+                pass
+
+        solver = MultiprocessingSolver([SlowSolver(), FastSolver()])
+        assert solver.find_one() is not None
+
+    def test_find_all_1(self) -> None:
         problem = Problem([(0, 99), (0, 99)])
         solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in (problem.split(4, 0))])
         solutions = solver.find_all()
@@ -28,7 +66,7 @@ class TestMultiprocessingSolver:
         statistics = solver.get_statistics()
         assert statistics[STATS_LBL_SOLVER_SOLUTION_NB] == 10000
 
-    def test_solve_alldifferent(self) -> None:
+    def test_find_all_alldifferent(self) -> None:
         problem = Problem([(0, 2), (0, 2), (0, 2)])
         problem.add_propagator(([0, 1, 2], ALG_ALLDIFFERENT, []))
         solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in (problem.split(3, 0))])

@@ -44,6 +44,7 @@ def get_triggers_no_sub_cycle(n: int, parameters: NDArray) -> NDArray:
 @njit(cache=True)
 def compute_domains_no_sub_cycle(domains: NDArray, parameters: NDArray) -> int:
     """
+    Enforces that a permutation does not contain any sub-cycle.
     :param domains: the domains of the variables
     :param parameters: unused here
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int

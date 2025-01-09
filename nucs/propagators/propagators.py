@@ -57,15 +57,15 @@ from nucs.propagators.element_lic_propagator import (
     get_complexity_element_lic,
     get_triggers_element_lic,
 )
+from nucs.propagators.element_liv_alldifferent_propagator import (
+    compute_domains_element_liv_alldifferent,
+    get_complexity_element_liv_alldifferent,
+    get_triggers_element_liv_alldifferent,
+)
 from nucs.propagators.element_liv_propagator import (
     compute_domains_element_liv,
     get_complexity_element_liv,
     get_triggers_element_liv,
-)
-from nucs.propagators.element_liv_propagator_alldifferent import (
-    compute_domains_element_liv_alldifferent,
-    get_complexity_element_liv_alldifferent,
-    get_triggers_element_liv_alldifferent,
 )
 from nucs.propagators.equiv_eq_propagator import (
     compute_domains_equiv_eq,

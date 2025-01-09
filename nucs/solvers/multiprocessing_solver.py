@@ -46,7 +46,7 @@ from nucs.constants import (
     STATS_LBL_SOLVER_CHOICE_NB,
     STATS_LBL_SOLVER_SOLUTION_NB,
 )
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.queue_solver import QueueSolver
 from nucs.solvers.solver import Solver
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class MultiprocessingSolver(Solver):
     This solver delegates resolution to a set of solvers.
     """
 
-    def __init__(self, solvers: List[BacktrackSolver], log_level: str = LOG_LEVEL_INFO):
+    def __init__(self, solvers: List[QueueSolver], log_level: str = LOG_LEVEL_INFO):
         super().__init__(None, log_level)
         logger.info(f"MultiprocessingSolver has {len(solvers)} processors")
         set_start_method("fork", force=True)

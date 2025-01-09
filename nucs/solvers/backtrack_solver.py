@@ -72,12 +72,13 @@ from nucs.problems.problem import Problem
 from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagators
 from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_points, fix_top_choice_point
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
+from nucs.solvers.queue_solver import QueueSolver
 from nucs.solvers.solver import Solver, get_solution
 
 logger = logging.getLogger(__name__)
 
 
-class BacktrackSolver(Solver):
+class BacktrackSolver(Solver, QueueSolver):
     """
     A solver relying on a backtracking mechanism.
     """

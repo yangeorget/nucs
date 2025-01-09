@@ -42,8 +42,9 @@ def get_triggers_permutation_aux(n: int, parameters: NDArray) -> NDArray:
 @njit(cache=True)
 def compute_domains_permutation_aux(domains: NDArray, parameters: NDArray) -> int:
     """
-    :param domains: the domains of the variables
-    :param parameters: the parameters of the propagator
+    An auxiliary propagator needed to connect the next and prev variables of a permutation problem.
+    :param domains: the domains of the variables, the next variables and a prev variable
+    :param parameters: the parameters of the propagator, unused here
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     next = domains[:-1]
