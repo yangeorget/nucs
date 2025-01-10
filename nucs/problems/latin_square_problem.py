@@ -83,13 +83,12 @@ class LatinSquareRCProblem(LatinSquareProblem):
         self.add_propagators([(self.column(j, M_ROW), ALG_ALLDIFFERENT, []) for j in range(self.n)])
         self.add_propagators([(self.row(i, M_COLUMN), ALG_ALLDIFFERENT, []) for i in range(self.n)])
         self.add_propagators([(self.column(j, M_COLUMN), ALG_ALLDIFFERENT, []) for j in range(self.n)])
-        # # using permutation_aux
         # row[c,j]=i <=> color[i,j]=c
         for j in range(n):
-            self.add_propagator(([*self.column(j, M_COLOR), *self.column(j, M_ROW)], ALG_PERMUTATION_AUX, []))
+            self.add_propagator(([*self.column(j), *self.column(j, M_ROW)], ALG_PERMUTATION_AUX, []))
         # row[c,j]=i <=> column[i,c]=j
         for c in range(n):
             self.add_propagator(([*self.row(c, M_ROW), *self.column(c, M_COLUMN)], ALG_PERMUTATION_AUX, []))
         # color[i,j]=c <=> column[i,c]=j
         for i in range(n):
-            self.add_propagator(([*self.row(i, M_COLOR), *self.row(i, M_COLUMN)], ALG_PERMUTATION_AUX, []))
+            self.add_propagator(([*self.row(i), *self.row(i, M_COLUMN)], ALG_PERMUTATION_AUX, []))
