@@ -333,10 +333,27 @@ NuCS currently provides the following highly-optimized propagators.
 
    This propagator enforces that a permutation does not contain any sub-cycle.
 
-   It has the time complexity: :math:`O(nˆ2)` where :math:`n` is the number of variables.
+   It has the time complexity: :math:`O(n^2)` where :math:`n` is the number of variables.
 
    :param domains: the domains of the variables,
    :type domains: NDArray
+   :param parameters: the parameters of the propagator, it is unused
+   :type parameters: NDArray
+   :return: the status of the propagation (consistency, inconsistency or entailment)
+   :rtype: int
+
+
+.. py:module:: nucs.propagators.permutation_aux_propagator
+.. py:function:: nucs.propagators.permutation_aux_propagator.compute_domains(domains, parameters)
+
+   This is an auxiliary propagator to connect the next and prev variables of a permutation problem.
+
+   It has the time complexity: :math:`O(n^2)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables,
+   :type domains: NDArray
+        the :math:`n` first variables are the next variables
+        the :math:`n` last variables are the prev variables
    :param parameters: the parameters of the propagator, it is unused
    :type parameters: NDArray
    :return: the status of the propagation (consistency, inconsistency or entailment)
@@ -356,6 +373,21 @@ NuCS currently provides the following highly-optimized propagators.
           the allowed tuples correspond to:
           :math:`(p_0, ..., p_{n-1}), (p_n, ..., p_{2n-1}), ...` where :math:`p` is an alias for parameters
 
+   :type parameters: NDArray
+   :return: the status of the propagation (consistency, inconsistency or entailment)
+   :rtype: int
+
+
+.. py:module:: nucs.propagators.scc_propagator
+.. py:function:: nucs.propagators.scc_propagator.compute_domains(domains, parameters)
+
+   This is an auxiliary propagator to enforces that a permutation has a single strongly connected component.
+
+   It has the time complexity: :math:`O(n^2)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables,
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, it is unused
    :type parameters: NDArray
    :return: the status of the propagation (consistency, inconsistency or entailment)
    :rtype: int

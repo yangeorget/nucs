@@ -149,7 +149,7 @@ This problem can be run with the command:
 
 This quasigroup problem leverages the problem :mod:`nucs.problems.latin_square_problem` and the propagators:
 
-* :mod:`nucs.propagators.element_liv_propagator`.
+* :mod:`nucs.propagators.element_liv_alldifferent_propagator`.
 
 
 .. py:module:: nucs.examples.queens.queens_problem
