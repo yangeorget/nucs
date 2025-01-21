@@ -14,7 +14,7 @@ import argparse
 
 from rich import print
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
+from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, PB_MASTER, PB_NONE
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -25,6 +25,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
     parser.add_argument("-n", type=int, default=100)
+    parser.add_argument("--progress_bar", type=bool, action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     problem = MagicSequenceProblem(args.n)
     solver = BacktrackSolver(
@@ -32,8 +33,8 @@ if __name__ == "__main__":
         decision_domains=list(range(args.n - 1, -1, -1)),
         var_heuristic_idx=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE,
+        pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         log_level=args.log_level,
-        stacks_max_height=128,
     )
     solver.solve_all()
     print(solver.get_statistics_as_dictionary())

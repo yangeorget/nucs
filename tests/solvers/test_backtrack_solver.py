@@ -47,7 +47,7 @@ class TestBacktrackSolver:
             solver.dom_update_stack,
             solver.stacks_top,
             solver.triggered_propagators,
-            solver.problem.triggers
+            solver.problem.triggers,
         )
         assert solver.compute_search_space_size() == 900
 

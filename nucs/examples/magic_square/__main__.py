@@ -14,7 +14,7 @@ import argparse
 
 from rich import print
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
+from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, PB_MASTER, PB_NONE
 from nucs.examples.magic_square.magic_square_problem import MagicSquareProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -26,12 +26,14 @@ if __name__ == "__main__":
     parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
     parser.add_argument("-n", type=int, default=4)
     parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--progress_bar", type=bool, action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     problem = MagicSquareProblem(args.n, args.symmetry_breaking)
     solver = BacktrackSolver(
         problem,
         var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
         dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE,
+        pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         log_level=args.log_level,
     )
     solver.solve_all()

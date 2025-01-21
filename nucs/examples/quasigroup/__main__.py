@@ -14,7 +14,7 @@ import argparse
 
 from rich import print
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
+from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, PB_MASTER, PB_NONE, PB_SLAVE
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -32,6 +32,7 @@ if __name__ == "__main__":
     parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--processors", type=int, default=1)
     parser.add_argument("--kind", type=int, choices=[3, 4, 5, 6, 7], default=5)
+    parser.add_argument("--progress_bar", type=bool, action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     problem = QuasigroupProblem(args.kind, args.n, args.idempotent, args.symmetry_breaking)
     solver = (
@@ -43,10 +44,12 @@ if __name__ == "__main__":
                     consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
                     var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
                     dom_heuristic_idx=DOM_HEURISTIC_SPLIT_LOW,
+                    pb_mode=PB_SLAVE if args.progress_bar else PB_NONE,
                     log_level=args.log_level,
                 )
                 for problem in problem.split(args.processors, 1)
-            ]
+            ],
+            pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         )
         if args.processors > 1
         else BacktrackSolver(
@@ -55,6 +58,7 @@ if __name__ == "__main__":
             consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
             var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
             dom_heuristic_idx=DOM_HEURISTIC_SPLIT_LOW,
+            pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
             log_level=args.log_level,
         )
     )
