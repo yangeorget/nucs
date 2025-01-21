@@ -37,6 +37,7 @@ class Solver:
         :param log_level: the log level as a string
         """
         logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, log_level))  # TODO: move to examples
+        logging.getLogger('numba').setLevel(logging.WARNING)
         logger.info("Initializing Solver")
         self.pb_mode = pb_mode
         self.manager = enlighten.get_manager() if pb_mode == PB_MASTER else None
