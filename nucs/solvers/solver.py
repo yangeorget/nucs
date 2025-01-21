@@ -14,11 +14,12 @@ import logging
 from abc import abstractmethod
 from typing import Callable, Dict, Iterator, List, Optional
 
+import enlighten
 import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import LOG_FORMAT, LOG_LEVEL_INFO, MAX, MIN
+from nucs.constants import LOG_FORMAT, LOG_LEVEL_INFO, MAX, MIN, PB_MASTER
 from nucs.problems.problem import Problem
 
 logger = logging.getLogger(__name__)
@@ -29,20 +30,22 @@ class Solver:
     A solver.
     """
 
-    def __init__(self, problem: Optional[Problem], log_level: str = LOG_LEVEL_INFO):
+    def __init__(self, problem: Optional[Problem], pb_mode: int, log_level: str = LOG_LEVEL_INFO):
         """
         Inits the solver.
         :param problem: a problem or None
         :param log_level: the log level as a string
         """
         logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, log_level))  # TODO: move to examples
-        logger.debug("Initializing Solver")
+        logger.info("Initializing Solver")
+        self.pb_mode = pb_mode
+        self.manager = enlighten.get_manager() if pb_mode == PB_MASTER else None
         if problem is not None:
             self.problem = problem
             problem.init()
 
     @abstractmethod
-    def get_statistics(self) -> Dict[str, int]:
+    def get_statistics_as_dictionary(self) -> Dict[str, int]:
         """
         Returns the statistics as a dictionary.
         :return: a dictionary
@@ -99,6 +102,10 @@ class Solver:
         :return: the solution if it exists or None
         """
         ...
+
+    def pb_stop(self) -> None:
+        if self.manager:
+            self.manager.stop()
 
 
 @njit(cache=True)

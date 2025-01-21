@@ -15,8 +15,9 @@ from multiprocessing import Queue
 
 import numpy as np
 import pytest
+from numpy._typing import NDArray
 
-from nucs.constants import OPTIM_PRUNE, OPTIM_RESET, STATS_LBL_SOLVER_SOLUTION_NB, STATS_MAX
+from nucs.constants import OPTIM_PRUNE, OPTIM_RESET, STATS_LBL_SOLUTION_NB, STATS_MAX
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_RELATION
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -27,6 +28,9 @@ from nucs.solvers.queue_solver import QueueSolver
 class TestMultiprocessingSolver:
     def test_find_one(self) -> None:
         class FastSolver(QueueSolver):
+            def get_statistics_as_array(self) -> NDArray:
+                return np.array(0)
+
             def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
                 solution_queue.put((processor_idx, np.array(0), np.array([0] * STATS_MAX, dtype=np.int64)))
 
@@ -41,6 +45,9 @@ class TestMultiprocessingSolver:
                 pass
 
         class SlowSolver(QueueSolver):
+            def get_statistics_as_array(self) -> NDArray:
+                return np.array(0)
+
             def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
                 time.sleep(10)
                 solution_queue.put((processor_idx, None, np.array([0] * STATS_MAX, dtype=np.int64)))
@@ -63,8 +70,8 @@ class TestMultiprocessingSolver:
         solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in (problem.split(4, 0))])
         solutions = solver.find_all()
         assert len(solutions) == 10000
-        statistics = solver.get_statistics()
-        assert statistics[STATS_LBL_SOLVER_SOLUTION_NB] == 10000
+        statistics = solver.get_statistics_as_dictionary()
+        assert statistics[STATS_LBL_SOLUTION_NB] == 10000
 
     def test_find_all_alldifferent(self) -> None:
         problem = Problem([(0, 2), (0, 2), (0, 2)])
@@ -72,8 +79,8 @@ class TestMultiprocessingSolver:
         solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in (problem.split(3, 0))])
         solutions = solver.find_all()
         assert len(solutions) == 6
-        statistics = solver.get_statistics()
-        assert statistics[STATS_LBL_SOLVER_SOLUTION_NB] == 6
+        statistics = solver.get_statistics_as_dictionary()
+        assert statistics[STATS_LBL_SOLUTION_NB] == 6
 
     @pytest.mark.parametrize(
         "mode, split_var, split_nb, solution_nb",
@@ -99,5 +106,5 @@ class TestMultiprocessingSolver:
         solution = solver.minimize(1, mode=mode)
         assert solution is not None
         assert solution.tolist() == [0, 0]
-        statistics = solver.get_statistics()
-        assert statistics[STATS_LBL_SOLVER_SOLUTION_NB] == solution_nb
+        statistics = solver.get_statistics_as_dictionary()
+        assert statistics[STATS_LBL_SOLUTION_NB] == solution_nb

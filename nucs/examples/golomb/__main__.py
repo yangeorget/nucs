@@ -14,7 +14,7 @@ import argparse
 
 from rich import print
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPTIM_MODES, OPTIM_PRUNE
+from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPTIM_MODES, OPTIM_PRUNE, PB_MASTER, PB_NONE, PB_SLAVE
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import register_consistency_algorithm
@@ -29,6 +29,7 @@ if __name__ == "__main__":
     parser.add_argument("--opt_mode", choices=OPTIM_MODES, default=OPTIM_PRUNE)
     parser.add_argument("--processors", type=int, default=1)
     parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--progress_bar", type=bool, action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     problem = GolombProblem(args.n, args.symmetry_breaking)
     consistency_alg_golomb = register_consistency_algorithm(golomb_consistency_algorithm)
@@ -36,17 +37,24 @@ if __name__ == "__main__":
         MultiprocessingSolver(
             [
                 BacktrackSolver(
-                    prob, consistency_alg_idx=consistency_alg_golomb, log_level=args.log_level, stacks_max_height=128
+                    prob,
+                    consistency_alg_idx=consistency_alg_golomb,
+                    pb_mode=PB_SLAVE if args.progress_bar else PB_NONE,
+                    log_level=args.log_level,
                 )
                 for prob in problem.split(args.processors, 0)
-            ]
+            ],
+            pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         )
         if args.processors > 1
         else BacktrackSolver(
-            problem, consistency_alg_idx=consistency_alg_golomb, log_level=args.log_level, stacks_max_height=128
+            problem,
+            consistency_alg_idx=consistency_alg_golomb,
+            pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
+            log_level=args.log_level,
         )
     )
     solution = solver.minimize(problem.length_idx, mode=args.opt_mode)
-    print(solver.get_statistics())
+    print(solver.get_statistics_as_dictionary())
     if solution is not None:
         print(solution[: (args.n - 1)])

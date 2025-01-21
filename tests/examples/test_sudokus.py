@@ -14,7 +14,7 @@ from typing import List
 
 import pytest
 
-from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB
+from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.examples.sudoku.sudoku_problem import SudokuProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
@@ -51,4 +51,4 @@ class TestSudokus:
         problem = SudokuProblem(givens)
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 1
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1

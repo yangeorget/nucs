@@ -12,7 +12,7 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB
+from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -65,4 +65,4 @@ class TestQuasigroup:
             dom_heuristic_idx=DOM_HEURISTIC_SPLIT_LOW,
         )
         solver.solve_all()
-        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == solution_nb
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb

@@ -15,10 +15,12 @@ import operator
 from multiprocessing import Process, Queue, set_start_method
 from typing import Any, Callable, Dict, Iterator, List, Optional
 
+import enlighten
 from numpy.typing import NDArray
 
 from nucs.constants import (
     LOG_LEVEL_INFO,
+    PB_NONE,
     STATS_IDX_ALG_BC_NB,
     STATS_IDX_ALG_BC_WITH_SHAVING_NB,
     STATS_IDX_ALG_SHAVING_CHANGE_NB,
@@ -28,10 +30,11 @@ from nucs.constants import (
     STATS_IDX_PROPAGATOR_FILTER_NB,
     STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_IDX_SEARCH_SPACE_REMAINING_SZ,
+    STATS_IDX_SOLUTION_NB,
     STATS_IDX_SOLVER_BACKTRACK_NB,
     STATS_IDX_SOLVER_CHOICE_DEPTH,
     STATS_IDX_SOLVER_CHOICE_NB,
-    STATS_IDX_SOLVER_SOLUTION_NB,
     STATS_LBL_ALG_BC_NB,
     STATS_LBL_ALG_BC_WITH_SHAVING_NB,
     STATS_LBL_ALG_SHAVING_CHANGE_NB,
@@ -41,10 +44,10 @@ from nucs.constants import (
     STATS_LBL_PROPAGATOR_FILTER_NB,
     STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_LBL_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_LBL_SOLUTION_NB,
     STATS_LBL_SOLVER_BACKTRACK_NB,
     STATS_LBL_SOLVER_CHOICE_DEPTH,
     STATS_LBL_SOLVER_CHOICE_NB,
-    STATS_LBL_SOLVER_SOLUTION_NB,
 )
 from nucs.solvers.queue_solver import QueueSolver
 from nucs.solvers.solver import Solver
@@ -58,17 +61,34 @@ class MultiprocessingSolver(Solver):
     This solver delegates resolution to a set of solvers.
     """
 
-    def __init__(self, solvers: List[QueueSolver], log_level: str = LOG_LEVEL_INFO):
-        super().__init__(None, log_level)
+    def __init__(self, solvers: List[QueueSolver], pb_mode: int = PB_NONE, log_level: str = LOG_LEVEL_INFO):
+        super().__init__(None, pb_mode, log_level)
         logger.info(f"MultiprocessingSolver has {len(solvers)} processors")
         set_start_method("fork", force=True)
         self.solvers = solvers
         logger.debug("Initializing statistics")
-        self.statistics = [None for _ in solvers]
+        self.statistics = [solver.get_statistics_as_array() for solver in solvers]
         logger.debug("Statistics initialized")
+        self.progress_bars = self.pb_get() if pb_mode != PB_NONE else None
         logger.debug("MultiprocessingSolver initialized")
+        # TODO: use same scale for all solvers
 
-    def get_statistics(self) -> Dict[str, int]:
+    def pb_get(self) -> List[enlighten.Counter]:
+        return [
+            self.manager.counter(total=stats[STATS_IDX_SEARCH_SPACE_REMAINING_SZ])  # type: ignore
+            for stats in self.statistics
+        ]
+
+    def pb_update(self, proc_idx: int, statistics: NDArray) -> None:
+        if self.progress_bars:
+            new_size = statistics[STATS_IDX_SEARCH_SPACE_REMAINING_SZ]
+            increment = self.statistics[proc_idx][STATS_IDX_SEARCH_SPACE_REMAINING_SZ] - new_size
+            self.progress_bars[proc_idx].update(increment)
+            self.progress_bars[proc_idx].refresh()
+            self.statistics[proc_idx] = statistics
+            self.statistics[proc_idx][STATS_IDX_SEARCH_SPACE_REMAINING_SZ] = new_size
+
+    def get_statistics_as_dictionary(self) -> Dict[str, int]:
         return {
             STATS_LBL_ALG_BC_NB: sum_stats(self.statistics, STATS_IDX_ALG_BC_NB),
             STATS_LBL_ALG_BC_WITH_SHAVING_NB: sum_stats(self.statistics, STATS_IDX_ALG_BC_WITH_SHAVING_NB),
@@ -84,7 +104,7 @@ class MultiprocessingSolver(Solver):
             STATS_LBL_SOLVER_BACKTRACK_NB: sum_stats(self.statistics, STATS_IDX_SOLVER_BACKTRACK_NB),
             STATS_LBL_SOLVER_CHOICE_NB: sum_stats(self.statistics, STATS_IDX_SOLVER_CHOICE_NB),
             STATS_LBL_SOLVER_CHOICE_DEPTH: max_stats(self.statistics, STATS_IDX_SOLVER_CHOICE_DEPTH),
-            STATS_LBL_SOLVER_SOLUTION_NB: sum_stats(self.statistics, STATS_IDX_SOLVER_SOLUTION_NB),
+            STATS_LBL_SOLUTION_NB: sum_stats(self.statistics, STATS_IDX_SOLUTION_NB),
         }
 
     def solve(self) -> Iterator[NDArray]:
@@ -94,11 +114,15 @@ class MultiprocessingSolver(Solver):
         nb = len(self.solvers)
         while nb > 0:
             proc_idx, solution, statistics = solutions.get()
-            self.statistics[proc_idx] = statistics
+            if self.progress_bars:
+                self.pb_update(proc_idx, statistics)
+            else:
+                self.statistics[proc_idx] = statistics
             if solution is None:
                 nb -= 1
             else:
                 yield solution
+        self.pb_stop()
 
     def minimize(self, variable_idx: int, mode: str) -> Optional[NDArray]:
         return self.optimize(variable_idx, "minimize_and_queue", operator.lt, mode)
@@ -116,11 +140,15 @@ class MultiprocessingSolver(Solver):
         nb = len(self.solvers)
         while nb > 0:
             proc_idx, solution, statistics = solutions.get()
-            self.statistics[proc_idx] = statistics
+            if self.progress_bars:
+                self.pb_update(proc_idx, statistics)
+            else:
+                self.statistics[proc_idx] = statistics
             if solution is None:
                 nb -= 1
             elif best_solution is None or comparison_func(solution[variable_idx], best_solution[variable_idx]):
                 best_solution = solution
+        self.pb_stop()
         return best_solution
 
 

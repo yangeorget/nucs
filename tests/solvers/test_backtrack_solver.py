@@ -12,7 +12,7 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import OPTIM_PRUNE, OPTIM_RESET, STATS_LBL_SOLVER_CHOICE_DEPTH, STATS_LBL_SOLVER_SOLUTION_NB
+from nucs.constants import OPTIM_PRUNE, OPTIM_RESET, STATS_LBL_SOLUTION_NB, STATS_LBL_SOLVER_CHOICE_DEPTH
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MID_VALUE,
     DOM_HEURISTIC_MIN_VALUE,
@@ -29,8 +29,8 @@ class TestBacktrackSolver:
         problem = Problem([(0, 99), (0, 99)])
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        statistics = solver.get_statistics()
-        assert statistics[STATS_LBL_SOLVER_SOLUTION_NB] == 10000
+        statistics = solver.get_statistics_as_dictionary()
+        assert statistics[STATS_LBL_SOLUTION_NB] == 10000
         assert statistics[STATS_LBL_SOLVER_CHOICE_DEPTH] == 2
 
     def test_solve(self) -> None:
@@ -42,8 +42,8 @@ class TestBacktrackSolver:
         assert solutions[1].tolist() == [0, 1]
         assert solutions[2].tolist() == [1, 0]
         assert solutions[3].tolist() == [1, 1]
-        statistics = solver.get_statistics()
-        assert statistics[STATS_LBL_SOLVER_SOLUTION_NB] == 4
+        statistics = solver.get_statistics_as_dictionary()
+        assert statistics[STATS_LBL_SOLUTION_NB] == 4
         assert statistics[STATS_LBL_SOLVER_CHOICE_DEPTH] == 2
 
     def test_solve_alldifferent(self) -> None:
@@ -58,8 +58,8 @@ class TestBacktrackSolver:
         assert solutions[3].tolist() == [1, 2, 0]
         assert solutions[4].tolist() == [2, 0, 1]
         assert solutions[5].tolist() == [2, 1, 0]
-        statistics = solver.get_statistics()
-        assert statistics[STATS_LBL_SOLVER_SOLUTION_NB] == 6
+        statistics = solver.get_statistics_as_dictionary()
+        assert statistics[STATS_LBL_SOLUTION_NB] == 6
 
     def test_minimize_relation(self) -> None:
         problem = Problem([(-5, 5), (-100, 100)])
@@ -70,8 +70,8 @@ class TestBacktrackSolver:
         solution = solver.minimize(1)
         assert solution is not None
         assert solution.tolist() == [0, 0]
-        statistics = solver.get_statistics()
-        assert statistics[STATS_LBL_SOLVER_SOLUTION_NB] == 6
+        statistics = solver.get_statistics_as_dictionary()
+        assert statistics[STATS_LBL_SOLUTION_NB] == 6
 
     def test_minimize_affine_leq(self) -> None:
         problem = Problem([(2, 5), (2, 5), (0, 10)])
@@ -80,8 +80,8 @@ class TestBacktrackSolver:
         solution = solver.minimize(2)
         assert solution is not None
         assert solution.tolist() == [2, 2, 4]
-        statistics = solver.get_statistics()
-        assert statistics[STATS_LBL_SOLVER_SOLUTION_NB] == 1
+        statistics = solver.get_statistics_as_dictionary()
+        assert statistics[STATS_LBL_SOLUTION_NB] == 1
 
     @pytest.mark.parametrize(
         "mode,dom_heuristic, solution_nb",
@@ -102,5 +102,5 @@ class TestBacktrackSolver:
         solution = solver.maximize(0, mode=mode)
         assert solution is not None
         assert solution.tolist() == [5]
-        statistics = solver.get_statistics()
-        assert statistics[STATS_LBL_SOLVER_SOLUTION_NB] == solution_nb
+        statistics = solver.get_statistics_as_dictionary()
+        assert statistics[STATS_LBL_SOLUTION_NB] == solution_nb

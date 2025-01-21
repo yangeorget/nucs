@@ -12,7 +12,7 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB
+from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.examples.bibd.bibd_problem import BIBDProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
@@ -25,4 +25,4 @@ class TestBIBD:
         problem = BIBDProblem(v, b, r, k, l)
         solver = BacktrackSolver(problem, stacks_max_height=128)
         solver.solve_all()
-        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == solution_nb
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb

@@ -11,9 +11,11 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 import logging
+import math
 from multiprocessing import Queue
 from typing import Dict, Iterator, List, Optional, Tuple
 
+import enlighten
 import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -24,6 +26,9 @@ from nucs.constants import (
     MIN,
     NUMBA_DISABLE_JIT,
     OPTIM_RESET,
+    PB_MASTER,
+    PB_NONE,
+    PB_SLAVE,
     PROBLEM_BOUND,
     PROBLEM_UNBOUND,
     SIGNATURE_COMPUTE_DOMAINS,
@@ -39,10 +44,13 @@ from nucs.constants import (
     STATS_IDX_PROPAGATOR_FILTER_NB,
     STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_IDX_SEARCH_SPACE_INITIAL_SZ,
+    STATS_IDX_SEARCH_SPACE_REMAINING_SZ,
+    STATS_IDX_SEARCH_SPACE_SCALE,
+    STATS_IDX_SOLUTION_NB,
     STATS_IDX_SOLVER_BACKTRACK_NB,
     STATS_IDX_SOLVER_CHOICE_DEPTH,
     STATS_IDX_SOLVER_CHOICE_NB,
-    STATS_IDX_SOLVER_SOLUTION_NB,
     STATS_LBL_ALG_BC_NB,
     STATS_LBL_ALG_BC_WITH_SHAVING_NB,
     STATS_LBL_ALG_SHAVING_CHANGE_NB,
@@ -52,10 +60,13 @@ from nucs.constants import (
     STATS_LBL_PROPAGATOR_FILTER_NB,
     STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_LBL_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_LBL_SEARCH_SPACE_INITIAL_SZ,
+    STATS_LBL_SEARCH_SPACE_REMAINING_SZ,
+    STATS_LBL_SEARCH_SPACE_SCALE,
+    STATS_LBL_SOLUTION_NB,
     STATS_LBL_SOLVER_BACKTRACK_NB,
     STATS_LBL_SOLVER_CHOICE_DEPTH,
     STATS_LBL_SOLVER_CHOICE_NB,
-    STATS_LBL_SOLVER_SOLUTION_NB,
     STATS_MAX,
     TYPE_CONSISTENCY_ALG,
     TYPE_DOM_HEURISTIC,
@@ -93,6 +104,7 @@ class BacktrackSolver(Solver, QueueSolver):
         dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
         dom_heuristic_params: List[List[int]] = [[]],
         stacks_max_height: int = 256,
+        pb_mode: int = PB_MASTER,
         log_level: str = LOG_LEVEL_INFO,
     ):
         """
@@ -109,7 +121,7 @@ class BacktrackSolver(Solver, QueueSolver):
         :param stacks_max_height: the maximal height of the choice point stacks
         :param log_level: the log level as a string
         """
-        super().__init__(problem, log_level)
+        super().__init__(problem, pb_mode, log_level)
         decision_domains = list(range(problem.shr_domain_nb)) if decision_domains is None else decision_domains
         logger.info(f"BacktrackSolver uses decision domains {decision_domains}")
         self.decision_domains = np.array(decision_domains, dtype=np.uint16)
@@ -138,10 +150,51 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.debug("Choice points initialized")
         logger.debug("Initializing statistics")
         self.statistics = np.array([0] * STATS_MAX, dtype=np.int64)
+        self.pb_init_stats()
         logger.debug("Statistics initialized")
+        self.progress_bar = self.pb_get() if pb_mode == PB_MASTER else None
         logger.debug("BacktrackSolver initialized")
 
-    def get_statistics(self) -> Dict[str, int]:
+    def pb_init_stats(self) -> None:
+        if self.pb_mode != PB_NONE:
+            search_space_size = self.search_space_size()
+            search_space_log2_size = math.ceil(math.log2(search_space_size))
+            self.search_space_scale = search_space_log2_size - (
+                search_space_log2_size % 32
+            )  # TODO: fix when 2nd term = 0
+            self.statistics[STATS_IDX_SEARCH_SPACE_SCALE] = self.search_space_scale
+            self.statistics[STATS_IDX_SEARCH_SPACE_INITIAL_SZ] = self.statistics[
+                STATS_IDX_SEARCH_SPACE_REMAINING_SZ
+            ] = (search_space_size >> self.search_space_scale)
+
+    def pb_get(self) -> enlighten.Counter:
+        return self.manager.counter(total=self.statistics[STATS_IDX_SEARCH_SPACE_REMAINING_SZ])  # type: ignore
+
+    def pb_update(self) -> None:
+        if self.progress_bar:
+            new_size = self.search_space_size() >> self.search_space_scale
+            increment = self.statistics[STATS_IDX_SEARCH_SPACE_REMAINING_SZ] - new_size
+            self.progress_bar.update(increment)
+            self.progress_bar.refresh()
+            self.statistics[STATS_IDX_SEARCH_SPACE_REMAINING_SZ] = new_size
+
+    def pb_update_stats(self) -> None:
+        if self.pb_mode == PB_SLAVE:
+            self.statistics[STATS_IDX_SEARCH_SPACE_REMAINING_SZ] = self.search_space_size() >> self.search_space_scale
+
+    def search_space_size(self) -> int:
+        size = 0
+        for idx in range(self.stacks_top[0] + 1):
+            shr_domains_size = 1
+            for dom in self.shr_domains_stack[idx]:
+                shr_domains_size *= int(dom[MAX] - dom[MIN] + 1)
+            size += shr_domains_size
+        return size
+
+    def get_statistics_as_array(self) -> NDArray:
+        return self.statistics
+
+    def get_statistics_as_dictionary(self) -> Dict[str, int]:
         return {
             STATS_LBL_ALG_BC_NB: int(self.statistics[STATS_IDX_ALG_BC_NB]),
             STATS_LBL_ALG_BC_WITH_SHAVING_NB: int(self.statistics[STATS_IDX_ALG_BC_WITH_SHAVING_NB]),
@@ -155,7 +208,10 @@ class BacktrackSolver(Solver, QueueSolver):
             STATS_LBL_SOLVER_BACKTRACK_NB: int(self.statistics[STATS_IDX_SOLVER_BACKTRACK_NB]),
             STATS_LBL_SOLVER_CHOICE_NB: int(self.statistics[STATS_IDX_SOLVER_CHOICE_NB]),
             STATS_LBL_SOLVER_CHOICE_DEPTH: int(self.statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]),
-            STATS_LBL_SOLVER_SOLUTION_NB: int(self.statistics[STATS_IDX_SOLVER_SOLUTION_NB]),
+            STATS_LBL_SOLUTION_NB: int(self.statistics[STATS_IDX_SOLUTION_NB]),
+            STATS_LBL_SEARCH_SPACE_INITIAL_SZ: int(self.statistics[STATS_IDX_SEARCH_SPACE_INITIAL_SZ]),
+            STATS_LBL_SEARCH_SPACE_REMAINING_SZ: int(self.statistics[STATS_IDX_SEARCH_SPACE_REMAINING_SZ]),
+            STATS_LBL_SEARCH_SPACE_SCALE: int(self.statistics[STATS_IDX_SEARCH_SPACE_SCALE]),
         }
 
     def minimize(self, variable_idx: int, mode: str = OPTIM_RESET) -> Optional[NDArray]:
@@ -218,6 +274,7 @@ class BacktrackSolver(Solver, QueueSolver):
             )
         ) is not None:
             logger.info(f"Found a local optimum: {solution[variable_idx]}")
+            self.pb_update()
             best_solution = solution
             if mode == OPTIM_RESET:
                 logger.debug("Resetting solver")
@@ -254,6 +311,9 @@ class BacktrackSolver(Solver, QueueSolver):
                 ):
                     break
             self.triggered_propagators.fill(True)
+            self.pb_update()
+        self.pb_update()
+        self.pb_stop()
         return best_solution
 
     def solve(self) -> Iterator[NDArray]:
@@ -293,6 +353,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 var_heuristic_addrs,
                 dom_heuristic_addrs,
             )
+            self.pb_update()
             if solution is None:
                 break
             logger.debug("Found a solution")
@@ -306,6 +367,9 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.triggers,
             ):
                 break
+            self.pb_update()
+        self.pb_update()
+        self.pb_stop()
 
     def minimize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
         """
@@ -372,7 +436,9 @@ class BacktrackSolver(Solver, QueueSolver):
             )
             if solution is None:
                 break
+            self.pb_update_stats()
             logger.info(f"Found a local optimum: {solution[variable_idx]}")
+            logger.info(self.stacks_top[0])
             solution_queue.put((processor_idx, solution, self.statistics))
             if mode == OPTIM_RESET:
                 logger.debug("Resetting solver")
@@ -409,6 +475,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 ):
                     break
             self.triggered_propagators.fill(True)
+            self.pb_update_stats()
+        self.pb_update_stats()
         solution_queue.put((processor_idx, None, self.statistics))
 
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
@@ -451,6 +519,7 @@ class BacktrackSolver(Solver, QueueSolver):
             )
             if solution is None:
                 break
+            self.pb_update_stats()
             solution_queue.put((processor_idx, solution, self.statistics))
             if not backtrack(
                 self.statistics,
@@ -461,6 +530,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.triggers,
             ):
                 break
+            self.pb_update_stats()
         solution_queue.put((processor_idx, None, self.statistics))
 
 
@@ -554,7 +624,7 @@ def solve_one(
             decision_domains,
         )
         if status == PROBLEM_BOUND:
-            statistics[STATS_IDX_SOLVER_SOLUTION_NB] += 1
+            statistics[STATS_IDX_SOLUTION_NB] += 1
             return get_solution(shr_domains_stack, stacks_top, dom_indices_arr, dom_offsets_arr)
         elif status == PROBLEM_UNBOUND:
             dom_idx = var_heuristic_fct(decision_domains, shr_domains_stack, stacks_top, var_heuristic_params)

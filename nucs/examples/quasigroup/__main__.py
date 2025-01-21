@@ -59,4 +59,4 @@ if __name__ == "__main__":
         )
     )
     solver.find_one()
-    print(solver.get_statistics())
+    print(solver.get_statistics_as_dictionary())

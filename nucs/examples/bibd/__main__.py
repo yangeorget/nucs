@@ -36,4 +36,4 @@ if __name__ == "__main__":
         problem, dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE, log_level=args.log_level, stacks_max_height=128
     )
     solver.solve_all()
-    print(solver.get_statistics())
+    print(solver.get_statistics_as_dictionary())

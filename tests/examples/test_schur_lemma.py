@@ -12,7 +12,7 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB
+from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.examples.schur_lemma.schur_lemma_problem import SchurLemmaProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
@@ -45,4 +45,4 @@ class TestSchurLemma:
         problem = SchurLemmaProblem(ball_nb)
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == solution_nb
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb

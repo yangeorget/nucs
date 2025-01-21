@@ -14,7 +14,7 @@ import argparse
 
 from rich import print
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPTIM_MODES, OPTIM_PRUNE
+from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPTIM_MODES, OPTIM_PRUNE, PB_MASTER, PB_NONE, PB_SLAVE
 from nucs.examples.tsp.tsp_instances import TSP_INSTANCES
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
@@ -32,6 +32,7 @@ if __name__ == "__main__":
     parser.add_argument("--opt_mode", choices=OPTIM_MODES, default=OPTIM_PRUNE)
     parser.add_argument("--processors", type=int, default=1)
     parser.add_argument("--shaving", type=bool, action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--progress_bar", type=bool, action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     tsp_instance = TSP_INSTANCES[args.name]
     n = len(tsp_instance)
@@ -51,9 +52,11 @@ if __name__ == "__main__":
                     dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
                     dom_heuristic_params=costs,
                     log_level=args.log_level,
+                    pb_mode=PB_SLAVE if args.progress_bar else PB_NONE,
                 )
                 for prob in problem.split(args.processors, 0)
-            ]
+            ],
+            pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         )
         if args.processors > 1
         else BacktrackSolver(
@@ -65,7 +68,8 @@ if __name__ == "__main__":
             dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
             dom_heuristic_params=costs,
             log_level=args.log_level,
+            pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         )
     )
     solution = solver.minimize(problem.total_cost, mode=args.opt_mode)
-    print(solver.get_statistics())
+    print(solver.get_statistics_as_dictionary())

@@ -37,6 +37,6 @@ if __name__ == "__main__":
         log_level=args.log_level,
     )
     solution = next(solver.solve())
-    print(solver.get_statistics())
+    print(solver.get_statistics_as_dictionary())
     if solution is not None:
         print(problem.solution_as_matrix(solution))

@@ -12,7 +12,7 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import STATS_IDX_SOLVER_SOLUTION_NB
+from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.problems.permutation_problem import PermutationProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
@@ -23,7 +23,7 @@ class TestPermutationProblem:
         problem = PermutationProblem(size)
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == solution_nb
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb
 
     def test_solve(self) -> None:
         problem = PermutationProblem(5)

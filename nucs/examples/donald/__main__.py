@@ -32,6 +32,6 @@ if __name__ == "__main__":
         dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE,
         log_level=args.log_level,
     )
-    print(solver.get_statistics())
+    print(solver.get_statistics_as_dictionary())
     for solution in solver.solve():
         print(problem.solution_as_dict(solution))

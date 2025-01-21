@@ -35,4 +35,4 @@ if __name__ == "__main__":
         log_level=args.log_level,
     )
     solver.solve_all()
-    print(solver.get_statistics())
+    print(solver.get_statistics_as_dictionary())

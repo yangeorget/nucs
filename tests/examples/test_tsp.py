@@ -12,7 +12,7 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import OPTIM_PRUNE, STATS_IDX_SOLVER_SOLUTION_NB
+from nucs.constants import OPTIM_PRUNE, STATS_IDX_SOLUTION_NB
 from nucs.examples.tsp.tsp_instances import TSP_INSTANCES
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
@@ -28,7 +28,7 @@ class TestTSP:
         assert solution is not None
         assert solution[:4].tolist() == [1, 3, 0, 2]
         assert solution[problem.total_cost] == 6
-        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 2
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 2
 
     @pytest.mark.parametrize(
         "name, minimum",

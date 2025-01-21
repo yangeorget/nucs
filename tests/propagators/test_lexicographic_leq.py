@@ -15,7 +15,7 @@ from typing import Any
 import numpy as np
 import pytest
 
-from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY, STATS_IDX_SOLVER_SOLUTION_NB
+from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY, STATS_IDX_SOLUTION_NB
 from nucs.numpy_helper import new_parameters_by_values, new_shr_domains_by_values
 from nucs.problems.problem import Problem
 from nucs.propagators.lexicographic_leq_propagator import compute_domains_lexicographic_leq
@@ -71,7 +71,7 @@ class TestLexicographicLEQ:
         problem.add_propagator(([0, 1, 2, 3], ALG_LEXICOGRAPHIC_LEQ, []))
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 10
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 10
 
     def test_solve_2(self) -> None:
         problem = Problem(
@@ -82,4 +82,4 @@ class TestLexicographicLEQ:
         problem.add_propagator(([0, 1, 2, 3], ALG_LEXICOGRAPHIC_LEQ, []))
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert solver.statistics[STATS_IDX_SOLVER_SOLUTION_NB] == 3
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 3

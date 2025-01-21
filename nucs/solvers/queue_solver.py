@@ -14,6 +14,8 @@ import logging
 from abc import abstractmethod
 from multiprocessing import Queue
 
+from numpy.typing import NDArray
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,6 +23,9 @@ class QueueSolver:
     """
     A solver which uses a queue.
     """
+
+    @abstractmethod
+    def get_statistics_as_array(self) -> NDArray: ...
 
     @abstractmethod
     def minimize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:

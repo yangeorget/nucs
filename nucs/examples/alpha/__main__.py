@@ -33,5 +33,5 @@ if __name__ == "__main__":
         log_level=args.log_level,
     )
     solutions = solver.find_all()
-    print(solver.get_statistics())
+    print(solver.get_statistics_as_dictionary())
     print(problem.solution_as_dict(solutions[0]))
