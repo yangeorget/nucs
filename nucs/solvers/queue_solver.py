@@ -13,8 +13,10 @@
 import logging
 from abc import abstractmethod
 from multiprocessing import Queue
+from typing import Optional
 
-from numpy.typing import NDArray
+import enlighten
+from numpy._typing import NDArray
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +25,9 @@ class QueueSolver:
     """
     A solver which uses a queue.
     """
+
+    @abstractmethod
+    def get_progress_bar(self, manager: enlighten.Manager) -> Optional[enlighten.Counter]: ...
 
     @abstractmethod
     def get_statistics_as_array(self) -> NDArray: ...

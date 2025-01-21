@@ -12,7 +12,9 @@
 ###############################################################################
 import time
 from multiprocessing import Queue
+from typing import Optional
 
+import enlighten
 import numpy as np
 import pytest
 from numpy._typing import NDArray
@@ -28,6 +30,9 @@ from nucs.solvers.queue_solver import QueueSolver
 class TestMultiprocessingSolver:
     def test_find_one(self) -> None:
         class FastSolver(QueueSolver):
+            def get_progress_bar(self, manager: enlighten.Manager) -> Optional[enlighten.Counter]:
+                return None
+
             def get_statistics_as_array(self) -> NDArray:
                 return np.array(0)
 
@@ -45,6 +50,9 @@ class TestMultiprocessingSolver:
                 pass
 
         class SlowSolver(QueueSolver):
+            def get_progress_bar(self, manager: enlighten.Manager) -> Optional[enlighten.Counter]:
+                return None
+
             def get_statistics_as_array(self) -> NDArray:
                 return np.array(0)
 

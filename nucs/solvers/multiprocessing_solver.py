@@ -15,7 +15,6 @@ import operator
 from multiprocessing import Process, Queue, set_start_method
 from typing import Any, Callable, Dict, Iterator, List, Optional
 
-import enlighten
 from numpy.typing import NDArray
 
 from nucs.constants import (
@@ -30,6 +29,8 @@ from nucs.constants import (
     STATS_IDX_PROPAGATOR_FILTER_NB,
     STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_IDX_SEARCH_SPACE_INITIAL_SZ,
+    STATS_IDX_SEARCH_SPACE_LOG2_SCALE,
     STATS_IDX_SEARCH_SPACE_REMAINING_SZ,
     STATS_IDX_SOLUTION_NB,
     STATS_IDX_SOLVER_BACKTRACK_NB,
@@ -44,6 +45,9 @@ from nucs.constants import (
     STATS_LBL_PROPAGATOR_FILTER_NB,
     STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_LBL_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_LBL_SEARCH_SPACE_INITIAL_SZ,
+    STATS_LBL_SEARCH_SPACE_LOG2_SCALE,
+    STATS_LBL_SEARCH_SPACE_REMAINING_SZ,
     STATS_LBL_SOLUTION_NB,
     STATS_LBL_SOLVER_BACKTRACK_NB,
     STATS_LBL_SOLVER_CHOICE_DEPTH,
@@ -69,22 +73,15 @@ class MultiprocessingSolver(Solver):
         logger.debug("Initializing statistics")
         self.statistics = [solver.get_statistics_as_array() for solver in solvers]
         logger.debug("Statistics initialized")
-        self.progress_bars = self.pb_get() if pb_mode != PB_NONE else None
+        self.progress_bars = [solver.get_progress_bar(self.manager) for solver in self.solvers]
         logger.debug("MultiprocessingSolver initialized")
-        # TODO: use same scale for all solvers
 
-    def pb_get(self) -> List[enlighten.Counter]:
-        return [
-            self.manager.counter(total=stats[STATS_IDX_SEARCH_SPACE_REMAINING_SZ])  # type: ignore
-            for stats in self.statistics
-        ]
-
-    def pb_update(self, proc_idx: int, statistics: NDArray) -> None:
-        if self.progress_bars:
+    def update_progress(self, proc_idx: int, statistics: NDArray) -> None:
+        if self.progress_bars[proc_idx]:
             new_size = statistics[STATS_IDX_SEARCH_SPACE_REMAINING_SZ]
             increment = self.statistics[proc_idx][STATS_IDX_SEARCH_SPACE_REMAINING_SZ] - new_size
-            self.progress_bars[proc_idx].update(increment)
-            self.progress_bars[proc_idx].refresh()
+            self.progress_bars[proc_idx].update(increment)  # type: ignore
+            self.progress_bars[proc_idx].refresh()  # type: ignore
             self.statistics[proc_idx] = statistics
             self.statistics[proc_idx][STATS_IDX_SEARCH_SPACE_REMAINING_SZ] = new_size
 
@@ -105,6 +102,9 @@ class MultiprocessingSolver(Solver):
             STATS_LBL_SOLVER_CHOICE_NB: sum_stats(self.statistics, STATS_IDX_SOLVER_CHOICE_NB),
             STATS_LBL_SOLVER_CHOICE_DEPTH: max_stats(self.statistics, STATS_IDX_SOLVER_CHOICE_DEPTH),
             STATS_LBL_SOLUTION_NB: sum_stats(self.statistics, STATS_IDX_SOLUTION_NB),
+            STATS_LBL_SEARCH_SPACE_INITIAL_SZ: sum_stats(self.statistics, STATS_IDX_SEARCH_SPACE_INITIAL_SZ),
+            STATS_LBL_SEARCH_SPACE_REMAINING_SZ: sum_stats(self.statistics, STATS_IDX_SEARCH_SPACE_REMAINING_SZ),
+            STATS_LBL_SEARCH_SPACE_LOG2_SCALE: mean_stats(self.statistics, STATS_IDX_SEARCH_SPACE_LOG2_SCALE),
         }
 
     def solve(self) -> Iterator[NDArray]:
@@ -114,8 +114,8 @@ class MultiprocessingSolver(Solver):
         nb = len(self.solvers)
         while nb > 0:
             proc_idx, solution, statistics = solutions.get()
-            if self.progress_bars:
-                self.pb_update(proc_idx, statistics)
+            if self.progress_bars[proc_idx]:
+                self.update_progress(proc_idx, statistics)
             else:
                 self.statistics[proc_idx] = statistics
             if solution is None:
@@ -140,8 +140,8 @@ class MultiprocessingSolver(Solver):
         nb = len(self.solvers)
         while nb > 0:
             proc_idx, solution, statistics = solutions.get()
-            if self.progress_bars:
-                self.pb_update(proc_idx, statistics)
+            if self.progress_bars[proc_idx]:
+                self.update_progress(proc_idx, statistics)
             else:
                 self.statistics[proc_idx] = statistics
             if solution is None:
@@ -154,6 +154,10 @@ class MultiprocessingSolver(Solver):
 
 def sum_stats(stats: List[Any], index: int) -> int:
     return sum(int(s[index]) for s in stats if s is not None)
+
+
+def mean_stats(stats: List[Any], index: int) -> int:
+    return sum_stats(stats, index) // len(stats)
 
 
 def max_stats(stats: List[Any], index: int) -> int:
