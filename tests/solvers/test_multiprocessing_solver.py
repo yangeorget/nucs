@@ -17,7 +17,7 @@ from typing import Optional
 import enlighten
 import numpy as np
 import pytest
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 
 from nucs.constants import OPTIM_PRUNE, OPTIM_RESET, STATS_LBL_SOLUTION_NB, STATS_MAX
 from nucs.problems.problem import Problem

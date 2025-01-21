@@ -12,10 +12,9 @@
 ###############################################################################
 import copy
 import logging
-from typing import Optional, Self, Tuple, Union
+from typing import List, Optional, Self, Tuple, Union
 
 import numpy as np
-from numba.typed import List
 
 from nucs.constants import RG_END, RG_START
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
@@ -31,7 +30,7 @@ class Problem:
 
     def __init__(
         self,
-        shr_domains_lst: List[Union[int, Tuple[int, int]]],
+        shr_domains_lst: Union[List[Tuple[int, int]], List[int]],
         dom_indices_lst: Optional[List[int]] = None,
         dom_offsets_lst: Optional[List[int]] = None,
     ):

@@ -32,7 +32,7 @@ def sum_first(n: int) -> int:
     :param n: an integer
     :return: the sum
     """
-    return (n * (n + 1)) // 2
+    return (n * (n + 1)) >> 1
 
 
 @njit(cache=True)
@@ -62,14 +62,13 @@ class GolombProblem(Problem):
 
     def __init__(self, mark_nb: int, symmetry_breaking: bool = True) -> None:
         dist_nb = sum_first(mark_nb - 1)
-        domains = np.empty((dist_nb, 2), dtype=np.int32)
+        domains = [[0, sum_first(dist_nb) - sum_first(dist_nb - mark_nb)]] * dist_nb
         for i in range(0, mark_nb - 1):
             for j in range(i + 1, mark_nb):
-                domains[index(mark_nb, i, j), MIN] = (
+                domains[index(mark_nb, i, j)][MIN] = (
                     GOLOMB_LENGTHS[j - i + 1] if j - i + 1 < mark_nb else sum_first(j - i)
                 )
-        domains[:, MAX] = sum_first(dist_nb) - sum_first(dist_nb - mark_nb)
-        super().__init__(domains)
+        super().__init__([(domain[MIN], domain[MAX]) for domain in domains])
         self.length_idx = index(mark_nb, 0, mark_nb - 1)  # we want to minimize this
         # dist_ij = mark_j - mark_i for j > i
         # mark_j = dist_0j for j > 0

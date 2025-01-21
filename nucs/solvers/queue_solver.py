@@ -10,15 +10,12 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-import logging
 from abc import abstractmethod
 from multiprocessing import Queue
 from typing import Optional
 
 import enlighten
-from numpy._typing import NDArray
-
-logger = logging.getLogger(__name__)
+from numpy.typing import NDArray
 
 
 class QueueSolver:
