@@ -1,7 +1,7 @@
-addheader==0.3.2
-build==1.2.1
-coverage==7.6.9
+addheader
+build
+coverage
 sphinx
 sphinx-rtd-theme
-twine==6.0.1
-viztracer==1.0.0
+twine
+viztracer
