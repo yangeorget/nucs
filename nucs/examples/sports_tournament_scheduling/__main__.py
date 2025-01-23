@@ -38,7 +38,7 @@ if __name__ == "__main__":
         pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         log_level=args.log_level,
     )
-    solution = next(solver.solve())
+    solution = solver.find_one()
     print(solver.get_statistics_as_dictionary())
     if solution is not None:
         print(problem.solution_as_matrix(solution))
