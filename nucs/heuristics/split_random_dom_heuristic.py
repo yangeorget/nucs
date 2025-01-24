@@ -21,18 +21,18 @@ from nucs.heuristics.split_low_dom_heuristic import split_low_dom_heuristic
 
 @njit(cache=True)
 def split_random_dom_heuristic(
-    shr_domains_stack: NDArray,
-    not_entailed_propagators_stack: NDArray,
-    dom_update_stack: NDArray,
-    stacks_top: NDArray,
+    domains_stk: NDArray,
+    not_entailed_propagators_stk: NDArray,
+    dom_update_stk: NDArray,
+    stks_top: NDArray,
     dom_idx: int,
     params: NDArray,
 ) -> int:
     if random.randint(0, 1) == 0:
         return split_low_dom_heuristic(
-            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx, params
+            domains_stk, not_entailed_propagators_stk, dom_update_stk, stks_top, dom_idx, params
         )
     else:
         return split_high_dom_heuristic(
-            shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, dom_idx, params
+            domains_stk, not_entailed_propagators_stk, dom_update_stk, stks_top, dom_idx, params
         )

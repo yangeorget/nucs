@@ -27,32 +27,30 @@ from nucs.solvers.choice_points import cp_put
 
 @njit(cache=True)
 def max_value_dom_heuristic(
-    shr_domains_stack: NDArray,
-    not_entailed_propagators_stack: NDArray,
-    dom_update_stack: NDArray,
-    stacks_top: NDArray,
+    domains_stk: NDArray,
+    not_entailed_propagators_stk: NDArray,
+    dom_update_stk: NDArray,
+    stks_top: NDArray,
     dom_idx: int,
     params: NDArray,
 ) -> int:
     """
     Chooses the max value of the domain.
-    :param shr_domains_stack: the stack of shared domains
-    :param not_entailed_propagators_stack: the stack of not entailed propagators
-    :param dom_update_stack: the stack of domain updates
-    :param stacks_top: the index of the top of the stacks as a Numpy array
+    :param domains_stk: the stack of shared domains
+    :param not_entailed_propagators_stk: the stack of not entailed propagators
+    :param dom_update_stk: the stack of domain updates
+    :param stks_top: the index of the top of the stacks as a Numpy array
     :param dom_idx: the index of the shared domain
     :param params: a two-dimensional parameters array, unused here
     :return: the events
     """
-    top = stacks_top[0]
-    value = shr_domains_stack[top, dom_idx, MAX]
-    cp_put(shr_domains_stack, not_entailed_propagators_stack, stacks_top)
-    shr_domains_stack[top + 1, dom_idx, MIN] = value
-    shr_domains_stack[top, dom_idx, MAX] = value - 1
-    dom_update_stack[top, DOM_UPDATE_IDX] = dom_idx
-    dom_update_stack[top, DOM_UPDATE_EVENTS] = (
-        EVENT_MASK_MAX_GROUND
-        if shr_domains_stack[top, dom_idx, MIN] == shr_domains_stack[top, dom_idx, MAX]
-        else EVENT_MASK_MAX
+    top = stks_top[0]
+    value = domains_stk[top, dom_idx, MAX]
+    cp_put(domains_stk, not_entailed_propagators_stk, stks_top)
+    domains_stk[top + 1, dom_idx, MIN] = value
+    domains_stk[top, dom_idx, MAX] = value - 1
+    dom_update_stk[top, DOM_UPDATE_IDX] = dom_idx
+    dom_update_stk[top, DOM_UPDATE_EVENTS] = (
+        EVENT_MASK_MAX_GROUND if domains_stk[top, dom_idx, MIN] == domains_stk[top, dom_idx, MAX] else EVENT_MASK_MAX
     )
     return EVENT_MASK_MIN_GROUND

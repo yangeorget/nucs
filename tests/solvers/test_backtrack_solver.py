@@ -33,19 +33,19 @@ class TestBacktrackSolver:
         solver = BacktrackSolver(problem)
         assert solver.compute_search_space_size() == 1000
         min_value_dom_heuristic(
-            solver.shr_domains_stack,
-            solver.not_entailed_propagators_stack,
-            solver.dom_update_stack,
-            solver.stacks_top,
+            solver.domains_stk,
+            solver.not_entailed_propagators_stk,
+            solver.dom_update_stk,
+            solver.stks_top,
             0,
             np.array(0),
         )
         assert solver.compute_search_space_size() == 1000
         backtrack(
             solver.statistics,
-            solver.not_entailed_propagators_stack,
-            solver.dom_update_stack,
-            solver.stacks_top,
+            solver.not_entailed_propagators_stk,
+            solver.dom_update_stk,
+            solver.stks_top,
             solver.triggered_propagators,
             solver.problem.triggers,
         )
@@ -124,7 +124,7 @@ class TestBacktrackSolver:
     )
     def test_maximize(self, mode: str, dom_heuristic: int, solution_nb: int) -> None:
         problem = Problem([(1, 5)])
-        solver = BacktrackSolver(problem, dom_heuristic_idx=dom_heuristic, stacks_max_height=8)
+        solver = BacktrackSolver(problem, dom_heuristic_idx=dom_heuristic, stks_max_height=8)
         solution = solver.maximize(0, mode=mode)
         assert solution is not None
         assert solution.tolist() == [5]

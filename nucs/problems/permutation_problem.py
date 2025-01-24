@@ -25,8 +25,7 @@ class PermutationProblem(Problem):
         :param n: the number variables/values
         """
         self.n = n
-        shr_domains = [(0, n - 1)] * 2 * n
-        super().__init__(shr_domains)
+        super().__init__([(0, n - 1)] * 2 * n)
         self.add_propagator((list(range(n)), ALG_ALLDIFFERENT, []))
         self.add_propagator((list(range(n, 2 * n)), ALG_ALLDIFFERENT, []))
         self.add_propagator((list(range(2 * n)), ALG_PERMUTATION_AUX, []))

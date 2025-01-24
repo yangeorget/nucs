@@ -23,6 +23,6 @@ class TestBIBD:
     )
     def test_bibd(self, v: int, b: int, r: int, k: int, l: int, solution_nb: int) -> None:
         problem = BIBDProblem(v, b, r, k, l)
-        solver = BacktrackSolver(problem, stacks_max_height=128)
+        solver = BacktrackSolver(problem, stks_max_height=128)
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb

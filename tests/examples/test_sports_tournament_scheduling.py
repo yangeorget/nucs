@@ -35,7 +35,7 @@ class TestSportsTournamentScheduling:
 
     def test_sports_tournament_scheduling_check(self) -> None:
         problem = SportsTournamentSchedulingProblem(8, False)
-        problem.shr_domains_lst[:56] = [
+        problem.domains[:56] = [
             [v, v]
             for v in [
                 0,

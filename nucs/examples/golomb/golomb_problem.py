@@ -81,7 +81,7 @@ class GolombProblem(Problem):
                         [1, -1, -1, 0],
                     )
                 )
-        self.add_propagator((list(range(self.shr_domain_nb)), ALG_ALLDIFFERENT, []))
+        self.add_propagator((list(range(self.domain_nb)), ALG_ALLDIFFERENT, []))
         # redundant constraints
         for i in range(mark_nb - 1):
             for j in range(i + 1, mark_nb):
@@ -110,16 +110,16 @@ def golomb_consistency_algorithm(
     algorithms: NDArray,
     var_bounds: NDArray,
     param_bounds: NDArray,
-    dom_indices_arr: NDArray,
-    dom_offsets_arr: NDArray,
-    props_dom_indices: NDArray,
-    props_dom_offsets: NDArray,
+    variables_arr: NDArray,
+    offsets_arr: NDArray,
+    props_variables: NDArray,
+    props_offsets: NDArray,
     props_parameters: NDArray,
-    shr_domains_propagators: NDArray,
-    shr_domains_stack: NDArray,
-    not_entailed_propagators_stack: NDArray,
-    dom_update_stack: NDArray,
-    stacks_top: NDArray,
+    domains_propagators: NDArray,
+    domains_stk: NDArray,
+    not_entailed_propagators_stk: NDArray,
+    dom_update_stk: NDArray,
+    stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
     decision_domains: NDArray,
@@ -130,11 +130,11 @@ def golomb_consistency_algorithm(
     :param problem: the problem
     :return: the status as an int
     """
-    top = stacks_top[0]
+    top = stks_top[0]
     # first prune the search space
-    mark_nb = (1 + int(math.sqrt(8 * len(dom_indices_arr) + 1))) // 2
+    mark_nb = (1 + int(math.sqrt(8 * len(variables_arr) + 1))) // 2
     ni_var_idx = first_not_instantiated_var_heuristic(
-        decision_domains, shr_domains_stack, stacks_top, None
+        decision_domains, domains_stk, stks_top, None
     )  # no domains shared between vars
     if 1 < ni_var_idx < mark_nb - 1:  # otherwise useless
         used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=np.bool)
@@ -144,7 +144,7 @@ def golomb_consistency_algorithm(
         # the following will mark at most sum(n-3) numbers as used
         # hence there will be at least n-2 unused numbers greater than 0
         for var_idx in range(index(mark_nb, ni_var_idx - 2, ni_var_idx - 1) + 1):
-            dist = shr_domains_stack[top, dom_indices_arr[var_idx], MIN]  # no offset
+            dist = domains_stk[top, variables_arr[var_idx], MIN]  # no offset
             if dist < len(used_distance):
                 used_distance[dist] = True
         # let's compute the sum of non-used numbers
@@ -156,15 +156,15 @@ def golomb_consistency_algorithm(
             distance += 1
         for i in range(ni_var_idx - 1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
-                dom_idx = dom_indices_arr[index(mark_nb, i, j)]
-                shr_domains_stack[top, dom_idx, MIN] = minimal_sum[j - i]  # no offset
+                dom_idx = variables_arr[index(mark_nb, i, j)]
+                domains_stk[top, dom_idx, MIN] = minimal_sum[j - i]  # no offset
                 events = EVENT_MASK_MIN
-                if shr_domains_stack[top, dom_idx, MIN] == shr_domains_stack[top, dom_idx, MAX]:
+                if domains_stk[top, dom_idx, MIN] == domains_stk[top, dom_idx, MAX]:
                     events |= EVENT_MASK_GROUND
                 update_propagators(
                     triggered_propagators,
-                    not_entailed_propagators_stack[top],
-                    shr_domains_propagators,
+                    not_entailed_propagators_stk[top],
+                    domains_propagators,
                     dom_idx,
                     events,
                 )
@@ -174,16 +174,16 @@ def golomb_consistency_algorithm(
         algorithms,
         var_bounds,
         param_bounds,
-        dom_indices_arr,
-        dom_offsets_arr,
-        props_dom_indices,
-        props_dom_offsets,
+        variables_arr,
+        offsets_arr,
+        props_variables,
+        props_offsets,
         props_parameters,
-        shr_domains_propagators,
-        shr_domains_stack,
-        not_entailed_propagators_stack,
-        dom_update_stack,
-        stacks_top,
+        domains_propagators,
+        domains_stk,
+        not_entailed_propagators_stk,
+        dom_update_stk,
+        stks_top,
         triggered_propagators,
         compute_domains_addrs,
         decision_domains,

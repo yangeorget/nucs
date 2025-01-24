@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -47,16 +46,16 @@ def bound_consistency_algorithm(
     algorithms: NDArray,
     var_bounds: NDArray,
     param_bounds: NDArray,
-    dom_indices_arr: NDArray,
-    dom_offsets_arr: NDArray,
-    props_dom_indices: NDArray,
-    props_dom_offsets: NDArray,
+    variables_arr: NDArray,
+    offsets_arr: NDArray,
+    props_variables: NDArray,
+    props_offsets: NDArray,
     props_parameters: NDArray,
     triggers: NDArray,
-    shr_domains_stack: NDArray,
-    not_entailed_propagators_stack: NDArray,
-    dom_update_stack: NDArray,
-    stacks_top: NDArray,
+    domains_stk: NDArray,
+    not_entailed_propagators_stk: NDArray,
+    dom_update_stk: NDArray,
+    stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
     decision_domains: NDArray,
@@ -67,39 +66,39 @@ def bound_consistency_algorithm(
     :param algorithms: the algorithms indexed by propagators
     :param var_bounds: the variable bounds indexed by propagators
     :param param_bounds: the parameters bounds indexed by propagators
-    :param dom_indices_arr: the domain indices indexed by variables, unused here
-    :param dom_offsets_arr: the domain offsets indexed by variables, unused here
-    :param props_dom_indices: the domain indices indexed by propagator variables
-    :param props_dom_offsets: the domain offsets indexed by propagator variables
+    :param variables_arr: the domain indices indexed by variables, unused here
+    :param offsets_arr: the domain offsets indexed by variables, unused here
+    :param props_variables: the domain indices indexed by propagator variables
+    :param props_offsets: the domain offsets indexed by propagator variables
     :param props_parameters: the parameters indexed by propagator variables
     :param triggers: a Numpy array of event masks indexed by shared domain indices and propagators
-    :param shr_domains_stack: a stack of shared domains;
+    :param domains_stk: a stack of shared domains;
     the first level correspond to the current shared domains, the rest correspond to the choice points
-    :param not_entailed_propagators_stack: a stack not entailed propagators;
+    :param not_entailed_propagators_stk: a stack not entailed propagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
-    :param dom_update_stack: the stack of domain updates, unused here
-    :param stacks_top: the height of the stacks as a Numpy array
+    :param dom_update_stk: the stack of domain updates, unused here
+    :param stks_top: the height of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param compute_domains_addrs: the addresses of the compute_domains functions
     :param decision_domains: the indices of the shared domains on which decisions will be made
     :return: a status (consistency, inconsistency or entailment) as an integer
     """
-    top = stacks_top[0]
+    top = stks_top[0]
     statistics[STATS_IDX_ALG_BC_NB] += 1
     prop_idx = -1
     while True:
         prop_idx = pop_propagator(triggered_propagators, prop_idx)
         if prop_idx == -1:
-            return PROBLEM_BOUND if is_solved(shr_domains_stack, stacks_top) else PROBLEM_UNBOUND
+            return PROBLEM_BOUND if is_solved(domains_stk, stks_top) else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = var_bounds[prop_idx, RG_START]
         prop_var_end = var_bounds[prop_idx, RG_END]
-        prop_indices = props_dom_indices[prop_var_start:prop_var_end]
+        prop_indices = props_variables[prop_var_start:prop_var_end]
         if no_offsets:
-            prop_domains = shr_domains_stack[top, prop_indices]
+            prop_domains = domains_stk[top, prop_indices]
         else:
-            prop_offsets = props_dom_offsets[prop_var_start:prop_var_end]
-            prop_domains = shr_domains_stack[top, prop_indices] + prop_offsets
+            prop_offsets = props_offsets[prop_var_start:prop_var_end]
+            prop_domains = domains_stk[top, prop_indices] + prop_offsets
         compute_domains_fct = (
             COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]]
             if NUMBA_DISABLE_JIT
@@ -112,35 +111,35 @@ def bound_consistency_algorithm(
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
-            not_entailed_propagators_stack[top, prop_idx] = False
+            not_entailed_propagators_stk[top, prop_idx] = False
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
-        shr_domains_changes = False
+        domains_changes = False
         for var_idx in range(prop_var_end - prop_var_start):
-            shr_domain_idx = prop_indices[var_idx]
+            domain_idx = prop_indices[var_idx]
             events = 0
             if no_offsets:
-                shr_domain_min = prop_domains[var_idx, MIN]
-                shr_domain_max = prop_domains[var_idx, MAX]
+                domain_min = prop_domains[var_idx, MIN]
+                domain_max = prop_domains[var_idx, MAX]
             else:
                 offset = prop_offsets[var_idx, 0]  # because of vertical shape
-                shr_domain_min = prop_domains[var_idx, MIN] - offset
-                shr_domain_max = prop_domains[var_idx, MAX] - offset
-            if shr_domains_stack[top, shr_domain_idx, MIN] != shr_domain_min:
-                shr_domains_stack[top, shr_domain_idx, MIN] = shr_domain_min
+                domain_min = prop_domains[var_idx, MIN] - offset
+                domain_max = prop_domains[var_idx, MAX] - offset
+            if domains_stk[top, domain_idx, MIN] != domain_min:
+                domains_stk[top, domain_idx, MIN] = domain_min
                 events |= EVENT_MASK_MIN
-            if shr_domains_stack[top, shr_domain_idx, MAX] != shr_domain_max:
-                shr_domains_stack[top, shr_domain_idx, MAX] = shr_domain_max
+            if domains_stk[top, domain_idx, MAX] != domain_max:
+                domains_stk[top, domain_idx, MAX] = domain_max
                 events |= EVENT_MASK_MAX
-            if events != 0 and shr_domain_min == shr_domain_max:
+            if events != 0 and domain_min == domain_max:
                 events |= EVENT_MASK_GROUND
             if events != 0:
-                shr_domains_changes = True
+                domains_changes = True
                 update_propagators(
                     triggered_propagators,
-                    not_entailed_propagators_stack[top],
+                    not_entailed_propagators_stk[top],
                     triggers,
-                    shr_domain_idx,
+                    domain_idx,
                     events,
                 )
-        if not shr_domains_changes:
+        if not domains_changes:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1

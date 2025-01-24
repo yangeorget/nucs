@@ -37,7 +37,7 @@ class Solver:
         :param log_level: the log level as a string
         """
         logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, log_level))  # TODO: move to examples
-        logging.getLogger('numba').setLevel(logging.WARNING)
+        logging.getLogger("numba").setLevel(logging.WARNING)
         logger.info("Initializing Solver")
         self.pb_mode = pb_mode
         self.manager = enlighten.get_manager() if pb_mode == PB_MASTER else None
@@ -111,27 +111,27 @@ class Solver:
 
 @njit(cache=True)
 def get_solution(
-    shr_domains_stack: NDArray, stacks_top: NDArray, dom_indices_arr: NDArray, dom_offsets_arr: NDArray
+    domains_stk: NDArray, stks_top: NDArray, variables_arr: NDArray, offsets_arr: NDArray, no_offsets: bool
 ) -> NDArray:
     """
     Returns the solution to the problem.
-    :param shr_domains_stack: the stack of shared domains
-    :param stacks_top: the index of the top of the stacks as a Numpy array
-    :param dom_indices_arr: the domain indices
-    :param dom_offsets_arr: the domain offsets
+    :param domains_stk: the stack of shared domains
+    :param stks_top: the index of the top of the stacks as a Numpy array
+    :param variables_arr: the domain indices
+    :param offsets_arr: the domain offsets
     :return: a Numpy array
     """
-    if dom_offsets_arr.shape == ():
-        return shr_domains_stack[stacks_top[0], dom_indices_arr, MIN]
-    return shr_domains_stack[stacks_top[0], dom_indices_arr, MIN] + dom_offsets_arr
+    if no_offsets:
+        return domains_stk[stks_top[0], variables_arr, MIN]
+    return domains_stk[stks_top[0], variables_arr, MIN] + offsets_arr
 
 
 @njit(cache=True)
-def is_solved(shr_domains_stack: NDArray, stacks_top: NDArray) -> bool:
+def is_solved(domains_stk: NDArray, stks_top: NDArray) -> bool:
     """
     Returns true iff the problem is solved.
-    :param shr_domains_stack: the stack of shared domains
-    :param stacks_top: the index of the top of the stacks as a Numpy array
+    :param domains_stk: the stack of shared domains
+    :param stks_top: the index of the top of the stacks as a Numpy array
     :return: a boolean
     """
-    return bool(np.all(np.equal(shr_domains_stack[stacks_top[0], :, MIN], shr_domains_stack[stacks_top[0], :, MAX])))
+    return bool(np.all(np.equal(domains_stk[stks_top[0], :, MIN], domains_stk[stks_top[0], :, MAX])))

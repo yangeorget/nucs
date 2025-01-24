@@ -56,32 +56,32 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     uint8[:],  # algorithms
     uint16[:, :],  # var_bounds
     uint16[:, :],  # param_bounds
-    uint16[:],  # dom_indices_arr
-    int32[:],  # dom_offsets_arr
-    uint16[:],  # props_dom_indices
-    int32[:, :],  # props_dom_offsets
+    uint16[:],  # variables_arr
+    int32[:],  # offsets_arr
+    uint16[:],  # props_variables
+    int32[:, :],  # props_offsets
     int32[:],  # props_parameters
-    uint8[:, :],  # shr_domains_propagators
-    int32[:, :, :],  # shr_domains_stack
-    bool[:, :],  # not_entailed_propagators_stack
-    uint16[:, :],  # dom_update_stack
-    uint8[:],  # stacks_top
+    uint8[:, :],  # triggers
+    int32[:, :, :],  # domains_stk
+    bool[:, :],  # not_entailed_propagators_stk
+    uint16[:, :],  # dom_update_stk
+    uint8[:],  # stks_top
     bool[:],  # triggered_propagators
     int64[:],  # compute_domains_addrs
     uint16[:],  # decision_domains
 )
 SIGNATURE_DOM_HEURISTIC = int64(
-    int32[:, :, :],  # shr_domains_stack
-    bool[:, :],  # not_entailed_propagators_stack
-    uint16[:, :],  # dom_update_stack
-    uint8[:],  # stacks_top
+    int32[:, :, :],  # domains_stk
+    bool[:, :],  # not_entailed_propagators_stk
+    uint16[:, :],  # dom_update_stk
+    uint8[:],  # stks_top
     int64,  # dom_idx
     int64[:, :],  # dom_heuristic_params
 )
 SIGNATURE_VAR_HEURISTIC = int64(
     uint16[:],  # decision_variables
-    int32[:, :, :],  # shr_domains_stack
-    uint8[:],  # stacks_top
+    int32[:, :, :],  # domains_stk
+    uint8[:],  # stks_top
     int64[:, :],  # var_heuristic_params
 )
 
