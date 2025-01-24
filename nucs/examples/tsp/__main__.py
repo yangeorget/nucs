@@ -10,11 +10,10 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-import argparse
-
 from rich import print
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPTIM_MODES, OPTIM_PRUNE, PB_MASTER, PB_NONE, PB_SLAVE
+from nucs.constants import OPTIM_MODES, OPTIM_PRUNE, PB_MASTER, PB_NONE, PB_SLAVE
+from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.tsp.tsp_instances import TSP_INSTANCES
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
@@ -26,13 +25,9 @@ from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.alpha
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
+    parser = DefaultArgumentParser()
     parser.add_argument("--name", choices=["GR17", "GR21", "GR24"], default="GR17")
     parser.add_argument("--opt_mode", choices=OPTIM_MODES, default=OPTIM_PRUNE)
-    parser.add_argument("--processors", type=int, default=1)
-    parser.add_argument("--shaving", type=bool, action=argparse.BooleanOptionalAction, default=False)
-    parser.add_argument("--progress_bar", type=bool, action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     tsp_instance = TSP_INSTANCES[args.name]
     n = len(tsp_instance)

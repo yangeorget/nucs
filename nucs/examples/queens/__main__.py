@@ -14,7 +14,8 @@ import argparse
 
 from rich import print
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, PB_MASTER, PB_NONE, PB_SLAVE
+from nucs.constants import PB_MASTER, PB_NONE, PB_SLAVE
+from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.heuristics.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -24,13 +25,9 @@ from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.queens -n 10
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = DefaultArgumentParser()
     parser.add_argument("--ff", type=bool, action=argparse.BooleanOptionalAction, default=False)
-    parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
     parser.add_argument("-n", type=int, default=10)
-    parser.add_argument("--processors", type=int, default=1)
-    parser.add_argument("--shaving", type=bool, action=argparse.BooleanOptionalAction, default=False)
-    parser.add_argument("--progress_bar", type=bool, action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     problem = QueensProblem(args.n)
     solver = (

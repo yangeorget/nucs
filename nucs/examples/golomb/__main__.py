@@ -10,11 +10,11 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-import argparse
 
 from rich import print
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPTIM_MODES, OPTIM_PRUNE, PB_MASTER, PB_NONE, PB_SLAVE
+from nucs.constants import OPTIM_MODES, OPTIM_PRUNE, PB_MASTER, PB_NONE, PB_SLAVE
+from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import register_consistency_algorithm
@@ -23,13 +23,9 @@ from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.golomb -n 10 --symmetry_breaking
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = DefaultArgumentParser()
     parser.add_argument("-n", type=int, default=10)
-    parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
     parser.add_argument("--opt_mode", choices=OPTIM_MODES, default=OPTIM_PRUNE)
-    parser.add_argument("--processors", type=int, default=1)
-    parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--progress_bar", type=bool, action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     problem = GolombProblem(args.n, args.symmetry_breaking)
     consistency_alg_golomb = register_consistency_algorithm(golomb_consistency_algorithm)

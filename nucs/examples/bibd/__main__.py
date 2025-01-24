@@ -10,27 +10,24 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-import argparse
 
 from rich import print
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, PB_MASTER, PB_NONE
+from nucs.constants import PB_MASTER, PB_NONE
 from nucs.examples.bibd.bibd_problem import BIBDProblem
+from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -l 3 --symmetry_breaking
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = DefaultArgumentParser()
     parser.add_argument("-v", type=int)
     parser.add_argument("-b", type=int)
     parser.add_argument("-r", type=int)
     parser.add_argument("-k", type=int)
     parser.add_argument("-l", type=int)
-    parser.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
-    parser.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--progress_bar", type=bool, action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     problem = BIBDProblem(args.v, args.b, args.r, args.k, args.l, args.symmetry_breaking)
     solver = BacktrackSolver(
