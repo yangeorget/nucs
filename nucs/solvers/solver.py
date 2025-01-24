@@ -121,6 +121,8 @@ def get_solution(
     :param dom_offsets_arr: the domain offsets
     :return: a Numpy array
     """
+    if dom_offsets_arr.shape == ():
+        return shr_domains_stack[stacks_top[0], dom_indices_arr, MIN]
     return shr_domains_stack[stacks_top[0], dom_indices_arr, MIN] + dom_offsets_arr
 
 

@@ -10,6 +10,7 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
+import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -42,6 +43,7 @@ from nucs.solvers.solver import is_solved
 @njit(cache=True)
 def bound_consistency_algorithm(
     statistics: NDArray,
+    no_offsets: bool,
     algorithms: NDArray,
     var_bounds: NDArray,
     param_bounds: NDArray,
@@ -93,8 +95,11 @@ def bound_consistency_algorithm(
         prop_var_start = var_bounds[prop_idx, RG_START]
         prop_var_end = var_bounds[prop_idx, RG_END]
         prop_indices = props_dom_indices[prop_var_start:prop_var_end]
-        prop_offsets = props_dom_offsets[prop_var_start:prop_var_end]
-        prop_domains = shr_domains_stack[top, prop_indices] + prop_offsets
+        if no_offsets:
+            prop_domains = shr_domains_stack[top, prop_indices]
+        else:
+            prop_offsets = props_dom_offsets[prop_var_start:prop_var_end]
+            prop_domains = shr_domains_stack[top, prop_indices] + prop_offsets
         compute_domains_fct = (
             COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]]
             if NUMBA_DISABLE_JIT
@@ -113,11 +118,16 @@ def bound_consistency_algorithm(
         for var_idx in range(prop_var_end - prop_var_start):
             shr_domain_idx = prop_indices[var_idx]
             events = 0
-            shr_domain_min = prop_domains[var_idx, MIN] - prop_offsets[var_idx, 0]  # because of vertical shape
+            if no_offsets:
+                shr_domain_min = prop_domains[var_idx, MIN]
+                shr_domain_max = prop_domains[var_idx, MAX]
+            else:
+                offset = prop_offsets[var_idx, 0]  # because of vertical shape
+                shr_domain_min = prop_domains[var_idx, MIN] - offset
+                shr_domain_max = prop_domains[var_idx, MAX] - offset
             if shr_domains_stack[top, shr_domain_idx, MIN] != shr_domain_min:
                 shr_domains_stack[top, shr_domain_idx, MIN] = shr_domain_min
                 events |= EVENT_MASK_MIN
-            shr_domain_max = prop_domains[var_idx, MAX] - prop_offsets[var_idx, 0]  # because of vertical shape
             if shr_domains_stack[top, shr_domain_idx, MAX] != shr_domain_max:
                 shr_domains_stack[top, shr_domain_idx, MAX] = shr_domain_max
                 events |= EVENT_MASK_MAX

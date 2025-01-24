@@ -172,18 +172,22 @@ class Problem:
             self.param_bounds[propagator_idx, RG_END] = self.param_bounds[propagator_idx, RG_START] + len(prop_params)
         # Bounds have been computed and can now be used. The global arrays are the following:
         self.props_dom_indices = np.empty(self.var_bounds[-1, RG_END], dtype=np.uint16)
-        self.props_dom_offsets = np.empty(self.var_bounds[-1, RG_END], dtype=np.int32)
-        self.props_parameters = np.empty(self.param_bounds[-1, RG_END], dtype=np.int32)
         for propagator_idx, propagator in enumerate(self.propagators):
-            prop_vars, _, prop_params = propagator
             var_start = self.var_bounds[propagator_idx, RG_START]
             var_end = self.var_bounds[propagator_idx, RG_END]
-            self.props_dom_indices[var_start:var_end] = self.dom_indices_arr[prop_vars]  # cached for faster access
-            self.props_dom_offsets[var_start:var_end] = self.dom_offsets_arr[prop_vars]  # cached for faster access
+            self.props_dom_indices[var_start:var_end] = self.dom_indices_arr[propagator[0]]  # cached for faster access
+        self.props_dom_offsets = np.empty(self.var_bounds[-1, RG_END], dtype=np.int32)
+        for propagator_idx, propagator in enumerate(self.propagators):
+            var_start = self.var_bounds[propagator_idx, RG_START]
+            var_end = self.var_bounds[propagator_idx, RG_END]
+            self.props_dom_offsets[var_start:var_end] = self.dom_offsets_arr[propagator[0]]  # cached for faster access
+        self.props_dom_offsets = self.props_dom_offsets.reshape((-1, 1))
+        self.no_offsets = not np.any(self.dom_offsets_arr)
+        self.props_parameters = np.empty(self.param_bounds[-1, RG_END], dtype=np.int32)
+        for propagator_idx, propagator in enumerate(self.propagators):
             param_start = self.param_bounds[propagator_idx, RG_START]
             param_end = self.param_bounds[propagator_idx, RG_END]
-            self.props_parameters[param_start:param_end] = prop_params
-        self.props_dom_offsets = self.props_dom_offsets.reshape((-1, 1))
+            self.props_parameters[param_start:param_end] = propagator[2]
         self.triggers = np.zeros((self.shr_domain_nb, self.propagator_nb), dtype=np.uint8)
         for propagator_idx, propagator in enumerate(self.propagators):
             prop_vars, prop_algorithm, prop_params = propagator

@@ -257,6 +257,7 @@ class BacktrackSolver(Solver, QueueSolver):
         while (
             solution := solve_one(
                 self.statistics,
+                self.problem.no_offsets,
                 self.problem.algorithms,
                 self.problem.var_bounds,
                 self.problem.param_bounds,
@@ -338,6 +339,7 @@ class BacktrackSolver(Solver, QueueSolver):
         while True:
             solution = solve_one(
                 self.statistics,
+                self.problem.no_offsets,
                 self.problem.algorithms,
                 self.problem.var_bounds,
                 self.problem.param_bounds,
@@ -419,6 +421,7 @@ class BacktrackSolver(Solver, QueueSolver):
         while True:
             solution = solve_one(
                 self.statistics,
+                self.problem.no_offsets,
                 self.problem.algorithms,
                 self.problem.var_bounds,
                 self.problem.param_bounds,
@@ -502,6 +505,7 @@ class BacktrackSolver(Solver, QueueSolver):
         while True:
             solution = solve_one(
                 self.statistics,
+                self.problem.no_offsets,
                 self.problem.algorithms,
                 self.problem.var_bounds,
                 self.problem.param_bounds,
@@ -547,6 +551,7 @@ class BacktrackSolver(Solver, QueueSolver):
 @njit(cache=True)
 def solve_one(
     statistics: NDArray,
+    no_offsets: bool,
     algorithms: NDArray,
     var_bounds: NDArray,
     param_bounds: NDArray,
@@ -616,6 +621,7 @@ def solve_one(
     while True:
         status = consistency_alg_fct(
             statistics,
+            no_offsets,
             algorithms,
             var_bounds,
             param_bounds,
