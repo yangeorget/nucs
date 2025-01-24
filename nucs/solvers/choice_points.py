@@ -98,8 +98,14 @@ def fix_choice_points(
     bound: int,
 ) -> bool:
     """
+    Fixes the domain of the variable being optimized in the choice points.
     :param domains_stk: the stack of shared domains
     :param stks_top: the index of the top of the stacks as a Numpy array
+    :param variables_arr: the variables as an array
+    :param offsets_arr: the offsets as an array
+    :param variable_idx: the index of the variable being optimized
+    :param value: the current optimal value for the variable
+    :param bound: the bound being optimized
     """
     dom_idx = variables_arr[variable_idx]
     domains_stk[0 : stks_top[0] + 1, dom_idx, bound] = value + (1 if bound == MIN else -1) - offsets_arr[variable_idx]
@@ -114,24 +120,23 @@ def fix_choice_points(
 def fix_top_choice_point(
     domains_stk: NDArray,
     stks_top: NDArray,
-    variable_arr: NDArray,
+    variables_arr: NDArray,
     offsets_arr: NDArray,
     variable_idx: int,
     value: int,
     bound: int,
 ) -> bool:
     """
-    :param problem: the problem
+    Fixes the domain of the variable being optimized in the top choice point.
     :param domains_stk: the stack of shared domains
-    :param not_entailed_propagators_stack: the stack of not entailed propagators
-    :param dom_update_stack: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
-    :param triggered_propagators: the list of triggered propagators
+    :param variables_arr: the variables as an array
+    :param offsets_arr: the offsets as an array
+    :param variable_idx: the index of the variable being optimized
+    :param value: the current optimal value for the variable
+    :param bound: the bound being optimized
     """
-    dom_idx = variable_arr[variable_idx]
-    domains_stk[stks_top[0], dom_idx, bound] = value + (1 if bound == MIN else -1) - offsets_arr[variable_idx]
-    while domains_stk[stks_top[0], dom_idx, MIN] > domains_stk[stks_top[0], dom_idx, MAX]:
-        if stks_top[0] == 0:
-            return False
-        stks_top[0] -= 1
-    return True
+    top = stks_top[0]
+    dom_idx = variables_arr[variable_idx]
+    domains_stk[top, dom_idx, bound] = value + (1 if bound == MIN else -1) - offsets_arr[variable_idx]
+    return domains_stk[top, dom_idx, MIN] <= domains_stk[top, dom_idx, MAX]

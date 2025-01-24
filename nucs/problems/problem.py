@@ -16,7 +16,7 @@ from typing import List, Optional, Self, Tuple, Union
 
 import numpy as np
 
-from nucs.constants import RG_END, RG_START
+from nucs.constants import PARAM, RANGE_END, RANGE_START, VARIABLE
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
 
 logger = logging.getLogger(__name__)
@@ -24,8 +24,12 @@ logger = logging.getLogger(__name__)
 
 class Problem:
     """
-    A problem is defined by a list of domains, a list of variables and a list of propagators.
-    A domain is computed by adding an offset to a shared domain.
+    A problem is defined by:
+    - a list of domains,
+    - a list of variables and
+    - a list of propagators.
+    A variable references an offset and a domain.
+    Domains can be shared between variables.
     """
 
     def __init__(
@@ -152,41 +156,39 @@ class Problem:
         self.algorithms = np.empty(self.propagator_nb, dtype=np.uint8)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
         bound_nb = max(1, self.propagator_nb)
-        self.var_bounds = np.zeros((bound_nb, 2), dtype=np.uint16)  # some redundancy here
-        self.param_bounds = np.zeros((bound_nb, 2), dtype=np.uint16)  # some redundancy here
-        self.var_bounds[0, RG_START] = self.param_bounds[0, RG_START] = 0
-        for propagator_idx, propagator in enumerate(self.propagators):
-            prop_vars, prop_algorithm, prop_params = propagator
-            self.algorithms[propagator_idx] = prop_algorithm
-            if propagator_idx > 0:
-                self.var_bounds[propagator_idx, RG_START] = self.var_bounds[propagator_idx - 1, RG_END]
-                self.param_bounds[propagator_idx, RG_START] = self.param_bounds[propagator_idx - 1, RG_END]
-            self.var_bounds[propagator_idx, RG_END] = self.var_bounds[propagator_idx, RG_START] + len(prop_vars)
-            self.param_bounds[propagator_idx, RG_END] = self.param_bounds[propagator_idx, RG_START] + len(prop_params)
+        self.bounds = np.zeros((bound_nb, 2, 2), dtype=np.uint16)  # some redundancy here
+        self.bounds[0, :, RANGE_START] = 0
+        for prop_idx, prop in enumerate(self.propagators):
+            prop_vars, prop_algorithm, prop_params = prop
+            self.algorithms[prop_idx] = prop_algorithm
+            if prop_idx > 0:
+                self.bounds[prop_idx, :, RANGE_START] = self.bounds[prop_idx - 1, :, RANGE_END]
+            self.bounds[prop_idx, VARIABLE, RANGE_END] = self.bounds[prop_idx, VARIABLE, RANGE_START] + len(prop_vars)
+            self.bounds[prop_idx, PARAM, RANGE_END] = self.bounds[prop_idx, PARAM, RANGE_START] + len(prop_params)
         # Bounds have been computed and can now be used. The global arrays are the following:
-        self.props_variables = np.empty(self.var_bounds[-1, RG_END], dtype=np.uint16)
-        for propagator_idx, propagator in enumerate(self.propagators):
-            var_start = self.var_bounds[propagator_idx, RG_START]
-            var_end = self.var_bounds[propagator_idx, RG_END]
-            self.props_variables[var_start:var_end] = self.variables_arr[propagator[0]]  # cached for faster access
-        self.props_offsets = np.empty(self.var_bounds[-1, RG_END], dtype=np.int32)
-        for propagator_idx, propagator in enumerate(self.propagators):
-            var_start = self.var_bounds[propagator_idx, RG_START]
-            var_end = self.var_bounds[propagator_idx, RG_END]
-            self.props_offsets[var_start:var_end] = self.offsets_arr[propagator[0]]  # cached for faster access
+        self.props_variables = np.empty(self.bounds[-1, VARIABLE, RANGE_END], dtype=np.uint16)
+        for prop_idx, prop in enumerate(self.propagators):
+            var_start = self.bounds[prop_idx, VARIABLE, RANGE_START]
+            var_end = self.bounds[prop_idx, VARIABLE, RANGE_END]
+            self.props_variables[var_start:var_end] = self.variables_arr[prop[0]]  # cached for faster access
+        self.props_offsets = np.empty(self.bounds[-1, VARIABLE, RANGE_END], dtype=np.int32)
+        for prop_idx, prop in enumerate(self.propagators):
+            var_start = self.bounds[prop_idx, VARIABLE, RANGE_START]
+            var_end = self.bounds[prop_idx, VARIABLE, RANGE_END]
+            self.props_offsets[var_start:var_end] = self.offsets_arr[prop[0]]  # cached for faster access
         self.props_offsets = self.props_offsets.reshape((-1, 1))
         self.no_offsets = not np.any(self.offsets_arr)
-        self.props_parameters = np.empty(self.param_bounds[-1, RG_END], dtype=np.int32)
-        for propagator_idx, propagator in enumerate(self.propagators):
-            param_start = self.param_bounds[propagator_idx, RG_START]
-            param_end = self.param_bounds[propagator_idx, RG_END]
-            self.props_parameters[param_start:param_end] = propagator[2]
+        self.props_parameters = np.empty(self.bounds[-1, PARAM, RANGE_END], dtype=np.int32)
+        for prop_idx, prop in enumerate(self.propagators):
+            param_start = self.bounds[prop_idx, PARAM, RANGE_START]
+            param_end = self.bounds[prop_idx, PARAM, RANGE_END]
+            self.props_parameters[param_start:param_end] = prop[2]
         self.triggers = np.zeros((self.domain_nb, self.propagator_nb), dtype=np.uint8)
-        for propagator_idx, propagator in enumerate(self.propagators):
-            prop_vars, prop_algorithm, prop_params = propagator
+        for prop_idx, prop in enumerate(self.propagators):
+            prop_vars, prop_algorithm, prop_params = prop
             triggers = GET_TRIGGERS_FCTS[prop_algorithm](len(prop_vars), prop_params)
             for prop_var_idx, prop_var in enumerate(prop_vars):
-                self.triggers[self.variables_arr[prop_var], propagator_idx] = triggers[prop_var_idx]
+                self.triggers[self.variables_arr[prop_var], prop_idx] = triggers[prop_var_idx]
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.propagator_nb} propagators")
         logger.info(f"Problem has {self.domain_nb} variables")

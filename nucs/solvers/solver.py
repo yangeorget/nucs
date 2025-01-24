@@ -91,6 +91,7 @@ class Solver:
         """
         Finds, if it exists, the solution to the problem that minimizes a given variable.
         :param variable_idx: the index of the variable
+        :param mode: the optimization mode
         :return: the solution if it exists or None
         """
         ...
@@ -100,6 +101,7 @@ class Solver:
         """
         Finds, if it exists, the solution to the problem that maximizes a given variable.
         :param variable_idx: the index of the variable
+        :param mode: the optimization mode
         :return: the solution if it exists or None
         """
         ...

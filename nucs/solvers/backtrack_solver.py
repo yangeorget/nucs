@@ -228,6 +228,7 @@ class BacktrackSolver(Solver, QueueSolver):
         """
         Return the solution that minimizes a variable.
         :param variable_idx: the index of the variable to minimize
+        :param mode: the optimization mode
         :return: the optimal solution if it exists or None
         """
         domain = self.domains_stk[self.stks_top[0], self.problem.variables_arr[variable_idx]]
@@ -238,6 +239,7 @@ class BacktrackSolver(Solver, QueueSolver):
         """
         Return the solution that maximizes a variable.
         :param variable_idx: the index of the variable to maximize
+        :param mode: the optimization mode
         :return: the optimal solution if it exists or None
         """
         domain = self.domains_stk[self.stks_top[0], self.problem.variables_arr[variable_idx]]
@@ -248,6 +250,8 @@ class BacktrackSolver(Solver, QueueSolver):
         """
         Finds, if it exists, the solution to the problem that optimizes a given variable.
         :param variable_idx: the index of the variable
+        :param bound: the bound to optimize
+        :param mode: the optimization mode
         :return: the solution if it exists or None
         """
         compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
@@ -259,8 +263,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.statistics,
                 self.problem.no_offsets,
                 self.problem.algorithms,
-                self.problem.var_bounds,
-                self.problem.param_bounds,
+                self.problem.bounds,
                 self.problem.variables_arr,
                 self.problem.offsets_arr,
                 self.problem.props_variables,
@@ -341,8 +344,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.statistics,
                 self.problem.no_offsets,
                 self.problem.algorithms,
-                self.problem.var_bounds,
-                self.problem.param_bounds,
+                self.problem.bounds,
                 self.problem.variables_arr,
                 self.problem.offsets_arr,
                 self.problem.props_variables,
@@ -389,6 +391,7 @@ class BacktrackSolver(Solver, QueueSolver):
         :param variable_idx: the index of the variable to minimize
         :param processor_idx: the index of the processor running the minimizer
         :param solution_queue: the solution queue
+        :param mode: the optimization mode
         """
         domain = self.domains_stk[self.stks_top[0], self.problem.variables_arr[variable_idx]]
         logger.info(f"Minimizing (mode {mode}) variable {variable_idx} (domain {domain})) and queuing solutions")
@@ -400,6 +403,7 @@ class BacktrackSolver(Solver, QueueSolver):
         :param variable_idx: the index of the variable to maximizer
         :param processor_idx: the index of the processor running the maximizer
         :param solution_queue: the solution queue
+        :param mode: the optimization mode
         """
         domain = self.domains_stk[self.stks_top[0], self.problem.variables_arr[variable_idx]]
         logger.info(f"Minimizing (mode {mode}) variable {variable_idx} (domain {domain})) and queuing solutions")
@@ -411,9 +415,10 @@ class BacktrackSolver(Solver, QueueSolver):
         """
         Enqueues the solution that optimizes a variable.
         :param variable_idx: the index of the variable
-        :param update_domain_fct: the function to update the domain of the variable
+        :param bound: the bound to optimize
         :param processor_idx: the index of the processor
         :param solution_queue: the solution queue
+        :param mode: the optimization mode
         """
         compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
             get_function_addresses()
@@ -423,8 +428,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.statistics,
                 self.problem.no_offsets,
                 self.problem.algorithms,
-                self.problem.var_bounds,
-                self.problem.param_bounds,
+                self.problem.bounds,
                 self.problem.variables_arr,
                 self.problem.offsets_arr,
                 self.problem.props_variables,
@@ -507,8 +511,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.statistics,
                 self.problem.no_offsets,
                 self.problem.algorithms,
-                self.problem.var_bounds,
-                self.problem.param_bounds,
+                self.problem.bounds,
                 self.problem.variables_arr,
                 self.problem.offsets_arr,
                 self.problem.props_variables,
@@ -553,8 +556,7 @@ def solve_one(
     statistics: NDArray,
     no_offsets: bool,
     algorithms: NDArray,
-    var_bounds: NDArray,
-    param_bounds: NDArray,
+    bounds: NDArray,
     variables_arr: NDArray,
     offsets_arr: NDArray,
     props_variables: NDArray,
@@ -581,8 +583,7 @@ def solve_one(
     Find at most one solution.
     :param statistics: a Numpy array of statistics
     :param algorithms: the algorithms indexed by propagators
-    :param var_bounds: the variable bounds indexed by propagators
-    :param param_bounds: the parameters bounds indexed by propagators
+    :param bounds: the bounds indexed by propagators
     :param variables_arr: the domain indices indexed by variables
     :param offsets_arr: the domain offsets indexed by variables
     :param props_variables: the domain indices indexed by propagator variables
@@ -623,8 +624,7 @@ def solve_one(
             statistics,
             no_offsets,
             algorithms,
-            var_bounds,
-            param_bounds,
+            bounds,
             variables_arr,
             offsets_arr,
             props_variables,

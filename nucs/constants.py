@@ -23,8 +23,10 @@ OPTIM_RESET = "RESET"
 OPTIM_PRUNE = "PRUNE"
 OPTIM_MODES = [OPTIM_RESET, OPTIM_PRUNE]
 
-RG_START = 0  # index corresponding the start of a values range
-RG_END = 1  # index corresponding the end of a values range
+VARIABLE = 0
+PARAM = 1
+RANGE_START = 0  # index corresponding the start of a values range
+RANGE_END = 1  # index corresponding the end of a values range
 
 MIN = 0  # min value of a domain
 MAX = 1  # max value of a domain
@@ -54,8 +56,7 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     int64[:],  # statistics
     bool,  # no_offsets
     uint8[:],  # algorithms
-    uint16[:, :],  # var_bounds
-    uint16[:, :],  # param_bounds
+    uint16[:, :, :],  # bounds
     uint16[:],  # variables_arr
     int32[:],  # offsets_arr
     uint16[:],  # props_variables

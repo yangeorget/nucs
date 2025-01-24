@@ -38,8 +38,7 @@ def shave_bound(
     statistics: NDArray,
     no_offsets: bool,
     algorithms: NDArray,
-    var_bounds: NDArray,
-    param_bounds: NDArray,
+    bounds: NDArray,
     variables_arr: NDArray,
     offsets_arr: NDArray,
     props_variables: NDArray,
@@ -67,8 +66,7 @@ def shave_bound(
             statistics,
             no_offsets,
             algorithms,
-            var_bounds,
-            param_bounds,
+            bounds,
             variables_arr,
             offsets_arr,
             props_variables,
@@ -105,8 +103,7 @@ def shaving_consistency_algorithm(
     statistics: NDArray,
     no_offsets: bool,
     algorithms: NDArray,
-    var_bounds: NDArray,
-    param_bounds: NDArray,
+    bounds: NDArray,
     variables_arr: NDArray,
     offsets_arr: NDArray,
     props_variables: NDArray,
@@ -125,8 +122,7 @@ def shaving_consistency_algorithm(
     Shaving consistency algorithm.
     :param statistics: a Numpy array of statistics
     :param algorithms: the algorithms indexed by propagators
-    :param var_bounds: the variable bounds indexed by propagators
-    :param param_bounds: the parameters bounds indexed by propagators
+    :param bounds: the bounds indexed by propagators
     :param variables_arr: the domain indices indexed by variables
     :param offsets_arr: the domain offsets indexed by variables
     :param props_variables: the domain indices indexed by propagator variables
@@ -155,8 +151,7 @@ def shaving_consistency_algorithm(
                 statistics,
                 no_offsets,
                 algorithms,
-                var_bounds,
-                param_bounds,
+                bounds,
                 variables_arr,
                 offsets_arr,
                 props_variables,
@@ -185,8 +180,7 @@ def shaving_consistency_algorithm(
             statistics,
             no_offsets,
             algorithms,
-            var_bounds,
-            param_bounds,
+            bounds,
             variables_arr,
             offsets_arr,
             props_variables,

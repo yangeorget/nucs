@@ -20,19 +20,21 @@ from nucs.constants import (
     MAX,
     MIN,
     NUMBA_DISABLE_JIT,
+    PARAM,
     PROBLEM_BOUND,
     PROBLEM_INCONSISTENT,
     PROBLEM_UNBOUND,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
-    RG_END,
-    RG_START,
+    RANGE_END,
+    RANGE_START,
     STATS_IDX_ALG_BC_NB,
     STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
     STATS_IDX_PROPAGATOR_FILTER_NB,
     STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
     TYPE_COMPUTE_DOMAINS,
+    VARIABLE,
 )
 from nucs.numba_helper import function_from_address
 from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, pop_propagator, update_propagators
@@ -44,8 +46,7 @@ def bound_consistency_algorithm(
     statistics: NDArray,
     no_offsets: bool,
     algorithms: NDArray,
-    var_bounds: NDArray,
-    param_bounds: NDArray,
+    bounds: NDArray,
     variables_arr: NDArray,
     offsets_arr: NDArray,
     props_variables: NDArray,
@@ -64,8 +65,7 @@ def bound_consistency_algorithm(
     Bound consistency algorithm.
     :param statistics: a Numpy array of statistics
     :param algorithms: the algorithms indexed by propagators
-    :param var_bounds: the variable bounds indexed by propagators
-    :param param_bounds: the parameters bounds indexed by propagators
+    :param bounds: the bounds indexed by propagators
     :param variables_arr: the domain indices indexed by variables, unused here
     :param offsets_arr: the domain offsets indexed by variables, unused here
     :param props_variables: the domain indices indexed by propagator variables
@@ -91,8 +91,8 @@ def bound_consistency_algorithm(
         if prop_idx == -1:
             return PROBLEM_BOUND if is_solved(domains_stk, stks_top) else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
-        prop_var_start = var_bounds[prop_idx, RG_START]
-        prop_var_end = var_bounds[prop_idx, RG_END]
+        prop_var_start = bounds[prop_idx, VARIABLE, RANGE_START]
+        prop_var_end = bounds[prop_idx, VARIABLE, RANGE_END]
         prop_indices = props_variables[prop_var_start:prop_var_end]
         if no_offsets:
             prop_domains = domains_stk[top, prop_indices]
@@ -105,7 +105,8 @@ def bound_consistency_algorithm(
             else function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[algorithms[prop_idx]])
         )
         status = compute_domains_fct(
-            prop_domains, props_parameters[param_bounds[prop_idx, RG_START] : param_bounds[prop_idx, RG_END]]
+            prop_domains,
+            props_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]],
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
