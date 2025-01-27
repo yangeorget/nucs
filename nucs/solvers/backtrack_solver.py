@@ -582,6 +582,7 @@ def solve_one(
     """
     Find at most one solution.
     :param statistics: a Numpy array of statistics
+    :param no_offsets: true iff all offsets are equal to 0
     :param algorithms: the algorithms indexed by propagators
     :param bounds: the bounds indexed by propagators
     :param variables_arr: the domain indices indexed by variables
