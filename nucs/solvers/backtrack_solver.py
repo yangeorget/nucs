@@ -27,7 +27,6 @@ from nucs.constants import (
     NUMBA_DISABLE_JIT,
     OPTIM_RESET,
     PB_BLOCK_NB,
-    PB_MASTER,
     PB_NONE,
     PB_SLAVE,
     PROBLEM_BOUND,
