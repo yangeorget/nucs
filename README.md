@@ -1,4 +1,4 @@
-![NucS logo](/assets/nucs.png)
+![NucS logo](https://github.com/yangeorget/nucs/blob/main/assets/nucs.png)
 
 
 ![pypi version](https://img.shields.io/pypi/v/nucs?color=blue&label=pypi%20version&logo=pypi&logoColor=white)
@@ -30,18 +30,18 @@ Check out [NuCS documentation](https://nucs.readthedocs.io/).
 ```bash
 NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.queens -n 12
 ```
-![queens](/assets/queens.gif)
+![queens](https://github.com/yangeorget/nucs/blob/main/assets/queens.gif)
 
 ### Compute the 92 solutions to the [BIBD(8,14,7,4,3) problem](https://www.csplib.org/Problems/prob028/)
 ```bash
 NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -l 3
 ```
-![bibd](/assets/bibd.gif)
+![bibd](https://github.com/yangeorget/nucs/blob/main/assets/bibd.gif)
 
 ### Demonstrate that the optimal [10-marks Golomb ruler](https://www.csplib.org/Problems/prob006/) length is 55
 ```bash
 NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.golomb -n 10
 ```
-![golomb](/assets/golomb.gif)
+![golomb](https://github.com/yangeorget/nucs/blob/main/assets/golomb.gif)
 
 
