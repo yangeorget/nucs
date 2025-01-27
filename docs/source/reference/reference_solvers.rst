@@ -26,8 +26,10 @@ NuCS comes with the following solvers.
    :type dom_heuristic_idx: int
    :param dom_heuristic_params: a list of lists of parameters, usually parameters are costs and there is a list of value costs per variable/shared domain
    :type dom_heuristic_params: List[List[int]]
-   :param stack_max_height: the maximal height of the choice point stack
-   :type stack_max_height: int
+   :param stks_max_height: the maximal height of the choice point stack
+   :type stks_max_height: int
+   :param pb_mode: the progress bar mode
+   :type pb_mode: str
    :param log_level: the log level
    :type log_level: str
 
@@ -38,7 +40,9 @@ NuCS comes with the following solvers.
    A solver relying on the multiprocessing package. This solver delegates resolution to a set of solvers.
 
    :param solvers: the solvers used in different processes
-   :type solvers: List[BacktrackSolver]
+   :type solvers: List[QueueSolver]
+   :param pb_mode: the progress bar mode
+   :type pb_mode: str
    :param log_level: the log level
    :type log_level: str
 

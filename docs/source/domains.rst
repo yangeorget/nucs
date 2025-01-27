@@ -27,4 +27,4 @@ Domain persistence
 ******************
 
 Shared domains, domain indices and offsets are stored using :code:`numpy.ndarray`.
-Actual domains are not persisted but are computed on the fly using offsets and shared domains.
+Variable domains are not persisted but are computed on the fly using offsets and shared domains.

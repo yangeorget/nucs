@@ -13,7 +13,7 @@ Let's install the NuCS package with pip:
    pip install nucs
 
 
-NuCS requires a recent version of Python: 3.11, 3.12 and 3.12 are supported.
+NuCS requires a recent version of Python: 3.11, 3.12 and 3.13 are supported.
 
 
 *****************
@@ -30,33 +30,38 @@ Let's find all solutions to the `12-queens problem <https://www.csplib.org/Probl
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.queens -n 12 --log_level=INFO
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.queens -n 12
 
 Produces the following output:
 
 .. code-block:: bash
 
-   2024-11-12 17:24:49,061 - INFO - nucs.solvers.solver - Problem has 3 propagators
-   2024-11-12 17:24:49,061 - INFO - nucs.solvers.solver - Problem has 12 variables
-   2024-11-12 17:24:49,061 - INFO - nucs.solvers.backtrack_solver - BacktrackSolver uses variable heuristic 0
-   2024-11-12 17:24:49,061 - INFO - nucs.solvers.backtrack_solver - BacktrackSolver uses domain heuristic 0
-   2024-11-12 17:24:49,061 - INFO - nucs.solvers.backtrack_solver - BacktrackSolver uses consistency algorithm 0
-   2024-11-12 17:24:49,061 - INFO - nucs.solvers.backtrack_solver - Choice points stack has a maximal height of 128
-   2024-11-12 17:24:49,200 - INFO - nucs.solvers.multiprocessing_solver - MultiprocessingSolver has 1 processors
+   [ 2025-01-27 14:55:53,114 | MainProcess | INFO ] nucs.solvers.solver.__init__ - Initializing Solver
+   [ 2025-01-27 14:55:53,115 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 3 propagators
+   [ 2025-01-27 14:55:53,115 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 12 variables
+   [ 2025-01-27 14:55:53,115 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses decision domains [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+   [ 2025-01-27 14:55:53,115 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses variable heuristic 0
+   [ 2025-01-27 14:55:53,115 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses domain heuristic 3
+   [ 2025-01-27 14:55:53,115 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm 0
+   [ 2025-01-27 14:55:53,115 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stacks of the choice points have a maximal height of 256
+   [ 2025-01-27 14:55:53,196 | MainProcess | INFO ] nucs.solvers.backtrack_solver.solve - Solving and iterating over the solutions
    {
-    'ALG_BC_NB': 262011,
-    'ALG_BC_WITH_SHAVING_NB': 0,
-    'ALG_SHAVING_NB': 0,
-    'ALG_SHAVING_CHANGE_NB': 0,
-    'ALG_SHAVING_NO_CHANGE_NB': 0,
-    'PROPAGATOR_ENTAILMENT_NB': 0,
-    'PROPAGATOR_FILTER_NB': 2269980,
-    'PROPAGATOR_FILTER_NO_CHANGE_NB': 990450,
-    'PROPAGATOR_INCONSISTENCY_NB': 116806,
-    'SOLVER_BACKTRACK_NB': 131005,
-    'SOLVER_CHOICE_NB': 131005,
-    'SOLVER_CHOICE_DEPTH': 10,
-    'SOLVER_SOLUTION_NB': 14200
+       'ALG_BC_NB': 262011,
+       'ALG_BC_WITH_SHAVING_NB': 0,
+       'ALG_SHAVING_NB': 0,
+       'ALG_SHAVING_CHANGE_NB': 0,
+       'ALG_SHAVING_NO_CHANGE_NB': 0,
+       'PROPAGATOR_ENTAILMENT_NB': 0,
+       'PROPAGATOR_FILTER_NB': 2269980,
+       'PROPAGATOR_FILTER_NO_CHANGE_NB': 990450,
+       'PROPAGATOR_INCONSISTENCY_NB': 116806,
+       'SOLVER_BACKTRACK_NB': 131005,
+       'SOLVER_CHOICE_NB': 131005,
+       'SOLVER_CHOICE_DEPTH': 10,
+       'SOLUTION_NB': 14200,
+       'SEARCH_SPACE_INITIAL_SZ': 0,
+       'SEARCH_SPACE_REMAINING_SZ': 0,
+       'SEARCH_SPACE_LOG2_SCALE': 0
    }
 
 
@@ -66,43 +71,48 @@ Let's find the optimal solution to the `Golomb ruler problem <https://www.csplib
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache -m nucs.examples.golomb -n 10 --symmetry_breaking --log_level=INFO
+   NUMBA_CACHE_DIR=.numba/cache -m nucs.examples.golomb -n 10
 
 Produces the following output:
 
 .. code-block:: bash
 
-   2024-11-12 17:27:45,110 - INFO - nucs.solvers.solver - Problem has 82 propagators
-   2024-11-12 17:27:45,110 - INFO - nucs.solvers.solver - Problem has 45 variables
-   2024-11-12 17:27:45,110 - INFO - nucs.solvers.backtrack_solver - BacktrackSolver uses variable heuristic 0
-   2024-11-12 17:27:45,110 - INFO - nucs.solvers.backtrack_solver - BacktrackSolver uses domain heuristic 0
-   2024-11-12 17:27:45,110 - INFO - nucs.solvers.backtrack_solver - BacktrackSolver uses consistency algorithm 2
-   2024-11-12 17:27:45,110 - INFO - nucs.solvers.backtrack_solver - Choice points stack has a maximal height of 128
-   2024-11-12 17:27:45,172 - INFO - nucs.solvers.backtrack_solver - Minimizing variable 8
-   2024-11-12 17:27:45,644 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 80
-   2024-11-12 17:27:45,677 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 75
-   2024-11-12 17:27:45,677 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 73
-   2024-11-12 17:27:45,678 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 72
-   2024-11-12 17:27:45,679 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 70
-   2024-11-12 17:27:45,682 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 68
-   2024-11-12 17:27:45,687 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 66
-   2024-11-12 17:27:45,693 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 62
-   2024-11-12 17:27:45,717 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 60
-   2024-11-12 17:27:45,977 - INFO - nucs.solvers.backtrack_solver - Found a (new) solution: 55
+   [ 2025-01-27 14:58:17,101 | MainProcess | INFO ] nucs.solvers.solver.__init__ - Initializing Solver
+   [ 2025-01-27 14:58:17,101 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 82 propagators
+   [ 2025-01-27 14:58:17,102 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 45 variables
+   [ 2025-01-27 14:58:17,102 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses decision domains [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]
+   [ 2025-01-27 14:58:17,102 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses variable heuristic 0
+   [ 2025-01-27 14:58:17,102 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses domain heuristic 3
+   [ 2025-01-27 14:58:17,102 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm 2
+   [ 2025-01-27 14:58:17,102 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stacks of the choice points have a maximal height of 256
+   [ 2025-01-27 14:58:17,109 | MainProcess | INFO ] nucs.solvers.backtrack_solver.minimize - Minimizing (mode PRUNE) variable 8 (domain [  1 405]))
+   [ 2025-01-27 14:58:17,545 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 80
+   [ 2025-01-27 14:58:17,546 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 75
+   [ 2025-01-27 14:58:17,547 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 73
+   [ 2025-01-27 14:58:17,547 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 72
+   [ 2025-01-27 14:58:17,548 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 70
+   [ 2025-01-27 14:58:17,549 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 68
+   [ 2025-01-27 14:58:17,551 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 66
+   [ 2025-01-27 14:58:17,553 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 62
+   [ 2025-01-27 14:58:17,571 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 60
+   [ 2025-01-27 14:58:17,748 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 55
    {
-    'ALG_BC_NB': 22652,
-    'ALG_BC_WITH_SHAVING_NB': 0,
-    'ALG_SHAVING_NB': 0,
-    'ALG_SHAVING_CHANGE_NB': 0,
-    'ALG_SHAVING_NO_CHANGE_NB': 0,
-    'PROPAGATOR_ENTAILMENT_NB': 107911,
-    'PROPAGATOR_FILTER_NB': 2813035,
-    'PROPAGATOR_FILTER_NO_CHANGE_NB': 1745836,
-    'PROPAGATOR_INCONSISTENCY_NB': 11289,
-    'SOLVER_BACKTRACK_NB': 11288,
-    'SOLVER_CHOICE_NB': 11353,
-    'SOLVER_CHOICE_DEPTH': 9,
-    'SOLVER_SOLUTION_NB': 10
+       'ALG_BC_NB': 20780,
+       'ALG_BC_WITH_SHAVING_NB': 0,
+       'ALG_SHAVING_NB': 0,
+       'ALG_SHAVING_CHANGE_NB': 0,
+       'ALG_SHAVING_NO_CHANGE_NB': 0,
+       'PROPAGATOR_ENTAILMENT_NB': 115080,
+       'PROPAGATOR_FILTER_NB': 2829457,
+       'PROPAGATOR_FILTER_NO_CHANGE_NB': 1794797,
+       'PROPAGATOR_INCONSISTENCY_NB': 10377,
+       'SOLVER_BACKTRACK_NB': 10376,
+       'SOLVER_CHOICE_NB': 10393,
+       'SOLVER_CHOICE_DEPTH': 9,
+       'SOLUTION_NB': 10,
+       'SEARCH_SPACE_INITIAL_SZ': 0,
+       'SEARCH_SPACE_REMAINING_SZ': 0,
+       'SEARCH_SPACE_LOG2_SCALE': 0
    }
    [ 1  6 10 23 26 34 41 53 55]
 
@@ -116,23 +126,9 @@ Model the n-queens problem
 
 Let's write the following :code:`queens.py` program:
 
-.. code-block:: python
+.. literalinclude:: queens.py
    :linenos:
 
-   from nucs.problems.problem import Problem
-   from nucs.solvers.backtrack_solver import BacktrackSolver
-   from nucs.propagators.propagators import ALG_ALLDIFFERENT
-
-   n = 8  # the number of queens
-   problem = Problem(
-       [(0, n - 1)] * n,  # these n domains are shared between the 3n variables with different offsets
-       list(range(n)) * 3,  # for each variable, its shared domain
-       [0] * n + list(range(n)) + list(range(0, -n, -1))  # for each variable, its offset
-   )
-   problem.add_propagator((list(range(n)), ALG_ALLDIFFERENT, []))
-   problem.add_propagator((list(range(n, 2 * n)), ALG_ALLDIFFERENT, []))
-   problem.add_propagator((list(range(2 * n, 3 * n)), ALG_ALLDIFFERENT, []))
-   print(BacktrackSolver(problem).solve_one()[:n])
 
 Let's run this model with the following command:
 

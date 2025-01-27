@@ -2,14 +2,8 @@
 Variables
 #########
 
-********************
-Variables as indices
-********************
-
-In NuCS, variables are not entities in their own right, but simply domain indices.
-As a consequence, variables do not have any attributes such as names, etc.
-
-The domain indices are unsigned 16-bits integers.
+In NuCS, variables are unsigned 16-bits integers.
+Each variable references a domain and an offset.
 
 
 ****************************

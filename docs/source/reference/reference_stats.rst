@@ -18,5 +18,8 @@ NUCS aggregates the following statistics:
 * SOLVER_BACKTRACK_NB: the number of calls to the solver's :code:`backtrack` method
 * SOLVER_CHOICE_NB: the number of choices that have been made
 * SOLVER_CHOICE_DEPTH: the maximal depth of choices
-* SOLVER_SOLUTION_NB: the number of solutions that have been found
+* SOLUTION_NB: the number of solutions that have been found
+* SEARCH_SPACE_INITIAL_SZ: the size of the initial search space
+* SEARCH_SPACE_REMAINING_SZ: the size of the remaining search space
+* SEARCH_SPACE_LOG2_SCALE: the log_2 scale used in the progress bar
 

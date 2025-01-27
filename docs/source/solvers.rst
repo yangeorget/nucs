@@ -11,7 +11,8 @@ Solver arguments
 A solver accepts the following parameters:
 
 * the problem to be solved
-* the logging level
+* the progress bar mode (PB_NONE, PB_SLAVE, PB_MASTER)
+* the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 
 
 *************************
@@ -46,7 +47,7 @@ This solver is used by the launcher of the :mod:`nucs.examples.queens.queens_pro
    :linenos:
 
    problem = QueensProblem(args.n)
-   problems = problem.split(args.processors, 0)  # creates n-subproblems by splitting the domain of the first variable
+   problems = problem.split(args.processors, 0)  # creates n sub-problems by splitting the domain of the first variable
    solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in problems])
    solver.solve_all()
 
