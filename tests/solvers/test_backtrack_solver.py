@@ -124,7 +124,7 @@ class TestBacktrackSolver:
     )
     def test_maximize(self, mode: str, dom_heuristic: int, solution_nb: int) -> None:
         problem = Problem([(1, 5)])
-        solver = BacktrackSolver(problem, dom_heuristic_idx=dom_heuristic, stks_max_height=8)
+        solver = BacktrackSolver(problem, dom_heuristic_idx=dom_heuristic)
         solution = solver.maximize(0, mode=mode)
         assert solution is not None
         assert solution.tolist() == [5]
