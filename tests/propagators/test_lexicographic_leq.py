@@ -10,57 +10,52 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-from typing import Any
+from typing import List, Optional, Tuple, Union
 
-import numpy as np
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY, STATS_IDX_SOLUTION_NB
-from nucs.numpy_helper import new_parameters_by_values, new_shr_domains_by_values
 from nucs.problems.problem import Problem
 from nucs.propagators.lexicographic_leq_propagator import compute_domains_lexicographic_leq
 from nucs.propagators.propagators import ALG_LEXICOGRAPHIC_LEQ
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestLexicographicLEQ:
-    def test_compute_domains_1(self) -> None:
-        domains = new_shr_domains_by_values([(0, 1), 0, 1, 1])
-        data = new_parameters_by_values([])
-        assert compute_domains_lexicographic_leq(domains, data) == PROP_ENTAILMENT
-        assert np.all(domains == np.array([[0, 1], [0, 0], [1, 1], [1, 1]]))
-
-    def test_compute_domains_2(self) -> None:
-        domains = new_shr_domains_by_values([(0, 1), (0, 1), (0, 1), (0, 1)])
-        data = new_parameters_by_values([])
-        assert compute_domains_lexicographic_leq(domains, data) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[0, 1], [0, 1], [0, 1], [0, 1]]))
-
+class TestLexicographicLEQ(PropagatorTest):
     @pytest.mark.parametrize(
-        "values,state",
+        "domains,parameters,consistency_result,expected_domains",
         [
-            ([0, 0, 0, 0], PROP_ENTAILMENT),
-            ([0, 0, 0, 1], PROP_ENTAILMENT),
-            ([0, 0, 1, 0], PROP_ENTAILMENT),
-            ([0, 0, 1, 1], PROP_ENTAILMENT),
-            ([0, 1, 0, 0], PROP_INCONSISTENCY),
-            ([0, 1, 0, 1], PROP_ENTAILMENT),
-            ([0, 1, 1, 0], PROP_ENTAILMENT),
-            ([0, 1, 1, 1], PROP_ENTAILMENT),
-            ([1, 0, 0, 0], PROP_INCONSISTENCY),
-            ([1, 0, 0, 1], PROP_INCONSISTENCY),
-            ([1, 0, 1, 0], PROP_ENTAILMENT),
-            ([1, 0, 1, 1], PROP_ENTAILMENT),
-            ([1, 1, 0, 0], PROP_INCONSISTENCY),
-            ([1, 1, 0, 1], PROP_INCONSISTENCY),
-            ([1, 1, 1, 0], PROP_INCONSISTENCY),
-            ([1, 1, 1, 1], PROP_ENTAILMENT),
+            ([(0, 1), 0, 1, 1], [], PROP_ENTAILMENT, [[0, 1], [0, 0], [1, 1], [1, 1]]),
+            ([(0, 1), (0, 1), (0, 1), (0, 1)], [], PROP_CONSISTENCY, [[0, 1], [0, 1], [0, 1], [0, 1]]),
+            ([0, 0, 0, 0], [], PROP_ENTAILMENT, None),
+            ([0, 0, 0, 1], [], PROP_ENTAILMENT, None),
+            ([0, 0, 1, 0], [], PROP_ENTAILMENT, None),
+            ([0, 0, 1, 1], [], PROP_ENTAILMENT, None),
+            ([0, 1, 0, 0], [], PROP_INCONSISTENCY, None),
+            ([0, 1, 0, 1], [], PROP_ENTAILMENT, None),
+            ([0, 1, 1, 0], [], PROP_ENTAILMENT, None),
+            ([0, 1, 1, 1], [], PROP_ENTAILMENT, None),
+            ([1, 0, 0, 0], [], PROP_INCONSISTENCY, None),
+            ([1, 0, 0, 1], [], PROP_INCONSISTENCY, None),
+            ([1, 0, 1, 0], [], PROP_ENTAILMENT, None),
+            ([1, 0, 1, 1], [], PROP_ENTAILMENT, None),
+            ([1, 1, 0, 0], [], PROP_INCONSISTENCY, None),
+            ([1, 1, 0, 1], [], PROP_INCONSISTENCY, None),
+            ([1, 1, 1, 0], [], PROP_INCONSISTENCY, None),
+            ([1, 1, 1, 1], [], PROP_ENTAILMENT, None),
         ],
     )
-    def test_compute_domains_values(self, values: Any, state: int) -> None:
-        domains = new_shr_domains_by_values(values)
-        data = new_parameters_by_values([])
-        assert compute_domains_lexicographic_leq(domains, data) == state
+    def test_compute_domains(
+        self,
+        domains: List[Union[int, Tuple[int, int]]],
+        parameters: List[int],
+        consistency_result: int,
+        expected_domains: Optional[List[List[int]]],
+    ) -> None:
+        self.assert_compute_domains(
+            compute_domains_lexicographic_leq, domains, parameters, consistency_result, expected_domains
+        )
 
     def test_solve_1(self) -> None:
         problem = Problem(

@@ -10,37 +10,31 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-import numpy as np
+from typing import List, Optional, Tuple, Union
+
+import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_INCONSISTENCY
-from nucs.numpy_helper import new_parameters_by_values, new_shr_domains_by_values
 from nucs.propagators.max_eq_propagator import compute_domains_max_eq
+from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestMaxEQ:
-    def test_compute_domains_1(self) -> None:
-        domains = new_shr_domains_by_values([(1, 4), (2, 5), (0, 2)])
-        data = new_parameters_by_values([])
-        assert compute_domains_max_eq(domains, data) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[1, 2], [2, 2], [2, 2]]))
-
-    def test_compute_domains_2(self) -> None:
-        domains = new_shr_domains_by_values([(1, 4), (3, 5), (0, 2)])
-        data = new_parameters_by_values([])
-        assert compute_domains_max_eq(domains, data) == PROP_INCONSISTENCY
-
-    def test_compute_domains_3(self) -> None:
-        domains = new_shr_domains_by_values([(2, 4), (2, 5), (0, 1)])
-        data = new_parameters_by_values([])
-        assert compute_domains_max_eq(domains, data) == PROP_INCONSISTENCY
-
-    def test_compute_domains_4(self) -> None:
-        domains = new_shr_domains_by_values([(0, 1), (0, 1), (0, 0)])
-        data = new_parameters_by_values([])
-        assert compute_domains_max_eq(domains, data) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[0, 0], [0, 0], [0, 0]]))
-
-    def test_compute_domains_5(self) -> None:
-        domains = new_shr_domains_by_values([(0, 1), (0, 1), (2, 3)])
-        data = new_parameters_by_values([])
-        assert compute_domains_max_eq(domains, data) == PROP_INCONSISTENCY
+class TestMaxEQ(PropagatorTest):
+    @pytest.mark.parametrize(
+        "domains,parameters,consistency_result,expected_domains",
+        [
+            ([(1, 4), (2, 5), (0, 2)], [], PROP_CONSISTENCY, [[1, 2], [2, 2], [2, 2]]),
+            ([(1, 4), (3, 5), (0, 2)], [], PROP_INCONSISTENCY, None),
+            ([(2, 4), (2, 5), (0, 1)], [], PROP_INCONSISTENCY, None),
+            ([(0, 1), (0, 1), (0, 0)], [], PROP_CONSISTENCY, [[0, 0], [0, 0], [0, 0]]),
+            ([(0, 1), (0, 1), (2, 3)], [], PROP_INCONSISTENCY, None),
+        ],
+    )
+    def test_compute_domains(
+        self,
+        domains: List[Union[int, Tuple[int, int]]],
+        parameters: List[int],
+        consistency_result: int,
+        expected_domains: Optional[List[List[int]]],
+    ) -> None:
+        self.assert_compute_domains(compute_domains_max_eq, domains, parameters, consistency_result, expected_domains)

@@ -15,6 +15,7 @@ from typing import Callable
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
+from nucs.propagators.abs_propagator import compute_domains_abs, get_complexity_abs, get_triggers_abs
 from nucs.propagators.affine_eq_propagator import (
     compute_domains_affine_eq,
     get_complexity_affine_eq,
@@ -128,6 +129,7 @@ def register_propagator(get_triggers_fct: Callable, get_complexity_fct: Callable
     return len(COMPUTE_DOMAINS_FCTS) - 1
 
 
+ALG_ABS = register_propagator(get_triggers_abs, get_complexity_abs, compute_domains_abs)
 ALG_AND = register_propagator(get_triggers_and, get_complexity_and, compute_domains_and)
 ALG_AFFINE_EQ = register_propagator(get_triggers_affine_eq, get_complexity_affine_eq, compute_domains_affine_eq)
 ALG_AFFINE_GEQ = register_propagator(get_triggers_affine_geq, get_complexity_affine_geq, compute_domains_affine_geq)

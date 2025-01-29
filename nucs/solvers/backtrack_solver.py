@@ -103,7 +103,7 @@ class BacktrackSolver(Solver, QueueSolver):
         var_heuristic_params: List[List[int]] = [[]],
         dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
         dom_heuristic_params: List[List[int]] = [[]],
-        stks_max_height: int = 256,
+        stks_max_height: int = 512,
         pb_mode: int = PB_NONE,
         log_level: str = LOG_LEVEL_INFO,
     ):
@@ -138,7 +138,7 @@ class BacktrackSolver(Solver, QueueSolver):
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
         self.not_entailed_propagators_stk = np.empty((stks_max_height, self.problem.propagator_nb), dtype=np.bool)
         self.dom_update_stk = np.empty((stks_max_height, 2), dtype=np.uint16)
-        self.stks_top = np.ones((1,), dtype=np.uint8)
+        self.stks_top = np.ones((1,), dtype=np.uint16)
         logger.info(f"The stacks of the choice points have a maximal height of {stks_max_height}")
         cp_init(
             self.domains_stk,

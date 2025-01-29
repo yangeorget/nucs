@@ -10,45 +10,48 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-import numpy as np
+from typing import List, Optional, Tuple, Union
+
+import pytest
 
 from nucs.constants import PROP_CONSISTENCY
-from nucs.numpy_helper import new_parameters_by_values, new_shr_domains_by_values
 from nucs.propagators.gcc_propagator import compute_domains_gcc
+from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestGCC:
-    def test_compute_domains_0(self) -> None:
-        domains = new_shr_domains_by_values([0])
-        assert compute_domains_gcc(domains, new_parameters_by_values([0, 1, 1])) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[0, 0]]))
-
-    def test_compute_domains_1(self) -> None:
-        domains = new_shr_domains_by_values([0, 1])
-        assert compute_domains_gcc(domains, new_parameters_by_values([0, 1, 1, 1, 1])) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[0, 0], [1, 1]]))
-
-    def test_compute_domains_2(self) -> None:
-        domains = new_shr_domains_by_values([0, (0, 1)])
-        assert compute_domains_gcc(domains, new_parameters_by_values([0, 1, 1, 1, 1])) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[0, 0], [1, 1]]))
-
-    def test_compute_domains_3(self) -> None:
-        domains = new_shr_domains_by_values([0, 2, (1, 2)])
-        assert compute_domains_gcc(domains, new_parameters_by_values([0] + [1] * 6)) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[0, 0], [2, 2], [1, 1]]))
-
-    def test_compute_domains_4(self) -> None:
-        domains = new_shr_domains_by_values([0, (0, 4), (0, 4), (0, 4), (0, 4)])
-        assert compute_domains_gcc(domains, new_parameters_by_values([0] + [1] * 10)) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[0, 0], [1, 4], [1, 4], [1, 4], [1, 4]]))
-
-    def test_compute_domains_5(self) -> None:
-        domains = new_shr_domains_by_values([(3, 6), (3, 4), (2, 5), (2, 4), (3, 4), (1, 6)])
-        assert compute_domains_gcc(domains, new_parameters_by_values([1] + [1] * 12)) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[6, 6], [3, 4], [5, 5], [2, 2], [3, 4], [1, 1]]))
-
-    def test_compute_domains_6(self) -> None:
-        domains = new_shr_domains_by_values([(3, 4), (2, 4), (3, 4), (2, 5), (3, 6), (1, 6)])
-        assert compute_domains_gcc(domains, new_parameters_by_values([1] + [0] * 6 + [1] * 6)) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[3, 4], [2, 2], [3, 4], [5, 5], [6, 6], [1, 1]]))
+class TestGCC(PropagatorTest):
+    @pytest.mark.parametrize(
+        "domains,parameters,consistency_result,expected_domains",
+        [
+            ([0], [0, 1, 1], PROP_CONSISTENCY, [[0, 0]]),
+            ([0, 1], [0, 1, 1, 1, 1], PROP_CONSISTENCY, [[0, 0], [1, 1]]),
+            ([0, (0, 1)], [0, 1, 1, 1, 1], PROP_CONSISTENCY, [[0, 0], [1, 1]]),
+            ([0, 2, (1, 2)], [0] + [1] * 6, PROP_CONSISTENCY, [[0, 0], [2, 2], [1, 1]]),
+            (
+                [0, (0, 4), (0, 4), (0, 4), (0, 4)],
+                [0] + [1] * 10,
+                PROP_CONSISTENCY,
+                [[0, 0], [1, 4], [1, 4], [1, 4], [1, 4]],
+            ),
+            (
+                [(3, 6), (3, 4), (2, 5), (2, 4), (3, 4), (1, 6)],
+                [1] + [1] * 12,
+                PROP_CONSISTENCY,
+                [[6, 6], [3, 4], [5, 5], [2, 2], [3, 4], [1, 1]],
+            ),
+            (
+                [(3, 4), (2, 4), (3, 4), (2, 5), (3, 6), (1, 6)],
+                [1] + [0] * 6 + [1] * 6,
+                PROP_CONSISTENCY,
+                [[3, 4], [2, 2], [3, 4], [5, 5], [6, 6], [1, 1]],
+            ),
+        ],
+    )
+    def test_compute_domains(
+        self,
+        domains: List[Union[int, Tuple[int, int]]],
+        parameters: List[int],
+        consistency_result: int,
+        expected_domains: Optional[List[List[int]]],
+    ) -> None:
+        self.assert_compute_domains(compute_domains_gcc, domains, parameters, consistency_result, expected_domains)

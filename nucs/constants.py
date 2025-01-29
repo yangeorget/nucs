@@ -66,7 +66,7 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     int32[:, :, :],  # domains_stk
     bool[:, :],  # not_entailed_propagators_stk
     uint16[:, :],  # dom_update_stk
-    uint8[:],  # stks_top
+    uint16[:],  # stks_top
     bool[:],  # triggered_propagators
     int64[:],  # compute_domains_addrs
     uint16[:],  # decision_domains
@@ -75,14 +75,14 @@ SIGNATURE_DOM_HEURISTIC = int64(
     int32[:, :, :],  # domains_stk
     bool[:, :],  # not_entailed_propagators_stk
     uint16[:, :],  # dom_update_stk
-    uint8[:],  # stks_top
+    uint16[:],  # stks_top
     int64,  # dom_idx
     int64[:, :],  # dom_heuristic_params
 )
 SIGNATURE_VAR_HEURISTIC = int64(
     uint16[:],  # decision_variables
     int32[:, :, :],  # domains_stk
-    uint8[:],  # stks_top
+    uint16[:],  # stks_top
     int64[:, :],  # var_heuristic_params
 )
 

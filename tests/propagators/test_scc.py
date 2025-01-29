@@ -10,23 +10,29 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
+from typing import List, Optional, Tuple, Union
+
+import pytest
+
 from nucs.constants import PROP_CONSISTENCY, PROP_INCONSISTENCY
-from nucs.numpy_helper import new_parameters_by_values, new_shr_domains_by_values
 from nucs.propagators.scc_propagator import compute_domains_scc
+from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestSCC:
-    def test_compute_domains_1(self) -> None:
-        domains = new_shr_domains_by_values([(0, 2), (0, 2), (0, 2)])
-        data = new_parameters_by_values([])
-        assert compute_domains_scc(domains, data) == PROP_CONSISTENCY
-
-    def test_compute_domains_2(self) -> None:
-        domains = new_shr_domains_by_values([(2, 2), (0, 0), (1, 1)])
-        data = new_parameters_by_values([])
-        assert compute_domains_scc(domains, data) == PROP_CONSISTENCY
-
-    def test_compute_domains_3(self) -> None:
-        domains = new_shr_domains_by_values([(1, 1), (0, 0), (2, 2)])
-        data = new_parameters_by_values([])
-        assert compute_domains_scc(domains, data) == PROP_INCONSISTENCY
+class TestSCC(PropagatorTest):
+    @pytest.mark.parametrize(
+        "domains,parameters,consistency_result,expected_domains",
+        [
+            ([(0, 2), (0, 2), (0, 2)], [], PROP_CONSISTENCY, None),
+            ([(2, 2), (0, 0), (1, 1)], [], PROP_CONSISTENCY, None),
+            ([(1, 1), (0, 0), (2, 2)], [], PROP_INCONSISTENCY, None),
+        ],
+    )
+    def test_compute_domains(
+        self,
+        domains: List[Union[int, Tuple[int, int]]],
+        parameters: List[int],
+        consistency_result: int,
+        expected_domains: Optional[List[List[int]]],
+    ) -> None:
+        self.assert_compute_domains(compute_domains_scc, domains, parameters, consistency_result, expected_domains)

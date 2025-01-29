@@ -10,33 +10,37 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-import numpy as np
+from typing import List, Optional, Tuple, Union
+
+import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
-from nucs.numpy_helper import new_parameters_by_values, new_shr_domains_by_values
 from nucs.propagators.element_liv_propagator import compute_domains_element_liv
+from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestElementLIV:
-    def test_compute_domains_1(self) -> None:
-        domains = new_shr_domains_by_values([(-1, 0), (1, 2), (0, 2), (-1, 1)])
-        data = new_parameters_by_values([])
-        assert compute_domains_element_liv(domains, data) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[-1, 0], [1, 2], [0, 1], [-1, 1]]))
-
-    def test_compute_domains_2(self) -> None:
-        domains = new_shr_domains_by_values([(-4, -2), (1, 2), (0, 1), (0, 1)])
-        data = new_parameters_by_values([])
-        assert compute_domains_element_liv(domains, data) == PROP_ENTAILMENT
-        assert np.all(domains == np.array([[-4, -2], [1, 1], [1, 1], [1, 1]]))
-
-    def test_compute_domains_3(self) -> None:
-        domains = new_shr_domains_by_values([3, 0, 1, 2, 4, (0, 4), (-2, 0)])
-        data = new_parameters_by_values([])
-        assert compute_domains_element_liv(domains, data) == PROP_ENTAILMENT
-        assert np.all(domains == np.array([[3, 3], [0, 0], [1, 1], [2, 2], [4, 4], [1, 1], [0, 0]]))
-
-    def test_compute_domains_4(self) -> None:
-        domains = new_shr_domains_by_values([(-4, -2), (1, 2), (0, 1), (0, 0)])
-        data = new_parameters_by_values([])
-        assert compute_domains_element_liv(domains, data) == PROP_INCONSISTENCY
+class TestElementLIV(PropagatorTest):
+    @pytest.mark.parametrize(
+        "domains,parameters,consistency_result,expected_domains",
+        [
+            ([(-1, 0), (1, 2), (0, 2), (-1, 1)], [], PROP_CONSISTENCY, [[-1, 0], [1, 2], [0, 1], [-1, 1]]),
+            ([(-4, -2), (1, 2), (0, 1), (0, 1)], [], PROP_ENTAILMENT, [[-4, -2], [1, 1], [1, 1], [1, 1]]),
+            (
+                [3, 0, 1, 2, 4, (0, 4), (-2, 0)],
+                [0],
+                PROP_ENTAILMENT,
+                [[3, 3], [0, 0], [1, 1], [2, 2], [4, 4], [1, 1], [0, 0]],
+            ),
+            ([(-4, -2), (1, 2), (0, 1), (0, 0)], [], PROP_INCONSISTENCY, None),
+        ],
+    )
+    def test_compute_domains(
+        self,
+        domains: List[Union[int, Tuple[int, int]]],
+        parameters: List[int],
+        consistency_result: int,
+        expected_domains: Optional[List[List[int]]],
+    ) -> None:
+        self.assert_compute_domains(
+            compute_domains_element_liv, domains, parameters, consistency_result, expected_domains
+        )

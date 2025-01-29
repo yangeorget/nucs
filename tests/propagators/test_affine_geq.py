@@ -10,32 +10,36 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
+from typing import List, Optional, Tuple, Union
+
 import numpy as np
+import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT
-from nucs.numpy_helper import new_parameters_by_values, new_shr_domains_by_values
+from nucs.numpy_helper import new_params_by_values
 from nucs.propagators.affine_geq_propagator import compute_domains_affine_geq, get_triggers_affine_geq
+from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestAffineGEQ:
+class TestAffineGEQ(PropagatorTest):
     def test_get_triggers(self) -> None:
-        data = new_parameters_by_values([1, -1, 8])
-        assert np.all(get_triggers_affine_geq(2, data) == np.array([2, 1]))
+        assert np.all(get_triggers_affine_geq(2, new_params_by_values([1, -1, 8])) == np.array([2, 1]))
 
-    def test_compute_domains_1(self) -> None:
-        domains = new_shr_domains_by_values([(1, 10), (1, 10)])
-        data = new_parameters_by_values([1, -1, 1])
-        assert compute_domains_affine_geq(domains, data) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[2, 10], [1, 9]]))
-
-    def test_compute_domains_2(self) -> None:
-        domains = new_shr_domains_by_values([(5, 10), (5, 10), (5, 10)])
-        data = new_parameters_by_values([1, 1, 1, 27])
-        assert compute_domains_affine_geq(domains, data) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[7, 10], [7, 10], [7, 10]]))
-
-    def test_compute_domains_3(self) -> None:
-        domains = new_shr_domains_by_values([(5, 10), (1, 2)])
-        data = new_parameters_by_values([1, 1, 6])
-        assert compute_domains_affine_geq(domains, data) == PROP_ENTAILMENT
-        assert np.all(domains == np.array([[5, 10], [1, 2]]))
+    @pytest.mark.parametrize(
+        "domains,parameters,consistency_result,expected_domains",
+        [
+            ([(1, 10), (1, 10)], [1, -1, 1], PROP_CONSISTENCY, [[2, 10], [1, 9]]),
+            ([(5, 10), (5, 10), (5, 10)], [1, 1, 1, 27], PROP_CONSISTENCY, [[7, 10], [7, 10], [7, 10]]),
+            ([(5, 10), (1, 2)], [1, 1, 6], PROP_ENTAILMENT, [[5, 10], [1, 2]]),
+        ],
+    )
+    def test_compute_domains(
+        self,
+        domains: List[Union[int, Tuple[int, int]]],
+        parameters: List[int],
+        consistency_result: int,
+        expected_domains: Optional[List[List[int]]],
+    ) -> None:
+        self.assert_compute_domains(
+            compute_domains_affine_geq, domains, parameters, consistency_result, expected_domains
+        )

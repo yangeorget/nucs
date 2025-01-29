@@ -16,7 +16,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 
-def new_shr_domains_by_values(domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
+def new_domains_by_values(domains: List[Union[int, Tuple[int, int]]]) -> NDArray:
     """
     Only used in tests.
     """
@@ -25,7 +25,7 @@ def new_shr_domains_by_values(domains: List[Union[int, Tuple[int, int]]]) -> NDA
     )  # , order="F"
 
 
-def new_parameters_by_values(data: List[int]) -> NDArray:
+def new_params_by_values(data: List[int]) -> NDArray:
     """
     Only used in tests.
     """

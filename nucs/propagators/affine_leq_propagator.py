@@ -60,23 +60,24 @@ def compute_domains_affine_leq(domains: NDArray, parameters: NDArray) -> int:
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     domain_sum_min = domain_sum_max = parameters[-1]
-    for i, c in enumerate(parameters[:-1]):
-        if c > 0:
-            domain_sum_min -= c * domains[i, MAX]
-            domain_sum_max -= c * domains[i, MIN]
-        elif c < 0:
-            domain_sum_min -= c * domains[i, MIN]
-            domain_sum_max -= c * domains[i, MAX]
+    factors = parameters[:-1]
+    for i, factor in enumerate(factors):
+        if factor > 0:
+            domain_sum_min -= factor * domains[i, MAX]
+            domain_sum_max -= factor * domains[i, MIN]
+        elif factor < 0:
+            domain_sum_min -= factor * domains[i, MIN]
+            domain_sum_max -= factor * domains[i, MAX]
     if domain_sum_min >= 0:
         return PROP_ENTAILMENT
     old_domains = np.copy(domains)
-    for i, c in enumerate(parameters[:-1]):
-        if c != 0:
-            if c > 0:
-                new_max = old_domains[i, MIN] + (domain_sum_max // c)
+    for i, factor in enumerate(factors):
+        if factor != 0:
+            if factor > 0:
+                new_max = old_domains[i, MIN] + (domain_sum_max // factor)
                 domains[i, MAX] = min(domains[i, MAX], new_max)
             else:
-                new_min = old_domains[i, MAX] - (-domain_sum_max // c)
+                new_min = old_domains[i, MAX] - (-domain_sum_max // factor)
                 domains[i, MIN] = max(domains[i, MIN], new_min)
             if domains[i, MIN] > domains[i, MAX]:
                 return PROP_INCONSISTENCY

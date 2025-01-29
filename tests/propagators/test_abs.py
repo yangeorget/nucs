@@ -14,19 +14,19 @@ from typing import List, Optional, Tuple, Union
 
 import pytest
 
-from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
-from nucs.propagators.equiv_eq_propagator import compute_domains_equiv_eq
+from nucs.constants import PROP_CONSISTENCY
+from nucs.propagators.abs_propagator import compute_domains_abs
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestEquivEQ(PropagatorTest):
+class TestAbs(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
-            ([(0, 1), (3, 5)], [4], PROP_CONSISTENCY, [[0, 1], [3, 5]]),
-            ([(1, 1), (3, 5)], [4], PROP_ENTAILMENT, [[1, 1], [4, 4]]),
-            ([(0, 1), (3, 5)], [6], PROP_ENTAILMENT, [[0, 0], [3, 5]]),
-            ([(1, 1), (3, 5)], [6], PROP_INCONSISTENCY, None),
+            ([(-5, 5), (-4, 4)], [], PROP_CONSISTENCY, [[0, 4], [-4, 4]]),
+            ([(-5, 0), (-4, 4)], [], PROP_CONSISTENCY, [[0, 0], [0, 0]]),
+            ([(-5, 5), (2, 4)], [], PROP_CONSISTENCY, [[2, 4], [2, 4]]),
+            ([(-5, 5), (-4, -2)], [], PROP_CONSISTENCY, [[2, 4], [-4, -2]]),
         ],
     )
     def test_compute_domains(
@@ -36,4 +36,4 @@ class TestEquivEQ(PropagatorTest):
         consistency_result: int,
         expected_domains: Optional[List[List[int]]],
     ) -> None:
-        self.assert_compute_domains(compute_domains_equiv_eq, domains, parameters, consistency_result, expected_domains)
+        self.assert_compute_domains(compute_domains_abs, domains, parameters, consistency_result, expected_domains)

@@ -10,38 +10,31 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-import numpy as np
+from typing import List, Optional, Tuple, Union
+
+import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
-from nucs.numpy_helper import new_parameters_by_values, new_shr_domains_by_values
 from nucs.propagators.min_geq_propagator import compute_domains_min_geq
+from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestMinGEQ:
-    def test_compute_domains_1(self) -> None:
-        domains = new_shr_domains_by_values([(1, 4), (2, 5), (2, 6)])
-        data = new_parameters_by_values([])
-        assert compute_domains_min_geq(domains, data) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[2, 4], [2, 5], [2, 4]]))
-
-    def test_compute_domains_2(self) -> None:
-        domains = new_shr_domains_by_values([(1, 3), (3, 3), (4, 5)])
-        data = new_parameters_by_values([])
-        assert compute_domains_min_geq(domains, data) == PROP_INCONSISTENCY
-
-    def test_compute_domains_3(self) -> None:
-        domains = new_shr_domains_by_values([(2, 4), (2, 5), (6, 8)])
-        data = new_parameters_by_values([])
-        assert compute_domains_min_geq(domains, data) == PROP_INCONSISTENCY
-
-    def test_compute_domains_4(self) -> None:
-        domains = new_shr_domains_by_values([(2, 3), (2, 3), (0, 1)])
-        data = new_parameters_by_values([])
-        assert compute_domains_min_geq(domains, data) == PROP_ENTAILMENT
-        assert np.all(domains == np.array([[2, 3], [2, 3], [0, 1]]))
-
-    def test_compute_domains_5(self) -> None:
-        domains = new_shr_domains_by_values([(0, 1), (0, 1), (1, 1)])
-        data = new_parameters_by_values([])
-        assert compute_domains_min_geq(domains, data) == PROP_CONSISTENCY
-        assert np.all(domains == np.array([[1, 1], [1, 1], [1, 1]]))
+class TestMinGEQ(PropagatorTest):
+    @pytest.mark.parametrize(
+        "domains,parameters,consistency_result,expected_domains",
+        [
+            ([(1, 4), (2, 5), (2, 6)], [], PROP_CONSISTENCY, [[2, 4], [2, 5], [2, 4]]),
+            ([(1, 3), (3, 3), (4, 5)], [], PROP_INCONSISTENCY, None),
+            ([(2, 4), (2, 5), (6, 8)], [], PROP_INCONSISTENCY, None),
+            ([(2, 3), (2, 3), (0, 1)], [], PROP_ENTAILMENT, [[2, 3], [2, 3], [0, 1]]),
+            ([(0, 1), (0, 1), (1, 1)], [], PROP_CONSISTENCY, [[1, 1], [1, 1], [1, 1]]),
+        ],
+    )
+    def test_compute_domains(
+        self,
+        domains: List[Union[int, Tuple[int, int]]],
+        parameters: List[int],
+        consistency_result: int,
+        expected_domains: Optional[List[List[int]]],
+    ) -> None:
+        self.assert_compute_domains(compute_domains_min_geq, domains, parameters, consistency_result, expected_domains)
