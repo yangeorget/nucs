@@ -11,8 +11,6 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 
-from rich import print
-
 from nucs.constants import PB_MASTER, PB_NONE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem import (
@@ -36,6 +34,5 @@ if __name__ == "__main__":
         log_level=args.log_level,
     )
     solution = solver.find_one()
-    print(solver.get_statistics_as_dictionary())
-    if solution is not None:
-        print(problem.solution_as_matrix(solution))
+    solver.print_statistics()
+    problem.print_solution(solution)

@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-from rich import print
 
 from nucs.constants import OPTIM_MODES, OPTIM_PRUNE, PB_MASTER, PB_NONE, PB_SLAVE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
@@ -67,4 +66,4 @@ if __name__ == "__main__":
         )
     )
     solution = solver.minimize(problem.total_cost, mode=args.opt_mode)
-    print(solver.get_statistics_as_dictionary())
+    solver.print_statistics()

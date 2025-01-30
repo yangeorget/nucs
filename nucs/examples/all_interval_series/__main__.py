@@ -10,9 +10,6 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-
-from rich import print
-
 from nucs.constants import PB_MASTER, PB_NONE
 from nucs.examples.all_interval_series.all_interval_series_problem import AllIntervalSeriesProblem
 from nucs.examples.default_argument_parser import DefaultArgumentParser
@@ -35,6 +32,5 @@ if __name__ == "__main__":
         stks_max_height=1024,
     )
     solution = solver.find_one()
-    print(solver.get_statistics_as_dictionary())
-    if solution is not None:
-        print(solution[: args.n])
+    solver.print_statistics()
+    problem.print_solution(solution)

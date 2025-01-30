@@ -12,9 +12,11 @@
 ###############################################################################
 import copy
 import logging
-from typing import List, Optional, Self, Tuple, Union
+from typing import Any, List, Optional, Self, Tuple, Union
 
 import numpy as np
+from numpy.typing import NDArray
+from rich import print
 
 from nucs.constants import PARAM, RANGE_END, RANGE_START, VARIABLE
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
@@ -150,13 +152,13 @@ class Problem:
         # Sort the propagators based on their estimated amortized complexities.
         self.propagators.sort(key=lambda prop: GET_COMPLEXITY_FCTS[prop[1]](len(prop[0]), prop[2]))
         # Variable and domain initialization
-        self.variables_arr = np.array(self.variables, dtype=np.uint16)
+        self.variables_arr = np.array(self.variables, dtype=np.uint32)
         self.offsets_arr = np.array(self.offsets, dtype=np.int32)
         # Propagator initialization
         self.algorithms = np.empty(self.propagator_nb, dtype=np.uint8)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
         bound_nb = max(1, self.propagator_nb)
-        self.bounds = np.zeros((bound_nb, 2, 2), dtype=np.uint16)  # some redundancy here
+        self.bounds = np.zeros((bound_nb, 2, 2), dtype=np.uint32)  # some redundancy here
         self.bounds[0, :, RANGE_START] = 0
         for prop_idx, prop in enumerate(self.propagators):
             prop_vars, prop_algorithm, prop_params = prop
@@ -166,7 +168,7 @@ class Problem:
             self.bounds[prop_idx, VARIABLE, RANGE_END] = self.bounds[prop_idx, VARIABLE, RANGE_START] + len(prop_vars)
             self.bounds[prop_idx, PARAM, RANGE_END] = self.bounds[prop_idx, PARAM, RANGE_START] + len(prop_params)
         # Bounds have been computed and can now be used. The global arrays are the following:
-        self.props_variables = np.empty(self.bounds[-1, VARIABLE, RANGE_END], dtype=np.uint16)
+        self.props_variables = np.empty(self.bounds[-1, VARIABLE, RANGE_END], dtype=np.uint32)
         for prop_idx, prop in enumerate(self.propagators):
             var_start = self.bounds[prop_idx, VARIABLE, RANGE_START]
             var_end = self.bounds[prop_idx, VARIABLE, RANGE_END]
@@ -192,3 +194,16 @@ class Problem:
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.propagator_nb} propagators")
         logger.info(f"Problem has {self.domain_nb} variables")
+        if self.no_offsets:
+            logger.info("Problem does not use offsets")
+        else:
+            logger.info("Problem uses offsets")
+
+    def solution_as_printable(self, solution: NDArray) -> Any:
+        return solution.tolist()
+
+    def print_solution(self, solution: Optional[NDArray]) -> None:
+        if solution is not None:
+            print(self.solution_as_printable(solution))
+        else:
+            print("No solution")

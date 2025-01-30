@@ -12,8 +12,6 @@
 ###############################################################################
 import argparse
 
-from rich import print
-
 from nucs.constants import PB_MASTER, PB_NONE, PB_SLAVE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
@@ -58,5 +56,6 @@ if __name__ == "__main__":
             log_level=args.log_level,
         )
     )
-    solver.find_one()
-    print(solver.get_statistics_as_dictionary())
+    solution = solver.find_one()
+    solver.print_statistics()
+    problem.print_solution(solution)

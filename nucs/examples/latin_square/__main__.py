@@ -10,25 +10,22 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
+
 from nucs.constants import PB_MASTER, PB_NONE
-from nucs.examples.alpha.alpha_problem import AlphaProblem
 from nucs.examples.default_argument_parser import DefaultArgumentParser
-from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
+from nucs.problems.latin_square_problem import LatinSquareRCProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.alpha
+# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.latin_square -n 10
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
+    parser.add_argument("-n", type=int, default=10)
     args = parser.parse_args()
-    problem = AlphaProblem()
+    problem = LatinSquareRCProblem(args.n)
     solver = BacktrackSolver(
-        problem,
-        var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
-        dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE,
-        pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
-        log_level=args.log_level,
+        problem, pb_mode=PB_MASTER if args.progress_bar else PB_NONE, log_level=args.log_level, stks_max_height=2048
     )
-    solutions = solver.find_all()
+    solution = solver.find_one()
     solver.print_statistics()
-    problem.print_solution(solutions[0])
+    problem.print_solution(solution)

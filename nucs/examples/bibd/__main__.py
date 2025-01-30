@@ -11,8 +11,6 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 
-from rich import print
-
 from nucs.constants import PB_MASTER, PB_NONE
 from nucs.examples.bibd.bibd_problem import BIBDProblem
 from nucs.examples.default_argument_parser import DefaultArgumentParser
@@ -36,5 +34,6 @@ if __name__ == "__main__":
         pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         log_level=args.log_level,
     )
-    solver.solve_all()
-    print(solver.get_statistics_as_dictionary())
+    solutions = solver.find_all()
+    solver.print_statistics()
+    problem.print_solution(solutions[0])

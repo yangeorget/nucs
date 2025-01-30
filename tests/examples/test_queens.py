@@ -14,24 +14,28 @@ import pytest
 
 from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.examples.queens.queens_problem import QueensProblem
-from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
+from nucs.heuristics.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
 class TestQueens:
     @pytest.mark.parametrize(
-        "queen_nb,solution_nb", [(1, 1), (2, 0), (3, 0), (4, 2), (5, 10), (6, 4), (7, 40), (8, 92), (9, 352)]
+        "var_heuristic,queen_nb,solution_nb",
+        [
+            (VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 1, 1),
+            (VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 2, 0),
+            (VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 3, 0),
+            (VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 4, 2),
+            (VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 5, 10),
+            (VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 6, 4),
+            (VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 7, 40),
+            (VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 8, 92),
+            (VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 9, 352),
+            (VAR_HEURISTIC_SMALLEST_DOMAIN, 8, 92),
+        ],
     )
-    def test_queens_solve(self, queen_nb: int, solution_nb: int) -> None:
+    def test_queens_solve(self, var_heuristic: int, queen_nb: int, solution_nb: int) -> None:
         problem = QueensProblem(queen_nb)
-        solver = BacktrackSolver(problem)
+        solver = BacktrackSolver(problem, var_heuristic_idx=var_heuristic)
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb
-
-    def test_queens_8_solve_ff(self) -> None:
-        problem = QueensProblem(8)
-        solver = BacktrackSolver(
-            problem, var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE
-        )
-        solver.solve_all()
-        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 92

@@ -12,6 +12,8 @@
 ###############################################################################
 from typing import List
 
+from numpy.typing import NDArray
+
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT
 
@@ -33,11 +35,11 @@ class QueensProblem(Problem):
             list(range(n)) * 3,
             [0] * n + list(range(n)) + list(range(0, -n, -1)),
         )
+        self.n = n
         self.add_propagator((list(range(n)), ALG_ALLDIFFERENT, []))
         self.add_propagator((list(range(n, 2 * n)), ALG_ALLDIFFERENT, []))
         self.add_propagator((list(range(2 * n, 3 * n)), ALG_ALLDIFFERENT, []))
 
-    @staticmethod
-    def solution_as_matrix(solution: List[int]) -> List[List[str]]:
-        n = len(solution)
-        return [([" "] * i + ["X"] + [" "] * (n - i - 1)) for i in range(n)]
+    def solution_as_printable(self, solution: NDArray) -> List[List[str]]:
+        solution_as_list = solution[: self.n].tolist()
+        return [([" "] * i + ["X"] + [" "] * (self.n - i - 1)) for i in solution_as_list]

@@ -11,8 +11,6 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 
-from rich import print
-
 from nucs.constants import OPTIM_MODES, OPTIM_RESET, PB_MASTER, PB_NONE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.knapsack.knapsack_problem import KnapsackProblem
@@ -38,5 +36,5 @@ if __name__ == "__main__":
         log_level=args.log_level,
     )
     solution = solver.maximize(problem.weight, mode=args.opt_mode)
-    print(solver.get_statistics_as_dictionary())
-    print(solution)
+    solver.print_statistics()
+    problem.print_solution(solution)

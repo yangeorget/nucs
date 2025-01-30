@@ -40,22 +40,22 @@ class DonaldProblem(Problem):
         )
         self.add_propagator(([A, B, D, E, G, L, N, O, R, T], ALG_ALLDIFFERENT, []))
 
-    @staticmethod
-    def solution_as_dict(solution: NDArray) -> Dict[str, Any]:
+    def solution_as_printable(self, solution: NDArray) -> Dict[str, Any]:
         """
         Returns the solution as a dict.
         :param solution: the solution as a list of ints
         :return: a dict
         """
+        solution_as_list = solution.tolist()
         return {
-            "A": solution[A],
-            "B": solution[B],
-            "D": solution[D],
-            "E": solution[E],
-            "G": solution[G],
-            "L": solution[L],
-            "N": solution[N],
-            "O": solution[O],
-            "R": solution[R],
-            "T": solution[T],
+            "A": solution_as_list[A],
+            "B": solution_as_list[B],
+            "D": solution_as_list[D],
+            "E": solution_as_list[E],
+            "G": solution_as_list[G],
+            "L": solution_as_list[L],
+            "N": solution_as_list[N],
+            "O": solution_as_list[O],
+            "R": solution_as_list[R],
+            "T": solution_as_list[T],
         }

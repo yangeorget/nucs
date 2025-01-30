@@ -67,38 +67,38 @@ class AlphaProblem(Problem):
             ]
         )
 
-    @staticmethod
-    def solution_as_dict(solution: NDArray) -> Dict[str, int]:
+    def solution_as_printable(self, solution: NDArray) -> Dict[str, int]:
         """
         Returns the solution as a dict.
         :param solution: the solution as a list of ints
         :return: a dict
         """
+        solution_as_list = solution.tolist()
         return {
-            "A": solution[A],
-            "B": solution[B],
-            "C": solution[C],
-            "D": solution[D],
-            "E": solution[E],
-            "F": solution[F],
-            "G": solution[G],
-            "H": solution[H],
-            "I": solution[I],
-            "J": solution[J],
-            "K": solution[K],
-            "L": solution[L],
-            "M": solution[M],
-            "N": solution[N],
-            "O": solution[O],
-            "P": solution[P],
-            "Q": solution[Q],
-            "R": solution[R],
-            "S": solution[S],
-            "T": solution[T],
-            "U": solution[U],
-            "V": solution[V],
-            "W": solution[W],
-            "X": solution[X],
-            "Y": solution[Y],
-            "Z": solution[Z],
+            "A": solution_as_list[A],
+            "B": solution_as_list[B],
+            "C": solution_as_list[C],
+            "D": solution_as_list[D],
+            "E": solution_as_list[E],
+            "F": solution_as_list[F],
+            "G": solution_as_list[G],
+            "H": solution_as_list[H],
+            "I": solution_as_list[I],
+            "J": solution_as_list[J],
+            "K": solution_as_list[K],
+            "L": solution_as_list[L],
+            "M": solution_as_list[M],
+            "N": solution_as_list[N],
+            "O": solution_as_list[O],
+            "P": solution_as_list[P],
+            "Q": solution_as_list[Q],
+            "R": solution_as_list[R],
+            "S": solution_as_list[S],
+            "T": solution_as_list[T],
+            "U": solution_as_list[U],
+            "V": solution_as_list[V],
+            "W": solution_as_list[W],
+            "X": solution_as_list[X],
+            "Y": solution_as_list[Y],
+            "Z": solution_as_list[Z],
         }

@@ -34,7 +34,7 @@ class SportsTournamentSchedulingProblem(Problem):
     CSPLIB problem #26 - https://www.csplib.org/Problems/prob026/
     """
 
-    def solution_as_matrix(self, solution: NDArray) -> List[List[str]]:
+    def solution_as_printable(self, solution: NDArray) -> List[List[str]]:
         """
         Returns the solutions as a matrix of strings.
         :param solution: the solution as a list of ints

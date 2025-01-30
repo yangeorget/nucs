@@ -11,8 +11,6 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 
-from rich import print
-
 from nucs.constants import PB_MASTER, PB_NONE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.magic_square.magic_square_problem import MagicSquareProblem
@@ -34,4 +32,4 @@ if __name__ == "__main__":
         log_level=args.log_level,
     )
     solver.solve_all()
-    print(solver.get_statistics_as_dictionary())
+    solver.print_statistics()

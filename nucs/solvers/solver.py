@@ -18,6 +18,7 @@ import enlighten
 import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
+from rich import print
 
 from nucs.constants import LOG_FORMAT, LOG_LEVEL_INFO, MAX, MIN, PB_MASTER
 from nucs.problems.problem import Problem
@@ -52,6 +53,12 @@ class Solver:
         :return: a dictionary
         """
         ...
+
+    def print_statistics(self) -> None:
+        """
+        Pretty prints the statistics.
+        """
+        print(self.get_statistics_as_dictionary())
 
     @abstractmethod
     def solve(self) -> Iterator[NDArray]:

@@ -11,12 +11,9 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 
-from rich import print
-
 from nucs.constants import PB_MASTER, PB_NONE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
-from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -29,10 +26,8 @@ if __name__ == "__main__":
     solver = BacktrackSolver(
         problem,
         decision_domains=list(range(args.n - 1, -1, -1)),
-        var_heuristic_idx=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
-        dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE,
         pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         log_level=args.log_level,
     )
     solver.solve_all()
-    print(solver.get_statistics_as_dictionary())
+    solver.print_statistics()

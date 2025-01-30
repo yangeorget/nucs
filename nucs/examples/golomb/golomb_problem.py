@@ -11,6 +11,7 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 import math
+from typing import List
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -61,6 +62,7 @@ class GolombProblem(Problem):
     """
 
     def __init__(self, mark_nb: int, symmetry_breaking: bool = True) -> None:
+        self.mark_nb = mark_nb
         dist_nb = sum_first(mark_nb - 1)
         domains = [[0, sum_first(dist_nb) - sum_first(dist_nb - mark_nb)]] * dist_nb
         for i in range(0, mark_nb - 1):
@@ -101,6 +103,10 @@ class GolombProblem(Problem):
                     [1, -1, -1],
                 )
             )
+
+    def solution_as_printable(self, solution: NDArray) -> List[int]:
+        solution_as_list = solution.tolist()
+        return solution_as_list[: self.mark_nb]
 
 
 @njit(cache=True)

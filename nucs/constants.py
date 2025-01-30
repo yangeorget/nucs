@@ -12,7 +12,7 @@
 ###############################################################################
 import os
 
-from numba import bool, int32, int64, types, uint8, uint16  # type: ignore
+from numba import bool, int32, int64, types, uint8, uint16, uint32  # type: ignore
 
 PB_NONE = 0
 PB_SLAVE = 1
@@ -56,31 +56,31 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     int64[:],  # statistics
     bool,  # no_offsets
     uint8[:],  # algorithms
-    uint16[:, :, :],  # bounds
-    uint16[:],  # variables_arr
+    uint32[:, :, :],  # bounds
+    uint32[:],  # variables_arr
     int32[:],  # offsets_arr
-    uint16[:],  # props_variables
+    uint32[:],  # props_variables
     int32[:, :],  # props_offsets
     int32[:],  # props_parameters
     uint8[:, :],  # triggers
     int32[:, :, :],  # domains_stk
     bool[:, :],  # not_entailed_propagators_stk
-    uint16[:, :],  # dom_update_stk
+    uint32[:, :],  # dom_update_stk
     uint16[:],  # stks_top
     bool[:],  # triggered_propagators
     int64[:],  # compute_domains_addrs
-    uint16[:],  # decision_domains
+    uint32[:],  # decision_domains
 )
 SIGNATURE_DOM_HEURISTIC = int64(
     int32[:, :, :],  # domains_stk
     bool[:, :],  # not_entailed_propagators_stk
-    uint16[:, :],  # dom_update_stk
+    uint32[:, :],  # dom_update_stk
     uint16[:],  # stks_top
     int64,  # dom_idx
     int64[:, :],  # dom_heuristic_params
 )
 SIGNATURE_VAR_HEURISTIC = int64(
-    uint16[:],  # decision_variables
+    uint32[:],  # decision_variables
     int32[:, :, :],  # domains_stk
     uint16[:],  # stks_top
     int64[:, :],  # var_heuristic_params

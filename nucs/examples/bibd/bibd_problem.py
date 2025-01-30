@@ -12,6 +12,8 @@
 ###############################################################################
 from typing import List
 
+from numpy.typing import NDArray
+
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AND, ALG_EXACTLY_TRUE, ALG_LEXICOGRAPHIC_LEQ
 
@@ -66,10 +68,11 @@ class BIBDProblem(Problem):
                     )
                 )
 
-    def solution_as_matrix(self, solution: List[int]) -> List[List[int]]:
+    def solution_as_printable(self, solution: NDArray) -> List[List[int]]:
         """
         Returns the solutions as a matrix of ints.
         :param solution: the solution as a list of ints
         :return: a matrix
         """
-        return [[solution[i * self.b + j] for j in range(0, self.b)] for i in range(0, self.v)]
+        solution_as_list = solution.tolist()
+        return [[solution_as_list[i * self.b + j] for j in range(0, self.b)] for i in range(0, self.v)]

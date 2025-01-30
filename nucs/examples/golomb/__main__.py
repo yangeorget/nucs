@@ -11,8 +11,6 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 
-from rich import print
-
 from nucs.constants import OPTIM_MODES, OPTIM_PRUNE, PB_MASTER, PB_NONE, PB_SLAVE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm
@@ -51,6 +49,5 @@ if __name__ == "__main__":
         )
     )
     solution = solver.minimize(problem.length_idx, mode=args.opt_mode)
-    print(solver.get_statistics_as_dictionary())
-    if solution is not None:
-        print(solution[: (args.n - 1)])
+    solver.print_statistics()
+    problem.print_solution(solution)

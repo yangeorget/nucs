@@ -12,6 +12,8 @@
 ###############################################################################
 from typing import List, Optional
 
+from numpy.typing import NDArray
+
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_PERMUTATION_AUX
 
@@ -59,8 +61,9 @@ class LatinSquareProblem(Problem):
         offset = model * (self.n**2)
         return list(range(offset + j, offset + self.n**2 + j, self.n))
 
-    def solution_as_matrix(self, solution: List[int]) -> List[List[int]]:
-        return [solution[i : i + self.n] for i in range(0, self.n**2, self.n)]
+    def solution_as_printable(self, solution: NDArray) -> List[List[int]]:
+        solution_as_list = solution.tolist()
+        return [solution_as_list[i : i + self.n] for i in range(0, self.n**2, self.n)]
 
 
 class LatinSquareRCProblem(LatinSquareProblem):

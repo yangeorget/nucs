@@ -124,7 +124,7 @@ class BacktrackSolver(Solver, QueueSolver):
         super().__init__(problem, pb_mode, log_level)
         decision_domains = list(range(problem.domain_nb)) if decision_domains is None else decision_domains
         logger.info(f"BacktrackSolver uses decision domains {decision_domains}")
-        self.decision_domains = np.array(decision_domains, dtype=np.uint16)
+        self.decision_domains = np.array(decision_domains, dtype=np.uint32)
         logger.info(f"BacktrackSolver uses variable heuristic {var_heuristic_idx}")
         self.var_heuristic_idx = var_heuristic_idx
         self.var_heuristic_params = np.array(var_heuristic_params, dtype=np.int64)
@@ -137,7 +137,7 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.debug("Initializing choice points")
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
         self.not_entailed_propagators_stk = np.empty((stks_max_height, self.problem.propagator_nb), dtype=np.bool)
-        self.dom_update_stk = np.empty((stks_max_height, 2), dtype=np.uint16)
+        self.dom_update_stk = np.empty((stks_max_height, 2), dtype=np.uint32)
         self.stks_top = np.ones((1,), dtype=np.uint16)
         logger.info(f"The stacks of the choice points have a maximal height of {stks_max_height}")
         cp_init(
