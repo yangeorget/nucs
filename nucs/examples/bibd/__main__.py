@@ -34,6 +34,10 @@ if __name__ == "__main__":
         pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         log_level=args.log_level,
     )
-    solutions = solver.find_all()
-    solver.print_statistics()
-    problem.print_solution(solutions[0])
+    if args.all:
+        solver.solve_all()
+        solver.print_statistics()
+    else:
+        solution = solver.find_one()
+        solver.print_statistics()
+        problem.print_solution(solution)

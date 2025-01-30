@@ -18,8 +18,28 @@ from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS
 class DefaultArgumentParser(argparse.ArgumentParser):
     def __init__(self) -> None:
         super().__init__()
-        self.add_argument("--log_level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
-        self.add_argument("--processors", type=int, default=1)
-        self.add_argument("--progress_bar", type=bool, action=argparse.BooleanOptionalAction, default=False)
-        self.add_argument("--shaving", type=bool, action=argparse.BooleanOptionalAction, default=False)
-        self.add_argument("--symmetry_breaking", action=argparse.BooleanOptionalAction, default=True)
+        self.add_argument(
+            "--all", help="find all solutions", type=bool, action=argparse.BooleanOptionalAction, default=True
+        )
+        self.add_argument("--log_level", help="set the log level", choices=LOG_LEVELS, default=LOG_LEVEL_INFO)
+        self.add_argument("--processors", help="set the number of processors", type=int, default=1)
+        self.add_argument(
+            "--progress_bar",
+            help="show a progress bar",
+            type=bool,
+            action=argparse.BooleanOptionalAction,
+            default=False,
+        )
+        self.add_argument(
+            "--shaving",
+            help="use shaving together with bound consistency",
+            type=bool,
+            action=argparse.BooleanOptionalAction,
+            default=False,
+        )
+        self.add_argument(
+            "--symmetry_breaking",
+            help="add symmetry breaking constraints",
+            action=argparse.BooleanOptionalAction,
+            default=True,
+        )

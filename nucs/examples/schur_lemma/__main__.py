@@ -24,5 +24,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     problem = SchurLemmaProblem(args.n, args.symmetry_breaking)
     solver = BacktrackSolver(problem, log_level=args.log_level, pb_mode=PB_MASTER if args.progress_bar else PB_NONE)
-    solver.solve_all()
-    solver.print_statistics()
+    if args.all:
+        solver.solve_all()
+        solver.print_statistics()
+    else:
+        solution = solver.find_one()
+        solver.print_statistics()
+        problem.print_solution(solution)

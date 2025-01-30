@@ -26,6 +26,10 @@ if __name__ == "__main__":
     solver = BacktrackSolver(
         problem, pb_mode=PB_MASTER if args.progress_bar else PB_NONE, log_level=args.log_level, stks_max_height=2048
     )
-    solution = solver.find_one()
-    solver.print_statistics()
-    problem.print_solution(solution)
+    if args.all:
+        solver.solve_all()
+        solver.print_statistics()
+    else:
+        solution = solver.find_one()
+        solver.print_statistics()
+        problem.print_solution(solution)

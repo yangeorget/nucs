@@ -31,6 +31,10 @@ if __name__ == "__main__":
         log_level=args.log_level,
         stks_max_height=1024,
     )
-    solution = solver.find_one()
-    solver.print_statistics()
-    problem.print_solution(solution)
+    if args.all:
+        solver.solve_all()
+        solver.print_statistics()
+    else:
+        solution = solver.find_one()
+        solver.print_statistics()
+        problem.print_solution(solution)

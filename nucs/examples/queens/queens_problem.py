@@ -39,7 +39,8 @@ class QueensProblem(Problem):
         self.add_propagator((list(range(n)), ALG_ALLDIFFERENT, []))
         self.add_propagator((list(range(n, 2 * n)), ALG_ALLDIFFERENT, []))
         self.add_propagator((list(range(2 * n, 3 * n)), ALG_ALLDIFFERENT, []))
+        # TODO dual
 
     def solution_as_printable(self, solution: NDArray) -> List[List[str]]:
         solution_as_list = solution[: self.n].tolist()
-        return [([" "] * i + ["X"] + [" "] * (self.n - i - 1)) for i in solution_as_list]
+        return [([" "] * i + ["Q"] + [" "] * (self.n - i - 1)) for i in solution_as_list]
