@@ -12,6 +12,7 @@
 ###############################################################################
 from typing import Callable
 
+import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -176,27 +177,22 @@ ALG_SCC = register_propagator(get_triggers_scc, get_complexity_scc, compute_doma
 
 
 @njit(cache=True)
-def pop_propagator(triggered_propagators: NDArray, previous_prop_idx: int) -> int:
+def pop_propagator(triggered_propagators: NDArray) -> int:
     """
     Pops a propagator to be filtered.
     :param triggered_propagators: the candidate propagators
-    :param previous_prop_idx: the index of the previous propagator which has been selected
     :return: an index
     """
-    for prop_idx in range(len(triggered_propagators)):
-        if triggered_propagators[prop_idx] and prop_idx != previous_prop_idx:
-            triggered_propagators[prop_idx] = False
-            return prop_idx
+    prop_idx = np.argmax(triggered_propagators)
+    if triggered_propagators[prop_idx]:
+        triggered_propagators[prop_idx] = False
+        return int(prop_idx)
     return -1
 
 
 @njit(cache=True)
 def update_propagators(
-    triggered_propagators: NDArray,
-    not_entailed_propagators: NDArray,
-    triggers: NDArray,
-    dom_idx: int,
-    events: int,
+    triggered_propagators: NDArray, not_entailed_propagators: NDArray, triggers: NDArray, dom_idx: int, events: int
 ) -> None:
     for prop_idx, prop_triggers in enumerate(triggers[dom_idx]):
         if prop_triggers & events != 0 and not_entailed_propagators[prop_idx]:

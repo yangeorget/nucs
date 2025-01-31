@@ -15,7 +15,11 @@ import argparse
 from nucs.constants import PB_MASTER, PB_NONE, PB_SLAVE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.queens.queens_problem import QueensProblem
-from nucs.heuristics.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, VAR_HEURISTIC_SMALLEST_DOMAIN
+from nucs.heuristics.heuristics import (
+    DOM_HEURISTIC_MID_VALUE,
+    VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
+    VAR_HEURISTIC_SMALLEST_DOMAIN,
+)
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_SHAVING
 from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
@@ -49,8 +53,10 @@ if __name__ == "__main__":
             problem,
             consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
             var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
+            dom_heuristic_idx=DOM_HEURISTIC_MID_VALUE,
             pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
             log_level=args.log_level,
+            stks_max_height=2048,
         )
     )
     if args.all:

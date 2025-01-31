@@ -88,7 +88,7 @@ def bound_consistency_algorithm(
     statistics[STATS_IDX_ALG_BC_NB] += 1
     prop_idx = -1
     while True:
-        prop_idx = pop_propagator(triggered_propagators, prop_idx)
+        prop_idx = pop_propagator(triggered_propagators)
         if prop_idx == -1:
             return PROBLEM_BOUND if is_solved(domains_stk, stks_top) else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
@@ -137,11 +137,8 @@ def bound_consistency_algorithm(
             if events != 0:
                 domains_changes = True
                 update_propagators(
-                    triggered_propagators,
-                    not_entailed_propagators_stk[top],
-                    triggers,
-                    domain_idx,
-                    events,
+                    triggered_propagators, not_entailed_propagators_stk[top], triggers, domain_idx, events
                 )
+                triggered_propagators[prop_idx] = False
         if not domains_changes:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
