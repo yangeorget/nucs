@@ -185,13 +185,13 @@ class Problem:
             param_start = self.bounds[prop_idx, PARAM, RANGE_START]
             param_end = self.bounds[prop_idx, PARAM, RANGE_END]
             self.props_parameters[param_start:param_end] = prop[2]
-        self.triggers = np.zeros((self.domain_nb, EVENT_NB, self.propagator_nb), dtype=np.bool)
+        self.triggers = np.zeros((self.domain_nb, 1 << EVENT_NB, self.propagator_nb), dtype=np.bool)
         for prop_idx, prop in enumerate(self.propagators):
             prop_vars, prop_algorithm, prop_params = prop
             prop_triggers = GET_TRIGGERS_FCTS[prop_algorithm](len(prop_vars), prop_params)
             for prop_var_idx, prop_var in enumerate(prop_vars):
-                for event in range(EVENT_NB):
-                    self.triggers[self.variables_arr[prop_var], event, prop_idx] = prop_triggers[prop_var_idx] & (1 << event)
+                for event_mask in range(1, 1 << EVENT_NB):
+                    self.triggers[self.variables_arr[prop_var], event_mask, prop_idx] = prop_triggers[prop_var_idx] & event_mask
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.propagator_nb} propagators")
         logger.info(f"Problem has {self.domain_nb} variables")

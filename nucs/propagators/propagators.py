@@ -196,7 +196,6 @@ def pop_propagator(triggered_propagators: NDArray) -> int:
 def update_propagators(
     triggered_propagators: NDArray, not_entailed_propagators: NDArray, triggers: NDArray, dom_idx: int, events: int
 ) -> None:
-    for event in range(EVENT_NB):
-        if (1 << event) & events:
-            np.logical_or(triggered_propagators, triggers[dom_idx, event], triggered_propagators)
-    np.logical_and(triggered_propagators, not_entailed_propagators, triggered_propagators)
+    for prop_idx, prop_triggered in enumerate(triggers[dom_idx, events]):
+        if prop_triggered and not_entailed_propagators[prop_idx]:
+            triggered_propagators[prop_idx] = True
