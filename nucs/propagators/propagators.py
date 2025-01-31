@@ -199,5 +199,5 @@ def update_propagators(
     for event in range(EVENT_NB):
         event_mask = 1 << event
         if (event_mask & events) > 0:
-            triggered_propagators |= triggers[dom_idx, event]
-    triggered_propagators &= not_entailed_propagators
+            np.logical_or(triggered_propagators, triggers[dom_idx, event], triggered_propagators)
+    np.logical_and(triggered_propagators, not_entailed_propagators, triggered_propagators)
