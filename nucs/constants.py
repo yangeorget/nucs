@@ -34,6 +34,7 @@ MAX = 1  # max value of a domain
 DOM_UPDATE_IDX = 0
 DOM_UPDATE_EVENTS = 1
 
+EVENT_NB = 3
 EVENT_MASK_MIN = 1 << 0
 EVENT_MASK_MAX = 1 << 1
 EVENT_MASK_GROUND = 1 << 2
@@ -62,7 +63,7 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     uint32[:],  # props_variables
     int32[:, :],  # props_offsets
     int32[:],  # props_parameters
-    uint8[:, :],  # triggers
+    bool[:, :, :],  # triggers
     int32[:, :, :],  # domains_stk
     bool[:, :],  # not_entailed_propagators_stk
     uint32[:, :],  # dom_update_stk

@@ -16,6 +16,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
+from nucs.constants import EVENT_NB
 from nucs.propagators.abs_propagator import compute_domains_abs, get_complexity_abs, get_triggers_abs
 from nucs.propagators.affine_eq_propagator import (
     compute_domains_affine_eq,
@@ -195,7 +196,8 @@ def pop_propagator(triggered_propagators: NDArray) -> int:
 def update_propagators(
     triggered_propagators: NDArray, not_entailed_propagators: NDArray, triggers: NDArray, dom_idx: int, events: int
 ) -> None:
-    for prop_idx, prop_triggers in enumerate(triggers[dom_idx]):
-        if prop_triggers & events != 0 and not_entailed_propagators[prop_idx]:
-            triggered_propagators[prop_idx] = True
-    # TODO: optimize
+    for event in range(EVENT_NB):
+        event_mask = 1 << event
+        if (event_mask & events) > 0:
+            triggered_propagators |= triggers[dom_idx, event]
+    triggered_propagators &= not_entailed_propagators

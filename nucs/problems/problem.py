@@ -18,7 +18,7 @@ import numpy as np
 from numpy.typing import NDArray
 from rich import print
 
-from nucs.constants import PARAM, RANGE_END, RANGE_START, VARIABLE
+from nucs.constants import EVENT_NB, PARAM, RANGE_END, RANGE_START, VARIABLE
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
 
 logger = logging.getLogger(__name__)
@@ -185,13 +185,14 @@ class Problem:
             param_start = self.bounds[prop_idx, PARAM, RANGE_START]
             param_end = self.bounds[prop_idx, PARAM, RANGE_END]
             self.props_parameters[param_start:param_end] = prop[2]
-        self.triggers = np.zeros((self.domain_nb, self.propagator_nb), dtype=np.uint8)
+        self.triggers = np.zeros((self.domain_nb, EVENT_NB, self.propagator_nb), dtype=np.bool)
         for prop_idx, prop in enumerate(self.propagators):
             prop_vars, prop_algorithm, prop_params = prop
             triggers = GET_TRIGGERS_FCTS[prop_algorithm](len(prop_vars), prop_params)
             for prop_var_idx, prop_var in enumerate(prop_vars):
-                self.triggers[self.variables_arr[prop_var], prop_idx] = triggers[prop_var_idx]
-            # TODO: replace triggers by a dom x event x propagator boolean array
+                for event in range(EVENT_NB):
+                    event_mask = 1 << event
+                    self.triggers[self.variables_arr[prop_var], event, prop_idx] = (triggers[prop_var_idx] & event_mask) > 0
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.propagator_nb} propagators")
         logger.info(f"Problem has {self.domain_nb} variables")
