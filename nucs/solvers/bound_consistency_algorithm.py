@@ -86,7 +86,6 @@ def bound_consistency_algorithm(
     """
     top = stks_top[0]
     statistics[STATS_IDX_ALG_BC_NB] += 1
-    prop_idx = -1
     while True:
         prop_idx = pop_propagator(triggered_propagators)
         if prop_idx == -1:

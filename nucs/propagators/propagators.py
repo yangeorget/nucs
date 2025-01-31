@@ -183,10 +183,11 @@ def pop_propagator(triggered_propagators: NDArray) -> int:
     :param triggered_propagators: the candidate propagators
     :return: an index
     """
-    prop_idx = np.argmax(triggered_propagators)
-    if triggered_propagators[prop_idx]:
-        triggered_propagators[prop_idx] = False
-        return int(prop_idx)
+    if len(triggered_propagators) > 0:
+        prop_idx = np.argmax(triggered_propagators)
+        if triggered_propagators[prop_idx]:
+            triggered_propagators[prop_idx] = False
+            return int(prop_idx)
     return -1
 
 
@@ -197,3 +198,4 @@ def update_propagators(
     for prop_idx, prop_triggers in enumerate(triggers[dom_idx]):
         if prop_triggers & events != 0 and not_entailed_propagators[prop_idx]:
             triggered_propagators[prop_idx] = True
+    # TODO: optimize
