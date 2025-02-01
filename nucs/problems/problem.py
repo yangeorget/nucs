@@ -191,6 +191,7 @@ class Problem:
             prop_triggers = GET_TRIGGERS_FCTS[prop_algorithm](len(prop_vars), prop_params)
             for prop_var_idx, prop_var in enumerate(prop_vars):
                 self.triggers[self.variables_arr[prop_var], prop_idx] = prop_triggers[prop_var_idx]
+        # TODO: dom, events, list of propagators
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.propagator_nb} propagators")
         logger.info(f"Problem has {self.domain_nb} variables")
