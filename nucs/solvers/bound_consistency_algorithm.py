@@ -131,14 +131,13 @@ def bound_consistency_algorithm(
             if domains_stk[top, domain_idx, MAX] != domain_max:
                 domains_stk[top, domain_idx, MAX] = domain_max
                 events |= EVENT_MASK_MAX
-            if events != 0 and domain_min == domain_max:
+            if events and domain_min == domain_max:
                 events |= EVENT_MASK_GROUND
-            if events != 0:
+            if events:
                 domains_changes = True
                 update_propagators(
                     triggered_propagators, not_entailed_propagators_stk[top], triggers, domain_idx, events
                 )
                 triggered_propagators[prop_idx] = False
-            # TODO: handle case when no change :  triggered_propagators[previous_prop_idx] = False
         if not domains_changes:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
