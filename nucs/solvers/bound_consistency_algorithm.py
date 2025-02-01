@@ -139,5 +139,6 @@ def bound_consistency_algorithm(
                     triggered_propagators, not_entailed_propagators_stk[top], triggers, domain_idx, events
                 )
                 triggered_propagators[prop_idx] = False
+            # TODO: handle case when no change :  triggered_propagators[previous_prop_idx] = False
         if not domains_changes:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1

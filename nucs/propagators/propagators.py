@@ -184,11 +184,10 @@ def pop_propagator(triggered_propagators: NDArray) -> int:
     :param triggered_propagators: the candidate propagators
     :return: an index
     """
-    if len(triggered_propagators) > 0:
-        prop_idx = np.argmax(triggered_propagators)
-        if triggered_propagators[prop_idx]:
+    for prop_idx, triggered_propagator in enumerate(triggered_propagators):
+        if triggered_propagator:
             triggered_propagators[prop_idx] = False
-            return int(prop_idx)
+            return prop_idx
     return -1
 
 
