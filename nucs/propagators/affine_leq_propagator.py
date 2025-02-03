@@ -74,11 +74,9 @@ def compute_domains_affine_leq(domains: NDArray, parameters: NDArray) -> int:
     for i in range(len(factors)):
         if factors[i] != 0:
             if factors[i] > 0:
-                new_max = old_domains[i, MIN] + (domain_sum_max // factors[i])
-                domains[i, MAX] = min(domains[i, MAX], new_max)
+                domains[i, MAX] = min(domains[i, MAX], old_domains[i, MIN] + (domain_sum_max // factors[i]))
             else:
-                new_min = old_domains[i, MAX] - (-domain_sum_max // factors[i])
-                domains[i, MIN] = max(domains[i, MIN], new_min)
+                domains[i, MIN] = max(domains[i, MIN], old_domains[i, MAX] - (-domain_sum_max // factors[i]))
             if domains[i, MIN] > domains[i, MAX]:
                 return PROP_INCONSISTENCY
     return PROP_CONSISTENCY
