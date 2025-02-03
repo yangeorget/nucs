@@ -165,9 +165,9 @@ def filter_lower_max(
         t[i] = i - 1
         h[i] = i - 1
         d[i] = get_sum(u, bounds[i - 1], bounds[i] - 1)
-    for i, max_sorted_vars_i in enumerate(max_sorted_vars):
-        x = ranks[max_sorted_vars_i, MIN]
-        y = ranks[max_sorted_vars_i, MAX]
+    for i in range(len(max_sorted_vars)):
+        x = ranks[max_sorted_vars[i], MIN]
+        y = ranks[max_sorted_vars[i], MAX]
         z = path_max(t, x + 1)
         j = t[z]
         d[z] -= 1
@@ -182,7 +182,7 @@ def filter_lower_max(
         path_set(t, x + 1, z, z)  # path compression
         if h[x] > x:
             w = path_max(h, h[x])
-            domains[max_sorted_vars_i, MIN] = bounds[w]
+            domains[max_sorted_vars[i], MIN] = bounds[w]
             path_set(h, x, w, w)  # path compression
             # changes = 1
         if d[z] == get_sum(u, bounds[y], bounds[z] - 1):
@@ -209,9 +209,8 @@ def filter_upper_max(
         h[i] = i + 1
         d[i] = get_sum(u, bounds[i], bounds[i + 1] - 1)
     for i in range(n - 1, -1, -1):
-        min_sorted_vars_i = min_sorted_vars[i]
-        x = ranks[min_sorted_vars_i, MAX]
-        y = ranks[min_sorted_vars_i, MIN]
+        x = ranks[min_sorted_vars[i], MAX]
+        y = ranks[min_sorted_vars[i], MIN]
         z = path_min(t, x - 1)
         j = t[z]
         d[z] -= 1
@@ -226,7 +225,7 @@ def filter_upper_max(
         path_set(t, x - 1, z, z)  # path compression
         if h[x] < x:
             w = path_min(h, h[x])
-            domains[min_sorted_vars_i, MAX] = bounds[w] - 1
+            domains[min_sorted_vars[i], MAX] = bounds[w] - 1
             path_set(h, x, w, w)  # path compression
             # changes = 1
         if d[z] == get_sum(u, bounds[z], bounds[y] - 1):
@@ -268,9 +267,9 @@ def filter_lower_min(
         else:
             tl[w] = i
             w = i
-    for i, max_sorted_vars_i in enumerate(max_sorted_vars):  # visit intervals in increasing max order
-        x = ranks[max_sorted_vars_i, MIN]
-        y = ranks[max_sorted_vars_i, MAX]
+    for i in range(len(max_sorted_vars)):  # visit intervals in increasing max order
+        x = ranks[max_sorted_vars[i], MIN]
+        y = ranks[max_sorted_vars[i], MAX]
         z = path_max(tl, x + 1)
         j = tl[z]
         if z != x + 1:
@@ -319,11 +318,10 @@ def filter_lower_min(
             w = i
     # For all variables that are not a subset of a stable set, shrink the lower bound.
     for i in range(n - 1, -1, -1):
-        max_sorted_vars_i = max_sorted_vars[i]
-        x = ranks[max_sorted_vars_i, MIN]
-        y = ranks[max_sorted_vars_i, MAX]
+        x = ranks[max_sorted_vars[i], MIN]
+        y = ranks[max_sorted_vars[i], MAX]
         if stbl_intervals[x] <= x or y > stbl_intervals[x]:
-            domains[max_sorted_vars_i, MIN] = skip_non_null_elements_right(l, bounds[new_mins[i]])
+            domains[max_sorted_vars[i], MIN] = skip_non_null_elements_right(l, bounds[new_mins[i]])
             # changes = 1
     return True
 
@@ -361,9 +359,8 @@ def filter_upper_min(
             w = i
     sets[w] = nb + 1
     for i in range(n - 1, -1, -1):  # visit intervals in decreasing max order
-        min_sorted_vars_i = min_sorted_vars[i]
-        x = ranks[min_sorted_vars_i, MAX]
-        y = ranks[min_sorted_vars_i, MIN]
+        x = ranks[min_sorted_vars[i], MAX]
+        y = ranks[min_sorted_vars[i], MIN]
         # solve the lower bound problem
         z = path_min(tl, x - 1)
         j = tl[z]
@@ -389,11 +386,10 @@ def filter_upper_min(
         path_set(tl, x - 1, z, z)
     #  For all variables that are not subsets of a stable set, shrink the lower bound.
     for i in range(n - 1, -1, -1):
-        min_sorted_vars_i = min_sorted_vars[i]
-        x = ranks[min_sorted_vars_i, MIN]
-        y = ranks[min_sorted_vars_i, MAX]
+        x = ranks[min_sorted_vars[i], MIN]
+        y = ranks[min_sorted_vars[i], MAX]
         if stbl_intervals[x] <= x or y > stbl_intervals[x]:
-            domains[min_sorted_vars_i, MAX] = skip_non_null_elements_left(l, bounds[new_maxs[i]] - 1)
+            domains[min_sorted_vars[i], MAX] = skip_non_null_elements_left(l, bounds[new_maxs[i]] - 1)
             # changes = 1
     return True
 

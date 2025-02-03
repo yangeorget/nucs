@@ -18,7 +18,7 @@ import numpy as np
 from numpy.typing import NDArray
 from rich import print
 
-from nucs.constants import PARAM, RANGE_END, RANGE_START, VARIABLE
+from nucs.constants import EVENT_NB, PARAM, RANGE_END, RANGE_START, VARIABLE
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
 
 logger = logging.getLogger(__name__)
@@ -185,13 +185,18 @@ class Problem:
             param_start = self.bounds[prop_idx, PARAM, RANGE_START]
             param_end = self.bounds[prop_idx, PARAM, RANGE_END]
             self.props_parameters[param_start:param_end] = prop[2]
-        self.triggers = np.zeros((self.domain_nb, self.propagator_nb), dtype=np.uint8)
-        for prop_idx, prop in enumerate(self.propagators):
-            prop_vars, prop_algorithm, prop_params = prop
-            prop_triggers = GET_TRIGGERS_FCTS[prop_algorithm](len(prop_vars), prop_params)
-            for prop_var_idx, prop_var in enumerate(prop_vars):
-                self.triggers[self.variables_arr[prop_var], prop_idx] = prop_triggers[prop_var_idx]
-        # TODO: dom, list of propagators, events
+        # for each domain and event, we store the list of propagator indices followed by -1
+        self.triggers = np.full((self.domain_nb, 1 << EVENT_NB, self.propagator_nb + 1), -1, dtype=np.int32)
+        for event_mask in range(1, 1 << EVENT_NB):
+            indices = np.zeros(self.domain_nb, dtype=np.int32)
+            for prop_idx, prop in enumerate(self.propagators):
+                prop_vars, prop_algorithm, prop_params = prop
+                prop_triggers = GET_TRIGGERS_FCTS[prop_algorithm](len(prop_vars), prop_params)
+                for prop_var_idx, prop_var in enumerate(prop_vars):
+                    if prop_triggers[prop_var_idx] & event_mask:
+                        domain_idx = self.variables_arr[prop_var]
+                        self.triggers[domain_idx, event_mask, indices[domain_idx]] = prop_idx
+                        indices[domain_idx] += 1
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.propagator_nb} propagators")
         logger.info(f"Problem has {self.domain_nb} variables")

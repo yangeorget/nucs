@@ -130,9 +130,9 @@ def filter_lower(
     for i in range(1, nb + 2):
         t[i] = h[i] = i - 1
         d[i] = bounds[i] - bounds[i - 1]
-    for i, max_sorted_vars_i in enumerate(max_sorted_vars):
-        x = ranks[max_sorted_vars_i, MIN]
-        y = ranks[max_sorted_vars_i, MAX]
+    for i in range(len(max_sorted_vars)):
+        x = ranks[max_sorted_vars[i], MIN]
+        y = ranks[max_sorted_vars[i], MAX]
         z = path_max(t, x + 1)
         j = t[z]
         d[z] -= 1
@@ -145,7 +145,7 @@ def filter_lower(
         path_set(t, x + 1, z, z)  # path compression
         if h[x] > x:
             w = path_max(h, h[x])
-            domains[max_sorted_vars_i, MIN] = bounds[w]
+            domains[max_sorted_vars[i], MIN] = bounds[w]
             path_set(h, x, w, w)  # path compression
         if d[z] + bounds[y] == bounds[z]:
             path_set(h, h[y], j - 1, y)  # mark hall interval
@@ -169,9 +169,8 @@ def filter_upper(
         t[i] = h[i] = i + 1
         d[i] = bounds[i + 1] - bounds[i]
     for i in range(n - 1, -1, -1):
-        min_sorted_vars_i = min_sorted_vars[i]
-        x = ranks[min_sorted_vars_i, MAX]
-        y = ranks[min_sorted_vars_i, MIN]
+        x = ranks[min_sorted_vars[i], MAX]
+        y = ranks[min_sorted_vars[i], MIN]
         z = path_min(t, x - 1)
         j = t[z]
         d[z] -= 1
@@ -184,7 +183,7 @@ def filter_upper(
         path_set(t, x - 1, z, z)  # path compression
         if h[x] < x:
             w = path_min(h, h[x])
-            domains[min_sorted_vars_i, MAX] = bounds[w] - 1
+            domains[min_sorted_vars[i], MAX] = bounds[w] - 1
             path_set(h, x, w, w)  # path compression
         if d[z] + bounds[z] == bounds[y]:
             path_set(h, h[y], j + 1, y)  # mark hall interval
