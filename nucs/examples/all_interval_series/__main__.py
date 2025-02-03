@@ -29,7 +29,7 @@ if __name__ == "__main__":
         var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
         pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         log_level=args.log_level,
-        stks_max_height=1024,
+        stks_max_height=2048,
     )
     if args.all:
         solver.solve_all()

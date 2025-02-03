@@ -34,6 +34,7 @@ class SchurLemmaProblem(Problem):
                 if 0 <= z < n:
                     for k in range(3):
                         self.add_propagator(([3 * x + k, 3 * y + k, 3 * z + k], ALG_AFFINE_LEQ, [1, 1, 1, 2]))
+                        # TODO: replace by atmost
         if symmetry_breaking:
             self.add_propagator(
                 (
