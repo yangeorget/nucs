@@ -14,7 +14,7 @@
 from nucs.constants import PB_MASTER, PB_NONE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.magic_square.magic_square_problem import MagicSquareProblem
-from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN, DOM_HEURISTIC_MIN_VALUE
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -27,7 +27,6 @@ if __name__ == "__main__":
     solver = BacktrackSolver(
         problem,
         var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
-        dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE,
         pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         log_level=args.log_level,
     )
