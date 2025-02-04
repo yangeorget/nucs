@@ -15,7 +15,7 @@ from typing import List, Optional, Tuple, Union
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
-from nucs.propagators.element_liv_propagator import compute_domains_element_liv
+from nucs.propagators.element_l_eq_propagator import compute_domains_element_l_eq
 from tests.propagators.propagator_test import PropagatorTest
 
 
@@ -42,5 +42,5 @@ class TestElementLIV(PropagatorTest):
         expected_domains: Optional[List[List[int]]],
     ) -> None:
         self.assert_compute_domains(
-            compute_domains_element_liv, domains, parameters, consistency_result, expected_domains
+            compute_domains_element_l_eq, domains, parameters, consistency_result, expected_domains
         )

@@ -15,7 +15,7 @@ from typing import List
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_EXACTLY_EQ, ALG_GCC, ALG_RELATION
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_COUNT_EQ_C, ALG_GCC, ALG_RELATION
 
 
 class SportsTournamentSchedulingProblem(Problem):
@@ -111,7 +111,7 @@ class SportsTournamentSchedulingProblem(Problem):
             # the match `0 versus (t+1)` appears at week t (much slower)
             self.add_propagators(
                 [
-                    (self.matches_per_week(w), ALG_EXACTLY_EQ, [self.match_ordinal(0, w + 1), 1])
+                    (self.matches_per_week(w), ALG_COUNT_EQ_C, [self.match_ordinal(0, w + 1), 1])
                     for w in range(self.week_nb)
                 ]
             )

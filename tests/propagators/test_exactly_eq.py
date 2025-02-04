@@ -15,7 +15,7 @@ from typing import List, Optional, Tuple, Union
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
-from nucs.propagators.exactly_eq_propagator import compute_domains_exactly_eq
+from nucs.propagators.count_eq_c_propagator import compute_domains_count_eq_c
 from tests.propagators.propagator_test import PropagatorTest
 
 
@@ -47,5 +47,5 @@ class TestExactlyEQ(PropagatorTest):
         expected_domains: Optional[List[List[int]]],
     ) -> None:
         self.assert_compute_domains(
-            compute_domains_exactly_eq, domains, parameters, consistency_result, expected_domains
+            compute_domains_count_eq_c, domains, parameters, consistency_result, expected_domains
         )

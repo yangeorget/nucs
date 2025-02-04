@@ -11,7 +11,7 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_LEXICOGRAPHIC_LEQ, ALG_EXACTLY_EQ
+from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_LEXICOGRAPHIC_LEQ, ALG_COUNT_EQ_C
 
 
 class SchurLemmaProblem(Problem):
@@ -27,7 +27,7 @@ class SchurLemmaProblem(Problem):
         """
         super().__init__([(0, 1)] * n * 3)
         for x in range(n):
-            self.add_propagator(([x * 3, x * 3 + 1, x * 3 + 2], ALG_EXACTLY_EQ, [1, 1]))
+            self.add_propagator(([x * 3, x * 3 + 1, x * 3 + 2], ALG_COUNT_EQ_C, [1, 1]))
         for x in range(n):
             for y in range(n):
                 z = (x + 1) + (y + 1) - 1

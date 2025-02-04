@@ -13,7 +13,7 @@
 from typing import List
 
 from nucs.problems.circuit_problem import CircuitProblem
-from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ELEMENT_IV
+from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ELEMENT_EQ
 
 
 class TSPProblem(CircuitProblem):
@@ -31,8 +31,8 @@ class TSPProblem(CircuitProblem):
         self.succ_costs = self.add_variables([(min_costs[i], max_costs[i]) for i in range(n)])
         self.pred_costs = self.add_variables([(min_costs[i], max_costs[i]) for i in range(n)])
         self.total_cost = self.add_variable((sum(min_costs), sum(max_costs)))  # the total cost
-        self.add_propagators([([i, self.succ_costs + i], ALG_ELEMENT_IV, costs[i]) for i in range(n)])
-        self.add_propagators([([n + i, self.pred_costs + i], ALG_ELEMENT_IV, costs[i]) for i in range(n)])
+        self.add_propagators([([i, self.succ_costs + i], ALG_ELEMENT_EQ, costs[i]) for i in range(n)])
+        self.add_propagators([([n + i, self.pred_costs + i], ALG_ELEMENT_EQ, costs[i]) for i in range(n)])
         self.add_propagator(
             (list(range(self.succ_costs, self.succ_costs + n)) + [self.total_cost], ALG_AFFINE_EQ, [1] * n + [-1, 0])
         )

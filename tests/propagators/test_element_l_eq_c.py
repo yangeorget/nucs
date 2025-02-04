@@ -15,17 +15,17 @@ from typing import List, Optional, Tuple, Union
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
-from nucs.propagators.element_iv_propagator import compute_domains_element_iv
+from nucs.propagators.element_l_eq_c_propagator import compute_domains_element_l_eq_c
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestElementIV(PropagatorTest):
+class TestElementLIC(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
-            ([(0, 4), (-2, 2)], [3, 0, 1, 2, 4], PROP_CONSISTENCY, [[1, 3], [0, 2]]),
-            ([(0, 4), (-2, -1)], [3, 0, 1, 2, 4], PROP_INCONSISTENCY, []),
-            ([(0, 4), (-2, 0)], [3, 0, 1, 2, 4], PROP_ENTAILMENT, [[1, 1], [0, 0]]),
+            ([(-1, 1), (1, 2), (0, 2)], [1], PROP_CONSISTENCY, [[-1, 1], [1, 2], [0, 1]]),
+            ([(-4, -2), (1, 2), (0, 1)], [1], PROP_ENTAILMENT, [[-4, -2], [1, 1], [1, 1]]),
+            ([(-4, -2), (1, 2), (0, 1)], [0], PROP_INCONSISTENCY, None),
         ],
     )
     def test_compute_domains(
@@ -36,5 +36,5 @@ class TestElementIV(PropagatorTest):
         expected_domains: Optional[List[List[int]]],
     ) -> None:
         self.assert_compute_domains(
-            compute_domains_element_iv, domains, parameters, consistency_result, expected_domains
+            compute_domains_element_l_eq_c, domains, parameters, consistency_result, expected_domains
         )

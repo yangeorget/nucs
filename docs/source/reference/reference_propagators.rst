@@ -100,8 +100,25 @@ NuCS currently provides the following highly-optimized propagators.
    :rtype: int
 
 
-.. py:module:: nucs.propagators.element_iv_propagator
-.. py:function:: nucs.propagators.element_iv_propagator.compute_domains(domains, parameters)
+.. py:module:: nucs.propagators.count_eq_c_propagator
+.. py:function:: nucs.propagators.count_eq_c_propagator.compute_domains(domains, parameters)
+
+   This propagator implements the relation :math:`\Sigma_i (x_i = a) = c`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables, :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator,
+          :math:`a` is the first parameter,
+          :math:`c` is the second parameter
+   :type parameters: NDArray
+   :return: the status of the propagation (consistency, inconsistency or entailment)
+   :rtype: int
+
+
+.. py:module:: nucs.propagators.element_eq_propagator
+.. py:function:: nucs.propagators.element_eq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`l_i = v` where :math:`l` is a list of constants,
    :math:`i` and :math:`v` two variables.
@@ -118,8 +135,8 @@ NuCS currently provides the following highly-optimized propagators.
    :rtype: int
 
 
-.. py:module:: nucs.propagators.element_lic_alldifferent_propagator
-.. py:function:: nucs.propagators.element_lic_alldifferent_propagator.compute_domains(domains, parameters)
+.. py:module:: nucs.propagators.element_l_eq_c_alldifferent_propagator
+.. py:function:: nucs.propagators.element_l_eq_c_alldifferent_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`l_i = c` where :math:`l` is a list of variables that are all different,
    :math:`i` a variable and :math:`c` a constant.
@@ -136,8 +153,8 @@ NuCS currently provides the following highly-optimized propagators.
    :rtype: int
 
 
-.. py:module:: nucs.propagators.element_lic_propagator
-.. py:function:: nucs.propagators.element_lic_propagator.compute_domains(domains, parameters)
+.. py:module:: nucs.propagators.element_l_eq_c_propagator
+.. py:function:: nucs.propagators.element_l_eq_c_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`l_i = c` where :math:`l` is a list of variables,
    :math:`i` a variable and :math:`c` a constant.
@@ -154,8 +171,8 @@ NuCS currently provides the following highly-optimized propagators.
    :rtype: int
 
 
-.. py:module:: nucs.propagators.element_liv_alldifferent_propagator
-.. py:function:: nucs.propagators.element_liv_alldifferent_propagator.compute_domains(domains, parameters)
+.. py:module:: nucs.propagators.element_l_eq_alldifferent_propagator
+.. py:function:: nucs.propagators.element_l_eq_alldifferent_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`l_i = v` where :math:`l` is a list of variables that are all different,
    :math:`i` and :math:`v` two variables.
@@ -173,8 +190,8 @@ NuCS currently provides the following highly-optimized propagators.
    :rtype: int
 
 
-.. py:module:: nucs.propagators.element_liv_propagator
-.. py:function:: nucs.propagators.element_liv_propagator.compute_domains(domains, parameters)
+.. py:module:: nucs.propagators.element_l_eq_propagator
+.. py:function:: nucs.propagators.element_l_eq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`l_i = v` where :math:`l` is a list of variables,
    :math:`i` and :math:`v` two variables.
@@ -187,23 +204,6 @@ NuCS currently provides the following highly-optimized propagators.
           :math:`v` is the last domain
    :type domains: NDArray
    :param parameters: the parameters of the propagator, it is unused
-   :type parameters: NDArray
-   :return: the status of the propagation (consistency, inconsistency or entailment)
-   :rtype: int
-
-
-.. py:module:: nucs.propagators.exactly_eq_propagator
-.. py:function:: nucs.propagators.exactly_eq_propagator.compute_domains(domains, parameters)
-
-   This propagator implements the relation :math:`\Sigma_i (x_i = a) = c`.
-
-   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
-
-   :param domains: the domains of the variables, :math:`x` is an alias for domains
-   :type domains: NDArray
-   :param parameters: the parameters of the propagator,
-          :math:`a` is the first parameter,
-          :math:`c` is the second parameter
    :type parameters: NDArray
    :return: the status of the propagation (consistency, inconsistency or entailment)
    :rtype: int

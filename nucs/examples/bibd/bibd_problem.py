@@ -15,7 +15,7 @@ from typing import List
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AND_EQ, ALG_EXACTLY_EQ, ALG_LEXICOGRAPHIC_LEQ
+from nucs.propagators.propagators import ALG_AND_EQ, ALG_COUNT_EQ_C, ALG_LEXICOGRAPHIC_LEQ
 
 
 class BIBDProblem(Problem):
@@ -40,10 +40,10 @@ class BIBDProblem(Problem):
         super().__init__([(0, 1)] * (matrix_var_nb + additional_var_nb))
         # rows: counts
         for object_idx in range(0, v):
-            self.add_propagator((list(range(object_idx * b, (object_idx + 1) * b)), ALG_EXACTLY_EQ, [1, r]))
+            self.add_propagator((list(range(object_idx * b, (object_idx + 1) * b)), ALG_COUNT_EQ_C, [1, r]))
         # columns: counts
         for block_idx in range(0, b):
-            self.add_propagator((list(range(block_idx, v * b, b)), ALG_EXACTLY_EQ, [1, k]))
+            self.add_propagator((list(range(block_idx, v * b, b)), ALG_COUNT_EQ_C, [1, k]))
         # scalar products: conjunctions and counts
         conj_idx = v * b  # index of first redundant variable
         for i1 in range(0, v - 1):
@@ -53,7 +53,7 @@ class BIBDProblem(Problem):
                     self.add_propagator(([i1 * b + block_idx, i2 * b + block_idx, conj_idx], ALG_AND_EQ, []))
                     conj_vars.append(conj_idx)
                     conj_idx += 1
-                self.add_propagator((conj_vars, ALG_EXACTLY_EQ, [1, l]))
+                self.add_propagator((conj_vars, ALG_COUNT_EQ_C, [1, l]))
         if symmetry_breaking:
             # lexleq on rows
             for object_idx in range(0, v - 1):
