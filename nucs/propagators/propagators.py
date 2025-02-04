@@ -15,7 +15,7 @@ from typing import Callable
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.propagators.abs_propagator import compute_domains_abs, get_complexity_abs, get_triggers_abs
+from nucs.propagators.abs_eq_propagator import compute_domains_abs_eq, get_complexity_abs_eq, get_triggers_abs_eq
 from nucs.propagators.affine_eq_propagator import (
     compute_domains_affine_eq,
     get_complexity_affine_eq,
@@ -36,7 +36,7 @@ from nucs.propagators.alldifferent_propagator import (
     get_complexity_alldifferent,
     get_triggers_alldifferent,
 )
-from nucs.propagators.and_propagator import compute_domains_and, get_complexity_and, get_triggers_and
+from nucs.propagators.and_eq_propagator import compute_domains_and_eq, get_complexity_and_eq, get_triggers_and_eq
 from nucs.propagators.count_eq_propagator import (
     compute_domains_count_eq,
     get_complexity_count_eq,
@@ -124,8 +124,8 @@ def register_propagator(get_triggers_fct: Callable, get_complexity_fct: Callable
     return len(COMPUTE_DOMAINS_FCTS) - 1
 
 
-ALG_ABS = register_propagator(get_triggers_abs, get_complexity_abs, compute_domains_abs)
-ALG_AND = register_propagator(get_triggers_and, get_complexity_and, compute_domains_and)
+ALG_ABS_EQ = register_propagator(get_triggers_abs_eq, get_complexity_abs_eq, compute_domains_abs_eq)
+ALG_AND_EQ = register_propagator(get_triggers_and_eq, get_complexity_and_eq, compute_domains_and_eq)
 ALG_AFFINE_EQ = register_propagator(get_triggers_affine_eq, get_complexity_affine_eq, compute_domains_affine_eq)
 ALG_AFFINE_GEQ = register_propagator(get_triggers_affine_geq, get_complexity_affine_geq, compute_domains_affine_geq)
 ALG_AFFINE_LEQ = register_propagator(get_triggers_affine_leq, get_complexity_affine_leq, compute_domains_affine_leq)

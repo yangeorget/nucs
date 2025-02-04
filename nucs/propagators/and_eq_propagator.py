@@ -17,7 +17,7 @@ from numpy.typing import NDArray
 from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 
 
-def get_complexity_and(n: int, parameters: NDArray) -> float:
+def get_complexity_and_eq(n: int, parameters: NDArray) -> float:
     """
     Returns the time complexity of the propagator as a float.
     :param n: the number of variables
@@ -27,7 +27,7 @@ def get_complexity_and(n: int, parameters: NDArray) -> float:
     return n
 
 
-def get_triggers_and(n: int, parameters: NDArray) -> NDArray:
+def get_triggers_and_eq(n: int, parameters: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.
     :param n: the number of variables
@@ -38,7 +38,7 @@ def get_triggers_and(n: int, parameters: NDArray) -> NDArray:
 
 
 @njit(cache=True)
-def compute_domains_and(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_and_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements & b_i = b_{n-1} where for each i, b_i is a boolean variable.
     :param domains: the domains of the variables, b is an alias for domains

@@ -15,7 +15,7 @@ from typing import List
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AND, ALG_EXACTLY_EQ, ALG_LEXICOGRAPHIC_LEQ
+from nucs.propagators.propagators import ALG_AND_EQ, ALG_EXACTLY_EQ, ALG_LEXICOGRAPHIC_LEQ
 
 
 class BIBDProblem(Problem):
@@ -50,7 +50,7 @@ class BIBDProblem(Problem):
             for i2 in range(i1 + 1, v):
                 conj_vars = []
                 for block_idx in range(0, b):
-                    self.add_propagator(([i1 * b + block_idx, i2 * b + block_idx, conj_idx], ALG_AND, []))
+                    self.add_propagator(([i1 * b + block_idx, i2 * b + block_idx, conj_idx], ALG_AND_EQ, []))
                     conj_vars.append(conj_idx)
                     conj_idx += 1
                 self.add_propagator((conj_vars, ALG_EXACTLY_EQ, [1, l]))

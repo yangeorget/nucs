@@ -52,8 +52,8 @@ NuCS currently provides the following highly-optimized propagators.
    :rtype: int
 
 
-.. py:module:: nucs.propagators.and_propagator
-.. py:function:: nucs.propagators.and_propagator.compute_domains(domains, parameters)
+.. py:module:: nucs.propagators.and_eq_propagator
+.. py:function:: nucs.propagators.and_eq_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`\&_{i \in [0, n-1[} b_i = b_{n-1}`
    where for each :math:`i`, :math:`b_i` is a boolean variable.

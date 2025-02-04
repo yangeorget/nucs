@@ -32,7 +32,7 @@ if __name__ == "__main__":
         stks_max_height=2048,
     )
     if args.all:
-        solver.solve_all()
+        solutions = solver.find_all()
         solver.print_statistics()
     else:
         solution = solver.find_one()

@@ -15,18 +15,18 @@ from typing import List, Optional, Tuple, Union
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY
-from nucs.propagators.abs_propagator import compute_domains_abs
+from nucs.propagators.abs_eq_propagator import compute_domains_abs_eq
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestAbs(PropagatorTest):
+class TestAbsEQ(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
-            ([(-5, 5), (-4, 4)], [], PROP_CONSISTENCY, [[0, 4], [-4, 4]]),
-            ([(-5, 0), (-4, 4)], [], PROP_CONSISTENCY, [[0, 0], [0, 0]]),
-            ([(-5, 5), (2, 4)], [], PROP_CONSISTENCY, [[2, 4], [2, 4]]),
-            ([(-5, 5), (-4, -2)], [], PROP_CONSISTENCY, [[2, 4], [-4, -2]]),
+            ([(-4, 4), (-5, 5)], [], PROP_CONSISTENCY, [[-4, 4], [0, 4]]),
+            ([(-4, 4), (-5, 0)], [], PROP_CONSISTENCY, [[0, 0], [0, 0]]),
+            ([(2, 4), (-5, 5)], [], PROP_CONSISTENCY, [[2, 4], [2, 4]]),
+            ([(-4, -2), (-5, 5)], [], PROP_CONSISTENCY, [[-4, -2], [2, 4]]),
         ],
     )
     def test_compute_domains(
@@ -36,4 +36,4 @@ class TestAbs(PropagatorTest):
         consistency_result: int,
         expected_domains: Optional[List[List[int]]],
     ) -> None:
-        self.assert_compute_domains(compute_domains_abs, domains, parameters, consistency_result, expected_domains)
+        self.assert_compute_domains(compute_domains_abs_eq, domains, parameters, consistency_result, expected_domains)
