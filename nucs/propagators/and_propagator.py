@@ -24,7 +24,7 @@ def get_complexity_and(n: int, parameters: NDArray) -> float:
     :param parameters: the parameters, unused here
     :return: a float
     """
-    return 3 * n
+    return n
 
 
 def get_triggers_and(n: int, parameters: NDArray) -> NDArray:

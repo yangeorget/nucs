@@ -24,7 +24,7 @@ def get_complexity_relation(n: int, parameters: NDArray) -> float:
     :param parameters: the parameters
     :return: a float
     """
-    return 3 * len(parameters)
+    return len(parameters)
 
 
 def get_triggers_relation(n: int, parameters: NDArray) -> NDArray:

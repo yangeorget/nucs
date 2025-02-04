@@ -24,7 +24,7 @@ def get_complexity_lexicographic_leq(n: int, parameters: NDArray) -> float:
     :param parameters: the parameters, unused here
     :return: a float
     """
-    return 4 * n
+    return n
 
 
 def get_triggers_lexicographic_leq(n: int, parameters: NDArray) -> NDArray:

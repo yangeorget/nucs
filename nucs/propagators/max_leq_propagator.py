@@ -32,7 +32,7 @@ def get_complexity_max_leq(n: int, parameters: NDArray) -> float:
     :param parameters: the parameters, unused here
     :return: a float
     """
-    return 3 * n
+    return n
 
 
 def get_triggers_max_leq(n: int, parameters: NDArray) -> NDArray:
