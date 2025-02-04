@@ -209,23 +209,6 @@ NuCS currently provides the following highly-optimized propagators.
    :rtype: int
 
 
-.. py:module:: nucs.propagators.exactly_true_propagator
-.. py:function:: nucs.propagators.exactly_true_propagator.compute_domains(domains, parameters)
-
-   This propagator implements the relation :math:`\Sigma_i (b_i = 1) = c`
-   where for each :math:`i`, :math:`b_i` is a boolean variable.
-
-   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
-
-   :param domains: the domains of the variables, :math:`b` is an alias for domains
-   :type domains: NDArray
-   :param parameters: the parameters of the propagator,
-          :math:`c` is the first parameter
-   :type parameters: NDArray
-   :return: the status of the propagation (consistency, inconsistency or entailment)
-   :rtype: int
-
-
 .. py:module:: nucs.propagators.gcc_propagator
 .. py:function:: nucs.propagators.gcc_propagator.compute_domains(domains, parameters)
 
