@@ -22,7 +22,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestLexicographicLEQ(PropagatorTest):
+class TestLexicographicLeq(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [

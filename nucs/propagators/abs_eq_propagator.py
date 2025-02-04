@@ -57,7 +57,7 @@ def compute_domains_abs_eq(domains: NDArray, parameters: NDArray) -> int:
         y[MIN] = max(y[MIN], x[MIN])
         y[MAX] = min(y[MAX], x[MAX])
         if y[MIN] > y[MAX]:
-           return PROP_INCONSISTENCY
+            return PROP_INCONSISTENCY
     elif y[MAX] < 0:
         x[MIN] = max(x[MIN], -y[MAX])
         x[MAX] = min(x[MAX], -y[MIN])
@@ -66,7 +66,7 @@ def compute_domains_abs_eq(domains: NDArray, parameters: NDArray) -> int:
         y[MIN] = max(y[MIN], -x[MAX])
         y[MAX] = min(y[MAX], -x[MIN])
         if y[MIN] > y[MAX]:
-           return PROP_INCONSISTENCY
+            return PROP_INCONSISTENCY
     else:
         x[MIN] = max(x[MIN], 0)
         x[MAX] = min(x[MAX], max(-y[MIN], y[MAX]))

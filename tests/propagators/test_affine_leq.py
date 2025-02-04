@@ -21,7 +21,7 @@ from nucs.propagators.affine_leq_propagator import compute_domains_affine_leq, g
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestAffineLEQ(PropagatorTest):
+class TestAffineLeq(PropagatorTest):
     def test_get_triggers(self) -> None:
         assert np.all(get_triggers_affine_leq(2, new_params_by_values([1, -1, 8])) == np.array([1, 2]))
 

@@ -19,7 +19,7 @@ from nucs.propagators.max_eq_propagator import compute_domains_max_eq
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestMaxEQ(PropagatorTest):
+class TestMaxEq(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [

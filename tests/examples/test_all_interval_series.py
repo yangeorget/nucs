@@ -37,11 +37,11 @@ class TestAllIntervalSeries:
     @pytest.mark.parametrize(
         "size,solution_nb",
         [
-            (3,1),
-            (4,1),
-            (5,2),
-            (6,6),
-            (7,8),
+            (3, 1),
+            (4, 1),
+            (5, 2),
+            (6, 6),
+            (7, 8),
             (8, 10),
             (9, 30),
         ],

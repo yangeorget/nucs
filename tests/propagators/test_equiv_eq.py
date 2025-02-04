@@ -19,7 +19,7 @@ from nucs.propagators.equiv_eq_propagator import compute_domains_equiv_eq
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestEquivEQ(PropagatorTest):
+class TestEquivEq(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [

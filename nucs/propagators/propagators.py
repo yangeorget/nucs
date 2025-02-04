@@ -37,6 +37,11 @@ from nucs.propagators.alldifferent_propagator import (
     get_triggers_alldifferent,
 )
 from nucs.propagators.and_eq_propagator import compute_domains_and_eq, get_complexity_and_eq, get_triggers_and_eq
+from nucs.propagators.count_eq_c_propagator import (
+    compute_domains_count_eq_c,
+    get_complexity_count_eq_c,
+    get_triggers_count_eq_c,
+)
 from nucs.propagators.count_eq_propagator import (
     compute_domains_count_eq,
     get_complexity_count_eq,
@@ -48,6 +53,11 @@ from nucs.propagators.element_eq_propagator import (
     get_complexity_element_eq,
     get_triggers_element_eq,
 )
+from nucs.propagators.element_l_eq_alldifferent_propagator import (
+    compute_domains_element_l_eq_alldifferent,
+    get_complexity_element_l_eq_alldifferent,
+    get_triggers_element_l_eq_alldifferent,
+)
 from nucs.propagators.element_l_eq_c_alldifferent_propagator import (
     compute_domains_element_l_eq_c_alldifferent,
     get_complexity_element_l_eq_c_alldifferent,
@@ -58,11 +68,6 @@ from nucs.propagators.element_l_eq_c_propagator import (
     get_complexity_element_l_eq_c,
     get_triggers_element_l_eq_c,
 )
-from nucs.propagators.element_l_eq_alldifferent_propagator import (
-    compute_domains_element_l_eq_alldifferent,
-    get_complexity_element_l_eq_alldifferent,
-    get_triggers_element_l_eq_alldifferent,
-)
 from nucs.propagators.element_l_eq_propagator import (
     compute_domains_element_l_eq,
     get_complexity_element_l_eq,
@@ -72,11 +77,6 @@ from nucs.propagators.equiv_eq_propagator import (
     compute_domains_equiv_eq,
     get_complexity_equiv_eq,
     get_triggers_equiv_eq,
-)
-from nucs.propagators.count_eq_c_propagator import (
-    compute_domains_count_eq_c,
-    get_complexity_count_eq_c,
-    get_triggers_count_eq_c,
 )
 from nucs.propagators.gcc_propagator import compute_domains_gcc, get_complexity_gcc, get_triggers_gcc
 from nucs.propagators.lexicographic_leq_propagator import (
@@ -136,13 +136,17 @@ ALG_COUNT_EQ = register_propagator(get_triggers_count_eq, get_complexity_count_e
 ALG_COUNT_EQ_C = register_propagator(get_triggers_count_eq_c, get_complexity_count_eq_c, compute_domains_count_eq_c)
 ALG_DUMMY = register_propagator(get_triggers_dummy, get_complexity_dummy, compute_domains_dummy)
 ALG_ELEMENT_EQ = register_propagator(get_triggers_element_eq, get_complexity_element_eq, compute_domains_element_eq)
-ALG_ELEMENT_L_EQ = register_propagator(get_triggers_element_l_eq, get_complexity_element_l_eq, compute_domains_element_l_eq)
+ALG_ELEMENT_L_EQ = register_propagator(
+    get_triggers_element_l_eq, get_complexity_element_l_eq, compute_domains_element_l_eq
+)
 ALG_ELEMENT_L_EQ_ALLDIFFERENT = register_propagator(
     get_triggers_element_l_eq_alldifferent,
     get_complexity_element_l_eq_alldifferent,
     compute_domains_element_l_eq_alldifferent,
 )
-ALG_ELEMENT_L_EQ_C = register_propagator(get_triggers_element_l_eq_c, get_complexity_element_l_eq_c, compute_domains_element_l_eq_c)
+ALG_ELEMENT_L_EQ_C = register_propagator(
+    get_triggers_element_l_eq_c, get_complexity_element_l_eq_c, compute_domains_element_l_eq_c
+)
 ALG_ELEMENT_L_EQ_C_ALLDIFFERENT = register_propagator(
     get_triggers_element_l_eq_c_alldifferent,
     get_complexity_element_l_eq_c_alldifferent,

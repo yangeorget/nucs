@@ -19,7 +19,7 @@ from nucs.propagators.abs_eq_propagator import compute_domains_abs_eq
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestAbsEQ(PropagatorTest):
+class TestAbsEq(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [

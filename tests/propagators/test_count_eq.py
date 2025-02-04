@@ -19,7 +19,7 @@ from nucs.propagators.count_eq_propagator import compute_domains_count_eq
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestCountEQ(PropagatorTest):
+class TestCountEq(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [

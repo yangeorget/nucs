@@ -21,7 +21,7 @@ from nucs.propagators.affine_eq_propagator import compute_domains_affine_eq, get
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestAffineEQ(PropagatorTest):
+class TestAffineEq(PropagatorTest):
     def test_get_triggers(self) -> None:
         assert np.all(get_triggers_affine_eq(2, new_params_by_values([8, 1, -1])) == np.array([3, 3]))
 

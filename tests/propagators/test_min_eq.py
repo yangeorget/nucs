@@ -19,7 +19,7 @@ from nucs.propagators.min_eq_propagator import compute_domains_min_eq
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestMinEQ(PropagatorTest):
+class TestMinEq(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [

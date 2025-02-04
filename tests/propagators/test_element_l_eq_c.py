@@ -19,7 +19,7 @@ from nucs.propagators.element_l_eq_c_propagator import compute_domains_element_l
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestElementLIC(PropagatorTest):
+class TestElementLEqC(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [

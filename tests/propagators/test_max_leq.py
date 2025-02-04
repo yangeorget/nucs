@@ -19,7 +19,7 @@ from nucs.propagators.max_leq_propagator import compute_domains_max_leq
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestMaxLEQ(PropagatorTest):
+class TestMaxLeq(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
