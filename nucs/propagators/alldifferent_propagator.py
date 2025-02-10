@@ -130,7 +130,7 @@ def filter_lower(
     for i in range(1, nb + 2):
         t[i] = h[i] = i - 1
         d[i] = bounds[i] - bounds[i - 1]
-    for i in range(len(max_sorted_vars)):
+    for i in range(n):
         x = ranks[max_sorted_vars[i], MIN]
         y = ranks[max_sorted_vars[i], MAX]
         z = path_max(t, x + 1)

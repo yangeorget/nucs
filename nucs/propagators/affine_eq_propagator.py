@@ -47,7 +47,8 @@ def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     domain_sum_min = domain_sum_max = -parameters[-1]
     factors = parameters[:-1]
-    for i in range(len(factors)):
+    n = len(factors)
+    for i in range(n):
         factor = factors[i]
         if factor > 0:
             domain_sum_min += factor * domains[i, MAX]
@@ -56,7 +57,7 @@ def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
             domain_sum_min += factor * domains[i, MIN]
             domain_sum_max += factor * domains[i, MAX]
     old_domains = np.copy(domains)
-    for i in range(len(factors)):
+    for i in range(n):
         factor = factors[i]
         if factor != 0:
             if factor > 0:
