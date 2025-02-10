@@ -143,4 +143,8 @@ def is_solved(domains_stk: NDArray, stks_top: NDArray) -> bool:
     :param stks_top: the index of the top of the stacks as a Numpy array
     :return: a boolean
     """
-    return bool(np.all(np.equal(domains_stk[stks_top[0], :, MIN], domains_stk[stks_top[0], :, MAX])))
+    top = stks_top[0]
+    for domain_idx in range(domains_stk.shape[1]):
+        if domains_stk[top, domain_idx, MIN] != domains_stk[top, domain_idx, MAX]:
+            return False
+    return True

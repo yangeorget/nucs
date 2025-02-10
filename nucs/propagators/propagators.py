@@ -178,6 +178,7 @@ def pop_propagator(triggered_propagators: NDArray) -> int:
     :param triggered_propagators: the candidate propagators
     :return: an index
     """
+    # TODO: triggered_propagators could be a heap
     for prop_idx in range(len(triggered_propagators)):
         if triggered_propagators[prop_idx]:
             triggered_propagators[prop_idx] = False
@@ -192,5 +193,4 @@ def update_propagators(
     for prop_idx in triggers[dom_idx, events]:
         if prop_idx == -1:
             break
-        if not_entailed_propagators[prop_idx]:
-            triggered_propagators[prop_idx] = True
+        triggered_propagators[prop_idx] = not_entailed_propagators[prop_idx]

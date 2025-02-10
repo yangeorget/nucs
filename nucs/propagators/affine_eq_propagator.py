@@ -48,21 +48,23 @@ def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
     domain_sum_min = domain_sum_max = parameters[-1]
     factors = parameters[:-1]
     for i in range(len(factors)):
-        if factors[i] > 0:
-            domain_sum_min -= factors[i] * domains[i, MAX]
-            domain_sum_max -= factors[i] * domains[i, MIN]
-        elif factors[i] < 0:
-            domain_sum_min -= factors[i] * domains[i, MIN]
-            domain_sum_max -= factors[i] * domains[i, MAX]
+        factor = factors[i]
+        if factor > 0:
+            domain_sum_min -= factor * domains[i, MAX]
+            domain_sum_max -= factor * domains[i, MIN]
+        elif factor < 0:
+            domain_sum_min -= factor * domains[i, MIN]
+            domain_sum_max -= factor * domains[i, MAX]
     old_domains = np.copy(domains)
     for i in range(len(factors)):
-        if factors[i] != 0:
-            if factors[i] > 0:
-                new_min = old_domains[i, MAX] - (domain_sum_min // -factors[i])
-                new_max = old_domains[i, MIN] + (domain_sum_max // factors[i])
+        factor = factors[i]
+        if factor != 0:
+            if factor > 0:
+                new_min = old_domains[i, MAX] - (domain_sum_min // -factor)
+                new_max = old_domains[i, MIN] + (domain_sum_max // factor)
             else:
-                new_min = old_domains[i, MAX] - (-domain_sum_max // factors[i])
-                new_max = old_domains[i, MIN] + (-domain_sum_min // -factors[i])
+                new_min = old_domains[i, MAX] - (-domain_sum_max // factor)
+                new_max = old_domains[i, MIN] + (-domain_sum_min // -factor)
             domains[i, MIN] = max(domains[i, MIN], new_min)
             domains[i, MAX] = min(domains[i, MAX], new_max)
             if domains[i, MIN] > domains[i, MAX]:

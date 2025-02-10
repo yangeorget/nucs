@@ -62,21 +62,23 @@ def compute_domains_affine_geq(domains: NDArray, parameters: NDArray) -> int:
     domain_sum_min = domain_sum_max = parameters[-1]
     factors = parameters[:-1]
     for i in range(len(factors)):
-        if factors[i] > 0:
-            domain_sum_min -= factors[i] * domains[i, MAX]
-            domain_sum_max -= factors[i] * domains[i, MIN]
-        elif factors[i] < 0:
-            domain_sum_min -= factors[i] * domains[i, MIN]
-            domain_sum_max -= factors[i] * domains[i, MAX]
+        factor = factors[i]
+        if factor > 0:
+            domain_sum_min -= factor * domains[i, MAX]
+            domain_sum_max -= factor* domains[i, MIN]
+        elif factor < 0:
+            domain_sum_min -= factor * domains[i, MIN]
+            domain_sum_max -= factor * domains[i, MAX]
     if domain_sum_max <= 0:
         return PROP_ENTAILMENT
     old_domains = np.copy(domains)
     for i in range(len(factors)):
-        if factors[i] != 0:
-            if factors[i] > 0:
-                domains[i, MIN] = max(domains[i, MIN], old_domains[i, MAX] - (domain_sum_min // -factors[i]))
+        factor = factors[i]
+        if factor != 0:
+            if factor > 0:
+                domains[i, MIN] = max(domains[i, MIN], old_domains[i, MAX] - (domain_sum_min // -factor))
             else:
-                domains[i, MAX] = min(domains[i, MAX], old_domains[i, MIN] + (-domain_sum_min // -factors[i]))
+                domains[i, MAX] = min(domains[i, MAX], old_domains[i, MIN] + (-domain_sum_min // -factor))
             if domains[i, MIN] > domains[i, MAX]:
                 return PROP_INCONSISTENCY
     return PROP_CONSISTENCY

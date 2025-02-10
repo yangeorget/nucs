@@ -114,7 +114,7 @@ def bound_consistency_algorithm(
         if status == PROP_ENTAILMENT:
             not_entailed_propagators_stk[top, prop_idx] = False
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
-        domains_changes = False
+        no_changes = True
         for var_idx in range(prop_var_end - prop_var_start):
             domain_idx = prop_indices[var_idx]
             events = 0
@@ -134,11 +134,9 @@ def bound_consistency_algorithm(
             if events and domain_min == domain_max:
                 events |= EVENT_MASK_GROUND
             if events:
-                domains_changes = True
                 update_propagators(
                     triggered_propagators, not_entailed_propagators_stk[top], triggers, domain_idx, events
                 )
-                triggered_propagators[prop_idx] = False
-            # TODO: handle case when no change :  triggered_propagators[previous_prop_idx] = False
-        if not domains_changes:
+                no_changes = triggered_propagators[prop_idx] = False
+        if no_changes:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
