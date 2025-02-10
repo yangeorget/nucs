@@ -66,7 +66,7 @@ def compute_domains_affine_geq(domains: NDArray, parameters: NDArray) -> int:
         factor = factors[i]
         if factor > 0:
             domain_sum_min += factor * domains[i, MAX]
-            domain_sum_max += factor* domains[i, MIN]
+            domain_sum_max += factor * domains[i, MIN]
         elif factor < 0:
             domain_sum_min += factor * domains[i, MIN]
             domain_sum_max += factor * domains[i, MAX]

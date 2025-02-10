@@ -15,7 +15,6 @@ from abc import abstractmethod
 from typing import Callable, Dict, Iterator, List, Optional
 
 import enlighten
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 from rich import print
