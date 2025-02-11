@@ -172,6 +172,7 @@ ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relatio
 ALG_SCC = register_propagator(get_triggers_scc, get_complexity_scc, compute_domains_scc)
 
 
+@njit(cache=True)
 def reset_triggered_propagators(triggered_propagators: NDArray, propagator_nb: int) -> None:
     triggered_propagators[:] = 0
     for prop_idx in range(propagator_nb):
