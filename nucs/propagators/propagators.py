@@ -15,6 +15,7 @@ from typing import Callable
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
+from nucs.heaps import min_heap_add
 from nucs.propagators.abs_eq_propagator import compute_domains_abs_eq, get_complexity_abs_eq, get_triggers_abs_eq
 from nucs.propagators.affine_eq_propagator import (
     compute_domains_affine_eq,
@@ -171,26 +172,24 @@ ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relatio
 ALG_SCC = register_propagator(get_triggers_scc, get_complexity_scc, compute_domains_scc)
 
 
-@njit(cache=True)
-def pop_propagator(triggered_propagators: NDArray) -> int:
-    """
-    Pops a propagator to be filtered.
-    :param triggered_propagators: the candidate propagators
-    :return: an index
-    """
-    # TODO: triggered_propagators could be a heap
-    for prop_idx in range(len(triggered_propagators)):
-        if triggered_propagators[prop_idx]:
-            triggered_propagators[prop_idx] = False
-            return prop_idx
-    return -1
+def reset_triggered_propagators(triggered_propagators: NDArray, propagator_nb: int) -> None:
+    triggered_propagators[:] = 0
+    for prop_idx in range(propagator_nb):
+        min_heap_add(triggered_propagators, propagator_nb, prop_idx)
 
 
 @njit(cache=True)
 def update_propagators(
-    triggered_propagators: NDArray, not_entailed_propagators: NDArray, triggers: NDArray, dom_idx: int, events: int
+    triggered_propagators: NDArray,
+    not_entailed_propagators: NDArray,
+    triggers: NDArray,
+    events: int,
+    dom_idx: int,
+    previous_prop_idx: int = -1,
 ) -> None:
+    propagator_nb = len(not_entailed_propagators)
     for prop_idx in triggers[dom_idx, events]:
         if prop_idx == -1:
             break
-        triggered_propagators[prop_idx] = not_entailed_propagators[prop_idx]
+        if not_entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
+            min_heap_add(triggered_propagators, propagator_nb, prop_idx)

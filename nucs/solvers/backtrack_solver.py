@@ -72,6 +72,7 @@ from nucs.constants import (
     TYPE_DOM_HEURISTIC,
     TYPE_VAR_HEURISTIC,
 )
+from nucs.heaps import min_heap_init
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_FCTS,
     DOM_HEURISTIC_MIN_VALUE,
@@ -80,7 +81,7 @@ from nucs.heuristics.heuristics import (
 )
 from nucs.numba_helper import build_function_address_list, function_from_address
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagators
+from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, reset_triggered_propagators, update_propagators
 from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_points, fix_top_choice_point
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.queue_solver import QueueSolver
@@ -133,7 +134,8 @@ class BacktrackSolver(Solver, QueueSolver):
         self.dom_heuristic_params = np.array(dom_heuristic_params, dtype=np.int64)
         logger.info(f"BacktrackSolver uses consistency algorithm {consistency_alg_idx}")
         self.consistency_alg_idx = consistency_alg_idx
-        self.triggered_propagators = np.ones(problem.propagator_nb, dtype=np.bool)
+        self.triggered_propagators = min_heap_init(problem.propagator_nb)
+        reset_triggered_propagators(self.triggered_propagators, self.problem.propagator_nb)
         logger.debug("Initializing choice points")
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
         self.not_entailed_propagators_stk = np.empty((stks_max_height, self.problem.propagator_nb), dtype=np.bool)
@@ -323,7 +325,7 @@ class BacktrackSolver(Solver, QueueSolver):
                     bound,
                 ):
                     break
-            self.triggered_propagators.fill(True)
+            reset_triggered_propagators(self.triggered_propagators, self.problem.propagator_nb)
             self.update_progress()
         self.update_progress()
         self.pb_stop()
@@ -490,7 +492,7 @@ class BacktrackSolver(Solver, QueueSolver):
                     bound,
                 ):
                     break
-            self.triggered_propagators.fill(True)
+            reset_triggered_propagators(self.triggered_propagators, self.problem.propagator_nb)
             self.update_stats()
         self.update_stats()
         solution_queue.put((processor_idx, None, self.statistics))
@@ -653,11 +655,7 @@ def solve_one(
                 dom_heuristic_params,
             )
             update_propagators(
-                triggered_propagators,
-                not_entailed_propagators_stk[stks_top[0]],
-                triggers,
-                dom_idx,
-                events,
+                triggered_propagators, not_entailed_propagators_stk[stks_top[0]], triggers, events, dom_idx
             )
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
             if stks_top[0] > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:

@@ -49,3 +49,9 @@ class TestQueens:
         solver = BacktrackSolver(problem, var_heuristic_idx=var_heuristic)
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb
+
+    def test_queens_solve_2(self) -> None:
+        problem = QueensProblem(2)
+        solver = BacktrackSolver(problem)
+        solver.find_one()
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 0

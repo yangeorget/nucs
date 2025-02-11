@@ -36,8 +36,9 @@ from nucs.constants import (
     TYPE_COMPUTE_DOMAINS,
     VARIABLE,
 )
+from nucs.heaps import min_heap_pop
 from nucs.numba_helper import function_from_address
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, pop_propagator, update_propagators
+from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagators
 from nucs.solvers.solver import is_solved
 
 
@@ -86,18 +87,19 @@ def bound_consistency_algorithm(
     """
     top = stks_top[0]
     statistics[STATS_IDX_ALG_BC_NB] += 1
+    propagator_nb = len(algorithms)
     while True:
-        prop_idx = pop_propagator(triggered_propagators)
+        prop_idx = min_heap_pop(triggered_propagators, propagator_nb)
         if prop_idx == -1:
-            return PROBLEM_BOUND if is_solved(domains_stk, stks_top) else PROBLEM_UNBOUND
+            return PROBLEM_BOUND if is_solved(domains_stk, top) else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = bounds[prop_idx, VARIABLE, RANGE_START]
         prop_var_end = bounds[prop_idx, VARIABLE, RANGE_END]
-        prop_indices = props_variables[prop_var_start:prop_var_end]
+        prop_indices = props_variables[prop_var_start:prop_var_end]  # TODO: avoid creating an array here
         if no_offsets:
             prop_domains = domains_stk[top, prop_indices]
         else:
-            prop_offsets = props_offsets[prop_var_start:prop_var_end]
+            prop_offsets = props_offsets[prop_var_start:prop_var_end]  # TODO: avoid creating an array here
             prop_domains = domains_stk[top, prop_indices] + prop_offsets
         compute_domains_fct = (
             COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]]
@@ -135,8 +137,8 @@ def bound_consistency_algorithm(
                 events |= EVENT_MASK_GROUND
             if events:
                 update_propagators(
-                    triggered_propagators, not_entailed_propagators_stk[top], triggers, domain_idx, events
+                    triggered_propagators, not_entailed_propagators_stk[top], triggers, events, domain_idx, prop_idx
                 )
-                no_changes = triggered_propagators[prop_idx] = False
+                no_changes = False
         if no_changes:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1

@@ -81,8 +81,8 @@ def backtrack(
         triggered_propagators,
         not_entailed_propagators_stk[stks_top[0]],
         triggers,
-        dom_update_stk[stks_top[0], DOM_UPDATE_IDX],
         dom_update_stk[stks_top[0], DOM_UPDATE_EVENTS],
+        dom_update_stk[stks_top[0], DOM_UPDATE_IDX],
     )
     return True
 

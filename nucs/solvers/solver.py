@@ -135,14 +135,13 @@ def get_solution(
 
 
 @njit(cache=True)
-def is_solved(domains_stk: NDArray, stks_top: NDArray) -> bool:
+def is_solved(domains_stk: NDArray, top: int) -> bool:
     """
     Returns true iff the problem is solved.
     :param domains_stk: the stack of shared domains
-    :param stks_top: the index of the top of the stacks as a Numpy array
+    :param top: the index of the top of the stacks
     :return: a boolean
     """
-    top = stks_top[0]
     for domain_idx in range(domains_stk.shape[1]):
         if domains_stk[top, domain_idx, MIN] != domains_stk[top, domain_idx, MAX]:
             return False

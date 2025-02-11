@@ -60,7 +60,7 @@ def shave_bound(
     )
     if domains_stk[stks_top[0], dom_idx, MIN] == domains_stk[stks_top[0], dom_idx, MAX]:
         events |= EVENT_MASK_GROUND
-    update_propagators(triggered_propagators, not_entailed_propagators_stk[stks_top[0]], triggers, dom_idx, events)
+    update_propagators(triggered_propagators, not_entailed_propagators_stk[stks_top[0]], triggers, events, dom_idx)
     if (
         bound_consistency_algorithm(
             statistics,
