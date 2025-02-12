@@ -55,13 +55,12 @@ PROBLEM_BOUND = 2  # returned when a problem is solved
 SIGNATURE_COMPUTE_DOMAINS = int64(int32[:, :], int32[:])  # domains, parameters
 SIGNATURE_CONSISTENCY_ALG = int64(
     int64[:],  # statistics
-    bool,  # no_offsets
     uint8[:],  # algorithms
     uint32[:, :, :],  # bounds
     uint32[:],  # variables_arr
     int32[:],  # offsets_arr
     uint32[:],  # props_variables
-    int32[:, :],  # props_offsets
+    int32[:],  # props_offsets
     int32[:],  # props_parameters
     int32[:, :, :],  # triggers
     int32[:, :, :],  # domains_stk

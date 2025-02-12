@@ -36,7 +36,6 @@ def shave_bound(
     bound: int,
     dom_idx: int,
     statistics: NDArray,
-    no_offsets: bool,
     algorithms: NDArray,
     bounds: NDArray,
     variables_arr: NDArray,
@@ -64,7 +63,6 @@ def shave_bound(
     if (
         bound_consistency_algorithm(
             statistics,
-            no_offsets,
             algorithms,
             bounds,
             variables_arr,
@@ -101,7 +99,6 @@ def shave_bound(
 @njit(cache=True)
 def shaving_consistency_algorithm(
     statistics: NDArray,
-    no_offsets: bool,
     algorithms: NDArray,
     bounds: NDArray,
     variables_arr: NDArray,
@@ -149,7 +146,6 @@ def shaving_consistency_algorithm(
         if has_shaved:
             status = bound_consistency_algorithm(
                 statistics,
-                no_offsets,
                 algorithms,
                 bounds,
                 variables_arr,
@@ -178,7 +174,6 @@ def shaving_consistency_algorithm(
             bound,
             dom_idx,
             statistics,
-            no_offsets,
             algorithms,
             bounds,
             variables_arr,

@@ -118,9 +118,7 @@ class Solver:
 
 
 @njit(cache=True)
-def get_solution(
-    domains_stk: NDArray, stks_top: NDArray, variables_arr: NDArray, offsets_arr: NDArray, no_offsets: bool
-) -> NDArray:
+def get_solution(domains_stk: NDArray, stks_top: NDArray, variables_arr: NDArray, offsets_arr: NDArray) -> NDArray:
     """
     Returns the solution to the problem.
     :param domains_stk: the stack of shared domains
@@ -129,8 +127,6 @@ def get_solution(
     :param offsets_arr: the domain offsets
     :return: a Numpy array
     """
-    if no_offsets:
-        return domains_stk[stks_top[0], variables_arr, MIN]
     return domains_stk[stks_top[0], variables_arr, MIN] + offsets_arr
 
 

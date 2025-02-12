@@ -10,6 +10,7 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
+import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -45,7 +46,6 @@ from nucs.solvers.solver import is_solved
 @njit(cache=True)
 def bound_consistency_algorithm(
     statistics: NDArray,
-    no_offsets: bool,
     algorithms: NDArray,
     bounds: NDArray,
     variables_arr: NDArray,
@@ -65,7 +65,6 @@ def bound_consistency_algorithm(
     """
     Bound consistency algorithm.
     :param statistics: a Numpy array of statistics
-    :param no_offsets: true iff all offsets are equal to 0
     :param algorithms: the algorithms indexed by propagators
     :param bounds: the bounds indexed by propagators
     :param variables_arr: the domain indices indexed by variables, unused here
@@ -95,12 +94,14 @@ def bound_consistency_algorithm(
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = bounds[prop_idx, VARIABLE, RANGE_START]
         prop_var_end = bounds[prop_idx, VARIABLE, RANGE_END]
-        prop_indices = props_variables[prop_var_start:prop_var_end]  # TODO: avoid creating an array here
-        if no_offsets:
-            prop_domains = domains_stk[top, prop_indices]
-        else:
-            prop_offsets = props_offsets[prop_var_start:prop_var_end]  # TODO: avoid creating an array here
-            prop_domains = domains_stk[top, prop_indices] + prop_offsets
+        prop_var_nb = prop_var_end - prop_var_start
+        prop_domains = np.empty((prop_var_nb, 2), dtype=np.int32)
+        for var_idx in range(prop_var_nb):
+            prop_var_idx = prop_var_start + var_idx
+            prop_dom_idx = props_variables[prop_var_idx]
+            prop_offset = props_offsets[prop_var_idx]
+            prop_domains[var_idx, MIN] = domains_stk[top, prop_dom_idx, MIN] + prop_offset
+            prop_domains[var_idx, MAX] = domains_stk[top, prop_dom_idx, MAX] + prop_offset
         compute_domains_fct = (
             COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]]
             if NUMBA_DISABLE_JIT
@@ -117,27 +118,24 @@ def bound_consistency_algorithm(
             not_entailed_propagators_stk[top, prop_idx] = False
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
         no_changes = True
-        for var_idx in range(prop_var_end - prop_var_start):
-            domain_idx = prop_indices[var_idx]
+        for var_idx in range(prop_var_nb):
+            prop_var_idx = prop_var_start + var_idx
+            prop_dom_idx = props_variables[prop_var_idx]
+            prop_offset = props_offsets[prop_var_idx]
+            domain_min = prop_domains[var_idx, MIN] - prop_offset
+            domain_max = prop_domains[var_idx, MAX] - prop_offset
             events = 0
-            if no_offsets:
-                domain_min = prop_domains[var_idx, MIN]
-                domain_max = prop_domains[var_idx, MAX]
-            else:
-                offset = prop_offsets[var_idx, 0]  # because of vertical shape
-                domain_min = prop_domains[var_idx, MIN] - offset
-                domain_max = prop_domains[var_idx, MAX] - offset
-            if domains_stk[top, domain_idx, MIN] != domain_min:
-                domains_stk[top, domain_idx, MIN] = domain_min
+            if domains_stk[top, prop_dom_idx, MIN] != domain_min:
+                domains_stk[top, prop_dom_idx, MIN] = domain_min
                 events |= EVENT_MASK_MIN
-            if domains_stk[top, domain_idx, MAX] != domain_max:
-                domains_stk[top, domain_idx, MAX] = domain_max
+            if domains_stk[top, prop_dom_idx, MAX] != domain_max:
+                domains_stk[top, prop_dom_idx, MAX] = domain_max
                 events |= EVENT_MASK_MAX
             if events and domain_min == domain_max:
                 events |= EVENT_MASK_GROUND
             if events:
                 update_propagators(
-                    triggered_propagators, not_entailed_propagators_stk[top], triggers, events, domain_idx, prop_idx
+                    triggered_propagators, not_entailed_propagators_stk[top], triggers, events, prop_dom_idx, prop_idx
                 )
                 no_changes = False
         if no_changes:

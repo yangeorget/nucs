@@ -112,7 +112,6 @@ class GolombProblem(Problem):
 @njit(cache=True)
 def golomb_consistency_algorithm(
     statistics: NDArray,
-    no_offsets: bool,
     algorithms: NDArray,
     bounds: NDArray,
     variables_arr: NDArray,
@@ -171,7 +170,6 @@ def golomb_consistency_algorithm(
                 )
     return bound_consistency_algorithm(
         statistics,
-        no_offsets,
         algorithms,
         bounds,
         variables_arr,

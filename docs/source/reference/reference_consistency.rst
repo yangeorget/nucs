@@ -13,8 +13,6 @@ NuCS provides the following consistency algorithms.
 
    :param statistics: a Numpy array of statistics
    :type statistics: NDArray
-   :param no_offsets: true iff all offsets are equal to 0
-   :type no_offsets: boolean
    :param algorithms: the algorithms indexed by propagators
    :type algorithms: NDArray
    :param bounds: the bounds indexed by propagators
@@ -56,8 +54,6 @@ NuCS provides the following consistency algorithms.
 
    :param statistics: a Numpy array of statistics
    :type statistics: NDArray
-   :param no_offsets: true iff all offsets are equal to 0
-   :type no_offsets: boolean
    :param algorithms: the algorithms indexed by propagators
    :type algorithms: NDArray
    :param bounds: the bounds indexed by propagators

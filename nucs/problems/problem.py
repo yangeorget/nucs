@@ -178,8 +178,6 @@ class Problem:
             var_start = self.bounds[prop_idx, VARIABLE, RANGE_START]
             var_end = self.bounds[prop_idx, VARIABLE, RANGE_END]
             self.props_offsets[var_start:var_end] = self.offsets_arr[prop[0]]  # cached for faster access
-        self.props_offsets = self.props_offsets.reshape((-1, 1))
-        self.no_offsets = not np.any(self.offsets_arr)
         self.props_parameters = np.empty(self.bounds[-1, PARAM, RANGE_END], dtype=np.int32)
         for prop_idx, prop in enumerate(self.propagators):
             param_start = self.bounds[prop_idx, PARAM, RANGE_START]
@@ -200,10 +198,6 @@ class Problem:
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.propagator_nb} propagators")
         logger.info(f"Problem has {self.domain_nb} variables")
-        if self.no_offsets:
-            logger.info("Problem does not use offsets")
-        else:
-            logger.info("Problem uses offsets")
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         return solution.tolist()

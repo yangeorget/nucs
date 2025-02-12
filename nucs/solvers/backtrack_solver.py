@@ -262,7 +262,6 @@ class BacktrackSolver(Solver, QueueSolver):
         while (
             solution := solve_one(
                 self.statistics,
-                self.problem.no_offsets,
                 self.problem.algorithms,
                 self.problem.bounds,
                 self.problem.variables_arr,
@@ -343,7 +342,6 @@ class BacktrackSolver(Solver, QueueSolver):
         while True:
             solution = solve_one(
                 self.statistics,
-                self.problem.no_offsets,
                 self.problem.algorithms,
                 self.problem.bounds,
                 self.problem.variables_arr,
@@ -427,7 +425,6 @@ class BacktrackSolver(Solver, QueueSolver):
         while True:
             solution = solve_one(
                 self.statistics,
-                self.problem.no_offsets,
                 self.problem.algorithms,
                 self.problem.bounds,
                 self.problem.variables_arr,
@@ -510,7 +507,6 @@ class BacktrackSolver(Solver, QueueSolver):
         while True:
             solution = solve_one(
                 self.statistics,
-                self.problem.no_offsets,
                 self.problem.algorithms,
                 self.problem.bounds,
                 self.problem.variables_arr,
@@ -555,7 +551,6 @@ class BacktrackSolver(Solver, QueueSolver):
 @njit(cache=True)
 def solve_one(
     statistics: NDArray,
-    no_offsets: bool,
     algorithms: NDArray,
     bounds: NDArray,
     variables_arr: NDArray,
@@ -583,7 +578,6 @@ def solve_one(
     """
     Find at most one solution.
     :param statistics: a Numpy array of statistics
-    :param no_offsets: true iff all offsets are equal to 0
     :param algorithms: the algorithms indexed by propagators
     :param bounds: the bounds indexed by propagators
     :param variables_arr: the domain indices indexed by variables
@@ -624,7 +618,6 @@ def solve_one(
     while True:
         status = consistency_alg_fct(
             statistics,
-            no_offsets,
             algorithms,
             bounds,
             variables_arr,
@@ -643,7 +636,7 @@ def solve_one(
         )
         if status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLUTION_NB] += 1
-            return get_solution(domains_stk, stks_top, variables_arr, offsets_arr, no_offsets)
+            return get_solution(domains_stk, stks_top, variables_arr, offsets_arr)
         elif status == PROBLEM_UNBOUND:
             dom_idx = var_heuristic_fct(decision_domains, domains_stk, stks_top, var_heuristic_params)
             events = dom_heuristic_fct(
