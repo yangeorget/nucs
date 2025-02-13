@@ -56,16 +56,15 @@ def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
         elif factor < 0:
             domain_sum_min += factor * domains[i, MIN]
             domain_sum_max += factor * domains[i, MAX]
-    old_domains = np.copy(domains)
     for i in range(n):
         factor = factors[i]
         if factor != 0:
             if factor > 0:
-                new_min = old_domains[i, MAX] - (-domain_sum_min // -factor)
-                new_max = old_domains[i, MIN] + (-domain_sum_max // factor)
+                new_min = domains[i, MAX] - (-domain_sum_min // -factor)
+                new_max = domains[i, MIN] + (-domain_sum_max // factor)
             else:
-                new_min = old_domains[i, MAX] - (domain_sum_max // factor)
-                new_max = old_domains[i, MIN] + (domain_sum_min // -factor)
+                new_min = domains[i, MAX] - (domain_sum_max // factor)
+                new_max = domains[i, MIN] + (domain_sum_min // -factor)
             domains[i, MIN] = max(domains[i, MIN], new_min)
             domains[i, MAX] = min(domains[i, MAX], new_max)
             if domains[i, MIN] > domains[i, MAX]:
