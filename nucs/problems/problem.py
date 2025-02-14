@@ -197,7 +197,7 @@ class Problem:
             self.props_variables,
             self.props_parameters,
             self.algorithms,
-            get_triggers_addrs
+            get_triggers_addrs,
         )
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.propagator_nb} propagators")
@@ -249,7 +249,7 @@ def init_triggers(
     props_variables: NDArray,
     props_parameters: NDArray,
     algorithms: NDArray,
-    get_triggers_addrs: NDArray
+    get_triggers_addrs: NDArray,
 ) -> None:
     # for each domain and event, we store the list of propagator indices followed by -1
     indices = np.empty(domain_nb, dtype=np.int32)
