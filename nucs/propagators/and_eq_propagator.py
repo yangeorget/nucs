@@ -14,7 +14,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 
 
 def get_complexity_and_eq(n: int, parameters: NDArray) -> float:
@@ -49,12 +49,13 @@ def compute_domains_and_eq(domains: NDArray, parameters: NDArray) -> int:
     y = domains[-1]
     if np.any(x[:, MAX] == 0):
         y[MAX] = 0
+        return PROP_INCONSISTENCY if y[MIN] > y[MAX] else PROP_ENTAILMENT
     if np.all(x[:, MIN] == 1):
         y[MIN] = 1
-    if y[MIN] > y[MAX]:
-        return PROP_INCONSISTENCY
+        return PROP_INCONSISTENCY if y[MIN] > y[MAX] else PROP_ENTAILMENT
     if y[MIN] == 1:
         x[:, MIN] = 1
+        return PROP_ENTAILMENT  # no need to check for inconsistency
     elif y[MAX] == 0:
         candidates_nb = 0
         candidate_idx = -1
@@ -64,4 +65,5 @@ def compute_domains_and_eq(domains: NDArray, parameters: NDArray) -> int:
                 candidates_nb += 1
         if candidates_nb == 1:
             x[candidate_idx, MAX] = 0
+            return PROP_ENTAILMENT  # no need to check for inconsistency
     return PROP_CONSISTENCY

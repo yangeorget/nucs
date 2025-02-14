@@ -17,7 +17,7 @@ from numpy.typing import NDArray
 from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 
 
-def get_complexity_count_eq(n: int, parameters: NDArray) -> float:
+def get_complexity_count_leq_c(n: int, parameters: NDArray) -> float:
     """
     Returns the time complexity of the propagator as a float.
     :param n: the number of variables
@@ -27,7 +27,7 @@ def get_complexity_count_eq(n: int, parameters: NDArray) -> float:
     return n
 
 
-def get_triggers_count_eq(n: int, parameters: NDArray) -> NDArray:
+def get_triggers_count_leq_c(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
@@ -38,45 +38,37 @@ def get_triggers_count_eq(n: int, parameters: NDArray) -> NDArray:
 
 
 @njit(cache=True)
-def compute_domains_count_eq(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_count_leq_c(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements Sigma_i (x_i == a) = x_{n-1}.
+    Implements Sigma_i (x_i == a) <= c.
     :param domains: the domains of the variables, x is an alias for domains
-    :param parameters: the parameters of the propagator, a is the first parameter
+    :param parameters: the parameters of the propagator, a is the first parameter, c is the second parameter
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     a = parameters[0]
-    x = domains[:-1]
-    counter = domains[-1]
-    count_max = len(x)
+    c = parameters[1]
+    count_max = len(domains)
     count_min = 0
-    for x_i in x:
-        if x_i[MIN] > a or x_i[MAX] < a:
+    for domain in domains:
+        if domain[MIN] > a or domain[MAX] < a:
             count_max -= 1
-        elif x_i[MIN] == a and x_i[MAX] == a:
+        elif domain[MIN] == a and domain[MAX] == a:
             count_min += 1
-    counter[MIN] = max(counter[MIN], count_min)
-    counter[MAX] = min(counter[MAX], count_max)
-    if counter[MIN] > counter[MAX]:
-        return PROP_INCONSISTENCY
-    if count_min == count_max:
+            if count_min > c:
+                return PROP_INCONSISTENCY
+    if count_max <= c:
         return PROP_ENTAILMENT
-    if count_min == counter[MAX]:  # we cannot have more domains equal to a
+    if count_min == c:  # we cannot have more domains equal to a
         all_different = True
-        for x_i in x:
-            if x_i[MIN] == a:
-                if x_i[MAX] > a:
-                    x_i[MIN] = a + 1
-            elif x_i[MIN] < a:
-                if x_i[MAX] == a:
-                    x_i[MAX] = a - 1
-                elif x_i[MAX] > a:
+        for domain in domains:
+            if domain[MIN] == a:
+                if domain[MAX] > a:
+                    domain[MIN] = a + 1
+            elif domain[MIN] < a:
+                if domain[MAX] == a:
+                    domain[MAX] = a - 1
+                elif domain[MAX] > a:
                     all_different = False
         if all_different:
             return PROP_ENTAILMENT
-    if count_max == counter[MIN]:  # we cannot have more domains different from a
-        for x_i in x:
-            if x_i[MIN] <= a <= x_i[MAX]:
-                x_i[:] = a
-        return PROP_ENTAILMENT
     return PROP_CONSISTENCY
