@@ -31,6 +31,7 @@ def get_complexity_no_sub_cycle(n: int, parameters: NDArray) -> float:
     return n * n
 
 
+@njit(cache=True)
 def get_triggers_no_sub_cycle(n: int, parameters: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.

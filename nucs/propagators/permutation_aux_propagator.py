@@ -27,6 +27,7 @@ def get_complexity_permutation_aux(n: int, parameters: NDArray) -> float:
     return n * n
 
 
+@njit(cache=True)
 def get_triggers_permutation_aux(n: int, parameters: NDArray) -> NDArray:
     """
     :param n: the number of variables

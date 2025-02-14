@@ -27,6 +27,7 @@ def get_complexity_equiv_eq(n: int, parameters: NDArray) -> float:
     return 1
 
 
+@njit(cache=True)
 def get_triggers_equiv_eq(n: int, parameters: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.

@@ -29,6 +29,7 @@ def get_complexity_element_l_eq_alldifferent(n: int, parameters: NDArray) -> flo
     return n
 
 
+@njit(cache=True)
 def get_triggers_element_l_eq_alldifferent(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.

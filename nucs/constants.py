@@ -12,7 +12,7 @@
 ###############################################################################
 import os
 
-from numba import bool, int32, int64, types, uint8, uint16, uint32  # type: ignore
+from numba import bool, int32, int64, types, uint8, uint16, uint32, uint64  # type: ignore
 
 PB_NONE = 0
 PB_SLAVE = 1
@@ -53,6 +53,7 @@ PROBLEM_UNBOUND = 1  # returned when the filtering of a problem has been complet
 PROBLEM_BOUND = 2  # returned when a problem is solved
 
 SIGNATURE_COMPUTE_DOMAINS = int64(int32[:, :], int32[:])  # domains, parameters
+SIGNATURE_GET_TRIGGERS = uint8[:](uint64, int32[:])
 SIGNATURE_CONSISTENCY_ALG = int64(
     int64[:],  # statistics
     uint8[:],  # algorithms
@@ -88,6 +89,7 @@ SIGNATURE_VAR_HEURISTIC = int64(
 
 
 TYPE_COMPUTE_DOMAINS = types.FunctionType(SIGNATURE_COMPUTE_DOMAINS)
+TYPE_GET_TRIGGERS = types.FunctionType(SIGNATURE_GET_TRIGGERS)
 TYPE_DOM_HEURISTIC = types.FunctionType(SIGNATURE_DOM_HEURISTIC)
 TYPE_VAR_HEURISTIC = types.FunctionType(SIGNATURE_VAR_HEURISTIC)
 TYPE_CONSISTENCY_ALG = types.FunctionType(SIGNATURE_CONSISTENCY_ALG)

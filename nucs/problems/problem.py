@@ -15,10 +15,21 @@ import logging
 from typing import Any, List, Optional, Self, Tuple, Union
 
 import numpy as np
+from numba import njit
 from numpy.typing import NDArray
 from rich import print
 
-from nucs.constants import EVENT_NB, PARAM, RANGE_END, RANGE_START, VARIABLE
+from nucs.constants import (
+    EVENT_NB,
+    NUMBA_DISABLE_JIT,
+    PARAM,
+    RANGE_END,
+    RANGE_START,
+    SIGNATURE_GET_TRIGGERS,
+    TYPE_GET_TRIGGERS,
+    VARIABLE,
+)
+from nucs.numba_helper import build_function_address_list, function_from_address
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
 
 logger = logging.getLogger(__name__)
@@ -148,53 +159,46 @@ class Problem:
         """
         Completes the initialization of the problem.
         """
-        logger.debug("Initializing Problem")
+        logger.debug("Initializing problem")
         # Sort the propagators based on their estimated amortized complexities.
         self.propagators.sort(key=lambda prop: GET_COMPLEXITY_FCTS[prop[1]](len(prop[0]), prop[2]))
-        # Variable and domain initialization
         self.variables_arr = np.array(self.variables, dtype=np.uint32)
         self.offsets_arr = np.array(self.offsets, dtype=np.int32)
-        # Propagator initialization
-        self.algorithms = np.empty(self.propagator_nb, dtype=np.uint8)
+        self.algorithms = np.array([prop[1] for prop in self.propagators], dtype=np.uint8)
         # We will store propagator specific data in a global arrays, we need to compute variables and data bounds.
-        bound_nb = max(1, self.propagator_nb)
-        self.bounds = np.zeros((bound_nb, 2, 2), dtype=np.uint32)  # some redundancy here
-        self.bounds[0, :, RANGE_START] = 0
-        for prop_idx, prop in enumerate(self.propagators):
-            prop_vars, prop_algorithm, prop_params = prop
-            self.algorithms[prop_idx] = prop_algorithm
-            if prop_idx > 0:
-                self.bounds[prop_idx, :, RANGE_START] = self.bounds[prop_idx - 1, :, RANGE_END]
-            self.bounds[prop_idx, VARIABLE, RANGE_END] = self.bounds[prop_idx, VARIABLE, RANGE_START] + len(prop_vars)
-            self.bounds[prop_idx, PARAM, RANGE_END] = self.bounds[prop_idx, PARAM, RANGE_START] + len(prop_params)
-        # Bounds have been computed and can now be used. The global arrays are the following:
+        logger.debug("Initializing bounds")
+        self.bounds = np.zeros((max(1, self.propagator_nb), 2, 2), dtype=np.uint32)  # some redundancy here
+        init_bounds(self.bounds, self.propagators)
+        logger.debug("Initializing props")
         self.props_variables = np.empty(self.bounds[-1, VARIABLE, RANGE_END], dtype=np.uint32)
-        for prop_idx, prop in enumerate(self.propagators):
-            var_start = self.bounds[prop_idx, VARIABLE, RANGE_START]
-            var_end = self.bounds[prop_idx, VARIABLE, RANGE_END]
-            self.props_variables[var_start:var_end] = self.variables_arr[prop[0]]  # cached for faster access
         self.props_offsets = np.empty(self.bounds[-1, VARIABLE, RANGE_END], dtype=np.int32)
-        for prop_idx, prop in enumerate(self.propagators):
-            var_start = self.bounds[prop_idx, VARIABLE, RANGE_START]
-            var_end = self.bounds[prop_idx, VARIABLE, RANGE_END]
-            self.props_offsets[var_start:var_end] = self.offsets_arr[prop[0]]  # cached for faster access
         self.props_parameters = np.empty(self.bounds[-1, PARAM, RANGE_END], dtype=np.int32)
-        for prop_idx, prop in enumerate(self.propagators):
-            param_start = self.bounds[prop_idx, PARAM, RANGE_START]
-            param_end = self.bounds[prop_idx, PARAM, RANGE_END]
-            self.props_parameters[param_start:param_end] = prop[2]
-        # for each domain and event, we store the list of propagator indices followed by -1
+        init_props(
+            self.props_variables,
+            self.props_offsets,
+            self.props_parameters,
+            self.variables_arr,
+            self.offsets_arr,
+            self.bounds,
+            self.propagators,
+        )
+        logger.debug("Initializing triggers")
         self.triggers = np.full((self.domain_nb, 1 << EVENT_NB, self.propagator_nb + 1), -1, dtype=np.int32)
-        for event_mask in range(1, 1 << EVENT_NB):
-            indices = np.zeros(self.domain_nb, dtype=np.int32)
-            for prop_idx, prop in enumerate(self.propagators):
-                prop_vars, prop_algorithm, prop_params = prop
-                prop_triggers = GET_TRIGGERS_FCTS[prop_algorithm](len(prop_vars), prop_params)
-                for prop_var_idx, prop_var in enumerate(prop_vars):
-                    if prop_triggers[prop_var_idx] & event_mask:
-                        domain_idx = self.variables_arr[prop_var]
-                        self.triggers[domain_idx, event_mask, indices[domain_idx]] = prop_idx
-                        indices[domain_idx] += 1
+        get_triggers_addrs = (
+            np.empty(0)
+            if NUMBA_DISABLE_JIT
+            else np.array(build_function_address_list(GET_TRIGGERS_FCTS, SIGNATURE_GET_TRIGGERS))
+        )
+        init_triggers(
+            self.triggers,
+            self.domain_nb,
+            self.propagator_nb,
+            self.bounds,
+            self.props_variables,
+            self.props_parameters,
+            self.algorithms,
+            get_triggers_addrs
+        )
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.propagator_nb} propagators")
         logger.info(f"Problem has {self.domain_nb} variables")
@@ -207,3 +211,63 @@ class Problem:
             print(self.solution_as_printable(solution))
         else:
             print("No solution")
+
+
+def init_bounds(bounds: NDArray, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
+    for prop_idx, prop in enumerate(propagators):
+        if prop_idx > 0:
+            bounds[prop_idx, :, RANGE_START] = bounds[prop_idx - 1, :, RANGE_END]
+        bounds[prop_idx, VARIABLE, RANGE_END] = bounds[prop_idx, VARIABLE, RANGE_START] + len(prop[0])
+        bounds[prop_idx, PARAM, RANGE_END] = bounds[prop_idx, PARAM, RANGE_START] + len(prop[2])
+
+
+def init_props(
+    props_variables: NDArray,
+    props_offsets: NDArray,
+    props_parameters: NDArray,
+    variables_arr: NDArray,
+    offsets_arr: NDArray,
+    bounds: NDArray,
+    propagators: List[Tuple[List[int], int, List[int]]],
+) -> None:
+    for prop_idx, prop in enumerate(propagators):
+        var_start = bounds[prop_idx, VARIABLE, RANGE_START]
+        var_end = bounds[prop_idx, VARIABLE, RANGE_END]
+        props_variables[var_start:var_end] = variables_arr[prop[0]]  # cached for faster access
+        props_offsets[var_start:var_end] = offsets_arr[prop[0]]  # cached for faster access
+        param_start = bounds[prop_idx, PARAM, RANGE_START]
+        param_end = bounds[prop_idx, PARAM, RANGE_END]
+        props_parameters[param_start:param_end] = prop[2]
+
+
+@njit(cache=True)
+def init_triggers(
+    triggers: NDArray,
+    domain_nb: int,
+    propagator_nb: int,
+    bounds: NDArray,
+    props_variables: NDArray,
+    props_parameters: NDArray,
+    algorithms: NDArray,
+    get_triggers_addrs: NDArray
+) -> None:
+    # for each domain and event, we store the list of propagator indices followed by -1
+    indices = np.empty(domain_nb, dtype=np.int32)
+    for event_mask in range(1, 1 << EVENT_NB):
+        indices[:] = 0
+        for prop_idx in range(propagator_nb):
+            var_start = bounds[prop_idx, VARIABLE, RANGE_START]
+            var_end = bounds[prop_idx, VARIABLE, RANGE_END]
+            param_start = bounds[prop_idx, PARAM, RANGE_START]
+            param_end = bounds[prop_idx, PARAM, RANGE_END]
+            trigger_fct = (
+                GET_TRIGGERS_FCTS[algorithms[prop_idx]]
+                if NUMBA_DISABLE_JIT
+                else function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithms[prop_idx]])
+            )
+            prop_triggers = trigger_fct(var_end - var_start, props_parameters[param_start:param_end])
+            for prop_var_idx in range(var_end - var_start):
+                if prop_triggers[prop_var_idx] & event_mask:
+                    domain_idx = props_variables[prop_var_idx + var_start]
+                    triggers[domain_idx, event_mask, indices[domain_idx]] = prop_idx
+                    indices[domain_idx] += 1

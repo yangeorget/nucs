@@ -27,6 +27,7 @@ def get_complexity_scc(n: int, parameters: NDArray) -> float:
     return n * n
 
 
+@njit(cache=True)
 def get_triggers_scc(n: int, parameters: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.

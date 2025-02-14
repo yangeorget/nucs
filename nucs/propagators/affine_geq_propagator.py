@@ -35,6 +35,7 @@ def get_complexity_affine_geq(n: int, parameters: NDArray) -> float:
     return n
 
 
+@njit(cache=True)
 def get_triggers_affine_geq(n: int, parameters: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.

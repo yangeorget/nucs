@@ -27,6 +27,7 @@ def get_complexity_relation(n: int, parameters: NDArray) -> float:
     return len(parameters)
 
 
+@njit(cache=True)
 def get_triggers_relation(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.

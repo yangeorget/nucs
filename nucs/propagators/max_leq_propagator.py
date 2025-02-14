@@ -35,6 +35,7 @@ def get_complexity_max_leq(n: int, parameters: NDArray) -> float:
     return n
 
 
+@njit(cache=True)
 def get_triggers_max_leq(n: int, parameters: NDArray) -> NDArray:
     """
     Returns the triggers for this propagator.

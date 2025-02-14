@@ -29,6 +29,7 @@ def get_complexity_alldifferent(n: int, parameters: NDArray) -> float:
     return n * math.log(n)
 
 
+@njit(cache=True)
 def get_triggers_alldifferent(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.

@@ -11,7 +11,7 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_COUNT_EQ_C, ALG_COUNT_LEQ_C, ALG_LEXICOGRAPHIC_LEQ
+from nucs.propagators.propagators import ALG_COUNT_EQ_C, ALG_COUNT_LEQ_C, ALG_LEXICOGRAPHIC_LEQ
 
 
 class SchurLemmaProblem(Problem):
