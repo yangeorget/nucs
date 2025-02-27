@@ -30,14 +30,13 @@ def get_complexity_alldifferent(n: int, parameters: NDArray) -> float:
 
 
 @njit(cache=True)
-def get_triggers_alldifferent(n: int, parameters: NDArray) -> NDArray:
+def get_triggers_alldifferent(n: int, dom_idx: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
-    :param n: the number of variables
     :param parameters: the parameters, unused here
     :return: an array of triggers
     """
-    return np.full(n, dtype=np.uint8, fill_value=EVENT_MASK_MIN_MAX)
+    return EVENT_MASK_MIN_MAX
 
 
 @njit(cache=True)

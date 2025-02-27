@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -36,20 +35,13 @@ def get_complexity_affine_leq(n: int, parameters: NDArray) -> float:
 
 
 @njit(cache=True)
-def get_triggers_affine_leq(n: int, parameters: NDArray) -> NDArray:
+def get_triggers_affine_leq(n: int, dom_idx: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
-    :param n: the number of variables
     :param parameters: the parameters
     :return: an array of triggers
     """
-    triggers = np.zeros(n, dtype=np.uint8)
-    for i, c in enumerate(parameters[:-1]):
-        if c < 0:
-            triggers[i] = EVENT_MASK_MAX
-        elif c > 0:
-            triggers[i] = EVENT_MASK_MIN
-    return triggers
+    return EVENT_MASK_MAX if parameters[dom_idx] < 0 else EVENT_MASK_MIN
 
 
 @njit(cache=True)

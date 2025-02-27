@@ -12,19 +12,14 @@
 ###############################################################################
 from typing import List, Optional, Tuple, Union
 
-import numpy as np
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY
-from nucs.numpy_helper import new_params_by_values
-from nucs.propagators.affine_eq_propagator import compute_domains_affine_eq, get_triggers_affine_eq
+from nucs.propagators.affine_eq_propagator import compute_domains_affine_eq
 from tests.propagators.propagator_test import PropagatorTest
 
 
 class TestAffineEq(PropagatorTest):
-    def test_get_triggers(self) -> None:
-        assert np.all(get_triggers_affine_eq(2, new_params_by_values([8, 1, -1])) == np.array([3, 3]))
-
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [

@@ -14,8 +14,6 @@ from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 
-from nucs.numpy_helper import new_domains_by_values, new_params_by_values
-
 
 class PropagatorTest:
     def assert_compute_domains(
@@ -26,7 +24,9 @@ class PropagatorTest:
         consistency_result: int,
         expected_domains: Optional[List[List[int]]],
     ) -> None:
-        domains_arr = new_domains_by_values(domains)
-        assert compute_domains_fct(domains_arr, new_params_by_values(parameters)) == consistency_result
+        domains_arr = np.array(
+            [(domain, domain) if isinstance(domain, int) else domain for domain in domains], dtype=np.int32
+        )
+        assert compute_domains_fct(domains_arr, np.array(parameters, dtype=np.int32)) == consistency_result
         if expected_domains:
             assert np.all(domains_arr == np.array(expected_domains))

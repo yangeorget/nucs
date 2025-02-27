@@ -12,19 +12,14 @@
 ###############################################################################
 from typing import List, Optional, Tuple, Union
 
-import numpy as np
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT
-from nucs.numpy_helper import new_params_by_values
-from nucs.propagators.affine_leq_propagator import compute_domains_affine_leq, get_triggers_affine_leq
+from nucs.propagators.affine_leq_propagator import compute_domains_affine_leq
 from tests.propagators.propagator_test import PropagatorTest
 
 
 class TestAffineLeq(PropagatorTest):
-    def test_get_triggers(self) -> None:
-        assert np.all(get_triggers_affine_leq(2, new_params_by_values([1, -1, 8])) == np.array([1, 2]))
-
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [

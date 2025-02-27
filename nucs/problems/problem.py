@@ -258,16 +258,18 @@ def init_triggers(
         for prop_idx in range(propagator_nb):
             var_start = bounds[prop_idx, VARIABLE, RANGE_START]
             var_end = bounds[prop_idx, VARIABLE, RANGE_END]
+            var_nb = var_end - var_start
             param_start = bounds[prop_idx, PARAM, RANGE_START]
             param_end = bounds[prop_idx, PARAM, RANGE_END]
+            algorithm = algorithms[prop_idx]
             trigger_fct = (
-                GET_TRIGGERS_FCTS[algorithms[prop_idx]]
+                GET_TRIGGERS_FCTS[algorithm]
                 if NUMBA_DISABLE_JIT
-                else function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithms[prop_idx]])
+                else function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])
             )
-            prop_triggers = trigger_fct(var_end - var_start, props_parameters[param_start:param_end])
-            for prop_var_idx in range(var_end - var_start):
-                if prop_triggers[prop_var_idx] & event_mask:
-                    domain_idx = props_variables[prop_var_idx + var_start]
+            parameters = props_parameters[param_start:param_end]
+            for var_idx in range(var_nb):
+                if trigger_fct(var_nb, var_idx, parameters) & event_mask:
+                    domain_idx = props_variables[var_idx + var_start]
                     triggers[domain_idx, event_mask, indices[domain_idx]] = prop_idx
                     indices[domain_idx] += 1

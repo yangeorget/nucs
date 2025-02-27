@@ -49,5 +49,7 @@ if __name__ == "__main__":
         )
     )
     solution = solver.minimize(problem.length_idx, mode=args.opt_mode)
-    solver.print_statistics()
-    problem.print_solution(solution)
+    if args.stats:
+        solver.print_statistics()
+    if args.display:
+        problem.print_solution(solution)

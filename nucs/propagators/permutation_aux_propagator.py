@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -28,13 +27,13 @@ def get_complexity_permutation_aux(n: int, parameters: NDArray) -> float:
 
 
 @njit(cache=True)
-def get_triggers_permutation_aux(n: int, parameters: NDArray) -> NDArray:
+def get_triggers_permutation_aux(n: int, dom_idx: int, parameters: NDArray) -> int:
     """
     :param n: the number of variables
     :param parameters: the parameters, unused here
     :return: an array of triggers
     """
-    return np.full(n, dtype=np.uint8, fill_value=EVENT_MASK_MIN_MAX)
+    return EVENT_MASK_MIN_MAX
 
 
 @njit(cache=True)

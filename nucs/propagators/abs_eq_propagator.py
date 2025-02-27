@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -28,16 +27,15 @@ def get_complexity_abs_eq(n: int, parameters: NDArray) -> float:
 
 
 @njit(cache=True)
-def get_triggers_abs_eq(n: int, parameters: NDArray) -> NDArray:
+def get_triggers_abs_eq(n: int, dom_idx: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
-    :param n: the number of variables
     :param parameters: the parameters, unused here
     :return: an array of triggers
     """
-    triggers = np.full(n, dtype=np.uint8, fill_value=EVENT_MASK_MIN_MAX)
-    triggers[1] = EVENT_MASK_MAX
-    return triggers
+    if dom_idx == 0:
+        return EVENT_MASK_MIN_MAX
+    return EVENT_MASK_MAX
 
 
 @njit(cache=True)

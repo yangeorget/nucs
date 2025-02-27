@@ -66,4 +66,5 @@ if __name__ == "__main__":
         )
     )
     solution = solver.minimize(problem.total_cost, mode=args.opt_mode)
-    solver.print_statistics()
+    if args.stats:
+        solver.print_statistics()

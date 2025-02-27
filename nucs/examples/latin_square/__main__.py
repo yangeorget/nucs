@@ -28,8 +28,11 @@ if __name__ == "__main__":
     )
     if args.all:
         solver.solve_all()
-        solver.print_statistics()
+        if args.stats:
+            solver.print_statistics()
     else:
         solution = solver.find_one()
-        solver.print_statistics()
-        problem.print_solution(solution)
+        if args.stats:
+            solver.print_statistics()
+        if args.display:
+            problem.print_solution(solution)

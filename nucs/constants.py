@@ -53,7 +53,7 @@ PROBLEM_UNBOUND = 1  # returned when the filtering of a problem has been complet
 PROBLEM_BOUND = 2  # returned when a problem is solved
 
 SIGNATURE_COMPUTE_DOMAINS = int64(int32[:, :], int32[:])  # domains, parameters
-SIGNATURE_GET_TRIGGERS = uint8[:](uint64, int32[:])
+SIGNATURE_GET_TRIGGERS = int64(uint64, uint64, int32[:])
 SIGNATURE_CONSISTENCY_ALG = int64(
     int64[:],  # statistics
     uint8[:],  # algorithms
