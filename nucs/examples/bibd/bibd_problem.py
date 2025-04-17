@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-from typing import List
+from typing import Any
 
 from numpy.typing import NDArray
 
@@ -68,7 +68,7 @@ class BIBDProblem(Problem):
                     )
                 )
 
-    def solution_as_printable(self, solution: NDArray) -> List[List[int]]:
+    def solution_as_printable(self, solution: NDArray) -> Any:
         """
         Returns the solutions as a matrix of ints.
         :param solution: the solution as a list of ints

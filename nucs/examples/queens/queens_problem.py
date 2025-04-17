@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-from typing import List
+from typing import Any
 
 from numpy.typing import NDArray
 
@@ -34,9 +34,8 @@ class QueensProblem(Problem):
         self.n = n
         self.add_propagators([(list(range(i * n, i * n + n)), ALG_ALLDIFFERENT, []) for i in range(3)])
 
-    def solution_as_printable(self, solution: NDArray) -> List[List[str]]:
-        solution_as_list = solution[: self.n].tolist()
-        return [([" "] * i + ["Q"] + [" "] * (self.n - i - 1)) for i in solution_as_list]
+    def solution_as_printable(self, solution: NDArray) -> Any:
+        return [([" "] * i + ["Q"] + [" "] * (self.n - i - 1)) for i in (solution[: self.n])]
 
 
 class QueensDualProblem(Problem):
@@ -60,6 +59,5 @@ class QueensDualProblem(Problem):
         self.add_propagators([(list(range(i * n, i * n + n)), ALG_ALLDIFFERENT, []) for i in range(6)])
         self.add_propagator((list(range(n)) + list(range(3 * n, 4 * n)), ALG_PERMUTATION_AUX, []))
 
-    def solution_as_printable(self, solution: NDArray) -> List[List[str]]:
-        solution_as_list = solution[: self.n].tolist()
-        return [([" "] * i + ["Q"] + [" "] * (self.n - i - 1)) for i in solution_as_list]
+    def solution_as_printable(self, solution: NDArray) -> Any:
+        return [([" "] * i + ["Q"] + [" "] * (self.n - i - 1)) for i in (solution[: self.n])]

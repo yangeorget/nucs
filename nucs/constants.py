@@ -14,26 +14,37 @@ import os
 
 from numba import bool, int32, int64, types, uint8, uint16, uint32, uint64  # type: ignore
 
+# Progress bar modes
 PB_NONE = 0
 PB_SLAVE = 1
 PB_MASTER = 2
 PB_BLOCK_NB = 1 << 16
 
+
+# Optimizer modes
 OPTIM_RESET = "RESET"
 OPTIM_PRUNE = "PRUNE"
 OPTIM_MODES = [OPTIM_RESET, OPTIM_PRUNE]
 
-VARIABLE = 0
-PARAM = 1
-RANGE_START = 0  # index corresponding the start of a values range
-RANGE_END = 1  # index corresponding the end of a values range
 
+# Bounds
+VARIABLE = 0  # index for a variable
+PARAM = 1  # index for a parameter
+RANGE_START = 0  # index corresponding to the start of a value range
+RANGE_END = 1  # index corresponding to the end of a value range
+
+
+# Domain bounds
 MIN = 0  # min value of a domain
 MAX = 1  # max value of a domain
 
-DOM_UPDATE_IDX = 0
-DOM_UPDATE_EVENTS = 1
 
+# Domain update stack indices
+DOM_UPDATE_IDX = 0  # index for the domain idx
+DOM_UPDATE_EVENTS = 1  # index for the event
+
+
+# Events
 EVENT_NB = 3
 EVENT_MASK_MIN = 1 << 0
 EVENT_MASK_MAX = 1 << 1
@@ -49,7 +60,7 @@ PROP_CONSISTENCY = 1  # returned by a propagator when consistent
 PROP_ENTAILMENT = 2  # returned by a propagator when entailed
 
 PROBLEM_INCONSISTENT = 0  # returned when the filtering of a problem detects an inconsistency
-PROBLEM_UNBOUND = 1  # returned when the filtering of a problem has been completed but the problem is not solved
+PROBLEM_UNBOUND = 1  # returned when the filtering of a problem has been completed, but the problem is not solved
 PROBLEM_BOUND = 2  # returned when a problem is solved
 
 SIGNATURE_COMPUTE_DOMAINS = int64(int32[:, :], int32[:])  # domains, parameters

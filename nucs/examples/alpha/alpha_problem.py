@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-from typing import Dict
+from typing import Any
 
 from numpy.typing import NDArray
 
@@ -67,7 +67,7 @@ class AlphaProblem(Problem):
             ]
         )
 
-    def solution_as_printable(self, solution: NDArray) -> Dict[str, int]:
+    def solution_as_printable(self, solution: NDArray) -> Any:
         """
         Returns the solution as a dict.
         :param solution: the solution as a list of ints

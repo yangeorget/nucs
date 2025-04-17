@@ -16,7 +16,7 @@ from nucs.propagators.propagators import ALG_NO_SUB_CYCLE
 
 class CircuitProblem(PermutationProblem):
     """
-    A model for circuit.
+    A model for circuits.
     """
 
     def __init__(self, n: int):

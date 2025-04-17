@@ -11,7 +11,7 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 import math
-from typing import List
+from typing import Any
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -104,7 +104,7 @@ class GolombProblem(Problem):
                 )
             )
 
-    def solution_as_printable(self, solution: NDArray) -> List[int]:
+    def solution_as_printable(self, solution: NDArray) -> Any:
         solution_as_list = solution.tolist()
         return solution_as_list[: self.mark_nb]
 

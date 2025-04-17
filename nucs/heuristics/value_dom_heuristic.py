@@ -47,7 +47,7 @@ def value_dom_heuristic(
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param dom_idx: the index of the shared domain
     :param value: the value
-    :param params: a two-dimensional parameters array
+    :param params: a two-dimensional parameter array
     :return: the events
     """
     top = stks_top[0]

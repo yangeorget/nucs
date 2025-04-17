@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from numpy.typing import NDArray
 
@@ -31,7 +31,7 @@ class LatinSquareProblem(Problem):
         """
         Inits the latin square.
         :colors: the possible values for the cells,
-        usually [0, ..., n-1] except in some cases (eg Sudokus) where [1, ..., n] is preferred;
+        usually [0, ..., n-1] except in some cases (e.g., Sudokus) where [1, ..., n] is preferred;
         the number of colors is also the size of the square
         :givens: initial values for the cells, any value different from the possible colors is used as a wildcard
         """
@@ -61,7 +61,7 @@ class LatinSquareProblem(Problem):
         offset = model * (self.n**2)
         return list(range(offset + j, offset + self.n**2 + j, self.n))
 
-    def solution_as_printable(self, solution: NDArray) -> List[List[int]]:
+    def solution_as_printable(self, solution: NDArray) -> Any:
         solution_as_list = solution.tolist()
         return [solution_as_list[i : i + self.n] for i in range(0, self.n**2, self.n)]
 
