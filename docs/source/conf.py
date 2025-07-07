@@ -6,8 +6,8 @@ project = 'NuCS'
 copyright = '2024-2025, Yan Georget'
 author = 'Yan Georget'
 
-release = '6.0.0'
-version = '6.0.0'
+release = '6.1.1'
+version = '6.1.1'
 
 # -- General configuration
 
