@@ -118,7 +118,7 @@ COMPUTE_DOMAINS_FCTS = []
 
 def register_propagator(get_triggers_fct: Callable, get_complexity_fct: Callable, compute_domains_fct: Callable) -> int:
     """
-    Register a propagator by adding its 3 functions to the corresponding lists of functions.
+    Registers a propagator by adding its 3 functions to the corresponding lists of functions.
     :param get_triggers_fct: a function that returns the triggers
     :param get_complexity_fct: a function that computes the complexity
     :param compute_domains_fct: a function that computes the domains
