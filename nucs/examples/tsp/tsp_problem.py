@@ -21,7 +21,7 @@ class TSPProblem(CircuitProblem):
 
     def __init__(self, costs: List[List[int]]) -> None:
         """
-        Inits the problem.
+        Initializes the problem.
         :param costs: the costs between vertices as a list of lists of integers
         """
         n = len(costs)

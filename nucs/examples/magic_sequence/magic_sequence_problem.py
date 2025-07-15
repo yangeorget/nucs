@@ -23,7 +23,7 @@ class MagicSequenceProblem(Problem):
 
     def __init__(self, n: int):
         """
-        Inits the problem.
+        Initializes the problem.
         :param n: the size of the sequence
         """
         super().__init__([(0, n)] * n)

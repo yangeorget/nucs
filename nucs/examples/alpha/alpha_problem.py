@@ -38,7 +38,7 @@ class AlphaProblem(Problem):
 
     def __init__(self) -> None:
         """
-        Inits the problem.
+        Initializes the problem.
         """
         super().__init__([(1, 26)] * 26)
         self.add_propagators(

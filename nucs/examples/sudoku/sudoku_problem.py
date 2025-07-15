@@ -23,7 +23,7 @@ class SudokuProblem(LatinSquareProblem):
 
     def __init__(self, givens: List[List[int]]):
         """
-        Inits the problem.
+        Initializes the problem.
         :param givens: the givens per rows then per columns
         """
         super().__init__(list(range(1, 10)), givens)

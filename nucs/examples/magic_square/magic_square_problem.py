@@ -25,7 +25,7 @@ class MagicSquareProblem(Problem):
 
     def __init__(self, n: int, symmetry_breaking: bool = True):
         """
-        Inits the problem.
+        Initializes the problem.
         :param n: the size of the square
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
         """

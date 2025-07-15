@@ -62,6 +62,11 @@ class GolombProblem(Problem):
     """
 
     def __init__(self, mark_nb: int, symmetry_breaking: bool = True) -> None:
+        """
+        Initializes the problem.
+        :param mark_nb: the number of marks
+        :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
+        """
         self.mark_nb = mark_nb
         dist_nb = sum_first(mark_nb - 1)
         domains = [[0, sum_first(dist_nb) - sum_first(dist_nb - mark_nb)]] * dist_nb

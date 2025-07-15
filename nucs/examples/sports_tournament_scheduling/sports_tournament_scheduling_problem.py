@@ -77,6 +77,11 @@ class SportsTournamentSchedulingProblem(Problem):
         return plays
 
     def __init__(self, n: int, symmetry_breaking: bool = True) -> None:
+        """
+       Initializes the problem.
+       :param n: the size of the problem
+       :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
+       """
         self.team_nb = n
         self.slot_nb = 2
         self.period_nb = n // 2

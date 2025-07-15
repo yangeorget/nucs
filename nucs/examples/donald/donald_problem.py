@@ -28,7 +28,7 @@ class DonaldProblem(Problem):
 
     def __init__(self) -> None:
         """
-        Inits the problem.
+        Initializes the problem.
         """
         super().__init__([(0, 9)] * 10)
         self.add_propagator(

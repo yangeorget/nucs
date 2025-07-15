@@ -25,7 +25,7 @@ class BIBDProblem(Problem):
 
     def __init__(self, v: int, b: int, r: int, k: int, l: int, symmetry_breaking: bool = True):
         """
-        Inits the problem.
+        Initializes the problem.
         :param v: the number of points/rows
         :param b: the number of blocks
         :param r: the number of true values per row

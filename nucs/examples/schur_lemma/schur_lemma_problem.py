@@ -21,7 +21,7 @@ class SchurLemmaProblem(Problem):
 
     def __init__(self, n: int, symmetry_breaking: bool = True) -> None:
         """
-        Inits the problem.
+        Initializes the problem.
         :param n: the size of the problem
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
         """
