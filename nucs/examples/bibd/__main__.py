@@ -11,7 +11,6 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 
-from nucs.constants import PB_MASTER, PB_NONE
 from nucs.examples.bibd.bibd_problem import BIBDProblem
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -29,7 +28,6 @@ if __name__ == "__main__":
     problem = BIBDProblem(args.v, args.b, args.r, args.k, args.l, args.symmetry_breaking)
     solver = BacktrackSolver(
         problem,
-        pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         log_level=args.log_level,
     )
     if args.all:

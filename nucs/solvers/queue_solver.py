@@ -12,9 +12,7 @@
 ###############################################################################
 from abc import abstractmethod
 from multiprocessing import Queue
-from typing import Optional
 
-import enlighten
 from numpy.typing import NDArray
 
 
@@ -22,9 +20,6 @@ class QueueSolver:
     """
     A solver which uses a queue.
     """
-
-    @abstractmethod
-    def get_progress_bar(self, manager: enlighten.Manager) -> Optional[enlighten.Counter]: ...
 
     @abstractmethod
     def get_statistics_as_array(self) -> NDArray: ...

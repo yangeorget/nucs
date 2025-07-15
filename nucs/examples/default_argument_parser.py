@@ -34,13 +34,6 @@ class DefaultArgumentParser(argparse.ArgumentParser):
             default=1,
         )
         self.add_argument(
-            "--progress_bar",
-            help="show a progress bar",
-            type=bool,
-            action=argparse.BooleanOptionalAction,
-            default=False,
-        )
-        self.add_argument(
             "--display",
             help="display the solution(s)",
             type=bool,

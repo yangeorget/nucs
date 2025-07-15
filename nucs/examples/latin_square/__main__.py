@@ -11,7 +11,6 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 
-from nucs.constants import PB_MASTER, PB_NONE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.problems.latin_square_problem import LatinSquareRCProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -23,9 +22,7 @@ if __name__ == "__main__":
     parser.add_argument("-n", type=int, default=10)
     args = parser.parse_args()
     problem = LatinSquareRCProblem(args.n)
-    solver = BacktrackSolver(
-        problem, pb_mode=PB_MASTER if args.progress_bar else PB_NONE, log_level=args.log_level, stks_max_height=2048
-    )
+    solver = BacktrackSolver(problem, log_level=args.log_level, stks_max_height=2048)
     if args.all:
         solver.solve_all()
         if args.stats:

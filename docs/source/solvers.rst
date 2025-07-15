@@ -11,7 +11,6 @@ Solver arguments
 A solver accepts the following parameters:
 
 * the problem to be solved
-* the progress bar mode (PB_NONE, PB_SLAVE, PB_MASTER)
 * the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 
 

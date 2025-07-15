@@ -11,7 +11,7 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 
-from nucs.constants import OPTIM_MODES, OPTIM_PRUNE, PB_MASTER, PB_NONE, PB_SLAVE
+from nucs.constants import OPTIM_MODES, OPTIM_PRUNE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.tsp.tsp_instances import TSP_INSTANCES
 from nucs.examples.tsp.tsp_problem import TSPProblem
@@ -46,11 +46,9 @@ if __name__ == "__main__":
                     dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
                     dom_heuristic_params=costs,
                     log_level=args.log_level,
-                    pb_mode=PB_SLAVE if args.progress_bar else PB_NONE,
                 )
                 for prob in problem.split(args.processors, 0)
-            ],
-            pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
+            ]
         )
         if args.processors > 1
         else BacktrackSolver(
@@ -62,7 +60,6 @@ if __name__ == "__main__":
             dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
             dom_heuristic_params=costs,
             log_level=args.log_level,
-            pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         )
     )
     solution = solver.minimize(problem.total_cost, mode=args.opt_mode)

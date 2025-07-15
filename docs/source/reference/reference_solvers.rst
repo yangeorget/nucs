@@ -28,8 +28,6 @@ NuCS comes with the following solvers.
    :type dom_heuristic_params: List[List[int]]
    :param stks_max_height: the maximal height of the choice point stack
    :type stks_max_height: int
-   :param pb_mode: the progress bar mode
-   :type pb_mode: str
    :param log_level: the log level
    :type log_level: str
 
@@ -41,8 +39,6 @@ NuCS comes with the following solvers.
 
    :param solvers: the solvers used in different processes
    :type solvers: List[QueueSolver]
-   :param pb_mode: the progress bar mode
-   :type pb_mode: str
    :param log_level: the log level
    :type log_level: str
 

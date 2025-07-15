@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-import numpy as np
 import pytest
 
 from nucs.constants import OPTIM_PRUNE, OPTIM_RESET, STATS_LBL_SOLUTION_NB, STATS_LBL_SOLVER_CHOICE_DEPTH
@@ -20,37 +19,12 @@ from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_SPLIT_HIGH,
     DOM_HEURISTIC_SPLIT_LOW,
 )
-from nucs.heuristics.min_value_dom_heuristic import min_value_dom_heuristic
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, ALG_RELATION
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.choice_points import backtrack
 
 
 class TestBacktrackSolver:
-    def test_compute_search_space_size(self) -> None:
-        problem = Problem([(0, 9), (0, 9), (0, 9)])
-        solver = BacktrackSolver(problem)
-        assert solver.compute_search_space_size() == 1000
-        min_value_dom_heuristic(
-            solver.domains_stk,
-            solver.not_entailed_propagators_stk,
-            solver.dom_update_stk,
-            solver.stks_top,
-            0,
-            np.array(0),
-        )
-        assert solver.compute_search_space_size() == 1000
-        backtrack(
-            solver.statistics,
-            solver.not_entailed_propagators_stk,
-            solver.dom_update_stk,
-            solver.stks_top,
-            solver.triggered_propagators,
-            solver.problem.triggers,
-        )
-        assert solver.compute_search_space_size() == 900
-
     def test_solve_all(self) -> None:
         problem = Problem([(0, 99), (0, 99)])
         solver = BacktrackSolver(problem)

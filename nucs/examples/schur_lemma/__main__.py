@@ -11,7 +11,6 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 
-from nucs.constants import PB_MASTER, PB_NONE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.schur_lemma.schur_lemma_problem import SchurLemmaProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -23,7 +22,7 @@ if __name__ == "__main__":
     parser.add_argument("-n", type=int, default=20)
     args = parser.parse_args()
     problem = SchurLemmaProblem(args.n, args.symmetry_breaking)
-    solver = BacktrackSolver(problem, log_level=args.log_level, pb_mode=PB_MASTER if args.progress_bar else PB_NONE)
+    solver = BacktrackSolver(problem, log_level=args.log_level)
     if args.all:
         solver.solve_all()
         if args.stats:

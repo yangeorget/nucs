@@ -11,7 +11,6 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 
-from nucs.constants import PB_MASTER, PB_NONE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.magic_square.magic_square_problem import MagicSquareProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -26,7 +25,6 @@ if __name__ == "__main__":
     solver = BacktrackSolver(
         problem,
         # var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
-        pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         log_level=args.log_level,
     )
     if args.all:

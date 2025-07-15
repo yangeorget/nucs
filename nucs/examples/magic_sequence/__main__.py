@@ -11,7 +11,6 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 
-from nucs.constants import PB_MASTER, PB_NONE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -26,7 +25,6 @@ if __name__ == "__main__":
     solver = BacktrackSolver(
         problem,
         decision_domains=list(range(args.n - 1, -1, -1)),
-        pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         log_level=args.log_level,
     )
     if args.all:

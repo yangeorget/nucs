@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-from nucs.constants import PB_MASTER, PB_NONE
 from nucs.examples.all_interval_series.all_interval_series_problem import AllIntervalSeriesProblem
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
@@ -27,7 +26,6 @@ if __name__ == "__main__":
         problem,
         decision_domains=list(range(args.n)),
         var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
-        pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
         log_level=args.log_level,
         stks_max_height=2048,
     )

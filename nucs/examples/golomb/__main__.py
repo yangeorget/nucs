@@ -10,8 +10,7 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-
-from nucs.constants import OPTIM_MODES, OPTIM_PRUNE, PB_MASTER, PB_NONE, PB_SLAVE
+from nucs.constants import OPTIM_MODES, OPTIM_PRUNE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -33,18 +32,15 @@ if __name__ == "__main__":
                 BacktrackSolver(
                     prob,
                     consistency_alg_idx=consistency_alg_golomb,
-                    pb_mode=PB_SLAVE if args.progress_bar else PB_NONE,
                     log_level=args.log_level,
                 )
                 for prob in problem.split(args.processors, 0)
-            ],
-            pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
+            ]
         )
         if args.processors > 1
         else BacktrackSolver(
             problem,
             consistency_alg_idx=consistency_alg_golomb,
-            pb_mode=PB_MASTER if args.progress_bar else PB_NONE,
             log_level=args.log_level,
         )
     )

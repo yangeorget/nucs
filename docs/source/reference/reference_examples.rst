@@ -14,7 +14,6 @@ Most of these examples can be run from the command line and support the followin
 * :code:`--n`: when available, defines the size of the problem
 * :code:`--opt_mode`: in the case of optimization, sets the optimizer mode (:code:`RESET` or :code:`PRUNE`)
 * :code:`--processors`: when set, defines the number of processors to use
-* :code:`--progress_bar`: when set, displays one or several progress bars
 * :code:`--shaving/--no-shaving`: when set, uses the shaving consistency algorithm
 * :code:`--symmetry_breaking/--no-symmetry_breaking`: when set, leverages symmetries in the problem
 

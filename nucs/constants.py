@@ -14,13 +14,6 @@ import os
 
 from numba import bool, int32, int64, types, uint8, uint16, uint32, uint64  # type: ignore
 
-# Progress bar modes
-PB_NONE = 0
-PB_SLAVE = 1
-PB_MASTER = 2
-PB_BLOCK_NB = 1 << 16
-
-
 # Optimizer modes
 OPTIM_RESET = "RESET"
 OPTIM_PRUNE = "PRUNE"

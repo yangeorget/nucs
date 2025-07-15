@@ -60,7 +60,7 @@ def min_heap_swap(heap: NDArray, i: int, j: int) -> None:
 @njit(cache=True)
 def min_heap_up(heap: NDArray, pos: int) -> None:
     """
-    No recursive version because of a Numba bug.
+    Non-recursive version because of a Numba bug.
     """
     while pos > 0:
         father = (pos - 1) >> 1
@@ -73,7 +73,7 @@ def min_heap_up(heap: NDArray, pos: int) -> None:
 @njit(cache=True)
 def min_heap_down(heap: NDArray, pos: int) -> None:
     """
-    No recursive version because of a Numba bug.
+    Non-recursive version because of a Numba bug.
     """
     while True:
         left = (pos << 1) + 1
