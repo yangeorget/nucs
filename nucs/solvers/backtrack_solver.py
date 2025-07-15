@@ -109,7 +109,7 @@ class BacktrackSolver(Solver, QueueSolver):
         log_level: str = LOG_LEVEL_INFO,
     ):
         """
-        Inits the solver.
+        Initializes the solver.
         :param problem: the problem to be solved
         :param consistency_alg_idx: the index of the consistency algorithm
         :param decision_domains: the indices of the shared domains on which decisions will be made

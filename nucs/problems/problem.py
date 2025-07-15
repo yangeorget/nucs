@@ -52,7 +52,7 @@ class Problem:
         offsets: Optional[List[int]] = None,
     ):
         """
-        Inits the problem.
+        Initializes the problem.
         :param domains: the shared domains expressed as a list
         :param variables: the domain indices expressed as a list
         :param offsets: the domain offsets expressed as a list

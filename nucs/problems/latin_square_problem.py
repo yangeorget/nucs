@@ -29,7 +29,7 @@ class LatinSquareProblem(Problem):
 
     def __init__(self, colors: List[int], givens: Optional[List[List[int]]] = None):
         """
-        Inits the latin square.
+        Initializes the latin square.
         :colors: the possible values for the cells,
         usually [0, ..., n-1] except in some cases (e.g., Sudokus) where [1, ..., n] is preferred;
         the number of colors is also the size of the square

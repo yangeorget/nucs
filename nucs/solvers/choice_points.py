@@ -26,7 +26,7 @@ def cp_init(
     domains_arr: NDArray,
 ) -> None:
     """
-    Inits the choice points.
+    Initializes the choice points.
     :param domains_stk: the stack of shared domains
     :param not_entailed_propagators_stk: the stack of not entailed propagators
     :param dom_update_stk: the stack of domain updates

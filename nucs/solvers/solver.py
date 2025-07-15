@@ -32,7 +32,7 @@ class Solver:
 
     def __init__(self, problem: Optional[Problem], pb_mode: int, log_level: str = LOG_LEVEL_INFO):
         """
-        Inits the solver.
+        Initializes the solver.
         :param problem: a problem or None
         :param log_level: the log level as a string
         """

@@ -21,7 +21,7 @@ class PermutationProblem(Problem):
 
     def __init__(self, n: int):
         """
-        Inits the permutation problem.
+        Initializes the permutation problem.
         :param n: the number variables/values
         """
         self.n = n
