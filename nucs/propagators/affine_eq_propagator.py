@@ -39,7 +39,7 @@ def get_triggers_affine_eq(n: int, dom_idx: int, parameters: NDArray) -> int:
 @njit(cache=True)
 def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements Sigma_i a_i * x_i = a_{n-1}.
+    Implements Sigma_i a_i * x_i = a_{n}.
     :param domains: the domains of the variables, x is an alias for domains
     :param parameters: the parameters of the propagator, a is an alias for parameters
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int

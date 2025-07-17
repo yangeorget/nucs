@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-
+from nucs.constants import OPTIM_MODES, OPTIM_PRUNE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.employee_scheduling.employee_scheduling_problem import EmployeeSchedulingProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -19,18 +19,12 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.employee_scheduling
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
+    parser.add_argument("--opt_mode", choices=OPTIM_MODES, default=OPTIM_PRUNE)
     args = parser.parse_args()
     problem = EmployeeSchedulingProblem()
-    solver = BacktrackSolver(
-        problem,
-        log_level=args.log_level,
-    )
-    if args.all:
-        solver.solve_all()
+    solver = BacktrackSolver(problem, log_level=args.log_level)
+    solution = solver.maximize(problem.satisfied_request_nb, mode=args.opt_mode)
+    if args.stats:
         solver.print_statistics()
-    else:
-        solution = solver.find_one()
-        if args.stats:
-            solver.print_statistics()
-        if args.display:
-            problem.print_solution(solution)
+    if args.display:
+        problem.print_solution(solution)

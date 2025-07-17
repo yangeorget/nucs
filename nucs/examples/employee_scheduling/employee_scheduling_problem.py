@@ -15,25 +15,25 @@ from typing import Any, List
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_COUNT_EQ, ALG_COUNT_EQ_C, ALG_COUNT_LEQ_C
+from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_COUNT_EQ, ALG_COUNT_EQ_C, ALG_COUNT_LEQ_C
 
 
 class EmployeeSchedulingProblem(Problem):
     """ """
 
+    def shift_index(self, day: int, shift: int, nurse: int) -> int:
+        return day * self.shift_nb * self.nurse_nb + shift * self.nurse_nb + nurse
+
     def nurses(self, day: int, shift: int) -> List[int]:
-        return list(
-            range(
-                day * self.shift_nb * self.nurse_nb + shift * self.nurse_nb,
-                day * self.shift_nb * self.nurse_nb + (shift + 1) * self.nurse_nb,
-            )
-        )
+        start_shift = self.shift_index(day, shift, 0)
+        return list(range(start_shift, start_shift + self.nurse_nb))
 
     def shifts(self, day: int, nurse: int) -> List[int]:
+        start_shift = self.shift_index(day, 0, nurse)
         return list(
             range(
-                day * self.shift_nb * self.nurse_nb + nurse,
-                (day + 1) * self.shift_nb * self.nurse_nb + nurse,
+                start_shift,
+                start_shift + self.shift_nb * self.nurse_nb,
                 self.nurse_nb,
             )
         )
@@ -42,34 +42,57 @@ class EmployeeSchedulingProblem(Problem):
         """
         Initializes the problem.
         """
-        self.day_nb = 3
+        self.day_nb = 7
         self.shift_nb = 3
-        self.nurse_nb = 4
-        min_shifts_per_nurse = (self.shift_nb * self.day_nb) // self.nurse_nb
-        if self.shift_nb * self.day_nb % self.nurse_nb == 0:
-            max_shifts_per_nurse = min_shifts_per_nurse
-        else:
-            max_shifts_per_nurse = min_shifts_per_nurse + 1
-        super().__init__(
-            [(0, 1)] * self.nurse_nb * self.shift_nb * self.day_nb
-            + [(min_shifts_per_nurse, max_shifts_per_nurse)] * self.nurse_nb
+        self.nurse_nb = 5
+        self.shift_total_nb = self.day_nb * self.shift_nb * self.nurse_nb
+        self.shift_requests_nds = [
+            [[0, 0, 1], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 0, 1]],
+            [[0, 0, 0], [0, 0, 0], [0, 1, 0], [0, 1, 0], [1, 0, 0], [0, 0, 0], [0, 0, 1]],
+            [[0, 1, 0], [0, 1, 0], [0, 0, 0], [1, 0, 0], [0, 0, 0], [0, 1, 0], [0, 0, 0]],
+            [[0, 0, 1], [0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 0], [1, 0, 0], [0, 0, 0]],
+            [[0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 0]],
+        ]
+        shift_requests_dsn = [
+            self.shift_requests_nds[n][d][s]
+            for d in range(self.day_nb)
+            for s in range(self.shift_nb)
+            for n in range(self.nurse_nb)
+        ]
+        min_shift_count_per_nurse = (self.shift_nb * self.day_nb) // self.nurse_nb
+        max_shift_count_per_nurse = min_shift_count_per_nurse + (
+            0 if self.shift_nb * self.day_nb % self.nurse_nb == 0 else 1
         )
-        for d in range(self.day_nb):
-            for s in range(self.shift_nb):
-                self.add_propagator((self.nurses(d, s), ALG_COUNT_EQ_C, [1]))
-        for d in range(self.day_nb):
-            for n in range(self.nurse_nb):
-                self.add_propagator((self.shifts(d, n), ALG_COUNT_LEQ_C, [1]))
-        for n in range(self.nurse_nb):
-            self.add_propagator(
-                (list(range(n, self.nurse_nb * (self.shift_nb * self.day_nb + 1), self.nurse_nb)), ALG_COUNT_EQ, [1])
+        super().__init__([(0, 1)] * self.shift_total_nb)  # the boolean variables for shifts
+        self.add_variables(
+            [(min_shift_count_per_nurse, max_shift_count_per_nurse)] * self.nurse_nb
+        )  # the number of shifts per nurse
+        self.satisfied_request_nb = self.add_variable((0, self.shift_total_nb))  # the number of satisfied requests
+        self.add_propagators(
+            [(self.nurses(d, s), ALG_COUNT_EQ_C, [1]) for d in range(self.day_nb) for s in range(self.shift_nb)]
+        )
+        self.add_propagators(
+            [(self.shifts(d, n), ALG_COUNT_LEQ_C, [1]) for d in range(self.day_nb) for n in range(self.nurse_nb)]
+        )
+        self.add_propagators(
+            [
+                (list(range(n, self.shift_total_nb + self.nurse_nb, self.nurse_nb)), ALG_COUNT_EQ, [1])
+                for n in range(self.nurse_nb)
+            ]
+        )
+        self.add_propagator(
+            (
+                list(range(0, self.shift_total_nb)) + [self.satisfied_request_nb],
+                ALG_AFFINE_EQ,
+                shift_requests_dsn + [-1, 0],
             )
+        )
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         return {
             d: [
                 [
-                    "x" if solution[d * self.shift_nb * self.nurse_nb + s * self.nurse_nb + n] else " "
+                    (("W" if self.shift_requests_nds[n][d][s] else "w") if solution[self.shift_index(d, s, n)] else " ")
                     for n in range(self.nurse_nb)
                 ]
                 for s in range(self.shift_nb)

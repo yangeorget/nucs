@@ -12,7 +12,7 @@
 ###############################################################################
 import copy
 import logging
-from typing import Any, List, Optional, Self, Tuple, Union
+from typing import Any, List, Optional, Self, Sequence, Tuple, Union
 
 import numpy as np
 from numba import njit
@@ -114,7 +114,7 @@ class Problem:
 
     def add_variables(
         self,
-        domains: List[Union[int, Tuple[int, int]]],
+        domains: Sequence[Union[int, Tuple[int, int]]],
         variables: Optional[List[int]] = None,
         offsets: Optional[List[int]] = None,
     ) -> int:
