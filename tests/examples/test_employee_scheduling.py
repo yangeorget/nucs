@@ -15,13 +15,13 @@ from nucs.examples.employee_scheduling.employee_scheduling_problem import Employ
 
 class TestEmployeeScheduling:
     def test_nurses(self) -> None:
-        assert EmployeeSchedulingProblem().nurses(0, 0) == [0, 1, 2, 3]
-        assert EmployeeSchedulingProblem().nurses(0, 1) == [4, 5, 6, 7]
-        assert EmployeeSchedulingProblem().nurses(1, 0) == [12, 13, 14, 15]
-        assert EmployeeSchedulingProblem().nurses(1, 1) == [16, 17, 18, 19]
+        assert EmployeeSchedulingProblem().nurses(0, 0) == [0, 1, 2, 3, 4]
+        assert EmployeeSchedulingProblem().nurses(0, 1) == [5, 6, 7, 8, 9]
+        assert EmployeeSchedulingProblem().nurses(1, 0) == [15, 16, 17, 18, 19]
+        assert EmployeeSchedulingProblem().nurses(1, 1) == [20, 21, 22, 23, 24]
 
     def test_shifts(self) -> None:
-        assert EmployeeSchedulingProblem().shifts(0, 0) == [0, 4, 8]
-        assert EmployeeSchedulingProblem().shifts(0, 1) == [1, 5, 9]
-        assert EmployeeSchedulingProblem().shifts(1, 0) == [12, 16, 20]
-        assert EmployeeSchedulingProblem().shifts(1, 1) == [13, 17, 21]
+        assert EmployeeSchedulingProblem().shifts(0, 0) == [0, 5, 10]
+        assert EmployeeSchedulingProblem().shifts(0, 1) == [1, 6, 11]
+        assert EmployeeSchedulingProblem().shifts(1, 0) == [15, 20, 25]
+        assert EmployeeSchedulingProblem().shifts(1, 1) == [16, 21, 26]
