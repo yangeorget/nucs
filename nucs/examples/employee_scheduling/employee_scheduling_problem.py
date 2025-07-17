@@ -19,7 +19,9 @@ from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_COUNT_EQ, ALG_COUNT_
 
 
 class EmployeeSchedulingProblem(Problem):
-    """ """
+    """
+    See https://developers.google.com/optimization/scheduling/employee_scheduling.
+    """
 
     def shift_index(self, day: int, shift: int, nurse: int) -> int:
         return day * self.shift_nb * self.nurse_nb + shift * self.nurse_nb + nurse
