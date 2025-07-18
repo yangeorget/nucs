@@ -21,6 +21,7 @@ from nucs.propagators.propagators import ALG_COUNT_EQ, ALG_COUNT_EQ_C, ALG_COUNT
 # TODO: NDS instead of DSN
 # TODO: GCC instead of booleans
 # TODO: get rid of count variables, use count_leq and count_geq
+# TODO: use custom heuristic (cf requests)
 class EmployeeSchedulingProblem(Problem):
     """
     See https://developers.google.com/optimization/scheduling/employee_scheduling.
