@@ -66,22 +66,17 @@ class EmployeeSchedulingProblem(Problem):
             0 if self.shift_nb * self.day_nb % self.nurse_nb == 0 else 1
         )
         super().__init__([(0, 1)] * self.shift_total_nb)  # the boolean variables for shifts
-        self.add_variables(
-            [(min_shift_count_per_nurse, max_shift_count_per_nurse)] * self.nurse_nb
-        )  # the number of shifts per nurse
         self.satisfied_request_nb = self.add_variable((0, self.shift_total_nb))  # the number of satisfied requests
         self.add_propagators(
-            [(self.nurses(d, s), ALG_COUNT_EQ_C, [1]) for d in range(self.day_nb) for s in range(self.shift_nb)]
+            [(self.nurses(d, s), ALG_COUNT_EQ_C, [1, 1]) for d in range(self.day_nb) for s in range(self.shift_nb)]
         )
         self.add_propagators(
-            [(self.shifts(d, n), ALG_COUNT_LEQ_C, [1]) for d in range(self.day_nb) for n in range(self.nurse_nb)]
+            [(self.shifts(d, n), ALG_COUNT_LEQ_C, [1, 1]) for d in range(self.day_nb) for n in range(self.nurse_nb)]
         )
-        self.add_propagators(
-            [
-                (list(range(n, self.shift_total_nb + self.nurse_nb, self.nurse_nb)), ALG_COUNT_EQ, [1])
-                for n in range(self.nurse_nb)
-            ]
-        )
+        for n in range(self.nurse_nb):
+            nurse_shifts = list(range(n, self.shift_total_nb, self.nurse_nb))
+            self.add_propagator((nurse_shifts, ALG_COUNT_LEQ_C, [1, max_shift_count_per_nurse]))
+            #self.add_propagator((nurse_shifts, ALG_COUNT_GEQ_C, [1, min_shift_count_per_nurse]))
         self.add_propagator(
             (
                 list(range(0, self.shift_total_nb)) + [self.satisfied_request_nb],
