@@ -15,9 +15,12 @@ from typing import Any, List
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_COUNT_EQ, ALG_COUNT_EQ_C, ALG_COUNT_LEQ_C
+from nucs.propagators.propagators import ALG_COUNT_EQ, ALG_COUNT_EQ_C, ALG_COUNT_LEQ_C
 
 
+# TODO: NDS instead of DSN
+# TODO: GCC instead of booleans
+# TODO: get rid of count variables, use count_leq and count_geq
 class EmployeeSchedulingProblem(Problem):
     """
     See https://developers.google.com/optimization/scheduling/employee_scheduling.
@@ -71,10 +74,10 @@ class EmployeeSchedulingProblem(Problem):
         )  # the number of shifts per nurse
         self.satisfied_request_nb = self.add_variable((0, self.shift_total_nb))  # the number of satisfied requests
         self.add_propagators(
-            [(self.nurses(d, s), ALG_COUNT_EQ_C, [1]) for d in range(self.day_nb) for s in range(self.shift_nb)]
+            [(self.nurses(d, s), ALG_COUNT_EQ_C, [1, 1]) for d in range(self.day_nb) for s in range(self.shift_nb)]
         )
         self.add_propagators(
-            [(self.shifts(d, n), ALG_COUNT_LEQ_C, [1]) for d in range(self.day_nb) for n in range(self.nurse_nb)]
+            [(self.shifts(d, n), ALG_COUNT_LEQ_C, [1, 1]) for d in range(self.day_nb) for n in range(self.nurse_nb)]
         )
         self.add_propagators(
             [
@@ -84,9 +87,10 @@ class EmployeeSchedulingProblem(Problem):
         )
         self.add_propagator(
             (
-                list(range(0, self.shift_total_nb)) + [self.satisfied_request_nb],
-                ALG_AFFINE_EQ,
-                shift_requests_dsn + [-1, 0],
+                [index for index in range(0, self.shift_total_nb) if shift_requests_dsn[index]]
+                + [self.satisfied_request_nb],
+                ALG_COUNT_EQ,
+                [1],
             )
         )
 
