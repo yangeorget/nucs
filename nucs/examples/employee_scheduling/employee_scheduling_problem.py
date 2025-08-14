@@ -19,8 +19,6 @@ from nucs.propagators.propagators import ALG_COUNT_EQ, ALG_COUNT_EQ_C, ALG_COUNT
 
 
 # TODO: GCC instead of booleans
-# TODO: get rid of count variables, use count_leq and count_geq
-# TODO: use custom heuristic (cf requests)
 class EmployeeSchedulingProblem(Problem):
     """
     See https://developers.google.com/optimization/scheduling/employee_scheduling.
@@ -64,6 +62,7 @@ class EmployeeSchedulingProblem(Problem):
             for s in range(self.shift_nb)
             for n in range(self.nurse_nb)
         ]
+        self.requested_shifts = [iv[0] for iv in sorted(enumerate(shift_requests_dsn), key=lambda x: -x[1])]
         min_shift_count_per_nurse = (self.shift_nb * self.day_nb) // self.nurse_nb
         max_shift_count_per_nurse = min_shift_count_per_nurse + (
             0 if self.shift_nb * self.day_nb % self.nurse_nb == 0 else 1
