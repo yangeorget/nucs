@@ -18,7 +18,6 @@ from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_COUNT_EQ, ALG_COUNT_EQ_C, ALG_COUNT_LEQ_C
 
 
-# TODO: NDS instead of DSN
 # TODO: GCC instead of booleans
 # TODO: get rid of count variables, use count_leq and count_geq
 # TODO: use custom heuristic (cf requests)

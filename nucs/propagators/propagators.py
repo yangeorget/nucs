@@ -48,6 +48,8 @@ from nucs.propagators.count_eq_propagator import (
     get_complexity_count_eq,
     get_triggers_count_eq,
 )
+from nucs.propagators.count_geq_c_propagator import get_triggers_count_geq_c, get_complexity_count_geq_c, \
+    compute_domains_count_geq_c
 from nucs.propagators.count_leq_c_propagator import (
     compute_domains_count_leq_c,
     get_complexity_count_leq_c,
@@ -140,6 +142,7 @@ ALG_ALLDIFFERENT = register_propagator(
 )
 ALG_COUNT_EQ = register_propagator(get_triggers_count_eq, get_complexity_count_eq, compute_domains_count_eq)
 ALG_COUNT_EQ_C = register_propagator(get_triggers_count_eq_c, get_complexity_count_eq_c, compute_domains_count_eq_c)
+ALG_COUNT_GEQ_C = register_propagator(get_triggers_count_geq_c, get_complexity_count_geq_c, compute_domains_count_geq_c)
 ALG_COUNT_LEQ_C = register_propagator(get_triggers_count_leq_c, get_complexity_count_leq_c, compute_domains_count_leq_c)
 ALG_DUMMY = register_propagator(get_triggers_dummy, get_complexity_dummy, compute_domains_dummy)
 ALG_ELEMENT_EQ = register_propagator(get_triggers_element_eq, get_complexity_element_eq, compute_domains_element_eq)
