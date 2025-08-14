@@ -11,6 +11,8 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 from nucs.examples.employee_scheduling.employee_scheduling_problem import EmployeeSchedulingProblem
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE
+from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
 class TestEmployeeScheduling:
@@ -25,3 +27,12 @@ class TestEmployeeScheduling:
         assert EmployeeSchedulingProblem().shifts(0, 1) == [1, 6, 11]
         assert EmployeeSchedulingProblem().shifts(1, 0) == [15, 20, 25]
         assert EmployeeSchedulingProblem().shifts(1, 1) == [16, 21, 26]
+
+    def test_employee_scheduling(self) -> None:
+        problem = EmployeeSchedulingProblem()
+        solver = BacktrackSolver(
+            problem, decision_domains=problem.requested_shifts, dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE
+        )
+        solution = solver.maximize(problem.satisfied_request_nb)
+        assert solution is not None
+        assert solution[problem.satisfied_request_nb] == 13

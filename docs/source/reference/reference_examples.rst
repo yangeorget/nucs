@@ -18,7 +18,26 @@ Most of these examples can be run from the command line and support the followin
 * :code:`--symmetry_breaking/--no-symmetry_breaking`: when set, leverages symmetries in the problem
 
 
-.. py:module:: nucs.examples.alpha.alpha_problem
+.. py:module:: nucs.examples.all_interval_series.all_interval_series_problem
+.. py:class:: nucs.examples.all_interval_series.all_interval_series_problem.AllIntervalSeriesProblem
+
+This problem is problem `007 <https://www.csplib.org/Problems/prob007>`_ on CSPLib.
+
+This problem can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.all_interval_series
+
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.abs_eq_propagator`,
+* :mod:`nucs.propagators.affine_eq_propagator`,
+* :mod:`nucs.propagators.affine_leq_propagator`,
+* :mod:`nucs.propagators.alldifferent_propagator`.
+
+
+. py:module:: nucs.examples.alpha.alpha_problem
 .. py:class:: nucs.examples.alpha.alpha_problem.AlphaProblem
 
 This problem can be run with the command:
@@ -64,6 +83,22 @@ This problem leverages the propagators:
 
 * :mod:`nucs.propagators.affine_eq_propagator`,
 * :mod:`nucs.propagators.alldifferent_propagator`.
+
+
+. py:module:: nucs.examples.employee_scheduling.employee_scheduling_problem
+.. py:class:: nucs.examples.employee_scheduling.employee_scheduling.EmployeeSchedulingProblem
+
+This problem can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.employee_scheduling
+
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.count_eq_c_propagator`,
+* :mod:`nucs.propagators.count_eq_propagator`,
+* :mod:`nucs.propagators.count_leq_c_propagator`.
 
 
 .. py:module:: nucs.examples.golomb.golomb_problem
