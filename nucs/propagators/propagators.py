@@ -48,8 +48,11 @@ from nucs.propagators.count_eq_propagator import (
     get_complexity_count_eq,
     get_triggers_count_eq,
 )
-from nucs.propagators.count_geq_c_propagator import get_triggers_count_geq_c, get_complexity_count_geq_c, \
-    compute_domains_count_geq_c
+from nucs.propagators.count_geq_c_propagator import (
+    compute_domains_count_geq_c,
+    get_complexity_count_geq_c,
+    get_triggers_count_geq_c,
+)
 from nucs.propagators.count_leq_c_propagator import (
     compute_domains_count_leq_c,
     get_complexity_count_leq_c,

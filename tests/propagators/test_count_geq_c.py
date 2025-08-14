@@ -16,7 +16,6 @@ import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.count_geq_c_propagator import compute_domains_count_geq_c
-from nucs.propagators.count_leq_c_propagator import compute_domains_count_leq_c
 from tests.propagators.propagator_test import PropagatorTest
 
 
@@ -30,18 +29,18 @@ class TestCountGeqC(PropagatorTest):
                 PROP_INCONSISTENCY,
                 None,
             ),
-            # (
-            #     [(1, 4), (3, 5), (3, 5), (6, 8), 3, 5],
-            #     [5, 3],
-            #     PROP_ENTAILMENT,
-            #     [[1, 4], [5, 5], [5, 5], [6, 8], [3, 3], [5, 5]],
-            # ),
-            # (
-            #     [(1, 4), (3, 5), (3, 6), (6, 8), 3, 5],
-            #     [5, 2],
-            #     PROP_CONSISTENCY,
-            #     [[1, 4], [3, 5], [3, 6], [6, 8], [3, 3], [5, 5]],
-            # ),
+            (
+                [(1, 4), (3, 5), (3, 5), (6, 8), 3, 5],
+                [5, 3],
+                PROP_ENTAILMENT,
+                [[1, 4], [5, 5], [5, 5], [6, 8], [3, 3], [5, 5]],
+            ),
+            (
+                [(1, 4), (3, 5), (3, 6), (6, 8), 3, 5],
+                [5, 2],
+                PROP_CONSISTENCY,
+                [[1, 4], [3, 5], [3, 6], [6, 8], [3, 3], [5, 5]],
+            ),
         ],
     )
     def test_compute_domains(

@@ -61,5 +61,5 @@ def compute_domains_count_geq_c(domains: NDArray, parameters: NDArray) -> int:
         for domain in domains:
             if domain[MIN] <= a <= domain[MAX]:
                 domain[:] = a
-            return PROP_ENTAILMENT
+        return PROP_ENTAILMENT
     return PROP_CONSISTENCY
