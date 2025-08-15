@@ -37,7 +37,7 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.alldifferent_propagator`.
 
 
-. py:module:: nucs.examples.alpha.alpha_problem
+.. py:module:: nucs.examples.alpha.alpha_problem
 .. py:class:: nucs.examples.alpha.alpha_problem.AlphaProblem
 
 This problem can be run with the command:
