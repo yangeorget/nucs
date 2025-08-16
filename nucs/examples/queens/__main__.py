@@ -41,6 +41,7 @@ if __name__ == "__main__":
                         VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
                     ),
                     log_level=args.log_level,
+                    stks_max_height=args.cp
                 )
                 for problem in problem.split(args.processors, 0)
             ]
@@ -52,7 +53,7 @@ if __name__ == "__main__":
             var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
             dom_heuristic_idx=DOM_HEURISTIC_MID_VALUE,
             log_level=args.log_level,
-            stks_max_height=2048,
+            stks_max_height=args.cp,
         )
     )
     if args.all:

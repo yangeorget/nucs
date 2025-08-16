@@ -29,6 +29,7 @@ if __name__ == "__main__":
     solver = BacktrackSolver(
         problem,
         log_level=args.log_level,
+        stks_max_height=args.cp
     )
     if args.all:
         solver.solve_all()

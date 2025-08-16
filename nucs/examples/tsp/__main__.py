@@ -46,6 +46,7 @@ if __name__ == "__main__":
                     dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
                     dom_heuristic_params=costs,
                     log_level=args.log_level,
+                    stks_max_height=args.cp
                 )
                 for prob in problem.split(args.processors, 0)
             ]
@@ -60,6 +61,7 @@ if __name__ == "__main__":
             dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
             dom_heuristic_params=costs,
             log_level=args.log_level,
+            stks_max_height=args.cp
         )
     )
     solution = solver.minimize(problem.total_cost, mode=args.opt_mode)

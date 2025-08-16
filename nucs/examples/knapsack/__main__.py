@@ -33,6 +33,7 @@ if __name__ == "__main__":
         var_heuristic_idx=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE,
         log_level=args.log_level,
+        stks_max_height=args.cp
     )
     solution = solver.maximize(problem.weight, mode=args.opt_mode)
     if args.stats:

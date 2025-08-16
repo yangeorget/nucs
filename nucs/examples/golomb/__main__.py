@@ -33,6 +33,7 @@ if __name__ == "__main__":
                     prob,
                     consistency_alg_idx=consistency_alg_golomb,
                     log_level=args.log_level,
+                    stks_max_height=args.cp
                 )
                 for prob in problem.split(args.processors, 0)
             ]
@@ -42,6 +43,7 @@ if __name__ == "__main__":
             problem,
             consistency_alg_idx=consistency_alg_golomb,
             log_level=args.log_level,
+            stks_max_height=args.cp
         )
     )
     solution = solver.minimize(problem.length_idx, mode=args.opt_mode)

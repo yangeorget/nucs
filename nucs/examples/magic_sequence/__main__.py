@@ -26,6 +26,7 @@ if __name__ == "__main__":
         problem,
         decision_domains=list(range(args.n - 1, -1, -1)),
         log_level=args.log_level,
+        stks_max_height=args.cp
     )
     if args.all:
         solver.solve_all()

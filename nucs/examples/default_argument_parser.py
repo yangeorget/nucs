@@ -22,6 +22,19 @@ class DefaultArgumentParser(argparse.ArgumentParser):
             "--all", help="find all solutions", type=bool, action=argparse.BooleanOptionalAction, default=True
         )
         self.add_argument(
+            "--cp",
+            help="set the height of the choice points stack",
+            type=int,
+            default=512,
+        )
+        self.add_argument(
+            "--display",
+            help="display the solution(s)",
+            type=bool,
+            action=argparse.BooleanOptionalAction,
+            default=True,
+        )
+        self.add_argument(
             "--log_level",
             help="set the log level",
             choices=LOG_LEVELS,
@@ -34,11 +47,11 @@ class DefaultArgumentParser(argparse.ArgumentParser):
             default=1,
         )
         self.add_argument(
-            "--display",
-            help="display the solution(s)",
+            "--shaving",
+            help="use shaving together with bound consistency",
             type=bool,
             action=argparse.BooleanOptionalAction,
-            default=True,
+            default=False,
         )
         self.add_argument(
             "--stats",
@@ -46,13 +59,6 @@ class DefaultArgumentParser(argparse.ArgumentParser):
             type=bool,
             action=argparse.BooleanOptionalAction,
             default=True,
-        )
-        self.add_argument(
-            "--shaving",
-            help="use shaving together with bound consistency",
-            type=bool,
-            action=argparse.BooleanOptionalAction,
-            default=False,
         )
         self.add_argument(
             "--symmetry_breaking",

@@ -27,7 +27,7 @@ if __name__ == "__main__":
         decision_domains=list(range(args.n)),
         var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
         log_level=args.log_level,
-        stks_max_height=2048,
+        stks_max_height=args.cp,
     )
     if args.all:
         solutions = solver.find_all()
