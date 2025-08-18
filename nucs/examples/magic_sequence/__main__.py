@@ -23,10 +23,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     problem = MagicSequenceProblem(args.n)
     solver = BacktrackSolver(
-        problem,
-        decision_domains=list(range(args.n - 1, -1, -1)),
-        log_level=args.log_level,
-        stks_max_height=args.cp
+        problem, decision_domains=list(range(args.n - 1, -1, -1)), log_level=args.log_level, stks_max_height=args.cp
     )
     if args.all:
         solver.solve_all()

@@ -14,7 +14,7 @@ from typing import List, Optional, Tuple, Union
 
 import pytest
 
-from nucs.constants import PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import PROP_CONSISTENCY
 from nucs.propagators.affine_eq_propagator import compute_domains_affine_eq
 from tests.propagators.propagator_test import PropagatorTest
 

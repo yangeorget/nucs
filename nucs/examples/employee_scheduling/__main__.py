@@ -28,7 +28,7 @@ if __name__ == "__main__":
         decision_domains=problem.requested_shifts,
         dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE,
         log_level=args.log_level,
-        stks_max_height=args.cp
+        stks_max_height=args.cp,
     )
     solution = solver.maximize(problem.satisfied_request_nb, mode=args.opt_mode)
     if args.stats:
