@@ -115,6 +115,22 @@ from nucs.propagators.relation_propagator import (
     get_triggers_relation,
 )
 from nucs.propagators.scc_propagator import compute_domains_scc, get_complexity_scc, get_triggers_scc
+from nucs.propagators.sum_eq_c_propagator import (
+    compute_domains_sum_eq_c,
+    get_complexity_sum_eq_c,
+    get_triggers_sum_eq_c,
+)
+from nucs.propagators.sum_eq_propagator import compute_domains_sum_eq, get_complexity_sum_eq, get_triggers_sum_eq
+from nucs.propagators.sum_geq_c_propagator import (
+    compute_domains_sum_geq_c,
+    get_complexity_sum_geq_c,
+    get_triggers_sum_geq_c,
+)
+from nucs.propagators.sum_leq_c_propagator import (
+    compute_domains_sum_leq_c,
+    get_complexity_sum_leq_c,
+    get_triggers_sum_leq_c,
+)
 
 GET_TRIGGERS_FCTS = []
 GET_COMPLEXITY_FCTS = []
@@ -182,6 +198,10 @@ ALG_PERMUTATION_AUX = register_propagator(
 )
 ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relation, compute_domains_relation)
 ALG_SCC = register_propagator(get_triggers_scc, get_complexity_scc, compute_domains_scc)
+ALG_SUM_EQ = register_propagator(get_triggers_sum_eq, get_complexity_sum_eq, compute_domains_sum_eq)
+ALG_SUM_EQ_C = register_propagator(get_triggers_sum_eq_c, get_complexity_sum_eq_c, compute_domains_sum_eq_c)
+ALG_SUM_GEQ_C = register_propagator(get_triggers_sum_geq_c, get_complexity_sum_geq_c, compute_domains_sum_geq_c)
+ALG_SUM_LEQ_C = register_propagator(get_triggers_sum_leq_c, get_complexity_sum_leq_c, compute_domains_sum_leq_c)
 
 
 @njit(cache=True)

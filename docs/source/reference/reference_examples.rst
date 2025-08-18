@@ -32,9 +32,9 @@ This problem can be run with the command:
 This problem leverages the propagators:
 
 * :mod:`nucs.propagators.abs_eq_propagator`,
-* :mod:`nucs.propagators.affine_eq_propagator`,
 * :mod:`nucs.propagators.affine_leq_propagator`,
-* :mod:`nucs.propagators.alldifferent_propagator`.
+* :mod:`nucs.propagators.alldifferent_propagator`,
+* :mod:`nucs.propagators.sum_eq_propagator`.
 
 
 .. py:module:: nucs.examples.alpha.alpha_problem
@@ -114,9 +114,9 @@ This problem can be run with the command:
 
 This problem leverages the propagators:
 
-* :mod:`nucs.propagators.affine_eq_propagator`,
 * :mod:`nucs.propagators.affine_leq_propagator`,
-* :mod:`nucs.propagators.alldifferent_propagator`.
+* :mod:`nucs.propagators.alldifferent_propagator`,
+* :mod:`nucs.propagators.sum_eq_propagator`.
 
 
 .. py:module:: nucs.examples.knapsack.knapsack_problem
@@ -150,7 +150,8 @@ This problem can be run with the command:
 This problem leverages the propagators:
 
 * :mod:`nucs.propagators.affine_eq_propagator`,
-* :mod:`nucs.propagators.count_eq_propagator`.
+* :mod:`nucs.propagators.count_eq_propagator`,
+* :mod:`nucs.propagators.sum_eq_propagator`.
 
 
 .. py:module:: nucs.examples.magic_square.magic_square_problem
@@ -166,9 +167,9 @@ This problem can be run with the command:
 
 This problem leverages the propagators:
 
-* :mod:`nucs.propagators.affine_eq_propagator`,
 * :mod:`nucs.propagators.affine_leq_propagator`,
-* :mod:`nucs.propagators.alldifferent_propagator`.
+* :mod:`nucs.propagators.alldifferent_propagator`,
+* :mod:`nucs.propagators.sum_eq_propagator`.
 
 
 .. py:module:: nucs.examples.quasigroup.quasigroup_problem
@@ -260,4 +261,4 @@ The problem can be run with the command:
 This problem leverages the :mod:`nucs.problems.circuit_problem` and the propagators:
 
 * :mod:`nucs.propagators.element_iv_propagator`,
-* :mod:`nucs.propagators.affine_eq_propagator`.
+* :mod:`nucs.propagators.sum_eq_propagator`.

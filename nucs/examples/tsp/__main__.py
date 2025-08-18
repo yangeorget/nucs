@@ -22,7 +22,7 @@ from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_
 from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.alpha
+# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.tsp
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
     parser.add_argument("--name", choices=["GR17", "GR21", "GR24"], default="GR17")

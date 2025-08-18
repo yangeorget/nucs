@@ -20,7 +20,7 @@ from numpy.typing import NDArray
 from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MIN, MAX, MIN
 from nucs.heuristics.heuristics import first_not_instantiated_var_heuristic
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, update_propagators
+from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, ALG_SUM_EQ, update_propagators
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
 
 GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])
@@ -82,11 +82,7 @@ class GolombProblem(Problem):
         for i in range(1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
                 self.add_propagator(
-                    (
-                        [index(mark_nb, 0, j), index(mark_nb, 0, i), index(mark_nb, i, j)],
-                        ALG_AFFINE_EQ,
-                        [1, -1, -1, 0],
-                    )
+                    ([index(mark_nb, 0, i), index(mark_nb, i, j), index(mark_nb, 0, j)], ALG_SUM_EQ, [])
                 )
         self.add_propagator((list(range(self.domain_nb)), ALG_ALLDIFFERENT, []))
         # redundant constraints

@@ -13,7 +13,7 @@
 from typing import List
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ, ALG_ALLDIFFERENT
+from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, ALG_SUM_EQ_C
 
 
 class MagicSquareProblem(Problem):
@@ -33,10 +33,10 @@ class MagicSquareProblem(Problem):
         self.m = ((n**2 - 1) * n) // 2
         super().__init__([(0, n**2 - 1)] * n**2)
         for i in range(n):
-            self.add_propagator((self.row(i), ALG_AFFINE_EQ, [1] * n + [self.m]))
-            self.add_propagator((self.column(i), ALG_AFFINE_EQ, [1] * n + [self.m]))
-        self.add_propagator((self.first_diag(), ALG_AFFINE_EQ, [1] * n + [self.m]))
-        self.add_propagator((self.second_diag(), ALG_AFFINE_EQ, [1] * n + [self.m]))
+            self.add_propagator((self.row(i), ALG_SUM_EQ_C, [self.m]))
+            self.add_propagator((self.column(i), ALG_SUM_EQ_C, [self.m]))
+        self.add_propagator((self.first_diag(), ALG_SUM_EQ_C, [self.m]))
+        self.add_propagator((self.second_diag(), ALG_SUM_EQ_C, [self.m]))
         self.add_propagator((list(range(n**2)), ALG_ALLDIFFERENT, []))
         if symmetry_breaking:
             top_left = self.first_diag()[0]
