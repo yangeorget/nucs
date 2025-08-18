@@ -44,28 +44,35 @@ def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
     :param parameters: the parameters of the propagator, a is an alias for parameters
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
-    domain_sum_min = domain_sum_max = -parameters[-1]
     factors = parameters[:-1]
     n = len(factors)
-    for i in range(n):
-        factor = factors[i]
-        if factor > 0:
-            domain_sum_min += factor * domains[i, MAX]
-            domain_sum_max += factor * domains[i, MIN]
-        elif factor < 0:
-            domain_sum_min += factor * domains[i, MIN]
-            domain_sum_max += factor * domains[i, MAX]
-    for i in range(n):
-        factor = factors[i]
-        if factor != 0:
+    has_changed = True
+    while has_changed:
+        has_changed = False
+        domain_sum_min = domain_sum_max = -parameters[-1]
+        for i in range(n):
+            factor = factors[i]
             if factor > 0:
-                new_min = domains[i, MAX] - (-domain_sum_min // -factor)
-                new_max = domains[i, MIN] + (-domain_sum_max // factor)
-            else:
-                new_min = domains[i, MAX] - (domain_sum_max // factor)
-                new_max = domains[i, MIN] + (domain_sum_min // -factor)
-            domains[i, MIN] = max(domains[i, MIN], new_min)
-            domains[i, MAX] = min(domains[i, MAX], new_max)
-            if domains[i, MIN] > domains[i, MAX]:
-                return PROP_INCONSISTENCY
+                domain_sum_min += factor * domains[i, MAX]
+                domain_sum_max += factor * domains[i, MIN]
+            elif factor < 0:
+                domain_sum_min += factor * domains[i, MIN]
+                domain_sum_max += factor * domains[i, MAX]
+        for i in range(n):
+            factor = factors[i]
+            if factor != 0:
+                if factor > 0:
+                    new_min = domains[i, MAX] - (-domain_sum_min // -factor)
+                    new_max = domains[i, MIN] + (-domain_sum_max // factor)
+                else:
+                    new_min = domains[i, MAX] - (domain_sum_max // factor)
+                    new_max = domains[i, MIN] + (domain_sum_min // -factor)
+                if new_min > domains[i, MIN]:
+                    domains[i, MIN] = new_min
+                    has_changed = True
+                if new_max < domains[i, MAX]:
+                    domains[i, MAX] = new_max
+                    has_changed = True
+                if domains[i, MIN] > domains[i, MAX]:
+                    return PROP_INCONSISTENCY
     return PROP_CONSISTENCY

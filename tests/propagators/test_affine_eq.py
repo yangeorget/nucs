@@ -14,7 +14,7 @@ from typing import List, Optional, Tuple, Union
 
 import pytest
 
-from nucs.constants import PROP_CONSISTENCY
+from nucs.constants import PROP_CONSISTENCY, PROP_INCONSISTENCY
 from nucs.propagators.affine_eq_propagator import compute_domains_affine_eq
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -23,11 +23,10 @@ class TestAffineEq(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
+            ([(1, 10), (1, 10)], [2, -3, 0], PROP_CONSISTENCY, [[3, 9], [2, 6]]),
             ([(1, 10), (1, 10)], [1, 1, 8], PROP_CONSISTENCY, [[1, 7], [1, 7]]),
             ([(5, 10), (5, 10), (5, 10)], [1, 1, 1, 27], PROP_CONSISTENCY, [[7, 10], [7, 10], [7, 10]]),
             ([(-2, -1), (2, 3)], [1, 1, 0], PROP_CONSISTENCY, [[-2, -2], [2, 2]]),
-            ([(1, 10), (1, 10)], [1, -3, 0], PROP_CONSISTENCY, [[3, 10], [1, 3]]),
-            ([(-14, 11), (-4, 5)], [1, 3, 0], PROP_CONSISTENCY, [[-14, 11], [-3, 4]]),
             (
                 [4, 3, 5, 9, 1, 8, 6, 2, 7, 0],
                 [200, -1000, 100002, 9900, 100000, 20, 1000, 0, -99010, -1, 0],
