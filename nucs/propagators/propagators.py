@@ -90,6 +90,7 @@ from nucs.propagators.equiv_eq_propagator import (
     get_triggers_equiv_eq,
 )
 from nucs.propagators.gcc_propagator import compute_domains_gcc, get_complexity_gcc, get_triggers_gcc
+from nucs.propagators.leq_propagator import compute_domains_leq, get_complexity_leq, get_triggers_leq
 from nucs.propagators.lexicographic_leq_propagator import (
     compute_domains_lexicographic_leq,
     get_complexity_lexicographic_leq,
@@ -183,6 +184,7 @@ ALG_ELEMENT_L_EQ_C_ALLDIFFERENT = register_propagator(
 )
 ALG_EQUIV_EQ = register_propagator(get_triggers_equiv_eq, get_complexity_equiv_eq, compute_domains_equiv_eq)
 ALG_GCC = register_propagator(get_triggers_gcc, get_complexity_gcc, compute_domains_gcc)
+ALG_LEQ = register_propagator(get_triggers_leq, get_complexity_leq, compute_domains_leq)
 ALG_LEXICOGRAPHIC_LEQ = register_propagator(
     get_triggers_lexicographic_leq, get_complexity_lexicographic_leq, compute_domains_lexicographic_leq
 )

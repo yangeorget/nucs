@@ -20,7 +20,7 @@ from numpy.typing import NDArray
 from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MIN, MAX, MIN
 from nucs.heuristics.heuristics import first_not_instantiated_var_heuristic
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, ALG_SUM_EQ, update_propagators
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_LEQ, ALG_SUM_EQ, update_propagators
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
 
 GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])
@@ -92,16 +92,16 @@ class GolombProblem(Problem):
                     self.add_propagator(
                         (
                             [index(mark_nb, i, j), index(mark_nb, 0, mark_nb - 1)],
-                            ALG_AFFINE_LEQ,
-                            [1, -1, -sum_first(mark_nb - 1 - (j - i))],
+                            ALG_LEQ,
+                            [-sum_first(mark_nb - 1 - (j - i))],
                         )
                     )
         if symmetry_breaking:
             self.add_propagator(
                 (
                     [index(mark_nb, 0, 1), index(mark_nb, mark_nb - 2, mark_nb - 1)],
-                    ALG_AFFINE_LEQ,
-                    [1, -1, -1],
+                    ALG_LEQ,
+                    [-1],
                 )
             )
 

@@ -32,8 +32,8 @@ This problem can be run with the command:
 This problem leverages the propagators:
 
 * :mod:`nucs.propagators.abs_eq_propagator`,
-* :mod:`nucs.propagators.affine_leq_propagator`,
 * :mod:`nucs.propagators.alldifferent_propagator`,
+* :mod:`nucs.propagators.leq_propagator`,
 * :mod:`nucs.propagators.sum_eq_propagator`.
 
 
@@ -114,8 +114,8 @@ This problem can be run with the command:
 
 This problem leverages the propagators:
 
-* :mod:`nucs.propagators.affine_leq_propagator`,
 * :mod:`nucs.propagators.alldifferent_propagator`,
+* :mod:`nucs.propagators.leq_propagator`,
 * :mod:`nucs.propagators.sum_eq_propagator`.
 
 
@@ -167,8 +167,8 @@ This problem can be run with the command:
 
 This problem leverages the propagators:
 
-* :mod:`nucs.propagators.affine_leq_propagator`,
 * :mod:`nucs.propagators.alldifferent_propagator`,
+* :mod:`nucs.propagators.leq_propagator`,
 * :mod:`nucs.propagators.sum_eq_propagator`.
 
 

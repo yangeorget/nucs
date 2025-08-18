@@ -13,7 +13,7 @@
 from typing import List
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, ALG_SUM_EQ_C
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_LEQ, ALG_SUM_EQ_C
 
 
 class MagicSquareProblem(Problem):
@@ -43,10 +43,10 @@ class MagicSquareProblem(Problem):
             bottom_right = self.first_diag()[-1]
             top_right = self.second_diag()[0]
             bottom_left = self.second_diag()[-1]
-            self.add_propagator(([top_left, top_right], ALG_AFFINE_LEQ, [1, -1, -1]))
-            self.add_propagator(([top_left, bottom_left], ALG_AFFINE_LEQ, [1, -1, -1]))
-            self.add_propagator(([top_left, bottom_right], ALG_AFFINE_LEQ, [1, -1, -1]))
-            self.add_propagator(([top_right, bottom_left], ALG_AFFINE_LEQ, [1, -1, -1]))
+            self.add_propagator(([top_left, top_right], ALG_LEQ, [-1]))
+            self.add_propagator(([top_left, bottom_left], ALG_LEQ, [-1]))
+            self.add_propagator(([top_left, bottom_right], ALG_LEQ, [-1]))
+            self.add_propagator(([top_right, bottom_left], ALG_LEQ, [-1]))
 
     def row(self, i: int) -> List[int]:
         return list(range(0 + i * self.n, self.n + i * self.n))

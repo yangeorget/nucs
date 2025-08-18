@@ -1,0 +1,66 @@
+###############################################################################
+# __   _            _____    _____
+# | \ | |          / ____|  / ____|
+# |  \| |  _   _  | |      | (___
+# | . ` | | | | | | |       \___ \
+# | |\  | | |_| | | |____   ____) |
+# |_| \_|  \__,_|  \_____| |_____/
+#
+# Fast constraint solving in Python  - https://github.com/yangeorget/nucs
+#
+# Copyright 2024-2025 - Yan Georget
+###############################################################################
+from numba import njit  # type: ignore
+from numpy.typing import NDArray
+
+from nucs.constants import (
+    EVENT_MASK_MAX,
+    EVENT_MASK_MIN,
+    MAX,
+    MIN,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
+
+
+def get_complexity_leq(n: int, parameters: NDArray) -> float:
+    """
+    Returns the time complexity of the propagator as a float.
+    :param n: the number of variables
+    :param parameters: the parameters, unused here
+    :return: a float
+    """
+    return 1
+
+
+@njit(cache=True)
+def get_triggers_leq(n: int, dom_idx: int, parameters: NDArray) -> int:
+    """
+    Returns the triggers for this propagator.
+    :param parameters: the parameters
+    :return: an array of triggers
+    """
+    return EVENT_MASK_MIN if dom_idx == 0 else EVENT_MASK_MAX
+
+
+@njit(cache=True)
+def compute_domains_leq(domains: NDArray, parameters: NDArray) -> int:
+    """
+    Implements x <= y + c.
+    :param domains: the domains of the variables, x is the first domain, y is the second domain
+    :param parameters: the parameters of the propagator, c is the first parameter
+    :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    """
+    x = domains[0]
+    y = domains[1]
+    c = parameters[0]
+    if x[MAX] <= y[MIN] + c:
+        return PROP_ENTAILMENT
+    x[MAX] = min(x[MAX], y[MAX] + c)
+    if x[MIN] > x[MAX]:
+        return PROP_INCONSISTENCY
+    y[MIN] = max(y[MIN], x[MIN] - c)
+    if y[MIN] > y[MAX]:
+        return PROP_INCONSISTENCY
+    return PROP_CONSISTENCY
