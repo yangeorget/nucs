@@ -99,9 +99,10 @@ def bound_consistency_algorithm(
         for var_idx in range(prop_var_nb):
             prop_var_idx = prop_var_start + var_idx
             prop_dom_idx = props_variables[prop_var_idx]
-            prop_offset = props_offsets[prop_var_idx]
-            prop_domains[var_idx, MIN] = domains_stk[top, prop_dom_idx, MIN] + prop_offset
-            prop_domains[var_idx, MAX] = domains_stk[top, prop_dom_idx, MAX] + prop_offset
+            # prop_offset = props_offsets[prop_var_idx]
+            # prop_domains[var_idx, MIN] = domains_stk[top, prop_dom_idx, MIN]  + prop_offset
+            # prop_domains[var_idx, MAX] = domains_stk[top, prop_dom_idx, MAX]  + prop_offset
+            prop_domains[var_idx, :] = domains_stk[top, prop_dom_idx, :]
         compute_domains_fct = (
             COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]]
             if NUMBA_DISABLE_JIT
@@ -121,9 +122,9 @@ def bound_consistency_algorithm(
         for var_idx in range(prop_var_nb):
             prop_var_idx = prop_var_start + var_idx
             prop_dom_idx = props_variables[prop_var_idx]
-            prop_offset = props_offsets[prop_var_idx]
-            domain_min = prop_domains[var_idx, MIN] - prop_offset
-            domain_max = prop_domains[var_idx, MAX] - prop_offset
+            # prop_offset = props_offsets[prop_var_idx]
+            domain_min = prop_domains[var_idx, MIN] #- prop_offset
+            domain_max = prop_domains[var_idx, MAX] #- prop_offset
             events = 0
             if domains_stk[top, prop_dom_idx, MIN] != domain_min:
                 domains_stk[top, prop_dom_idx, MIN] = domain_min
