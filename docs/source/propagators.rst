@@ -19,8 +19,7 @@ Each propagator :code:`XXX` defines three functions:
 :code:`compute_domains` function
 ################################
 
-This function takes as its first argument the actual domains (not the shared ones) of the variables of the propagator
-and updates them.
+This function takes as its first argument the domains of the variables of the propagator and updates them.
 
 It is expected to implement bound consistency and to be idempotent
 (a second consecutive run should not update the domains).

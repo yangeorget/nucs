@@ -28,7 +28,7 @@ A backtracking solver accepts the additional following parameters:
 
 * the consistency algorithm to use (bound consistency is used by default)
 * the decision variables(all are used by default)
-* an heuristic to choose a variable/shared domain (the first non instantiated is chosen by default)
+* an heuristic to choose a variable (the first non instantiated is chosen by default)
 * some parameters for this heuristic (none by default)
 * an heuristic to select a value (the first value is chosen by default)
 * some parameters for this heuristic (none by default)

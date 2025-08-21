@@ -7,7 +7,7 @@ Consistency algorithms
 NuCS provides the following consistency algorithms.
 
 .. py:module:: nucs.solvers.bound_consistency_algorithm
-.. py:function:: nucs.solvers.bound_consistency_algorithm.bound_consistency_algorithm(statistics, algorithms, var_bounds, param_bounds, dom_indices_arr, dom_offsets_arr, props_dom_indices, props_dom_offsets, props_parameters, triggers, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, triggered_propagators, compute_domains_addrs, decision_domains)
+.. py:function:: nucs.solvers.bound_consistency_algorithm.bound_consistency_algorithm(statistics, algorithms, var_bounds, param_bounds, dom_indices_arr, dom_offsets_arr, props_dom_indices, props_dom_offsets, props_parameters, triggers, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, triggered_propagators, compute_domains_addrs, decision_variables)
 
    This is the default consistency algorithm used by the :mod:`nucs.solvers.backtrack_solver`.
 
@@ -17,11 +17,11 @@ NuCS provides the following consistency algorithms.
    :type algorithms: NDArray
    :param bounds: the bounds indexed by propagators
    :type bounds: NDArray
-   :param props_variables: the domain indices indexed by propagator variables
+   :param props_variables: the variables by propagators
    :type props_variables: NDArray
-   :param props_parameters: the parameters indexed by propagator variables
+   :param props_parameters: the parameters by propagators
    :type props_parameters: NDArray
-   :param triggers: a Numpy array of event masks indexed by shared domain indices
+   :param triggers: a Numpy array of event masks indexed by variables
    :type triggers: NDArray
    :param domains_stk: a stack of domains
    :type domains_stk: NDArray
@@ -42,7 +42,7 @@ NuCS provides the following consistency algorithms.
 
 
 .. py:module:: nucs.solvers.shaving_consistency_algorithm
-.. py:function:: nucs.solvers.shaving_consistency_algorithm.shaving_consistency_algorithm(statistics, algorithms, var_bounds, param_bounds, dom_indices_arr, dom_offsets_arr, props_dom_indices, props_dom_offsets, props_parameters, triggers, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, triggered_propagators, compute_domains_addrs, decision_domains)
+.. py:function:: nucs.solvers.shaving_consistency_algorithm.shaving_consistency_algorithm(statistics, algorithms, var_bounds, param_bounds, dom_indices_arr, dom_offsets_arr, props_dom_indices, props_dom_offsets, props_parameters, triggers, shr_domains_stack, not_entailed_propagators_stack, dom_update_stack, stacks_top, triggered_propagators, compute_domains_addrs, decision_variables)
 
    This algorithm reduces the need of searching by shaving the domains.
 
@@ -52,11 +52,11 @@ NuCS provides the following consistency algorithms.
    :type algorithms: NDArray
    :param bounds: the bounds indexed by propagators
    :type bounds: NDArray
-   :param props_variables: the domain indices indexed by propagator variables
+   :param props_variables: the variables by propagators
    :type props_variables: NDArray
-   :param props_parameters: the parameters indexed by propagator variables
+   :param props_parameters: the parameters by propagators
    :type props_parameters: NDArray
-   :param triggers: a Numpy array of event masks indexed by shared domain indices
+   :param triggers: a Numpy array of event masks indexed by variables
    :type triggers: NDArray
    :param domains_stk: a stack of domains
    :type domains_stk: NDArray

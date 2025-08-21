@@ -30,7 +30,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     tsp_instance = TSP_INSTANCES[args.name]
     n = len(tsp_instance)
-    decision_domains = list(range(0, 2 * n))
+    decision_variables = list(range(0, 2 * n))
     problem = TSPProblem(tsp_instance)
     costs = tsp_instance + tsp_instance  # symmetry of costs
     tsp_var_heuristic_idx = register_var_heuristic(tsp_var_heuristic)
@@ -40,7 +40,7 @@ if __name__ == "__main__":
                 BacktrackSolver(
                     prob,
                     consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
-                    decision_variables=decision_domains,
+                    decision_variables=decision_variables,
                     var_heuristic_idx=tsp_var_heuristic_idx,
                     var_heuristic_params=costs,
                     dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
@@ -55,7 +55,7 @@ if __name__ == "__main__":
         else BacktrackSolver(
             problem,
             consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
-            decision_variables=decision_domains,
+            decision_variables=decision_variables,
             var_heuristic_idx=tsp_var_heuristic_idx,
             var_heuristic_params=costs,
             dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
