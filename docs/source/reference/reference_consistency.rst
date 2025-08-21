@@ -17,19 +17,13 @@ NuCS provides the following consistency algorithms.
    :type algorithms: NDArray
    :param bounds: the bounds indexed by propagators
    :type bounds: NDArray
-   :param variables_arr: the domain indices indexed by variables, unused here
-   :type variables_arr: NDArray
-   :param offsets_arr: the domain offsets indexed by variables, unused here
-   :type offsets_arr: NDArray
    :param props_variables: the domain indices indexed by propagator variables
    :type props_variables: NDArray
-   :param props_offsets: the domain offsets indexed by propagator variables
-   :type props_offsets: NDArray
    :param props_parameters: the parameters indexed by propagator variables
    :type props_parameters: NDArray
    :param triggers: a Numpy array of event masks indexed by shared domain indices
    :type triggers: NDArray
-   :param domains_stk: a stack of shared domains
+   :param domains_stk: a stack of domains
    :type domains_stk: NDArray
    :param not_entailed_propagators_stk: a stack of not entailed propagators
    :type not_entailed_propagators_stk: NDArray
@@ -41,8 +35,8 @@ NuCS provides the following consistency algorithms.
    :type triggered_propagators: NDArray
    :param compute_domains_addrs: the addresses of the compute_domains functions
    :type compute_domains_addrs: NDArray
-   :param decision_domnains: the decision domains
-   :type decision_domains: NDArray
+   :param decision_variables: the decision variables
+   :type decision_variables: NDArray
    :return: a status (consistency, inconsistency or entailment) as an integer
    :rtype: int
 
@@ -58,19 +52,13 @@ NuCS provides the following consistency algorithms.
    :type algorithms: NDArray
    :param bounds: the bounds indexed by propagators
    :type bounds: NDArray
-   :param variables_arr: the domain indices indexed by variables, unused here
-   :type variables_arr: NDArray
-   :param offsets_arr: the domain offsets indexed by variables, unused here
-   :type offsets_arr: NDArray
    :param props_variables: the domain indices indexed by propagator variables
    :type props_variables: NDArray
-   :param props_offsets: the domain offsets indexed by propagator variables
-   :type props_offsets: NDArray
    :param props_parameters: the parameters indexed by propagator variables
    :type props_parameters: NDArray
    :param triggers: a Numpy array of event masks indexed by shared domain indices
    :type triggers: NDArray
-   :param domains_stk: a stack of shared domains
+   :param domains_stk: a stack of domains
    :type domains_stk: NDArray
    :param not_entailed_propagators_stk: a stack of not entailed propagators
    :type not_entailed_propagators_stk: NDArray
@@ -82,8 +70,8 @@ NuCS provides the following consistency algorithms.
    :type triggered_propagators: NDArray
    :param compute_domains_addrs: the addresses of the compute_domains functions
    :type compute_domains_addrs: NDArray
-   :param decision_domnains: the decision domains
-   :type decision_domains: NDArray
+   :param decision_variables: the decision variables
+   :type decision_variables: NDArray
    :return: a status (consistency, inconsistency or entailment) as an integer
    :rtype: int
 
