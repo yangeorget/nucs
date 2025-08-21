@@ -32,7 +32,8 @@ class QueensProblem(Problem):
         """
         super().__init__([(0, n - 1)] * n, list(range(n)) * 3, [0] * n + list(range(n)) + list(range(0, -n, -1)))
         self.n = n
-        self.add_propagators([(list(range(i * n, i * n + n)), ALG_ALLDIFFERENT, []) for i in range(3)])
+        for i in range(3):
+            self.add_propagator(ALG_ALLDIFFERENT, list(range(i * n, i * n + n)))
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         return [([" "] * i + ["Q"] + [" "] * (self.n - i - 1)) for i in (solution[: self.n])]
@@ -56,8 +57,9 @@ class QueensDualProblem(Problem):
             [0] * n + list(range(n)) + list(range(0, -n, -1)) + [0] * n + list(range(n)) + list(range(0, -n, -1)),
         )
         self.n = n
-        self.add_propagators([(list(range(i * n, i * n + n)), ALG_ALLDIFFERENT, []) for i in range(6)])
-        self.add_propagator((list(range(n)) + list(range(3 * n, 4 * n)), ALG_PERMUTATION_AUX, []))
+        for i in range(6):
+            self.add_propagator(ALG_ALLDIFFERENT, list(range(i * n, i * n + n)))
+        self.add_propagator(ALG_PERMUTATION_AUX, list(range(n)) + list(range(3 * n, 4 * n)))
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         return [([" "] * i + ["Q"] + [" "] * (self.n - i - 1)) for i in (solution[: self.n])]

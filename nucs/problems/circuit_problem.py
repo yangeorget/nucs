@@ -30,7 +30,7 @@ class CircuitProblem(PermutationProblem):
         self.domains[n - 1] = [0, n - 2]
         self.domains[n] = [1, n - 1]
         self.domains[2 * n - 1] = [0, n - 2]
-        self.add_propagator((list(range(n)), ALG_NO_SUB_CYCLE, []))
-        self.add_propagator((list(range(n, 2 * n)), ALG_NO_SUB_CYCLE, []))
+        self.add_propagator(ALG_NO_SUB_CYCLE, list(range(n)))
+        self.add_propagator(ALG_NO_SUB_CYCLE, list(range(n, 2 * n)))
         # self.add_propagator((list(range(n)), ALG_SCC, []))  # not worth the cost
         # self.add_propagator((list(range(n, 2*n)), ALG_SCC, []))  # not worth the cost

@@ -33,20 +33,20 @@ class MagicSquareProblem(Problem):
         self.m = ((n**2 - 1) * n) // 2
         super().__init__([(0, n**2 - 1)] * n**2)
         for i in range(n):
-            self.add_propagator((self.row(i), ALG_SUM_EQ_C, [self.m]))
-            self.add_propagator((self.column(i), ALG_SUM_EQ_C, [self.m]))
-        self.add_propagator((self.first_diag(), ALG_SUM_EQ_C, [self.m]))
-        self.add_propagator((self.second_diag(), ALG_SUM_EQ_C, [self.m]))
-        self.add_propagator((list(range(n**2)), ALG_ALLDIFFERENT, []))
+            self.add_propagator(ALG_SUM_EQ_C, self.row(i), [self.m])
+            self.add_propagator(ALG_SUM_EQ_C, self.column(i), [self.m])
+        self.add_propagator(ALG_SUM_EQ_C, self.first_diag(), [self.m])
+        self.add_propagator(ALG_SUM_EQ_C, self.second_diag(), [self.m])
+        self.add_propagator(ALG_ALLDIFFERENT, list(range(n**2)))
         if symmetry_breaking:
             top_left = self.first_diag()[0]
             bottom_right = self.first_diag()[-1]
             top_right = self.second_diag()[0]
             bottom_left = self.second_diag()[-1]
-            self.add_propagator(([top_left, top_right], ALG_LEQ, [-1]))
-            self.add_propagator(([top_left, bottom_left], ALG_LEQ, [-1]))
-            self.add_propagator(([top_left, bottom_right], ALG_LEQ, [-1]))
-            self.add_propagator(([top_right, bottom_left], ALG_LEQ, [-1]))
+            self.add_propagator(ALG_LEQ, [top_left, top_right], [-1])
+            self.add_propagator(ALG_LEQ, [top_left, bottom_left], [-1])
+            self.add_propagator(ALG_LEQ, [top_left, bottom_right], [-1])
+            self.add_propagator(ALG_LEQ, [top_right, bottom_left], [-1])
 
     def row(self, i: int) -> List[int]:
         return list(range(0 + i * self.n, self.n + i * self.n))

@@ -20,7 +20,7 @@ Because of shared domains and offsets, the constructor of :code:`Problem` accept
 Python, with the help of lists and ranges, makes the construction of complex problems an easy task.
 
 
-Propagators are then added to the problem with the use of the :code:`add_propagator` or :code:`add_propagators` methods.
+Propagators are then added to the problem with the use of the :code:`add_propagator` method.
 
 
 ****************************************

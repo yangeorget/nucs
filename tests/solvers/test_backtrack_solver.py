@@ -48,7 +48,7 @@ class TestBacktrackSolver:
 
     def test_find_all_alldifferent(self) -> None:
         problem = Problem([(0, 2), (0, 2), (0, 2)])
-        problem.add_propagator(([0, 1, 2], ALG_ALLDIFFERENT, []))
+        problem.add_propagator(ALG_ALLDIFFERENT, [0, 1, 2])
         solver = BacktrackSolver(problem)
         solutions = solver.find_all()
         assert len(solutions) == 6
@@ -64,7 +64,7 @@ class TestBacktrackSolver:
     def test_minimize_relation(self) -> None:
         problem = Problem([(-5, 5), (-100, 100)])
         problem.add_propagator(
-            ([0, 1], ALG_RELATION, [-5, 25, -4, 16, -3, 9, -2, 4, -1, 1, 0, 0, 1, 1, 2, 4, 3, 9, 4, 16, 5, 25])
+            ALG_RELATION, [0, 1], [-5, 25, -4, 16, -3, 9, -2, 4, -1, 1, 0, 0, 1, 1, 2, 4, 3, 9, 4, 16, 5, 25]
         )
         solver = BacktrackSolver(problem)
         solution = solver.minimize(1)
@@ -75,7 +75,7 @@ class TestBacktrackSolver:
 
     def test_minimize_affine_leq(self) -> None:
         problem = Problem([(2, 5), (2, 5), (0, 10)])
-        problem.add_propagator(([0, 1, 2], ALG_AFFINE_LEQ, [1, 1, -1, 0]))
+        problem.add_propagator(ALG_AFFINE_LEQ, [0, 1, 2], [1, 1, -1, 0])
         solver = BacktrackSolver(problem)
         solution = solver.minimize(2)
         assert solution is not None

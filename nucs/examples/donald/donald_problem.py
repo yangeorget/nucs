@@ -32,13 +32,11 @@ class DonaldProblem(Problem):
         """
         super().__init__([(0, 9)] * 10)
         self.add_propagator(
-            (
-                [A, B, D, E, G, L, N, O, R, T],
-                ALG_AFFINE_EQ,
-                [200, -1000, 100002, 9900, 100000, 20, 1000, 0, -99010, -1, 0],
-            )
+            ALG_AFFINE_EQ,
+            [A, B, D, E, G, L, N, O, R, T],
+            [200, -1000, 100002, 9900, 100000, 20, 1000, 0, -99010, -1, 0],
         )
-        self.add_propagator(([A, B, D, E, G, L, N, O, R, T], ALG_ALLDIFFERENT, []))
+        self.add_propagator(ALG_ALLDIFFERENT, [A, B, D, E, G, L, N, O, R, T])
 
     def solution_as_printable(self, solution: NDArray) -> Dict[str, Any]:
         """

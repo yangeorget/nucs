@@ -28,7 +28,7 @@ class MagicSequenceProblem(Problem):
         """
         super().__init__([(0, n)] * n)
         for i in range(n):
-            self.add_propagator((list(range(n)) + [i], ALG_COUNT_EQ, [i]))
+            self.add_propagator(ALG_COUNT_EQ, list(range(n)) + [i], [i])
         # redundant constraints
-        self.add_propagator((list(range(n)), ALG_SUM_EQ_C, [n]))
-        self.add_propagator((list(range(n)), ALG_AFFINE_EQ, list(range(n)) + [n]))
+        self.add_propagator(ALG_SUM_EQ_C, list(range(n)), [n])
+        self.add_propagator(ALG_AFFINE_EQ, list(range(n)), list(range(n)) + [n])

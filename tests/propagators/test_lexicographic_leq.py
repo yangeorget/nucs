@@ -63,7 +63,7 @@ class TestLexicographicLeq(PropagatorTest):
             variables=[0, 1, 2, 3],
             offsets=[0, 0, 0, 0],
         )
-        problem.add_propagator(([0, 1, 2, 3], ALG_LEXICOGRAPHIC_LEQ, []))
+        problem.add_propagator(ALG_LEXICOGRAPHIC_LEQ, [0, 1, 2, 3])
         solver = BacktrackSolver(problem)
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == 10
@@ -74,7 +74,7 @@ class TestLexicographicLeq(PropagatorTest):
             variables=[0, 1, 2, 3],
             offsets=[0, 0, 0, 0],
         )
-        problem.add_propagator(([0, 1, 2, 3], ALG_LEXICOGRAPHIC_LEQ, []))
+        problem.add_propagator(ALG_LEXICOGRAPHIC_LEQ, [0, 1, 2, 3])
         solver = BacktrackSolver(problem)
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == 3

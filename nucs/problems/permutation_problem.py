@@ -22,10 +22,10 @@ class PermutationProblem(Problem):
     def __init__(self, n: int):
         """
         Initializes the permutation problem.
-        :param n: the number variables/values
+        :param n: the number of variables/values
         """
         self.n = n
         super().__init__([(0, n - 1)] * 2 * n)
-        self.add_propagator((list(range(n)), ALG_ALLDIFFERENT, []))
-        self.add_propagator((list(range(n, 2 * n)), ALG_ALLDIFFERENT, []))
-        self.add_propagator((list(range(2 * n)), ALG_PERMUTATION_AUX, []))
+        self.add_propagator(ALG_ALLDIFFERENT, list(range(n)))
+        self.add_propagator(ALG_ALLDIFFERENT, list(range(n, 2 * n)))
+        self.add_propagator(ALG_PERMUTATION_AUX, list(range(2 * n)))

@@ -139,20 +139,13 @@ class Problem:
         self.domain_nb = len(self.variables)
         return insertion_idx
 
-    def add_propagator(self, propagator: Tuple[List[int], int, List[int]]) -> None:
+    def add_propagator(self, algorithm: int, variables: List[int], parameters: Optional[List[int]] = None) -> None:
         """
         Adds an extra propagator.
-        :param propagator: the propagator
         """
-        self.propagators.append(propagator)
-        self.propagator_nb = len(self.propagators)
-
-    def add_propagators(self, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
-        """
-        Adds a list of propagators
-        :param propagators: the propagators
-        """
-        self.propagators.extend(propagators)
+        if parameters is None:
+            parameters = []
+        self.propagators.append((variables, algorithm, parameters))
         self.propagator_nb = len(self.propagators)
 
     def init(self) -> None:

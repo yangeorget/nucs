@@ -31,10 +31,11 @@ class TSPProblem(CircuitProblem):
         self.succ_costs = self.add_variables([(min_costs[i], max_costs[i]) for i in range(n)])
         self.pred_costs = self.add_variables([(min_costs[i], max_costs[i]) for i in range(n)])
         self.total_cost = self.add_variable((sum(min_costs), sum(max_costs)))  # the total cost
-        self.add_propagators([([i, self.succ_costs + i], ALG_ELEMENT_EQ, costs[i]) for i in range(n)])
-        self.add_propagators([([n + i, self.pred_costs + i], ALG_ELEMENT_EQ, costs[i]) for i in range(n)])
-        self.add_propagator((list(range(self.succ_costs, self.succ_costs + n)) + [self.total_cost], ALG_SUM_EQ, []))
-        self.add_propagator((list(range(self.pred_costs, self.pred_costs + n)) + [self.total_cost], ALG_SUM_EQ, []))
+        for i in range(n):
+            self.add_propagator(ALG_ELEMENT_EQ, [i, self.succ_costs + i], costs[i])
+            self.add_propagator(ALG_ELEMENT_EQ, [n + i, self.pred_costs + i], costs[i])
+        self.add_propagator(ALG_SUM_EQ, list(range(self.succ_costs, self.succ_costs + n)) + [self.total_cost])
+        self.add_propagator(ALG_SUM_EQ, list(range(self.pred_costs, self.pred_costs + n)) + [self.total_cost])
         # total_cost_prop_idx = register_propagator(
         #     get_triggers_total_cost, get_complexity_total_cost, compute_domains_total_cost
         # )

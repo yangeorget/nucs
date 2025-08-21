@@ -41,30 +41,28 @@ class AlphaProblem(Problem):
         Initializes the problem.
         """
         super().__init__([(1, 26)] * 26)
-        self.add_propagators(
-            [
-                ([A, B, E, T, L], ALG_AFFINE_EQ, [1, 1, 1, 1, 2, 45]),
-                ([C, E, O, L], ALG_AFFINE_EQ, [1, 1, 1, 2, 43]),
-                ([E, O, N, R, T, C], ALG_AFFINE_EQ, [1, 1, 1, 1, 1, 2, 74]),
-                ([E, F, L, U, T], ALG_AFFINE_EQ, [1, 1, 1, 1, 1, 30]),
-                ([E, F, G, U], ALG_AFFINE_EQ, [1, 1, 1, 2, 50]),
-                ([G, L, E], ALG_AFFINE_EQ, [1, 1, 2, 66]),
-                ([A, J, Z], ALG_AFFINE_EQ, [1, 1, 2, 58]),
-                ([E, L, R, Y], ALG_AFFINE_EQ, [1, 1, 1, 1, 47]),
-                ([E, B, O], ALG_AFFINE_EQ, [1, 1, 2, 53]),
-                ([A, E, P, O, R], ALG_AFFINE_EQ, [1, 1, 1, 1, 1, 65]),
-                ([A, K, L, O, P], ALG_AFFINE_EQ, [1, 1, 1, 1, 1, 59]),
-                ([A, E, Q, R, U, T], ALG_AFFINE_EQ, [1, 1, 1, 1, 1, 2, 50]),
-                ([A, E, H, N, P, S, X, O], ALG_AFFINE_EQ, [1, 1, 1, 1, 1, 1, 1, 2, 134]),
-                ([A, C, E, L, S], ALG_AFFINE_EQ, [1, 1, 1, 1, 1, 51]),
-                ([L, S, O], ALG_AFFINE_EQ, [1, 1, 2, 37]),
-                ([G, N, O, S], ALG_AFFINE_EQ, [1, 1, 1, 1, 61]),
-                ([A, N, P, R, S, O], ALG_AFFINE_EQ, [1, 1, 1, 1, 1, 2, 82]),
-                ([H, M, T, E], ALG_AFFINE_EQ, [1, 1, 1, 2, 72]),
-                ([L, N, O, V, I], ALG_AFFINE_EQ, [1, 1, 1, 1, 2, 100]),
-                ([A, L, T, W, Z], ALG_AFFINE_EQ, [1, 1, 1, 1, 1, 34]),
-                ([A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z], ALG_ALLDIFFERENT, []),
-            ]
+        self.add_propagator(ALG_AFFINE_EQ, [A, B, E, T, L], [1, 1, 1, 1, 2, 45])
+        self.add_propagator(ALG_AFFINE_EQ, [C, E, O, L], [1, 1, 1, 2, 43])
+        self.add_propagator(ALG_AFFINE_EQ, [E, O, N, R, T, C], [1, 1, 1, 1, 1, 2, 74])
+        self.add_propagator(ALG_AFFINE_EQ, [E, F, L, U, T], [1, 1, 1, 1, 1, 30])
+        self.add_propagator(ALG_AFFINE_EQ, [E, F, G, U], [1, 1, 1, 2, 50])
+        self.add_propagator(ALG_AFFINE_EQ, [G, L, E], [1, 1, 2, 66])
+        self.add_propagator(ALG_AFFINE_EQ, [A, J, Z], [1, 1, 2, 58])
+        self.add_propagator(ALG_AFFINE_EQ, [E, L, R, Y], [1, 1, 1, 1, 47])
+        self.add_propagator(ALG_AFFINE_EQ, [E, B, O], [1, 1, 2, 53])
+        self.add_propagator(ALG_AFFINE_EQ, [A, E, P, O, R], [1, 1, 1, 1, 1, 65])
+        self.add_propagator(ALG_AFFINE_EQ, [A, K, L, O, P], [1, 1, 1, 1, 1, 59])
+        self.add_propagator(ALG_AFFINE_EQ, [A, E, Q, R, U, T], [1, 1, 1, 1, 1, 2, 50]),
+        self.add_propagator(ALG_AFFINE_EQ, [A, E, H, N, P, S, X, O], [1, 1, 1, 1, 1, 1, 1, 2, 134])
+        self.add_propagator(ALG_AFFINE_EQ, [A, C, E, L, S], [1, 1, 1, 1, 1, 51])
+        self.add_propagator(ALG_AFFINE_EQ, [L, S, O], [1, 1, 2, 37])
+        self.add_propagator(ALG_AFFINE_EQ, [G, N, O, S], [1, 1, 1, 1, 61])
+        self.add_propagator(ALG_AFFINE_EQ, [A, N, P, R, S, O], [1, 1, 1, 1, 1, 2, 82])
+        self.add_propagator(ALG_AFFINE_EQ, [H, M, T, E], [1, 1, 1, 2, 72])
+        self.add_propagator(ALG_AFFINE_EQ, [L, N, O, V, I], [1, 1, 1, 1, 2, 100])
+        self.add_propagator(ALG_AFFINE_EQ, [A, L, T, W, Z], [1, 1, 1, 1, 1, 34])
+        self.add_propagator(
+            ALG_ALLDIFFERENT, [A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z]
         )
 
     def solution_as_printable(self, solution: NDArray) -> Any:

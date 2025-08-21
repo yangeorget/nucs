@@ -72,25 +72,19 @@ class EmployeeSchedulingProblem(Problem):
             [(min_shift_count_per_nurse, max_shift_count_per_nurse)] * self.nurse_nb
         )  # the number of shifts per nurse
         self.satisfied_request_nb = self.add_variable((0, self.shift_total_nb))  # the number of satisfied requests
-        self.add_propagators(
-            [(self.nurses(d, s), ALG_COUNT_EQ_C, [1, 1]) for d in range(self.day_nb) for s in range(self.shift_nb)]
-        )
-        self.add_propagators(
-            [(self.shifts(d, n), ALG_COUNT_LEQ_C, [1, 1]) for d in range(self.day_nb) for n in range(self.nurse_nb)]
-        )
-        self.add_propagators(
-            [
-                (list(range(n, self.shift_total_nb + self.nurse_nb, self.nurse_nb)), ALG_COUNT_EQ, [1])
-                for n in range(self.nurse_nb)
-            ]
-        )
+        for d in range(self.day_nb):
+            for s in range(self.shift_nb):
+                self.add_propagator(ALG_COUNT_EQ_C, self.nurses(d, s), [1, 1])
+        for d in range(self.day_nb):
+            for n in range(self.nurse_nb):
+                self.add_propagator(ALG_COUNT_LEQ_C, self.shifts(d, n), [1, 1])
+        for n in range(self.nurse_nb):
+            self.add_propagator(ALG_COUNT_EQ, list(range(n, self.shift_total_nb + self.nurse_nb, self.nurse_nb)), [1])
         self.add_propagator(
-            (
-                [index for index in range(0, self.shift_total_nb) if shift_requests_dsn[index]]
-                + [self.satisfied_request_nb],
-                ALG_COUNT_EQ,
-                [1],
-            )
+            ALG_COUNT_EQ,
+            [index for index in range(0, self.shift_total_nb) if shift_requests_dsn[index]]
+            + [self.satisfied_request_nb],
+            [1],
         )
 
     def solution_as_printable(self, solution: NDArray) -> Any:

@@ -123,8 +123,8 @@ def bound_consistency_algorithm(
             prop_var_idx = prop_var_start + var_idx
             prop_dom_idx = props_variables[prop_var_idx]
             # prop_offset = props_offsets[prop_var_idx]
-            domain_min = prop_domains[var_idx, MIN] #- prop_offset
-            domain_max = prop_domains[var_idx, MAX] #- prop_offset
+            domain_min = prop_domains[var_idx, MIN]  # - prop_offset
+            domain_max = prop_domains[var_idx, MAX]  # - prop_offset
             events = 0
             if domains_stk[top, prop_dom_idx, MIN] != domain_min:
                 domains_stk[top, prop_dom_idx, MIN] = domain_min

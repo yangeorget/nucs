@@ -45,43 +45,30 @@ class QuasigroupProblem(LatinSquareRCProblem):
                         # color[color[i, j], color[j, i]] = i
                         # column[color[i, j], i] = color[j, i] which avoids the creation of additional variables
                         self.add_propagator(
-                            (
-                                [*self.column(i, M_COLUMN), self.cell(i, j), self.cell(j, i)],
-                                ALG_ELEMENT_L_EQ_ALLDIFFERENT,
-                                [],
-                            )
+                            ALG_ELEMENT_L_EQ_ALLDIFFERENT,
+                            [*self.column(i, M_COLUMN), self.cell(i, j), self.cell(j, i)],
                         )
                     elif kind == 4:  # (b∗a)∗(a*b) = a
                         # color[color[j, i], color[i, j]] = i
                         # column[color[j, i], i] = color[i, j] which avoids the creation of additional variables
                         self.add_propagator(
-                            (
-                                [*self.column(i, M_COLUMN), self.cell(j, i), self.cell(i, j)],
-                                ALG_ELEMENT_L_EQ_ALLDIFFERENT,
-                                [],
-                            )
+                            ALG_ELEMENT_L_EQ_ALLDIFFERENT,
+                            [*self.column(i, M_COLUMN), self.cell(j, i), self.cell(i, j)],
                         )
                     elif kind == 5:  # ((b∗a)∗b)∗b = a
                         # color[color[color[j, i], j], j] = i
                         # row[i, j] = color[color[j, i], j] which avoids the creation of additional variables
                         self.add_propagator(
-                            (
-                                [*self.column(j), self.cell(j, i), self.cell(i, j, M_ROW)],
-                                ALG_ELEMENT_L_EQ_ALLDIFFERENT,
-                                [],
-                            )
+                            ALG_ELEMENT_L_EQ_ALLDIFFERENT,
+                            [*self.column(j), self.cell(j, i), self.cell(i, j, M_ROW)],
                         )
                     elif kind == 6:  # (a∗b)∗b = a*(a*b)
                         # color[color[i, j], j] = color[i, color[i, j]]
                         ijj = self.add_variable((0, n - 1))
-                        self.add_propagator(
-                            ([*self.column(j), self.cell(i, j), ijj], ALG_ELEMENT_L_EQ_ALLDIFFERENT, [])
-                        )
-                        self.add_propagator(([*self.row(i), self.cell(i, j), ijj], ALG_ELEMENT_L_EQ_ALLDIFFERENT, []))
+                        self.add_propagator(ALG_ELEMENT_L_EQ_ALLDIFFERENT, [*self.column(j), self.cell(i, j), ijj])
+                        self.add_propagator(ALG_ELEMENT_L_EQ_ALLDIFFERENT, [*self.row(i), self.cell(i, j), ijj])
                     elif kind == 7:  # (b∗a)∗b = a*(b*a)
                         # color[color[j, i], j] = color[i, color[j, i]]
                         jij = self.add_variable((0, n - 1))
-                        self.add_propagator(
-                            ([*self.column(j), self.cell(j, i), jij], ALG_ELEMENT_L_EQ_ALLDIFFERENT, [])
-                        )
-                        self.add_propagator(([*self.row(i), self.cell(j, i), jij], ALG_ELEMENT_L_EQ_ALLDIFFERENT, []))
+                        self.add_propagator(ALG_ELEMENT_L_EQ_ALLDIFFERENT, [*self.column(j), self.cell(j, i), jij])
+                        self.add_propagator(ALG_ELEMENT_L_EQ_ALLDIFFERENT, [*self.row(i), self.cell(j, i), jij])

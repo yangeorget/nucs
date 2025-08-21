@@ -40,32 +40,28 @@ class BIBDProblem(Problem):
         super().__init__([(0, 1)] * (matrix_var_nb + additional_var_nb))
         # rows: counts
         for object_idx in range(0, v):
-            self.add_propagator((list(range(object_idx * b, (object_idx + 1) * b)), ALG_COUNT_EQ_C, [1, r]))
+            self.add_propagator(ALG_COUNT_EQ_C, list(range(object_idx * b, (object_idx + 1) * b)), [1, r])
         # columns: counts
         for block_idx in range(0, b):
-            self.add_propagator((list(range(block_idx, v * b, b)), ALG_COUNT_EQ_C, [1, k]))
+            self.add_propagator(ALG_COUNT_EQ_C, list(range(block_idx, v * b, b)), [1, k])
         # scalar products: conjunctions and counts
         conj_idx = v * b  # index of first redundant variable
         for i1 in range(0, v - 1):
             for i2 in range(i1 + 1, v):
                 conj_vars = []
                 for block_idx in range(0, b):
-                    self.add_propagator(([i1 * b + block_idx, i2 * b + block_idx, conj_idx], ALG_AND_EQ, []))
+                    self.add_propagator(ALG_AND_EQ, [i1 * b + block_idx, i2 * b + block_idx, conj_idx])
                     conj_vars.append(conj_idx)
                     conj_idx += 1
-                self.add_propagator((conj_vars, ALG_COUNT_EQ_C, [1, l]))
+                self.add_propagator(ALG_COUNT_EQ_C, conj_vars, [1, l])
         if symmetry_breaking:
             # lexleq on rows
             for object_idx in range(0, v - 1):
-                self.add_propagator((list(range(object_idx * b, (object_idx + 2) * b)), ALG_LEXICOGRAPHIC_LEQ, []))
+                self.add_propagator(ALG_LEXICOGRAPHIC_LEQ, list(range(object_idx * b, (object_idx + 2) * b)))
             # lexleq on columns
             for block_idx in range(0, b - 1):
                 self.add_propagator(
-                    (
-                        list(range(block_idx, v * b, b)) + list(range(block_idx + 1, v * b, b)),
-                        ALG_LEXICOGRAPHIC_LEQ,
-                        [],
-                    )
+                    ALG_LEXICOGRAPHIC_LEQ, list(range(block_idx, v * b, b)) + list(range(block_idx + 1, v * b, b))
                 )
 
     def solution_as_printable(self, solution: NDArray) -> Any:

@@ -81,28 +81,22 @@ class GolombProblem(Problem):
         # mark_j = dist_0j for j > 0
         for i in range(1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
-                self.add_propagator(
-                    ([index(mark_nb, 0, i), index(mark_nb, i, j), index(mark_nb, 0, j)], ALG_SUM_EQ, [])
-                )
-        self.add_propagator((list(range(self.domain_nb)), ALG_ALLDIFFERENT, []))
+                self.add_propagator(ALG_SUM_EQ, [index(mark_nb, 0, i), index(mark_nb, i, j), index(mark_nb, 0, j)])
+        self.add_propagator(ALG_ALLDIFFERENT, list(range(self.domain_nb)))
         # redundant constraints
         for i in range(mark_nb - 1):
             for j in range(i + 1, mark_nb):
                 if j - i < mark_nb - 1:
                     self.add_propagator(
-                        (
-                            [index(mark_nb, i, j), index(mark_nb, 0, mark_nb - 1)],
-                            ALG_LEQ,
-                            [-sum_first(mark_nb - 1 - (j - i))],
-                        )
+                        ALG_LEQ,
+                        [index(mark_nb, i, j), index(mark_nb, 0, mark_nb - 1)],
+                        [-sum_first(mark_nb - 1 - (j - i))],
                     )
         if symmetry_breaking:
             self.add_propagator(
-                (
-                    [index(mark_nb, 0, 1), index(mark_nb, mark_nb - 2, mark_nb - 1)],
-                    ALG_LEQ,
-                    [-1],
-                )
+                ALG_LEQ,
+                [index(mark_nb, 0, 1), index(mark_nb, mark_nb - 2, mark_nb - 1)],
+                [-1],
             )
 
     def solution_as_printable(self, solution: NDArray) -> Any:

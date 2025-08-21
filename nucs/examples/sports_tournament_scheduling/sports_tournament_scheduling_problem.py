@@ -90,22 +90,18 @@ class SportsTournamentSchedulingProblem(Problem):
         self.team_var_nb = self.period_nb * self.week_nb * self.slot_nb
         super().__init__([(0, self.team_nb - 1)] * self.team_var_nb + [(0, self.match_nb - 1)] * self.match_nb)
         plays = self.plays()
-        self.add_propagator((self.matches(), ALG_ALLDIFFERENT, []))  # matches are different
-        self.add_propagators([(self.teams_per_week(w), ALG_ALLDIFFERENT, []) for w in range(0, self.week_nb)])
-        self.add_propagators(
-            [(self.teams_per_period(p), ALG_GCC, [0] + [1] * n + [2] * n) for p in range(0, self.period_nb)]
-        )
-        self.add_propagators(
-            [
-                (
-                    [self.team_var_index(p, w, 0), self.team_var_index(p, w, 1), self.match_var_index(p, w)],
+        self.add_propagator(ALG_ALLDIFFERENT, self.matches())  # matches are different
+        for w in range(0, self.week_nb):
+            self.add_propagator(ALG_ALLDIFFERENT, self.teams_per_week(w))
+        for p in range(0, self.period_nb):
+            self.add_propagator(ALG_GCC, self.teams_per_period(p), [0] + [1] * n + [2] * n)
+        for p in range(0, self.period_nb):
+            for w in range(0, self.week_nb):
+                self.add_propagator(
                     ALG_RELATION,
+                    [self.team_var_index(p, w, 0), self.team_var_index(p, w, 1), self.match_var_index(p, w)],
                     plays,
                 )
-                for p in range(0, self.period_nb)
-                for w in range(0, self.week_nb)
-            ]
-        )
         if symmetry_breaking:
             # the first week is set
             k = 0
@@ -114,9 +110,5 @@ class SportsTournamentSchedulingProblem(Problem):
                     self.domains[self.team_var_index(p, 0, s)] = [k, k]
                     k += 1
             # the match `0 versus (t+1)` appears at week t (much slower)
-            self.add_propagators(
-                [
-                    (self.matches_per_week(w), ALG_COUNT_EQ_C, [self.match_ordinal(0, w + 1), 1])
-                    for w in range(self.week_nb)
-                ]
-            )
+            for w in range(self.week_nb):
+                self.add_propagator(ALG_COUNT_EQ_C, self.matches_per_week(w), [self.match_ordinal(0, w + 1), 1])

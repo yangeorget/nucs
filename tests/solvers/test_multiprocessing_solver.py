@@ -74,7 +74,7 @@ class TestMultiprocessingSolver:
 
     def test_find_all_alldifferent(self) -> None:
         problem = Problem([(0, 2), (0, 2), (0, 2)])
-        problem.add_propagator(([0, 1, 2], ALG_ALLDIFFERENT, []))
+        problem.add_propagator(ALG_ALLDIFFERENT, [0, 1, 2])
         solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in (problem.split(3, 0))])
         solutions = solver.find_all()
         assert len(solutions) == 6
@@ -100,7 +100,7 @@ class TestMultiprocessingSolver:
     )
     def test_minimize_relation(self, mode: str, split_var: int, split_nb: int, solution_nb: int) -> None:
         problem = Problem([(-5, 0), (-60, 60)])
-        problem.add_propagator(([0, 1], ALG_RELATION, [-5, 25, -4, 16, -3, 9, -2, 4, -1, 1, 0, 0]))
+        problem.add_propagator(ALG_RELATION, [0, 1], [-5, 25, -4, 16, -3, 9, -2, 4, -1, 1, 0, 0])
         solver = MultiprocessingSolver([BacktrackSolver(prob) for prob in problem.split(split_nb, split_var)])
         solution = solver.minimize(1, mode=mode)
         assert solution is not None

@@ -31,5 +31,5 @@ class SudokuProblem(LatinSquareProblem):
             for j in range(3):
                 o = i * 27 + j * 3
                 self.add_propagator(
-                    ([0 + o, 1 + o, 2 + o, 9 + o, 10 + o, 11 + o, 18 + o, 19 + o, 20 + o], ALG_ALLDIFFERENT, [])
+                    ALG_ALLDIFFERENT, [0 + o, 1 + o, 2 + o, 9 + o, 10 + o, 11 + o, 18 + o, 19 + o, 20 + o]
                 )
