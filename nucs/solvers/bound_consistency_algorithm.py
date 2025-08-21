@@ -88,10 +88,7 @@ def bound_consistency_algorithm(
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = bounds[prop_idx, VARIABLE, RANGE_START]
         prop_var_end = bounds[prop_idx, VARIABLE, RANGE_END]
-        prop_var_nb = prop_var_end - prop_var_start
-        prop_domains = np.empty((prop_var_nb, 2), dtype=np.int32)
-        for var_idx in range(prop_var_nb):
-            prop_domains[var_idx, :] = domains_stk[top, props_variables[prop_var_start + var_idx], :]
+        prop_domains = domains_stk[top, props_variables[prop_var_start:prop_var_end], :]  # TODO: avoid allocation
         compute_domains_fct = (
             COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]]
             if NUMBA_DISABLE_JIT
@@ -108,20 +105,20 @@ def bound_consistency_algorithm(
             not_entailed_propagators_stk[top, prop_idx] = False
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
         no_changes = True
-        for var_idx in range(prop_var_nb):
-            variable = props_variables[(prop_var_start + var_idx)]
-            domain_min = prop_domains[var_idx, MIN]
-            domain_max = prop_domains[var_idx, MAX]
+        for var_idx in range(prop_var_end - prop_var_start):
             events = 0
+            variable = props_variables[prop_var_start + var_idx]
+            domain_min = prop_domains[var_idx, MIN]
             if domains_stk[top, variable, MIN] != domain_min:
                 domains_stk[top, variable, MIN] = domain_min
                 events |= EVENT_MASK_MIN
+            domain_max = prop_domains[var_idx, MAX]
             if domains_stk[top, variable, MAX] != domain_max:
                 domains_stk[top, variable, MAX] = domain_max
                 events |= EVENT_MASK_MAX
-            if events and domain_min == domain_max:
-                events |= EVENT_MASK_GROUND
             if events:
+                if domain_min == domain_max:
+                    events |= EVENT_MASK_GROUND
                 update_propagators(
                     triggered_propagators, not_entailed_propagators_stk[top], triggers, events, variable, prop_idx
                 )
