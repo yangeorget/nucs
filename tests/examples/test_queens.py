@@ -45,8 +45,7 @@ class TestQueens:
         ],
     )
     def test_queens_solve(self, dual: bool, var_heuristic: int, queen_nb: int, solution_nb: int) -> None:
-        # problem = QueensDualProblem(queen_nb) if dual else QueensProblem(queen_nb)
-        # solver = BacktrackSolver(problem, var_heuristic_idx=var_heuristic)
-        # solver.solve_all()
-        # assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb
-        assert True
+        problem = QueensDualProblem(queen_nb) if dual else QueensProblem(queen_nb)
+        solver = BacktrackSolver(problem, var_heuristic_idx=var_heuristic)
+        solver.solve_all()
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb

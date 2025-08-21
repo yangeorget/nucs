@@ -52,7 +52,7 @@ class AlphaProblem(Problem):
         self.add_propagator(ALG_AFFINE_EQ, [E, B, O], [1, 1, 2, 53])
         self.add_propagator(ALG_AFFINE_EQ, [A, E, P, O, R], [1, 1, 1, 1, 1, 65])
         self.add_propagator(ALG_AFFINE_EQ, [A, K, L, O, P], [1, 1, 1, 1, 1, 59])
-        self.add_propagator(ALG_AFFINE_EQ, [A, E, Q, R, U, T], [1, 1, 1, 1, 1, 2, 50]),
+        self.add_propagator(ALG_AFFINE_EQ, [A, E, Q, R, U, T], [1, 1, 1, 1, 1, 2, 50])
         self.add_propagator(ALG_AFFINE_EQ, [A, E, H, N, P, S, X, O], [1, 1, 1, 1, 1, 1, 1, 2, 134])
         self.add_propagator(ALG_AFFINE_EQ, [A, C, E, L, S], [1, 1, 1, 1, 1, 51])
         self.add_propagator(ALG_AFFINE_EQ, [L, S, O], [1, 1, 2, 37])

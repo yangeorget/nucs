@@ -30,10 +30,12 @@ class QueensProblem(Problem):
         Initializes the problem.
         :param n: the number of queens
         """
-        super().__init__([(0, n - 1)] * n, list(range(n)) * 3, [0] * n + list(range(n)) + list(range(0, -n, -1)))
+        super().__init__([(0, n - 1)] * n)
         self.n = n
-        for i in range(3):
-            self.add_propagator(ALG_ALLDIFFERENT, list(range(i * n, i * n + n)))
+        variables = list(range(0, n))
+        self.add_propagator(ALG_ALLDIFFERENT, variables)
+        self.add_propagator(ALG_ALLDIFFERENT, variables, list(range(n)))
+        self.add_propagator(ALG_ALLDIFFERENT, variables, list(range(0, -n, -1)))
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         return [([" "] * i + ["Q"] + [" "] * (self.n - i - 1)) for i in (solution[: self.n])]
@@ -51,15 +53,17 @@ class QueensDualProblem(Problem):
         Initializes the problem.
         :param n: the number of queens
         """
-        super().__init__(
-            [(0, n - 1)] * 2 * n,
-            list(range(n)) * 3 + list(range(n, 2 * n)) * 3,
-            [0] * n + list(range(n)) + list(range(0, -n, -1)) + [0] * n + list(range(n)) + list(range(0, -n, -1)),
-        )
+        super().__init__([(0, n - 1)] * 2 * n)
         self.n = n
-        for i in range(6):
-            self.add_propagator(ALG_ALLDIFFERENT, list(range(i * n, i * n + n)))
-        self.add_propagator(ALG_PERMUTATION_AUX, list(range(n)) + list(range(3 * n, 4 * n)))
+        column_variables = list(range(0, n))
+        self.add_propagator(ALG_ALLDIFFERENT, column_variables)
+        self.add_propagator(ALG_ALLDIFFERENT, column_variables, list(range(n)))
+        self.add_propagator(ALG_ALLDIFFERENT, column_variables, list(range(0, -n, -1)))
+        row_variables = list(range(n, 2 * n))
+        self.add_propagator(ALG_ALLDIFFERENT, row_variables)
+        self.add_propagator(ALG_ALLDIFFERENT, row_variables, list(range(n)))
+        self.add_propagator(ALG_ALLDIFFERENT, row_variables, list(range(0, -n, -1)))
+        self.add_propagator(ALG_PERMUTATION_AUX, column_variables + row_variables)
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         return [([" "] * i + ["Q"] + [" "] * (self.n - i - 1)) for i in (solution[: self.n])]
