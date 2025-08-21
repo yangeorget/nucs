@@ -91,7 +91,7 @@ def bound_consistency_algorithm(
         prop_var_nb = prop_var_end - prop_var_start
         prop_domains = np.empty((prop_var_nb, 2), dtype=np.int32)
         for var_idx in range(prop_var_nb):
-            prop_domains[var_idx, :] = domains_stk[top, props_variables[(prop_var_start + var_idx)], :]
+            prop_domains[var_idx, :] = domains_stk[top, props_variables[prop_var_start + var_idx], :]
         compute_domains_fct = (
             COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]]
             if NUMBA_DISABLE_JIT

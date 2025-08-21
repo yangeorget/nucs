@@ -35,13 +35,13 @@ def get_complexity_affine_geq(n: int, parameters: NDArray) -> float:
 
 
 @njit(cache=True)
-def get_triggers_affine_geq(n: int, dom_idx: int, parameters: NDArray) -> int:
+def get_triggers_affine_geq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
     :param parameters: the parameters
     :return: an array of triggers
     """
-    return EVENT_MASK_MIN if parameters[dom_idx] < 0 else EVENT_MASK_MAX
+    return EVENT_MASK_MIN if parameters[variable] < 0 else EVENT_MASK_MAX
 
 
 @njit(cache=True)

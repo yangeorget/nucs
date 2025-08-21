@@ -36,14 +36,14 @@ def get_complexity_min_geq(n: int, parameters: NDArray) -> float:
 
 
 @njit(cache=True)
-def get_triggers_min_geq(n: int, dom_idx: int, parameters: NDArray) -> int:
+def get_triggers_min_geq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
     :param n: the number of variables
     :param parameters: the parameters, unused here
     :return: an array of triggers
     """
-    return EVENT_MASK_MAX if dom_idx < n - 1 else EVENT_MASK_MIN
+    return EVENT_MASK_MAX if variable < n - 1 else EVENT_MASK_MIN
 
 
 @njit(cache=True)

@@ -28,7 +28,7 @@ def get_complexity_scc(n: int, parameters: NDArray) -> float:
 
 
 @njit(cache=True)
-def get_triggers_scc(n: int, dom_idx: int, parameters: NDArray) -> int:
+def get_triggers_scc(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
     :param n: the number of variables

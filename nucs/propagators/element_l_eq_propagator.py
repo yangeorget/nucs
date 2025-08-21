@@ -29,7 +29,7 @@ def get_complexity_element_l_eq(n: int, parameters: NDArray) -> float:
 
 
 @njit(cache=True)
-def get_triggers_element_l_eq(n: int, dom_idx: int, parameters: NDArray) -> int:
+def get_triggers_element_l_eq(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param parameters: the parameters, unused here

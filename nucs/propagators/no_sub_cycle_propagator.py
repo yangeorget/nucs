@@ -32,7 +32,7 @@ def get_complexity_no_sub_cycle(n: int, parameters: NDArray) -> float:
 
 
 @njit(cache=True)
-def get_triggers_no_sub_cycle(n: int, dom_idx: int, parameters: NDArray) -> int:
+def get_triggers_no_sub_cycle(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
     :param n: the number of variables

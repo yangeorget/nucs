@@ -27,13 +27,13 @@ def get_complexity_abs_eq(n: int, parameters: NDArray) -> float:
 
 
 @njit(cache=True)
-def get_triggers_abs_eq(n: int, dom_idx: int, parameters: NDArray) -> int:
+def get_triggers_abs_eq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
     :param parameters: the parameters, unused here
     :return: an array of triggers
     """
-    if dom_idx == 0:
+    if variable == 0:
         return EVENT_MASK_MIN_MAX
     return EVENT_MASK_MAX
 
