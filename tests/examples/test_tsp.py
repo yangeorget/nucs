@@ -23,7 +23,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 class TestTSP:
     def test_tsp_1(self) -> None:
         problem = TSPProblem([[0, 2, 1, 2], [2, 0, 2, 1], [1, 2, 0, 2], [2, 1, 2, 0]])
-        solver = BacktrackSolver(problem, decision_domains=[0, 1, 2, 3])
+        solver = BacktrackSolver(problem, decision_variables=[0, 1, 2, 3])
         solution = solver.minimize(problem.total_cost)
         assert solution is not None
         assert solution[:4].tolist() == [1, 3, 0, 2]
@@ -46,7 +46,7 @@ class TestTSP:
         costs = tsp_instance + tsp_instance
         solver = BacktrackSolver(
             problem,
-            decision_domains=list(range(0, 2 * n)),
+            decision_variables=list(range(0, 2 * n)),
             var_heuristic_idx=tsp_var_heuristic_idx,
             var_heuristic_params=costs,
             dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,

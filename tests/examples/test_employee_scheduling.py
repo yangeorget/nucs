@@ -31,7 +31,7 @@ class TestEmployeeScheduling:
     def test_employee_scheduling(self) -> None:
         problem = EmployeeSchedulingProblem()
         solver = BacktrackSolver(
-            problem, decision_domains=problem.requested_shifts, dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE
+            problem, decision_variables=problem.requested_shifts, dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE
         )
         solution = solver.maximize(problem.satisfied_request_nb)
         assert solution is not None

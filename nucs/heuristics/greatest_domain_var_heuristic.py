@@ -18,23 +18,23 @@ from nucs.constants import MAX, MIN
 
 @njit(cache=True)
 def greatest_domain_var_heuristic(
-    decision_domains: NDArray, domains_stk: NDArray, stks_top: NDArray, params: NDArray
+    decision_variables: NDArray, domains_stk: NDArray, stks_top: NDArray, params: NDArray
 ) -> int:
     """
-    Chooses the greatest shared domain and which is not instantiated.
-    :param decision_domains: the indices of a subset of the shared domains
-    :param domains_stk: the stack of shared domains
+    Chooses the first variable which is not instantiated with the greatest domain.
+    :param decision_variables: the decision variables
+    :param domains_stk: the stack of domains
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param params: a two-dimensional parameters array, unused here
-    :return: the index of the shared domain
+    :return: the variable
     """
     best_score = 0
-    best_idx = -1
+    best_variable = -1
     top = stks_top[0]
-    for dom_idx in decision_domains:
-        shr_domain = domains_stk[top, dom_idx]
-        score = shr_domain[MAX] - shr_domain[MIN]  # this is size - 1
+    for variable in decision_variables:
+        domain = domains_stk[top, variable]
+        score = domain[MAX] - domain[MIN]  # this is size - 1
         if best_score < score:
-            best_idx = dom_idx
+            best_variable = variable
             best_score = score
-    return best_idx
+    return best_variable

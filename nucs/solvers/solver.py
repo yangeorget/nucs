@@ -111,27 +111,25 @@ class Solver:
 
 
 @njit(cache=True)
-def get_solution(domains_stk: NDArray, stks_top: NDArray, variables_arr: NDArray, offsets_arr: NDArray) -> NDArray:
+def get_solution(domains_stk: NDArray, stks_top: NDArray) -> NDArray:
     """
     Returns the solution to the problem.
-    :param domains_stk: the stack of shared domains
+    :param domains_stk: the stack of domains
     :param stks_top: the index of the top of the stacks as a Numpy array
-    :param variables_arr: the domain indices
-    :param offsets_arr: the domain offsets
     :return: a Numpy array
     """
-    return domains_stk[stks_top[0], variables_arr, MIN] + offsets_arr
+    return domains_stk[stks_top[0], :, MIN].copy()
 
 
 @njit(cache=True)
 def is_solved(domains_stk: NDArray, top: int) -> bool:
     """
     Returns true iff the problem is solved.
-    :param domains_stk: the stack of shared domains
+    :param domains_stk: the stack of domains
     :param top: the index of the top of the stacks
     :return: a boolean
     """
-    for domain_idx in range(domains_stk.shape[1]):
-        if domains_stk[top, domain_idx, MIN] != domains_stk[top, domain_idx, MAX]:
+    for var in range(domains_stk.shape[1]):
+        if domains_stk[top, var, MIN] != domains_stk[top, var, MAX]:
             return False
     return True

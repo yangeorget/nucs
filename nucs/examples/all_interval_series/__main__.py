@@ -24,7 +24,7 @@ if __name__ == "__main__":
     problem = AllIntervalSeriesProblem(args.n, args.symmetry_breaking)
     solver = BacktrackSolver(
         problem,
-        decision_domains=list(range(args.n)),
+        decision_variables=list(range(args.n)),
         var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
         log_level=args.log_level,
         stks_max_height=args.cp,

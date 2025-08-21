@@ -25,7 +25,7 @@ if __name__ == "__main__":
     problem = EmployeeSchedulingProblem()
     solver = BacktrackSolver(
         problem,
-        decision_domains=problem.requested_shifts,
+        decision_variables=problem.requested_shifts,
         dom_heuristic_idx=DOM_HEURISTIC_MAX_VALUE,
         log_level=args.log_level,
         stks_max_height=args.cp,

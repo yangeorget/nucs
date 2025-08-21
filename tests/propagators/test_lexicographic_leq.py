@@ -58,22 +58,14 @@ class TestLexicographicLeq(PropagatorTest):
         )
 
     def test_solve_1(self) -> None:
-        problem = Problem(
-            domains=[(0, 1), (0, 1), (0, 1), (0, 1)],
-            variables=[0, 1, 2, 3],
-            offsets=[0, 0, 0, 0],
-        )
+        problem = Problem(domains=[(0, 1), (0, 1), (0, 1), (0, 1)])
         problem.add_propagator(ALG_LEXICOGRAPHIC_LEQ, [0, 1, 2, 3])
         solver = BacktrackSolver(problem)
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == 10
 
     def test_solve_2(self) -> None:
-        problem = Problem(
-            domains=[(1, 1), (0, 1), (0, 1), (0, 1)],
-            variables=[0, 1, 2, 3],
-            offsets=[0, 0, 0, 0],
-        )
+        problem = Problem(domains=[(1, 1), (0, 1), (0, 1), (0, 1)])
         problem.add_propagator(ALG_LEXICOGRAPHIC_LEQ, [0, 1, 2, 3])
         solver = BacktrackSolver(problem)
         solver.solve_all()

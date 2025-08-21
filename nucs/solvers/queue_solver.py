@@ -25,20 +25,20 @@ class QueueSolver:
     def get_statistics_as_array(self) -> NDArray: ...
 
     @abstractmethod
-    def minimize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
+    def minimize_and_queue(self, variable: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
         """
         Enqueues the solution that minimizes a variable.
-        :param variable_idx: the index of the variable to minimize
+        :param variable: the variable to minimize
         :param processor_idx: the index of the processor running the minimizer
         :param solution_queue: the solution queue
         """
         ...
 
     @abstractmethod
-    def maximize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
+    def maximize_and_queue(self, variable: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
         """
         Enqueues the solution that maximizes a variable.
-        :param variable_idx: the index of the variable to maximizer
+        :param variable: the variable to maximizer
         :param processor_idx: the index of the processor running the maximizer
         :param solution_queue: the solution queue
         """

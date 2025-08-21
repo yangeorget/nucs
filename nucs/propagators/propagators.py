@@ -219,11 +219,11 @@ def update_propagators(
     not_entailed_propagators: NDArray,
     triggers: NDArray,
     events: int,
-    dom_idx: int,
+    variable: int,
     previous_prop_idx: int = -1,
 ) -> None:
     propagator_nb = len(not_entailed_propagators)
-    for prop_idx in triggers[dom_idx, events]:
+    for prop_idx in triggers[variable, events]:
         if prop_idx == -1:
             break
         if not_entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:

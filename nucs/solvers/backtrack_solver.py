@@ -88,7 +88,7 @@ class BacktrackSolver(Solver, QueueSolver):
         self,
         problem: Problem,
         consistency_alg_idx: int = CONSISTENCY_ALG_BC,
-        decision_domains: Optional[List[int]] = None,
+        decision_variables: Optional[List[int]] = None,
         var_heuristic_idx: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         var_heuristic_params: List[List[int]] = [[]],
         dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
@@ -100,20 +100,20 @@ class BacktrackSolver(Solver, QueueSolver):
         Initializes the solver.
         :param problem: the problem to be solved
         :param consistency_alg_idx: the index of the consistency algorithm
-        :param decision_domains: the indices of the shared domains on which decisions will be made
-        :param var_heuristic_idx: the index of the heuristic for selecting a variable/shared domain
+        :param decision_variables: the variables on which decisions will be made
+        :param var_heuristic_idx: the index of the heuristic for selecting a variable
         :param var_heuristic_params: a list of lists of parameters,
-        usually parameters are costs and there is a list of value costs per variable/shared domain
+        usually parameters are costs and there is a list of value costs per variable
         :param dom_heuristic_idx: the index of the heuristic for reducing a domain
         :param dom_heuristic_params: a list of lists of parameters,
-        usually parameters are costs and there is a list of value costs per variable/shared domain
+        usually parameters are costs and there is a list of value costs per variable
         :param stks_max_height: the maximal height of the choice point stacks
         :param log_level: the log level as a string
         """
         super().__init__(problem, log_level)
-        decision_domains = list(range(problem.domain_nb)) if decision_domains is None else decision_domains
-        logger.info(f"BacktrackSolver uses decision domains {decision_domains}")
-        self.decision_domains = np.array(decision_domains, dtype=np.uint32)
+        decision_variables = list(range(problem.domain_nb)) if decision_variables is None else decision_variables
+        logger.info(f"BacktrackSolver uses decision domains {decision_variables}")
+        self.decision_variables = np.array(decision_variables, dtype=np.uint32)
         logger.info(f"BacktrackSolver uses variable heuristic {var_heuristic_idx}")
         self.var_heuristic_idx = var_heuristic_idx
         self.var_heuristic_params = np.array(var_heuristic_params, dtype=np.int64)
@@ -163,32 +163,32 @@ class BacktrackSolver(Solver, QueueSolver):
             STATS_LBL_SOLUTION_NB: int(self.statistics[STATS_IDX_SOLUTION_NB]),
         }
 
-    def minimize(self, variable_idx: int, mode: str = OPTIM_RESET) -> Optional[NDArray]:
+    def minimize(self, variable: int, mode: str = OPTIM_RESET) -> Optional[NDArray]:
         """
         Return the solution that minimizes a variable.
-        :param variable_idx: the index of the variable to minimize
+        :param variable: the variable to minimize
         :param mode: the optimization mode
         :return: the optimal solution if it exists or None
         """
-        domain = self.domains_stk[self.stks_top[0], self.problem.variables_arr[variable_idx]]
-        logger.info(f"Minimizing (mode {mode}) variable {variable_idx} (domain {domain}))")
-        return self.optimize(variable_idx, MAX, mode)
+        domain = self.domains_stk[self.stks_top[0], variable]
+        logger.info(f"Minimizing (mode {mode}) variable {variable} (domain {domain}))")
+        return self.optimize(variable, MAX, mode)
 
-    def maximize(self, variable_idx: int, mode: str = OPTIM_RESET) -> Optional[NDArray]:
+    def maximize(self, variable: int, mode: str = OPTIM_RESET) -> Optional[NDArray]:
         """
         Return the solution that maximizes a variable.
-        :param variable_idx: the index of the variable to maximize
+        :param variable: the variable to maximize
         :param mode: the optimization mode
         :return: the optimal solution if it exists or None
         """
-        domain = self.domains_stk[self.stks_top[0], self.problem.variables_arr[variable_idx]]
-        logger.info(f"Maximizing (mode {mode}) variable {variable_idx} (domain {domain}))")
-        return self.optimize(variable_idx, MIN, mode)
+        domain = self.domains_stk[self.stks_top[0], variable]
+        logger.info(f"Maximizing (mode {mode}) variable {variable} (domain {domain}))")
+        return self.optimize(variable, MIN, mode)
 
-    def optimize(self, variable_idx: int, bound: int, mode: str) -> Optional[NDArray]:
+    def optimize(self, variable: int, bound: int, mode: str) -> Optional[NDArray]:
         """
         Finds, if it exists, the solution to the problem that optimizes a given variable.
-        :param variable_idx: the index of the variable
+        :param variable: the variable
         :param bound: the bound to optimize
         :param mode: the optimization mode
         :return: the solution if it exists or None
@@ -202,10 +202,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
-                self.problem.variables_arr,
-                self.problem.offsets_arr,
                 self.problem.props_variables,
-                self.problem.props_offsets,
                 self.problem.props_parameters,
                 self.problem.triggers,
                 self.domains_stk,
@@ -214,7 +211,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.stks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
-                self.decision_domains,
+                self.decision_variables,
                 self.var_heuristic_idx,
                 self.var_heuristic_params,
                 self.dom_heuristic_idx,
@@ -225,7 +222,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 dom_heuristic_addrs,
             )
         ) is not None:
-            logger.info(f"Found a local optimum: {solution[variable_idx]}")
+            logger.info(f"Found a local optimum: {solution[variable]}")
             best_solution = solution
             if mode == OPTIM_RESET:
                 logger.debug("Resetting solver")
@@ -239,10 +236,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 if not fix_top_choice_point(
                     self.domains_stk,
                     self.stks_top,
-                    self.problem.variables_arr,
-                    self.problem.offsets_arr,
-                    variable_idx,
-                    best_solution[variable_idx],
+                    variable,
+                    best_solution[variable],
                     bound,
                 ):
                     break
@@ -254,10 +249,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 if not fix_choice_points(
                     self.domains_stk,
                     self.stks_top,
-                    self.problem.variables_arr,
-                    self.problem.offsets_arr,
-                    variable_idx,
-                    best_solution[variable_idx],
+                    variable,
+                    best_solution[variable],
                     bound,
                 ):
                     break
@@ -278,10 +271,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
-                self.problem.variables_arr,
-                self.problem.offsets_arr,
                 self.problem.props_variables,
-                self.problem.props_offsets,
                 self.problem.props_parameters,
                 self.problem.triggers,
                 self.domains_stk,
@@ -290,7 +280,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.stks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
-                self.decision_domains,
+                self.decision_variables,
                 self.var_heuristic_idx,
                 self.var_heuristic_params,
                 self.dom_heuristic_idx,
@@ -314,36 +304,36 @@ class BacktrackSolver(Solver, QueueSolver):
             ):
                 break
 
-    def minimize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
+    def minimize_and_queue(self, variable: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
         """
         Enqueues the solution that minimizes a variable.
-        :param variable_idx: the index of the variable to minimize
+        :param variable: the variable to minimize
         :param processor_idx: the index of the processor running the minimizer
         :param solution_queue: the solution queue
         :param mode: the optimization mode
         """
-        domain = self.domains_stk[self.stks_top[0], self.problem.variables_arr[variable_idx]]
-        logger.info(f"Minimizing (mode {mode}) variable {variable_idx} (domain {domain})) and queuing solutions")
-        self.optimize_and_queue(variable_idx, MAX, processor_idx, solution_queue, mode)
+        domain = self.domains_stk[self.stks_top[0], variable]
+        logger.info(f"Minimizing (mode {mode}) variable {variable} (domain {domain})) and queuing solutions")
+        self.optimize_and_queue(variable, MAX, processor_idx, solution_queue, mode)
 
-    def maximize_and_queue(self, variable_idx: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
+    def maximize_and_queue(self, variable: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
         """
         Enqueues the solution that maximizes a variable.
-        :param variable_idx: the index of the variable to maximizer
+        :param variable: the variable to maximizer
         :param processor_idx: the index of the processor running the maximizer
         :param solution_queue: the solution queue
         :param mode: the optimization mode
         """
-        domain = self.domains_stk[self.stks_top[0], self.problem.variables_arr[variable_idx]]
-        logger.info(f"Minimizing (mode {mode}) variable {variable_idx} (domain {domain})) and queuing solutions")
-        self.optimize_and_queue(variable_idx, MIN, processor_idx, solution_queue, mode)
+        domain = self.domains_stk[self.stks_top[0], variable]
+        logger.info(f"Minimizing (mode {mode}) variable {variable} (domain {domain})) and queuing solutions")
+        self.optimize_and_queue(variable, MIN, processor_idx, solution_queue, mode)
 
     def optimize_and_queue(
-        self, variable_idx: int, bound: int, processor_idx: int, solution_queue: Queue, mode: str
+        self, variable: int, bound: int, processor_idx: int, solution_queue: Queue, mode: str
     ) -> None:
         """
         Enqueues the solution that optimizes a variable.
-        :param variable_idx: the index of the variable
+        :param variable: the variable
         :param bound: the bound to optimize
         :param processor_idx: the index of the processor
         :param solution_queue: the solution queue
@@ -357,10 +347,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
-                self.problem.variables_arr,
-                self.problem.offsets_arr,
                 self.problem.props_variables,
-                self.problem.props_offsets,
                 self.problem.props_parameters,
                 self.problem.triggers,
                 self.domains_stk,
@@ -369,7 +356,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.stks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
-                self.decision_domains,
+                self.decision_variables,
                 self.var_heuristic_idx,
                 self.var_heuristic_params,
                 self.dom_heuristic_idx,
@@ -381,7 +368,7 @@ class BacktrackSolver(Solver, QueueSolver):
             )
             if solution is None:
                 break
-            logger.info(f"Found a local optimum: {solution[variable_idx]}")
+            logger.info(f"Found a local optimum: {solution[variable]}")
             logger.info(self.stks_top[0])
             solution_queue.put((processor_idx, solution, self.statistics))
             if mode == OPTIM_RESET:
@@ -396,10 +383,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 if not fix_top_choice_point(
                     self.domains_stk,
                     self.stks_top,
-                    self.problem.variables_arr,
-                    self.problem.offsets_arr,
-                    variable_idx,
-                    solution[variable_idx],
+                    variable,
+                    solution[variable],
                     bound,
                 ):
                     break
@@ -411,10 +396,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 if not fix_choice_points(
                     self.domains_stk,
                     self.stks_top,
-                    self.problem.variables_arr,
-                    self.problem.offsets_arr,
-                    variable_idx,
-                    solution[variable_idx],
+                    variable,
+                    solution[variable],
                     bound,
                 ):
                     break
@@ -436,10 +419,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
-                self.problem.variables_arr,
-                self.problem.offsets_arr,
                 self.problem.props_variables,
-                self.problem.props_offsets,
                 self.problem.props_parameters,
                 self.problem.triggers,
                 self.domains_stk,
@@ -448,7 +428,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.stks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
-                self.decision_domains,
+                self.decision_variables,
                 self.var_heuristic_idx,
                 self.var_heuristic_params,
                 self.dom_heuristic_idx,
@@ -478,10 +458,7 @@ def solve_one(
     statistics: NDArray,
     algorithms: NDArray,
     bounds: NDArray,
-    variables_arr: NDArray,
-    offsets_arr: NDArray,
     props_variables: NDArray,
-    props_offsets: NDArray,
     props_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
@@ -490,7 +467,7 @@ def solve_one(
     stks_top: NDArray,
     triggered_propagators: NDArray,
     consistency_alg_idx: int,
-    decision_domains: NDArray,
+    decision_variables: NDArray,
     var_heuristic_idx: int,
     var_heuristic_params: NDArray,
     dom_heuristic_idx: int,
@@ -505,27 +482,24 @@ def solve_one(
     :param statistics: a Numpy array of statistics
     :param algorithms: the algorithms indexed by propagators
     :param bounds: the bounds indexed by propagators
-    :param variables_arr: the domain indices indexed by variables
-    :param offsets_arr: the domain offsets indexed by variables
     :param props_variables: the domain indices indexed by propagator variables
-    :param props_offsets: the domain offsets indexed by propagator variables
     :param props_parameters: the parameters indexed by propagator variables
-    :param triggers: a Numpy array of event masks indexed by shared domain indices and propagators
-    :param domains_stk: a stack of shared domains;
-    the first level correspond to the current shared domains, the rest correspond to the choice points
+    :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :param domains_stk: a stack of domains;
+    the first level correspond to the current domains, the rest correspond to the choice points
     :param not_entailed_propagators_stk: a stack not entailed propagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
     :param dom_update_stk: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param consistency_alg_idx: the index of the consistency algorithm
-    :param decision_domains: the indices of the shared domains on which decisions will be made
+    :param decision_variables: the variables on which decisions will be made
     :param var_heuristic_idx: the index of the variable heuristic
     :param var_heuristic_params: a list of lists of parameters,
-    usually parameters are costs and there is a list of value costs per variable/shared domain
+    usually parameters are costs and there is a list of value costs per variable
     :param dom_heuristic_idx: the index of the domain heuristic
     :param dom_heuristic_params: a list of lists of parameters,
-    usually parameters are costs and there is a list of value costs per variable/shared domain
+    usually parameters are costs and there is a list of value costs per variable
     :param compute_domains_addrs: the addresses of the compute_domains functions
     :param consistency_alg_addrs: the addresses of the functions implementing the consistency algorithms
     :param var_heuristic_addrs: the addresses of the functions implementing the variable heuristics
@@ -545,10 +519,7 @@ def solve_one(
             statistics,
             algorithms,
             bounds,
-            variables_arr,
-            offsets_arr,
             props_variables,
-            props_offsets,
             props_parameters,
             triggers,
             domains_stk,
@@ -557,24 +528,22 @@ def solve_one(
             stks_top,
             triggered_propagators,
             compute_domains_addrs,
-            decision_domains,
+            decision_variables,
         )
         if status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLUTION_NB] += 1
-            return get_solution(domains_stk, stks_top, variables_arr, offsets_arr)
+            return get_solution(domains_stk, stks_top)
         elif status == PROBLEM_UNBOUND:
-            dom_idx = var_heuristic_fct(decision_domains, domains_stk, stks_top, var_heuristic_params)
+            var = var_heuristic_fct(decision_variables, domains_stk, stks_top, var_heuristic_params)
             events = dom_heuristic_fct(
                 domains_stk,
                 not_entailed_propagators_stk,
                 dom_update_stk,
                 stks_top,
-                dom_idx,
+                var,
                 dom_heuristic_params,
             )
-            update_propagators(
-                triggered_propagators, not_entailed_propagators_stk[stks_top[0]], triggers, events, dom_idx
-            )
+            update_propagators(triggered_propagators, not_entailed_propagators_stk[stks_top[0]], triggers, events, var)
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
             if stks_top[0] > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
                 statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = stks_top[0]

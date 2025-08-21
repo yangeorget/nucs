@@ -18,18 +18,18 @@ from nucs.constants import MAX, MIN
 
 @njit(cache=True)
 def first_not_instantiated_var_heuristic(
-    decision_domains: NDArray, domains_stk: NDArray, stks_top: NDArray, params: NDArray
+    decision_variables: NDArray, domains_stk: NDArray, stks_top: NDArray, params: NDArray
 ) -> int:
     """
-    Chooses the first non-instantiated shared domain.
-    :param decision_domains: the indices of a subset of the shared domains
-    :param domains_stk: the stack of shared domains
+    Chooses the first non-instantiated variable.
+    :param decision_variables: the decision variables
+    :param domains_stk: the stack of domains
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param params: a two-dimensional parameters array, unused here
-    :return: the index of the shared domain
+    :return: the variable
     """
     top = stks_top[0]
-    for dom_idx in decision_domains:
-        if domains_stk[top, dom_idx, MIN] < domains_stk[top, dom_idx, MAX]:
-            return dom_idx
+    for variable in decision_variables:
+        if domains_stk[top, variable, MIN] < domains_stk[top, variable, MAX]:
+            return variable
     return -1  # cannot happen

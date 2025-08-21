@@ -15,7 +15,7 @@ from numpy.typing import NDArray
 
 from nucs.constants import (
     DOM_UPDATE_EVENTS,
-    DOM_UPDATE_IDX,
+    DOM_UPDATE_VARIABLE,
     EVENT_MASK_MAX,
     EVENT_MASK_MAX_GROUND,
     EVENT_MASK_MIN_GROUND,
@@ -31,26 +31,26 @@ def max_value_dom_heuristic(
     not_entailed_propagators_stk: NDArray,
     dom_update_stk: NDArray,
     stks_top: NDArray,
-    dom_idx: int,
+    variable: int,
     params: NDArray,
 ) -> int:
     """
     Chooses the max value of the domain.
-    :param domains_stk: the stack of shared domains
+    :param domains_stk: the stack of domains
     :param not_entailed_propagators_stk: the stack of not entailed propagators
     :param dom_update_stk: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
-    :param dom_idx: the index of the shared domain
+    :param variable: the variable
     :param params: a two-dimensional parameters array, unused here
     :return: the events
     """
     top = stks_top[0]
-    value = domains_stk[top, dom_idx, MAX]
+    value = domains_stk[top, variable, MAX]
     cp_put(domains_stk, not_entailed_propagators_stk, stks_top)
-    domains_stk[top + 1, dom_idx, MIN] = value
-    domains_stk[top, dom_idx, MAX] = value - 1
-    dom_update_stk[top, DOM_UPDATE_IDX] = dom_idx
+    domains_stk[top + 1, variable, MIN] = value
+    domains_stk[top, variable, MAX] = value - 1
+    dom_update_stk[top, DOM_UPDATE_VARIABLE] = variable
     dom_update_stk[top, DOM_UPDATE_EVENTS] = (
-        EVENT_MASK_MAX_GROUND if domains_stk[top, dom_idx, MIN] == domains_stk[top, dom_idx, MAX] else EVENT_MASK_MAX
+        EVENT_MASK_MAX_GROUND if domains_stk[top, variable, MIN] == domains_stk[top, variable, MAX] else EVENT_MASK_MAX
     )
     return EVENT_MASK_MIN_GROUND

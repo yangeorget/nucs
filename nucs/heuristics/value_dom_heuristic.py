@@ -15,7 +15,7 @@ from numpy.typing import NDArray
 
 from nucs.constants import (
     DOM_UPDATE_EVENTS,
-    DOM_UPDATE_IDX,
+    DOM_UPDATE_VARIABLE,
     EVENT_MASK_MAX,
     EVENT_MASK_MAX_GROUND,
     EVENT_MASK_MIN,
@@ -35,42 +35,42 @@ def value_dom_heuristic(
     not_entailed_propagators_stk: NDArray,
     dom_update_stk: NDArray,
     stks_top: NDArray,
-    dom_idx: int,
+    variable: int,
     value: int,
     params: NDArray,
 ) -> int:
     """
     Chooses a value given as a parameter.
-    :param domains_stk: the stack of shared domains
+    :param domains_stk: the stack of domains
     :param not_entailed_propagators_stk: the stack of not entailed propagators
     :param dom_update_stk: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
-    :param dom_idx: the index of the shared domain
+    :param variable: the variable
     :param value: the value
     :param params: a two-dimensional parameter array
     :return: the events
     """
     top = stks_top[0]
-    if value == domains_stk[top, dom_idx, MIN]:
+    if value == domains_stk[top, variable, MIN]:
         return min_value_dom_heuristic(
-            domains_stk, not_entailed_propagators_stk, dom_update_stk, stks_top, dom_idx, params
+            domains_stk, not_entailed_propagators_stk, dom_update_stk, stks_top, variable, params
         )
-    if value == domains_stk[top, dom_idx, MAX]:
+    if value == domains_stk[top, variable, MAX]:
         return max_value_dom_heuristic(
-            domains_stk, not_entailed_propagators_stk, dom_update_stk, stks_top, dom_idx, params
+            domains_stk, not_entailed_propagators_stk, dom_update_stk, stks_top, variable, params
         )
     cp_put(domains_stk, not_entailed_propagators_stk, stks_top)
     cp_put(domains_stk, not_entailed_propagators_stk, stks_top)
-    domains_stk[top + 2, dom_idx, :] = value
-    domains_stk[top + 1, dom_idx, MAX] = value - 1
-    domains_stk[top, dom_idx, MIN] = value + 1
-    dom_update_stk[top + 1, DOM_UPDATE_IDX] = dom_update_stk[top, DOM_UPDATE_IDX] = dom_idx
+    domains_stk[top + 2, variable, :] = value
+    domains_stk[top + 1, variable, MAX] = value - 1
+    domains_stk[top, variable, MIN] = value + 1
+    dom_update_stk[top + 1, DOM_UPDATE_VARIABLE] = dom_update_stk[top, DOM_UPDATE_VARIABLE] = variable
     dom_update_stk[top + 1, DOM_UPDATE_EVENTS] = (
         EVENT_MASK_MAX_GROUND
-        if domains_stk[top + 1, dom_idx, MIN] == domains_stk[top + 1, dom_idx, MAX]
+        if domains_stk[top + 1, variable, MIN] == domains_stk[top + 1, variable, MAX]
         else EVENT_MASK_MAX
     )
     dom_update_stk[top, DOM_UPDATE_EVENTS] = (
-        EVENT_MASK_MIN_GROUND if domains_stk[top, dom_idx, MIN] == domains_stk[top, dom_idx, MAX] else EVENT_MASK_MIN
+        EVENT_MASK_MIN_GROUND if domains_stk[top, variable, MIN] == domains_stk[top, variable, MAX] else EVENT_MASK_MIN
     )
     return EVENT_MASK_MIN_MAX_GROUND

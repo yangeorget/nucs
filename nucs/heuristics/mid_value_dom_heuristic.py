@@ -23,16 +23,16 @@ def mid_value_dom_heuristic(
     not_entailed_propagators_stk: NDArray,
     dom_update_stk: NDArray,
     stks_top: NDArray,
-    dom_idx: int,
+    variable: int,
     params: NDArray,
 ) -> int:
     """
     Chooses the middle value of the domain.
-    :param domains_stk: the stack of shared domains
+    :param domains_stk: the stack of domains
     :param not_entailed_propagators_stk: the stack of not entailed propagators
     :param dom_update_stk: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
-    :param dom_idx: the index of the shared domain
+    :param variable: the variable
     :param params: a two-dimensional parameters array, unused here
     :return: the events
     """
@@ -41,7 +41,7 @@ def mid_value_dom_heuristic(
         not_entailed_propagators_stk,
         dom_update_stk,
         stks_top,
-        dom_idx,
-        (domains_stk[stks_top[0], dom_idx, MIN] + domains_stk[stks_top[0], dom_idx, MAX]) // 2,
+        variable,
+        (domains_stk[stks_top[0], variable, MIN] + domains_stk[stks_top[0], variable, MAX]) // 2,
         params,
     )

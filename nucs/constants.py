@@ -33,8 +33,8 @@ MAX = 1  # max value of a domain
 
 
 # Domain update stack indices
-DOM_UPDATE_IDX = 0  # index for the domain idx
-DOM_UPDATE_EVENTS = 1  # index for the event
+DOM_UPDATE_VARIABLE = 0  # index for the variable
+DOM_UPDATE_EVENTS = 1  # index for the events
 
 
 # Events
@@ -62,10 +62,7 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     int64[:],  # statistics
     uint8[:],  # algorithms
     uint32[:, :, :],  # bounds
-    uint32[:],  # variables_arr
-    int32[:],  # offsets_arr
     uint32[:],  # props_variables
-    int32[:],  # props_offsets
     int32[:],  # props_parameters
     int32[:, :, :],  # triggers
     int32[:, :, :],  # domains_stk
@@ -74,14 +71,14 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     uint16[:],  # stks_top
     uint32[:],  # triggered_propagators
     int64[:],  # compute_domains_addrs
-    uint32[:],  # decision_domains
+    uint32[:],  # decision_variables
 )
 SIGNATURE_DOM_HEURISTIC = int64(
     int32[:, :, :],  # domains_stk
     bool[:, :],  # not_entailed_propagators_stk
     uint32[:, :],  # dom_update_stk
     uint16[:],  # stks_top
-    int64,  # dom_idx
+    int64,  # variable
     int64[:, :],  # dom_heuristic_params
 )
 SIGNATURE_VAR_HEURISTIC = int64(

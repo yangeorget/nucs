@@ -100,18 +100,16 @@ class MultiprocessingSolver(Solver):
             else:
                 yield solution
 
-    def minimize(self, variable_idx: int, mode: str) -> Optional[NDArray]:
-        return self.optimize(variable_idx, "minimize_and_queue", operator.lt, mode)
+    def minimize(self, variable: int, mode: str) -> Optional[NDArray]:
+        return self.optimize(variable, "minimize_and_queue", operator.lt, mode)
 
-    def maximize(self, variable_idx: int, mode: str) -> Optional[NDArray]:
-        return self.optimize(variable_idx, "maximize_and_queue", operator.gt, mode)
+    def maximize(self, variable: int, mode: str) -> Optional[NDArray]:
+        return self.optimize(variable, "maximize_and_queue", operator.gt, mode)
 
-    def optimize(
-        self, variable_idx: int, proc_func_name: str, comparison_func: Callable, mode: str
-    ) -> Optional[NDArray]:
+    def optimize(self, variable: int, proc_func_name: str, comparison_func: Callable, mode: str) -> Optional[NDArray]:
         solutions: Queue = Queue()
         for proc_idx, solver in enumerate(self.solvers):
-            Process(target=(getattr(solver, proc_func_name)), args=(variable_idx, proc_idx, solutions, mode)).start()
+            Process(target=(getattr(solver, proc_func_name)), args=(variable, proc_idx, solutions, mode)).start()
         best_solution = None
         nb = len(self.solvers)
         while nb > 0:
@@ -119,7 +117,7 @@ class MultiprocessingSolver(Solver):
             self.statistics[proc_idx] = statistics
             if solution is None:
                 nb -= 1
-            elif best_solution is None or comparison_func(solution[variable_idx], best_solution[variable_idx]):
+            elif best_solution is None or comparison_func(solution[variable], best_solution[variable]):
                 best_solution = solution
         return best_solution
 

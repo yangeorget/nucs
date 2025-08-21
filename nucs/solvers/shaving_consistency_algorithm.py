@@ -34,14 +34,11 @@ from nucs.solvers.choice_points import backtrack
 @njit(cache=True)
 def shave_bound(
     bound: int,
-    dom_idx: int,
+    variable: int,
     statistics: NDArray,
     algorithms: NDArray,
     bounds: NDArray,
-    variables_arr: NDArray,
-    offsets_arr: NDArray,
     props_variables: NDArray,
-    props_offsets: NDArray,
     props_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
@@ -53,22 +50,21 @@ def shave_bound(
     decision_variables: NDArray,
 ) -> bool:
     events = (
-        max_value_dom_heuristic(domains_stk, not_entailed_propagators_stk, dom_update_stk, stks_top, dom_idx, None)
+        max_value_dom_heuristic(domains_stk, not_entailed_propagators_stk, dom_update_stk, stks_top, variable, None)
         if bound == MAX
-        else min_value_dom_heuristic(domains_stk, not_entailed_propagators_stk, dom_update_stk, stks_top, dom_idx, None)
+        else min_value_dom_heuristic(
+            domains_stk, not_entailed_propagators_stk, dom_update_stk, stks_top, variable, None
+        )
     )
-    if domains_stk[stks_top[0], dom_idx, MIN] == domains_stk[stks_top[0], dom_idx, MAX]:
+    if domains_stk[stks_top[0], variable, MIN] == domains_stk[stks_top[0], variable, MAX]:
         events |= EVENT_MASK_GROUND
-    update_propagators(triggered_propagators, not_entailed_propagators_stk[stks_top[0]], triggers, events, dom_idx)
+    update_propagators(triggered_propagators, not_entailed_propagators_stk[stks_top[0]], triggers, events, variable)
     if (
         bound_consistency_algorithm(
             statistics,
             algorithms,
             bounds,
-            variables_arr,
-            offsets_arr,
             props_variables,
-            props_offsets,
             props_parameters,
             triggers,
             domains_stk,
@@ -83,7 +79,7 @@ def shave_bound(
     ):
         has_shaved = True
     else:
-        domains_stk[stks_top[0] - 1, dom_idx, bound] += 1 if bound == MAX else -1
+        domains_stk[stks_top[0] - 1, variable, bound] += 1 if bound == MAX else -1
         has_shaved = False
     backtrack(
         statistics,
@@ -101,10 +97,7 @@ def shaving_consistency_algorithm(
     statistics: NDArray,
     algorithms: NDArray,
     bounds: NDArray,
-    variables_arr: NDArray,
-    offsets_arr: NDArray,
     props_variables: NDArray,
-    props_offsets: NDArray,
     props_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
@@ -113,28 +106,25 @@ def shaving_consistency_algorithm(
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
-    decision_domains: NDArray,
+    decision_variables: NDArray,
 ) -> int:
     """
     Shaving consistency algorithm.
     :param statistics: a Numpy array of statistics
     :param algorithms: the algorithms indexed by propagators
     :param bounds: the bounds indexed by propagators
-    :param variables_arr: the domain indices indexed by variables
-    :param offsets_arr: the domain offsets indexed by variables
     :param props_variables: the domain indices indexed by propagator variables
-    :param props_offsets: the domain offsets indexed by propagator variables
     :param props_parameters: the parameters indexed by propagator variables
-    :param triggers: a Numpy array of event masks indexed by shared domain indices and propagators
-    :param domains_stk: a stack of shared domains;
-    the first level correspond to the current shared domains, the rest correspond to the choice points
+    :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :param domains_stk: a stack of  domains;
+    the first level correspond to the current domains, the rest correspond to the choice points
     :param not_entailed_propagators_stk: a stack not entailed propagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
     :param dom_update_stk: the stack of domain updates
     :param stks_top: the height of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param compute_domains_addrs: the addresses of the compute_domains functions
-    :param decision_domains: the indices of the shared domains on which decisions will be made
+    :param decision_variables: the variables on which decisions will be made
     :return: a status (consistency, inconsistency or entailment) as an integer
     """
     statistics[STATS_IDX_ALG_BC_WITH_SHAVING_NB] += 1
@@ -148,10 +138,7 @@ def shaving_consistency_algorithm(
                 statistics,
                 algorithms,
                 bounds,
-                variables_arr,
-                offsets_arr,
                 props_variables,
-                props_offsets,
                 props_parameters,
                 triggers,
                 domains_stk,
@@ -160,26 +147,23 @@ def shaving_consistency_algorithm(
                 stks_top,
                 triggered_propagators,
                 compute_domains_addrs,
-                decision_domains,
+                decision_variables,
             )
             if status != PROBLEM_UNBOUND:
                 return status
-        dom_idx = first_not_instantiated_var_heuristic(
-            decision_domains[decision_domains >= start_idx], domains_stk, stks_top, None
+        variable = first_not_instantiated_var_heuristic(
+            decision_variables[decision_variables >= start_idx], domains_stk, stks_top, None
         )
-        if dom_idx == -1:  # all variables after start_idx are instantiated
+        if variable == -1:  # all variables after start_idx are instantiated
             break
         statistics[STATS_IDX_ALG_SHAVING_NB] += 1
         has_shaved = shave_bound(
             bound,
-            dom_idx,
+            variable,
             statistics,
             algorithms,
             bounds,
-            variables_arr,
-            offsets_arr,
             props_variables,
-            props_offsets,
             props_parameters,
             triggers,
             domains_stk,
@@ -188,9 +172,9 @@ def shaving_consistency_algorithm(
             stks_top,
             triggered_propagators,
             compute_domains_addrs,
-            decision_domains,
+            decision_variables,
         )
-        start_idx = dom_idx
+        start_idx = variable
         if has_shaved:
             statistics[STATS_IDX_ALG_SHAVING_CHANGE_NB] += 1
         else:

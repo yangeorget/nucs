@@ -21,7 +21,8 @@ from nucs.heuristics.heuristics import (
 )
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, ALG_RELATION
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack_solver import BacktrackSolver, get_function_addresses, solve_one
+from nucs.solvers.choice_points import backtrack
 
 
 class TestBacktrackSolver:
@@ -32,6 +33,55 @@ class TestBacktrackSolver:
         statistics = solver.get_statistics_as_dictionary()
         assert statistics[STATS_LBL_SOLUTION_NB] == 10000
         assert statistics[STATS_LBL_SOLVER_CHOICE_DEPTH] == 2
+
+    def test_solve_one(self) -> None:
+        problem = Problem([(0, 1), (0, 1)])
+        solver = BacktrackSolver(problem, stks_max_height=3)
+        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
+            get_function_addresses()
+        )
+        solution = solve_one(
+            solver.statistics,
+            problem.algorithms,
+            problem.bounds,
+            problem.props_variables,
+            problem.props_parameters,
+            problem.triggers,
+            solver.domains_stk,
+            solver.not_entailed_propagators_stk,
+            solver.dom_update_stk,
+            solver.stks_top,
+            solver.triggered_propagators,
+            solver.consistency_alg_idx,
+            solver.decision_variables,
+            solver.var_heuristic_idx,
+            solver.var_heuristic_params,
+            solver.dom_heuristic_idx,
+            solver.dom_heuristic_params,
+            compute_domains_addrs,
+            consistency_alg_addrs,
+            var_heuristic_addrs,
+            dom_heuristic_addrs,
+        )
+        assert solution.tolist() == [0, 0]
+        assert solver.stks_top == 2
+        assert solver.domains_stk[0, 0].tolist() == [1, 1]
+        assert solver.domains_stk[0, 1].tolist() == [0, 1]
+        assert solver.domains_stk[1, 0].tolist() == [0, 0]
+        assert solver.domains_stk[1, 1].tolist() == [1, 1]
+        assert backtrack(
+            solver.statistics,
+            solver.not_entailed_propagators_stk,
+            solver.dom_update_stk,
+            solver.stks_top,
+            solver.triggered_propagators,
+            problem.triggers,
+        )
+        assert solver.stks_top == 1
+        assert solver.domains_stk[0, 0].tolist() == [1, 1]
+        assert solver.domains_stk[0, 1].tolist() == [0, 1]
+        assert solver.domains_stk[1, 0].tolist() == [0, 0]
+        assert solver.domains_stk[1, 1].tolist() == [1, 1]
 
     def test_find_all(self) -> None:
         problem = Problem([(0, 1), (0, 1)])

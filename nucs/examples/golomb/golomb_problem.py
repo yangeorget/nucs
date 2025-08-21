@@ -109,75 +109,66 @@ def golomb_consistency_algorithm(
     statistics: NDArray,
     algorithms: NDArray,
     bounds: NDArray,
-    variables_arr: NDArray,
-    offsets_arr: NDArray,
     props_variables: NDArray,
-    props_offsets: NDArray,
     props_parameters: NDArray,
-    domains_propagators: NDArray,
+    triggers: NDArray,
     domains_stk: NDArray,
     not_entailed_propagators_stk: NDArray,
     dom_update_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
-    decision_domains: NDArray,
+    decision_variables: NDArray,
 ) -> int:
     """
     Applies a custom consistency algorithm for the Golomb Ruler problem.
     :param statistics: the statistics array
-    :param problem: the problem
     :return: the status as an int
     """
     top = stks_top[0]
     # first prune the search space
-    mark_nb = (1 + int(math.sqrt(8 * len(variables_arr) + 1))) // 2
-    ni_var_idx = first_not_instantiated_var_heuristic(
-        decision_domains, domains_stk, stks_top, None
+    mark_nb = (1 + int(math.sqrt(8 * len(triggers) + 1))) // 2
+    ni_var = first_not_instantiated_var_heuristic(
+        decision_variables, domains_stk, stks_top, None
     )  # no domains shared between vars
-    if 1 < ni_var_idx < mark_nb - 1:  # otherwise useless
+    if 1 < ni_var < mark_nb - 1:  # otherwise useless
         used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=np.bool)
         # a reusable array for storing the minimal sum of different integers:
         # minimal_sum[i] will be the minimal sum of i different integers chosen among a set of possible integers
         minimal_sum = np.zeros(mark_nb - 1, dtype=np.int32)
         # the following will mark at most sum(n-3) numbers as used
         # hence there will be at least n-2 unused numbers greater than 0
-        for var_idx in range(index(mark_nb, ni_var_idx - 2, ni_var_idx - 1) + 1):
-            dist = domains_stk[top, variables_arr[var_idx], MIN]  # no offset
+        for var in range(index(mark_nb, ni_var - 2, ni_var - 1) + 1):
+            dist = domains_stk[top, var, MIN]  # no offset
             if dist < len(used_distance):
                 used_distance[dist] = True
         # let's compute the sum of non-used numbers
         distance = 1
-        for j in range(0, mark_nb - ni_var_idx):
+        for j in range(0, mark_nb - ni_var):
             while used_distance[distance]:
                 distance += 1
             minimal_sum[j + 1] = minimal_sum[j] + distance
             distance += 1
-        for i in range(ni_var_idx - 1, mark_nb - 1):
+        for i in range(ni_var - 1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
-                dom_idx = variables_arr[index(mark_nb, i, j)]
-                domains_stk[top, dom_idx, MIN] = minimal_sum[j - i]  # no offset
+                var = index(mark_nb, i, j)
+                domains_stk[top, var, MIN] = minimal_sum[j - i]  # no offset
                 events = EVENT_MASK_MIN
-                if domains_stk[top, dom_idx, MIN] == domains_stk[top, dom_idx, MAX]:
+                if domains_stk[top, var, MIN] == domains_stk[top, var, MAX]:
                     events |= EVENT_MASK_GROUND
-                update_propagators(
-                    triggered_propagators, not_entailed_propagators_stk[top], domains_propagators, events, dom_idx
-                )
+                update_propagators(triggered_propagators, not_entailed_propagators_stk[top], triggers, events, var)
     return bound_consistency_algorithm(
         statistics,
         algorithms,
         bounds,
-        variables_arr,
-        offsets_arr,
         props_variables,
-        props_offsets,
         props_parameters,
-        domains_propagators,
+        triggers,
         domains_stk,
         not_entailed_propagators_stk,
         dom_update_stk,
         stks_top,
         triggered_propagators,
         compute_domains_addrs,
-        decision_domains,
+        decision_variables,
     )
