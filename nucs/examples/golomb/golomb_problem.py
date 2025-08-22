@@ -106,6 +106,7 @@ class GolombProblem(Problem):
 
 @njit(cache=True)
 def golomb_consistency_algorithm(
+    propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
     bounds: NDArray,
@@ -156,8 +157,11 @@ def golomb_consistency_algorithm(
                 events = EVENT_MASK_MIN
                 if domains_stk[top, var, MIN] == domains_stk[top, var, MAX]:
                     events |= EVENT_MASK_GROUND
-                update_propagators(triggered_propagators, not_entailed_propagators_stk[top], triggers, events, var)
+                update_propagators(
+                    propagator_nb, triggered_propagators, not_entailed_propagators_stk[top], triggers, events, var
+                )
     return bound_consistency_algorithm(
+        propagator_nb,
         statistics,
         algorithms,
         bounds,

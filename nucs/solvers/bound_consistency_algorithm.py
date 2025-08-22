@@ -44,6 +44,7 @@ from nucs.solvers.solver import is_solved
 
 @njit(cache=True)
 def bound_consistency_algorithm(
+    propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
     bounds: NDArray,
@@ -79,7 +80,6 @@ def bound_consistency_algorithm(
     """
     top = stks_top[0]
     statistics[STATS_IDX_ALG_BC_NB] += 1
-    propagator_nb = len(algorithms)
     while True:
         prop_idx = min_heap_pop(triggered_propagators, propagator_nb)
         if prop_idx == -1:
@@ -119,7 +119,13 @@ def bound_consistency_algorithm(
                 if domain_min == domain_max:
                     events |= EVENT_MASK_GROUND
                 update_propagators(
-                    triggered_propagators, not_entailed_propagators_stk[top], triggers, events, variable, prop_idx
+                    propagator_nb,
+                    triggered_propagators,
+                    not_entailed_propagators_stk[top],
+                    triggers,
+                    events,
+                    variable,
+                    prop_idx,
                 )
                 no_changes = False
         if no_changes:

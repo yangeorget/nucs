@@ -41,6 +41,7 @@ class TestBacktrackSolver:
             get_function_addresses()
         )
         solution = solve_one(
+            problem.propagator_nb,
             solver.statistics,
             problem.algorithms,
             problem.bounds,
@@ -70,6 +71,7 @@ class TestBacktrackSolver:
         assert solver.domains_stk[1, 0].tolist() == [0, 0]
         assert solver.domains_stk[1, 1].tolist() == [1, 1]
         assert backtrack(
+            problem.propagator_nb,
             solver.statistics,
             solver.not_entailed_propagators_stk,
             solver.dom_update_stk,

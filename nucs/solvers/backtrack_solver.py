@@ -200,6 +200,7 @@ class BacktrackSolver(Solver, QueueSolver):
         best_solution = None
         while (
             solution := solve_one(
+                self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
@@ -269,6 +270,7 @@ class BacktrackSolver(Solver, QueueSolver):
         )
         while True:
             solution = solve_one(
+                self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
@@ -296,6 +298,7 @@ class BacktrackSolver(Solver, QueueSolver):
             logger.debug("Found a solution")
             yield solution
             if not backtrack(
+                self.problem.propagator_nb,
                 self.statistics,
                 self.not_entailed_propagators_stk,
                 self.dom_update_stk,
@@ -345,6 +348,7 @@ class BacktrackSolver(Solver, QueueSolver):
         )
         while True:
             solution = solve_one(
+                self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
@@ -417,6 +421,7 @@ class BacktrackSolver(Solver, QueueSolver):
         )
         while True:
             solution = solve_one(
+                self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
@@ -443,6 +448,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 break
             solution_queue.put((processor_idx, solution, self.statistics))
             if not backtrack(
+                self.problem.propagator_nb,
                 self.statistics,
                 self.not_entailed_propagators_stk,
                 self.dom_update_stk,
@@ -456,6 +462,7 @@ class BacktrackSolver(Solver, QueueSolver):
 
 @njit(cache=True)
 def solve_one(
+    propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
     bounds: NDArray,
@@ -517,6 +524,7 @@ def solve_one(
         dom_heuristic_fct = function_from_address(TYPE_DOM_HEURISTIC, dom_heuristic_addrs[dom_heuristic_idx])
     while True:
         status = consistency_alg_fct(
+            propagator_nb,
             statistics,
             algorithms,
             bounds,
@@ -544,11 +552,14 @@ def solve_one(
                 var,
                 dom_heuristic_params,
             )
-            update_propagators(triggered_propagators, not_entailed_propagators_stk[stks_top[0]], triggers, events, var)
+            update_propagators(
+                propagator_nb, triggered_propagators, not_entailed_propagators_stk[stks_top[0]], triggers, events, var
+            )
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
             if stks_top[0] > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
                 statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = stks_top[0]
         elif not backtrack(
+            propagator_nb,
             statistics,
             not_entailed_propagators_stk,
             dom_update_stk,

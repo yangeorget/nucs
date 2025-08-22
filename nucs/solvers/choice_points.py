@@ -56,6 +56,7 @@ def cp_put(domains_stk: NDArray, not_entailed_propagators_stk: NDArray, stks_top
 
 @njit(cache=True)
 def backtrack(
+    propagator_nb: int,
     statistics: NDArray,
     not_entailed_propagators_stk: NDArray,
     dom_update_stk: NDArray,
@@ -78,6 +79,7 @@ def backtrack(
     stks_top[0] -= 1
     statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
     update_propagators(
+        propagator_nb,
         triggered_propagators,
         not_entailed_propagators_stk[stks_top[0]],
         triggers,

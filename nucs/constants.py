@@ -59,6 +59,7 @@ PROBLEM_BOUND = 2  # returned when a problem is solved
 SIGNATURE_COMPUTE_DOMAINS = int64(int32[:, :], int32[:])  # domains, parameters
 SIGNATURE_GET_TRIGGERS = int64(uint64, uint64, int32[:])
 SIGNATURE_CONSISTENCY_ALG = int64(
+    int64,  # propagator_nb
     int64[:],  # statistics
     uint8[:],  # algorithms
     uint32[:, :, :],  # bounds

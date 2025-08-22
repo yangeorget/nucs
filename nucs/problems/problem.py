@@ -83,7 +83,7 @@ class Problem:
         """
         var = len(self.domains)
         self.domains.append([domain, domain] if isinstance(domain, int) else [domain[0], domain[1]])
-        self.domain_nb = len(self.domains)
+        self.domain_nb = var + 1
         return var
 
     def add_variables(self, domains: Sequence[Union[int, Tuple[int, int]]]) -> int:
@@ -108,7 +108,7 @@ class Problem:
         parameters = [] if parameters is None else list(parameters)
         variables = list(variables)
         self.propagators.append((variables, algorithm, parameters))
-        self.propagator_nb = len(self.propagators)
+        self.propagator_nb += 1
 
     def init(self) -> None:
         """
@@ -172,12 +172,8 @@ def init_props(
     propagators: List[Tuple[List[int], int, List[int]]],
 ) -> None:
     for prop_idx, prop in enumerate(propagators):
-        var_start = bounds[prop_idx, VARIABLE, RANGE_START]
-        var_end = bounds[prop_idx, VARIABLE, RANGE_END]
-        props_variables[var_start:var_end] = prop[0]
-        param_start = bounds[prop_idx, PARAM, RANGE_START]
-        param_end = bounds[prop_idx, PARAM, RANGE_END]
-        props_parameters[param_start:param_end] = prop[2]
+        props_variables[bounds[prop_idx, VARIABLE, RANGE_START] : bounds[prop_idx, VARIABLE, RANGE_END]] = prop[0]
+        props_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]] = prop[2]
 
 
 @njit(cache=True)
@@ -196,18 +192,15 @@ def init_triggers(
     for event_mask in range(1, 1 << EVENT_NB):
         indices[:] = 0
         for prop_idx in range(propagator_nb):
+            trigger_fct = (
+                GET_TRIGGERS_FCTS[algorithms[prop_idx]]
+                if NUMBA_DISABLE_JIT
+                else function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithms[prop_idx]])
+            )
+            parameters = props_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]]
             var_start = bounds[prop_idx, VARIABLE, RANGE_START]
             var_end = bounds[prop_idx, VARIABLE, RANGE_END]
             var_nb = var_end - var_start
-            param_start = bounds[prop_idx, PARAM, RANGE_START]
-            param_end = bounds[prop_idx, PARAM, RANGE_END]
-            algorithm = algorithms[prop_idx]
-            trigger_fct = (
-                GET_TRIGGERS_FCTS[algorithm]
-                if NUMBA_DISABLE_JIT
-                else function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])
-            )
-            parameters = props_parameters[param_start:param_end]
             for var_idx in range(var_nb):
                 if trigger_fct(var_nb, var_idx, parameters) & event_mask:
                     variable = props_variables[var_idx + var_start]

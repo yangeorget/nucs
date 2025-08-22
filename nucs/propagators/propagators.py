@@ -215,6 +215,7 @@ def reset_triggered_propagators(triggered_propagators: NDArray, propagator_nb: i
 
 @njit(cache=True)
 def update_propagators(
+    propagator_nb: int,
     triggered_propagators: NDArray,
     not_entailed_propagators: NDArray,
     triggers: NDArray,
@@ -222,7 +223,6 @@ def update_propagators(
     variable: int,
     previous_prop_idx: int = -1,
 ) -> None:
-    propagator_nb = len(not_entailed_propagators)  # TODO: remove
     for prop_idx in triggers[variable, events]:
         if prop_idx == -1:
             break
