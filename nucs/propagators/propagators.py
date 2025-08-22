@@ -214,6 +214,22 @@ def reset_triggered_propagators(triggered_propagators: NDArray, propagator_nb: i
 
 
 @njit(cache=True)
+def update_propagators_with_previous_prop(
+    propagator_nb: int,
+    triggered_propagators: NDArray,
+    not_entailed_propagators: NDArray,
+    triggers: NDArray,
+    events: int,
+    variable: int,
+    previous_prop_idx: int,
+) -> None:
+    for prop_idx in triggers[variable, events]:
+        if prop_idx == -1:
+            return
+        if not_entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
+            min_heap_add(triggered_propagators, propagator_nb, prop_idx)
+
+
 def update_propagators(
     propagator_nb: int,
     triggered_propagators: NDArray,
@@ -221,10 +237,9 @@ def update_propagators(
     triggers: NDArray,
     events: int,
     variable: int,
-    previous_prop_idx: int = -1,
 ) -> None:
     for prop_idx in triggers[variable, events]:
         if prop_idx == -1:
-            break
-        if not_entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
+            return
+        if not_entailed_propagators[prop_idx]:
             min_heap_add(triggered_propagators, propagator_nb, prop_idx)

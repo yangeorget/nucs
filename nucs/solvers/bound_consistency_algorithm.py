@@ -38,7 +38,7 @@ from nucs.constants import (
 )
 from nucs.heaps import min_heap_pop
 from nucs.numba_helper import function_from_address
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagators
+from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagators_with_previous_prop
 from nucs.solvers.solver import is_solved
 
 
@@ -118,7 +118,7 @@ def bound_consistency_algorithm(
             if events:
                 if domain_min == domain_max:
                     events |= EVENT_MASK_GROUND
-                update_propagators(
+                update_propagators_with_previous_prop(
                     propagator_nb,
                     triggered_propagators,
                     not_entailed_propagators_stk[top],

@@ -32,9 +32,10 @@ def min_heap_init(capacity: int) -> NDArray:
 @njit(cache=True)
 def min_heap_add(heap: NDArray, capacity: int, val: int) -> None:
     if heap[capacity + val] == 0:
-        heap[heap[-1]] = val
-        min_heap_up(heap, heap[-1])
-        heap[-1] += 1
+        size = heap[-1]
+        heap[size] = val
+        min_heap_up(heap, size)
+        heap[-1] = size + 1
         heap[capacity + val] = 1
 
 
@@ -65,7 +66,7 @@ def min_heap_up(heap: NDArray, pos: int) -> None:
     while pos > 0:
         father = (pos - 1) >> 1
         if heap[father] <= heap[pos]:
-            break
+            return
         min_heap_swap(heap, pos, father)
         pos = father
 
@@ -75,13 +76,14 @@ def min_heap_down(heap: NDArray, pos: int) -> None:
     """
     Non-recursive version because of a Numba bug.
     """
+    size = heap[-1]
     while True:
         left = (pos << 1) + 1
-        if left >= heap[-1]:
-            break
+        if left >= size:
+            return
         right = left + 1
-        smallest = right if right < heap[-1] and heap[right] < heap[left] else left
+        smallest = right if right < size and heap[right] < heap[left] else left
         if heap[pos] <= heap[smallest]:
-            break
+            return
         min_heap_swap(heap, pos, smallest)
         pos = smallest
