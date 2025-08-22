@@ -27,7 +27,7 @@ from nucs.constants import (
     RANGE_START,
     SIGNATURE_GET_TRIGGERS,
     TYPE_GET_TRIGGERS,
-    VARIABLE,
+    VARIABLE, EVENT_MASK_NB,
 )
 from nucs.numba_helper import build_function_address_list, function_from_address
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
@@ -188,21 +188,21 @@ def init_triggers(
     get_triggers_addrs: NDArray,
 ) -> None:
     # for each domain and event, we store the list of propagator indices followed by -1
-    indices = np.empty(domain_nb, dtype=np.int32)
-    for event_mask in range(1, 1 << EVENT_NB):
-        indices[:] = 0
-        for prop_idx in range(propagator_nb):
-            trigger_fct = (
-                GET_TRIGGERS_FCTS[algorithms[prop_idx]]
-                if NUMBA_DISABLE_JIT
-                else function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithms[prop_idx]])
-            )
-            parameters = props_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]]
-            var_start = bounds[prop_idx, VARIABLE, RANGE_START]
-            var_end = bounds[prop_idx, VARIABLE, RANGE_END]
-            var_nb = var_end - var_start
-            for var_idx in range(var_nb):
-                if trigger_fct(var_nb, var_idx, parameters) & event_mask:
-                    variable = props_variables[var_idx + var_start]
-                    triggers[variable, event_mask, indices[variable]] = prop_idx
-                    indices[variable] += 1
+    indices = np.zeros((domain_nb, EVENT_MASK_NB), dtype=np.uint32)
+    for prop_idx in range(propagator_nb):
+        trigger_fct = (
+            GET_TRIGGERS_FCTS[algorithms[prop_idx]]
+            if NUMBA_DISABLE_JIT
+            else function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithms[prop_idx]])
+        )
+        parameters = props_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]]
+        var_start = bounds[prop_idx, VARIABLE, RANGE_START]
+        var_end = bounds[prop_idx, VARIABLE, RANGE_END]
+        var_nb = var_end - var_start
+        for var in range(var_start, var_end):
+            trigger = trigger_fct(var_nb, var - var_start, parameters)
+            variable = props_variables[var]
+            for event_mask in range(1, EVENT_MASK_NB):
+                if trigger & event_mask:
+                    triggers[variable, event_mask, indices[variable, event_mask]] = prop_idx
+                    indices[variable, event_mask] += 1

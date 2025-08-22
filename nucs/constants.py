@@ -39,6 +39,7 @@ DOM_UPDATE_EVENTS = 1  # index for the events
 
 # Events
 EVENT_NB = 3
+EVENT_MASK_NB = 1 << 3
 EVENT_MASK_MIN = 1 << 0
 EVENT_MASK_MAX = 1 << 1
 EVENT_MASK_GROUND = 1 << 2
