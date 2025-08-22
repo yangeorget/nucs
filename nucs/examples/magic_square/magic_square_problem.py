@@ -37,7 +37,7 @@ class MagicSquareProblem(Problem):
             self.add_propagator(ALG_SUM_EQ_C, self.column(i), [self.m])
         self.add_propagator(ALG_SUM_EQ_C, self.first_diag(), [self.m])
         self.add_propagator(ALG_SUM_EQ_C, self.second_diag(), [self.m])
-        self.add_propagator(ALG_ALLDIFFERENT, list(range(n**2)))
+        self.add_propagator(ALG_ALLDIFFERENT, range(n**2))
         if symmetry_breaking:
             top_left = self.first_diag()[0]
             bottom_right = self.first_diag()[-1]

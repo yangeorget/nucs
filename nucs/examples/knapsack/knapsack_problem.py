@@ -30,6 +30,6 @@ class KnapsackProblem(Problem):
         """
         n = len(weights)
         super().__init__([(0, 1)] * n + [(0, sum(weights))])
-        self.add_propagator(ALG_AFFINE_LEQ, list(range(n)), [*volumes, capacity])
-        self.add_propagator(ALG_AFFINE_EQ, list(range(n + 1)), [*weights, -1, 0])
+        self.add_propagator(ALG_AFFINE_LEQ, range(n), [*volumes, capacity])
+        self.add_propagator(ALG_AFFINE_EQ, range(n + 1), [*weights, -1, 0])
         self.weight = n

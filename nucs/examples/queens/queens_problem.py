@@ -32,10 +32,10 @@ class QueensProblem(Problem):
         """
         super().__init__([(0, n - 1)] * n)
         self.n = n
-        variables = list(range(0, n))
+        variables = range(0, n)
         self.add_propagator(ALG_ALLDIFFERENT, variables)
-        self.add_propagator(ALG_ALLDIFFERENT, variables, list(range(n)))
-        self.add_propagator(ALG_ALLDIFFERENT, variables, list(range(0, -n, -1)))
+        self.add_propagator(ALG_ALLDIFFERENT, variables, range(n))
+        self.add_propagator(ALG_ALLDIFFERENT, variables, range(0, -n, -1))
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         return [([" "] * i + ["Q"] + [" "] * (self.n - i - 1)) for i in (solution[: self.n])]
@@ -55,15 +55,15 @@ class QueensDualProblem(Problem):
         """
         super().__init__([(0, n - 1)] * 2 * n)
         self.n = n
-        column_variables = list(range(0, n))
+        column_variables = range(0, n)
         self.add_propagator(ALG_ALLDIFFERENT, column_variables)
-        self.add_propagator(ALG_ALLDIFFERENT, column_variables, list(range(n)))
-        self.add_propagator(ALG_ALLDIFFERENT, column_variables, list(range(0, -n, -1)))
-        row_variables = list(range(n, 2 * n))
+        self.add_propagator(ALG_ALLDIFFERENT, column_variables, range(n))
+        self.add_propagator(ALG_ALLDIFFERENT, column_variables, range(0, -n, -1))
+        row_variables = range(n, 2 * n)
         self.add_propagator(ALG_ALLDIFFERENT, row_variables)
-        self.add_propagator(ALG_ALLDIFFERENT, row_variables, list(range(n)))
-        self.add_propagator(ALG_ALLDIFFERENT, row_variables, list(range(0, -n, -1)))
-        self.add_propagator(ALG_PERMUTATION_AUX, column_variables + row_variables)
+        self.add_propagator(ALG_ALLDIFFERENT, row_variables, range(n))
+        self.add_propagator(ALG_ALLDIFFERENT, row_variables, range(0, -n, -1))
+        self.add_propagator(ALG_PERMUTATION_AUX, list(column_variables) + list(row_variables))
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         return [([" "] * i + ["Q"] + [" "] * (self.n - i - 1)) for i in (solution[: self.n])]

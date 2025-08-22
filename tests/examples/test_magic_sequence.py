@@ -25,7 +25,7 @@ class TestMagicSequence:
         problem = MagicSequenceProblem(size)
         solver = BacktrackSolver(
             problem,
-            decision_variables=list(range(size - 1, -1, -1)),
+            decision_variables=range(size - 1, -1, -1),
             var_heuristic_idx=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         )
         solutions = solver.find_all()

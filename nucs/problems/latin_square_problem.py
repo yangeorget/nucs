@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-from typing import Any, List, Optional
+from typing import Any, Iterable, List, Optional
 
 from numpy.typing import NDArray
 
@@ -27,7 +27,7 @@ class LatinSquareProblem(Problem):
     A simple model for latin squares.
     """
 
-    def __init__(self, colors: List[int], givens: Optional[List[List[int]]] = None):
+    def __init__(self, colors: Iterable[int], givens: Optional[List[List[int]]] = None):
         """
         Initializes the latin square.
         :colors: the possible values for the cells,
@@ -35,13 +35,13 @@ class LatinSquareProblem(Problem):
         the number of colors is also the size of the square
         :givens: initial values for the cells, any value different from the possible colors is used as a wildcard
         """
-        self.colors = colors
-        self.n = len(colors)
+        self.colors = list(colors)
+        self.n = len(self.colors)
         if givens is None:
-            shr_domains = [(colors[0], colors[-1])] * self.n**2
+            shr_domains = [(self.colors[0], self.colors[-1])] * self.n**2
         else:
             shr_domains = [
-                (colors[0], colors[-1]) if given not in self.colors else (given, given)
+                (self.colors[0], self.colors[-1]) if given not in self.colors else (given, given)
                 for line in givens
                 for given in line
             ]
@@ -54,13 +54,13 @@ class LatinSquareProblem(Problem):
         offset = model * (self.n**2)
         return offset + i * self.n + j
 
-    def row(self, i: int, model: int = M_COLOR) -> List[int]:
+    def row(self, i: int, model: int = M_COLOR) -> Iterable[int]:
         offset = model * (self.n**2)
-        return list(range(offset + i * self.n, offset + self.n + i * self.n))
+        return range(offset + i * self.n, offset + self.n + i * self.n)
 
-    def column(self, j: int, model: int = M_COLOR) -> List[int]:
+    def column(self, j: int, model: int = M_COLOR) -> Iterable[int]:
         offset = model * (self.n**2)
-        return list(range(offset + j, offset + self.n**2 + j, self.n))
+        return range(offset + j, offset + self.n**2 + j, self.n)
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         solution_as_list = solution.tolist()
@@ -80,7 +80,7 @@ class LatinSquareRCProblem(LatinSquareProblem):
         Inits the problem.
         :param n: the size of the square
         """
-        super().__init__(list(range(n)))  # the color model
+        super().__init__(range(n))  # the color model
         self.add_variables([(0, n - 1)] * n**2)  # the row model
         self.add_variables([(0, n - 1)] * n**2)  # the column model
         for i in range(self.n):

@@ -26,6 +26,6 @@ class PermutationProblem(Problem):
         """
         self.n = n
         super().__init__([(0, n - 1)] * 2 * n)
-        self.add_propagator(ALG_ALLDIFFERENT, list(range(n)))
-        self.add_propagator(ALG_ALLDIFFERENT, list(range(n, 2 * n)))
-        self.add_propagator(ALG_PERMUTATION_AUX, list(range(2 * n)))
+        self.add_propagator(ALG_ALLDIFFERENT, range(n))
+        self.add_propagator(ALG_ALLDIFFERENT, range(n, 2 * n))
+        self.add_propagator(ALG_PERMUTATION_AUX, range(2 * n))

@@ -60,7 +60,7 @@ class TestQuasigroup:
         problem = QuasigroupProblem(kind, size, idempotent, True)
         solver = BacktrackSolver(
             problem,
-            decision_variables=list(range(0, size * size)),
+            decision_variables=range(0, size * size),
             var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
             dom_heuristic_idx=DOM_HEURISTIC_SPLIT_LOW,
         )

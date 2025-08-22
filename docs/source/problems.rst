@@ -43,8 +43,8 @@ In NuCS, the n-queens problem is indeed constructed as follows:
 
    def __init__(self, n: int):
       super().__init__([(0, n - 1)] * n)
-      variables = list(range(0, n))
+      variables = range(0, n)
       self.add_propagator(ALG_ALLDIFFERENT, variables)
-      self.add_propagator(ALG_ALLDIFFERENT, variables, list(range(n)))
-      self.add_propagator(ALG_ALLDIFFERENT, variables, list(range(0, -n, -1)))
+      self.add_propagator(ALG_ALLDIFFERENT, variables, range(n))
+      self.add_propagator(ALG_ALLDIFFERENT, variables, range(0, -n, -1))
 

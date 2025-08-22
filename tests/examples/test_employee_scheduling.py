@@ -17,16 +17,16 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 
 class TestEmployeeScheduling:
     def test_nurses(self) -> None:
-        assert EmployeeSchedulingProblem().nurses(0, 0) == [0, 1, 2, 3, 4]
-        assert EmployeeSchedulingProblem().nurses(0, 1) == [5, 6, 7, 8, 9]
-        assert EmployeeSchedulingProblem().nurses(1, 0) == [15, 16, 17, 18, 19]
-        assert EmployeeSchedulingProblem().nurses(1, 1) == [20, 21, 22, 23, 24]
+        assert list(EmployeeSchedulingProblem().nurses(0, 0)) == [0, 1, 2, 3, 4]
+        assert list(EmployeeSchedulingProblem().nurses(0, 1)) == [5, 6, 7, 8, 9]
+        assert list(EmployeeSchedulingProblem().nurses(1, 0)) == [15, 16, 17, 18, 19]
+        assert list(EmployeeSchedulingProblem().nurses(1, 1)) == [20, 21, 22, 23, 24]
 
     def test_shifts(self) -> None:
-        assert EmployeeSchedulingProblem().shifts(0, 0) == [0, 5, 10]
-        assert EmployeeSchedulingProblem().shifts(0, 1) == [1, 6, 11]
-        assert EmployeeSchedulingProblem().shifts(1, 0) == [15, 20, 25]
-        assert EmployeeSchedulingProblem().shifts(1, 1) == [16, 21, 26]
+        assert list(EmployeeSchedulingProblem().shifts(0, 0)) == [0, 5, 10]
+        assert list(EmployeeSchedulingProblem().shifts(0, 1)) == [1, 6, 11]
+        assert list(EmployeeSchedulingProblem().shifts(1, 0)) == [15, 20, 25]
+        assert list(EmployeeSchedulingProblem().shifts(1, 1)) == [16, 21, 26]
 
     def test_employee_scheduling(self) -> None:
         problem = EmployeeSchedulingProblem()

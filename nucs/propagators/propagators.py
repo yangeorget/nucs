@@ -222,7 +222,7 @@ def update_propagators(
     variable: int,
     previous_prop_idx: int = -1,
 ) -> None:
-    propagator_nb = len(not_entailed_propagators)
+    propagator_nb = len(not_entailed_propagators)  # TODO: remove
     for prop_idx in triggers[variable, events]:
         if prop_idx == -1:
             break

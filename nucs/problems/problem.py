@@ -12,7 +12,7 @@
 ###############################################################################
 import copy
 import logging
-from typing import Any, List, Optional, Self, Sequence, Tuple, Union
+from typing import Any, Iterable, List, Optional, Self, Sequence, Tuple, Union
 
 import numpy as np
 from numba import njit
@@ -43,13 +43,13 @@ class Problem:
     A variable is a domain index.
     """
 
-    def __init__(self, domains: Union[List[Tuple[int, int]], List[int]]):
+    def __init__(self, domains: Union[Iterable[Tuple[int, int]]]):
         """
         Initializes the problem.
-        :param domains: the domains expressed as a list
+        :param domains: the domains
         """
         self.domains = [[domain, domain] if isinstance(domain, int) else [domain[0], domain[1]] for domain in domains]
-        self.domain_nb = len(domains)
+        self.domain_nb = len(self.domains)
         self.propagators: List[Tuple[List[int], int, List[int]]] = []
         self.propagator_nb = 0
 
@@ -99,12 +99,14 @@ class Problem:
         self.domain_nb = len(self.domains)
         return var
 
-    def add_propagator(self, algorithm: int, variables: List[int], parameters: Optional[List[int]] = None) -> None:
+    def add_propagator(
+        self, algorithm: int, variables: Iterable[int], parameters: Optional[Iterable[int]] = None
+    ) -> None:
         """
         Adds an extra propagator.
         """
-        if parameters is None:
-            parameters = []
+        parameters = [] if parameters is None else list(parameters)
+        variables = list(variables)
         self.propagators.append((variables, algorithm, parameters))
         self.propagator_nb = len(self.propagators)
 

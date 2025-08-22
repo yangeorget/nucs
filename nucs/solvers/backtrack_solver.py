@@ -12,7 +12,7 @@
 ###############################################################################
 import logging
 from multiprocessing import Queue
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -88,7 +88,7 @@ class BacktrackSolver(Solver, QueueSolver):
         self,
         problem: Problem,
         consistency_alg_idx: int = CONSISTENCY_ALG_BC,
-        decision_variables: Optional[List[int]] = None,
+        decision_variables: Optional[Iterable[int]] = None,
         var_heuristic_idx: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         var_heuristic_params: List[List[int]] = [[]],
         dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
@@ -111,7 +111,8 @@ class BacktrackSolver(Solver, QueueSolver):
         :param log_level: the log level as a string
         """
         super().__init__(problem, log_level)
-        decision_variables = list(range(problem.domain_nb)) if decision_variables is None else decision_variables
+        decision_variables = range(problem.domain_nb) if decision_variables is None else decision_variables
+        decision_variables = list(decision_variables)
         logger.info(f"BacktrackSolver uses decision domains {decision_variables}")
         self.decision_variables = np.array(decision_variables, dtype=np.uint32)
         logger.info(f"BacktrackSolver uses variable heuristic {var_heuristic_idx}")

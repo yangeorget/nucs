@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-from typing import Any, List
+from typing import Any, Iterable
 
 from numpy.typing import NDArray
 
@@ -27,18 +27,16 @@ class EmployeeSchedulingProblem(Problem):
     def shift_index(self, day: int, shift: int, nurse: int) -> int:
         return day * self.shift_nb * self.nurse_nb + shift * self.nurse_nb + nurse
 
-    def nurses(self, day: int, shift: int) -> List[int]:
+    def nurses(self, day: int, shift: int) -> Iterable[int]:
         start_shift = self.shift_index(day, shift, 0)
-        return list(range(start_shift, start_shift + self.nurse_nb))
+        return range(start_shift, start_shift + self.nurse_nb)
 
-    def shifts(self, day: int, nurse: int) -> List[int]:
+    def shifts(self, day: int, nurse: int) -> Iterable[int]:
         start_shift = self.shift_index(day, 0, nurse)
-        return list(
-            range(
-                start_shift,
-                start_shift + self.shift_nb * self.nurse_nb,
-                self.nurse_nb,
-            )
+        return range(
+            start_shift,
+            start_shift + self.shift_nb * self.nurse_nb,
+            self.nurse_nb,
         )
 
     def __init__(self) -> None:
@@ -79,7 +77,7 @@ class EmployeeSchedulingProblem(Problem):
             for n in range(self.nurse_nb):
                 self.add_propagator(ALG_COUNT_LEQ_C, self.shifts(d, n), [1, 1])
         for n in range(self.nurse_nb):
-            self.add_propagator(ALG_COUNT_EQ, list(range(n, self.shift_total_nb + self.nurse_nb, self.nurse_nb)), [1])
+            self.add_propagator(ALG_COUNT_EQ, range(n, self.shift_total_nb + self.nurse_nb, self.nurse_nb), [1])
         self.add_propagator(
             ALG_COUNT_EQ,
             [index for index in range(0, self.shift_total_nb) if shift_requests_dsn[index]]

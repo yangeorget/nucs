@@ -82,7 +82,7 @@ class GolombProblem(Problem):
         for i in range(1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
                 self.add_propagator(ALG_SUM_EQ, [index(mark_nb, 0, i), index(mark_nb, i, j), index(mark_nb, 0, j)])
-        self.add_propagator(ALG_ALLDIFFERENT, list(range(self.domain_nb)))
+        self.add_propagator(ALG_ALLDIFFERENT, range(self.domain_nb))
         # redundant constraints
         for i in range(mark_nb - 1):
             for j in range(i + 1, mark_nb):

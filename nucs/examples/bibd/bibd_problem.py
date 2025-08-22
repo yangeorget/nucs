@@ -40,10 +40,10 @@ class BIBDProblem(Problem):
         super().__init__([(0, 1)] * (matrix_var_nb + additional_var_nb))
         # rows: counts
         for object_idx in range(0, v):
-            self.add_propagator(ALG_COUNT_EQ_C, list(range(object_idx * b, (object_idx + 1) * b)), [1, r])
+            self.add_propagator(ALG_COUNT_EQ_C, range(object_idx * b, (object_idx + 1) * b), [1, r])
         # columns: counts
         for block_idx in range(0, b):
-            self.add_propagator(ALG_COUNT_EQ_C, list(range(block_idx, v * b, b)), [1, k])
+            self.add_propagator(ALG_COUNT_EQ_C, range(block_idx, v * b, b), [1, k])
         # scalar products: conjunctions and counts
         conj_idx = v * b  # index of first redundant variable
         for i1 in range(0, v - 1):
@@ -57,7 +57,7 @@ class BIBDProblem(Problem):
         if symmetry_breaking:
             # lexleq on rows
             for object_idx in range(0, v - 1):
-                self.add_propagator(ALG_LEXICOGRAPHIC_LEQ, list(range(object_idx * b, (object_idx + 2) * b)))
+                self.add_propagator(ALG_LEXICOGRAPHIC_LEQ, range(object_idx * b, (object_idx + 2) * b))
             # lexleq on columns
             for block_idx in range(0, b - 1):
                 self.add_propagator(

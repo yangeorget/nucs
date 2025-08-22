@@ -34,8 +34,8 @@ class AllIntervalSeriesProblem(Problem):
         for i in range(n - 1):
             self.add_propagator(ALG_SUM_EQ, [n + i, i, i + 1])
             self.add_propagator(ALG_ABS_EQ, [n + i, 2 * n - 1 + i])
-        self.add_propagator(ALG_ALLDIFFERENT, list(range(n)))
-        self.add_propagator(ALG_ALLDIFFERENT, list(range(2 * n - 1, 3 * n - 2)))
+        self.add_propagator(ALG_ALLDIFFERENT, range(n))
+        self.add_propagator(ALG_ALLDIFFERENT, range(2 * n - 1, 3 * n - 2))
         if symmetry_breaking:
             self.add_propagator(ALG_LEQ, [0, 1], [-1])
             self.add_propagator(ALG_LEQ, [3 * n - 3, 2 * n - 1], [-1])

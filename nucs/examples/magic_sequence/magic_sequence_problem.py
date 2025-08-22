@@ -30,5 +30,5 @@ class MagicSequenceProblem(Problem):
         for i in range(n):
             self.add_propagator(ALG_COUNT_EQ, list(range(n)) + [i], [i])
         # redundant constraints
-        self.add_propagator(ALG_SUM_EQ_C, list(range(n)), [n])
-        self.add_propagator(ALG_AFFINE_EQ, list(range(n)), list(range(n)) + [n])
+        self.add_propagator(ALG_SUM_EQ_C, range(n), [n])
+        self.add_propagator(ALG_AFFINE_EQ, range(n), range(n + 1))

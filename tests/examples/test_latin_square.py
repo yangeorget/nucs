@@ -29,7 +29,7 @@ class TestLatinSquare:
         ],
     )
     def test_latin_square(self, size: int, solution_nb: int) -> None:
-        problem = LatinSquareProblem(list(range(size)))
+        problem = LatinSquareProblem(range(size))
         solver = BacktrackSolver(problem)
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb

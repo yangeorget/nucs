@@ -33,7 +33,7 @@ if __name__ == "__main__":
             [
                 BacktrackSolver(
                     problem,
-                    decision_variables=list(range(0, args.n * args.n)),
+                    decision_variables=range(0, args.n * args.n),
                     consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
                     var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
                     dom_heuristic_idx=DOM_HEURISTIC_SPLIT_LOW,
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         if args.processors > 1
         else BacktrackSolver(
             problem,
-            decision_variables=list(range(0, args.n * args.n)),
+            decision_variables=range(0, args.n * args.n),
             consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
             var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
             dom_heuristic_idx=DOM_HEURISTIC_SPLIT_LOW,
