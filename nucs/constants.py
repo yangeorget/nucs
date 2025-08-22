@@ -12,7 +12,7 @@
 ###############################################################################
 import os
 
-from numba import bool, int32, int64, types, uint8, uint16, uint32, uint64  # type: ignore
+from numba import bool, int32, int64, types, uint8, uint32, uint64  # type: ignore
 
 # Optimizer modes
 OPTIM_RESET = "RESET"
@@ -70,7 +70,7 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     int32[:, :, :],  # domains_stk
     bool[:, :],  # not_entailed_propagators_stk
     uint32[:, :],  # dom_update_stk
-    uint16[:],  # stks_top
+    uint32[:],  # stks_top
     uint32[:],  # triggered_propagators
     int64[:],  # compute_domains_addrs
     uint32[:],  # decision_variables
@@ -79,14 +79,14 @@ SIGNATURE_DOM_HEURISTIC = int64(
     int32[:, :, :],  # domains_stk
     bool[:, :],  # not_entailed_propagators_stk
     uint32[:, :],  # dom_update_stk
-    uint16[:],  # stks_top
+    uint32[:],  # stks_top
     int64,  # variable
     int64[:, :],  # dom_heuristic_params
 )
 SIGNATURE_VAR_HEURISTIC = int64(
     uint32[:],  # decision_variables
     int32[:, :, :],  # domains_stk
-    uint16[:],  # stks_top
+    uint32[:],  # stks_top
     int64[:, :],  # var_heuristic_params
 )
 

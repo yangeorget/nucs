@@ -20,14 +20,14 @@ from numpy.typing import NDArray
 from rich import print
 
 from nucs.constants import (
-    EVENT_NB,
+    EVENT_MASK_NB,
     NUMBA_DISABLE_JIT,
     PARAM,
     RANGE_END,
     RANGE_START,
     SIGNATURE_GET_TRIGGERS,
     TYPE_GET_TRIGGERS,
-    VARIABLE, EVENT_MASK_NB,
+    VARIABLE,
 )
 from nucs.numba_helper import build_function_address_list, function_from_address
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
@@ -127,7 +127,7 @@ class Problem:
         self.props_parameters = np.empty(self.bounds[-1, PARAM, RANGE_END], dtype=np.int32)
         init_props(self.props_variables, self.props_parameters, self.bounds, self.propagators)
         logger.debug("Initializing triggers")
-        self.triggers = np.full((self.domain_nb, 1 << EVENT_NB, self.propagator_nb + 1), -1, dtype=np.int32)
+        self.triggers = np.full((self.domain_nb, EVENT_MASK_NB, self.propagator_nb + 1), -1, dtype=np.int32)
         get_triggers_addrs = (
             np.empty(0)
             if NUMBA_DISABLE_JIT
