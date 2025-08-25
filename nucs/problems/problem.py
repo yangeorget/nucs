@@ -189,18 +189,22 @@ def init_triggers(
 ) -> None:
     # for each domain and event, we store the list of propagator indices followed by -1
     indices = np.zeros((domain_nb, EVENT_MASK_NB), dtype=np.uint32)
+    # TODO: by algo and not by prop
+    trigger_fcts = (
+        [GET_TRIGGERS_FCTS[algorithms[prop_idx]] for prop_idx in range(propagator_nb)]
+        if NUMBA_DISABLE_JIT
+        else [
+            function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithms[prop_idx]])
+            for prop_idx in range(propagator_nb)
+        ]
+    )
     for prop_idx in range(propagator_nb):
-        trigger_fct = (
-            GET_TRIGGERS_FCTS[algorithms[prop_idx]]
-            if NUMBA_DISABLE_JIT
-            else function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithms[prop_idx]])
-        )
         parameters = props_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]]
         var_start = bounds[prop_idx, VARIABLE, RANGE_START]
         var_end = bounds[prop_idx, VARIABLE, RANGE_END]
         var_nb = var_end - var_start
         for var in range(var_start, var_end):
-            trigger = trigger_fct(var_nb, var - var_start, parameters)
+            trigger = trigger_fcts[prop_idx](var_nb, var - var_start, parameters)
             variable = props_variables[var]
             for event_mask in range(1, EVENT_MASK_NB):
                 if trigger & event_mask:
