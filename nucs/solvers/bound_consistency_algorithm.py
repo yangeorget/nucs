@@ -83,7 +83,6 @@ def bound_consistency_algorithm(
     # TODO: by algo and not by prop
     if NUMBA_DISABLE_JIT:
         compute_domains_fcts = [COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]] for prop_idx in range(propagator_nb)]
-
     else:
         compute_domains_fcts = [
             function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[algorithms[prop_idx]])
