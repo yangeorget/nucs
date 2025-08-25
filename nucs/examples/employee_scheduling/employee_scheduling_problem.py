@@ -18,7 +18,7 @@ from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_COUNT_EQ, ALG_COUNT_EQ_C, ALG_COUNT_LEQ_C
 
 
-# TODO: GCC instead of booleans
+# TODO: use GCC instead of booleans
 class EmployeeSchedulingProblem(Problem):
     """
     See https://developers.google.com/optimization/scheduling/employee_scheduling.
