@@ -230,6 +230,7 @@ def update_propagators_with_previous_prop(
             min_heap_add(triggered_propagators, propagator_nb, prop_idx)
 
 
+@njit(cache=True)
 def update_propagators(
     propagator_nb: int,
     triggered_propagators: NDArray,
