@@ -29,7 +29,7 @@ class TestGolomb:
     def test_golomb(self, mark_nb: int, length: int) -> None:
         problem = GolombProblem(mark_nb)
         consistency_alg_golomb = register_consistency_algorithm(golomb_consistency_algorithm)
-        solver = BacktrackSolver(problem, consistency_alg_idx=consistency_alg_golomb)
+        solver = BacktrackSolver(problem, consistency_alg=consistency_alg_golomb)
         solution = solver.minimize(problem.length_idx)
         assert solution is not None
         assert solution[problem.length_idx] == length

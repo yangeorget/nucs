@@ -101,5 +101,5 @@ class TestSportsTournamentScheduling:
 
     def test_sports_tournament_scheduling_solve(self) -> None:
         problem = SportsTournamentSchedulingProblem(8)
-        solver = BacktrackSolver(problem, var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN)
+        solver = BacktrackSolver(problem, var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN)
         assert solver.find_one() is not None

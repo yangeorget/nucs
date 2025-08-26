@@ -47,9 +47,9 @@ class TestTSP:
         solver = BacktrackSolver(
             problem,
             decision_variables=range(0, 2 * n),
-            var_heuristic_idx=tsp_var_heuristic_idx,
+            var_heuristic=tsp_var_heuristic_idx,
             var_heuristic_params=costs,
-            dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
+            dom_heuristic=DOM_HEURISTIC_MIN_COST,
             dom_heuristic_params=costs,
         )
         solution = solver.minimize(problem.total_cost, mode=OPTIM_PRUNE)

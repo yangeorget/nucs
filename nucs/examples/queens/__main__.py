@@ -10,8 +10,6 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-import argparse
-
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.heuristics.heuristics import (
@@ -26,7 +24,6 @@ from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.queens -n 10
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
-    parser.add_argument("--ff", type=bool, action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("-n", type=int, default=10)
     args = parser.parse_args()
     problem = QueensProblem(args.n)
@@ -35,10 +32,8 @@ if __name__ == "__main__":
             [
                 BacktrackSolver(
                     problem,
-                    consistency_alg_idx=args.consistency,
-                    var_heuristic_idx=(
-                        VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
-                    ),
+                    consistency_alg=args.consistency,
+                    var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
                     log_level=args.log_level,
                     stks_max_height=args.cp_max_height,
                 )
@@ -48,9 +43,9 @@ if __name__ == "__main__":
         if args.processors > 1
         else BacktrackSolver(
             problem,
-            consistency_alg_idx=args.consistency,
-            var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
-            dom_heuristic_idx=DOM_HEURISTIC_MID_VALUE,
+            consistency_alg=args.consistency,
+            var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
+            dom_heuristic=DOM_HEURISTIC_MID_VALUE,
             log_level=args.log_level,
             stks_max_height=args.cp_max_height,
         )

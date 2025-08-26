@@ -18,7 +18,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 class TestMinValueDomHeuristic:
     def test_find_all(self) -> None:
         problem = Problem([(1, 5)])
-        solver = BacktrackSolver(problem, dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE)
+        solver = BacktrackSolver(problem, dom_heuristic=DOM_HEURISTIC_MIN_VALUE)
         solutions = solver.find_all()
         assert len(solutions) == 5
         assert solutions == [[1], [2], [3], [4], [5]]

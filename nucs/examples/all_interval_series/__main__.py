@@ -25,7 +25,7 @@ if __name__ == "__main__":
     solver = BacktrackSolver(
         problem,
         decision_variables=range(args.n),
-        var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
+        var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
         log_level=args.log_level,
         stks_max_height=args.cp_max_height,
     )

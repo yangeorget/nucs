@@ -26,7 +26,7 @@ class TestMagicSequence:
         solver = BacktrackSolver(
             problem,
             decision_variables=range(size - 1, -1, -1),
-            var_heuristic_idx=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
+            var_heuristic=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         )
         solutions = solver.find_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1

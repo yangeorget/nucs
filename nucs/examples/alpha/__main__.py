@@ -23,8 +23,8 @@ if __name__ == "__main__":
     problem = AlphaProblem()
     solver = BacktrackSolver(
         problem,
-        var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
-        dom_heuristic_idx=DOM_HEURISTIC_MIN_VALUE,
+        var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
+        dom_heuristic=DOM_HEURISTIC_MIN_VALUE,
         log_level=args.log_level,
         stks_max_height=args.cp_max_height,
     )

@@ -50,7 +50,13 @@ class DefaultArgumentParser(argparse.ArgumentParser):
             help="find all solutions",
             type=bool,
             action=argparse.BooleanOptionalAction,
-            efault=True,
+            default=False,
+        )
+        self.add_argument(
+            "--ff",
+            type=bool,
+            action=argparse.BooleanOptionalAction,
+            default=False,
         )
         self.add_argument(
             "--log-level",

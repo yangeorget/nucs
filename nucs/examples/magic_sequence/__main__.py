@@ -10,9 +10,9 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
+from nucs.heuristics.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -25,6 +25,7 @@ if __name__ == "__main__":
     solver = BacktrackSolver(
         problem,
         decision_variables=list(range(args.n - 1, -1, -1)),
+        var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         log_level=args.log_level,
         stks_max_height=args.cp_max_height,
     )

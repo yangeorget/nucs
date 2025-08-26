@@ -23,13 +23,13 @@ if __name__ == "__main__":
     parser.add_argument("-n", type=int, default=10)
     args = parser.parse_args()
     problem = GolombProblem(args.n, args.symmetry_breaking)
-    consistency_alg_golomb = register_consistency_algorithm(golomb_consistency_algorithm)
+    register_consistency_algorithm(golomb_consistency_algorithm)
     solver = (
         MultiprocessingSolver(
             [
                 BacktrackSolver(
                     prob,
-                    consistency_alg_idx=consistency_alg_golomb,
+                    consistency_alg=args.consistency,
                     log_level=args.log_level,
                     stks_max_height=args.cp_max_height,
                 )
@@ -39,7 +39,7 @@ if __name__ == "__main__":
         if args.processors > 1
         else BacktrackSolver(
             problem,
-            consistency_alg_idx=consistency_alg_golomb,
+            consistency_alg=args.consistency,
             log_level=args.log_level,
             stks_max_height=args.cp_max_height,
         )

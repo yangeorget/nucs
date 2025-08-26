@@ -61,8 +61,8 @@ class TestQuasigroup:
         solver = BacktrackSolver(
             problem,
             decision_variables=range(0, size * size),
-            var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
-            dom_heuristic_idx=DOM_HEURISTIC_SPLIT_LOW,
+            var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
+            dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
         )
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb

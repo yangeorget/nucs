@@ -18,7 +18,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 class TestMidValueDomHeuristic:
     def test_find_all(self) -> None:
         problem = Problem([(1, 8)])
-        solver = BacktrackSolver(problem, dom_heuristic_idx=DOM_HEURISTIC_MID_VALUE)
+        solver = BacktrackSolver(problem, dom_heuristic=DOM_HEURISTIC_MID_VALUE)
         solutions = solver.find_all()
         assert len(solutions) == 8
         assert solutions == [[4], [2], [1], [3], [6], [5], [7], [8]]

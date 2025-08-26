@@ -10,9 +10,9 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.magic_square.magic_square_problem import MagicSquareProblem
+from nucs.heuristics.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -21,10 +21,11 @@ if __name__ == "__main__":
     parser = DefaultArgumentParser()
     parser.add_argument("-n", type=int, default=4)
     args = parser.parse_args()
+    print(args)
     problem = MagicSquareProblem(args.n, args.symmetry_breaking)
     solver = BacktrackSolver(
         problem,
-        # var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
+        var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         log_level=args.log_level,
         stks_max_height=args.cp_max_height,
     )

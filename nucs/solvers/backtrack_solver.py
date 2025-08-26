@@ -87,11 +87,11 @@ class BacktrackSolver(Solver, QueueSolver):
     def __init__(
         self,
         problem: Problem,
-        consistency_alg_idx: int = CONSISTENCY_ALG_BC,
+        consistency_alg: int = CONSISTENCY_ALG_BC,
         decision_variables: Optional[Iterable[int]] = None,
-        var_heuristic_idx: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
+        var_heuristic: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         var_heuristic_params: List[List[int]] = [[]],
-        dom_heuristic_idx: int = DOM_HEURISTIC_MIN_VALUE,
+        dom_heuristic: int = DOM_HEURISTIC_MIN_VALUE,
         dom_heuristic_params: List[List[int]] = [[]],
         stks_max_height: int = 512,
         log_level: str = LOG_LEVEL_INFO,
@@ -99,12 +99,12 @@ class BacktrackSolver(Solver, QueueSolver):
         """
         Initializes the solver.
         :param problem: the problem to be solved
-        :param consistency_alg_idx: the index of the consistency algorithm
+        :param consistency_alg: the index of the consistency algorithm
         :param decision_variables: the variables on which decisions will be made
-        :param var_heuristic_idx: the index of the heuristic for selecting a variable
+        :param var_heuristic: the index of the heuristic for selecting a variable
         :param var_heuristic_params: a list of lists of parameters,
         usually parameters are costs and there is a list of value costs per variable
-        :param dom_heuristic_idx: the index of the heuristic for reducing a domain
+        :param dom_heuristic: the index of the heuristic for reducing a domain
         :param dom_heuristic_params: a list of lists of parameters,
         usually parameters are costs and there is a list of value costs per variable
         :param stks_max_height: the maximal height of the choice point stacks
@@ -115,14 +115,14 @@ class BacktrackSolver(Solver, QueueSolver):
         decision_variables = list(decision_variables)
         logger.info(f"BacktrackSolver uses decision domains {decision_variables}")
         self.decision_variables = np.array(decision_variables, dtype=np.uint32)
-        logger.info(f"BacktrackSolver uses variable heuristic {var_heuristic_idx}")
-        self.var_heuristic_idx = var_heuristic_idx
+        logger.info(f"BacktrackSolver uses variable heuristic {var_heuristic}")
+        self.var_heuristic_idx = var_heuristic
         self.var_heuristic_params = np.array(var_heuristic_params, dtype=np.int64)
-        logger.info(f"BacktrackSolver uses domain heuristic {dom_heuristic_idx}")
-        self.dom_heuristic_idx = dom_heuristic_idx
+        logger.info(f"BacktrackSolver uses domain heuristic {dom_heuristic}")
+        self.dom_heuristic_idx = dom_heuristic
         self.dom_heuristic_params = np.array(dom_heuristic_params, dtype=np.int64)
-        logger.info(f"BacktrackSolver uses consistency algorithm {consistency_alg_idx}")
-        self.consistency_alg_idx = consistency_alg_idx
+        logger.info(f"BacktrackSolver uses consistency algorithm {consistency_alg}")
+        self.consistency_alg_idx = consistency_alg
         self.triggered_propagators = min_heap_init(problem.propagator_nb)
         reset_triggered_propagators(self.triggered_propagators, self.problem.propagator_nb)
         logger.debug("Initializing choice points")

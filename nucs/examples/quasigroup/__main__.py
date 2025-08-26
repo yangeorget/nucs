@@ -33,9 +33,9 @@ if __name__ == "__main__":
                 BacktrackSolver(
                     problem,
                     decision_variables=range(0, args.n * args.n),
-                    consistency_alg_idx=args.consistency,
-                    var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
-                    dom_heuristic_idx=DOM_HEURISTIC_SPLIT_LOW,
+                    consistency_alg=args.consistency,
+                    var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
+                    dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
                     log_level=args.log_level,
                     stks_max_height=args.cp_max_height,
                 )
@@ -46,9 +46,9 @@ if __name__ == "__main__":
         else BacktrackSolver(
             problem,
             decision_variables=range(0, args.n * args.n),
-            consistency_alg_idx=args.consistency,
-            var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN,
-            dom_heuristic_idx=DOM_HEURISTIC_SPLIT_LOW,
+            consistency_alg=args.consistency,
+            var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
+            dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
             log_level=args.log_level,
             stks_max_height=args.cp_max_height,
         )
