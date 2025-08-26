@@ -21,7 +21,6 @@ if __name__ == "__main__":
     parser = DefaultArgumentParser()
     parser.add_argument("-n", type=int, default=4)
     args = parser.parse_args()
-    print(args)
     problem = MagicSquareProblem(args.n, args.symmetry_breaking)
     solver = BacktrackSolver(
         problem,

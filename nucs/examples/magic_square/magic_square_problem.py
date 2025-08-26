@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-from typing import List
+from typing import Iterable
 
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_LEQ, ALG_SUM_EQ_C
@@ -39,23 +39,25 @@ class MagicSquareProblem(Problem):
         self.add_propagator(ALG_SUM_EQ_C, self.second_diag(), [self.m])
         self.add_propagator(ALG_ALLDIFFERENT, range(n**2))
         if symmetry_breaking:
-            top_left = self.first_diag()[0]
-            bottom_right = self.first_diag()[-1]
-            top_right = self.second_diag()[0]
-            bottom_left = self.second_diag()[-1]
+            first_diag_as_list = list(self.first_diag())
+            top_left = first_diag_as_list[0]
+            bottom_right = first_diag_as_list[-1]
+            second_diag_as_list = list(self.second_diag())
+            top_right = second_diag_as_list[0]
+            bottom_left = second_diag_as_list[-1]
             self.add_propagator(ALG_LEQ, [top_left, top_right], [-1])
             self.add_propagator(ALG_LEQ, [top_left, bottom_left], [-1])
             self.add_propagator(ALG_LEQ, [top_left, bottom_right], [-1])
             self.add_propagator(ALG_LEQ, [top_right, bottom_left], [-1])
 
-    def row(self, i: int) -> List[int]:
-        return list(range(0 + i * self.n, self.n + i * self.n))
+    def row(self, i: int) -> Iterable[int]:
+        return range(0 + i * self.n, self.n + i * self.n)
 
-    def column(self, j: int) -> List[int]:
-        return list(range(j, self.n**2, self.n))
+    def column(self, j: int) -> Iterable[int]:
+        return range(j, self.n**2, self.n)
 
-    def first_diag(self) -> List[int]:
-        return list(range(0, self.n**2, self.n + 1))
+    def first_diag(self) -> Iterable[int]:
+        return range(0, self.n**2, self.n + 1)
 
-    def second_diag(self) -> List[int]:
-        return list(range(self.n**2 - self.n, 0, 1 - self.n))
+    def second_diag(self) -> Iterable[int]:
+        return range(self.n**2 - self.n, 0, 1 - self.n)

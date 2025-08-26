@@ -21,10 +21,10 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 class TestMagicSquare:
 
     def test_first_diagonal(self) -> None:
-        assert MagicSquareProblem(3).first_diag() == [0, 4, 8]
+        assert list(MagicSquareProblem(3).first_diag()) == [0, 4, 8]
 
     def test_second_diagonal(self) -> None:
-        assert MagicSquareProblem(3).second_diag() == [6, 4, 2]
+        assert list(MagicSquareProblem(3).second_diag()) == [6, 4, 2]
 
     @pytest.mark.parametrize("size,solution_nb", [(2, 0), (3, 1), (4, 880)])
     def test_magic_square(self, size: int, solution_nb: int) -> None:
