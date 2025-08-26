@@ -116,8 +116,13 @@ class Problem:
         """
         logger.debug("Initializing problem")
         # Sort the propagators based on their estimated amortized complexities.
-        self.propagators.sort(key=lambda prop: GET_COMPLEXITY_FCTS[prop[1]](len(prop[0]), prop[2]))
-        self.algorithms = np.array([prop[1] for prop in self.propagators], dtype=np.uint8)
+        self.propagators.sort(
+            key=lambda propagator: (
+                GET_COMPLEXITY_FCTS[propagator[1]](len(propagator[0]), propagator[2]),
+                propagator[1],
+            )
+        )
+        self.algorithms = np.array([propagator[1] for propagator in self.propagators], dtype=np.uint8)
         # We will store propagator specific data in a global arrays, we need to compute variables and parameter bounds.
         logger.debug("Initializing bounds")
         self.bounds = np.zeros((max(1, self.propagator_nb), 2, 2), dtype=np.uint32)  # some redundancy here
@@ -189,22 +194,27 @@ def init_triggers(
 ) -> None:
     # for each domain and event, we store the list of propagator indices followed by -1
     indices = np.zeros((domain_nb, EVENT_MASK_NB), dtype=np.uint32)
-    # TODO: by algo and not by prop
-    trigger_fcts = (
-        [GET_TRIGGERS_FCTS[algorithms[prop_idx]] for prop_idx in range(propagator_nb)]
-        if NUMBA_DISABLE_JIT
-        else [
-            function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithms[prop_idx]])
-            for prop_idx in range(propagator_nb)
-        ]
-    )
+    if NUMBA_DISABLE_JIT:
+        get_trigger_fcts = [GET_TRIGGERS_FCTS[algorithms[prop_idx]] for prop_idx in range(propagator_nb)]
+    else:
+        previous_algorithm = algorithms[0]
+        previous_function = function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[previous_algorithm])
+        get_trigger_fcts = [previous_function] * propagator_nb  # necessary for numba to get the type
+        for prop_idx in range(1, propagator_nb):
+            if algorithms[prop_idx] == previous_algorithm:
+                get_trigger_fcts[prop_idx] = previous_function
+            else:
+                previous_algorithm = algorithms[prop_idx]
+                previous_function = get_trigger_fcts[prop_idx] = function_from_address(
+                    TYPE_GET_TRIGGERS, get_triggers_addrs[previous_algorithm]
+                )
     for prop_idx in range(propagator_nb):
         parameters = props_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]]
         var_start = bounds[prop_idx, VARIABLE, RANGE_START]
         var_end = bounds[prop_idx, VARIABLE, RANGE_END]
         var_nb = var_end - var_start
         for var in range(var_start, var_end):
-            trigger = trigger_fcts[prop_idx](var_nb, var - var_start, parameters)
+            trigger = get_trigger_fcts[prop_idx](var_nb, var - var_start, parameters)
             variable = props_variables[var]
             for event_mask in range(1, EVENT_MASK_NB):
                 if trigger & event_mask:

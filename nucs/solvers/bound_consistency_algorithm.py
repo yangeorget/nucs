@@ -80,14 +80,20 @@ def bound_consistency_algorithm(
     """
     top = stks_top[0]
     statistics[STATS_IDX_ALG_BC_NB] += 1
-    # TODO: by algo and not by prop
     if NUMBA_DISABLE_JIT:
         compute_domains_fcts = [COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]] for prop_idx in range(propagator_nb)]
     else:
-        compute_domains_fcts = [
-            function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[algorithms[prop_idx]])
-            for prop_idx in range(propagator_nb)
-        ]
+        previous_algorithm = algorithms[0]
+        previous_function = function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[previous_algorithm])
+        compute_domains_fcts = [previous_function] * propagator_nb  # necessary for numba to get the type
+        for prop_idx in range(1, propagator_nb):
+            if algorithms[prop_idx] == previous_algorithm:
+                compute_domains_fcts[prop_idx] = previous_function
+            else:
+                previous_algorithm = algorithms[prop_idx]
+                previous_function = compute_domains_fcts[prop_idx] = function_from_address(
+                    TYPE_COMPUTE_DOMAINS, compute_domains_addrs[previous_algorithm]
+                )
     while True:
         prop_idx = min_heap_pop(triggered_propagators, propagator_nb)
         if prop_idx == -1:
@@ -95,9 +101,8 @@ def bound_consistency_algorithm(
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = bounds[prop_idx, VARIABLE, RANGE_START]
         prop_var_end = bounds[prop_idx, VARIABLE, RANGE_END]
-        prop_domains = domains_stk[top, props_variables[prop_var_start:prop_var_end], :]  # TODO: avoid allocation
-        compute_domains_fct = compute_domains_fcts[prop_idx]
-        status = compute_domains_fct(
+        prop_domains = domains_stk[top, props_variables[prop_var_start:prop_var_end], :]
+        status = compute_domains_fcts[prop_idx](
             prop_domains,
             props_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]],
         )
