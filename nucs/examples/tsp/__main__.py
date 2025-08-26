@@ -11,14 +11,12 @@
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
 
-from nucs.constants import OPTIM_MODES, OPTIM_PRUNE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.tsp.tsp_instances import TSP_INSTANCES
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_SHAVING
 from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -26,7 +24,6 @@ from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
     parser.add_argument("--name", choices=["GR17", "GR21", "GR24"], default="GR17")
-    parser.add_argument("--opt_mode", choices=OPTIM_MODES, default=OPTIM_PRUNE)
     args = parser.parse_args()
     tsp_instance = TSP_INSTANCES[args.name]
     n = len(tsp_instance)
@@ -39,14 +36,14 @@ if __name__ == "__main__":
             [
                 BacktrackSolver(
                     prob,
-                    consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
+                    consistency_alg_idx=args.consistency,
                     decision_variables=decision_variables,
                     var_heuristic_idx=tsp_var_heuristic_idx,
                     var_heuristic_params=costs,
                     dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
                     dom_heuristic_params=costs,
                     log_level=args.log_level,
-                    stks_max_height=args.cp,
+                    stks_max_height=args.cp_max_height,
                 )
                 for prob in problem.split(args.processors, 0)
             ]
@@ -54,16 +51,16 @@ if __name__ == "__main__":
         if args.processors > 1
         else BacktrackSolver(
             problem,
-            consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
+            consistency_alg_idx=args.consistency,
             decision_variables=decision_variables,
             var_heuristic_idx=tsp_var_heuristic_idx,
             var_heuristic_params=costs,
             dom_heuristic_idx=DOM_HEURISTIC_MIN_COST,
             dom_heuristic_params=costs,
             log_level=args.log_level,
-            stks_max_height=args.cp,
+            stks_max_height=args.cp_max_height,
         )
     )
-    solution = solver.minimize(problem.total_cost, mode=args.opt_mode)
-    if args.stats:
+    solution = solver.minimize(problem.total_cost, mode=args.optimization_mode)
+    if args.display_stats:
         solver.print_statistics()

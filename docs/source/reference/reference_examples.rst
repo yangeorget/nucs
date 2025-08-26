@@ -8,14 +8,17 @@ NUCS comes with several examples.
 
 Most of these examples can be run from the command line and support the following options:
 
-* :code:`--ff/--no-ff`: when set, uses the smallest domain variable heuristic
-* :code:`--help`: shows the help
-* :code:`--log_level`: defines the level of logging, can take the values :code:`DEBUG`, :code:`INFO`, :code:`WARNING`, :code:`ERROR`, :code:`CRITICAL`
-* :code:`--n`: when available, defines the size of the problem
-* :code:`--opt_mode`: in the case of optimization, sets the optimizer mode (:code:`RESET` or :code:`PRUNE`)
-* :code:`--processors`: when set, defines the number of processors to use
-* :code:`--shaving/--no-shaving`: when set, uses the shaving consistency algorithm
-* :code:`--symmetry_breaking/--no-symmetry_breaking`: when set, leverages symmetries in the problem
+* :code:`--consistency`: set the consistency algorithm (0 is for BC, 1 for BC+shaving)
+* :code:`--cp-max-height`: set the maximal height of the choice points stack (default is 512)
+* :code:`--display-solutions`: display the solution(s)
+* :code:`--display-stats`: display the statistics
+* :code:`--find-all`: find all solutions
+* :code:`--help`: show the help
+* :code:`--log-level`: set the log level, can take the values :code:`DEBUG`, :code:`INFO`, :code:`WARNING`, :code:`ERROR`, :code:`CRITICAL`
+* :code:`--n`: define the size of the problem
+* :code:`--optimization-mode`: set the optimizer mode (:code:`RESET` or :code:`PRUNE`)
+* :code:`--processors`: define the number of processors to use
+* :code:`--symmetry-breaking/--no-symmetry-breaking`: leverage symmetries in the problem
 
 
 .. py:module:: nucs.examples.all_interval_series.all_interval_series_problem

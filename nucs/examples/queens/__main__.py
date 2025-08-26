@@ -20,7 +20,6 @@ from nucs.heuristics.heuristics import (
     VAR_HEURISTIC_SMALLEST_DOMAIN,
 )
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_SHAVING
 from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -36,12 +35,12 @@ if __name__ == "__main__":
             [
                 BacktrackSolver(
                     problem,
-                    consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
+                    consistency_alg_idx=args.consistency,
                     var_heuristic_idx=(
                         VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
                     ),
                     log_level=args.log_level,
-                    stks_max_height=args.cp,
+                    stks_max_height=args.cp_max_height,
                 )
                 for problem in problem.split(args.processors, 0)
             ]
@@ -49,19 +48,19 @@ if __name__ == "__main__":
         if args.processors > 1
         else BacktrackSolver(
             problem,
-            consistency_alg_idx=CONSISTENCY_ALG_SHAVING if args.shaving else CONSISTENCY_ALG_BC,
+            consistency_alg_idx=args.consistency,
             var_heuristic_idx=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
             dom_heuristic_idx=DOM_HEURISTIC_MID_VALUE,
             log_level=args.log_level,
-            stks_max_height=args.cp,
+            stks_max_height=args.cp_max_height,
         )
     )
-    if args.all:
+    if args.find_all:
         solver.solve_all()
         solver.print_statistics()
     else:
         solution = solver.find_one()
-        if args.stats:
+        if args.display_stats:
             solver.print_statistics()
-        if args.display:
+        if args.display_solutions:
             problem.print_solution(solution)

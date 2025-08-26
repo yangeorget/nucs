@@ -22,14 +22,14 @@ if __name__ == "__main__":
     parser.add_argument("-n", type=int, default=20)
     args = parser.parse_args()
     problem = SchurLemmaProblem(args.n, args.symmetry_breaking)
-    solver = BacktrackSolver(problem, log_level=args.log_level, stks_max_height=args.cp)
-    if args.all:
+    solver = BacktrackSolver(problem, log_level=args.log_level, stks_max_height=args.cp_max_height)
+    if args.find_all:
         solver.solve_all()
-        if args.stats:
+        if args.display_stats:
             solver.print_statistics()
     else:
         solution = solver.find_one()
-        if args.stats:
+        if args.display_stats:
             solver.print_statistics()
-        if args.display:
+        if args.display_solutions:
             problem.print_solution(solution)

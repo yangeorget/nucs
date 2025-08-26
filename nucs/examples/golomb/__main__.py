@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2025 - Yan Georget
 ###############################################################################
-from nucs.constants import OPTIM_MODES, OPTIM_PRUNE
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -22,7 +21,6 @@ from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
     parser.add_argument("-n", type=int, default=10)
-    parser.add_argument("--opt_mode", choices=OPTIM_MODES, default=OPTIM_PRUNE)
     args = parser.parse_args()
     problem = GolombProblem(args.n, args.symmetry_breaking)
     consistency_alg_golomb = register_consistency_algorithm(golomb_consistency_algorithm)
@@ -30,18 +28,24 @@ if __name__ == "__main__":
         MultiprocessingSolver(
             [
                 BacktrackSolver(
-                    prob, consistency_alg_idx=consistency_alg_golomb, log_level=args.log_level, stks_max_height=args.cp
+                    prob,
+                    consistency_alg_idx=consistency_alg_golomb,
+                    log_level=args.log_level,
+                    stks_max_height=args.cp_max_height,
                 )
                 for prob in problem.split(args.processors, 0)
             ]
         )
         if args.processors > 1
         else BacktrackSolver(
-            problem, consistency_alg_idx=consistency_alg_golomb, log_level=args.log_level, stks_max_height=args.cp
+            problem,
+            consistency_alg_idx=consistency_alg_golomb,
+            log_level=args.log_level,
+            stks_max_height=args.cp_max_height,
         )
     )
-    solution = solver.minimize(problem.length_idx, mode=args.opt_mode)
-    if args.stats:
+    solution = solver.minimize(problem.length_idx, mode=args.optimization_mode)
+    if args.display_stats:
         solver.print_statistics()
-    if args.display:
+    if args.display_solutions:
         problem.print_solution(solution)
