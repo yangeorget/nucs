@@ -27,8 +27,8 @@ class TestCircuitProblem:
 
     def test_no_sub_cycle_5(self) -> None:
         problem = CircuitProblem(5)
-        problem.domains[1] = [2, 2]
-        problem.domains[2] = [1, 1]
+        problem.domains[1] = (2, 2)
+        problem.domains[2] = (1, 1)
         solver = BacktrackSolver(problem)
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == 0

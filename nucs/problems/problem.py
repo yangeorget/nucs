@@ -48,7 +48,7 @@ class Problem:
         Initializes the problem.
         :param domains: the domains
         """
-        self.domains = [[domain, domain] if isinstance(domain, int) else [domain[0], domain[1]] for domain in domains]
+        self.domains = [(domain, domain) if isinstance(domain, int) else domain for domain in domains]
         self.domain_nb = len(self.domains)
         self.propagators: List[Tuple[List[int], int, List[int]]] = []
         self.propagator_nb = 0
@@ -62,15 +62,14 @@ class Problem:
         """
         logger.debug(f"Splitting in {split_nb} problems with variable {var}")
         domain = self.domains[var]
-        domain_min = domain[0]
-        domain_max = domain[1]
+        domain_min, domain_max = domain
         domain_size = domain_max - domain_min + 1
         problems = []
         min_idx = domain_min
         for split_idx in range(split_nb):
             problem = copy.deepcopy(self)
             max_idx = min_idx + domain_size // split_nb - (0 if split_idx < domain_size % split_nb else 1)
-            problem.domains[var] = [min_idx, max_idx]
+            problem.domains[var] = (min_idx, max_idx)
             min_idx = max_idx + 1
             problems.append(problem)
         return problems
@@ -82,7 +81,7 @@ class Problem:
         :return: the extra variable
         """
         var = len(self.domains)
-        self.domains.append([domain, domain] if isinstance(domain, int) else [domain[0], domain[1]])
+        self.domains.append((domain, domain) if isinstance(domain, int) else domain)
         self.domain_nb = var + 1
         return var
 
@@ -93,9 +92,7 @@ class Problem:
         :return: the first added variable
         """
         var = len(self.domains)
-        self.domains.extend(
-            [[domain, domain] if isinstance(domain, int) else [domain[0], domain[1]] for domain in domains]
-        )
+        self.domains.extend([(domain, domain) if isinstance(domain, int) else domain for domain in domains])
         self.domain_nb = len(self.domains)
         return var
 

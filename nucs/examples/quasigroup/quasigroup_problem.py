@@ -29,15 +29,15 @@ class QuasigroupProblem(LatinSquareRCProblem):
         super().__init__(n)
         if symmetry_breaking:
             for i in range(1, n):
-                self.domains[self.cell(i, n - 1)] = [i - 1, n - 1]
+                self.domains[self.cell(i, n - 1)] = (i - 1, n - 1)
         if idempotent:
             for model in [M_COLOR, M_ROW, M_COLUMN]:
                 for i in range(n):
-                    self.domains[self.cell(i, i, model)] = [i, i]
+                    self.domains[self.cell(i, i, model)] = (i, i)
                 for i in range(1, n):
-                    self.domains[self.cell(0, i, model)] = [1, n - 1]
+                    self.domains[self.cell(0, i, model)] = (1, n - 1)
                 for i in range(0, n - 1):
-                    self.domains[self.cell(n - 1, i, model)] = [0, n - 2]
+                    self.domains[self.cell(n - 1, i, model)] = (0, n - 2)
         for i in range(n):
             for j in range(n):
                 if not idempotent or j != i:
