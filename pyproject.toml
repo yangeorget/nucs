@@ -1,6 +1,6 @@
 [project]
 name="NuCS"
-version="9.0.0"
+version="9.1.0"
 authors = [
   { name="Yan Georget", email="yan.georget@gmail.com" },
 ]
