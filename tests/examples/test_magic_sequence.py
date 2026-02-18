@@ -8,7 +8,7 @@
 #
 # Fast constraint solving in Python  - https://github.com/yangeorget/nucs
 #
-# Copyright 2024-2025 - Yan Georget
+# Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import pytest
 
@@ -19,7 +19,6 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
 class TestMagicSequence:
-
     @pytest.mark.parametrize("size,zero_nb", [(50, 46), (100, 96), (200, 196)])
     def test_magic_sequence(self, size: int, zero_nb: int) -> None:
         problem = MagicSequenceProblem(size)

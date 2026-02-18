@@ -8,6 +8,7 @@
 #
 # Fast constraint solving in Python  - https://github.com/yangeorget/nucs
 #
+# Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import time
 from multiprocessing import Queue

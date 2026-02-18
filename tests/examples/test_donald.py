@@ -8,7 +8,7 @@
 #
 # Fast constraint solving in Python  - https://github.com/yangeorget/nucs
 #
-# Copyright 2024-2025 - Yan Georget
+# Copyright 2024-2026 - Yan Georget
 ###############################################################################
 from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.examples.donald.donald_problem import DonaldProblem

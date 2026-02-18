@@ -8,7 +8,7 @@
 #
 # Fast constraint solving in Python  - https://github.com/yangeorget/nucs
 #
-# Copyright 2024-2025 - Yan Georget
+# Copyright 2024-2026 - Yan Georget
 ###############################################################################
 from nucs.heaps import min_heap_add, min_heap_init, min_heap_pop
 

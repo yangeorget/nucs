@@ -8,7 +8,7 @@
 #
 # Fast constraint solving in Python  - https://github.com/yangeorget/nucs
 #
-# Copyright 2024-2025 - Yan Georget
+# Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import pytest
 
@@ -19,7 +19,6 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
 class TestMagicSquare:
-
     def test_first_diagonal(self) -> None:
         assert list(MagicSquareProblem(3).first_diag()) == [0, 4, 8]
 

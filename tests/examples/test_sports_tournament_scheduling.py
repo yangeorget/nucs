@@ -8,7 +8,7 @@
 #
 # Fast constraint solving in Python  - https://github.com/yangeorget/nucs
 #
-# Copyright 2024-2025 - Yan Georget
+# Copyright 2024-2026 - Yan Georget
 ###############################################################################
 from nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem import (
     SportsTournamentSchedulingProblem,

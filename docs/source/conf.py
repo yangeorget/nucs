@@ -3,7 +3,7 @@
 # -- Project information
 
 project = 'NuCS'
-copyright = '2024-2025, Yan Georget'
+copyright = '2024-2026, Yan Georget'
 author = 'Yan Georget'
 
 release = '9.0.0'

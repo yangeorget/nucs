@@ -34,9 +34,6 @@ sphinx-build -M html docs/source docs/output
 ```bash
 NUMBA_DISABLE_JIT=1 python -m "cProfile" -s time -m nucs.examples.queens | more
 ```
-```bash
-NUMBA_DISABLE_JIT=1 viztracer --open -m nucs.examples.queens 
-```
 
 ### How to measure the performance
 ```bash

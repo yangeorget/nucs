@@ -26,8 +26,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dependencies = [
-    "numba==0.63.1",
-    "numpy==2.3.5",
+    "numba==0.64.0rc1",
+    "numpy==2.4.2",
     "rich"
 ]
 [project.urls]
@@ -38,12 +38,15 @@ Issues = "https://github.com/yangeorget/nucs/issues"
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.isort]
-profile = "black"
-line_length = 120
-
-[tool.black]
+[tool.ruff]
 line-length = 120
+[tool.ruff.lint]
+ignore = ["E741"]
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
 
 [tool.setuptools.packages]
 find = {}

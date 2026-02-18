@@ -8,7 +8,7 @@
 #
 # Fast constraint solving in Python  - https://github.com/yangeorget/nucs
 #
-# Copyright 2024-2025 - Yan Georget
+# Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import pytest
 
@@ -18,7 +18,6 @@ from nucs.solvers.consistency_algorithms import register_consistency_algorithm
 
 
 class TestGolomb:
-
     @pytest.mark.parametrize(
         "mark_nb,i,j,idx", [(4, 0, 1, 0), (4, 0, 2, 1), (4, 0, 3, 2), (4, 1, 2, 3), (4, 1, 3, 4), (4, 2, 3, 5)]
     )
