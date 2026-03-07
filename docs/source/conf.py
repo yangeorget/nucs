@@ -6,8 +6,8 @@ project = 'NuCS'
 copyright = '2024-2026, Yan Georget'
 author = 'Yan Georget'
 
-release = '9.0.0'
-version = '9.0.0'
+release = '9.1.3'
+version = '9.1.3'
 
 # -- General configuration
 
@@ -35,15 +35,16 @@ templates_path = ['_templates']
 html_theme = 'sphinx_rtd_theme'
 
 html_context = {
-    "display_github": True, # Integrate GitHub
-    "github_user": "yangeorget", # Username
-    "github_repo": "nucs", # Repo name
-    "github_version": "main", # Version
-    "conf_py_path": "/docs/source/", # Path in the checkout to the docs root
+    "display_github": True,  # Integrate GitHub
+    "github_user": "yangeorget",  # Username
+    "github_repo": "nucs",  # Repo name
+    "github_version": "main",  # Version
+    "conf_py_path": "/docs/source/",  # Path in the checkout to the docs root
 }
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
+
 
 def linkcode_resolve(domain, info):
     if domain != 'py':
