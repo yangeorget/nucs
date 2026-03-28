@@ -26,9 +26,23 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dependencies = [
-    "numba==0.64.0",
+    "numba==0.65.0rc1",
     "numpy==2.4.2",
     "rich"
+]
+[project.optional-dependencies]
+dev = [
+    "addheader",
+    "build",
+    "mypy",
+    "ruff",
+    "sphinx",
+    "sphinx-rtd-theme",
+    "twine"
+]
+test = [
+    "coverage",
+    "pytest"
 ]
 [project.urls]
 Homepage = "https://github.com/yangeorget/nucs"

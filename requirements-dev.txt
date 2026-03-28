@@ -1,9 +1,0 @@
-addheader
-build
-coverage
-pytest
-sphinx
-sphinx-rtd-theme
-twine
-ruff
-mypy

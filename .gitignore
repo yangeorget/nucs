@@ -2,6 +2,7 @@
 .idea
 .numba
 __pycache__
+build
 dist
 docs/output
 venv*
