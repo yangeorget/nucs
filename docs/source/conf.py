@@ -1,5 +1,4 @@
 # Configuration file for the Sphinx documentation builder.
-from importlib.metadata import version as get_version
 
 # -- Project information
 
@@ -7,7 +6,9 @@ project = 'NuCS'
 copyright = '2024-2026, Yan Georget'
 author = 'Yan Georget'
 
-release = get_version("NuCS")
+with open(Path(__file__).parent.parent.parent / "pyproject.toml", "rb") as f:
+    data = tomllib.load(f)
+release = data["project"]["version"]
 version = ".".join(release.split(".")[:2])
 
 # -- General configuration
