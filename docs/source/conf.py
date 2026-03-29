@@ -1,4 +1,5 @@
 # Configuration file for the Sphinx documentation builder.
+from importlib.metadata import version as get_version
 
 # -- Project information
 
@@ -6,8 +7,8 @@ project = 'NuCS'
 copyright = '2024-2026, Yan Georget'
 author = 'Yan Georget'
 
-release = '9.1.3'
-version = '9.1.3'
+release = get_version("NuCS")
+version = ".".join(release.split(".")[:2])
 
 # -- General configuration
 
