@@ -34,27 +34,23 @@ class DefaultArgumentParser(argparse.ArgumentParser):
         self.add_argument(
             "--display-solutions",
             help="display the solution(s)",
-            type=bool,
             action=argparse.BooleanOptionalAction,
             default=True,
         )
         self.add_argument(
             "--display-stats",
             help="display the statistics",
-            type=bool,
             action=argparse.BooleanOptionalAction,
             default=True,
         )
         self.add_argument(
             "--find-all",
             help="find all solutions",
-            type=bool,
             action=argparse.BooleanOptionalAction,
             default=False,
         )
         self.add_argument(
             "--ff",
-            type=bool,
             action=argparse.BooleanOptionalAction,
             default=False,
         )
