@@ -127,13 +127,13 @@ class BacktrackSolver(Solver, QueueSolver):
         reset_triggered_propagators(self.triggered_propagators, self.problem.propagator_nb)
         logger.debug("Initializing choice points")
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
-        self.not_entailed_propagators_stk = np.empty((stks_max_height, self.problem.propagator_nb), dtype=np.bool)
+        self.entailed_propagators_stk = np.empty((stks_max_height, self.problem.propagator_nb), dtype=np.bool)
         self.dom_update_stk = np.empty((stks_max_height, 2), dtype=np.uint32)
         self.stks_top = np.ones((1,), dtype=np.uint32)
         logger.info(f"The stacks of the choice points have a maximal height of {stks_max_height}")
         cp_init(
             self.domains_stk,
-            self.not_entailed_propagators_stk,
+            self.entailed_propagators_stk,
             self.dom_update_stk,
             self.stks_top,
             np.array(problem.domains, dtype=np.int32),
@@ -208,7 +208,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_parameters,
                 self.problem.triggers,
                 self.domains_stk,
-                self.not_entailed_propagators_stk,
+                self.entailed_propagators_stk,
                 self.dom_update_stk,
                 self.stks_top,
                 self.triggered_propagators,
@@ -230,7 +230,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 logger.debug("Resetting solver")
                 cp_init(
                     self.domains_stk,
-                    self.not_entailed_propagators_stk,
+                    self.entailed_propagators_stk,
                     self.dom_update_stk,
                     self.stks_top,
                     np.array(self.problem.domains),
@@ -278,7 +278,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_parameters,
                 self.problem.triggers,
                 self.domains_stk,
-                self.not_entailed_propagators_stk,
+                self.entailed_propagators_stk,
                 self.dom_update_stk,
                 self.stks_top,
                 self.triggered_propagators,
@@ -300,7 +300,7 @@ class BacktrackSolver(Solver, QueueSolver):
             if not backtrack(
                 self.problem.propagator_nb,
                 self.statistics,
-                self.not_entailed_propagators_stk,
+                self.entailed_propagators_stk,
                 self.dom_update_stk,
                 self.stks_top,
                 self.triggered_propagators,
@@ -356,7 +356,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_parameters,
                 self.problem.triggers,
                 self.domains_stk,
-                self.not_entailed_propagators_stk,
+                self.entailed_propagators_stk,
                 self.dom_update_stk,
                 self.stks_top,
                 self.triggered_propagators,
@@ -380,7 +380,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 logger.debug("Resetting solver")
                 cp_init(
                     self.domains_stk,
-                    self.not_entailed_propagators_stk,
+                    self.entailed_propagators_stk,
                     self.dom_update_stk,
                     self.stks_top,
                     np.array(self.problem.domains),
@@ -429,7 +429,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_parameters,
                 self.problem.triggers,
                 self.domains_stk,
-                self.not_entailed_propagators_stk,
+                self.entailed_propagators_stk,
                 self.dom_update_stk,
                 self.stks_top,
                 self.triggered_propagators,
@@ -450,7 +450,7 @@ class BacktrackSolver(Solver, QueueSolver):
             if not backtrack(
                 self.problem.propagator_nb,
                 self.statistics,
-                self.not_entailed_propagators_stk,
+                self.entailed_propagators_stk,
                 self.dom_update_stk,
                 self.stks_top,
                 self.triggered_propagators,
@@ -470,7 +470,7 @@ def solve_one(
     propagator_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
-    not_entailed_propagators_stk: NDArray,
+    entailed_propagators_stk: NDArray,
     dom_update_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
@@ -495,7 +495,7 @@ def solve_one(
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :param domains_stk: a stack of domains;
     the first level correspond to the current domains, the rest correspond to the choice points
-    :param not_entailed_propagators_stk: a stack not entailed propagators;
+    :param entailed_propagators_stk: a stack of entailed propagatorspropagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
     :param dom_update_stk: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
@@ -532,7 +532,7 @@ def solve_one(
             propagator_parameters,
             triggers,
             domains_stk,
-            not_entailed_propagators_stk,
+            entailed_propagators_stk,
             dom_update_stk,
             stks_top,
             triggered_propagators,
@@ -546,14 +546,14 @@ def solve_one(
             var = var_heuristic_fct(decision_variables, domains_stk, stks_top, var_heuristic_params)
             events = dom_heuristic_fct(
                 domains_stk,
-                not_entailed_propagators_stk,
+                entailed_propagators_stk,
                 dom_update_stk,
                 stks_top,
                 var,
                 dom_heuristic_params,
             )
             update_propagators(
-                propagator_nb, triggered_propagators, not_entailed_propagators_stk[stks_top[0]], triggers, events, var
+                propagator_nb, triggered_propagators, entailed_propagators_stk[stks_top[0]], triggers, events, var
             )
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
             if stks_top[0] > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
@@ -561,7 +561,7 @@ def solve_one(
         elif not backtrack(
             propagator_nb,
             statistics,
-            not_entailed_propagators_stk,
+            entailed_propagators_stk,
             dom_update_stk,
             stks_top,
             triggered_propagators,

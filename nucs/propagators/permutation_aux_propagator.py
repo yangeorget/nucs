@@ -59,7 +59,7 @@ def filter_domains_permutation(n: int, next: NDArray, prev: NDArray) -> bool:
     for j in range(0, n):
         if prev[j, MIN] == prev[j, MAX]:
             i = prev[j, MIN]
-            next[i, :] = j
+            next[i] = j
         else:
             start = -1
             for i in range(prev[j, MIN], prev[j, MAX] + 1):

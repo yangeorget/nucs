@@ -32,7 +32,7 @@ from nucs.solvers.choice_points import cp_put
 @njit(cache=True)
 def value_dom_heuristic(
     domains_stk: NDArray,
-    not_entailed_propagators_stk: NDArray,
+    entailed_propagators_stk: NDArray,
     dom_update_stk: NDArray,
     stks_top: NDArray,
     variable: int,
@@ -42,7 +42,7 @@ def value_dom_heuristic(
     """
     Chooses a value given as a parameter.
     :param domains_stk: the stack of domains
-    :param not_entailed_propagators_stk: the stack of not entailed propagators
+    :param entailed_propagators_stk: the stack of entailed propagators
     :param dom_update_stk: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param variable: the variable
@@ -53,15 +53,15 @@ def value_dom_heuristic(
     top = stks_top[0]
     if value == domains_stk[top, variable, MIN]:
         return min_value_dom_heuristic(
-            domains_stk, not_entailed_propagators_stk, dom_update_stk, stks_top, variable, params
+            domains_stk, entailed_propagators_stk, dom_update_stk, stks_top, variable, params
         )
     if value == domains_stk[top, variable, MAX]:
         return max_value_dom_heuristic(
-            domains_stk, not_entailed_propagators_stk, dom_update_stk, stks_top, variable, params
+            domains_stk, entailed_propagators_stk, dom_update_stk, stks_top, variable, params
         )
-    cp_put(domains_stk, not_entailed_propagators_stk, stks_top)
-    cp_put(domains_stk, not_entailed_propagators_stk, stks_top)
-    domains_stk[top + 2, variable, :] = value
+    cp_put(domains_stk, entailed_propagators_stk, stks_top)
+    cp_put(domains_stk, entailed_propagators_stk, stks_top)
+    domains_stk[top + 2, variable] = value
     domains_stk[top + 1, variable, MAX] = value - 1
     domains_stk[top, variable, MIN] = value + 1
     dom_update_stk[top + 1, DOM_UPDATE_VARIABLE] = dom_update_stk[top, DOM_UPDATE_VARIABLE] = variable

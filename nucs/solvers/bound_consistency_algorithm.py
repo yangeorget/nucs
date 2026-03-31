@@ -52,7 +52,7 @@ def bound_consistency_algorithm(
     propagator_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
-    not_entailed_propagators_stk: NDArray,
+    entailed_propagators_stk: NDArray,
     dom_update_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
@@ -69,7 +69,7 @@ def bound_consistency_algorithm(
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :param domains_stk: a stack of domains;
     the first level correspond to the current domains, the rest correspond to the choice points
-    :param not_entailed_propagators_stk: a stack not entailed propagators;
+    :param entailed_propagators_stk: a stack of entailed propagatorspropagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
     :param dom_update_stk: the stack of domain updates, unused here
     :param stks_top: the height of the stacks as a Numpy array
@@ -101,16 +101,16 @@ def bound_consistency_algorithm(
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = bounds[prop_idx, VARIABLE, RANGE_START]
         prop_var_end = bounds[prop_idx, VARIABLE, RANGE_END]
-        prop_domains = domains_stk[top, propagator_variables[prop_var_start:prop_var_end], :]
+        prop_domains = domains_stk[top, propagator_variables[prop_var_start:prop_var_end]]
         status = compute_domains_fcts[prop_idx](
             prop_domains,
-            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START]: bounds[prop_idx, PARAM, RANGE_END]],
+            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]],
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
-            not_entailed_propagators_stk[top, prop_idx] = False
+            entailed_propagators_stk[top, prop_idx] = True
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
         no_changes = True
         for var_idx in range(prop_var_end - prop_var_start):
@@ -130,7 +130,7 @@ def bound_consistency_algorithm(
                 update_propagators_with_previous_prop(
                     propagator_nb,
                     triggered_propagators,
-                    not_entailed_propagators_stk[top],
+                    entailed_propagators_stk[top],
                     triggers,
                     events,
                     variable,

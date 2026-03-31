@@ -43,7 +43,7 @@ def shave_bound(
     propagator_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
-    not_entailed_propagators_stk: NDArray,
+    entailed_propagators_stk: NDArray,
     dom_update_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
@@ -51,16 +51,14 @@ def shave_bound(
     decision_variables: NDArray,
 ) -> bool:
     events = (
-        max_value_dom_heuristic(domains_stk, not_entailed_propagators_stk, dom_update_stk, stks_top, variable, None)
+        max_value_dom_heuristic(domains_stk, entailed_propagators_stk, dom_update_stk, stks_top, variable, None)
         if bound == MAX
-        else min_value_dom_heuristic(
-            domains_stk, not_entailed_propagators_stk, dom_update_stk, stks_top, variable, None
-        )
+        else min_value_dom_heuristic(domains_stk, entailed_propagators_stk, dom_update_stk, stks_top, variable, None)
     )
     if domains_stk[stks_top[0], variable, MIN] == domains_stk[stks_top[0], variable, MAX]:
         events |= EVENT_MASK_GROUND
     update_propagators(
-        propagator_nb, triggered_propagators, not_entailed_propagators_stk[stks_top[0]], triggers, events, variable
+        propagator_nb, triggered_propagators, entailed_propagators_stk[stks_top[0]], triggers, events, variable
     )
     if (
         bound_consistency_algorithm(
@@ -72,7 +70,7 @@ def shave_bound(
             propagator_parameters,
             triggers,
             domains_stk,
-            not_entailed_propagators_stk,
+            entailed_propagators_stk,
             dom_update_stk,
             stks_top,
             triggered_propagators,
@@ -88,7 +86,7 @@ def shave_bound(
     backtrack(
         propagator_nb,
         statistics,
-        not_entailed_propagators_stk,
+        entailed_propagators_stk,
         dom_update_stk,
         stks_top,
         triggered_propagators,
@@ -107,7 +105,7 @@ def shaving_consistency_algorithm(
     propagator_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
-    not_entailed_propagators_stk: NDArray,
+    entailed_propagators_stk: NDArray,
     dom_update_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
@@ -124,7 +122,7 @@ def shaving_consistency_algorithm(
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :param domains_stk: a stack of  domains;
     the first level correspond to the current domains, the rest correspond to the choice points
-    :param not_entailed_propagators_stk: a stack not entailed propagators;
+    :param entailed_propagators_stk: a stack of entailed propagatorspropagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
     :param dom_update_stk: the stack of domain updates
     :param stks_top: the height of the stacks as a Numpy array
@@ -149,7 +147,7 @@ def shaving_consistency_algorithm(
                 propagator_parameters,
                 triggers,
                 domains_stk,
-                not_entailed_propagators_stk,
+                entailed_propagators_stk,
                 dom_update_stk,
                 stks_top,
                 triggered_propagators,
@@ -175,7 +173,7 @@ def shaving_consistency_algorithm(
             propagator_parameters,
             triggers,
             domains_stk,
-            not_entailed_propagators_stk,
+            entailed_propagators_stk,
             dom_update_stk,
             stks_top,
             triggered_propagators,

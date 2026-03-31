@@ -49,7 +49,7 @@ class TestBacktrackSolver:
             problem.propagator_parameters,
             problem.triggers,
             solver.domains_stk,
-            solver.not_entailed_propagators_stk,
+            solver.entailed_propagators_stk,
             solver.dom_update_stk,
             solver.stks_top,
             solver.triggered_propagators,
@@ -73,7 +73,7 @@ class TestBacktrackSolver:
         assert backtrack(
             problem.propagator_nb,
             solver.statistics,
-            solver.not_entailed_propagators_stk,
+            solver.entailed_propagators_stk,
             solver.dom_update_stk,
             solver.stks_top,
             solver.triggered_propagators,

@@ -114,7 +114,7 @@ def golomb_consistency_algorithm(
     propagator_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
-    not_entailed_propagators_stk: NDArray,
+    entailed_propagators_stk: NDArray,
     dom_update_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
@@ -158,7 +158,7 @@ def golomb_consistency_algorithm(
                 if domains_stk[top, var, MIN] == domains_stk[top, var, MAX]:
                     events |= EVENT_MASK_GROUND
                 update_propagators(
-                    propagator_nb, triggered_propagators, not_entailed_propagators_stk[top], triggers, events, var
+                    propagator_nb, triggered_propagators, entailed_propagators_stk[top], triggers, events, var
                 )
     return bound_consistency_algorithm(
         propagator_nb,
@@ -169,7 +169,7 @@ def golomb_consistency_algorithm(
         propagator_parameters,
         triggers,
         domains_stk,
-        not_entailed_propagators_stk,
+        entailed_propagators_stk,
         dom_update_stk,
         stks_top,
         triggered_propagators,

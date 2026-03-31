@@ -28,7 +28,7 @@ from nucs.solvers.choice_points import cp_put
 @njit(cache=True)
 def split_high_dom_heuristic(
     domains_stk: NDArray,
-    not_entailed_propagators_stk: NDArray,
+    entailed_propagators_stk: NDArray,
     dom_update_stk: NDArray,
     stacks_top: NDArray,
     variable: int,
@@ -37,7 +37,7 @@ def split_high_dom_heuristic(
     """
     Chooses the second half of the domain.
     :param domains_stk: the stack of domains
-    :param not_entailed_propagators_stk: the stack of not entailed propagators
+    :param entailed_propagators_stk: the stack of entailed propagators
     :param dom_update_stk: the stack of domain updates
     :param stacks_top: the index of the top of the stacks as a Numpy array
     :param variable: the variable
@@ -46,7 +46,7 @@ def split_high_dom_heuristic(
     """
     top = stacks_top[0]
     value = (domains_stk[top, variable, MIN] + domains_stk[top, variable, MAX]) // 2
-    cp_put(domains_stk, not_entailed_propagators_stk, stacks_top)
+    cp_put(domains_stk, entailed_propagators_stk, stacks_top)
     domains_stk[top + 1, variable, MIN] = value + 1
     domains_stk[top, variable, MAX] = value
     dom_update_stk[top, DOM_UPDATE_VARIABLE] = variable

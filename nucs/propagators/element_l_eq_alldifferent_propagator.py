@@ -94,7 +94,7 @@ def compute_domains_element_l_eq_alldifferent(domains: NDArray, parameters: NDAr
     v[MIN] = max(v[MIN], v_min)
     v[MAX] = min(v[MAX], v_max)
     if i[MIN] == i[MAX]:
-        l[i[MIN], :] = v[:]
+        l[i[MIN]] = v
         if v[MIN] == v[MAX]:
             return PROP_ENTAILMENT
     return PROP_CONSISTENCY

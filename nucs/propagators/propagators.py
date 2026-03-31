@@ -115,7 +115,7 @@ from nucs.propagators.relation_propagator import (
     get_complexity_relation,
     get_triggers_relation,
 )
-from nucs.propagators.scc_propagator import compute_domains_scc, get_complexity_scc, get_triggers_scc
+from nucs.propagators.scc_propagator import get_complexity_scc, get_triggers_scc, compute_domains_scc
 from nucs.propagators.sum_eq_c_propagator import (
     compute_domains_sum_eq_c,
     get_complexity_sum_eq_c,
@@ -217,7 +217,7 @@ def reset_triggered_propagators(triggered_propagators: NDArray, propagator_nb: i
 def update_propagators_with_previous_prop(
     propagator_nb: int,
     triggered_propagators: NDArray,
-    not_entailed_propagators: NDArray,
+    entailed_propagators: NDArray,
     triggers: NDArray,
     events: int,
     variable: int,
@@ -226,7 +226,7 @@ def update_propagators_with_previous_prop(
     for prop_idx in triggers[variable, events]:
         if prop_idx == -1:
             return
-        if not_entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
+        if not entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
             min_heap_add(triggered_propagators, propagator_nb, prop_idx)
 
 
@@ -234,7 +234,7 @@ def update_propagators_with_previous_prop(
 def update_propagators(
     propagator_nb: int,
     triggered_propagators: NDArray,
-    not_entailed_propagators: NDArray,
+    entailed_propagators: NDArray,
     triggers: NDArray,
     events: int,
     variable: int,
@@ -242,5 +242,5 @@ def update_propagators(
     for prop_idx in triggers[variable, events]:
         if prop_idx == -1:
             return
-        if not_entailed_propagators[prop_idx]:
+        if not entailed_propagators[prop_idx]:
             min_heap_add(triggered_propagators, propagator_nb, prop_idx)

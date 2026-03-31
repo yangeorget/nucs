@@ -20,7 +20,7 @@ from nucs.heuristics.value_dom_heuristic import value_dom_heuristic
 @njit(cache=True)
 def mid_value_dom_heuristic(
     domains_stk: NDArray,
-    not_entailed_propagators_stk: NDArray,
+    entailed_propagators_stk: NDArray,
     dom_update_stk: NDArray,
     stks_top: NDArray,
     variable: int,
@@ -29,7 +29,7 @@ def mid_value_dom_heuristic(
     """
     Chooses the middle value of the domain.
     :param domains_stk: the stack of domains
-    :param not_entailed_propagators_stk: the stack of not entailed propagators
+    :param entailed_propagators_stk: the stack of entailed propagators
     :param dom_update_stk: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param variable: the variable
@@ -38,7 +38,7 @@ def mid_value_dom_heuristic(
     """
     return value_dom_heuristic(
         domains_stk,
-        not_entailed_propagators_stk,
+        entailed_propagators_stk,
         dom_update_stk,
         stks_top,
         variable,

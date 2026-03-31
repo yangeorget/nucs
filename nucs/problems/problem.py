@@ -210,7 +210,8 @@ def init_triggers(
                 )
     for propagator_idx in range(propagator_nb):
         parameters = propagator_parameters[
-                     bounds[propagator_idx, PARAM, RANGE_START]: bounds[propagator_idx, PARAM, RANGE_END]]
+            bounds[propagator_idx, PARAM, RANGE_START] : bounds[propagator_idx, PARAM, RANGE_END]
+        ]
         var_start = bounds[propagator_idx, VARIABLE, RANGE_START]
         var_end = bounds[propagator_idx, VARIABLE, RANGE_END]
         var_nb = var_end - var_start
