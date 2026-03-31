@@ -25,7 +25,7 @@ def greatest_domain_var_heuristic(
     :param decision_variables: the decision variables
     :param domains_stk: the stack of domains
     :param stks_top: the index of the top of the stacks as a Numpy array
-    :param params: a two-dimensional parameters array, unused here
+    :param params: a two-dimensional parameter array, unused here
     :return: the variable
     """
     best_score = 0

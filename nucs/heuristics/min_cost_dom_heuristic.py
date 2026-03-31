@@ -35,7 +35,7 @@ def min_cost_dom_heuristic(
     :param domain_update_stk: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param variable: the variable
-    :param params: a two-dimensional (first dimension corresponds to variables, second to values) costs array
+    :param params: a two-dimensional (first dimension corresponds to variables, second to values) cost array
     :return: the events
     """
     top = stks_top[0]

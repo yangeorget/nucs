@@ -106,7 +106,7 @@ def fix_choice_points(
     :param value: the current optimal value for the variable
     :param bound: the bound being optimized
     """
-    domains_stk[0: stks_top[0] + 1, variable, bound] = value + (1 if bound == MIN else -1)
+    domains_stk[0 : stks_top[0] + 1, variable, bound] = value + (1 if bound == MIN else -1)
     while domains_stk[stks_top[0], variable, MIN] > domains_stk[stks_top[0], variable, MAX]:
         if stks_top[0] == 0:
             return False
