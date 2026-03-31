@@ -39,8 +39,8 @@ def shave_bound(
     statistics: NDArray,
     algorithms: NDArray,
     bounds: NDArray,
-    props_variables: NDArray,
-    props_parameters: NDArray,
+    propagator_variables: NDArray,
+    propagator_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
     not_entailed_propagators_stk: NDArray,
@@ -68,8 +68,8 @@ def shave_bound(
             statistics,
             algorithms,
             bounds,
-            props_variables,
-            props_parameters,
+            propagator_variables,
+            propagator_parameters,
             triggers,
             domains_stk,
             not_entailed_propagators_stk,
@@ -103,8 +103,8 @@ def shaving_consistency_algorithm(
     statistics: NDArray,
     algorithms: NDArray,
     bounds: NDArray,
-    props_variables: NDArray,
-    props_parameters: NDArray,
+    propagator_variables: NDArray,
+    propagator_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
     not_entailed_propagators_stk: NDArray,
@@ -119,8 +119,8 @@ def shaving_consistency_algorithm(
     :param statistics: a Numpy array of statistics
     :param algorithms: the algorithms indexed by propagators
     :param bounds: the bounds indexed by propagators
-    :param props_variables: the variables by propagators
-    :param props_parameters: the parameters by propagators
+    :param propagator_variables: the variables by propagators
+    :param propagator_parameters: the parameters by propagators
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :param domains_stk: a stack of  domains;
     the first level correspond to the current domains, the rest correspond to the choice points
@@ -145,8 +145,8 @@ def shaving_consistency_algorithm(
                 statistics,
                 algorithms,
                 bounds,
-                props_variables,
-                props_parameters,
+                propagator_variables,
+                propagator_parameters,
                 triggers,
                 domains_stk,
                 not_entailed_propagators_stk,
@@ -171,8 +171,8 @@ def shaving_consistency_algorithm(
             statistics,
             algorithms,
             bounds,
-            props_variables,
-            props_parameters,
+            propagator_variables,
+            propagator_parameters,
             triggers,
             domains_stk,
             not_entailed_propagators_stk,

@@ -19,23 +19,19 @@ OPTIM_RESET = "RESET"
 OPTIM_PRUNE = "PRUNE"
 OPTIM_MODES = [OPTIM_RESET, OPTIM_PRUNE]
 
-
 # Bounds
 VARIABLE = 0  # index for a variable
 PARAM = 1  # index for a parameter
 RANGE_START = 0  # index corresponding to the start of a value range
 RANGE_END = 1  # index corresponding to the end of a value range
 
-
 # Domain bounds
 MIN = 0  # min value of a domain
 MAX = 1  # max value of a domain
 
-
 # Domain update stack indices
 DOM_UPDATE_VARIABLE = 0  # index for the variable
 DOM_UPDATE_EVENTS = 1  # index for the events
-
 
 # Events
 EVENT_NB = 3
@@ -47,7 +43,6 @@ EVENT_MASK_MIN_MAX = EVENT_MASK_MIN | EVENT_MASK_MAX
 EVENT_MASK_MIN_GROUND = EVENT_MASK_MIN | EVENT_MASK_GROUND
 EVENT_MASK_MAX_GROUND = EVENT_MASK_MAX | EVENT_MASK_GROUND
 EVENT_MASK_MIN_MAX_GROUND = EVENT_MASK_MIN | EVENT_MASK_MAX | EVENT_MASK_GROUND
-
 
 PROP_INCONSISTENCY = 0  # returned by a propagator when inconsistent
 PROP_CONSISTENCY = 1  # returned by a propagator when consistent
@@ -64,8 +59,8 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     int64[:],  # statistics
     uint8[:],  # algorithms
     uint32[:, :, :],  # bounds
-    uint32[:],  # props_variables
-    int32[:],  # props_parameters
+    uint32[:],  # propagator_variables
+    int32[:],  # propagator_parameters
     int32[:, :, :],  # triggers
     int32[:, :, :],  # domains_stk
     bool[:, :],  # not_entailed_propagators_stk
@@ -89,7 +84,6 @@ SIGNATURE_VAR_HEURISTIC = int64(
     uint32[:],  # stks_top
     int64[:, :],  # var_heuristic_params
 )
-
 
 TYPE_COMPUTE_DOMAINS = types.FunctionType(SIGNATURE_COMPUTE_DOMAINS)
 TYPE_GET_TRIGGERS = types.FunctionType(SIGNATURE_GET_TRIGGERS)

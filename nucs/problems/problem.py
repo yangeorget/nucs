@@ -125,9 +125,11 @@ class Problem:
         self.bounds = np.zeros((max(1, self.propagator_nb), 2, 2), dtype=np.uint32)  # some redundancy here
         init_bounds(self.bounds, self.propagators)
         logger.debug("Initializing props")
-        self.props_variables = np.empty(self.bounds[-1, VARIABLE, RANGE_END], dtype=np.uint32)
-        self.props_parameters = np.empty(self.bounds[-1, PARAM, RANGE_END], dtype=np.int32)
-        init_props(self.props_variables, self.props_parameters, self.bounds, self.propagators)
+        self.propagator_variables = np.empty(self.bounds[-1, VARIABLE, RANGE_END], dtype=np.uint32)
+        self.propagator_parameters = np.empty(self.bounds[-1, PARAM, RANGE_END], dtype=np.int32)
+        init_propagator_variables_and_parameters(
+            self.propagator_variables, self.propagator_parameters, self.bounds, self.propagators
+        )
         logger.debug("Initializing triggers")
         self.triggers = np.full((self.domain_nb, EVENT_MASK_NB, self.propagator_nb + 1), -1, dtype=np.int32)
         get_triggers_addrs = (
@@ -140,8 +142,8 @@ class Problem:
             self.domain_nb,
             self.propagator_nb,
             self.bounds,
-            self.props_variables,
-            self.props_parameters,
+            self.propagator_variables,
+            self.propagator_parameters,
             self.algorithms,
             get_triggers_addrs,
         )
@@ -153,29 +155,30 @@ class Problem:
         return solution.tolist()
 
     def print_solution(self, solution: Optional[NDArray]) -> None:
-        if solution is not None:
-            print(self.solution_as_printable(solution))
-        else:
-            print("No solution")
+        print("No solution" if solution is None else self.solution_as_printable(solution))
 
 
 def init_bounds(bounds: NDArray, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
-    for prop_idx, prop in enumerate(propagators):
-        if prop_idx > 0:
-            bounds[prop_idx, :, RANGE_START] = bounds[prop_idx - 1, :, RANGE_END]
-        bounds[prop_idx, VARIABLE, RANGE_END] = bounds[prop_idx, VARIABLE, RANGE_START] + len(prop[0])
-        bounds[prop_idx, PARAM, RANGE_END] = bounds[prop_idx, PARAM, RANGE_START] + len(prop[2])
+    for propagator_idx, propagator in enumerate(propagators):
+        if propagator_idx > 0:
+            bounds[propagator_idx, :, RANGE_START] = bounds[propagator_idx - 1, :, RANGE_END]
+        bounds[propagator_idx, VARIABLE, RANGE_END] = bounds[propagator_idx, VARIABLE, RANGE_START] + len(propagator[0])
+        bounds[propagator_idx, PARAM, RANGE_END] = bounds[propagator_idx, PARAM, RANGE_START] + len(propagator[2])
 
 
-def init_props(
-    props_variables: NDArray,
-    props_parameters: NDArray,
+def init_propagator_variables_and_parameters(
+    propagator_variables: NDArray,
+    propagator_parameters: NDArray,
     bounds: NDArray,
     propagators: List[Tuple[List[int], int, List[int]]],
 ) -> None:
-    for prop_idx, prop in enumerate(propagators):
-        props_variables[bounds[prop_idx, VARIABLE, RANGE_START] : bounds[prop_idx, VARIABLE, RANGE_END]] = prop[0]
-        props_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]] = prop[2]
+    for propagator_idx, propagator in enumerate(propagators):
+        var_start = bounds[propagator_idx, VARIABLE, RANGE_START]
+        var_end = bounds[propagator_idx, VARIABLE, RANGE_END]
+        propagator_variables[var_start:var_end] = propagator[0]
+        param_start = bounds[propagator_idx, PARAM, RANGE_START]
+        param_end = bounds[propagator_idx, PARAM, RANGE_END]
+        propagator_parameters[param_start:param_end] = propagator[2]
 
 
 @njit(cache=True)
@@ -184,8 +187,8 @@ def init_triggers(
     domain_nb: int,
     propagator_nb: int,
     bounds: NDArray,
-    props_variables: NDArray,
-    props_parameters: NDArray,
+    propagator_variables: NDArray,
+    propagator_parameters: NDArray,
     algorithms: NDArray,
     get_triggers_addrs: NDArray,
 ) -> None:
@@ -197,23 +200,24 @@ def init_triggers(
         previous_algorithm = algorithms[0]
         previous_function = function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[previous_algorithm])
         get_trigger_fcts = [previous_function] * propagator_nb  # necessary for numba to get the type
-        for prop_idx in range(1, propagator_nb):
-            if algorithms[prop_idx] == previous_algorithm:
-                get_trigger_fcts[prop_idx] = previous_function
+        for propagator_idx in range(1, propagator_nb):
+            if algorithms[propagator_idx] == previous_algorithm:
+                get_trigger_fcts[propagator_idx] = previous_function
             else:
-                previous_algorithm = algorithms[prop_idx]
-                previous_function = get_trigger_fcts[prop_idx] = function_from_address(
+                previous_algorithm = algorithms[propagator_idx]
+                previous_function = get_trigger_fcts[propagator_idx] = function_from_address(
                     TYPE_GET_TRIGGERS, get_triggers_addrs[previous_algorithm]
                 )
-    for prop_idx in range(propagator_nb):
-        parameters = props_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]]
-        var_start = bounds[prop_idx, VARIABLE, RANGE_START]
-        var_end = bounds[prop_idx, VARIABLE, RANGE_END]
+    for propagator_idx in range(propagator_nb):
+        parameters = propagator_parameters[
+                     bounds[propagator_idx, PARAM, RANGE_START]: bounds[propagator_idx, PARAM, RANGE_END]]
+        var_start = bounds[propagator_idx, VARIABLE, RANGE_START]
+        var_end = bounds[propagator_idx, VARIABLE, RANGE_END]
         var_nb = var_end - var_start
         for var in range(var_start, var_end):
-            trigger = get_trigger_fcts[prop_idx](var_nb, var - var_start, parameters)
-            variable = props_variables[var]
+            trigger = get_trigger_fcts[propagator_idx](var_nb, var - var_start, parameters)
+            variable = propagator_variables[var]
             for event_mask in range(1, EVENT_MASK_NB):
                 if trigger & event_mask:
-                    triggers[variable, event_mask, indices[variable, event_mask]] = prop_idx
+                    triggers[variable, event_mask, indices[variable, event_mask]] = propagator_idx
                     indices[variable, event_mask] += 1

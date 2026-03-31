@@ -48,8 +48,8 @@ def bound_consistency_algorithm(
     statistics: NDArray,
     algorithms: NDArray,
     bounds: NDArray,
-    props_variables: NDArray,
-    props_parameters: NDArray,
+    propagator_variables: NDArray,
+    propagator_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
     not_entailed_propagators_stk: NDArray,
@@ -64,8 +64,8 @@ def bound_consistency_algorithm(
     :param statistics: a Numpy array of statistics
     :param algorithms: the algorithms indexed by propagators
     :param bounds: the bounds indexed by propagators
-    :param props_variables: the variables by propagators
-    :param props_parameters: the parameters by propagators
+    :param propagator_variables: the variables by propagators
+    :param propagator_parameters: the parameters by propagators
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :param domains_stk: a stack of domains;
     the first level correspond to the current domains, the rest correspond to the choice points
@@ -101,10 +101,10 @@ def bound_consistency_algorithm(
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = bounds[prop_idx, VARIABLE, RANGE_START]
         prop_var_end = bounds[prop_idx, VARIABLE, RANGE_END]
-        prop_domains = domains_stk[top, props_variables[prop_var_start:prop_var_end], :]
+        prop_domains = domains_stk[top, propagator_variables[prop_var_start:prop_var_end], :]
         status = compute_domains_fcts[prop_idx](
             prop_domains,
-            props_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]],
+            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START]: bounds[prop_idx, PARAM, RANGE_END]],
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
@@ -115,7 +115,7 @@ def bound_consistency_algorithm(
         no_changes = True
         for var_idx in range(prop_var_end - prop_var_start):
             events = 0
-            variable = props_variables[prop_var_start + var_idx]
+            variable = propagator_variables[prop_var_start + var_idx]
             domain_min = prop_domains[var_idx, MIN]
             if domains_stk[top, variable, MIN] != domain_min:
                 domains_stk[top, variable, MIN] = domain_min

@@ -136,7 +136,7 @@ class BacktrackSolver(Solver, QueueSolver):
             self.not_entailed_propagators_stk,
             self.dom_update_stk,
             self.stks_top,
-            np.array(problem.domains),
+            np.array(problem.domains, dtype=np.int32),
         )
         logger.debug("Choice points initialized")
         logger.debug("Initializing statistics")
@@ -204,8 +204,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
-                self.problem.props_variables,
-                self.problem.props_parameters,
+                self.problem.propagator_variables,
+                self.problem.propagator_parameters,
                 self.problem.triggers,
                 self.domains_stk,
                 self.not_entailed_propagators_stk,
@@ -274,8 +274,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
-                self.problem.props_variables,
-                self.problem.props_parameters,
+                self.problem.propagator_variables,
+                self.problem.propagator_parameters,
                 self.problem.triggers,
                 self.domains_stk,
                 self.not_entailed_propagators_stk,
@@ -352,8 +352,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
-                self.problem.props_variables,
-                self.problem.props_parameters,
+                self.problem.propagator_variables,
+                self.problem.propagator_parameters,
                 self.problem.triggers,
                 self.domains_stk,
                 self.not_entailed_propagators_stk,
@@ -425,8 +425,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
-                self.problem.props_variables,
-                self.problem.props_parameters,
+                self.problem.propagator_variables,
+                self.problem.propagator_parameters,
                 self.problem.triggers,
                 self.domains_stk,
                 self.not_entailed_propagators_stk,
@@ -466,8 +466,8 @@ def solve_one(
     statistics: NDArray,
     algorithms: NDArray,
     bounds: NDArray,
-    props_variables: NDArray,
-    props_parameters: NDArray,
+    propagator_variables: NDArray,
+    propagator_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
     not_entailed_propagators_stk: NDArray,
@@ -490,8 +490,8 @@ def solve_one(
     :param statistics: a Numpy array of statistics
     :param algorithms: the algorithms indexed by propagators
     :param bounds: the bounds indexed by propagators
-    :param props_variables: the variables by propagators
-    :param props_parameters: the parameters by propagators
+    :param propagator_variables: the variables by propagators
+    :param propagator_parameters: the parameters by propagators
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :param domains_stk: a stack of domains;
     the first level correspond to the current domains, the rest correspond to the choice points
@@ -528,8 +528,8 @@ def solve_one(
             statistics,
             algorithms,
             bounds,
-            props_variables,
-            props_parameters,
+            propagator_variables,
+            propagator_parameters,
             triggers,
             domains_stk,
             not_entailed_propagators_stk,
