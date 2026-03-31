@@ -79,13 +79,12 @@ def backtrack(
     stks_top[0] -= 1
     top = stks_top[0]
     statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
+    domain_update = domain_update_stk[top]
     update_propagators(
         propagator_nb,
         triggered_propagators,
         entailed_propagators_stk[top],
-        triggers,
-        domain_update_stk[top, DOM_UPDATE_EVENTS],
-        domain_update_stk[top, DOM_UPDATE_VARIABLE],
+        triggers[domain_update[DOM_UPDATE_VARIABLE], domain_update[DOM_UPDATE_EVENTS]],
     )
     return True
 

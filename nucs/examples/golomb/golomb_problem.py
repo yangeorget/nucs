@@ -158,7 +158,7 @@ def golomb_consistency_algorithm(
                 if domains_stk[top, var, MIN] == domains_stk[top, var, MAX]:
                     events |= EVENT_MASK_GROUND
                 update_propagators(
-                    propagator_nb, triggered_propagators, entailed_propagators_stk[top], triggers, events, var
+                    propagator_nb, triggered_propagators, entailed_propagators_stk[top], triggers[var, events]
                 )
     return bound_consistency_algorithm(
         propagator_nb,

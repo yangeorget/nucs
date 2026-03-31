@@ -552,12 +552,13 @@ def solve_one(
                 variable,
                 dom_heuristic_params,
             )
+            top = stks_top[0]
             update_propagators(
-                propagator_nb, triggered_propagators, entailed_propagators_stk[stks_top[0]], triggers, events, variable
+                propagator_nb, triggered_propagators, entailed_propagators_stk[top], triggers[variable, events]
             )
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
-            if stks_top[0] > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
-                statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = stks_top[0]
+            if top > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
+                statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = top
         elif not backtrack(
             propagator_nb,
             statistics,

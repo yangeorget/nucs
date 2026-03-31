@@ -122,14 +122,13 @@ def get_solution(domains_stk: NDArray, stks_top: NDArray) -> NDArray:
 
 
 @njit(cache=True)
-def is_solved(domains_stk: NDArray, top: int) -> bool:
+def is_solved(domains: NDArray) -> bool:
     """
     Returns true iff the problem is solved.
-    :param domains_stk: the stack of domains
-    :param top: the index of the top of the stacks
+    :param domains: the domains
     :return: a boolean
     """
-    for var in range(domains_stk.shape[1]):
-        if domains_stk[top, var, MIN] != domains_stk[top, var, MAX]:
+    for domain in domains:
+        if domain[MIN] != domain[MAX]:
             return False
     return True

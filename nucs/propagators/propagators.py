@@ -219,11 +219,9 @@ def update_propagators_with_previous_prop(
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,
     triggers: NDArray,
-    events: int,
-    variable: int,
     previous_prop_idx: int,
 ) -> None:
-    for prop_idx in triggers[variable, events]:
+    for prop_idx in triggers:
         if prop_idx == -1:
             return
         if not entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
@@ -236,10 +234,8 @@ def update_propagators(
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,
     triggers: NDArray,
-    events: int,
-    variable: int,
 ) -> None:
-    for prop_idx in triggers[variable, events]:
+    for prop_idx in triggers:
         if prop_idx == -1:
             return
         if not entailed_propagators[prop_idx]:

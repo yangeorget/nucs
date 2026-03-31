@@ -79,6 +79,8 @@ def bound_consistency_algorithm(
     :return: a status (consistency, inconsistency or entailment) as an integer
     """
     top = stks_top[0]
+    domains = domains_stk[top]
+    entailed_propagators = entailed_propagators_stk[top]
     statistics[STATS_IDX_ALG_BC_NB] += 1
     if NUMBA_DISABLE_JIT:
         compute_domains_fcts = [COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]] for prop_idx in range(propagator_nb)]
@@ -97,11 +99,11 @@ def bound_consistency_algorithm(
     while True:
         prop_idx = min_heap_pop(triggered_propagators, propagator_nb)
         if prop_idx == -1:
-            return PROBLEM_BOUND if is_solved(domains_stk, top) else PROBLEM_UNBOUND
+            return PROBLEM_BOUND if is_solved(domains) else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = bounds[prop_idx, VARIABLE, RANGE_START]
         prop_var_end = bounds[prop_idx, VARIABLE, RANGE_END]
-        prop_domains = domains_stk[top, propagator_variables[prop_var_start:prop_var_end]]
+        prop_domains = domains[propagator_variables[prop_var_start:prop_var_end]]
         status = compute_domains_fcts[prop_idx](
             prop_domains,
             propagator_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]],
@@ -110,19 +112,20 @@ def bound_consistency_algorithm(
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
-            entailed_propagators_stk[top, prop_idx] = True
+            entailed_propagators[prop_idx] = True
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
         no_changes = True
         for var_idx in range(prop_var_end - prop_var_start):
             events = 0
             variable = propagator_variables[prop_var_start + var_idx]
+            domain = domains[variable]
             domain_min = prop_domains[var_idx, MIN]
-            if domains_stk[top, variable, MIN] != domain_min:
-                domains_stk[top, variable, MIN] = domain_min
+            if domain[MIN] != domain_min:
+                domain[MIN] = domain_min
                 events |= EVENT_MASK_MIN
             domain_max = prop_domains[var_idx, MAX]
-            if domains_stk[top, variable, MAX] != domain_max:
-                domains_stk[top, variable, MAX] = domain_max
+            if domain[MAX] != domain_max:
+                domain[MAX] = domain_max
                 events |= EVENT_MASK_MAX
             if events:
                 if domain_min == domain_max:
@@ -130,10 +133,8 @@ def bound_consistency_algorithm(
                 update_propagators_with_previous_prop(
                     propagator_nb,
                     triggered_propagators,
-                    entailed_propagators_stk[top],
-                    triggers,
-                    events,
-                    variable,
+                    entailed_propagators,
+                    triggers[variable, events],
                     prop_idx,
                 )
                 no_changes = False
