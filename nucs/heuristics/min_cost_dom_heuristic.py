@@ -23,7 +23,7 @@ from nucs.heuristics.value_dom_heuristic import value_dom_heuristic
 def min_cost_dom_heuristic(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
-    dom_update_stk: NDArray,
+    domain_update_stk: NDArray,
     stks_top: NDArray,
     variable: int,
     params: NDArray,
@@ -32,7 +32,7 @@ def min_cost_dom_heuristic(
     Chooses the value that minimizes the cost.
     :param domains_stk: the stack of domains
     :param entailed_propagators_stk: the stack of entailed propagators
-    :param dom_update_stk: the stack of domain updates
+    :param domain_update_stk: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param variable: the variable
     :param params: a two-dimensional (first dimension corresponds to variables, second to values) costs array
@@ -48,5 +48,5 @@ def min_cost_dom_heuristic(
             best_cost = cost
             best_value = value
     return value_dom_heuristic(
-        domains_stk, entailed_propagators_stk, dom_update_stk, stks_top, variable, best_value, params
+        domains_stk, entailed_propagators_stk, domain_update_stk, stks_top, variable, best_value, params
     )

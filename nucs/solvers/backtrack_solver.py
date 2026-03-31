@@ -128,13 +128,13 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.debug("Initializing choice points")
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
         self.entailed_propagators_stk = np.empty((stks_max_height, self.problem.propagator_nb), dtype=np.bool)
-        self.dom_update_stk = np.empty((stks_max_height, 2), dtype=np.uint32)
+        self.domain_update_stk = np.empty((stks_max_height, 2), dtype=np.uint32)
         self.stks_top = np.ones((1,), dtype=np.uint32)
         logger.info(f"The stacks of the choice points have a maximal height of {stks_max_height}")
         cp_init(
             self.domains_stk,
             self.entailed_propagators_stk,
-            self.dom_update_stk,
+            self.domain_update_stk,
             self.stks_top,
             np.array(problem.domains, dtype=np.int32),
         )
@@ -209,7 +209,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.triggers,
                 self.domains_stk,
                 self.entailed_propagators_stk,
-                self.dom_update_stk,
+                self.domain_update_stk,
                 self.stks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
@@ -231,7 +231,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 cp_init(
                     self.domains_stk,
                     self.entailed_propagators_stk,
-                    self.dom_update_stk,
+                    self.domain_update_stk,
                     self.stks_top,
                     np.array(self.problem.domains),
                 )
@@ -279,7 +279,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.triggers,
                 self.domains_stk,
                 self.entailed_propagators_stk,
-                self.dom_update_stk,
+                self.domain_update_stk,
                 self.stks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
@@ -301,7 +301,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_nb,
                 self.statistics,
                 self.entailed_propagators_stk,
-                self.dom_update_stk,
+                self.domain_update_stk,
                 self.stks_top,
                 self.triggered_propagators,
                 self.problem.triggers,
@@ -357,7 +357,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.triggers,
                 self.domains_stk,
                 self.entailed_propagators_stk,
-                self.dom_update_stk,
+                self.domain_update_stk,
                 self.stks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
@@ -381,7 +381,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 cp_init(
                     self.domains_stk,
                     self.entailed_propagators_stk,
-                    self.dom_update_stk,
+                    self.domain_update_stk,
                     self.stks_top,
                     np.array(self.problem.domains),
                 )
@@ -430,7 +430,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.triggers,
                 self.domains_stk,
                 self.entailed_propagators_stk,
-                self.dom_update_stk,
+                self.domain_update_stk,
                 self.stks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
@@ -451,7 +451,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_nb,
                 self.statistics,
                 self.entailed_propagators_stk,
-                self.dom_update_stk,
+                self.domain_update_stk,
                 self.stks_top,
                 self.triggered_propagators,
                 self.problem.triggers,
@@ -471,7 +471,7 @@ def solve_one(
     triggers: NDArray,
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
-    dom_update_stk: NDArray,
+    domain_update_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
     consistency_alg_idx: int,
@@ -497,7 +497,7 @@ def solve_one(
     the first level correspond to the current domains, the rest correspond to the choice points
     :param entailed_propagators_stk: a stack of entailed propagatorspropagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
-    :param dom_update_stk: the stack of domain updates
+    :param domain_update_stk: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param consistency_alg_idx: the index of the consistency algorithm
@@ -533,7 +533,7 @@ def solve_one(
             triggers,
             domains_stk,
             entailed_propagators_stk,
-            dom_update_stk,
+            domain_update_stk,
             stks_top,
             triggered_propagators,
             compute_domains_addrs,
@@ -543,17 +543,17 @@ def solve_one(
             statistics[STATS_IDX_SOLUTION_NB] += 1
             return get_solution(domains_stk, stks_top)
         elif status == PROBLEM_UNBOUND:
-            var = var_heuristic_fct(decision_variables, domains_stk, stks_top, var_heuristic_params)
+            variable = var_heuristic_fct(decision_variables, domains_stk, stks_top, var_heuristic_params)
             events = dom_heuristic_fct(
                 domains_stk,
                 entailed_propagators_stk,
-                dom_update_stk,
+                domain_update_stk,
                 stks_top,
-                var,
+                variable,
                 dom_heuristic_params,
             )
             update_propagators(
-                propagator_nb, triggered_propagators, entailed_propagators_stk[stks_top[0]], triggers, events, var
+                propagator_nb, triggered_propagators, entailed_propagators_stk[stks_top[0]], triggers, events, variable
             )
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
             if stks_top[0] > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
@@ -562,7 +562,7 @@ def solve_one(
             propagator_nb,
             statistics,
             entailed_propagators_stk,
-            dom_update_stk,
+            domain_update_stk,
             stks_top,
             triggered_propagators,
             triggers,

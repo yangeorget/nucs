@@ -29,7 +29,7 @@ from nucs.solvers.choice_points import cp_put
 def max_value_dom_heuristic(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
-    dom_update_stk: NDArray,
+    domain_update_stk: NDArray,
     stks_top: NDArray,
     variable: int,
     params: NDArray,
@@ -38,7 +38,7 @@ def max_value_dom_heuristic(
     Chooses the max value of the domain.
     :param domains_stk: the stack of domains
     :param entailed_propagators_stk: the stack of entailed propagators
-    :param dom_update_stk: the stack of domain updates
+    :param domain_update_stk: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param variable: the variable
     :param params: a two-dimensional parameters array, unused here
@@ -49,8 +49,8 @@ def max_value_dom_heuristic(
     cp_put(domains_stk, entailed_propagators_stk, stks_top)
     domains_stk[top + 1, variable, MIN] = value
     domains_stk[top, variable, MAX] = value - 1
-    dom_update_stk[top, DOM_UPDATE_VARIABLE] = variable
-    dom_update_stk[top, DOM_UPDATE_EVENTS] = (
+    domain_update_stk[top, DOM_UPDATE_VARIABLE] = variable
+    domain_update_stk[top, DOM_UPDATE_EVENTS] = (
         EVENT_MASK_MAX_GROUND if domains_stk[top, variable, MIN] == domains_stk[top, variable, MAX] else EVENT_MASK_MAX
     )
     return EVENT_MASK_MIN_GROUND

@@ -53,7 +53,7 @@ def bound_consistency_algorithm(
     triggers: NDArray,
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
-    dom_update_stk: NDArray,
+    domain_update_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
@@ -71,7 +71,7 @@ def bound_consistency_algorithm(
     the first level correspond to the current domains, the rest correspond to the choice points
     :param entailed_propagators_stk: a stack of entailed propagatorspropagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
-    :param dom_update_stk: the stack of domain updates, unused here
+    :param domain_update_stk: the stack of domain updates, unused here
     :param stks_top: the height of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param compute_domains_addrs: the addresses of the compute_domains functions

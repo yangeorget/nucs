@@ -21,7 +21,7 @@ from nucs.propagators.propagators import update_propagators
 def cp_init(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
-    dom_update_stk: NDArray,
+    domain_update_stk: NDArray,
     stks_top: NDArray,
     domains_arr: NDArray,
 ) -> None:
@@ -29,14 +29,14 @@ def cp_init(
     Initializes the choice points.
     :param domains_stk: the stack of domains
     :param entailed_propagators_stk: the stack of entailed propagators
-    :param dom_update_stk: the stack of domain updates
+    :param domain_update_stk: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param domains_arr: the domains
     :return: a Numpy array
     """
     domains_stk[0] = domains_arr
     entailed_propagators_stk[0] = False
-    dom_update_stk.fill(0)
+    domain_update_stk.fill(0)
     stks_top[0] = 0
 
 
@@ -48,10 +48,10 @@ def cp_put(domains_stk: NDArray, entailed_propagators_stk: NDArray, stks_top: ND
     :param entailed_propagators_stk: the stack of entailed propagators
     :param stks_top: the index of the top of the stacks as a Numpy array
     """
-    top = stks_top[0]
-    domains_stk[top + 1] = domains_stk[top]
-    entailed_propagators_stk[top + 1] = entailed_propagators_stk[top]
-    stks_top[0] = top + 1
+    top = stks_top[0]  # get the top of the stack
+    domains_stk[top + 1] = domains_stk[top]  # copy the domains
+    entailed_propagators_stk[top + 1] = entailed_propagators_stk[top]  # copy the entailed propagators
+    stks_top[0] = top + 1  # increment the top of the stack
 
 
 @njit(cache=True)
@@ -59,7 +59,7 @@ def backtrack(
     propagator_nb: int,
     statistics: NDArray,
     entailed_propagators_stk: NDArray,
-    dom_update_stk: NDArray,
+    domain_update_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
     triggers: NDArray,
@@ -68,7 +68,7 @@ def backtrack(
     Backtracks and updates the problem's domains.
     :param statistics: the statistics array
     :param entailed_propagators_stk: the stack of entailed propagators
-    :param dom_update_stk: the stack of domain updates
+    :param domain_update_stk: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param triggered_propagators: the set propagators that are currently triggered as a Numpy array
     :param triggers: a Numpy array of event masks indexed by variables and propagators
@@ -84,8 +84,8 @@ def backtrack(
         triggered_propagators,
         entailed_propagators_stk[top],
         triggers,
-        dom_update_stk[top, DOM_UPDATE_EVENTS],
-        dom_update_stk[top, DOM_UPDATE_VARIABLE],
+        domain_update_stk[top, DOM_UPDATE_EVENTS],
+        domain_update_stk[top, DOM_UPDATE_VARIABLE],
     )
     return True
 
@@ -106,7 +106,7 @@ def fix_choice_points(
     :param value: the current optimal value for the variable
     :param bound: the bound being optimized
     """
-    domains_stk[0 : stks_top[0] + 1, variable, bound] = value + (1 if bound == MIN else -1)
+    domains_stk[0: stks_top[0] + 1, variable, bound] = value + (1 if bound == MIN else -1)
     while domains_stk[stks_top[0], variable, MIN] > domains_stk[stks_top[0], variable, MAX]:
         if stks_top[0] == 0:
             return False

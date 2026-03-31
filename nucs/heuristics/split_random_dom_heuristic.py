@@ -23,16 +23,16 @@ from nucs.heuristics.split_low_dom_heuristic import split_low_dom_heuristic
 def split_random_dom_heuristic(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
-    dom_update_stk: NDArray,
+    domain_update_stk: NDArray,
     stks_top: NDArray,
     variable: int,
     params: NDArray,
 ) -> int:
     if random.randint(0, 1) == 0:
         return split_low_dom_heuristic(
-            domains_stk, entailed_propagators_stk, dom_update_stk, stks_top, variable, params
+            domains_stk, entailed_propagators_stk, domain_update_stk, stks_top, variable, params
         )
     else:
         return split_high_dom_heuristic(
-            domains_stk, entailed_propagators_stk, dom_update_stk, stks_top, variable, params
+            domains_stk, entailed_propagators_stk, domain_update_stk, stks_top, variable, params
         )
