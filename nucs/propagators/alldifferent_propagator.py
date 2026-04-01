@@ -201,8 +201,10 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     n = len(domains)
-    if len(parameters) != 0:
-        domains += parameters[:, np.newaxis]
+    has_offsets = len(parameters) != 0
+    if has_offsets:
+        offsets = parameters[:, np.newaxis]
+        domains += offsets
     ranks = np.zeros((n, 2), dtype=np.uint16)
     bounds_nb = 2 * n + 2
     bounds = np.zeros(bounds_nb, dtype=np.int32)
@@ -215,8 +217,8 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     if filter_lower(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars) and filter_upper(
         n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars
     ):
-        if len(parameters) != 0:
-            domains -= parameters[:, np.newaxis]
+        if has_offsets:
+            domains -= offsets
         return PROP_CONSISTENCY
     else:
         return PROP_INCONSISTENCY
