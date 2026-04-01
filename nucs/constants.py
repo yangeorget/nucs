@@ -36,8 +36,8 @@ DOM_UPDATE_EVENTS = 1  # index for the events
 # Events
 EVENT_NB = 3
 EVENT_MASK_NB = 1 << 3
-EVENT_MASK_MIN = 1 << 0
-EVENT_MASK_MAX = 1 << 1
+EVENT_MASK_MIN = 1 << MIN
+EVENT_MASK_MAX = 1 << MAX
 EVENT_MASK_GROUND = 1 << 2
 EVENT_MASK_MIN_MAX = EVENT_MASK_MIN | EVENT_MASK_MAX
 EVENT_MASK_MIN_GROUND = EVENT_MASK_MIN | EVENT_MASK_GROUND
@@ -81,7 +81,7 @@ SIGNATURE_DOM_HEURISTIC = int64(
 SIGNATURE_VAR_HEURISTIC = int64(
     uint32[:],  # decision_variables
     int32[:, :, :],  # domains_stk
-    uint32[:],  # stks_top
+    int64,  # top
     int64[:, :],  # var_heuristic_params
 )
 

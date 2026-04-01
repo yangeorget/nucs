@@ -19,20 +19,17 @@ from nucs.constants import MAX, MIN
 
 
 @njit(cache=True)
-def smallest_domain_var_heuristic(
-    decision_variables: NDArray, domains_stk: NDArray, stks_top: NDArray, params: NDArray
-) -> int:
+def smallest_domain_var_heuristic(decision_variables: NDArray, domains_stk: NDArray, top: int, params: NDArray) -> int:
     """
     Chooses the first variable which is not instantiated with the smallest domain.
     :param decision_variables: the decision variables
     :param domains_stk: the stack of domains
-    :param stks_top: the index of the top of the stacks as a Numpy array
+    :param top: the index of the top of the stacks
     :param params: a two-dimensional parameter array, unused here
     :return: the variable
     """
     best_score = -sys.maxsize
     best_variable = -1
-    top = stks_top[0]
     for variable in decision_variables:
         domain = domains_stk[top, variable]
         score = domain[MIN] - domain[MAX]

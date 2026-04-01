@@ -46,7 +46,8 @@ def max_value_dom_heuristic(
     """
     top = stks_top[0]
     value = domains_stk[top, variable, MAX]
-    cp_put(domains_stk, entailed_propagators_stk, stks_top)
+    cp_put(domains_stk, entailed_propagators_stk, top)
+    stks_top[0] = top + 1
     domains_stk[top + 1, variable, MIN] = value
     domains_stk[top, variable, MAX] = value - 1
     domain_update_stk[top, DOM_UPDATE_VARIABLE] = variable

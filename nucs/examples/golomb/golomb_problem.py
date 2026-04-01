@@ -130,7 +130,7 @@ def golomb_consistency_algorithm(
     # first prune the search space
     mark_nb = (1 + int(math.sqrt(8 * len(triggers) + 1))) // 2
     ni_var = first_not_instantiated_var_heuristic(
-        decision_variables, domains_stk, stks_top, None
+        decision_variables, domains_stk, top, None
     )  # no domains shared between vars
     if 1 < ni_var < mark_nb - 1:  # otherwise useless
         used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=np.bool)

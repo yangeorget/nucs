@@ -539,11 +539,12 @@ def solve_one(
             compute_domains_addrs,
             decision_variables,
         )
+        top = stks_top[0]
         if status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLUTION_NB] += 1
-            return get_solution(domains_stk, stks_top)
+            return get_solution(domains_stk, top)
         elif status == PROBLEM_UNBOUND:
-            variable = var_heuristic_fct(decision_variables, domains_stk, stks_top, var_heuristic_params)
+            variable = var_heuristic_fct(decision_variables, domains_stk, top, var_heuristic_params)
             events = dom_heuristic_fct(
                 domains_stk,
                 entailed_propagators_stk,

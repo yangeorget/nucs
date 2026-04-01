@@ -111,14 +111,14 @@ class Solver:
 
 
 @njit(cache=True)
-def get_solution(domains_stk: NDArray, stks_top: NDArray) -> NDArray:
+def get_solution(domains_stk: NDArray, top: int) -> NDArray:
     """
     Returns the solution to the problem.
     :param domains_stk: the stack of domains
-    :param stks_top: the index of the top of the stacks as a Numpy array
+    :param top: the index of the top of the stacks
     :return: a Numpy array
     """
-    return domains_stk[stks_top[0], :, MIN].copy()
+    return domains_stk[top, :, MIN].copy()
 
 
 @njit(cache=True)

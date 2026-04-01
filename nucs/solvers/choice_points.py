@@ -41,17 +41,15 @@ def cp_init(
 
 
 @njit(cache=True)
-def cp_put(domains_stk: NDArray, entailed_propagators_stk: NDArray, stks_top: NDArray) -> None:
+def cp_put(domains_stk: NDArray, entailed_propagators_stk: NDArray, top: int) -> None:
     """
     Adds a choice point to the stack of choice points.
     :param domains_stk: the stack of domains
     :param entailed_propagators_stk: the stack of entailed propagators
-    :param stks_top: the index of the top of the stacks as a Numpy array
+    :param top: the index of the top of the stacks
     """
-    top = stks_top[0]  # get the top of the stack
     domains_stk[top + 1] = domains_stk[top]  # copy the domains
     entailed_propagators_stk[top + 1] = entailed_propagators_stk[top]  # copy the entailed propagators
-    stks_top[0] = top + 1  # increment the top of the stack
 
 
 @njit(cache=True)

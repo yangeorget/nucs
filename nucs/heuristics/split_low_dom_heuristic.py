@@ -47,6 +47,7 @@ def split_low_dom_heuristic(
     top = stks_top[0]
     value = (domains_stk[top, variable, MIN] + domains_stk[top, variable, MAX]) // 2
     cp_put(domains_stk, entailed_propagators_stk, stks_top)
+    stks_top[0] = top + 1
     domains_stk[top + 1, variable, MAX] = value
     domains_stk[top, variable, MIN] = value + 1
     domain_update_stk[top, DOM_UPDATE_VARIABLE] = variable

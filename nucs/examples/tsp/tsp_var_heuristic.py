@@ -20,17 +20,16 @@ from nucs.heuristics.max_regret_var_heuristic import regret
 
 
 @njit(cache=True)
-def tsp_var_heuristic(decision_variables: NDArray, domains_stk: NDArray, stks_top: NDArray, params: NDArray) -> int:
+def tsp_var_heuristic(decision_variables: NDArray, domains_stk: NDArray, top: int, params: NDArray) -> int:
     """
     :param decision_variables: the decision variables
     :param domains_stk: the stack of domains
-    :param stks_top: the index of the top of the stacks as a Numpy array
+    :param top: the index of the top of the stacks
     :param params: a two-dimensional (first dimension correspond to variables, second to values) cost array
     :return: the variable
     """
     best_score = -sys.maxsize
     best_variable = -1
-    top = stks_top[0]
     for variable in decision_variables:
         domain = domains_stk[top, variable]
         if 0 < domain[MAX] - domain[MIN]:

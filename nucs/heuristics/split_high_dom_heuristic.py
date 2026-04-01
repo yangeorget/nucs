@@ -30,7 +30,7 @@ def split_high_dom_heuristic(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
     domain_update_stk: NDArray,
-    stacks_top: NDArray,
+    stks_top: NDArray,
     variable: int,
     params: NDArray,
 ) -> int:
@@ -39,14 +39,15 @@ def split_high_dom_heuristic(
     :param domains_stk: the stack of domains
     :param entailed_propagators_stk: the stack of entailed propagators
     :param domain_update_stk: the stack of domain updates
-    :param stacks_top: the index of the top of the stacks as a Numpy array
+    :param stks_top: the index of the top of the stacks as a Numpy array
     :param variable: the variable
     :param params: a two-dimensional parameter array, unused here
     :return: the events
     """
-    top = stacks_top[0]
+    top = stks_top[0]
     value = (domains_stk[top, variable, MIN] + domains_stk[top, variable, MAX]) // 2
-    cp_put(domains_stk, entailed_propagators_stk, stacks_top)
+    cp_put(domains_stk, entailed_propagators_stk, stks_top)
+    stks_top[0] = top + 1
     domains_stk[top + 1, variable, MIN] = value + 1
     domains_stk[top, variable, MAX] = value
     domain_update_stk[top, DOM_UPDATE_VARIABLE] = variable

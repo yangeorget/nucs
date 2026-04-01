@@ -59,8 +59,9 @@ def value_dom_heuristic(
         return max_value_dom_heuristic(
             domains_stk, entailed_propagators_stk, domain_update_stk, stks_top, variable, params
         )
-    cp_put(domains_stk, entailed_propagators_stk, stks_top)
-    cp_put(domains_stk, entailed_propagators_stk, stks_top)
+    cp_put(domains_stk, entailed_propagators_stk, top)
+    cp_put(domains_stk, entailed_propagators_stk, top + 1)
+    stks_top[0] = top + 2
     domains_stk[top + 2, variable] = value
     domains_stk[top + 1, variable, MAX] = value - 1
     domains_stk[top, variable, MIN] = value + 1
