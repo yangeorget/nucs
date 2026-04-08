@@ -205,12 +205,12 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     if has_offsets:
         offsets = parameters[:, np.newaxis]
         domains += offsets
-    ranks = np.zeros((n, 2), dtype=np.uint16)
+    ranks = np.empty((n, 2), dtype=np.uint16)
     bounds_nb = 2 * n + 2
-    bounds = np.zeros(bounds_nb, dtype=np.int32)
-    t = np.zeros(bounds_nb, dtype=np.uint16)  # critical capacity pointers
-    d = np.zeros(bounds_nb, dtype=np.int32)  # differences between critical capacities
-    h = np.zeros(bounds_nb, dtype=np.uint16)  # Hall interval pointers
+    bounds = np.empty(bounds_nb, dtype=np.int32)
+    t = np.empty(bounds_nb, dtype=np.uint16)  # critical capacity pointers
+    d = np.empty(bounds_nb, dtype=np.int32)  # differences between critical capacities
+    h = np.empty(bounds_nb, dtype=np.uint16)  # Hall interval pointers
     min_sorted_vars = np.argsort(domains[:, MIN])
     max_sorted_vars = np.argsort(domains[:, MAX])
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars)

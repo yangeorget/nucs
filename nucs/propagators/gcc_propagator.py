@@ -162,8 +162,7 @@ def filter_lower_max(
     u: NDArray,
 ) -> bool:
     for i in range(1, nb + 2):
-        t[i] = i - 1
-        h[i] = i - 1
+        t[i] = h[i] = i - 1
         d[i] = get_sum(u, bounds[i - 1], bounds[i] - 1)
     for i in range(len(max_sorted_vars)):
         x = ranks[max_sorted_vars[i], MIN]
@@ -205,8 +204,7 @@ def filter_upper_max(
     u: NDArray,
 ) -> bool:
     for i in range(0, nb + 1):
-        t[i] = i + 1
-        h[i] = i + 1
+        t[i] = h[i] = i + 1
         d[i] = get_sum(u, bounds[i], bounds[i + 1] - 1)
     for i in range(n - 1, -1, -1):
         x = ranks[min_sorted_vars[i], MAX]
@@ -252,8 +250,7 @@ def filter_lower_min(
 ) -> bool:
     w = nb + 1
     for i in range(nb + 1, 0, -1):
-        pot_stbl_sets[i] = i - 1
-        stbl_intervals[i] = i - 1
+        pot_stbl_sets[i] = stbl_intervals[i] = i - 1
         c[i] = get_sum(l, bounds[i - 1], bounds[i] - 1)
         if c[i] == 0:  # if the capacity between both bounds is zero, we have an unstable set between these two bounds
             sets[i - 1] = w
@@ -265,8 +262,7 @@ def filter_lower_min(
         if c[i] == 0:
             tl[i] = w
         else:
-            tl[w] = i
-            w = i
+            tl[w] = w = i
     for i in range(len(max_sorted_vars)):  # visit intervals in increasing max order
         x = ranks[max_sorted_vars[i], MIN]
         y = ranks[max_sorted_vars[i], MAX]
@@ -347,8 +343,7 @@ def filter_upper_min(
         if c[i] == 0:  # if the capacity between both bounds is zero, we have an unstable set between these two bounds
             tl[i] = w
         else:
-            tl[w] = i
-            w = i
+            tl[w] = w = i
     tl[w] = nb + 1
     w = 0
     for i in range(1, nb + 1):
@@ -406,16 +401,16 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     n = len(domains)
     m = (len(parameters) - 1) // 2  # number of values
     bounds_nb = 2 * n + 2
-    ranks = np.zeros((n, 2), dtype=np.uint16)
-    bounds = np.zeros(bounds_nb, dtype=np.int32)
-    t = np.zeros(bounds_nb, dtype=np.uint16)  # critical capacity pointers
-    d = np.zeros(bounds_nb, dtype=np.int32)  # differences between critical capacities
-    h = np.zeros(bounds_nb, dtype=np.uint16)  # Hall interval pointers
+    ranks = np.empty((n, 2), dtype=np.uint16)
+    bounds = np.empty(bounds_nb, dtype=np.int32)
+    t = np.empty(bounds_nb, dtype=np.uint16)  # critical capacity pointers
+    d = np.empty(bounds_nb, dtype=np.int32)  # differences between critical capacities
+    h = np.empty(bounds_nb, dtype=np.uint16)  # Hall interval pointers
     stbl_intervals = np.zeros(bounds_nb, dtype=np.int32)
     pot_stbl_sets = np.zeros(bounds_nb, dtype=np.int32)
     new_mins = np.zeros(n, dtype=np.int32)
-    l = init_partial_sum(parameters[0], m, parameters[1 : 1 + m])
-    u = init_partial_sum(parameters[0], m, parameters[1 + m :])
+    l = init_partial_sum(parameters[0], m, parameters[1: 1 + m])
+    u = init_partial_sum(parameters[0], m, parameters[1 + m:])
     min_sorted_vars = np.argsort(domains[:, MIN])
     max_sorted_vars = np.argsort(domains[:, MAX])
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
