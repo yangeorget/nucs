@@ -71,7 +71,7 @@ from nucs.heuristics.heuristics import (
 from nucs.numba_helper import build_function_address_list, function_from_address
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, reset_triggered_propagators, update_propagators
-from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_points, fix_top_choice_point
+from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_points, fix_choice_point
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.queue_solver import QueueSolver
 from nucs.solvers.solver import Solver, get_solution
@@ -129,14 +129,17 @@ class BacktrackSolver(Solver, QueueSolver):
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
         self.entailed_propagators_stk = np.empty((stks_max_height, self.problem.propagator_nb), dtype=np.bool)
         self.domain_update_stk = np.empty((stks_max_height, 2), dtype=np.uint32)
+        self.unbound_variable_nb_stk = np.empty(stks_max_height, dtype=np.uint32)
         self.stks_top = np.ones((1,), dtype=np.uint32)
         logger.info(f"The stacks of the choice points have a maximal height of {stks_max_height}")
         cp_init(
             self.domains_stk,
             self.entailed_propagators_stk,
             self.domain_update_stk,
+            self.unbound_variable_nb_stk,
             self.stks_top,
-            np.array(problem.domains, dtype=np.int32),
+            np.array(problem.domains),
+            problem.unbound_variable_nb,
         )
         logger.debug("Choice points initialized")
         logger.debug("Initializing statistics")
@@ -210,6 +213,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.domains_stk,
                 self.entailed_propagators_stk,
                 self.domain_update_stk,
+                self.unbound_variable_nb_stk,
                 self.stks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
@@ -232,12 +236,14 @@ class BacktrackSolver(Solver, QueueSolver):
                     self.domains_stk,
                     self.entailed_propagators_stk,
                     self.domain_update_stk,
+                    self.unbound_variable_nb_stk,
                     self.stks_top,
                     np.array(self.problem.domains),
+                    self.problem.unbound_variable_nb,
                 )
-                if not fix_top_choice_point(
+                if not fix_choice_point(
                     self.domains_stk,
-                    self.stks_top,
+                    self.unbound_variable_nb_stk,
                     variable,
                     best_solution[variable],
                     bound,
@@ -245,11 +251,9 @@ class BacktrackSolver(Solver, QueueSolver):
                     break
             else:
                 logger.debug("Pruning choice points")
-                if self.stks_top[0] == 0:
-                    break
-                self.stks_top[0] -= 1
                 if not fix_choice_points(
                     self.domains_stk,
+                    self.unbound_variable_nb_stk,
                     self.stks_top,
                     variable,
                     best_solution[variable],
@@ -280,6 +284,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.domains_stk,
                 self.entailed_propagators_stk,
                 self.domain_update_stk,
+                self.unbound_variable_nb_stk,
                 self.stks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
@@ -358,6 +363,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.domains_stk,
                 self.entailed_propagators_stk,
                 self.domain_update_stk,
+                self.unbound_variable_nb_stk,
                 self.stks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
@@ -382,12 +388,14 @@ class BacktrackSolver(Solver, QueueSolver):
                     self.domains_stk,
                     self.entailed_propagators_stk,
                     self.domain_update_stk,
+                    self.unbound_variable_nb_stk,
                     self.stks_top,
                     np.array(self.problem.domains),
+                    self.problem.unbound_variable_nb,
                 )
-                if not fix_top_choice_point(
+                if not fix_choice_point(
                     self.domains_stk,
-                    self.stks_top,
+                    self.unbound_variable_nb_stk,
                     variable,
                     solution[variable],
                     bound,
@@ -395,11 +403,9 @@ class BacktrackSolver(Solver, QueueSolver):
                     break
             else:
                 logger.debug("Pruning choice points")
-                if self.stks_top[0] == 0:
-                    break
-                self.stks_top[0] -= 1
                 if not fix_choice_points(
                     self.domains_stk,
+                    self.unbound_variable_nb_stk,
                     self.stks_top,
                     variable,
                     solution[variable],
@@ -431,6 +437,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.domains_stk,
                 self.entailed_propagators_stk,
                 self.domain_update_stk,
+                self.unbound_variable_nb_stk,
                 self.stks_top,
                 self.triggered_propagators,
                 self.consistency_alg_idx,
@@ -472,6 +479,7 @@ def solve_one(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
     domain_update_stk: NDArray,
+    unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
     consistency_alg_idx: int,
@@ -498,6 +506,7 @@ def solve_one(
     :param entailed_propagators_stk: a stack of entailed propagatorspropagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
     :param domain_update_stk: the stack of domain updates
+    :param unbound_variable_nb_stk: the stack of the unbound variables nb
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param consistency_alg_idx: the index of the consistency algorithm
@@ -534,6 +543,7 @@ def solve_one(
             domains_stk,
             entailed_propagators_stk,
             domain_update_stk,
+            unbound_variable_nb_stk,
             stks_top,
             triggered_propagators,
             compute_domains_addrs,
@@ -549,11 +559,13 @@ def solve_one(
                 domains_stk,
                 entailed_propagators_stk,
                 domain_update_stk,
+                unbound_variable_nb_stk,
                 stks_top,
                 variable,
                 dom_heuristic_params,
             )
-            top = stks_top[0]
+            # note: the variable may be instantiated
+            top = stks_top[0]  # top has changed
             update_propagators(
                 propagator_nb, triggered_propagators, entailed_propagators_stk[top], triggers[variable, events]
             )

@@ -116,6 +116,7 @@ def golomb_consistency_algorithm(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
     domain_update_stk: NDArray,
+    unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
@@ -131,7 +132,7 @@ def golomb_consistency_algorithm(
     mark_nb = (1 + int(math.sqrt(8 * len(triggers) + 1))) // 2
     ni_var = first_not_instantiated_var_heuristic(
         decision_variables, domains_stk, top, None
-    )  # no domains shared between vars
+    )
     if 1 < ni_var < mark_nb - 1:  # otherwise useless
         used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=np.bool)
         # a reusable array for storing the minimal sum of different integers:
@@ -153,13 +154,16 @@ def golomb_consistency_algorithm(
         for i in range(ni_var - 1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
                 var = index(mark_nb, i, j)
-                domains_stk[top, var, MIN] = minimal_sum[j - i]  # no offset
-                events = EVENT_MASK_MIN
-                if domains_stk[top, var, MIN] == domains_stk[top, var, MAX]:
-                    events |= EVENT_MASK_GROUND
-                update_propagators(
-                    propagator_nb, triggered_propagators, entailed_propagators_stk[top], triggers[var, events]
-                )
+                old_min = domains_stk[top, var, MIN]
+                domains_stk[top, var, MIN] = max(old_min, minimal_sum[j - i])  # no offset
+                if domains_stk[top, var, MIN] != old_min:
+                    events = EVENT_MASK_MIN
+                    if domains_stk[top, var, MIN] == domains_stk[top, var, MAX]:
+                        events |= EVENT_MASK_GROUND
+                        unbound_variable_nb_stk[top] -= 1
+                    update_propagators(
+                        propagator_nb, triggered_propagators, entailed_propagators_stk[top], triggers[var, events]
+                    )
     return bound_consistency_algorithm(
         propagator_nb,
         statistics,
@@ -171,6 +175,7 @@ def golomb_consistency_algorithm(
         domains_stk,
         entailed_propagators_stk,
         domain_update_stk,
+        unbound_variable_nb_stk,
         stks_top,
         triggered_propagators,
         compute_domains_addrs,

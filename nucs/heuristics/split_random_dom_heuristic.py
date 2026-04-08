@@ -24,15 +24,29 @@ def split_random_dom_heuristic(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
     domain_update_stk: NDArray,
+    unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     variable: int,
     params: NDArray,
 ) -> int:
-    if random.randint(0, 1) == 0:
-        return split_low_dom_heuristic(
-            domains_stk, entailed_propagators_stk, domain_update_stk, stks_top, variable, params
+    return (
+        split_low_dom_heuristic(
+            domains_stk,
+            entailed_propagators_stk,
+            domain_update_stk,
+            unbound_variable_nb_stk,
+            stks_top,
+            variable,
+            params,
         )
-    else:
-        return split_high_dom_heuristic(
-            domains_stk, entailed_propagators_stk, domain_update_stk, stks_top, variable, params
+        if random.randint(0, 1) == 0
+        else split_high_dom_heuristic(
+            domains_stk,
+            entailed_propagators_stk,
+            domain_update_stk,
+            unbound_variable_nb_stk,
+            stks_top,
+            variable,
+            params,
         )
+    )

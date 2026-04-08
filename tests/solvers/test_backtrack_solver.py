@@ -26,6 +26,9 @@ from nucs.solvers.choice_points import backtrack
 
 
 class TestBacktrackSolver:
+    def test_get_function_addresses(self) -> None:
+        assert len(get_function_addresses()) == 4
+
     def test_solve_all(self) -> None:
         problem = Problem([(0, 99), (0, 99)])
         solver = BacktrackSolver(problem)
@@ -51,6 +54,7 @@ class TestBacktrackSolver:
             solver.domains_stk,
             solver.entailed_propagators_stk,
             solver.domain_update_stk,
+            solver.unbound_variable_nb_stk,
             solver.stks_top,
             solver.triggered_propagators,
             solver.consistency_alg_idx,

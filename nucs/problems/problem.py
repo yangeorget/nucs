@@ -48,6 +48,7 @@ class Problem:
         Initializes the problem.
         :param domains: the domains
         """
+        self.unbound_variable_nb = 0
         self.domains = [(domain, domain) if isinstance(domain, int) else domain for domain in domains]
         self.domain_nb = len(self.domains)
         self.propagators: List[Tuple[List[int], int, List[int]]] = []
@@ -112,6 +113,9 @@ class Problem:
         Completes the initialization of the problem.
         """
         logger.debug("Initializing problem")
+        for domain_min, domain_max in self.domains:
+            if domain_min != domain_max:
+                self.unbound_variable_nb += 1
         # Sort the propagators based on their estimated amortized complexities.
         self.propagators.sort(
             key=lambda propagator: (
@@ -210,8 +214,8 @@ def init_triggers(
                 )
     for propagator_idx in range(propagator_nb):
         parameters = propagator_parameters[
-            bounds[propagator_idx, PARAM, RANGE_START] : bounds[propagator_idx, PARAM, RANGE_END]
-        ]
+                     bounds[propagator_idx, PARAM, RANGE_START]: bounds[propagator_idx, PARAM, RANGE_END]
+                     ]
         var_start = bounds[propagator_idx, VARIABLE, RANGE_START]
         var_end = bounds[propagator_idx, VARIABLE, RANGE_END]
         var_nb = var_end - var_start

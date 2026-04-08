@@ -24,6 +24,7 @@ def min_cost_dom_heuristic(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
     domain_update_stk: NDArray,
+    unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     variable: int,
     params: NDArray,
@@ -38,15 +39,21 @@ def min_cost_dom_heuristic(
     :param params: a two-dimensional (first dimension corresponds to variables, second to values) cost array
     :return: the events
     """
-    top = stks_top[0]
     best_cost = sys.maxsize
     best_value = -1
-    domain = domains_stk[top, variable]
+    domain = domains_stk[stks_top[0], variable]
     for value in range(domain[MIN], domain[MAX] + 1):
         cost = params[variable][value]
         if 0 < cost < best_cost:
             best_cost = cost
             best_value = value
     return value_dom_heuristic(
-        domains_stk, entailed_propagators_stk, domain_update_stk, stks_top, variable, best_value, params
+        domains_stk,
+        entailed_propagators_stk,
+        domain_update_stk,
+        unbound_variable_nb_stk,
+        stks_top,
+        variable,
+        best_value,
+        params,
     )

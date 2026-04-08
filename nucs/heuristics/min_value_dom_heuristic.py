@@ -30,6 +30,7 @@ def min_value_dom_heuristic(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
     domain_update_stk: NDArray,
+    unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     variable: int,
     params: NDArray,
@@ -45,13 +46,16 @@ def min_value_dom_heuristic(
     :return: the events
     """
     top = stks_top[0]
+    cp_put(domains_stk, entailed_propagators_stk, unbound_variable_nb_stk, top)
     value = domains_stk[top, variable, MIN]
-    cp_put(domains_stk, entailed_propagators_stk, stks_top)
-    stks_top[0] = top + 1
     domains_stk[top + 1, variable, MAX] = value
     domains_stk[top, variable, MIN] = value + 1
+    unbound_variable_nb_stk[top + 1] -= 1
     domain_update_stk[top, DOM_UPDATE_VARIABLE] = variable
-    domain_update_stk[top, DOM_UPDATE_EVENTS] = (
-        EVENT_MASK_MIN_GROUND if domains_stk[top, variable, MIN] == domains_stk[top, variable, MAX] else EVENT_MASK_MIN
-    )
+    if domains_stk[top, variable, MIN] == domains_stk[top, variable, MAX]:
+        domain_update_stk[top, DOM_UPDATE_EVENTS] = EVENT_MASK_MIN_GROUND
+        unbound_variable_nb_stk[top] -= 1
+    else:
+        domain_update_stk[top, DOM_UPDATE_EVENTS] = EVENT_MASK_MIN
+    stks_top[0] = top + 1
     return EVENT_MASK_MAX_GROUND

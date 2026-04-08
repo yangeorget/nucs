@@ -10,6 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+
 import pytest
 
 from nucs.constants import STATS_IDX_ALG_BC_NB, STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB

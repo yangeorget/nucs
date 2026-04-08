@@ -28,11 +28,10 @@ def max_regret_var_heuristic(decision_variables: NDArray, domains_stk: NDArray, 
     :param params: a two-dimensional (first dimension corresponds to variables, second to values) costs array
     :return: the variable
     """
-    best_score = 0
-    best_variable = -1
+    best_score = best_variable = -1
     for variable in decision_variables:
         domain = domains_stk[top, variable]
-        if 0 < domain[MAX] - domain[MIN]:
+        if domain[MIN] < domain[MAX]:
             score = regret(domain, params[variable])
             if best_score < score:
                 best_variable = variable
@@ -42,8 +41,7 @@ def max_regret_var_heuristic(decision_variables: NDArray, domains_stk: NDArray, 
 
 @njit(cache=True)
 def regret(domain: NDArray, costs: NDArray) -> int:
-    best_cost = sys.maxsize
-    second_cost = sys.maxsize
+    best_cost = second_cost = sys.maxsize
     for value in range(domain[MIN], domain[MAX] + 1):
         cost = costs[value]
         if 0 < cost < best_cost:

@@ -22,26 +22,31 @@ def cp_init(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
     domain_update_stk: NDArray,
+    unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     domains_arr: NDArray,
+    unbound_variable_nb: int,
 ) -> None:
     """
     Initializes the choice points.
     :param domains_stk: the stack of domains
     :param entailed_propagators_stk: the stack of entailed propagators
     :param domain_update_stk: the stack of domain updates
+    :param unbound_variable_nb_stk: the stack of unbound variable nb
     :param stks_top: the index of the top of the stacks as a Numpy array
-    :param domains_arr: the domains
+    :param domains: the domains
+    :param unbound_variable_nb: the number of unbound variables
     :return: a Numpy array
     """
     domains_stk[0] = domains_arr
     entailed_propagators_stk[0] = False
     domain_update_stk.fill(0)
+    unbound_variable_nb_stk[0] = unbound_variable_nb
     stks_top[0] = 0
 
 
 @njit(cache=True)
-def cp_put(domains_stk: NDArray, entailed_propagators_stk: NDArray, top: int) -> None:
+def cp_put(domains_stk: NDArray, entailed_propagators_stk: NDArray, unbound_variable_nb_stk: NDArray, top: int) -> None:
     """
     Adds a choice point to the stack of choice points.
     :param domains_stk: the stack of domains
@@ -50,6 +55,7 @@ def cp_put(domains_stk: NDArray, entailed_propagators_stk: NDArray, top: int) ->
     """
     domains_stk[top + 1] = domains_stk[top]  # copy the domains
     entailed_propagators_stk[top + 1] = entailed_propagators_stk[top]  # copy the entailed propagators
+    unbound_variable_nb_stk[top + 1] = unbound_variable_nb_stk[top]  # copy the number of unbound variables
 
 
 @njit(cache=True)
@@ -90,6 +96,7 @@ def backtrack(
 @njit(cache=True)
 def fix_choice_points(
     domains_stk: NDArray,
+    unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     variable: int,
     value: int,
@@ -103,18 +110,30 @@ def fix_choice_points(
     :param value: the current optimal value for the variable
     :param bound: the bound being optimized
     """
-    domains_stk[0 : stks_top[0] + 1, variable, bound] = value + (1 if bound == MIN else -1)
-    while domains_stk[stks_top[0], variable, MIN] > domains_stk[stks_top[0], variable, MAX]:
-        if stks_top[0] == 0:
-            return False
-        stks_top[0] -= 1
+    if stks_top[0] == 0:
+        return False
+    stks_top[0] -= 1
+    for stks_idx in range(stks_top[0], -1, -1):
+        was_bound = domains_stk[stks_idx, variable, MAX] == domains_stk[stks_idx, variable, MIN]
+        if bound == MIN:
+            domains_stk[stks_idx, variable, bound] = max(value + 1, domains_stk[stks_idx, variable, bound])
+        else:
+            domains_stk[stks_idx, variable, bound] = min(value - 1, domains_stk[stks_idx, variable, bound])
+        range_sz = domains_stk[stks_idx, variable, MAX] - domains_stk[stks_idx, variable, MIN]
+        if range_sz < 0:
+            if stks_top[0] == 0:
+                return False
+            stks_top[0] -= 1
+        elif range_sz == 0:
+            if not was_bound:
+                unbound_variable_nb_stk[stks_idx] -= 1
     return True
 
 
 @njit(cache=True)
-def fix_top_choice_point(
+def fix_choice_point(
     domains_stk: NDArray,
-    stks_top: NDArray,
+    unbound_variable_nb_stk: NDArray,
     variable: int,
     value: int,
     bound: int,
@@ -122,11 +141,17 @@ def fix_top_choice_point(
     """
     Fixes the domain of the variable being optimized in the top choice point.
     :param domains_stk: the stack of domains
-    :param stks_top: the index of the top of the stacks as a Numpy array
     :param variable:  the variable being optimized
     :param value: the current optimal value for the variable
     :param bound: the bound being optimized
     """
-    top = stks_top[0]
-    domains_stk[top, variable, bound] = value + (1 if bound == MIN else -1)
-    return domains_stk[top, variable, MIN] <= domains_stk[top, variable, MAX]
+    if bound == MIN:
+        domains_stk[0, variable, bound] = value + 1
+    else:
+        domains_stk[0, variable, bound] = value - 1
+    range_sz = domains_stk[0, variable, MAX] - domains_stk[0, variable, MIN]
+    if range_sz < 0:
+        return False
+    if range_sz == 0:
+        unbound_variable_nb_stk[0] -= 1
+    return True

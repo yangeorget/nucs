@@ -45,15 +45,20 @@ def shave_bound(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
     domain_update_stk: NDArray,
+    unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
     decision_variables: NDArray,
 ) -> bool:
     events = (
-        max_value_dom_heuristic(domains_stk, entailed_propagators_stk, domain_update_stk, stks_top, variable, None)
+        max_value_dom_heuristic(
+            domains_stk, entailed_propagators_stk, domain_update_stk, unbound_variable_nb_stk, stks_top, variable, None
+        )
         if bound == MAX
-        else min_value_dom_heuristic(domains_stk, entailed_propagators_stk, domain_update_stk, stks_top, variable, None)
+        else min_value_dom_heuristic(
+            domains_stk, entailed_propagators_stk, domain_update_stk, unbound_variable_nb_stk, stks_top, variable, None
+        )
     )
     if domains_stk[stks_top[0], variable, MIN] == domains_stk[stks_top[0], variable, MAX]:
         events |= EVENT_MASK_GROUND
@@ -72,6 +77,7 @@ def shave_bound(
             domains_stk,
             entailed_propagators_stk,
             domain_update_stk,
+            unbound_variable_nb_stk,
             stks_top,
             triggered_propagators,
             compute_domains_addrs,
@@ -107,6 +113,7 @@ def shaving_consistency_algorithm(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
     domain_update_stk: NDArray,
+    unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
@@ -149,6 +156,7 @@ def shaving_consistency_algorithm(
                 domains_stk,
                 entailed_propagators_stk,
                 domain_update_stk,
+                unbound_variable_nb_stk,
                 stks_top,
                 triggered_propagators,
                 compute_domains_addrs,
@@ -175,6 +183,7 @@ def shaving_consistency_algorithm(
             domains_stk,
             entailed_propagators_stk,
             domain_update_stk,
+            unbound_variable_nb_stk,
             stks_top,
             triggered_propagators,
             compute_domains_addrs,

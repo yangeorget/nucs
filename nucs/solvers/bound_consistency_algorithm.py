@@ -10,6 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -39,7 +40,6 @@ from nucs.constants import (
 from nucs.heaps import min_heap_pop
 from nucs.numba_helper import function_from_address
 from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagators_with_previous_prop
-from nucs.solvers.solver import is_solved
 
 
 @njit(cache=True)
@@ -54,6 +54,7 @@ def bound_consistency_algorithm(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
     domain_update_stk: NDArray,
+    unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
@@ -99,11 +100,11 @@ def bound_consistency_algorithm(
     while True:
         prop_idx = min_heap_pop(triggered_propagators, propagator_nb)
         if prop_idx == -1:
-            return PROBLEM_BOUND if is_solved(domains) else PROBLEM_UNBOUND
+            return PROBLEM_BOUND if unbound_variable_nb_stk[top] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = bounds[prop_idx, VARIABLE, RANGE_START]
         prop_var_end = bounds[prop_idx, VARIABLE, RANGE_END]
-        prop_domains = domains[propagator_variables[prop_var_start:prop_var_end]]
+        prop_domains = domains[propagator_variables[prop_var_start:prop_var_end]]  # this is a copy
         status = compute_domains_fcts[prop_idx](
             prop_domains,
             propagator_parameters[bounds[prop_idx, PARAM, RANGE_START]: bounds[prop_idx, PARAM, RANGE_END]],
@@ -130,6 +131,7 @@ def bound_consistency_algorithm(
             if events:
                 if domain_min == domain_max:
                     events |= EVENT_MASK_GROUND
+                    unbound_variable_nb_stk[top] -= 1
                 update_propagators_with_previous_prop(
                     propagator_nb,
                     triggered_propagators,
