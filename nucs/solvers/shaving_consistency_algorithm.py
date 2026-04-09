@@ -31,7 +31,7 @@ from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
 from nucs.solvers.choice_points import backtrack
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def shave_bound(
     propagator_nb: int,
     bound: int,
@@ -101,7 +101,7 @@ def shave_bound(
     return has_shaved
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def shaving_consistency_algorithm(
     propagator_nb: int,
     statistics: NDArray,

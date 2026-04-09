@@ -18,7 +18,7 @@ from numpy.typing import NDArray
 from nucs.constants import MAX, MIN
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def max_regret_var_heuristic(decision_variables: NDArray, domains_stk: NDArray, top: int, params: NDArray) -> int:
     """
     Chooses the variable with the maximal regret (difference between the best and second-best value).
@@ -39,7 +39,7 @@ def max_regret_var_heuristic(decision_variables: NDArray, domains_stk: NDArray, 
     return best_variable
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def regret(domain: NDArray, costs: NDArray) -> int:
     best_cost = second_cost = sys.maxsize
     for value in range(domain[MIN], domain[MAX] + 1):

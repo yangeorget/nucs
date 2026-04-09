@@ -27,7 +27,7 @@ def get_complexity_scc(n: int, parameters: NDArray) -> float:
     return n * n
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def get_triggers_scc(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -64,7 +64,7 @@ def compute_domains_scc(domains: NDArray, parameters: NDArray) -> int:
     n = len(domains)
     graph = np.zeros((n, n), dtype=np.bool)
     for i in range(n):
-        graph[i, domains[i, MIN] : (domains[i, MAX] + 1)] = True
+        graph[i, domains[i, MIN]: (domains[i, MAX] + 1)] = True
     visited = np.zeros(n, dtype=np.bool)
     dfs_row(n, graph, 0, visited)
     if not np.all(visited):

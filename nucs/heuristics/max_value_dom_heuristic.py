@@ -25,7 +25,7 @@ from nucs.constants import (
 from nucs.solvers.choice_points import cp_put
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def max_value_dom_heuristic(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,

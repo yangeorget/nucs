@@ -26,7 +26,7 @@ from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
 GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def sum_first(n: int) -> int:
     """
     Returns the sum of the first n integers.
@@ -36,7 +36,7 @@ def sum_first(n: int) -> int:
     return (n * (n + 1)) >> 1
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def index(mark_nb: int, i: int, j: int) -> int:
     """
     Returns the index of the distance variable between two marks.
@@ -104,7 +104,7 @@ class GolombProblem(Problem):
         return solution_as_list[: self.mark_nb]
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def golomb_consistency_algorithm(
     propagator_nb: int,
     statistics: NDArray,
@@ -129,7 +129,7 @@ def golomb_consistency_algorithm(
     """
     top = stks_top[0]
     # first prune the search space
-    mark_nb = (1 + int(math.sqrt(8 * len(triggers) + 1))) // 2
+    mark_nb = (1 + int(math.sqrt(8 * len(triggers) + 1))) >> 1
     ni_var = first_not_instantiated_var_heuristic(
         decision_variables, domains_stk, top, None
     )

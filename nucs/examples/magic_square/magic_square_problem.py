@@ -30,14 +30,14 @@ class MagicSquareProblem(Problem):
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
         """
         self.n = n
-        self.m = ((n**2 - 1) * n) // 2
-        super().__init__([(0, n**2 - 1)] * n**2)
+        self.m = ((n ** 2 - 1) * n) >> 1
+        super().__init__([(0, n ** 2 - 1)] * n ** 2)
         for i in range(n):
             self.add_propagator(ALG_SUM_EQ_C, self.row(i), [self.m])
             self.add_propagator(ALG_SUM_EQ_C, self.column(i), [self.m])
         self.add_propagator(ALG_SUM_EQ_C, self.first_diag(), [self.m])
         self.add_propagator(ALG_SUM_EQ_C, self.second_diag(), [self.m])
-        self.add_propagator(ALG_ALLDIFFERENT, range(n**2))
+        self.add_propagator(ALG_ALLDIFFERENT, range(n ** 2))
         if symmetry_breaking:
             first_diag_as_list = list(self.first_diag())
             top_left = first_diag_as_list[0]
@@ -54,10 +54,10 @@ class MagicSquareProblem(Problem):
         return range(0 + i * self.n, self.n + i * self.n)
 
     def column(self, j: int) -> Iterable[int]:
-        return range(j, self.n**2, self.n)
+        return range(j, self.n ** 2, self.n)
 
     def first_diag(self) -> Iterable[int]:
-        return range(0, self.n**2, self.n + 1)
+        return range(0, self.n ** 2, self.n + 1)
 
     def second_diag(self) -> Iterable[int]:
-        return range(self.n**2 - self.n, 0, 1 - self.n)
+        return range(self.n ** 2 - self.n, 0, 1 - self.n)

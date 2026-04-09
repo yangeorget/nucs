@@ -84,9 +84,9 @@ class SportsTournamentSchedulingProblem(Problem):
         """
         self.team_nb = n
         self.slot_nb = 2
-        self.period_nb = n // 2
+        self.period_nb = n >> 1
         self.week_nb = n - 1
-        self.match_nb = ((n - 1) * n) // 2
+        self.match_nb = ((n - 1) * n) >> 1
         self.team_var_nb = self.period_nb * self.week_nb * self.slot_nb
         super().__init__([(0, self.team_nb - 1)] * self.team_var_nb + [(0, self.match_nb - 1)] * self.match_nb)
         plays = self.plays()

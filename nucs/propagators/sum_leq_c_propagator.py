@@ -33,7 +33,7 @@ def get_complexity_sum_leq_c(n: int, parameters: NDArray) -> float:
     return n
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def get_triggers_sum_leq_c(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -43,7 +43,7 @@ def get_triggers_sum_leq_c(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def compute_domains_sum_leq_c(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements Sigma_i x_i <= c.

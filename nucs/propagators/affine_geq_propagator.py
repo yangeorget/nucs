@@ -34,7 +34,7 @@ def get_complexity_affine_geq(n: int, parameters: NDArray) -> float:
     return n
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def get_triggers_affine_geq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -44,7 +44,7 @@ def get_triggers_affine_geq(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN if parameters[variable] < 0 else EVENT_MASK_MAX
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def compute_domains_affine_geq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements Sigma_i a_i * x_i >= a_{n}.

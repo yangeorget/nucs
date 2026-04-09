@@ -36,7 +36,7 @@ class BIBDProblem(Problem):
         self.v = v  # number of points/rows
         self.b = b  # number of blocks/columns
         matrix_var_nb = v * b  # number of cells in the matrix
-        additional_var_nb = ((v * (v - 1)) // 2) * b
+        additional_var_nb = ((v * (v - 1)) >> 1) * b
         super().__init__([(0, 1)] * (matrix_var_nb + additional_var_nb))
         # rows: counts
         for object_idx in range(0, v):

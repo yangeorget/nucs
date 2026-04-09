@@ -29,7 +29,7 @@ def min_heap_init(capacity: int) -> NDArray:
     return np.zeros(2 * capacity + 1, dtype=np.uint32)
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def min_heap_add(heap: NDArray, capacity: int, val: int) -> None:
     if heap[capacity + val] == 0:
         size = heap[-1]
@@ -39,7 +39,7 @@ def min_heap_add(heap: NDArray, capacity: int, val: int) -> None:
         heap[capacity + val] = 1
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def min_heap_pop(heap: NDArray, capacity: int) -> int:
     if heap[-1] == 0:
         return -1
@@ -51,14 +51,14 @@ def min_heap_pop(heap: NDArray, capacity: int) -> int:
     return val
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def min_heap_swap(heap: NDArray, i: int, j: int) -> None:
     tmp = heap[i]
     heap[i] = heap[j]
     heap[j] = tmp
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def min_heap_up(heap: NDArray, pos: int) -> None:
     """
     Non-recursive version because of a Numba bug.
@@ -71,7 +71,7 @@ def min_heap_up(heap: NDArray, pos: int) -> None:
         pos = father
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def min_heap_down(heap: NDArray, pos: int) -> None:
     """
     Non-recursive version because of a Numba bug.

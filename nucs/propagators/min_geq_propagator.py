@@ -35,7 +35,7 @@ def get_complexity_min_geq(n: int, parameters: NDArray) -> float:
     return n
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def get_triggers_min_geq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -46,7 +46,7 @@ def get_triggers_min_geq(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MAX if variable < n - 1 else EVENT_MASK_MIN
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def compute_domains_min_geq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements Min_i x_i >= x_{n-1}.

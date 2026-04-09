@@ -19,7 +19,7 @@ from nucs.constants import MAX, MIN
 from nucs.heuristics.max_regret_var_heuristic import regret
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def tsp_var_heuristic(decision_variables: NDArray, domains_stk: NDArray, top: int, params: NDArray) -> int:
     """
     :param decision_variables: the decision variables
@@ -40,7 +40,7 @@ def tsp_var_heuristic(decision_variables: NDArray, domains_stk: NDArray, top: in
     return best_variable
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def compute_score(domain: NDArray, variable: int, params: NDArray) -> int:
     """
     Minimize [min(12, size(X)), -regret(X)] for lexicographic order.

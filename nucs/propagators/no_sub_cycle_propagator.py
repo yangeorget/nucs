@@ -31,7 +31,7 @@ def get_complexity_no_sub_cycle(n: int, parameters: NDArray) -> float:
     return n * n
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def get_triggers_no_sub_cycle(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -42,7 +42,7 @@ def get_triggers_no_sub_cycle(n: int, variable: int, parameters: NDArray) -> int
     return EVENT_MASK_GROUND
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def compute_domains_no_sub_cycle(domains: NDArray, parameters: NDArray) -> int:
     """
     Enforces that a permutation does not contain any sub-cycle.

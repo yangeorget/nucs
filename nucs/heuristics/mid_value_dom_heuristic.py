@@ -17,7 +17,7 @@ from nucs.constants import MAX, MIN
 from nucs.heuristics.value_dom_heuristic import value_dom_heuristic
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def mid_value_dom_heuristic(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
@@ -44,6 +44,6 @@ def mid_value_dom_heuristic(
         unbound_variable_nb_stk,
         stks_top,
         variable,
-        (domains_stk[stks_top[0], variable, MIN] + domains_stk[stks_top[0], variable, MAX]) // 2,
+        (domains_stk[stks_top[0], variable, MIN] + domains_stk[stks_top[0], variable, MAX]) >> 1,
         params,
     )

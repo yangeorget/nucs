@@ -26,7 +26,7 @@ def get_complexity_abs_eq(n: int, parameters: NDArray) -> float:
     return 1
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def get_triggers_abs_eq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -38,7 +38,7 @@ def get_triggers_abs_eq(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MAX
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def compute_domains_abs_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements abs(y)=x.

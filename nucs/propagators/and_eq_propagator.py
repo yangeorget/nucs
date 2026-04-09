@@ -27,7 +27,7 @@ def get_complexity_and_eq(n: int, parameters: NDArray) -> float:
     return n
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def get_triggers_and_eq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -37,7 +37,7 @@ def get_triggers_and_eq(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def compute_domains_and_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements & b_i = b_{n-1} where for each i, b_i is a boolean variable.

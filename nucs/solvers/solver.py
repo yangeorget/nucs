@@ -18,7 +18,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 from rich import print
 
-from nucs.constants import LOG_FORMAT, LOG_LEVEL_INFO, MAX, MIN
+from nucs.constants import LOG_FORMAT, LOG_LEVEL_INFO, MIN
 from nucs.problems.problem import Problem
 
 logger = logging.getLogger(__name__)
@@ -110,7 +110,7 @@ class Solver:
         ...
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def get_solution(domains_stk: NDArray, top: int) -> NDArray:
     """
     Returns the solution to the problem.
@@ -119,16 +119,3 @@ def get_solution(domains_stk: NDArray, top: int) -> NDArray:
     :return: a Numpy array
     """
     return domains_stk[top, :, MIN].copy()
-
-
-@njit(cache=True)
-def is_solved(domains: NDArray) -> bool:
-    """
-    Returns true iff the problem is solved.
-    :param domains: the domains
-    :return: a boolean
-    """
-    for domain in domains:
-        if domain[MIN] != domain[MAX]:
-            return False
-    return True

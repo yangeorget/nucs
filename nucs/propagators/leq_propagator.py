@@ -34,7 +34,7 @@ def get_complexity_leq(n: int, parameters: NDArray) -> float:
     return 1
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def get_triggers_leq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -44,7 +44,7 @@ def get_triggers_leq(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN if variable == 0 else EVENT_MASK_MAX
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def compute_domains_leq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements x <= y + c.

@@ -17,7 +17,7 @@ from nucs.constants import DOM_UPDATE_EVENTS, DOM_UPDATE_VARIABLE, MAX, MIN, STA
 from nucs.propagators.propagators import update_propagators
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def cp_init(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
@@ -45,7 +45,7 @@ def cp_init(
     stks_top[0] = 0
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def cp_put(domains_stk: NDArray, entailed_propagators_stk: NDArray, unbound_variable_nb_stk: NDArray, top: int) -> None:
     """
     Adds a choice point to the stack of choice points.
@@ -58,7 +58,7 @@ def cp_put(domains_stk: NDArray, entailed_propagators_stk: NDArray, unbound_vari
     unbound_variable_nb_stk[top + 1] = unbound_variable_nb_stk[top]  # copy the number of unbound variables
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def backtrack(
     propagator_nb: int,
     statistics: NDArray,
@@ -93,7 +93,7 @@ def backtrack(
     return True
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def fix_choice_points(
     domains_stk: NDArray,
     unbound_variable_nb_stk: NDArray,
@@ -130,7 +130,7 @@ def fix_choice_points(
     return True
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def fix_choice_point(
     domains_stk: NDArray,
     unbound_variable_nb_stk: NDArray,

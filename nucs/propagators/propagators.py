@@ -206,14 +206,14 @@ ALG_SUM_GEQ_C = register_propagator(get_triggers_sum_geq_c, get_complexity_sum_g
 ALG_SUM_LEQ_C = register_propagator(get_triggers_sum_leq_c, get_complexity_sum_leq_c, compute_domains_sum_leq_c)
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def reset_triggered_propagators(triggered_propagators: NDArray, propagator_nb: int) -> None:
     triggered_propagators[:] = 0
     for prop_idx in range(propagator_nb):
         min_heap_add(triggered_propagators, propagator_nb, prop_idx)
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def update_propagators_with_previous_prop(
     propagator_nb: int,
     triggered_propagators: NDArray,
@@ -228,7 +228,7 @@ def update_propagators_with_previous_prop(
             min_heap_add(triggered_propagators, propagator_nb, prop_idx)
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def update_propagators(
     propagator_nb: int,
     triggered_propagators: NDArray,

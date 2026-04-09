@@ -26,7 +26,7 @@ def get_complexity_sum_eq_c(n: int, parameters: NDArray) -> float:
     return n
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def get_triggers_sum_eq_c(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
@@ -36,7 +36,7 @@ def get_triggers_sum_eq_c(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def compute_domains_sum_eq_c(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements Sigma_i x_i = c.

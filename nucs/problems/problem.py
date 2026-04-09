@@ -185,7 +185,7 @@ def init_propagator_variables_and_parameters(
         propagator_parameters[param_start:param_end] = propagator[2]
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def init_triggers(
     triggers: NDArray,
     domain_nb: int,

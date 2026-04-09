@@ -25,7 +25,7 @@ from nucs.constants import (
 from nucs.solvers.choice_points import cp_put
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def split_high_dom_heuristic(
     domains_stk: NDArray,
     entailed_propagators_stk: NDArray,
@@ -47,7 +47,7 @@ def split_high_dom_heuristic(
     """
     top = stks_top[0]
     cp_put(domains_stk, entailed_propagators_stk, unbound_variable_nb_stk, top)
-    value = (domains_stk[top, variable, MIN] + domains_stk[top, variable, MAX]) // 2
+    value = (domains_stk[top, variable, MIN] + domains_stk[top, variable, MAX]) >> 1
     domains_stk[top + 1, variable, MIN] = value + 1
     domains_stk[top, variable, MAX] = value
     if domains_stk[top + 1, variable, MIN] == domains_stk[top + 1, variable, MAX]:

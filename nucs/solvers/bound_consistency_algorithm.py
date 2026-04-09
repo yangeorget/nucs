@@ -42,7 +42,7 @@ from nucs.numba_helper import function_from_address
 from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagators_with_previous_prop
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def bound_consistency_algorithm(
     propagator_nb: int,
     statistics: NDArray,

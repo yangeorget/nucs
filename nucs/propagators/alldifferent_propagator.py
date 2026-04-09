@@ -29,7 +29,7 @@ def get_complexity_alldifferent(n: int, parameters: NDArray) -> float:
     return n * math.log(n)
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def get_triggers_alldifferent(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
@@ -39,7 +39,7 @@ def get_triggers_alldifferent(n: int, variable: int, parameters: NDArray) -> int
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def path_set(t: NDArray, start: int, end: int, value: int) -> None:
     """
     Sets t[start], t[t[start]], ..., a[idx] to value until a[idx] = end.
@@ -53,7 +53,7 @@ def path_set(t: NDArray, start: int, end: int, value: int) -> None:
         t[p] = value
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def path_min(t: NDArray, i: int) -> int:
     """
     Follows i, t[i], t[t[i], ... until it stops decreasing.
@@ -66,7 +66,7 @@ def path_min(t: NDArray, i: int) -> int:
     return i
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def path_max(t: NDArray, i: int) -> int:
     """
     Follows i, t[i], t[t[i], ... until it stops increasing.
@@ -79,7 +79,7 @@ def path_max(t: NDArray, i: int) -> int:
     return i
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def update_bounds(
     bounds: NDArray,
     n: int,
@@ -115,7 +115,7 @@ def update_bounds(
     return nb
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def filter_lower(
     n: int,
     nb: int,
@@ -153,7 +153,7 @@ def filter_lower(
     return True
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def filter_upper(
     n: int,
     nb: int,
@@ -191,7 +191,7 @@ def filter_upper(
     return True
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     """
     Enforces that x_i <> x_j when i<>j.
@@ -206,7 +206,7 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
         offsets = parameters[:, np.newaxis]
         domains += offsets
     ranks = np.empty((n, 2), dtype=np.uint16)
-    bounds_nb = 2 * n + 2
+    bounds_nb = (n + 1) << 1
     bounds = np.empty(bounds_nb, dtype=np.int32)
     t = np.empty(bounds_nb, dtype=np.uint16)  # critical capacity pointers
     d = np.empty(bounds_nb, dtype=np.int32)  # differences between critical capacities

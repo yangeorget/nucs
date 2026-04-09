@@ -26,7 +26,7 @@ def get_complexity_permutation_aux(n: int, parameters: NDArray) -> float:
     return n * n
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def get_triggers_permutation_aux(n: int, variable: int, parameters: NDArray) -> int:
     """
     :param n: the number of variables
@@ -36,7 +36,7 @@ def get_triggers_permutation_aux(n: int, variable: int, parameters: NDArray) -> 
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def compute_domains_permutation_aux(domains: NDArray, parameters: NDArray) -> int:
     """
     An auxiliary propagator needed to connect the next and prev variables of a permutation problem.
@@ -44,7 +44,7 @@ def compute_domains_permutation_aux(domains: NDArray, parameters: NDArray) -> in
     :param parameters: the parameters of the propagator, unused here
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
-    n = len(domains) // 2
+    n = len(domains) >> 1
     next = domains[:n]
     prev = domains[n:]
     return (
@@ -54,7 +54,7 @@ def compute_domains_permutation_aux(domains: NDArray, parameters: NDArray) -> in
     )
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def filter_domains_permutation(n: int, next: NDArray, prev: NDArray) -> bool:
     for j in range(0, n):
         if prev[j, MIN] == prev[j, MAX]:
