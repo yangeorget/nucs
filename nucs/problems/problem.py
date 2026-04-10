@@ -98,7 +98,7 @@ class Problem:
         return var
 
     def add_propagator(
-        self, algorithm: int, variables: Iterable[int], parameters: Optional[Iterable[int]] = None
+            self, algorithm: int, variables: Iterable[int], parameters: Optional[Iterable[int]] = None
     ) -> None:
         """
         Adds an extra propagator.
@@ -135,7 +135,7 @@ class Problem:
             self.propagator_variables, self.propagator_parameters, self.bounds, self.propagators
         )
         logger.debug("Initializing triggers")
-        self.triggers = np.full((self.domain_nb, EVENT_MASK_NB, self.propagator_nb + 1), -1, dtype=np.int32)
+        self.triggers = np.zeros((self.domain_nb, EVENT_MASK_NB, self.propagator_nb + 1), dtype=np.int32)
         get_triggers_addrs = build_function_address_list(GET_TRIGGERS_FCTS, SIGNATURE_GET_TRIGGERS)
         init_triggers(
             self.triggers,
@@ -167,10 +167,10 @@ def init_bounds(bounds: NDArray, propagators: List[Tuple[List[int], int, List[in
 
 
 def init_propagator_variables_and_parameters(
-    propagator_variables: NDArray,
-    propagator_parameters: NDArray,
-    bounds: NDArray,
-    propagators: List[Tuple[List[int], int, List[int]]],
+        propagator_variables: NDArray,
+        propagator_parameters: NDArray,
+        bounds: NDArray,
+        propagators: List[Tuple[List[int], int, List[int]]],
 ) -> None:
     for propagator_idx, propagator in enumerate(propagators):
         var_start = bounds[propagator_idx, VARIABLE, RANGE_START]
@@ -183,34 +183,35 @@ def init_propagator_variables_and_parameters(
 
 @njit(cache=True, fastmath=True)
 def init_triggers(
-    triggers: NDArray,
-    domain_nb: int,
-    propagator_nb: int,
-    bounds: NDArray,
-    propagator_variables: NDArray,
-    propagator_parameters: NDArray,
-    algorithms: NDArray,
-    get_triggers_addrs: NDArray,
+        triggers: NDArray,
+        domain_nb: int,
+        propagator_nb: int,
+        bounds: NDArray,
+        propagator_variables: NDArray,
+        propagator_parameters: NDArray,
+        algorithms: NDArray,
+        get_triggers_addrs: NDArray,
 ) -> None:
-    # for each domain and event, we store the list of propagator indices followed by -1
-    indices = np.zeros((domain_nb, EVENT_MASK_NB), dtype=np.uint32)
-    for propagator_idx in range(propagator_nb):
+    variable_propagator = np.full((domain_nb, propagator_nb), False)
+    for propagator in range(propagator_nb):
+        algorithm = algorithms[propagator]
+        if NUMBA_DISABLE_JIT:
+            trigger_fct = GET_TRIGGERS_FCTS[algorithm]
+        else:
+            trigger_fct = function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])
         parameters = propagator_parameters[
-                     bounds[propagator_idx, PARAM, RANGE_START]: bounds[propagator_idx, PARAM, RANGE_END]
+                     bounds[propagator, PARAM, RANGE_START]: bounds[propagator, PARAM, RANGE_END]
                      ]
-        var_start = bounds[propagator_idx, VARIABLE, RANGE_START]
-        var_end = bounds[propagator_idx, VARIABLE, RANGE_END]
+        var_start = bounds[propagator, VARIABLE, RANGE_START]
+        var_end = bounds[propagator, VARIABLE, RANGE_END]
         var_nb = var_end - var_start
-        for var in range(var_start, var_end):
-            algorithm = algorithms[propagator_idx]
-            if NUMBA_DISABLE_JIT:
-                trigger = GET_TRIGGERS_FCTS[algorithm]
-            else:
-                trigger = function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])(
-                    var_nb, var - var_start, parameters
-                )
-            variable = propagator_variables[var]
-            for event_mask in range(1, EVENT_MASK_NB):
-                if trigger & event_mask:
-                    triggers[variable, event_mask, indices[variable, event_mask]] = propagator_idx
-                    indices[variable, event_mask] += 1
+        for var_idx in range(var_nb):
+            variable = propagator_variables[var_start + var_idx]
+            # beware, a propagator can have two variables corresponding to the same real variable
+            if not variable_propagator[variable, propagator]:
+                variable_propagator[variable, propagator] = True
+                trigger = trigger_fct(var_nb, var_idx, parameters)
+                for event_mask in range(1, EVENT_MASK_NB):
+                    if trigger & event_mask:
+                        triggers[variable, event_mask, 0] += 1
+                        triggers[variable, event_mask, triggers[variable, event_mask, 0]] = propagator
