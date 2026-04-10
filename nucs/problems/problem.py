@@ -136,11 +136,7 @@ class Problem:
         )
         logger.debug("Initializing triggers")
         self.triggers = np.full((self.domain_nb, EVENT_MASK_NB, self.propagator_nb + 1), -1, dtype=np.int32)
-        get_triggers_addrs = (
-            np.empty(0)
-            if NUMBA_DISABLE_JIT
-            else np.array(build_function_address_list(GET_TRIGGERS_FCTS, SIGNATURE_GET_TRIGGERS))
-        )
+        get_triggers_addrs = build_function_address_list(GET_TRIGGERS_FCTS, SIGNATURE_GET_TRIGGERS)
         init_triggers(
             self.triggers,
             self.domain_nb,
@@ -198,20 +194,6 @@ def init_triggers(
 ) -> None:
     # for each domain and event, we store the list of propagator indices followed by -1
     indices = np.zeros((domain_nb, EVENT_MASK_NB), dtype=np.uint32)
-    if NUMBA_DISABLE_JIT:
-        get_trigger_fcts = [GET_TRIGGERS_FCTS[algorithms[prop_idx]] for prop_idx in range(propagator_nb)]
-    else:
-        previous_algorithm = algorithms[0]
-        previous_function = function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[previous_algorithm])
-        get_trigger_fcts = [previous_function] * propagator_nb  # necessary for numba to get the type
-        for propagator_idx in range(1, propagator_nb):
-            if algorithms[propagator_idx] == previous_algorithm:
-                get_trigger_fcts[propagator_idx] = previous_function
-            else:
-                previous_algorithm = algorithms[propagator_idx]
-                previous_function = get_trigger_fcts[propagator_idx] = function_from_address(
-                    TYPE_GET_TRIGGERS, get_triggers_addrs[previous_algorithm]
-                )
     for propagator_idx in range(propagator_nb):
         parameters = propagator_parameters[
                      bounds[propagator_idx, PARAM, RANGE_START]: bounds[propagator_idx, PARAM, RANGE_END]
@@ -220,7 +202,13 @@ def init_triggers(
         var_end = bounds[propagator_idx, VARIABLE, RANGE_END]
         var_nb = var_end - var_start
         for var in range(var_start, var_end):
-            trigger = get_trigger_fcts[propagator_idx](var_nb, var - var_start, parameters)
+            algorithm = algorithms[propagator_idx]
+            if NUMBA_DISABLE_JIT:
+                trigger = GET_TRIGGERS_FCTS[algorithm]
+            else:
+                trigger = function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])(
+                    var_nb, var - var_start, parameters
+                )
             variable = propagator_variables[var]
             for event_mask in range(1, EVENT_MASK_NB):
                 if trigger & event_mask:

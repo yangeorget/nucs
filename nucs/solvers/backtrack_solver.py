@@ -601,11 +601,9 @@ def get_function_addresses() -> Tuple[NDArray, NDArray, NDArray, NDArray]:
     compute_domains, variable heuristics, domain heuristics and consistency algorithms functions.
     :return: a tuple of NDArrays
     """
-    if NUMBA_DISABLE_JIT:
-        return np.empty(0), np.empty(0), np.empty(0), np.empty(0)
     return (
-        np.array(build_function_address_list(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)),
-        np.array(build_function_address_list(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC)),
-        np.array(build_function_address_list(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC)),
-        np.array(build_function_address_list(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG)),
+        build_function_address_list(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS),
+        build_function_address_list(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC),
+        build_function_address_list(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC),
+        build_function_address_list(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG),
     )

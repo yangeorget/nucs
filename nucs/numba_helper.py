@@ -10,12 +10,15 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List
 
+import numpy as np
 from numba import types  # type: ignore
 from numba.core import cgutils
 from numba.experimental.function_type import _get_wrapper_address
 from numba.extending import intrinsic
+from numpy._typing import NDArray
+
+from nucs.constants import NUMBA_DISABLE_JIT
 
 
 @intrinsic
@@ -33,5 +36,8 @@ def function_from_address(typingctx, func_type_ref: types.FunctionType, addr: in
     return func_type(func_type_ref, addr), codegen
 
 
-def build_function_address_list(functions, signature) -> List[int]:  # type: ignore
-    return [_get_wrapper_address(function, signature) for function in functions]
+def build_function_address_list(functions, signature) -> NDArray:  # type: ignore
+    if NUMBA_DISABLE_JIT:
+        return np.empty(0)
+    else:
+        return np.array([_get_wrapper_address(function, signature) for function in functions])
