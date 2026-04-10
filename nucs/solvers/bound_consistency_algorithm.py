@@ -44,22 +44,22 @@ from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagator
 
 @njit(cache=True, fastmath=True)
 def bound_consistency_algorithm(
-    algorithm_nb: int,
-    propagator_nb: int,
-    statistics: NDArray,
-    algorithms: NDArray,
-    bounds: NDArray,
-    propagator_variables: NDArray,
-    propagator_parameters: NDArray,
-    triggers: NDArray,
-    domains_stk: NDArray,
-    entailed_propagators_stk: NDArray,
-    domain_update_stk: NDArray,
-    unbound_variable_nb_stk: NDArray,
-    stks_top: NDArray,
-    triggered_propagators: NDArray,
-    compute_domains_addrs: NDArray,
-    decision_variables: NDArray,
+        algorithm_nb: int,
+        propagator_nb: int,
+        statistics: NDArray,
+        algorithms: NDArray,
+        bounds: NDArray,
+        propagator_variables: NDArray,
+        propagator_parameters: NDArray,
+        triggers: NDArray,
+        domains_stk: NDArray,
+        entailed_propagators_stk: NDArray,
+        domain_update_stk: NDArray,
+        unbound_variable_nb_stk: NDArray,
+        stks_top: NDArray,
+        triggered_propagators: NDArray,
+        compute_domains_addrs: NDArray,
+        decision_variables: NDArray,
 ) -> int:
     """
     Bound consistency algorithm.
@@ -100,7 +100,7 @@ def bound_consistency_algorithm(
         prop_domains = domains[propagator_variables[prop_var_start:prop_var_end]]  # this is a copy
         status = compute_domains_fcts[algorithms[prop_idx]](
             prop_domains,
-            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]],
+            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START]: bounds[prop_idx, PARAM, RANGE_END]],
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
@@ -109,36 +109,36 @@ def bound_consistency_algorithm(
             entailed_propagators[prop_idx] = True
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
         if has_no_changes(
-            top,
-            propagator_nb,
-            prop_idx,
-            prop_var_start,
-            prop_var_end,
-            prop_domains,
-            propagator_variables,
-            domains,
-            triggered_propagators,
-            entailed_propagators,
-            triggers,
-            unbound_variable_nb_stk,
+                top,
+                propagator_nb,
+                prop_idx,
+                prop_var_start,
+                prop_var_end,
+                prop_domains,
+                propagator_variables,
+                domains,
+                triggered_propagators,
+                entailed_propagators,
+                triggers,
+                unbound_variable_nb_stk,
         ):
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
 
 
 @njit(cache=True, fastmath=True)
 def has_no_changes(
-    top: int,
-    propagator_nb: int,
-    prop_idx: int,
-    prop_var_start: int,
-    prop_var_end: int,
-    prop_domains: NDArray,
-    propagator_variables: NDArray,
-    domains: NDArray,
-    triggered_propagators: NDArray,
-    entailed_propagators: NDArray,
-    triggers: NDArray,
-    unbound_variable_nb_stk: NDArray,
+        top: int,
+        propagator_nb: int,
+        prop_idx: int,
+        prop_var_start: int,
+        prop_var_end: int,
+        prop_domains: NDArray,
+        propagator_variables: NDArray,
+        domains: NDArray,
+        triggered_propagators: NDArray,
+        entailed_propagators: NDArray,
+        triggers: NDArray,
+        unbound_variable_nb_stk: NDArray,
 ) -> bool:
     no_changes = True
     for var_idx in range(prop_var_end - prop_var_start):
