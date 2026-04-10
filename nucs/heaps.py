@@ -17,6 +17,7 @@ from numba import njit
 from numpy.typing import NDArray
 
 
+@njit(cache=True, fastmath=True)
 def min_heap_init(capacity: int) -> NDArray:
     """
     Creates a data structure, designed to store integers from 0 to n-1,
