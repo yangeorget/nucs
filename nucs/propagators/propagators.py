@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Callable
+from typing import Callable, List, Any
 
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -133,9 +133,13 @@ from nucs.propagators.sum_leq_c_propagator import (
     get_triggers_sum_leq_c,
 )
 
-GET_TRIGGERS_FCTS = []
-GET_COMPLEXITY_FCTS = []
-COMPUTE_DOMAINS_FCTS = []
+GET_TRIGGERS_FCTS: List[Any] = []
+GET_COMPLEXITY_FCTS: List[Any] = []
+COMPUTE_DOMAINS_FCTS: List[Any] = []
+
+
+def get_algorithm_nb() -> int:
+    return len(COMPUTE_DOMAINS_FCTS)
 
 
 def register_propagator(get_triggers_fct: Callable, get_complexity_fct: Callable, compute_domains_fct: Callable) -> int:
@@ -149,7 +153,7 @@ def register_propagator(get_triggers_fct: Callable, get_complexity_fct: Callable
     GET_TRIGGERS_FCTS.append(get_triggers_fct)
     GET_COMPLEXITY_FCTS.append(get_complexity_fct)
     COMPUTE_DOMAINS_FCTS.append(compute_domains_fct)
-    return len(COMPUTE_DOMAINS_FCTS) - 1
+    return get_algorithm_nb() - 1
 
 
 ALG_ABS_EQ = register_propagator(get_triggers_abs_eq, get_complexity_abs_eq, compute_domains_abs_eq)
@@ -222,7 +226,7 @@ def update_propagators_with_previous_prop(
     previous_prop_idx: int,
 ) -> None:
     for prop_idx in triggers:
-        if prop_idx == -1:
+        if prop_idx == -1:  # TODO: use first value as a length instead of using a sentinel
             return
         if not entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
             min_heap_add(triggered_propagators, propagator_nb, prop_idx)

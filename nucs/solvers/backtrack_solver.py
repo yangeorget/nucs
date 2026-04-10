@@ -70,7 +70,12 @@ from nucs.heuristics.heuristics import (
 )
 from nucs.numba_helper import build_function_address_list, function_from_address
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, reset_triggered_propagators, update_propagators
+from nucs.propagators.propagators import (
+    COMPUTE_DOMAINS_FCTS,
+    reset_triggered_propagators,
+    update_propagators,
+    get_algorithm_nb,
+)
 from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_points, fix_choice_point
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.queue_solver import QueueSolver
@@ -203,6 +208,7 @@ class BacktrackSolver(Solver, QueueSolver):
         best_solution = None
         while (
             solution := solve_one(
+                get_algorithm_nb(),
                 self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
@@ -274,6 +280,7 @@ class BacktrackSolver(Solver, QueueSolver):
         )
         while True:
             solution = solve_one(
+                get_algorithm_nb(),
                 self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
@@ -353,6 +360,7 @@ class BacktrackSolver(Solver, QueueSolver):
         )
         while True:
             solution = solve_one(
+                get_algorithm_nb(),
                 self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
@@ -427,6 +435,7 @@ class BacktrackSolver(Solver, QueueSolver):
         )
         while True:
             solution = solve_one(
+                get_algorithm_nb(),
                 self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
@@ -469,6 +478,7 @@ class BacktrackSolver(Solver, QueueSolver):
 
 @njit(cache=True, fastmath=True)
 def solve_one(
+    algorithm_nb: int,
     propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
@@ -533,6 +543,7 @@ def solve_one(
         dom_heuristic_fct = function_from_address(TYPE_DOM_HEURISTIC, dom_heuristic_addrs[dom_heuristic_idx])
     while True:
         status = consistency_alg_fct(
+            algorithm_nb,
             propagator_nb,
             statistics,
             algorithms,

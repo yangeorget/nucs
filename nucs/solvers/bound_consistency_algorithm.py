@@ -44,6 +44,7 @@ from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagator
 
 @njit(cache=True, fastmath=True)
 def bound_consistency_algorithm(
+    algorithm_nb: int,
     propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
@@ -84,19 +85,11 @@ def bound_consistency_algorithm(
     entailed_propagators = entailed_propagators_stk[top]
     statistics[STATS_IDX_ALG_BC_NB] += 1
     if NUMBA_DISABLE_JIT:
-        compute_domains_fcts = [COMPUTE_DOMAINS_FCTS[algorithms[prop_idx]] for prop_idx in range(propagator_nb)]
+        compute_domains_fcts = COMPUTE_DOMAINS_FCTS
     else:
-        previous_algorithm = algorithms[0]
-        previous_function = function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[previous_algorithm])
-        compute_domains_fcts = [previous_function] * propagator_nb  # necessary for numba to get the type
-        for prop_idx in range(1, propagator_nb):
-            if algorithms[prop_idx] == previous_algorithm:
-                compute_domains_fcts[prop_idx] = previous_function
-            else:
-                previous_algorithm = algorithms[prop_idx]
-                previous_function = compute_domains_fcts[prop_idx] = function_from_address(
-                    TYPE_COMPUTE_DOMAINS, compute_domains_addrs[previous_algorithm]
-                )
+        compute_domains_fcts = [function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[0])] * algorithm_nb
+        for alg_idx in range(1, algorithm_nb):
+            compute_domains_fcts[alg_idx] = function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[alg_idx])
     while True:
         prop_idx = min_heap_pop(triggered_propagators, propagator_nb)
         if prop_idx == -1:
@@ -105,7 +98,7 @@ def bound_consistency_algorithm(
         prop_var_start = bounds[prop_idx, VARIABLE, RANGE_START]
         prop_var_end = bounds[prop_idx, VARIABLE, RANGE_END]
         prop_domains = domains[propagator_variables[prop_var_start:prop_var_end]]  # this is a copy
-        status = compute_domains_fcts[prop_idx](
+        status = compute_domains_fcts[algorithms[prop_idx]](
             prop_domains,
             propagator_parameters[bounds[prop_idx, PARAM, RANGE_START]: bounds[prop_idx, PARAM, RANGE_END]],
         )
@@ -115,30 +108,61 @@ def bound_consistency_algorithm(
         if status == PROP_ENTAILMENT:
             entailed_propagators[prop_idx] = True
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
-        no_changes = True
-        for var_idx in range(prop_var_end - prop_var_start):
-            events = 0
-            variable = propagator_variables[prop_var_start + var_idx]
-            domain = domains[variable]
-            domain_min = prop_domains[var_idx, MIN]
-            if domain[MIN] != domain_min:
-                domain[MIN] = domain_min
-                events |= EVENT_MASK_MIN
-            domain_max = prop_domains[var_idx, MAX]
-            if domain[MAX] != domain_max:
-                domain[MAX] = domain_max
-                events |= EVENT_MASK_MAX
-            if events:
-                if domain_min == domain_max:
-                    events |= EVENT_MASK_GROUND
-                    unbound_variable_nb_stk[top] -= 1
-                update_propagators_with_previous_prop(
-                    propagator_nb,
-                    triggered_propagators,
-                    entailed_propagators,
-                    triggers[variable, events],
-                    prop_idx,
-                )
-                no_changes = False
-        if no_changes:
+        if has_no_changes(
+            top,
+            propagator_nb,
+            prop_idx,
+            prop_var_start,
+            prop_var_end,
+            prop_domains,
+            propagator_variables,
+            domains,
+            triggered_propagators,
+            entailed_propagators,
+            triggers,
+            unbound_variable_nb_stk,
+        ):
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
+
+
+@njit(cache=True, fastmath=True)
+def has_no_changes(
+    top: int,
+    propagator_nb: int,
+    prop_idx: int,
+    prop_var_start: int,
+    prop_var_end: int,
+    prop_domains: NDArray,
+    propagator_variables: NDArray,
+    domains: NDArray,
+    triggered_propagators: NDArray,
+    entailed_propagators: NDArray,
+    triggers: NDArray,
+    unbound_variable_nb_stk: NDArray,
+) -> bool:
+    no_changes = True
+    for var_idx in range(prop_var_end - prop_var_start):
+        events = 0
+        variable = propagator_variables[prop_var_start + var_idx]
+        domain = domains[variable]
+        domain_min = prop_domains[var_idx, MIN]
+        if domain[MIN] != domain_min:
+            domain[MIN] = domain_min
+            events |= EVENT_MASK_MIN
+        domain_max = prop_domains[var_idx, MAX]
+        if domain[MAX] != domain_max:
+            domain[MAX] = domain_max
+            events |= EVENT_MASK_MAX
+        if events:
+            if domain_min == domain_max:
+                events |= EVENT_MASK_GROUND
+                unbound_variable_nb_stk[top] -= 1
+            update_propagators_with_previous_prop(
+                propagator_nb,
+                triggered_propagators,
+                entailed_propagators,
+                triggers[variable, events],
+                prop_idx,
+            )
+            no_changes = False
+    return no_changes

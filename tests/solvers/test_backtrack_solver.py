@@ -20,7 +20,7 @@ from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_SPLIT_LOW,
 )
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, ALG_RELATION
+from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, ALG_RELATION, get_algorithm_nb
 from nucs.solvers.backtrack_solver import BacktrackSolver, get_function_addresses, solve_one
 from nucs.solvers.choice_points import backtrack
 
@@ -44,6 +44,7 @@ class TestBacktrackSolver:
             get_function_addresses()
         )
         solution = solve_one(
+            get_algorithm_nb(),
             problem.propagator_nb,
             solver.statistics,
             problem.algorithms,

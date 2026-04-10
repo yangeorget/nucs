@@ -52,7 +52,7 @@ def compute_domains_relation(domains: NDArray, parameters: NDArray) -> int:
     for domain_idx in range(n):
         tuples = tuples[
             (tuples[:, domain_idx] >= domains[domain_idx, MIN]) & (tuples[:, domain_idx] <= domains[domain_idx, MAX])
-            ]
+        ]
         if len(tuples) == 0:
             return PROP_INCONSISTENCY
     for domain_idx in range(n):  # no support for .min(axis=0) in Numba
