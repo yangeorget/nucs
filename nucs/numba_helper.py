@@ -16,7 +16,7 @@ from numba import types  # type: ignore
 from numba.core import cgutils
 from numba.experimental.function_type import _get_wrapper_address
 from numba.extending import intrinsic
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 
 from nucs.constants import NUMBA_DISABLE_JIT
 
@@ -36,7 +36,7 @@ def function_from_address(typingctx, func_type_ref: types.FunctionType, addr: in
     return func_type(func_type_ref, addr), codegen
 
 
-def build_function_address_list(functions, signature) -> NDArray:  # type: ignore
+def addresses_from_functions(functions, signature) -> NDArray:  # type: ignore
     if NUMBA_DISABLE_JIT:
         return np.empty(0)
     else:

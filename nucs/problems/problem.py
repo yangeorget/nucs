@@ -29,7 +29,7 @@ from nucs.constants import (
     TYPE_GET_TRIGGERS,
     VARIABLE,
 )
-from nucs.numba_helper import build_function_address_list, function_from_address
+from nucs.numba_helper import addresses_from_functions, function_from_address
 from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
 
 logger = logging.getLogger(__name__)
@@ -136,7 +136,6 @@ class Problem:
         )
         logger.debug("Initializing triggers")
         self.triggers = np.zeros((self.domain_nb, EVENT_MASK_NB, self.propagator_nb + 1), dtype=np.int32)
-        get_triggers_addrs = build_function_address_list(GET_TRIGGERS_FCTS, SIGNATURE_GET_TRIGGERS)
         init_triggers(
             self.triggers,
             self.domain_nb,
@@ -145,7 +144,7 @@ class Problem:
             self.propagator_variables,
             self.propagator_parameters,
             self.algorithms,
-            get_triggers_addrs,
+            addresses_from_functions(GET_TRIGGERS_FCTS, SIGNATURE_GET_TRIGGERS),
         )
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.propagator_nb} propagators")

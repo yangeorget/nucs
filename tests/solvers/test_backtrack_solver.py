@@ -12,23 +12,24 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import OPTIM_PRUNE, OPTIM_RESET, STATS_LBL_SOLUTION_NB, STATS_LBL_SOLVER_CHOICE_DEPTH
+from nucs.constants import OPTIM_PRUNE, OPTIM_RESET, STATS_LBL_SOLUTION_NB, STATS_LBL_SOLVER_CHOICE_DEPTH, \
+    SIGNATURE_COMPUTE_DOMAINS, SIGNATURE_VAR_HEURISTIC, SIGNATURE_DOM_HEURISTIC, SIGNATURE_CONSISTENCY_ALG
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MID_VALUE,
     DOM_HEURISTIC_MIN_VALUE,
     DOM_HEURISTIC_SPLIT_HIGH,
-    DOM_HEURISTIC_SPLIT_LOW,
+    DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_FCTS, DOM_HEURISTIC_FCTS,
 )
+from nucs.numba_helper import addresses_from_functions
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, ALG_RELATION, get_algorithm_nb
-from nucs.solvers.backtrack_solver import BacktrackSolver, get_function_addresses, solve_one
+from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, ALG_RELATION, get_algorithm_nb, \
+    COMPUTE_DOMAINS_FCTS
+from nucs.solvers.backtrack_solver import BacktrackSolver, solve_one
 from nucs.solvers.choice_points import backtrack
+from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_FCTS
 
 
 class TestBacktrackSolver:
-    def test_get_function_addresses(self) -> None:
-        assert len(get_function_addresses()) == 4
-
     def test_solve_all(self) -> None:
         problem = Problem([(0, 99), (0, 99)])
         solver = BacktrackSolver(problem)
@@ -40,9 +41,10 @@ class TestBacktrackSolver:
     def test_solve_one(self) -> None:
         problem = Problem([(0, 1), (0, 1)])
         solver = BacktrackSolver(problem, stks_max_height=3)
-        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
-            get_function_addresses()
-        )
+        compute_domains_addrs = addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)
+        var_heuristic_addrs = addresses_from_functions(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC)
+        dom_heuristic_addrs = addresses_from_functions(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC)
+        consistency_alg_addrs = addresses_from_functions(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG)
         solution = solve_one(
             get_algorithm_nb(),
             problem.propagator_nb,

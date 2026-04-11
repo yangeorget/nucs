@@ -12,7 +12,7 @@
 ###############################################################################
 import logging
 from multiprocessing import Queue
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import Dict, Iterable, Iterator, List, Optional
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -68,7 +68,7 @@ from nucs.heuristics.heuristics import (
     VAR_HEURISTIC_FCTS,
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
 )
-from nucs.numba_helper import build_function_address_list, function_from_address
+from nucs.numba_helper import addresses_from_functions, function_from_address
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     COMPUTE_DOMAINS_FCTS,
@@ -90,16 +90,16 @@ class BacktrackSolver(Solver, QueueSolver):
     """
 
     def __init__(
-        self,
-        problem: Problem,
-        consistency_alg: int = CONSISTENCY_ALG_BC,
-        decision_variables: Optional[Iterable[int]] = None,
-        var_heuristic: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
-        var_heuristic_params: List[List[int]] = [[]],
-        dom_heuristic: int = DOM_HEURISTIC_MIN_VALUE,
-        dom_heuristic_params: List[List[int]] = [[]],
-        stks_max_height: int = 512,
-        log_level: str = LOG_LEVEL_INFO,
+            self,
+            problem: Problem,
+            consistency_alg: int = CONSISTENCY_ALG_BC,
+            decision_variables: Optional[Iterable[int]] = None,
+            var_heuristic: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
+            var_heuristic_params: List[List[int]] = [[]],
+            dom_heuristic: int = DOM_HEURISTIC_MIN_VALUE,
+            dom_heuristic_params: List[List[int]] = [[]],
+            stks_max_height: int = 512,
+            log_level: str = LOG_LEVEL_INFO,
     ):
         """
         Initializes the solver.
@@ -202,37 +202,38 @@ class BacktrackSolver(Solver, QueueSolver):
         :param mode: the optimization mode
         :return: the solution if it exists or None
         """
-        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
-            get_function_addresses()
-        )
+        compute_domains_addrs = addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)
+        var_heuristic_addrs = addresses_from_functions(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC)
+        dom_heuristic_addrs = addresses_from_functions(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC)
+        consistency_alg_addrs = addresses_from_functions(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG)
         best_solution = None
         while (
-            solution := solve_one(
-                get_algorithm_nb(),
-                self.problem.propagator_nb,
-                self.statistics,
-                self.problem.algorithms,
-                self.problem.bounds,
-                self.problem.propagator_variables,
-                self.problem.propagator_parameters,
-                self.problem.triggers,
-                self.domains_stk,
-                self.entailed_propagators_stk,
-                self.domain_update_stk,
-                self.unbound_variable_nb_stk,
-                self.stks_top,
-                self.triggered_propagators,
-                self.consistency_alg_idx,
-                self.decision_variables,
-                self.var_heuristic_idx,
-                self.var_heuristic_params,
-                self.dom_heuristic_idx,
-                self.dom_heuristic_params,
-                compute_domains_addrs,
-                consistency_alg_addrs,
-                var_heuristic_addrs,
-                dom_heuristic_addrs,
-            )
+                solution := solve_one(
+                    get_algorithm_nb(),
+                    self.problem.propagator_nb,
+                    self.statistics,
+                    self.problem.algorithms,
+                    self.problem.bounds,
+                    self.problem.propagator_variables,
+                    self.problem.propagator_parameters,
+                    self.problem.triggers,
+                    self.domains_stk,
+                    self.entailed_propagators_stk,
+                    self.domain_update_stk,
+                    self.unbound_variable_nb_stk,
+                    self.stks_top,
+                    self.triggered_propagators,
+                    self.consistency_alg_idx,
+                    self.decision_variables,
+                    self.var_heuristic_idx,
+                    self.var_heuristic_params,
+                    self.dom_heuristic_idx,
+                    self.dom_heuristic_params,
+                    compute_domains_addrs,
+                    consistency_alg_addrs,
+                    var_heuristic_addrs,
+                    dom_heuristic_addrs,
+                )
         ) is not None:
             logger.info(f"Found a local optimum: {solution[variable]}")
             best_solution = solution
@@ -248,22 +249,22 @@ class BacktrackSolver(Solver, QueueSolver):
                     self.problem.unbound_variable_nb,
                 )
                 if not fix_choice_point(
-                    self.domains_stk,
-                    self.unbound_variable_nb_stk,
-                    variable,
-                    best_solution[variable],
-                    bound,
+                        self.domains_stk,
+                        self.unbound_variable_nb_stk,
+                        variable,
+                        best_solution[variable],
+                        bound,
                 ):
                     break
             else:
                 logger.debug("Pruning choice points")
                 if not fix_choice_points(
-                    self.domains_stk,
-                    self.unbound_variable_nb_stk,
-                    self.stks_top,
-                    variable,
-                    best_solution[variable],
-                    bound,
+                        self.domains_stk,
+                        self.unbound_variable_nb_stk,
+                        self.stks_top,
+                        variable,
+                        best_solution[variable],
+                        bound,
                 ):
                     break
             reset_triggered_propagators(self.triggered_propagators, self.problem.propagator_nb)
@@ -275,9 +276,10 @@ class BacktrackSolver(Solver, QueueSolver):
         :return: an iterator
         """
         logger.info("Solving and iterating over the solutions")
-        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
-            get_function_addresses()
-        )
+        compute_domains_addrs = addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)
+        var_heuristic_addrs = addresses_from_functions(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC)
+        dom_heuristic_addrs = addresses_from_functions(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC)
+        consistency_alg_addrs = addresses_from_functions(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG)
         while True:
             solution = solve_one(
                 get_algorithm_nb(),
@@ -310,13 +312,13 @@ class BacktrackSolver(Solver, QueueSolver):
             logger.debug("Found a solution")
             yield solution
             if not backtrack(
-                self.problem.propagator_nb,
-                self.statistics,
-                self.entailed_propagators_stk,
-                self.domain_update_stk,
-                self.stks_top,
-                self.triggered_propagators,
-                self.problem.triggers,
+                    self.problem.propagator_nb,
+                    self.statistics,
+                    self.entailed_propagators_stk,
+                    self.domain_update_stk,
+                    self.stks_top,
+                    self.triggered_propagators,
+                    self.problem.triggers,
             ):
                 break
 
@@ -345,7 +347,7 @@ class BacktrackSolver(Solver, QueueSolver):
         self.optimize_and_queue(variable, MIN, processor_idx, solution_queue, mode)
 
     def optimize_and_queue(
-        self, variable: int, bound: int, processor_idx: int, solution_queue: Queue, mode: str
+            self, variable: int, bound: int, processor_idx: int, solution_queue: Queue, mode: str
     ) -> None:
         """
         Enqueues the solution that optimizes a variable.
@@ -355,9 +357,10 @@ class BacktrackSolver(Solver, QueueSolver):
         :param solution_queue: the solution queue
         :param mode: the optimization mode
         """
-        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
-            get_function_addresses()
-        )
+        compute_domains_addrs = addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)
+        var_heuristic_addrs = addresses_from_functions(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC)
+        dom_heuristic_addrs = addresses_from_functions(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC)
+        consistency_alg_addrs = addresses_from_functions(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG)
         while True:
             solution = solve_one(
                 get_algorithm_nb(),
@@ -402,22 +405,22 @@ class BacktrackSolver(Solver, QueueSolver):
                     self.problem.unbound_variable_nb,
                 )
                 if not fix_choice_point(
-                    self.domains_stk,
-                    self.unbound_variable_nb_stk,
-                    variable,
-                    solution[variable],
-                    bound,
+                        self.domains_stk,
+                        self.unbound_variable_nb_stk,
+                        variable,
+                        solution[variable],
+                        bound,
                 ):
                     break
             else:
                 logger.debug("Pruning choice points")
                 if not fix_choice_points(
-                    self.domains_stk,
-                    self.unbound_variable_nb_stk,
-                    self.stks_top,
-                    variable,
-                    solution[variable],
-                    bound,
+                        self.domains_stk,
+                        self.unbound_variable_nb_stk,
+                        self.stks_top,
+                        variable,
+                        solution[variable],
+                        bound,
                 ):
                     break
             reset_triggered_propagators(self.triggered_propagators, self.problem.propagator_nb)
@@ -430,9 +433,10 @@ class BacktrackSolver(Solver, QueueSolver):
         :param solution_queue: the solution queue
         """
         logger.info("Solving and queuing solutions found")
-        compute_domains_addrs, var_heuristic_addrs, dom_heuristic_addrs, consistency_alg_addrs = (
-            get_function_addresses()
-        )
+        compute_domains_addrs = addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)
+        var_heuristic_addrs = addresses_from_functions(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC)
+        dom_heuristic_addrs = addresses_from_functions(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC)
+        consistency_alg_addrs = addresses_from_functions(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG)
         while True:
             solution = solve_one(
                 get_algorithm_nb(),
@@ -464,13 +468,13 @@ class BacktrackSolver(Solver, QueueSolver):
                 break
             solution_queue.put((processor_idx, solution, self.statistics))
             if not backtrack(
-                self.problem.propagator_nb,
-                self.statistics,
-                self.entailed_propagators_stk,
-                self.domain_update_stk,
-                self.stks_top,
-                self.triggered_propagators,
-                self.problem.triggers,
+                    self.problem.propagator_nb,
+                    self.statistics,
+                    self.entailed_propagators_stk,
+                    self.domain_update_stk,
+                    self.stks_top,
+                    self.triggered_propagators,
+                    self.problem.triggers,
             ):
                 break
         solution_queue.put((processor_idx, None, self.statistics))
@@ -478,30 +482,30 @@ class BacktrackSolver(Solver, QueueSolver):
 
 @njit(cache=True, fastmath=True)
 def solve_one(
-    algorithm_nb: int,
-    propagator_nb: int,
-    statistics: NDArray,
-    algorithms: NDArray,
-    bounds: NDArray,
-    propagator_variables: NDArray,
-    propagator_parameters: NDArray,
-    triggers: NDArray,
-    domains_stk: NDArray,
-    entailed_propagators_stk: NDArray,
-    domain_update_stk: NDArray,
-    unbound_variable_nb_stk: NDArray,
-    stks_top: NDArray,
-    triggered_propagators: NDArray,
-    consistency_alg_idx: int,
-    decision_variables: NDArray,
-    var_heuristic_idx: int,
-    var_heuristic_params: NDArray,
-    dom_heuristic_idx: int,
-    dom_heuristic_params: NDArray,
-    compute_domains_addrs: NDArray,
-    consistency_alg_addrs: NDArray,
-    var_heuristic_addrs: NDArray,
-    dom_heuristic_addrs: NDArray,
+        algorithm_nb: int,
+        propagator_nb: int,
+        statistics: NDArray,
+        algorithms: NDArray,
+        bounds: NDArray,
+        propagator_variables: NDArray,
+        propagator_parameters: NDArray,
+        triggers: NDArray,
+        domains_stk: NDArray,
+        entailed_propagators_stk: NDArray,
+        domain_update_stk: NDArray,
+        unbound_variable_nb_stk: NDArray,
+        stks_top: NDArray,
+        triggered_propagators: NDArray,
+        consistency_alg_idx: int,
+        decision_variables: NDArray,
+        var_heuristic_idx: int,
+        var_heuristic_params: NDArray,
+        dom_heuristic_idx: int,
+        dom_heuristic_params: NDArray,
+        compute_domains_addrs: NDArray,
+        consistency_alg_addrs: NDArray,
+        var_heuristic_addrs: NDArray,
+        dom_heuristic_addrs: NDArray,
 ) -> Optional[NDArray]:
     """
     Find at most one solution.
@@ -584,26 +588,12 @@ def solve_one(
             if top > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
                 statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = top
         elif not backtrack(
-            propagator_nb,
-            statistics,
-            entailed_propagators_stk,
-            domain_update_stk,
-            stks_top,
-            triggered_propagators,
-            triggers,
+                propagator_nb,
+                statistics,
+                entailed_propagators_stk,
+                domain_update_stk,
+                stks_top,
+                triggered_propagators,
+                triggers,
         ):
             return None
-
-
-def get_function_addresses() -> Tuple[NDArray, NDArray, NDArray, NDArray]:
-    """
-    Returns the addresses of the
-    compute_domains, variable heuristics, domain heuristics and consistency algorithms functions.
-    :return: a tuple of NDArrays
-    """
-    return (
-        build_function_address_list(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS),
-        build_function_address_list(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC),
-        build_function_address_list(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC),
-        build_function_address_list(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG),
-    )
