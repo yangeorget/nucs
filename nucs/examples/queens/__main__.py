@@ -52,7 +52,8 @@ if __name__ == "__main__":
     )
     if args.find_all:
         solver.solve_all()
-        solver.print_statistics()
+        if args.display_stats:
+            solver.print_statistics()
     else:
         solution = solver.find_one()
         if args.display_stats:

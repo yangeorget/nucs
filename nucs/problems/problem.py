@@ -98,7 +98,7 @@ class Problem:
         return var
 
     def add_propagator(
-            self, algorithm: int, variables: Iterable[int], parameters: Optional[Iterable[int]] = None
+        self, algorithm: int, variables: Iterable[int], parameters: Optional[Iterable[int]] = None
     ) -> None:
         """
         Adds an extra propagator.
@@ -166,10 +166,10 @@ def init_bounds(bounds: NDArray, propagators: List[Tuple[List[int], int, List[in
 
 
 def init_propagator_variables_and_parameters(
-        propagator_variables: NDArray,
-        propagator_parameters: NDArray,
-        bounds: NDArray,
-        propagators: List[Tuple[List[int], int, List[int]]],
+    propagator_variables: NDArray,
+    propagator_parameters: NDArray,
+    bounds: NDArray,
+    propagators: List[Tuple[List[int], int, List[int]]],
 ) -> None:
     for propagator_idx, propagator in enumerate(propagators):
         var_start = bounds[propagator_idx, VARIABLE, RANGE_START]
@@ -182,14 +182,14 @@ def init_propagator_variables_and_parameters(
 
 @njit(cache=True, fastmath=True)
 def init_triggers(
-        triggers: NDArray,
-        domain_nb: int,
-        propagator_nb: int,
-        bounds: NDArray,
-        propagator_variables: NDArray,
-        propagator_parameters: NDArray,
-        algorithms: NDArray,
-        get_triggers_addrs: NDArray,
+    triggers: NDArray,
+    domain_nb: int,
+    propagator_nb: int,
+    bounds: NDArray,
+    propagator_variables: NDArray,
+    propagator_parameters: NDArray,
+    algorithms: NDArray,
+    get_triggers_addrs: NDArray,
 ) -> None:
     variable_propagator = np.full((domain_nb, propagator_nb), False)
     for propagator in range(propagator_nb):
@@ -199,8 +199,8 @@ def init_triggers(
         else:
             trigger_fct = function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])
         parameters = propagator_parameters[
-                     bounds[propagator, PARAM, RANGE_START]: bounds[propagator, PARAM, RANGE_END]
-                     ]
+            bounds[propagator, PARAM, RANGE_START] : bounds[propagator, PARAM, RANGE_END]
+        ]
         var_start = bounds[propagator, VARIABLE, RANGE_START]
         var_end = bounds[propagator, VARIABLE, RANGE_END]
         var_nb = var_end - var_start

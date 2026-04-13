@@ -12,18 +12,33 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import OPTIM_PRUNE, OPTIM_RESET, STATS_LBL_SOLUTION_NB, STATS_LBL_SOLVER_CHOICE_DEPTH, \
-    SIGNATURE_COMPUTE_DOMAINS, SIGNATURE_VAR_HEURISTIC, SIGNATURE_DOM_HEURISTIC, SIGNATURE_CONSISTENCY_ALG
+from nucs.constants import (
+    OPTIM_PRUNE,
+    OPTIM_RESET,
+    STATS_LBL_SOLUTION_NB,
+    STATS_LBL_SOLVER_CHOICE_DEPTH,
+    SIGNATURE_COMPUTE_DOMAINS,
+    SIGNATURE_VAR_HEURISTIC,
+    SIGNATURE_DOM_HEURISTIC,
+    SIGNATURE_CONSISTENCY_ALG,
+)
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MID_VALUE,
     DOM_HEURISTIC_MIN_VALUE,
     DOM_HEURISTIC_SPLIT_HIGH,
-    DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_FCTS, DOM_HEURISTIC_FCTS,
+    DOM_HEURISTIC_SPLIT_LOW,
+    VAR_HEURISTIC_FCTS,
+    DOM_HEURISTIC_FCTS,
 )
 from nucs.numba_helper import addresses_from_functions
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_LEQ, ALG_ALLDIFFERENT, ALG_RELATION, get_algorithm_nb, \
-    COMPUTE_DOMAINS_FCTS
+from nucs.propagators.propagators import (
+    ALG_AFFINE_LEQ,
+    ALG_ALLDIFFERENT,
+    ALG_RELATION,
+    get_algorithm_nb,
+    COMPUTE_DOMAINS_FCTS,
+)
 from nucs.solvers.backtrack_solver import BacktrackSolver, solve_one
 from nucs.solvers.choice_points import backtrack
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_FCTS
