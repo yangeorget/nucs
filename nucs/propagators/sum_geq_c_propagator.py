@@ -52,10 +52,11 @@ def compute_domains_sum_geq_c(domains: NDArray, parameters: NDArray) -> int:
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     n = len(domains)
-    domain_sum_max = -parameters[0] + domains[:, MIN].sum()
+    p = -parameters[0]
+    domain_sum_max = p + domains[:, MIN].sum()
     if domain_sum_max >= 0:
         return PROP_ENTAILMENT
-    domain_sum_min = -parameters[0] + domains[:, MAX].sum()
+    domain_sum_min = p + domains[:, MAX].sum()
     for i in range(n):
         new_min = domains[i, MAX] - domain_sum_min
         if new_min > domains[i, MIN]:
