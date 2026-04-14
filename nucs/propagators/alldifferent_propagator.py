@@ -128,8 +128,9 @@ def filter_lower(
     max_sorted_vars: NDArray,
 ) -> bool:
     for i in range(1, nb + 2):
-        t[i] = h[i] = i - 1
-        d[i] = bounds[i] - bounds[i - 1]
+        i1 = i - 1
+        t[i] = h[i] = i1
+        d[i] = bounds[i] - bounds[i1]
     for i in range(n):
         x = ranks[max_sorted_vars[i], MIN]
         y = ranks[max_sorted_vars[i], MAX]
@@ -140,16 +141,18 @@ def filter_lower(
             t[z] = z + 1
             z = path_max(t, t[z])
             t[z] = j
-        if d[z] + bounds[y] < bounds[z]:  # moved above the path compression which is not the case in the paper
+        delta = d[z] + bounds[y] - bounds[z]
+        if delta < 0:  # moved above the path compression which is not the case in the paper
             return False
         path_set(t, x + 1, z, z)  # path compression
         if h[x] > x:
             w = path_max(h, h[x])
             domains[max_sorted_vars[i], MIN] = bounds[w]
             path_set(h, x, w, w)  # path compression
-        if d[z] + bounds[y] == bounds[z]:
-            path_set(h, h[y], j - 1, y)  # mark hall interval
-            h[y] = j - 1  # hall interval[bounds[j], bounds[y]]
+        if delta == 0:
+            j1 = j - 1
+            path_set(h, h[y], j1, y)  # mark hall interval
+            h[y] = j1  # hall interval[bounds[j], bounds[y]]
     return True
 
 
@@ -166,8 +169,9 @@ def filter_upper(
     min_sorted_vars: NDArray,
 ) -> bool:
     for i in range(nb + 1):
-        t[i] = h[i] = i + 1
-        d[i] = bounds[i + 1] - bounds[i]
+        i1 = i + 1
+        t[i] = h[i] = i1
+        d[i] = bounds[i1] - bounds[i]
     for i in range(n - 1, -1, -1):
         x = ranks[min_sorted_vars[i], MAX]
         y = ranks[min_sorted_vars[i], MIN]
@@ -178,16 +182,18 @@ def filter_upper(
             t[z] = z - 1
             z = path_min(t, t[z])
             t[z] = j
-        if d[z] + bounds[z] < bounds[y]:  # moved above the path compression which is not the case in the paper
+        delta = d[z] + bounds[z] - bounds[y]
+        if delta < 0:  # moved above the path compression which is not the case in the paper
             return False
         path_set(t, x - 1, z, z)  # path compression
         if h[x] < x:
             w = path_min(h, h[x])
             domains[min_sorted_vars[i], MAX] = bounds[w] - 1
             path_set(h, x, w, w)  # path compression
-        if d[z] + bounds[z] == bounds[y]:
-            path_set(h, h[y], j + 1, y)  # mark hall interval
-            h[y] = j + 1  # hall interval[bounds[j], bounds[y]]
+        if delta == 0:
+            j1 = j + 1
+            path_set(h, h[y], j1, y)  # mark hall interval
+            h[y] = j1  # hall interval[bounds[j], bounds[y]]
     return True
 
 
