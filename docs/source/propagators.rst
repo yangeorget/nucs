@@ -12,7 +12,7 @@ Propagator functions
 Each propagator :code:`XXX` defines three functions:
 
 - :code:`compute_domains_XXX(domains: NDArray, parameters: NDArray) -> int`
-- :code:`get_triggers_XXX(size: int, variable: int,  parameters: NDArray) -> NDArray`
+- :code:`get_triggers_XXX(n: int, variable: int,  parameters: NDArray) -> int`
 - :code:`get_complexity_XXX(size: int, parameters: NDArray) -> float`
 
 

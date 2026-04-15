@@ -36,5 +36,6 @@ class TestEquivEqC(PropagatorTest):
         consistency_result: int,
         expected_domains: Optional[List[List[int]]],
     ) -> None:
-        self.assert_compute_domains(compute_domains_equiv_eq_c, domains, parameters, consistency_result,
-                                    expected_domains)
+        self.assert_compute_domains(
+            compute_domains_equiv_eq_c, domains, parameters, consistency_result, expected_domains
+        )

@@ -8,17 +8,17 @@ NUCS comes with several examples.
 
 Most of these examples can be run from the command line and support the following options:
 
-* :code:`--consistency`: set the consistency algorithm (0 is for BC, 1 for BC+shaving)
-* :code:`--cp-max-height`: set the maximal height of the choice points stack (default is 512)
-* :code:`--display-solutions`: display the solution(s)
-* :code:`--display-stats`: display the statistics
-* :code:`--find-all`: find all solutions
+* :code:`--consistency`: set the consistency algorithm (0 is for BC, 1 for BC+shaving), defaults to BC
+* :code:`--cp-max-height`: set the maximal height of the choice points stack, defaults to 512
+* :code:`--display-solutions`: display the solution(s), defaults to true
+* :code:`--display-stats`: display the statistics, defaults to true
+* :code:`--find-all`: find all solutions, defaults to false
 * :code:`--help`: show the help
-* :code:`--log-level`: set the log level, can take the values :code:`DEBUG`, :code:`INFO`, :code:`WARNING`, :code:`ERROR`, :code:`CRITICAL`
+* :code:`--log-level`: set the log level, can take the values :code:`DEBUG`, :code:`INFO`, :code:`WARNING`, :code:`ERROR`, :code:`CRITICAL`, defaults to :code:`INFO`
 * :code:`--n`: define the size of the problem
-* :code:`--optimization-mode`: set the optimizer mode (:code:`RESET` or :code:`PRUNE`)
+* :code:`--optimization-mode`: set the optimizer mode (:code:`RESET` or :code:`PRUNE`), defaults to :code:`RESET`
 * :code:`--processors`: define the number of processors to use
-* :code:`--symmetry-breaking/--no-symmetry-breaking`: leverage symmetries in the problem
+* :code:`--symmetry-breaking/--no-symmetry-breaking`: leverage symmetries in the problem, defaults to true
 
 
 .. py:module:: nucs.examples.all_interval_series.all_interval_series_problem
@@ -137,6 +137,23 @@ This problem leverages the propagators:
 
 * :mod:`nucs.propagators.affine_eq_propagator`,
 * :mod:`nucs.propagators.affine_leq_propagator`.
+
+
+.. py:module:: nucs.examples.langford.langford_problem
+.. py:class:: nucs.examples.langford.langford_problem.LangfordProblem
+
+This problem is problem `24 <https://www.csplib.org/Problems/prob024>`_ on CSPLib.
+
+This problem can be run with the command:
+
+.. code-block:: bash
+
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.langford
+
+This problem leverages the propagators:
+
+* :mod:`nucs.propagators.affine_eq_propagator`,
+* :mod:`nucs.propagators.alldifferent_propagator`.
 
 
 .. py:module:: nucs.examples.magic_sequence.magic_sequence_problem

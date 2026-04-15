@@ -15,11 +15,11 @@ from typing import List, Optional, Tuple, Union
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
-from nucs.propagators.leq_propagator import compute_domains_leq
+from nucs.propagators.leq_c_propagator import compute_domains_leq_c
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestLeq(PropagatorTest):
+class TestLeqC(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
@@ -36,4 +36,4 @@ class TestLeq(PropagatorTest):
         consistency_result: int,
         expected_domains: Optional[List[List[int]]],
     ) -> None:
-        self.assert_compute_domains(compute_domains_leq, domains, parameters, consistency_result, expected_domains)
+        self.assert_compute_domains(compute_domains_leq_c, domains, parameters, consistency_result, expected_domains)
