@@ -62,7 +62,6 @@ def bound_consistency_algorithm(
     decision_variables: NDArray,
 ) -> int:
     """
-    Bound consistency algorithm.
     :param statistics: a Numpy array of statistics
     :param algorithms: the algorithms indexed by propagators
     :param bounds: the bounds indexed by propagators

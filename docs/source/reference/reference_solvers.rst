@@ -8,22 +8,22 @@ NuCS comes with the following solvers.
 
 
 .. py:module:: nucs.solvers.backtrack_solver
-.. py:function:: nucs.solvers.backtrack_solver.__init__(self, problem, consistency_alg_idx, decision_variables, var_heuristic_idx, var_heuristic_params, dom_heuristic_idx, dom_heuristic_params, stack_max_height, log_level)
+.. py:function:: nucs.solvers.backtrack_solver.__init__(self, problem, consistency_alg, decision_variables, var_heuristic, var_heuristic_params, dom_heuristic, dom_heuristic_params, stack_max_height, log_level)
 
    A backtrack-based solver.
 
    :param problem: the problem to be solved
    :type problem: Problem
-   :param consistency_alg_idx: the index of the consistency algorithm
-   :type consistency_alg_idx: int
+   :param consistency_alg: the index of the consistency algorithm
+   :type consistency_alg: int
    :type decision_variables: Optional[List[int]]
    :param decision_variables: the list of variables on which choices will be made or None in which case all variables are used
-   :param var_heuristic_idx: the index of the heuristic for selecting a variable/domain
-   :type var_heuristic_idx: int
+   :param var_heuristic: the index of the heuristic for selecting a variable/domain
+   :type var_heuristic: int
    :param var_heuristic_params: a list of lists of parameters, usually parameters are costs and there is a list of value costs per variable
    :type var_heuristic_params: List[List[int]]
-   :param dom_heuristic_idx: the index of the heuristic for reducing a domain
-   :type dom_heuristic_idx: int
+   :param dom_heuristic: the index of the heuristic for reducing a domain
+   :type dom_heuristic: int
    :param dom_heuristic_params: a list of lists of parameters, usually parameters are costs and there is a list of value costs per variable
    :type dom_heuristic_params: List[List[int]]
    :param stks_max_height: the maximal height of the choice point stack

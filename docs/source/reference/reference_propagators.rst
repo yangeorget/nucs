@@ -258,8 +258,8 @@ NuCS currently provides the following highly-optimized propagators.
    :rtype: int
 
 
-.. py:module:: nucs.propagators.equiv_eq_propagator
-.. py:function:: nucs.propagators.equiv_eq_propagator.compute_domains(domains, parameters)
+.. py:module:: nucs.propagators.equiv_eq_c_propagator
+.. py:function:: nucs.propagators.equiv_eq_c_propagator.compute_domains(domains, parameters)
 
    This propagator implements the relation :math:`b <=> x = c`
    where :math:`b` is a first variable, :math:`x` is a second variable and :math:`c` a constant.
@@ -271,6 +271,25 @@ NuCS currently provides the following highly-optimized propagators.
           :math:`x` is the second domain
    :type domains: NDArray
    :param parameters: the parameters of the propagator, :math:`c` is the first parameter
+   :type parameters: NDArray
+   :return: the status of the propagation (consistency, inconsistency or entailment)
+   :rtype: int
+
+
+.. py:module:: nucs.propagators.equiv_eq_propagator
+.. py:function:: nucs.propagators.equiv_eq_propagator.compute_domains(domains, parameters)
+
+   This propagator implements the relation :math:`b <=> x = y`
+   where :math:`b` is a first variable, :math:`x` is a second variable and :math:`y` the third variable.
+
+   It has the time complexity: :math:`O(1)`.
+
+   :param domains: the domains of the variables,
+          :math:`b` is the first domain,
+          :math:`x` is the second domain,
+          :math:`y` is the third domain
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, unused here
    :type parameters: NDArray
    :return: the status of the propagation (consistency, inconsistency or entailment)
    :rtype: int
@@ -290,6 +309,24 @@ NuCS currently provides the following highly-optimized propagators.
    :type domains: NDArray
    :param parameters: the parameters of the propagator, there are :math:`1 + 2 \times m` parameters:
     the first domain value :math:`v_0`, then the :math:`m` lower bounds, then the :math:`m` upper bounds (capacities)
+   :type parameters: NDArray
+   :return: the status of the propagation (consistency, inconsistency or entailment)
+   :rtype: int
+
+
+.. py:module:: nucs.propagators.leq_c_propagator
+.. py:function:: nucs.propagators.leq_c_propagator.compute_domains(domains, parameters)
+
+   This propagator implements the relation :math:`x <= y + c`
+   where :math:`x` is a first variable, :math:`y` is a second variable and :math:`c` a constant.
+
+   It has the time complexity: :math:`O(1)`.
+
+   :param domains: the domains of the variables,
+          :math:`x` is the first domain,
+          :math:`y` is the second domain
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, :math:`c` is the first parameter
    :type parameters: NDArray
    :return: the status of the propagation (consistency, inconsistency or entailment)
    :rtype: int
@@ -438,6 +475,66 @@ NuCS currently provides the following highly-optimized propagators.
    :param domains: the domains of the variables,
    :type domains: NDArray
    :param parameters: the parameters of the propagator, it is unused
+   :type parameters: NDArray
+   :return: the status of the propagation (consistency, inconsistency or entailment)
+   :rtype: int
+
+
+.. py:module:: nucs.propagators.sum_eq_c
+.. py:function:: nucs.propagators.sum_eq_c.compute_domains(domains, parameters)
+
+   This propagator implements the relation :math:`\Sigma_{i \in [0, n-1]} x_i = c`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables, :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, :math:`c` is the first parameter
+   :type parameters: NDArray
+   :return: the status of the propagation (consistency, inconsistency or entailment)
+   :rtype: int
+
+
+.. py:module:: nucs.propagators.sum_eq
+.. py:function:: nucs.propagators.sum_eq.compute_domains(domains, parameters)
+
+   This propagator implements the relation :math:`\Sigma_{i \in [0, n-1[} x_i = x_{n-1}`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables, :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, unused here
+   :type parameters: NDArray
+   :return: the status of the propagation (consistency, inconsistency or entailment)
+   :rtype: int
+
+
+.. py:module:: nucs.propagators.sum_geq_c
+.. py:function:: nucs.propagators.sum_geq_c.compute_domains(domains, parameters)
+
+   This propagator implements the relation :math:`\Sigma_{i \in [0, n-1]} x_i >= c`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables, :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, :math:`c` is the first parameter
+   :type parameters: NDArray
+   :return: the status of the propagation (consistency, inconsistency or entailment)
+   :rtype: int
+
+
+.. py:module:: nucs.propagators.sum_leq_c
+.. py:function:: nucs.propagators.sum_leq_c.compute_domains(domains, parameters)
+
+   This propagator implements the relation :math:`\Sigma_{i \in [0, n-1]} x_i <= c`.
+
+   It has the time complexity: :math:`O(n)` where :math:`n` is the number of variables.
+
+   :param domains: the domains of the variables, :math:`x` is an alias for domains
+   :type domains: NDArray
+   :param parameters: the parameters of the propagator, :math:`c` is the first parameter
    :type parameters: NDArray
    :return: the status of the propagation (consistency, inconsistency or entailment)
    :rtype: int

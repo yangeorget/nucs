@@ -95,7 +95,7 @@ from nucs.propagators.equiv_eq_propagator import (
     get_triggers_equiv_eq,
 )
 from nucs.propagators.gcc_propagator import compute_domains_gcc, get_complexity_gcc, get_triggers_gcc
-from nucs.propagators.leq_propagator import compute_domains_leq, get_complexity_leq, get_triggers_leq
+from nucs.propagators.leq_c_propagator import compute_domains_leq_c, get_complexity_leq_c, get_triggers_leq_c
 from nucs.propagators.lexicographic_leq_propagator import (
     compute_domains_lexicographic_leq,
     get_complexity_lexicographic_leq,
@@ -194,7 +194,7 @@ ALG_ELEMENT_L_EQ_C_ALLDIFFERENT = register_propagator(
 ALG_EQUIV_EQ_C = register_propagator(get_triggers_equiv_eq_c, get_complexity_equiv_eq_c, compute_domains_equiv_eq_c)
 ALG_EQUIV_EQ = register_propagator(get_triggers_equiv_eq, get_complexity_equiv_eq, compute_domains_equiv_eq)
 ALG_GCC = register_propagator(get_triggers_gcc, get_complexity_gcc, compute_domains_gcc)
-ALG_LEQ = register_propagator(get_triggers_leq, get_complexity_leq, compute_domains_leq)
+ALG_LEQ_C = register_propagator(get_triggers_leq_c, get_complexity_leq_c, compute_domains_leq_c)
 ALG_LEXICOGRAPHIC_LEQ = register_propagator(
     get_triggers_lexicographic_leq, get_complexity_lexicographic_leq, compute_domains_lexicographic_leq
 )
@@ -231,7 +231,7 @@ def update_propagators_with_previous_prop(
     triggers: NDArray,
     previous_prop_idx: int,
 ) -> None:
-    for prop_idx in triggers[1 : triggers[0] + 1]:
+    for prop_idx in triggers[1: triggers[0] + 1]:
         if not entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
             min_heap_add(triggered_propagators, propagator_nb, prop_idx)
 
@@ -243,6 +243,6 @@ def update_propagators(
     entailed_propagators: NDArray,
     triggers: NDArray,
 ) -> None:
-    for prop_idx in triggers[1 : triggers[0] + 1]:
+    for prop_idx in triggers[1: triggers[0] + 1]:
         if not entailed_propagators[prop_idx]:
             min_heap_add(triggered_propagators, propagator_nb, prop_idx)

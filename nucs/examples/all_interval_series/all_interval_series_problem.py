@@ -15,7 +15,7 @@ from typing import Any
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ABS_EQ, ALG_ALLDIFFERENT, ALG_LEQ, ALG_SUM_EQ
+from nucs.propagators.propagators import ALG_ABS_EQ, ALG_ALLDIFFERENT, ALG_LEQ_C, ALG_SUM_EQ
 
 
 class AllIntervalSeriesProblem(Problem):
@@ -37,8 +37,8 @@ class AllIntervalSeriesProblem(Problem):
         self.add_propagator(ALG_ALLDIFFERENT, range(n))
         self.add_propagator(ALG_ALLDIFFERENT, range(2 * n - 1, 3 * n - 2))
         if symmetry_breaking:
-            self.add_propagator(ALG_LEQ, [0, 1], [-1])
-            self.add_propagator(ALG_LEQ, [3 * n - 3, 2 * n - 1], [-1])
+            self.add_propagator(ALG_LEQ_C, [0, 1], [-1])
+            self.add_propagator(ALG_LEQ_C, [3 * n - 3, 2 * n - 1], [-1])
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         return solution[: self.n].tolist()

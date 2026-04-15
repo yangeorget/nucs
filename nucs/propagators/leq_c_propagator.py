@@ -24,7 +24,7 @@ from nucs.constants import (
 )
 
 
-def get_complexity_leq(n: int, parameters: NDArray) -> float:
+def get_complexity_leq_c(n: int, parameters: NDArray) -> float:
     """
     Returns the time complexity of the propagator as a float.
     :param n: the number of variables
@@ -35,7 +35,7 @@ def get_complexity_leq(n: int, parameters: NDArray) -> float:
 
 
 @njit(cache=True, fastmath=True)
-def get_triggers_leq(n: int, variable: int, parameters: NDArray) -> int:
+def get_triggers_leq_c(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
     :param parameters: the parameters
@@ -45,7 +45,7 @@ def get_triggers_leq(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True, fastmath=True)
-def compute_domains_leq(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_leq_c(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements x <= y + c.
     :param domains: the domains of the variables, x is the first domain, y is the second domain
