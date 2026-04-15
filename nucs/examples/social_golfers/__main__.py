@@ -10,17 +10,19 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from nucs.examples.alpha.alpha_problem import AlphaProblem
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.alpha
+# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.social_golfers
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
     args = parser.parse_args()
-    problem = AlphaProblem()
+    parser.add_argument("-n", type=int, default=4)
+    parser.add_argument("-s", type=int, default=4)
+    parser.add_argument("-w", type=int, default=9)
+    problem = SocialGolfersProblem(args.n, args.s, args.w, args.symmetry_breaking)
     solver = BacktrackSolver(
         problem,
         var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,

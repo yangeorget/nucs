@@ -10,44 +10,43 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Any
-
-from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_AFFINE_EQ
 
 
-class LangfordProblem(Problem):
+class SocialGolfersProblem(Problem):
+    def index(self, w: int, p: int) -> int:
+        return w * self.player_nb + p
+
     """
-    CSPLIB problem #24 - https://www.csplib.org/Problems/prob024/
+    CSPLIB problem #10 - https://www.csplib.org/Problems/prob010/
     """
 
-    def index(self, i: int, j: int) -> int:
-        return i * self.n + j
-
-    def color(self, idx: int) -> int:
-        return idx % self.n
-
-    def __init__(self, k: int, n: int) -> None:
+    def __init__(self, group_nb: int, group_size: int, week_nb: int, symmetry_breaking: bool) -> None:
         """
         Initializes the problem.
-        :param k: the number of occurences
-        :param n: the number of values
         """
-        self.k = k
-        self.n = n
-        # domain[i * n + j] is the position in the sequence of the ith occurrence of j
-        domains = [(0, k * n - 1)] * k * n
+        self.group_nb = group_nb
+        self.group_size = group_size
+        self.week_nb = week_nb
+        self.player_nb = group_nb * group_size
+        domains = [(0, group_nb)] * self.player_nb * week_nb
+        if symmetry_breaking:
+            for p in range(self.player_nb):
+                domains[self.index(0, p)] = p // group_size
+            for k in range(group_size):
+                for w in range(1, week_nb):
+                    domains[self.index(w, k)] = k
         super().__init__(domains)
-        self.add_propagator(ALG_ALLDIFFERENT, range(0, k * n))
-        for i in range(k - 1):
-            for j in range(n):
-                self.add_propagator(ALG_AFFINE_EQ, [self.index(i + 1, j), self.index(i, j)], [1, -1, j + 2])
-
-    def solution_as_printable(self, solution: NDArray) -> Any:
-        values = solution.tolist()
-        out = [0] * self.n * self.k
-        for idx in range(self.k * self.n):
-            out[values[idx]] = self.color(idx)
-        return out
+        for w1 in range(week_nb - 1):
+            for w2 in range(w1 + 1, week_nb):
+                for p1 in range(self.player_nb - 1):
+                    for p2 in range(p1 + 1, self.player_nb):
+                        # domains[index(w1, p1)] != domains[index(w1, p2)] or domains[index(w2, p1)] != domains[index(w2, p2)]
+                        pass
+        for wi in range(week_nb):
+            # gcc(list(range(index(wi, 0), index(wi, playersNb), ...)
+            pass
+        if symmetry_breaking:
+            # les domains sont lex increasing, pour chaque semaine
+            pass
