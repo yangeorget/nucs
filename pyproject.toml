@@ -37,7 +37,7 @@ dev = [
     "mypy",
     "ruff",
     "sphinx",
-    "sphinx-rtd-theme",
+    "alabaster",
     "twine"
 ]
 test = [
