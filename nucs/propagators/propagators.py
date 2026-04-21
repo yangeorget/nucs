@@ -231,7 +231,7 @@ def update_propagators_with_previous_prop(
     triggers: NDArray,
     previous_prop_idx: int,
 ) -> None:
-    for prop_idx in triggers[1: triggers[0] + 1]:
+    for prop_idx in triggers[1 : triggers[0] + 1]:
         if not entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
             min_heap_add(triggered_propagators, propagator_nb, prop_idx)
 
@@ -243,6 +243,6 @@ def update_propagators(
     entailed_propagators: NDArray,
     triggers: NDArray,
 ) -> None:
-    for prop_idx in triggers[1: triggers[0] + 1]:
+    for prop_idx in triggers[1 : triggers[0] + 1]:
         if not entailed_propagators[prop_idx]:
             min_heap_add(triggered_propagators, propagator_nb, prop_idx)

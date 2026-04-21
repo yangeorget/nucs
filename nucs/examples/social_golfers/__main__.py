@@ -11,7 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 from nucs.examples.default_argument_parser import DefaultArgumentParser
-from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
+from nucs.examples.social_golfers.social_golfers_problem import SocialGolfersProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -19,14 +19,12 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
     args = parser.parse_args()
-    parser.add_argument("-n", type=int, default=4)
-    parser.add_argument("-s", type=int, default=4)
-    parser.add_argument("-w", type=int, default=9)
+    parser.add_argument("-n", type=int, default=2)
+    parser.add_argument("-s", type=int, default=2)
+    parser.add_argument("-w", type=int, default=3)
     problem = SocialGolfersProblem(args.n, args.s, args.w, args.symmetry_breaking)
     solver = BacktrackSolver(
         problem,
-        var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
-        dom_heuristic=DOM_HEURISTIC_MIN_VALUE,
         log_level=args.log_level,
         stks_max_height=args.cp_max_height,
     )
