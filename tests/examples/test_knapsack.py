@@ -10,6 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from nucs.examples.knapsack.knapsack_datasets import DATASETS
 from nucs.examples.knapsack.knapsack_problem import KnapsackProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -17,11 +18,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 
 class TestKnapsack:
     def test_knapsack(self) -> None:
-        problem = KnapsackProblem(
-            [40, 40, 38, 38, 36, 36, 34, 34, 32, 32, 30, 30, 28, 28, 26, 26, 24, 24, 22, 22],
-            [40, 40, 38, 38, 36, 36, 34, 34, 32, 32, 30, 30, 28, 28, 26, 26, 24, 24, 22, 22],
-            55,
-        )
+        problem = KnapsackProblem(DATASETS["SIMPLE"])
         solver = BacktrackSolver(
             problem, var_heuristic=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, dom_heuristic=DOM_HEURISTIC_MAX_VALUE
         )

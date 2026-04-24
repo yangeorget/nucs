@@ -10,6 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from nucs.examples.car_sequencing.car_sequencing_datasets import DATASETS
 from nucs.examples.car_sequencing.car_sequencing_problem import CarSequencingProblem
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -20,22 +21,8 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
     args = parser.parse_args()
-    problem = CarSequencingProblem(
-        car_nb=10,
-        option_nb=5,
-        class_nb=6,
-        max_per_block=[1, 2, 1, 2, 1],
-        block_size=[2, 3, 3, 5, 5],
-        demands=[1, 1, 2, 2, 2, 2],
-        requires=[
-            [1, 0, 1, 1, 0],
-            [0, 0, 0, 1, 0],
-            [0, 1, 0, 0, 1],
-            [0, 1, 0, 1, 0],
-            [1, 0, 1, 0, 0],
-            [1, 1, 0, 0, 0],
-        ],
-    )
+    dataset = DATASETS[args.dataset]
+    problem = CarSequencingProblem(dataset)
     solver = BacktrackSolver(problem, log_level=args.log_level, stks_max_height=args.cp_max_height)
     if args.find_all:
         solver.solve_all()

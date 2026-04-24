@@ -13,7 +13,7 @@
 import pytest
 
 from nucs.constants import OPTIM_PRUNE, STATS_IDX_SOLUTION_NB
-from nucs.examples.tsp.tsp_instances import TSP_INSTANCES
+from nucs.examples.tsp.tsp_datasets import DATASETS
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
@@ -39,11 +39,11 @@ class TestTSP:
         ],
     )
     def test_tsp_gr(self, name: str, minimum: int) -> None:
-        tsp_instance = TSP_INSTANCES[name]
-        n = len(tsp_instance)
-        problem = TSPProblem(tsp_instance)
+        dataset = DATASETS[name]
+        n = len(dataset)
+        problem = TSPProblem(dataset)
         tsp_var_heuristic_idx = register_var_heuristic(tsp_var_heuristic)
-        costs = tsp_instance + tsp_instance
+        costs = dataset + dataset
         solver = BacktrackSolver(
             problem,
             decision_variables=range(0, 2 * n),

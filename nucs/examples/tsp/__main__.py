@@ -12,7 +12,7 @@
 ###############################################################################
 
 from nucs.examples.default_argument_parser import DefaultArgumentParser
-from nucs.examples.tsp.tsp_instances import TSP_INSTANCES
+from nucs.examples.tsp.tsp_datasets import DATASETS
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
@@ -23,13 +23,13 @@ from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.tsp
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
-    parser.add_argument("--name", choices=["GR17", "GR21", "GR24"], default="GR17")
+    parser.add_argument("--dataset", choices=["GR17", "GR21", "GR24"], default="GR17")
     args = parser.parse_args()
-    tsp_instance = TSP_INSTANCES[args.name]
-    n = len(tsp_instance)
+    dataset = DATASETS[args.dataset]
+    n = len(dataset)
     decision_variables = list(range(0, 2 * n))
-    problem = TSPProblem(tsp_instance)
-    costs = tsp_instance + tsp_instance  # symmetry of costs
+    problem = TSPProblem(dataset)
+    costs = dataset + dataset  # symmetry of costs
     tsp_var_heuristic_idx = register_var_heuristic(tsp_var_heuristic)
     solver = (
         MultiprocessingSolver(
