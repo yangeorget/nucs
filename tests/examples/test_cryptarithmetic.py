@@ -17,7 +17,7 @@ import pytest
 
 from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.examples.cryptarithmetic.cryptarithmetic_problem import CryptarithmeticProblem
-from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
+from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
@@ -33,9 +33,7 @@ class TestCryptarithmetic:
         with open(path, "r") as json_file:
             dataset = json.load(json_file)
             problem = CryptarithmeticProblem(dataset)
-            solver = BacktrackSolver(
-                problem, var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MIN_VALUE
-            )
+            solver = BacktrackSolver(problem, var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN)
             solutions = solver.find_all()
             assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1
             assert solutions[0].tolist() == values
