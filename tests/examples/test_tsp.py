@@ -10,10 +10,11 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+import json
+
 import pytest
 
 from nucs.constants import OPTIM_PRUNE, STATS_IDX_SOLUTION_NB
-from nucs.examples.tsp.tsp_datasets import DATASETS
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
@@ -39,19 +40,20 @@ class TestTSP:
         ],
     )
     def test_tsp_gr(self, name: str, minimum: int) -> None:
-        dataset = DATASETS[name]
-        n = len(dataset)
-        problem = TSPProblem(dataset)
-        tsp_var_heuristic_idx = register_var_heuristic(tsp_var_heuristic)
-        costs = dataset + dataset
-        solver = BacktrackSolver(
-            problem,
-            decision_variables=range(0, 2 * n),
-            var_heuristic=tsp_var_heuristic_idx,
-            var_heuristic_params=costs,
-            dom_heuristic=DOM_HEURISTIC_MIN_COST,
-            dom_heuristic_params=costs,
-        )
-        solution = solver.minimize(problem.total_cost, mode=OPTIM_PRUNE)
-        assert solution is not None
-        assert solution[problem.total_cost] == minimum
+        with open("datasets/tsp/gr17.json", "r") as json_file:
+            costs = json.load(json_file)["costs"]
+            n = len(costs)
+            problem = TSPProblem(costs)
+            costs = costs + costs
+            tsp_var_heuristic_idx = register_var_heuristic(tsp_var_heuristic)
+            solver = BacktrackSolver(
+                problem,
+                decision_variables=range(0, 2 * n),
+                var_heuristic=tsp_var_heuristic_idx,
+                var_heuristic_params=costs,
+                dom_heuristic=DOM_HEURISTIC_MIN_COST,
+                dom_heuristic_params=costs,
+            )
+            solution = solver.minimize(problem.total_cost, mode=OPTIM_PRUNE)
+            assert solution is not None
+            assert solution[problem.total_cost] == minimum

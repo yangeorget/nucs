@@ -10,27 +10,29 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from nucs.examples.car_sequencing.car_sequencing_datasets import DATASETS
+import json
+
 from nucs.examples.car_sequencing.car_sequencing_problem import CarSequencingProblem
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
-# Classic CSPLIB instance: 10 cars, 5 options, 6 classes
-# Run with:
+# Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.car_sequencing
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
+    parser.add_argument("--dataset", default="datasets/car_sequencing/ecai88.json")
     args = parser.parse_args()
-    dataset = DATASETS[args.dataset]
-    problem = CarSequencingProblem(dataset)
-    solver = BacktrackSolver(problem, log_level=args.log_level, stks_max_height=args.cp_max_height)
-    if args.find_all:
-        solver.solve_all()
-        if args.display_stats:
-            solver.print_statistics()
-    else:
-        solution = solver.find_one()
-        if args.display_stats:
-            solver.print_statistics()
-        if args.display_solutions:
-            problem.print_solution(solution)
+    with open(args.dataset, "r") as json_file:
+        dataset = json.load(json_file)
+        problem = CarSequencingProblem(dataset)
+        solver = BacktrackSolver(problem, log_level=args.log_level, stks_max_height=args.cp_max_height)
+        if args.find_all:
+            solver.solve_all()
+            if args.display_stats:
+                solver.print_statistics()
+        else:
+            solution = solver.find_one()
+            if args.display_stats:
+                solver.print_statistics()
+            if args.display_solutions:
+                problem.print_solution(solution)

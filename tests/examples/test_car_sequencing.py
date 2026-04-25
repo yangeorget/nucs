@@ -10,15 +10,18 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+import json
+
 from nucs.constants import STATS_IDX_SOLUTION_NB
-from nucs.examples.car_sequencing.car_sequencing_datasets import DATASETS
 from nucs.examples.car_sequencing.car_sequencing_problem import CarSequencingProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
 class TestCarSequencing:
     def test_car_sequencing(self) -> None:
-        problem = CarSequencingProblem(DATASETS["ECAI88"])
-        solver = BacktrackSolver(problem)
-        solver.solve_all()
-        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 28
+        with open("datasets/car_sequencing/ecai88.json", "r") as json_file:
+            dataset = json.load(json_file)
+            problem = CarSequencingProblem(dataset)
+            solver = BacktrackSolver(problem)
+            solver.solve_all()
+            assert solver.statistics[STATS_IDX_SOLUTION_NB] == 28

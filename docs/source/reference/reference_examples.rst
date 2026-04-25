@@ -41,14 +41,14 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.sum_eq_propagator`.
 
 
-.. py:module:: nucs.examples.alpha.alpha_problem
-.. py:class:: nucs.examples.alpha.alpha_problem.AlphaProblem
+.. py:module:: nucs.examples.alphanumeric.alphanumeric_problem
+.. py:class:: nucs.examples.alphanumeric.alphanumeric_problem.AlphanumericProblem
 
 This problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.alpha
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.alphanumeric
 
 This problem leverages the propagators:
 
@@ -74,14 +74,14 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.lexicographic_leq_propagator`.
 
 
-.. py:module:: nucs.examples.donald.donald_problem
-.. py:class:: nucs.examples.donald.donald_problem.DonaldProblem
+.. py:module:: nucs.examples.cryptarithmetic.cryptarithmetic_problem
+.. py:class:: nucs.examples.cryptarithmetic.cryptarithmetic_problem.CryptarithmeticProblem
 
 This problem can be run with the command:
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.donald
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.cryptarithmetic
 
 This problem leverages the propagators:
 

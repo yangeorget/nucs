@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List
+import json
 
 import pytest
 
@@ -20,35 +20,11 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
 class TestSudokus:
-    @pytest.mark.parametrize(
-        "givens",
-        [
-            [
-                [0, 0, 0, 0, 3, 0, 0, 0, 0],
-                [2, 8, 9, 0, 0, 0, 0, 0, 0],
-                [0, 0, 5, 7, 0, 0, 0, 9, 0],
-                [0, 0, 0, 0, 0, 0, 8, 0, 6],
-                [0, 0, 0, 3, 0, 0, 1, 0, 0],
-                [7, 1, 0, 0, 0, 6, 0, 0, 2],
-                [0, 6, 3, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 4, 0, 2, 0, 0],
-                [0, 0, 1, 0, 5, 0, 6, 0, 0],
-            ],
-            [
-                [6, 0, 0, 0, 1, 0, 0, 8, 0],
-                [5, 1, 7, 4, 0, 0, 0, 0, 0],
-                [0, 0, 3, 0, 0, 0, 0, 4, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0, 1],
-                [0, 0, 0, 5, 0, 0, 3, 0, 0],
-                [1, 6, 0, 0, 0, 9, 0, 5, 2],
-                [2, 5, 9, 6, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 7, 0, 0, 0, 0],
-                [0, 0, 0, 0, 5, 0, 4, 0, 0],
-            ],
-        ],
-    )
-    def test_sudokus(self, givens: List[List[int]]) -> None:
-        problem = SudokuProblem(givens)
-        solver = BacktrackSolver(problem)
-        solver.solve_all()
-        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1
+    @pytest.mark.parametrize("path", ["datasets/sudoku/sudoku1.json", "datasets/sudoku/sudoku1.json"])
+    def test_sudokus(self, path: str) -> None:
+        with open(path, "r") as json_file:
+            givens = json.load(json_file)["givens"]
+            problem = SudokuProblem(givens)
+            solver = BacktrackSolver(problem)
+            solver.solve_all()
+            assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1

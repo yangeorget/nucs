@@ -10,57 +10,35 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+import json
 
 from nucs.examples.default_argument_parser import DefaultArgumentParser
-from nucs.examples.tsp.tsp_datasets import DATASETS
-from nucs.examples.tsp.tsp_problem import TSPProblem
-from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
-from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
+from nucs.examples.sudoku.sudoku_problem import SudokuProblem
+from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.tsp
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
-    parser.add_argument("--dataset", choices=["GR17", "GR21", "GR24"], default="GR17")
+    parser.add_argument("--dataset", default="datasets/sudoku/sudoku1.json")
     args = parser.parse_args()
-    dataset = DATASETS[args.dataset]
-    n = len(dataset)
-    decision_variables = list(range(0, 2 * n))
-    problem = TSPProblem(dataset)
-    costs = dataset + dataset  # symmetry of costs
-    tsp_var_heuristic_idx = register_var_heuristic(tsp_var_heuristic)
-    solver = (
-        MultiprocessingSolver(
-            [
-                BacktrackSolver(
-                    prob,
-                    consistency_alg=args.consistency,
-                    decision_variables=decision_variables,
-                    var_heuristic=tsp_var_heuristic_idx,
-                    var_heuristic_params=costs,
-                    dom_heuristic=DOM_HEURISTIC_MIN_COST,
-                    dom_heuristic_params=costs,
-                    log_level=args.log_level,
-                    stks_max_height=args.cp_max_height,
-                )
-                for prob in problem.split(args.processors, 0)
-            ]
-        )
-        if args.processors > 1
-        else BacktrackSolver(
+    with open(args.dataset, "r") as json_file:
+        givens = json.load(json_file)["givens"]
+        problem = SudokuProblem(givens)
+        solver = BacktrackSolver(
             problem,
-            consistency_alg=args.consistency,
-            decision_variables=decision_variables,
-            var_heuristic=tsp_var_heuristic_idx,
-            var_heuristic_params=costs,
-            dom_heuristic=DOM_HEURISTIC_MIN_COST,
-            dom_heuristic_params=costs,
+            var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
             log_level=args.log_level,
             stks_max_height=args.cp_max_height,
         )
-    )
-    solution = solver.minimize(problem.total_cost, mode=args.optimization_mode)
-    if args.display_stats:
-        solver.print_statistics()
+        if args.find_all:
+            solver.solve_all()
+            if args.display_stats:
+                solver.print_statistics()
+        else:
+            solution = solver.find_one()
+            if args.display_stats:
+                solver.print_statistics()
+            if args.display_solutions:
+                problem.print_solution(solution)
