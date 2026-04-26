@@ -31,7 +31,8 @@ def min_heap_init(capacity: int) -> NDArray:
 
 
 @njit(cache=True, fastmath=True)
-def min_heap_add(heap: NDArray, capacity: int, val: int) -> None:
+def min_heap_add(heap: NDArray, val: int) -> None:
+    capacity = len(heap) >> 1
     if heap[capacity + val] == 0:
         size = heap[-1]
         heap[size] = val
@@ -41,7 +42,8 @@ def min_heap_add(heap: NDArray, capacity: int, val: int) -> None:
 
 
 @njit(cache=True, fastmath=True)
-def min_heap_pop(heap: NDArray, capacity: int) -> int:
+def min_heap_pop(heap: NDArray) -> int:
+    capacity = len(heap) >> 1
     if heap[-1] == 0:
         return -1
     heap[-1] -= 1

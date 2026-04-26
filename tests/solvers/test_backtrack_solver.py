@@ -62,7 +62,6 @@ class TestBacktrackSolver:
         consistency_alg_addrs = addresses_from_functions(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG)
         solution = solve_one(
             get_algorithm_nb(),
-            problem.propagator_nb,
             solver.statistics,
             problem.algorithms,
             problem.bounds,
@@ -93,7 +92,6 @@ class TestBacktrackSolver:
         assert solver.domains_stk[1, 0].tolist() == [0, 0]
         assert solver.domains_stk[1, 1].tolist() == [1, 1]
         assert backtrack(
-            problem.propagator_nb,
             solver.statistics,
             solver.entailed_propagators_stk,
             solver.domain_update_stk,

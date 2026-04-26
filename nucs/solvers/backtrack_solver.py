@@ -211,7 +211,6 @@ class BacktrackSolver(Solver, QueueSolver):
         while (
             solution := solve_one(
                 get_algorithm_nb(),
-                self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
@@ -280,7 +279,6 @@ class BacktrackSolver(Solver, QueueSolver):
         while True:
             solution = solve_one(
                 get_algorithm_nb(),
-                self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
@@ -309,7 +307,6 @@ class BacktrackSolver(Solver, QueueSolver):
             logger.debug("Found a solution")
             yield solution
             if not backtrack(
-                self.problem.propagator_nb,
                 self.statistics,
                 self.entailed_propagators_stk,
                 self.domain_update_stk,
@@ -357,7 +354,6 @@ class BacktrackSolver(Solver, QueueSolver):
         while True:
             solution = solve_one(
                 get_algorithm_nb(),
-                self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
@@ -428,7 +424,6 @@ class BacktrackSolver(Solver, QueueSolver):
         while True:
             solution = solve_one(
                 get_algorithm_nb(),
-                self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.bounds,
@@ -456,7 +451,6 @@ class BacktrackSolver(Solver, QueueSolver):
                 break
             solution_queue.put((processor_idx, solution, self.statistics))
             if not backtrack(
-                self.problem.propagator_nb,
                 self.statistics,
                 self.entailed_propagators_stk,
                 self.domain_update_stk,
@@ -471,7 +465,6 @@ class BacktrackSolver(Solver, QueueSolver):
 @njit(cache=True, fastmath=True)
 def solve_one(
     algorithm_nb: int,
-    propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
     bounds: NDArray,
@@ -536,7 +529,6 @@ def solve_one(
     while True:
         status = consistency_alg_fct(
             algorithm_nb,
-            propagator_nb,
             statistics,
             algorithms,
             bounds,
@@ -568,14 +560,11 @@ def solve_one(
                 dom_heuristic_params,
             )
             top = stks_top[0]
-            update_propagators(
-                propagator_nb, triggered_propagators, entailed_propagators_stk[top], triggers[variable, events]
-            )
+            update_propagators(triggered_propagators, entailed_propagators_stk[top], triggers[variable, events])
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
             if top > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
                 statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = top
         elif not backtrack(
-            propagator_nb,
             statistics,
             entailed_propagators_stk,
             domain_update_stk,

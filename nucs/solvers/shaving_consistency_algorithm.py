@@ -34,7 +34,6 @@ from nucs.solvers.choice_points import backtrack
 @njit(cache=True, fastmath=True)
 def shave_bound(
     algorithm_nb: int,
-    propagator_nb: int,
     bound: int,
     variable: int,
     statistics: NDArray,
@@ -63,13 +62,10 @@ def shave_bound(
     )
     if domains_stk[stks_top[0], variable, MIN] == domains_stk[stks_top[0], variable, MAX]:
         events |= EVENT_MASK_GROUND
-    update_propagators(
-        propagator_nb, triggered_propagators, entailed_propagators_stk[stks_top[0]], triggers[variable, events]
-    )
+    update_propagators(triggered_propagators, entailed_propagators_stk[stks_top[0]], triggers[variable, events])
     if (
         bound_consistency_algorithm(
             algorithm_nb,
-            propagator_nb,
             statistics,
             algorithms,
             bounds,
@@ -92,7 +88,6 @@ def shave_bound(
         domains_stk[stks_top[0] - 1, variable, bound] += 1 if bound == MAX else -1
         has_shaved = False
     backtrack(
-        propagator_nb,
         statistics,
         entailed_propagators_stk,
         domain_update_stk,
@@ -106,7 +101,6 @@ def shave_bound(
 @njit(cache=True, fastmath=True)
 def shaving_consistency_algorithm(
     algorithm_nb: int,
-    propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
     bounds: NDArray,
@@ -150,7 +144,6 @@ def shaving_consistency_algorithm(
         if has_shaved:
             status = bound_consistency_algorithm(
                 algorithm_nb,
-                propagator_nb,
                 statistics,
                 algorithms,
                 bounds,
@@ -176,7 +169,6 @@ def shaving_consistency_algorithm(
         statistics[STATS_IDX_ALG_SHAVING_NB] += 1
         has_shaved = shave_bound(
             algorithm_nb,
-            propagator_nb,
             bound,
             variable,
             statistics,

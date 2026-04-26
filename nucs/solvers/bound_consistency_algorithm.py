@@ -45,7 +45,6 @@ from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagator
 @njit(cache=True, fastmath=True)
 def bound_consistency_algorithm(
     algorithm_nb: int,
-    propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
     bounds: NDArray,
@@ -90,7 +89,7 @@ def bound_consistency_algorithm(
         for alg_idx in range(1, algorithm_nb):
             compute_domains_fcts[alg_idx] = function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[alg_idx])
     while True:
-        prop_idx = min_heap_pop(triggered_propagators, propagator_nb)
+        prop_idx = min_heap_pop(triggered_propagators)
         if prop_idx == -1:
             return PROBLEM_BOUND if unbound_variable_nb_stk[top] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
@@ -109,7 +108,6 @@ def bound_consistency_algorithm(
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
         if has_no_changes(
             top,
-            propagator_nb,
             prop_idx,
             prop_var_start,
             prop_var_end,
@@ -127,7 +125,6 @@ def bound_consistency_algorithm(
 @njit(cache=True, fastmath=True)
 def has_no_changes(
     top: int,
-    propagator_nb: int,
     prop_idx: int,
     prop_var_start: int,
     prop_var_end: int,
@@ -157,7 +154,6 @@ def has_no_changes(
                 events |= EVENT_MASK_GROUND
                 unbound_variable_nb_stk[top] -= 1
             update_propagators_with_previous_prop(
-                propagator_nb,
                 triggered_propagators,
                 entailed_propagators,
                 triggers[variable, events],

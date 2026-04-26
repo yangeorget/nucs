@@ -60,7 +60,6 @@ def cp_put(domains_stk: NDArray, entailed_propagators_stk: NDArray, unbound_vari
 
 @njit(cache=True, fastmath=True)
 def backtrack(
-    propagator_nb: int,
     statistics: NDArray,
     entailed_propagators_stk: NDArray,
     domain_update_stk: NDArray,
@@ -85,7 +84,6 @@ def backtrack(
     statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
     domain_update = domain_update_stk[top]
     update_propagators(
-        propagator_nb,
         triggered_propagators,
         entailed_propagators_stk[top],
         triggers[domain_update[DOM_UPDATE_VARIABLE], domain_update[DOM_UPDATE_EVENTS]],

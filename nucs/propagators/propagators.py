@@ -220,12 +220,11 @@ ALG_SUM_LEQ_C = register_propagator(get_triggers_sum_leq_c, get_complexity_sum_l
 def reset_triggered_propagators(triggered_propagators: NDArray, propagator_nb: int) -> None:
     triggered_propagators[:] = 0
     for prop_idx in range(propagator_nb):
-        min_heap_add(triggered_propagators, propagator_nb, prop_idx)
+        min_heap_add(triggered_propagators, prop_idx)
 
 
 @njit(cache=True, fastmath=True)
 def update_propagators_with_previous_prop(
-    propagator_nb: int,
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,
     triggers: NDArray,
@@ -233,16 +232,15 @@ def update_propagators_with_previous_prop(
 ) -> None:
     for prop_idx in triggers[1 : triggers[0] + 1]:
         if not entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
-            min_heap_add(triggered_propagators, propagator_nb, prop_idx)
+            min_heap_add(triggered_propagators, prop_idx)
 
 
 @njit(cache=True, fastmath=True)
 def update_propagators(
-    propagator_nb: int,
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,
     triggers: NDArray,
 ) -> None:
     for prop_idx in triggers[1 : triggers[0] + 1]:
         if not entailed_propagators[prop_idx]:
-            min_heap_add(triggered_propagators, propagator_nb, prop_idx)
+            min_heap_add(triggered_propagators, prop_idx)
