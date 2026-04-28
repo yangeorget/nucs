@@ -58,6 +58,7 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     int64,  # algorithm_nb,
     int64[:],  # statistics
     uint8[:],  # algorithms
+    uint32[:],  # complexities
     uint32[:, :, :],  # bounds
     uint32[:],  # propagator_variables
     int32[:],  # propagator_parameters

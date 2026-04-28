@@ -66,6 +66,7 @@ def backtrack(
     stks_top: NDArray,
     triggered_propagators: NDArray,
     triggers: NDArray,
+    complexities: NDArray,
 ) -> bool:
     """
     Backtracks and updates the problem's domains.
@@ -87,6 +88,7 @@ def backtrack(
         triggered_propagators,
         entailed_propagators_stk[top],
         triggers[domain_update[DOM_UPDATE_VARIABLE], domain_update[DOM_UPDATE_EVENTS]],
+        complexities,
     )
     return True
 

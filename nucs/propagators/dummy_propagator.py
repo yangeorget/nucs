@@ -16,14 +16,14 @@ from numpy.typing import NDArray
 from nucs.constants import EVENT_MASK_MIN_MAX, PROP_CONSISTENCY
 
 
-def get_complexity_dummy(n: int, parameters: NDArray) -> float:
+def get_complexity_dummy(n: int, parameters: NDArray) -> int:
     """
-    Returns the time complexity of the propagator as a float.
+    Returns the time complexity of the propagator as an int.
     :param n: the number of variables
     :param parameters: the parameters, unused here
-    :return: a float
+    :return: an int
     """
-    return 0.0
+    return 0
 
 
 @njit(cache=True, fastmath=True)

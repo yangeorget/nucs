@@ -24,12 +24,12 @@ from nucs.constants import (
 )
 
 
-def get_complexity_affine_leq(n: int, parameters: NDArray) -> float:
+def get_complexity_affine_leq(n: int, parameters: NDArray) -> int:
     """
-    Returns the time complexity of the propagator as a float.
+    Returns the time complexity of the propagator as an int.
     :param n: the number of variables
     :param parameters: the parameters, unused here
-    :return: a float
+    :return: an int
     """
     return n
 

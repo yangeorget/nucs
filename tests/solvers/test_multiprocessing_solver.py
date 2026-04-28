@@ -67,7 +67,7 @@ class TestMultiprocessingSolver:
 
     def test_find_all_1(self) -> None:
         problem = Problem([(0, 99), (0, 99)])
-        solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in (problem.split(4, 0))])
+        solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in problem.split(4, 0)])
         solutions = solver.find_all()
         assert len(solutions) == 10000
         statistics = solver.get_statistics_as_dictionary()
@@ -76,7 +76,7 @@ class TestMultiprocessingSolver:
     def test_find_all_alldifferent(self) -> None:
         problem = Problem([(0, 2), (0, 2), (0, 2)])
         problem.add_propagator(ALG_ALLDIFFERENT, [0, 1, 2])
-        solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in (problem.split(3, 0))])
+        solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in problem.split(3, 0)])
         solutions = solver.find_all()
         assert len(solutions) == 6
         statistics = solver.get_statistics_as_dictionary()

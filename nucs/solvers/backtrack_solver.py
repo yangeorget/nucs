@@ -129,7 +129,7 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.info(f"BacktrackSolver uses consistency algorithm {consistency_alg}")
         self.consistency_alg_idx = consistency_alg
         self.triggered_propagators = min_heap_init(problem.propagator_nb)
-        reset_triggered_propagators(self.triggered_propagators, self.problem.propagator_nb)
+        reset_triggered_propagators(self.triggered_propagators, self.problem.complexities)
         logger.debug("Initializing choice points")
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
         self.entailed_propagators_stk = np.empty((stks_max_height, self.problem.propagator_nb), dtype=np.bool)
@@ -213,6 +213,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 get_algorithm_nb(),
                 self.statistics,
                 self.problem.algorithms,
+                self.problem.complexities,
                 self.problem.bounds,
                 self.problem.propagator_variables,
                 self.problem.propagator_parameters,
@@ -267,7 +268,7 @@ class BacktrackSolver(Solver, QueueSolver):
                     bound,
                 ):
                     break
-            reset_triggered_propagators(self.triggered_propagators, self.problem.propagator_nb)
+            reset_triggered_propagators(self.triggered_propagators, self.problem.complexities)
         return best_solution
 
     def solve(self) -> Iterator[NDArray]:
@@ -281,6 +282,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 get_algorithm_nb(),
                 self.statistics,
                 self.problem.algorithms,
+                self.problem.complexities,
                 self.problem.bounds,
                 self.problem.propagator_variables,
                 self.problem.propagator_parameters,
@@ -313,6 +315,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.stks_top,
                 self.triggered_propagators,
                 self.problem.triggers,
+                self.problem.complexities,
             ):
                 break
 
@@ -356,6 +359,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 get_algorithm_nb(),
                 self.statistics,
                 self.problem.algorithms,
+                self.problem.complexities,
                 self.problem.bounds,
                 self.problem.propagator_variables,
                 self.problem.propagator_parameters,
@@ -411,7 +415,7 @@ class BacktrackSolver(Solver, QueueSolver):
                     bound,
                 ):
                     break
-            reset_triggered_propagators(self.triggered_propagators, self.problem.propagator_nb)
+            reset_triggered_propagators(self.triggered_propagators, self.problem.complexities)
         solution_queue.put((processor_idx, None, self.statistics))
 
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
@@ -426,6 +430,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 get_algorithm_nb(),
                 self.statistics,
                 self.problem.algorithms,
+                self.problem.complexities,
                 self.problem.bounds,
                 self.problem.propagator_variables,
                 self.problem.propagator_parameters,
@@ -457,6 +462,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.stks_top,
                 self.triggered_propagators,
                 self.problem.triggers,
+                self.problem.complexities,
             ):
                 break
         solution_queue.put((processor_idx, None, self.statistics))
@@ -467,6 +473,7 @@ def solve_one(
     algorithm_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
+    complexities: NDArray,
     bounds: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -531,6 +538,7 @@ def solve_one(
             algorithm_nb,
             statistics,
             algorithms,
+            complexities,
             bounds,
             propagator_variables,
             propagator_parameters,
@@ -560,7 +568,9 @@ def solve_one(
                 dom_heuristic_params,
             )
             top = stks_top[0]
-            update_propagators(triggered_propagators, entailed_propagators_stk[top], triggers[variable, events])
+            update_propagators(
+                triggered_propagators, entailed_propagators_stk[top], triggers[variable, events], complexities
+            )
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
             if top > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
                 statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = top
@@ -571,5 +581,6 @@ def solve_one(
             stks_top,
             triggered_propagators,
             triggers,
+            complexities,
         ):
             return None

@@ -64,6 +64,7 @@ class TestBacktrackSolver:
             get_algorithm_nb(),
             solver.statistics,
             problem.algorithms,
+            problem.complexities,
             problem.bounds,
             problem.propagator_variables,
             problem.propagator_parameters,
@@ -98,6 +99,7 @@ class TestBacktrackSolver:
             solver.stks_top,
             solver.triggered_propagators,
             problem.triggers,
+            problem.complexities,
         )
         assert solver.stks_top == 1
         assert solver.domains_stk[0, 0].tolist() == [1, 1]

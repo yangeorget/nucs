@@ -31,25 +31,25 @@ def min_heap_init(capacity: int) -> NDArray:
 
 
 @njit(cache=True, fastmath=True)
-def min_heap_add(heap: NDArray, val: int) -> None:
+def min_heap_add(heap: NDArray, val: int, weights: NDArray) -> None:
     capacity = len(heap) >> 1
     if heap[capacity + val] == 0:
         size = heap[-1]
         heap[size] = val
-        min_heap_up(heap, size)
-        heap[-1] = size + 1
+        min_heap_up(heap, size, weights)
+        heap[-1] += 1
         heap[capacity + val] = 1
 
 
 @njit(cache=True, fastmath=True)
-def min_heap_pop(heap: NDArray) -> int:
+def min_heap_pop(heap: NDArray, weights: NDArray) -> int:
     capacity = len(heap) >> 1
     if heap[-1] == 0:
         return -1
     heap[-1] -= 1
     val = heap[0]
     min_heap_swap(heap, 0, heap[-1])
-    min_heap_down(heap, 0)
+    min_heap_down(heap, 0, weights)
     heap[capacity + val] = 0
     return val
 
@@ -62,20 +62,20 @@ def min_heap_swap(heap: NDArray, i: int, j: int) -> None:
 
 
 @njit(cache=True, fastmath=True)
-def min_heap_up(heap: NDArray, pos: int) -> None:
+def min_heap_up(heap: NDArray, pos: int, weights: NDArray) -> None:
     """
     Non-recursive version because of a Numba bug.
     """
     while pos > 0:
         father = (pos - 1) >> 1
-        if heap[father] <= heap[pos]:
+        if weights[heap[father]] <= weights[heap[pos]]:
             return
         min_heap_swap(heap, pos, father)
         pos = father
 
 
 @njit(cache=True, fastmath=True)
-def min_heap_down(heap: NDArray, pos: int) -> None:
+def min_heap_down(heap: NDArray, pos: int, weights: NDArray) -> None:
     """
     Non-recursive version because of a Numba bug.
     """
@@ -85,8 +85,8 @@ def min_heap_down(heap: NDArray, pos: int) -> None:
         if left >= size:
             return
         right = left + 1
-        smallest = right if right < size and heap[right] < heap[left] else left
-        if heap[pos] <= heap[smallest]:
+        smallest = right if right < size and weights[heap[right]] < weights[heap[left]] else left
+        if weights[heap[pos]] <= weights[heap[smallest]]:
             return
         min_heap_swap(heap, pos, smallest)
         pos = smallest

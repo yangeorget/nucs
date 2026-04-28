@@ -13,7 +13,7 @@ Each propagator :code:`XXX` defines three functions:
 
 - :code:`compute_domains_XXX(domains: NDArray, parameters: NDArray) -> int`
 - :code:`get_triggers_XXX(n: int, variable: int,  parameters: NDArray) -> int`
-- :code:`get_complexity_XXX(size: int, parameters: NDArray) -> float`
+- :code:`get_complexity_XXX(size: int, parameters: NDArray) -> int`
 
 
 :code:`compute_domains` function
@@ -40,7 +40,7 @@ This function returns an event mask.
 :code:`get_complexity` function
 ###############################
 
-This function returns the amortized complexity of the propagator's :code:`compute_domains` method as a :code:`float`.
+This function returns the amortized complexity of the propagator's :code:`compute_domains` method.
 
 These complexities are used to sort the propagators and ensure that the cheapest propagators are evaluated first.
 

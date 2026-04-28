@@ -47,6 +47,7 @@ def bound_consistency_algorithm(
     algorithm_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
+    complexities: NDArray,
     bounds: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -89,7 +90,7 @@ def bound_consistency_algorithm(
         for alg_idx in range(1, algorithm_nb):
             compute_domains_fcts[alg_idx] = function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[alg_idx])
     while True:
-        prop_idx = min_heap_pop(triggered_propagators)
+        prop_idx = min_heap_pop(triggered_propagators, complexities)
         if prop_idx == -1:
             return PROBLEM_BOUND if unbound_variable_nb_stk[top] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
@@ -118,6 +119,7 @@ def bound_consistency_algorithm(
             entailed_propagators,
             triggers,
             unbound_variable_nb_stk,
+            complexities,
         ):
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
 
@@ -135,6 +137,7 @@ def has_no_changes(
     entailed_propagators: NDArray,
     triggers: NDArray,
     unbound_variable_nb_stk: NDArray,
+    complexities: NDArray,
 ) -> bool:
     no_changes = True
     for var_idx in range(prop_var_end - prop_var_start):
@@ -154,10 +157,7 @@ def has_no_changes(
                 events |= EVENT_MASK_GROUND
                 unbound_variable_nb_stk[top] -= 1
             update_propagators_with_previous_prop(
-                triggered_propagators,
-                entailed_propagators,
-                triggers[variable, events],
-                prop_idx,
+                triggered_propagators, entailed_propagators, triggers[variable, events], prop_idx, complexities
             )
             no_changes = False
     return no_changes

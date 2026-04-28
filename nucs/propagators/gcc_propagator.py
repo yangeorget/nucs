@@ -20,14 +20,14 @@ from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_
 from nucs.propagators.alldifferent_propagator import path_max, path_min, path_set
 
 
-def get_complexity_gcc(n: int, parameters: NDArray) -> float:
+def get_complexity_gcc(n: int, parameters: NDArray) -> int:
     """
-    Returns the time complexity of the propagator as a float.
+    Returns the time complexity of the propagator as an int.
     :param n: the number of variables
     :param parameters: the parameters, unused here
-    :return: a float
+    :return: an int
     """
-    return n * math.log(n)
+    return int(n * math.log(n))
 
 
 @njit(cache=True, fastmath=True)

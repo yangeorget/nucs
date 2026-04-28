@@ -30,7 +30,7 @@ from nucs.constants import (
     VARIABLE,
 )
 from nucs.numba_helper import addresses_from_functions, function_from_address
-from nucs.propagators.propagators import GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
+from nucs.propagators.propagators import GET_TRIGGERS_FCTS, GET_COMPLEXITY_FCTS
 
 logger = logging.getLogger(__name__)
 
@@ -116,14 +116,14 @@ class Problem:
         for domain_min, domain_max in self.domains:
             if domain_min != domain_max:
                 self.unbound_variable_nb += 1
-        # Sort the propagators based on their estimated amortized complexities.
-        self.propagators.sort(
-            key=lambda propagator: (
-                GET_COMPLEXITY_FCTS[propagator[1]](len(propagator[0]), propagator[2]),
-                propagator[1],
-            )
-        )
         self.algorithms = np.array([propagator[1] for propagator in self.propagators], dtype=np.uint8)
+        self.complexities = np.array(
+            [
+                GET_COMPLEXITY_FCTS[propagator[1]](len(propagator[0]), propagator[2])
+                for propagator in self.propagators
+            ],
+            dtype=np.uint32,
+        )
         # We will store propagator specific data in a global arrays, we need to compute variables and parameter bounds.
         logger.debug("Initializing bounds")
         self.bounds = np.zeros((max(1, self.propagator_nb), 2, 2), dtype=np.uint32)  # some redundancy here
@@ -199,8 +199,8 @@ def init_triggers(
         else:
             trigger_fct = function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])
         parameters = propagator_parameters[
-            bounds[propagator, PARAM, RANGE_START] : bounds[propagator, PARAM, RANGE_END]
-        ]
+                     bounds[propagator, PARAM, RANGE_START]: bounds[propagator, PARAM, RANGE_END]
+                     ]
         var_start = bounds[propagator, VARIABLE, RANGE_START]
         var_end = bounds[propagator, VARIABLE, RANGE_END]
         var_nb = var_end - var_start

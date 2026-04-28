@@ -16,12 +16,12 @@ from numpy.typing import NDArray
 from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 
 
-def get_complexity_relation(n: int, parameters: NDArray) -> float:
+def get_complexity_relation(n: int, parameters: NDArray) -> int:
     """
-    Returns the time complexity of the propagator as a float.
+    Returns the time complexity of the propagator as an int.
     :param n: the number of variables, unused here
     :param parameters: the parameters
-    :return: a float
+    :return: an int
     """
     return len(parameters)
 
