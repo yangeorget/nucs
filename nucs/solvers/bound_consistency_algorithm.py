@@ -20,7 +20,6 @@ from nucs.constants import (
     EVENT_MASK_MIN,
     MAX,
     MIN,
-    NUMBA_DISABLE_JIT,
     PARAM,
     PROBLEM_BOUND,
     PROBLEM_INCONSISTENT,
@@ -36,6 +35,7 @@ from nucs.constants import (
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
     TYPE_COMPUTE_DOMAINS,
     VARIABLE,
+    NUMBA_DISABLE_JIT,
 )
 from nucs.heaps import min_heap_pop
 from nucs.numba_helper import function_from_address
@@ -83,12 +83,14 @@ def bound_consistency_algorithm(
     domains = domains_stk[top]
     entailed_propagators = entailed_propagators_stk[top]
     statistics[STATS_IDX_ALG_BC_NB] += 1
-    if NUMBA_DISABLE_JIT:
-        compute_domains_fcts = COMPUTE_DOMAINS_FCTS
-    else:
-        compute_domains_fcts = [function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[0])] * algorithm_nb
-        for alg_idx in range(1, algorithm_nb):
-            compute_domains_fcts[alg_idx] = function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[alg_idx])
+    compute_domains_fcts = (
+        COMPUTE_DOMAINS_FCTS
+        if NUMBA_DISABLE_JIT
+        else [
+            function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[alg_idx])
+            for alg_idx in range(algorithm_nb)
+        ]
+    )
     while True:
         prop_idx = min_heap_pop(triggered_propagators, complexities)
         if prop_idx == -1:

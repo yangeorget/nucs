@@ -118,10 +118,7 @@ class Problem:
                 self.unbound_variable_nb += 1
         self.algorithms = np.array([propagator[1] for propagator in self.propagators], dtype=np.uint8)
         self.complexities = np.array(
-            [
-                GET_COMPLEXITY_FCTS[propagator[1]](len(propagator[0]), propagator[2])
-                for propagator in self.propagators
-            ],
+            [GET_COMPLEXITY_FCTS[propagator[1]](len(propagator[0]), propagator[2]) for propagator in self.propagators],
             dtype=np.uint32,
         )
         # We will store propagator specific data in a global arrays, we need to compute variables and parameter bounds.
@@ -199,8 +196,8 @@ def init_triggers(
         else:
             trigger_fct = function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])
         parameters = propagator_parameters[
-                     bounds[propagator, PARAM, RANGE_START]: bounds[propagator, PARAM, RANGE_END]
-                     ]
+            bounds[propagator, PARAM, RANGE_START] : bounds[propagator, PARAM, RANGE_END]
+        ]
         var_start = bounds[propagator, VARIABLE, RANGE_START]
         var_end = bounds[propagator, VARIABLE, RANGE_END]
         var_nb = var_end - var_start
