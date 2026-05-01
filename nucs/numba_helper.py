@@ -10,6 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from typing import List, Callable, Any
 
 import numpy as np
 from numba import types  # type: ignore
@@ -36,7 +37,7 @@ def function_from_address(typingctx, func_type_ref: types.FunctionType, addr: in
     return func_type(func_type_ref, addr), codegen
 
 
-def addresses_from_functions(functions, signature) -> NDArray:  # type: ignore
+def addresses_from_functions(functions: List[Callable], signature: Any) -> NDArray:
     if NUMBA_DISABLE_JIT:
         return np.empty(0)
     else:

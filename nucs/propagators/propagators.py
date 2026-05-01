@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Callable, List, Any
+from typing import Callable, List
 
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -138,9 +138,9 @@ from nucs.propagators.sum_leq_c_propagator import (
     get_triggers_sum_leq_c,
 )
 
-GET_TRIGGERS_FCTS: List[Any] = []
-GET_COMPLEXITY_FCTS: List[Any] = []
-COMPUTE_DOMAINS_FCTS: List[Any] = []
+GET_TRIGGERS_FCTS: List[Callable] = []
+GET_COMPLEXITY_FCTS: List[Callable] = []
+COMPUTE_DOMAINS_FCTS: List[Callable] = []
 
 
 def get_algorithm_nb() -> int:
