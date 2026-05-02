@@ -12,7 +12,7 @@
 ###############################################################################
 import logging
 from multiprocessing import Queue
-from typing import Dict, Iterable, Iterator, List, Optional
+from typing import Any, Dict, Iterable, Iterator, List, Optional
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -57,9 +57,6 @@ from nucs.constants import (
     STATS_LBL_SOLVER_CHOICE_DEPTH,
     STATS_LBL_SOLVER_CHOICE_NB,
     STATS_MAX,
-    TYPE_CONSISTENCY_ALG,
-    TYPE_DOM_HEURISTIC,
-    TYPE_VAR_HEURISTIC,
 )
 from nucs.heaps import min_heap_init
 from nucs.heuristics.heuristics import (
@@ -68,7 +65,13 @@ from nucs.heuristics.heuristics import (
     VAR_HEURISTIC_FCTS,
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
 )
-from nucs.numba_helper import addresses_from_functions, function_from_address
+from nucs.numba_helper import (
+    addresses_from_functions,
+    build_compute_domains_fcts,
+    build_consistency_alg_fcts,
+    build_dom_heuristic_fcts,
+    build_var_heuristic_fcts,
+)
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     COMPUTE_DOMAINS_FCTS,
@@ -121,13 +124,10 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.info(f"BacktrackSolver uses decision domains {decision_variables}")
         self.decision_variables = np.array(decision_variables, dtype=np.uint32)
         logger.info(f"BacktrackSolver uses variable heuristic {var_heuristic}")
-        self.var_heuristic_idx = var_heuristic
         self.var_heuristic_params = np.array(var_heuristic_params, dtype=np.int64)
         logger.info(f"BacktrackSolver uses domain heuristic {dom_heuristic}")
-        self.dom_heuristic_idx = dom_heuristic
         self.dom_heuristic_params = np.array(dom_heuristic_params, dtype=np.int64)
         logger.info(f"BacktrackSolver uses consistency algorithm {consistency_alg}")
-        self.consistency_alg_idx = consistency_alg
         self.triggered_propagators = min_heap_init(problem.propagator_nb)
         reset_triggered_propagators(self.triggered_propagators, self.problem.complexities)
         logger.debug("Initializing choice points")
@@ -151,10 +151,20 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.debug("Initializing statistics")
         self.statistics = np.zeros(STATS_MAX, dtype=np.int64)
         logger.debug("Statistics initialized")
-        self.compute_domains_addrs = addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)
-        self.var_heuristic_addrs = addresses_from_functions(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC)
-        self.dom_heuristic_addrs = addresses_from_functions(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC)
-        self.consistency_alg_addrs = addresses_from_functions(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG)
+        compute_domains_addrs = addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)
+        var_heuristic_addrs = addresses_from_functions(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC)
+        dom_heuristic_addrs = addresses_from_functions(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC)
+        consistency_alg_addrs = addresses_from_functions(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG)
+        if NUMBA_DISABLE_JIT:
+            self.compute_domains_fcts = COMPUTE_DOMAINS_FCTS
+            self.consistency_alg_fcts = [CONSISTENCY_ALG_FCTS[consistency_alg]]
+            self.var_heuristic_fcts = [VAR_HEURISTIC_FCTS[var_heuristic]]
+            self.dom_heuristic_fcts = [DOM_HEURISTIC_FCTS[dom_heuristic]]
+        else:
+            self.compute_domains_fcts = build_compute_domains_fcts(compute_domains_addrs, get_algorithm_nb())
+            self.consistency_alg_fcts = build_consistency_alg_fcts(consistency_alg_addrs[consistency_alg])
+            self.var_heuristic_fcts = build_var_heuristic_fcts(var_heuristic_addrs[var_heuristic])
+            self.dom_heuristic_fcts = build_dom_heuristic_fcts(dom_heuristic_addrs[dom_heuristic])
         logger.debug("BacktrackSolver initialized")
 
     def get_statistics_as_array(self) -> NDArray:
@@ -224,16 +234,13 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.unbound_variable_nb_stk,
                 self.stks_top,
                 self.triggered_propagators,
-                self.consistency_alg_idx,
+                self.consistency_alg_fcts,
                 self.decision_variables,
-                self.var_heuristic_idx,
+                self.var_heuristic_fcts,
                 self.var_heuristic_params,
-                self.dom_heuristic_idx,
+                self.dom_heuristic_fcts,
                 self.dom_heuristic_params,
-                self.compute_domains_addrs,
-                self.consistency_alg_addrs,
-                self.var_heuristic_addrs,
-                self.dom_heuristic_addrs,
+                self.compute_domains_fcts,
             )
         ) is not None:
             logger.info(f"Found a local optimum: {solution[variable]}")
@@ -293,16 +300,13 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.unbound_variable_nb_stk,
                 self.stks_top,
                 self.triggered_propagators,
-                self.consistency_alg_idx,
+                self.consistency_alg_fcts,
                 self.decision_variables,
-                self.var_heuristic_idx,
+                self.var_heuristic_fcts,
                 self.var_heuristic_params,
-                self.dom_heuristic_idx,
+                self.dom_heuristic_fcts,
                 self.dom_heuristic_params,
-                self.compute_domains_addrs,
-                self.consistency_alg_addrs,
-                self.var_heuristic_addrs,
-                self.dom_heuristic_addrs,
+                self.compute_domains_fcts,
             )
             if solution is None:
                 break
@@ -370,16 +374,13 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.unbound_variable_nb_stk,
                 self.stks_top,
                 self.triggered_propagators,
-                self.consistency_alg_idx,
+                self.consistency_alg_fcts,
                 self.decision_variables,
-                self.var_heuristic_idx,
+                self.var_heuristic_fcts,
                 self.var_heuristic_params,
-                self.dom_heuristic_idx,
+                self.dom_heuristic_fcts,
                 self.dom_heuristic_params,
-                self.compute_domains_addrs,
-                self.consistency_alg_addrs,
-                self.var_heuristic_addrs,
-                self.dom_heuristic_addrs,
+                self.compute_domains_fcts,
             )
             if solution is None:
                 break
@@ -441,16 +442,13 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.unbound_variable_nb_stk,
                 self.stks_top,
                 self.triggered_propagators,
-                self.consistency_alg_idx,
+                self.consistency_alg_fcts,
                 self.decision_variables,
-                self.var_heuristic_idx,
+                self.var_heuristic_fcts,
                 self.var_heuristic_params,
-                self.dom_heuristic_idx,
+                self.dom_heuristic_fcts,
                 self.dom_heuristic_params,
-                self.compute_domains_addrs,
-                self.consistency_alg_addrs,
-                self.var_heuristic_addrs,
-                self.dom_heuristic_addrs,
+                self.compute_domains_fcts,
             )
             if solution is None:
                 break
@@ -484,16 +482,13 @@ def solve_one(
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
-    consistency_alg_idx: int,
+    consistency_alg_fcts: Any,
     decision_variables: NDArray,
-    var_heuristic_idx: int,
+    var_heuristic_fcts: Any,
     var_heuristic_params: NDArray,
-    dom_heuristic_idx: int,
+    dom_heuristic_fcts: Any,
     dom_heuristic_params: NDArray,
-    compute_domains_addrs: NDArray,
-    consistency_alg_addrs: NDArray,
-    var_heuristic_addrs: NDArray,
-    dom_heuristic_addrs: NDArray,
+    compute_domains_fcts: Any,
 ) -> Optional[NDArray]:
     """
     Find at most one solution.
@@ -511,28 +506,20 @@ def solve_one(
     :param unbound_variable_nb_stk: the stack of the unbound variables nb
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
-    :param consistency_alg_idx: the index of the consistency algorithm
+    :param consistency_alg_fcts: a 1-element list holding the consistency algorithm function
     :param decision_variables: the variables on which decisions will be made
-    :param var_heuristic_idx: the index of the variable heuristic
+    :param var_heuristic_fcts: a 1-element list holding the variable heuristic function
     :param var_heuristic_params: a list of lists of parameters,
     usually parameters are costs and there is a list of value costs per variable
-    :param dom_heuristic_idx: the index of the domain heuristic
+    :param dom_heuristic_fcts: a 1-element list holding the domain heuristic function
     :param dom_heuristic_params: a list of lists of parameters,
     usually parameters are costs and there is a list of value costs per variable
-    :param compute_domains_addrs: the addresses of the compute_domains functions
-    :param consistency_alg_addrs: the addresses of the functions implementing the consistency algorithms
-    :param var_heuristic_addrs: the addresses of the functions implementing the variable heuristics
-    :param dom_heuristic_addrs: the addresses of the functions implementing the domain heuristics
+    :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
     :return: the solution if it exists or None
     """
-    if NUMBA_DISABLE_JIT:
-        consistency_alg_fct = CONSISTENCY_ALG_FCTS[consistency_alg_idx]
-        var_heuristic_fct = VAR_HEURISTIC_FCTS[var_heuristic_idx]
-        dom_heuristic_fct = DOM_HEURISTIC_FCTS[dom_heuristic_idx]
-    else:
-        consistency_alg_fct = function_from_address(TYPE_CONSISTENCY_ALG, consistency_alg_addrs[consistency_alg_idx])
-        var_heuristic_fct = function_from_address(TYPE_VAR_HEURISTIC, var_heuristic_addrs[var_heuristic_idx])
-        dom_heuristic_fct = function_from_address(TYPE_DOM_HEURISTIC, dom_heuristic_addrs[dom_heuristic_idx])
+    consistency_alg_fct = consistency_alg_fcts[0]
+    var_heuristic_fct = var_heuristic_fcts[0]
+    dom_heuristic_fct = dom_heuristic_fcts[0]
     while True:
         status = consistency_alg_fct(
             algorithm_nb,
@@ -549,7 +536,7 @@ def solve_one(
             unbound_variable_nb_stk,
             stks_top,
             triggered_propagators,
-            compute_domains_addrs,
+            compute_domains_fcts,
             decision_variables,
         )
         top = stks_top[0]

@@ -120,7 +120,7 @@ def golomb_consistency_algorithm(
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
-    compute_domains_addrs: NDArray,
+    compute_domains_fcts: Any,
     decision_variables: NDArray,
 ) -> int:
     """
@@ -178,6 +178,6 @@ def golomb_consistency_algorithm(
         unbound_variable_nb_stk,
         stks_top,
         triggered_propagators,
-        compute_domains_addrs,
+        compute_domains_fcts,
         decision_variables,
     )

@@ -11,6 +11,8 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 
+from typing import Any
+
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -33,13 +35,10 @@ from nucs.constants import (
     STATS_IDX_PROPAGATOR_FILTER_NB,
     STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
-    TYPE_COMPUTE_DOMAINS,
     VARIABLE,
-    NUMBA_DISABLE_JIT,
 )
 from nucs.heaps import min_heap_pop
-from nucs.numba_helper import function_from_address
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagators_with_previous_prop
+from nucs.propagators.propagators import update_propagators_with_previous_prop
 
 
 @njit(cache=True, fastmath=True)
@@ -58,7 +57,7 @@ def bound_consistency_algorithm(
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
-    compute_domains_addrs: NDArray,
+    compute_domains_fcts: Any,
     decision_variables: NDArray,
 ) -> int:
     """
@@ -75,7 +74,7 @@ def bound_consistency_algorithm(
     :param domain_update_stk: the stack of domain updates, unused here
     :param stks_top: the height of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
-    :param compute_domains_addrs: the addresses of the compute_domains functions
+    :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
     :param decision_variables: the variables on which decisions will be made
     :return: a status (consistency, inconsistency or entailment) as an integer
     """
@@ -83,14 +82,6 @@ def bound_consistency_algorithm(
     domains = domains_stk[top]
     entailed_propagators = entailed_propagators_stk[top]
     statistics[STATS_IDX_ALG_BC_NB] += 1
-    compute_domains_fcts = (
-        COMPUTE_DOMAINS_FCTS
-        if NUMBA_DISABLE_JIT
-        else [
-            function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[alg_idx])
-            for alg_idx in range(algorithm_nb)
-        ]
-    )
     while True:
         prop_idx = min_heap_pop(triggered_propagators, complexities)
         if prop_idx == -1:

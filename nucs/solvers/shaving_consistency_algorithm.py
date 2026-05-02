@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from typing import Any
+
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -49,7 +51,7 @@ def shave_bound(
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
-    compute_domains_addrs: NDArray,
+    compute_domains_fcts: Any,
     decision_variables: NDArray,
 ) -> bool:
     events = (
@@ -82,7 +84,7 @@ def shave_bound(
             unbound_variable_nb_stk,
             stks_top,
             triggered_propagators,
-            compute_domains_addrs,
+            compute_domains_fcts,
             decision_variables,
         )
         == PROBLEM_INCONSISTENT
@@ -113,7 +115,7 @@ def shaving_consistency_algorithm(
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
-    compute_domains_addrs: NDArray,
+    compute_domains_fcts: Any,
     decision_variables: NDArray,
 ) -> int:
     """
@@ -131,7 +133,7 @@ def shaving_consistency_algorithm(
     :param domain_update_stk: the stack of domain updates
     :param stks_top: the height of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
-    :param compute_domains_addrs: the addresses of the compute_domains functions
+    :param compute_domains_fcts: the typed list of compute_domains functions
     :param decision_variables: the variables on which decisions will be made
     :return: a status (consistency, inconsistency or entailment) as an integer
     """
@@ -157,7 +159,7 @@ def shaving_consistency_algorithm(
                 unbound_variable_nb_stk,
                 stks_top,
                 triggered_propagators,
-                compute_domains_addrs,
+                compute_domains_fcts,
                 decision_variables,
             )
             if status != PROBLEM_UNBOUND:
@@ -185,7 +187,7 @@ def shaving_consistency_algorithm(
             unbound_variable_nb_stk,
             stks_top,
             triggered_propagators,
-            compute_domains_addrs,
+            compute_domains_fcts,
             decision_variables,
         )
         start_idx = variable

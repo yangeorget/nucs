@@ -39,8 +39,8 @@ NuCS provides the following consistency algorithms.
    :type stks_top: NDArray
    :param triggered_propagators: the Numpy array of triggered propagators
    :type triggered_propagators: NDArray
-   :param compute_domains_addrs: the addresses of the compute_domains functions
-   :type compute_domains_addrs: NDArray
+   :param compute_domains_fcts: the compute_domains functions
+   :type compute_domains_fcts: Any
    :param decision_variables: the decision variables
    :type decision_variables: NDArray
    :return: a status (consistency, inconsistency or entailment) as an integer
@@ -80,8 +80,8 @@ NuCS provides the following consistency algorithms.
    :type stks_top: NDArray
    :param triggered_propagators: the Numpy array of triggered propagators
    :type triggered_propagators: NDArray
-   :param compute_domains_addrs: the addresses of the compute_domains functions
-   :type compute_domains_addrs: NDArray
+   :param compute_domains_fcts: the compute_domains functions
+   :type compute_domains_fcts: Any
    :param decision_variables: the decision variables
    :type decision_variables: NDArray
    :return: a status (consistency, inconsistency or entailment) as an integer

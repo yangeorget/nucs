@@ -53,7 +53,12 @@ PROBLEM_UNBOUND = 1  # returned when the filtering of a problem has been complet
 PROBLEM_BOUND = 2  # returned when a problem is solved
 
 SIGNATURE_COMPUTE_DOMAINS = int64(int32[:, :], int32[:])  # domains, parameters
+TYPE_COMPUTE_DOMAINS = types.FunctionType(SIGNATURE_COMPUTE_DOMAINS)
+TYPE_COMPUTE_DOMAINS_LIST = types.ListType(TYPE_COMPUTE_DOMAINS)
+
 SIGNATURE_GET_TRIGGERS = int64(uint64, uint64, int32[:])
+TYPE_GET_TRIGGERS = types.FunctionType(SIGNATURE_GET_TRIGGERS)
+
 SIGNATURE_CONSISTENCY_ALG = int64(
     int64,  # algorithm_nb,
     int64[:],  # statistics
@@ -69,9 +74,11 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     uint32[:],  # unbound_variable_nb_stk
     uint32[:],  # stks_top
     uint32[:],  # triggered_propagators
-    int64[:],  # compute_domains_addrs
+    TYPE_COMPUTE_DOMAINS_LIST,  # compute_domains_fcts
     uint32[:],  # decision_variables
 )
+TYPE_CONSISTENCY_ALG = types.FunctionType(SIGNATURE_CONSISTENCY_ALG)
+
 SIGNATURE_DOM_HEURISTIC = int64(
     int32[:, :, :],  # domains_stk
     bool[:, :],  # entailed_propagators_stk
@@ -81,18 +88,15 @@ SIGNATURE_DOM_HEURISTIC = int64(
     int64,  # variable
     int64[:, :],  # dom_heuristic_params
 )
+TYPE_DOM_HEURISTIC = types.FunctionType(SIGNATURE_DOM_HEURISTIC)
+
 SIGNATURE_VAR_HEURISTIC = int64(
     uint32[:],  # decision_variables
     int32[:, :, :],  # domains_stk
     int64,  # top
     int64[:, :],  # var_heuristic_params
 )
-
-TYPE_COMPUTE_DOMAINS = types.FunctionType(SIGNATURE_COMPUTE_DOMAINS)
-TYPE_GET_TRIGGERS = types.FunctionType(SIGNATURE_GET_TRIGGERS)
-TYPE_DOM_HEURISTIC = types.FunctionType(SIGNATURE_DOM_HEURISTIC)
 TYPE_VAR_HEURISTIC = types.FunctionType(SIGNATURE_VAR_HEURISTIC)
-TYPE_CONSISTENCY_ALG = types.FunctionType(SIGNATURE_CONSISTENCY_ALG)
 
 NUMBA_DISABLE_JIT = os.getenv("NUMBA_DISABLE_JIT")
 
