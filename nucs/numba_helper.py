@@ -21,7 +21,6 @@ from numba.typed import List as NumbaList  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
-    NUMBA_DISABLE_JIT,
     TYPE_COMPUTE_DOMAINS,
     TYPE_CONSISTENCY_ALG,
     TYPE_DOM_HEURISTIC,
@@ -44,21 +43,22 @@ def function_from_address(typingctx, func_type_ref: types.FunctionType, addr: in
     return func_type(func_type_ref, addr), codegen
 
 
+def address_from_function(function: Callable, signature: Any) -> Any:
+    return _get_wrapper_address(function, signature)
+
+
 def addresses_from_functions(functions: List[Callable], signature: Any) -> NDArray:
-    if NUMBA_DISABLE_JIT:
-        return np.empty(0)
-    else:
-        return np.array([_get_wrapper_address(function, signature) for function in functions])
+    return np.array([address_from_function(function, signature) for function in functions])
 
 
 @njit(cache=True)
-def build_compute_domains_fcts(compute_domains_addrs: NDArray, algorithm_nb: int) -> NumbaList:
+def build_compute_domains_fcts(compute_domains_addrs: NDArray) -> NumbaList:
     """
     Materializes the typed list of compute_domains function pointers from their addresses.
     Built once at solver init so the BC inner loop avoids rebuilding it on every call.
     """
     fcts = NumbaList.empty_list(TYPE_COMPUTE_DOMAINS)
-    for alg_idx in range(algorithm_nb):
+    for alg_idx in range(len(compute_domains_addrs)):
         fcts.append(function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[alg_idx]))
     return fcts
 
@@ -77,7 +77,7 @@ def build_consistency_alg_fcts(addr: int) -> NumbaList:
 
 @njit(cache=True)
 def build_var_heuristic_fcts(addr: int) -> NumbaList:
-    """Recovers a variable-heuristic function from its address. See consistency_alg_from_address."""
+    """Recovers a variable-heuristic function from its address. """
     fcts = NumbaList.empty_list(TYPE_VAR_HEURISTIC)
     fcts.append(function_from_address(TYPE_VAR_HEURISTIC, addr))
     return fcts
@@ -85,7 +85,7 @@ def build_var_heuristic_fcts(addr: int) -> NumbaList:
 
 @njit(cache=True)
 def build_dom_heuristic_fcts(addr: int) -> NumbaList:
-    """Recovers a domain-heuristic function from its address. See consistency_alg_from_address."""
+    """Recovers a domain-heuristic function from its address. """
     fcts = NumbaList.empty_list(TYPE_DOM_HEURISTIC)
     fcts.append(function_from_address(TYPE_DOM_HEURISTIC, addr))
     return fcts

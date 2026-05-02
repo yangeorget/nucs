@@ -70,7 +70,7 @@ from nucs.numba_helper import (
     build_compute_domains_fcts,
     build_consistency_alg_fcts,
     build_dom_heuristic_fcts,
-    build_var_heuristic_fcts,
+    build_var_heuristic_fcts, address_from_function,
 )
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
@@ -151,20 +151,21 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.debug("Initializing statistics")
         self.statistics = np.zeros(STATS_MAX, dtype=np.int64)
         logger.debug("Statistics initialized")
-        compute_domains_addrs = addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)
-        var_heuristic_addrs = addresses_from_functions(VAR_HEURISTIC_FCTS, SIGNATURE_VAR_HEURISTIC)
-        dom_heuristic_addrs = addresses_from_functions(DOM_HEURISTIC_FCTS, SIGNATURE_DOM_HEURISTIC)
-        consistency_alg_addrs = addresses_from_functions(CONSISTENCY_ALG_FCTS, SIGNATURE_CONSISTENCY_ALG)
         if NUMBA_DISABLE_JIT:
             self.compute_domains_fcts = COMPUTE_DOMAINS_FCTS
             self.consistency_alg_fcts = [CONSISTENCY_ALG_FCTS[consistency_alg]]
             self.var_heuristic_fcts = [VAR_HEURISTIC_FCTS[var_heuristic]]
             self.dom_heuristic_fcts = [DOM_HEURISTIC_FCTS[dom_heuristic]]
         else:
-            self.compute_domains_fcts = build_compute_domains_fcts(compute_domains_addrs, get_algorithm_nb())
-            self.consistency_alg_fcts = build_consistency_alg_fcts(consistency_alg_addrs[consistency_alg])
-            self.var_heuristic_fcts = build_var_heuristic_fcts(var_heuristic_addrs[var_heuristic])
-            self.dom_heuristic_fcts = build_dom_heuristic_fcts(dom_heuristic_addrs[dom_heuristic])
+            compute_domains_addrs = addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)
+            self.compute_domains_fcts = build_compute_domains_fcts(compute_domains_addrs)
+            consistency_alg_addr = address_from_function(CONSISTENCY_ALG_FCTS[consistency_alg],
+                                                         SIGNATURE_CONSISTENCY_ALG)
+            self.consistency_alg_fcts = build_consistency_alg_fcts(consistency_alg_addr)
+            var_heuristic_addr = address_from_function(VAR_HEURISTIC_FCTS[var_heuristic], SIGNATURE_VAR_HEURISTIC)
+            self.var_heuristic_fcts = build_var_heuristic_fcts(var_heuristic_addr)
+            dom_heuristic_addr = address_from_function(DOM_HEURISTIC_FCTS[dom_heuristic], SIGNATURE_DOM_HEURISTIC)
+            self.dom_heuristic_fcts = build_dom_heuristic_fcts(dom_heuristic_addr)
         logger.debug("BacktrackSolver initialized")
 
     def get_statistics_as_array(self) -> NDArray:
