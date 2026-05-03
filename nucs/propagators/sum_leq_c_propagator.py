@@ -52,11 +52,12 @@ def compute_domains_sum_leq_c(domains: NDArray, parameters: NDArray) -> int:
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     n = len(domains)
-    p = -parameters[0]
-    domain_sum_min = p + domains[:, MAX].sum()
+    domain_sum_min = domain_sum_max = -parameters[0]
+    for i in range(n):
+        domain_sum_min += domains[i, MAX]
+        domain_sum_max += domains[i, MIN]
     if domain_sum_min <= 0:
         return PROP_ENTAILMENT
-    domain_sum_max = p + domains[:, MIN].sum()
     for i in range(n):
         new_max = domains[i, MIN] - domain_sum_max
         if new_max < domains[i, MAX]:

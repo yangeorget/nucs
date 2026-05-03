@@ -45,8 +45,11 @@ def compute_domains_sum_eq(domains: NDArray, parameters: NDArray) -> int:
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     n = len(domains) - 1
-    domain_sum_min = -domains[-1, MIN] + domains[:n, MAX].sum()
-    domain_sum_max = -domains[-1, MAX] + domains[:n, MIN].sum()
+    domain_sum_min = -domains[-1, MIN]
+    domain_sum_max = -domains[-1, MAX]
+    for i in range(n):
+        domain_sum_min += domains[i, MAX]
+        domain_sum_max += domains[i, MIN]
     for i in range(n):
         new_min = domains[i, MAX] - domain_sum_min
         new_max = domains[i, MIN] - domain_sum_max
