@@ -70,7 +70,8 @@ from nucs.numba_helper import (
     build_compute_domains_fcts,
     build_consistency_alg_fcts,
     build_dom_heuristic_fcts,
-    build_var_heuristic_fcts, address_from_function,
+    build_var_heuristic_fcts,
+    address_from_function,
 )
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
@@ -159,8 +160,9 @@ class BacktrackSolver(Solver, QueueSolver):
         else:
             compute_domains_addrs = addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)
             self.compute_domains_fcts = build_compute_domains_fcts(compute_domains_addrs)
-            consistency_alg_addr = address_from_function(CONSISTENCY_ALG_FCTS[consistency_alg],
-                                                         SIGNATURE_CONSISTENCY_ALG)
+            consistency_alg_addr = address_from_function(
+                CONSISTENCY_ALG_FCTS[consistency_alg], SIGNATURE_CONSISTENCY_ALG
+            )
             self.consistency_alg_fcts = build_consistency_alg_fcts(consistency_alg_addr)
             var_heuristic_addr = address_from_function(VAR_HEURISTIC_FCTS[var_heuristic], SIGNATURE_VAR_HEURISTIC)
             self.var_heuristic_fcts = build_var_heuristic_fcts(var_heuristic_addr)

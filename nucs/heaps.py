@@ -13,7 +13,7 @@
 
 
 import numpy as np
-from numba import njit
+from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 

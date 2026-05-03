@@ -15,7 +15,7 @@ import logging
 from typing import Any, Iterable, List, Optional, Self, Sequence, Tuple, Union
 
 import numpy as np
-from numba import njit
+from numba import njit  # type: ignore
 from numpy.typing import NDArray
 from rich import print
 

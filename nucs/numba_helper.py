@@ -20,6 +20,7 @@ from numba.extending import intrinsic
 from numba.typed import List as NumbaList  # type: ignore
 from numpy.typing import NDArray
 
+from nucs.constants import NUMBA_DISABLE_JIT
 from nucs.constants import (
     TYPE_COMPUTE_DOMAINS,
     TYPE_CONSISTENCY_ALG,
@@ -48,7 +49,11 @@ def address_from_function(function: Callable, signature: Any) -> Any:
 
 
 def addresses_from_functions(functions: List[Callable], signature: Any) -> NDArray:
-    return np.array([address_from_function(function, signature) for function in functions])
+    return (
+        np.array([0])
+        if NUMBA_DISABLE_JIT
+        else np.array([address_from_function(function, signature) for function in functions])
+    )
 
 
 @njit(cache=True)
@@ -77,7 +82,7 @@ def build_consistency_alg_fcts(addr: int) -> NumbaList:
 
 @njit(cache=True)
 def build_var_heuristic_fcts(addr: int) -> NumbaList:
-    """Recovers a variable-heuristic function from its address. """
+    """Recovers a variable-heuristic function from its address."""
     fcts = NumbaList.empty_list(TYPE_VAR_HEURISTIC)
     fcts.append(function_from_address(TYPE_VAR_HEURISTIC, addr))
     return fcts
@@ -85,7 +90,7 @@ def build_var_heuristic_fcts(addr: int) -> NumbaList:
 
 @njit(cache=True)
 def build_dom_heuristic_fcts(addr: int) -> NumbaList:
-    """Recovers a domain-heuristic function from its address. """
+    """Recovers a domain-heuristic function from its address."""
     fcts = NumbaList.empty_list(TYPE_DOM_HEURISTIC)
     fcts.append(function_from_address(TYPE_DOM_HEURISTIC, addr))
     return fcts
