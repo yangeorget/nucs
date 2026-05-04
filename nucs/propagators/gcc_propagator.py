@@ -402,17 +402,19 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     """
     n = len(domains)
     m = (len(parameters) - 1) >> 1  # number of values
-    bounds_nb = 2 * n + 2
     ranks = np.empty((n, 2), dtype=np.uint16)
-    bounds = np.empty(bounds_nb, dtype=np.int32)
-    t = np.empty(bounds_nb, dtype=np.uint16)  # critical capacity pointers
-    d = np.empty(bounds_nb, dtype=np.int32)  # differences between critical capacities
-    h = np.empty(bounds_nb, dtype=np.uint16)  # Hall interval pointers
-    stbl_intervals = np.zeros(bounds_nb, dtype=np.int32)
-    pot_stbl_sets = np.zeros(bounds_nb, dtype=np.int32)
-    new_mins = np.zeros(n, dtype=np.int32)
-    l = init_partial_sum(parameters[0], m, parameters[1 : 1 + m])
-    u = init_partial_sum(parameters[0], m, parameters[1 + m :])
+    bounds_nb = 2 * (n + 1)
+    empty_buffer = np.empty(4 * bounds_nb, dtype=np.int32)  # to reduce the number of allocations
+    bounds = empty_buffer[:bounds_nb]
+    t = empty_buffer[bounds_nb:2 * bounds_nb]  # critical capacity pointers
+    d = empty_buffer[2 * bounds_nb:3 * bounds_nb]  # differences between critical capacities
+    h = empty_buffer[3 * bounds_nb:]  # Hall interval pointers
+    zero_buffer = np.zeros(2 * bounds_nb + n, dtype=np.int32)  # to reduce the number of allocations
+    stable_intervals = zero_buffer[:bounds_nb]
+    stable_sets = zero_buffer[bounds_nb:2 * bounds_nb]
+    new_mins = zero_buffer[2 * bounds_nb:]
+    l = init_partial_sum(parameters[0], m, parameters[1: 1 + m])
+    u = init_partial_sum(parameters[0], m, parameters[1 + m:])
     min_sorted_vars = np.argsort(domains[:, MIN])
     max_sorted_vars = np.argsort(domains[:, MAX])
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
@@ -437,13 +439,13 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
         ranks,
         max_sorted_vars,
         l,
-        stbl_intervals,
-        pot_stbl_sets,
+        stable_intervals,
+        stable_sets,
         new_mins,
     ):
         return PROP_INCONSISTENCY
     if not filter_upper_max(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, u):
         return PROP_INCONSISTENCY
-    if not filter_upper_min(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, l, stbl_intervals, new_mins):
+    if not filter_upper_min(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, l, stable_intervals, new_mins):
         return PROP_INCONSISTENCY
     return PROP_CONSISTENCY
