@@ -215,9 +215,9 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     bounds_nb = 2 * (n + 1)
     empty_buffer = np.empty(4 * bounds_nb, dtype=np.int32)  # to reduce the number of allocations
     bounds = empty_buffer[:bounds_nb]
-    t = empty_buffer[bounds_nb:2 * bounds_nb]  # critical capacity pointers
-    d = empty_buffer[2 * bounds_nb:3 * bounds_nb]  # differences between critical capacities
-    h = empty_buffer[3 * bounds_nb:]  # Hall interval pointers
+    t = empty_buffer[bounds_nb : 2 * bounds_nb]  # critical capacity pointers
+    d = empty_buffer[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
+    h = empty_buffer[3 * bounds_nb :]  # Hall interval pointers
     min_sorted_vars = np.argsort(domains[:, MIN])
     max_sorted_vars = np.argsort(domains[:, MAX])
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars)

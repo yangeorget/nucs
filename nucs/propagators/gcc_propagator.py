@@ -101,13 +101,15 @@ def get_max_value(psum: NDArray) -> int:
 @njit(cache=True, fastmath=True)
 def skip_non_null_elements_right(psum: NDArray, value: int) -> int:
     value -= psum[0, -1]
-    return (value if psum[1, value] < value else psum[1, value]) + psum[0, -1]
+    ps = psum[1, value]
+    return (value if ps < value else ps) + psum[0, -1]
 
 
 @njit(cache=True, fastmath=True)
 def skip_non_null_elements_left(psum: NDArray, value: int) -> int:
     value -= psum[0, -1]
-    return (psum[1, psum[1, value]] if psum[1, value] > value else value) + psum[0, -1]
+    ps = psum[1, value]
+    return (psum[1, ps] if ps > value else value) + psum[0, -1]
 
 
 @njit(cache=True, fastmath=True)
@@ -246,13 +248,13 @@ def filter_lower_min(
     ranks: NDArray,
     max_sorted_vars: NDArray,
     l: NDArray,
-    stbl_intervals: NDArray,
-    pot_stbl_sets: NDArray,
+    stable_intervals: NDArray,
+    stable_sets: NDArray,
     new_mins: NDArray,
 ) -> bool:
     w = nb + 1
     for i in range(nb + 1, 0, -1):
-        pot_stbl_sets[i] = stbl_intervals[i] = i - 1
+        stable_sets[i] = stable_intervals[i] = i - 1
         c[i] = get_sum(l, bounds[i - 1], bounds[i] - 1)
         if c[i] == 0:  # if the capacity between both bounds is zero, we have an unstable set between these two bounds
             sets[i - 1] = w
@@ -272,19 +274,19 @@ def filter_lower_min(
         j = tl[z]
         if z != x + 1:
             # If bounds[z] - 1 belongs to a stable set, [bounds[x], bounds[z]) is a sub set of this stable set.
-            w = path_max(pot_stbl_sets, x + 1)
-            v = pot_stbl_sets[w]
-            path_set(pot_stbl_sets, x + 1, w, w)  # path compression
+            w = path_max(stable_sets, x + 1)
+            v = stable_sets[w]
+            path_set(stable_sets, x + 1, w, w)  # path compression
             w = min(y, z)
-            path_set(pot_stbl_sets, pot_stbl_sets[w], v, w)
-            pot_stbl_sets[w] = v
+            path_set(stable_sets, stable_sets[w], v, w)
+            stable_sets[w] = v
         if c[z] <= get_sum(l, bounds[y], bounds[z] - 1):
             # (potentialStableSets[y], y] is a stable set
-            w = path_max(stbl_intervals, pot_stbl_sets[y])
-            path_set(stbl_intervals, pot_stbl_sets[y], w, w)  # path compression
-            v = stbl_intervals[w]
-            path_set(stbl_intervals, stbl_intervals[y], v, y)
-            stbl_intervals[y] = v
+            w = path_max(stable_intervals, stable_sets[y])
+            path_set(stable_intervals, stable_sets[y], w, w)  # path compression
+            v = stable_intervals[w]
+            path_set(stable_intervals, stable_intervals[y], v, y)
+            stable_intervals[y] = v
         else:
             c[z] -= 1  # decrease the capacity between the two bounds
             if c[z] == 0:
@@ -310,15 +312,15 @@ def filter_lower_min(
     # Perform path compression over all elements in the stable interval data structure. This data structure will no
     # longer be modified and will be accessed n or 2n times. Therefore, we can afford a linear time compression.
     for i in range(nb + 1, 0, -1):
-        if stbl_intervals[i] > i:
-            stbl_intervals[i] = w
+        if stable_intervals[i] > i:
+            stable_intervals[i] = w
         else:
             w = i
     # For all variables that are not a subset of a stable set, shrink the lower bound.
     for i in range(n - 1, -1, -1):
         x = ranks[max_sorted_vars[i], MIN]
         y = ranks[max_sorted_vars[i], MAX]
-        if stbl_intervals[x] <= x or y > stbl_intervals[x]:
+        if stable_intervals[x] <= x or y > stable_intervals[x]:
             domains[max_sorted_vars[i], MIN] = skip_non_null_elements_right(l, bounds[new_mins[i]])
             # changes = 1
     return True
@@ -336,7 +338,7 @@ def filter_upper_min(
     ranks: NDArray,
     min_sorted_vars: NDArray,
     l: NDArray,
-    stbl_intervals: NDArray,
+    stable_intervals: NDArray,
     new_maxs: NDArray,
 ) -> bool:
     w = 0
@@ -385,7 +387,7 @@ def filter_upper_min(
     for i in range(n - 1, -1, -1):
         x = ranks[min_sorted_vars[i], MIN]
         y = ranks[min_sorted_vars[i], MAX]
-        if stbl_intervals[x] <= x or y > stbl_intervals[x]:
+        if stable_intervals[x] <= x or y > stable_intervals[x]:
             domains[min_sorted_vars[i], MAX] = skip_non_null_elements_left(l, bounds[new_maxs[i]] - 1)
             # changes = 1
     return True
@@ -406,12 +408,12 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     bounds_nb = 2 * (n + 1)
     empty_buffer = np.empty(4 * bounds_nb, dtype=np.int32)  # to reduce the number of allocations
     bounds = empty_buffer[:bounds_nb]
-    t = empty_buffer[bounds_nb:2 * bounds_nb]  # critical capacity pointers
-    d = empty_buffer[2 * bounds_nb:3 * bounds_nb]  # differences between critical capacities
+    t = empty_buffer[bounds_nb: 2 * bounds_nb]  # critical capacity pointers
+    d = empty_buffer[2 * bounds_nb: 3 * bounds_nb]  # differences between critical capacities
     h = empty_buffer[3 * bounds_nb:]  # Hall interval pointers
     zero_buffer = np.zeros(2 * bounds_nb + n, dtype=np.int32)  # to reduce the number of allocations
     stable_intervals = zero_buffer[:bounds_nb]
-    stable_sets = zero_buffer[bounds_nb:2 * bounds_nb]
+    stable_sets = zero_buffer[bounds_nb: 2 * bounds_nb]
     new_mins = zero_buffer[2 * bounds_nb:]
     l = init_partial_sum(parameters[0], m, parameters[1: 1 + m])
     u = init_partial_sum(parameters[0], m, parameters[1 + m:])
