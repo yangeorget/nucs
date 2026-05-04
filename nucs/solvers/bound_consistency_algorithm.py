@@ -43,6 +43,21 @@ from nucs.propagators.propagators import update_propagators_with_previous_prop
 
 
 @njit(cache=True, fastmath=True)
+def get_domain_buffer(bounds: NDArray) -> NDArray:
+    """
+    Reusable scratch buffer for prop_domains: avoids one allocation per propagator call.
+    Sized to the largest propagator arity (which can exceed domain_nb when a propagator
+    references the same variable twice, e.g. count_eq).
+    """
+    max_arity = np.int64(0)
+    for propagator_idx in range(len(bounds)):
+        arity = np.int64(bounds[propagator_idx, VARIABLE, RANGE_END] - bounds[propagator_idx, VARIABLE, RANGE_START])
+        if arity > max_arity:
+            max_arity = arity
+    return np.empty((max_arity, 2), dtype=np.int32)
+
+
+@njit(cache=True, fastmath=True)
 def bound_consistency_algorithm(
     algorithm_nb: int,
     statistics: NDArray,
@@ -83,15 +98,7 @@ def bound_consistency_algorithm(
     domains = domains_stk[top]
     entailed_propagators = entailed_propagators_stk[top]
     statistics[STATS_IDX_ALG_BC_NB] += 1
-    # Reusable scratch buffer for prop_domains: avoids one allocation per propagator call.
-    # Sized to the largest propagator arity (which can exceed domain_nb when a propagator
-    # references the same variable twice, e.g. count_eq).
-    max_arity = np.int64(0)
-    for p_idx in range(len(complexities)):
-        a = np.int64(bounds[p_idx, VARIABLE, RANGE_END]) - np.int64(bounds[p_idx, VARIABLE, RANGE_START])
-        if a > max_arity:
-            max_arity = a
-    prop_domains_scratch = np.empty((max_arity, 2), dtype=np.int32)
+    domain_buffer = get_domain_buffer(bounds)
     while True:
         prop_idx = min_heap_pop(triggered_propagators, complexities)
         if prop_idx == -1:
@@ -99,15 +106,15 @@ def bound_consistency_algorithm(
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = bounds[prop_idx, VARIABLE, RANGE_START]
         prop_var_end = bounds[prop_idx, VARIABLE, RANGE_END]
-        arity = prop_var_end - prop_var_start
-        prop_domains = prop_domains_scratch[:arity]
-        for var_idx in range(arity):
+        prop_arity = prop_var_end - prop_var_start
+        prop_domains = domain_buffer[:prop_arity]
+        for var_idx in range(prop_arity):
             variable = propagator_variables[prop_var_start + var_idx]
             prop_domains[var_idx, MIN] = domains[variable, MIN]
             prop_domains[var_idx, MAX] = domains[variable, MAX]
         status = compute_domains_fcts[algorithms[prop_idx]](
             prop_domains,
-            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]],
+            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START]: bounds[prop_idx, PARAM, RANGE_END]],
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
