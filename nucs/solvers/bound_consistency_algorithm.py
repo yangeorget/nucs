@@ -13,6 +13,7 @@
 
 from typing import Any
 
+import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -82,6 +83,15 @@ def bound_consistency_algorithm(
     domains = domains_stk[top]
     entailed_propagators = entailed_propagators_stk[top]
     statistics[STATS_IDX_ALG_BC_NB] += 1
+    # Reusable scratch buffer for prop_domains: avoids one allocation per propagator call.
+    # Sized to the largest propagator arity (which can exceed domain_nb when a propagator
+    # references the same variable twice, e.g. count_eq).
+    max_arity = np.int64(0)
+    for p_idx in range(len(complexities)):
+        a = np.int64(bounds[p_idx, VARIABLE, RANGE_END]) - np.int64(bounds[p_idx, VARIABLE, RANGE_START])
+        if a > max_arity:
+            max_arity = a
+    prop_domains_scratch = np.empty((max_arity, 2), dtype=np.int32)
     while True:
         prop_idx = min_heap_pop(triggered_propagators, complexities)
         if prop_idx == -1:
@@ -89,7 +99,12 @@ def bound_consistency_algorithm(
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         prop_var_start = bounds[prop_idx, VARIABLE, RANGE_START]
         prop_var_end = bounds[prop_idx, VARIABLE, RANGE_END]
-        prop_domains = domains[propagator_variables[prop_var_start:prop_var_end]]  # this is a copy
+        arity = prop_var_end - prop_var_start
+        prop_domains = prop_domains_scratch[:arity]
+        for var_idx in range(arity):
+            variable = propagator_variables[prop_var_start + var_idx]
+            prop_domains[var_idx, MIN] = domains[variable, MIN]
+            prop_domains[var_idx, MAX] = domains[variable, MAX]
         status = compute_domains_fcts[algorithms[prop_idx]](
             prop_domains,
             propagator_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]],
