@@ -20,7 +20,7 @@ from nucs.constants import (
     MIN,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
-    PROP_INCONSISTENCY,
+    PROP_INCONSISTENCY, EVENT_MASK_NONE,
 )
 
 
@@ -41,6 +41,8 @@ def get_triggers_affine_geq(n: int, variable: int, parameters: NDArray) -> int:
     :param parameters: the parameters
     :return: an array of triggers
     """
+    if parameters[variable] == 0:
+        return EVENT_MASK_NONE
     return EVENT_MASK_MIN if parameters[variable] < 0 else EVENT_MASK_MAX
 
 

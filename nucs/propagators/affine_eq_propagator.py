@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY, EVENT_MASK_NONE
 
 
 def get_complexity_affine_eq(n: int, parameters: NDArray) -> int:
@@ -33,7 +33,7 @@ def get_triggers_affine_eq(n: int, variable: int, parameters: NDArray) -> int:
     :param parameters: the parameters, unused here
     :return: an array of triggers
     """
-    return EVENT_MASK_MIN_MAX
+    return EVENT_MASK_MIN_MAX if parameters[variable] != 0 else EVENT_MASK_NONE
 
 
 @njit(cache=True, fastmath=True)
