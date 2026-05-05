@@ -19,7 +19,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 from rich import print
 
-from nucs.buckets import BUCKET_NB
+from nucs.buckets import compute_priority
 from nucs.constants import (
     EVENT_MASK_NB,
     NUMBA_DISABLE_JIT,
@@ -34,18 +34,6 @@ from nucs.numba_helper import addresses_from_functions, function_from_address
 from nucs.propagators.propagators import GET_TRIGGERS_FCTS, GET_COMPLEXITY_FCTS
 
 logger = logging.getLogger(__name__)
-
-
-def _priority_bucket(complexity: int) -> int:
-    """floor(log2(complexity)), clamped to [0, NB_BUCKETS-1]."""
-    if complexity <= 1:
-        return 0
-    b = 0
-    c = complexity
-    while c > 1:
-        c >>= 1
-        b += 1
-    return min(b, BUCKET_NB - 1)
 
 
 class Problem:
@@ -130,12 +118,12 @@ class Problem:
             if domain_min != domain_max:
                 self.unbound_variable_nb += 1
         self.algorithms = np.array([propagator[1] for propagator in self.propagators], dtype=np.uint8)
-        # The propagation queue is a bucketed (priority) queue: complexities here store the
-        # bucket index = floor(log2(complexity)), clamped to [0, NB_BUCKETS-1]. Higher-complexity
-        # propagators land in higher buckets and run after cheaper ones at fixpoint computation.
-        self.complexities = np.array(
+        # The propagation queue is a bucketed (priority) queue:
+        # Priorities here store the bucket index = floor(log2(complexity)), clamped to [0, NB_BUCKETS-1].
+        # Higher-complexitypropagators land in higher buckets and run after cheaper ones at fixpoint computation.
+        self.priorities = np.array(
             [
-                _priority_bucket(GET_COMPLEXITY_FCTS[propagator[1]](len(propagator[0]), propagator[2]))
+                compute_priority(GET_COMPLEXITY_FCTS[propagator[1]](len(propagator[0]), propagator[2]))
                 for propagator in self.propagators
             ],
             dtype=np.uint32,

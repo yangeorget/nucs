@@ -129,7 +129,7 @@ class BacktrackSolver(Solver, QueueSolver):
         self.dom_heuristic_params = np.array(dom_heuristic_params, dtype=np.int64)
         logger.info(f"BacktrackSolver uses consistency algorithm {consistency_alg}")
         self.triggered_propagators = buckets_init(problem.propagator_nb)
-        buckets_reset(self.triggered_propagators, self.problem.complexities)
+        buckets_reset(self.triggered_propagators, self.problem.priorities)
         logger.debug("Initializing choice points")
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
         self.entailed_propagators_stk = np.empty((stks_max_height, self.problem.propagator_nb), dtype=np.bool)
@@ -225,7 +225,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 get_algorithm_nb(),
                 self.statistics,
                 self.problem.algorithms,
-                self.problem.complexities,
+                self.problem.priorities,
                 self.problem.bounds,
                 self.problem.propagator_variables,
                 self.problem.propagator_parameters,
@@ -277,7 +277,7 @@ class BacktrackSolver(Solver, QueueSolver):
                     bound,
                 ):
                     break
-            buckets_reset(self.triggered_propagators, self.problem.complexities)
+            buckets_reset(self.triggered_propagators, self.problem.priorities)
         return best_solution
 
     def solve(self) -> Iterator[NDArray]:
@@ -291,7 +291,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 get_algorithm_nb(),
                 self.statistics,
                 self.problem.algorithms,
-                self.problem.complexities,
+                self.problem.priorities,
                 self.problem.bounds,
                 self.problem.propagator_variables,
                 self.problem.propagator_parameters,
@@ -321,7 +321,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.stks_top,
                 self.triggered_propagators,
                 self.problem.triggers,
-                self.problem.complexities,
+                self.problem.priorities,
             ):
                 break
 
@@ -365,7 +365,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 get_algorithm_nb(),
                 self.statistics,
                 self.problem.algorithms,
-                self.problem.complexities,
+                self.problem.priorities,
                 self.problem.bounds,
                 self.problem.propagator_variables,
                 self.problem.propagator_parameters,
@@ -418,7 +418,7 @@ class BacktrackSolver(Solver, QueueSolver):
                     bound,
                 ):
                     break
-            buckets_reset(self.triggered_propagators, self.problem.complexities)
+            buckets_reset(self.triggered_propagators, self.problem.priorities)
         solution_queue.put((processor_idx, None, self.statistics))
 
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
@@ -433,7 +433,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 get_algorithm_nb(),
                 self.statistics,
                 self.problem.algorithms,
-                self.problem.complexities,
+                self.problem.priorities,
                 self.problem.bounds,
                 self.problem.propagator_variables,
                 self.problem.propagator_parameters,
@@ -462,7 +462,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.stks_top,
                 self.triggered_propagators,
                 self.problem.triggers,
-                self.problem.complexities,
+                self.problem.priorities,
             ):
                 break
         solution_queue.put((processor_idx, None, self.statistics))

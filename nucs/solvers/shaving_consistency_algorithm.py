@@ -40,7 +40,7 @@ def shave_bound(
     variable: int,
     statistics: NDArray,
     algorithms: NDArray,
-    complexities: NDArray,
+    priorities: NDArray,
     bounds: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -66,14 +66,14 @@ def shave_bound(
     if domains_stk[stks_top[0], variable, MIN] == domains_stk[stks_top[0], variable, MAX]:
         events |= EVENT_MASK_GROUND
     update_propagators(
-        triggered_propagators, entailed_propagators_stk[stks_top[0]], triggers[variable, events], complexities
+        triggered_propagators, entailed_propagators_stk[stks_top[0]], triggers[variable, events], priorities
     )
     if (
         bound_consistency_algorithm(
             algorithm_nb,
             statistics,
             algorithms,
-            complexities,
+            priorities,
             bounds,
             propagator_variables,
             propagator_parameters,
@@ -94,7 +94,7 @@ def shave_bound(
         domains_stk[stks_top[0] - 1, variable, bound] += 1 if bound == MAX else -1
         has_shaved = False
     backtrack(
-        statistics, entailed_propagators_stk, domain_update_stk, stks_top, triggered_propagators, triggers, complexities
+        statistics, entailed_propagators_stk, domain_update_stk, stks_top, triggered_propagators, triggers, priorities
     )
     return has_shaved
 
@@ -104,7 +104,7 @@ def shaving_consistency_algorithm(
     algorithm_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
-    complexities: NDArray,
+    priorities: NDArray,
     bounds: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -148,7 +148,7 @@ def shaving_consistency_algorithm(
                 algorithm_nb,
                 statistics,
                 algorithms,
-                complexities,
+                priorities,
                 bounds,
                 propagator_variables,
                 propagator_parameters,
@@ -176,7 +176,7 @@ def shaving_consistency_algorithm(
             variable,
             statistics,
             algorithms,
-            complexities,
+            priorities,
             bounds,
             propagator_variables,
             propagator_parameters,

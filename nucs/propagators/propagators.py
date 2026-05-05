@@ -222,11 +222,11 @@ def update_propagators_with_previous_prop(
     entailed_propagators: NDArray,
     triggers: NDArray,
     previous_prop_idx: int,
-    complexities: NDArray,
+    priorities: NDArray,
 ) -> None:
     for prop_idx in triggers[1 : triggers[0] + 1]:
         if not entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
-            buckets_add(triggered_propagators, prop_idx, complexities)
+            buckets_add(triggered_propagators, prop_idx, priorities)
 
 
 @njit(cache=True, fastmath=True)
@@ -234,8 +234,8 @@ def update_propagators(
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,
     triggers: NDArray,
-    complexities: NDArray,
+    priorities: NDArray,
 ) -> None:
     for prop_idx in triggers[1 : triggers[0] + 1]:
         if not entailed_propagators[prop_idx]:
-            buckets_add(triggered_propagators, prop_idx, complexities)
+            buckets_add(triggered_propagators, prop_idx, priorities)

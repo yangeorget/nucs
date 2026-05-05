@@ -16,10 +16,23 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-# Number of priority buckets. weights[val] is interpreted directly as a bucket index;
-# values >= NB_BUCKETS are clamped to the last bucket.
+# Number of priority buckets.
+# priorities[val] is interpreted directly as a bucket index; values >= NB_BUCKETS are clamped to the last bucket.
 # Within a bucket: FIFO order (insertion order is preserved on pop).
-BUCKET_NB = 8
+BUCKET_NB = 8  # TODO: play with bucket nb and log
+
+
+@njit(cache=True, fastmath=True)
+def compute_priority(complexity: int) -> int:
+    """floor(log2(complexity)), clamped to [0, NB_BUCKETS-1]."""
+    if complexity <= 1:
+        return 0
+    b = 0
+    c = complexity
+    while c > 1:
+        c >>= 1
+        b += 1
+    return min(b, BUCKET_NB - 1)
 
 
 @njit(cache=True, fastmath=True)
@@ -41,20 +54,20 @@ def buckets_init(capacity: int) -> NDArray:
 
 
 @njit(cache=True, fastmath=True)
-def buckets_reset(buckets: NDArray, complexities: NDArray) -> None:
+def buckets_reset(buckets: NDArray, priorities: NDArray) -> None:
     """
     Empty the bucket FIFO queue then re-add every propagator.
     """
-    nb = len(complexities)
+    nb = len(priorities)
     buckets[: 2 * BUCKET_NB + nb] = -1
-    buckets[2 * BUCKET_NB + nb : 2 * BUCKET_NB + 2 * nb] = 0
+    buckets[2 * BUCKET_NB + nb: 2 * BUCKET_NB + 2 * nb] = 0
     buckets[-1] = BUCKET_NB
     for prop_idx in range(nb):
-        buckets_add(buckets, prop_idx, complexities)
+        buckets_add(buckets, prop_idx, priorities)
 
 
 @njit(cache=True, fastmath=True)
-def buckets_add(buckets: NDArray, idx: int, weights: NDArray) -> None:
+def buckets_add(buckets: NDArray, idx: int, priorities: NDArray) -> None:
     """
     Appends idx at the tail of bucket weights[idx].
     No-op if idx is already present.
@@ -63,7 +76,7 @@ def buckets_add(buckets: NDArray, idx: int, weights: NDArray) -> None:
     membership_idx = 2 * BUCKET_NB + capacity + idx
     if buckets[membership_idx]:
         return
-    bucket = weights[idx]
+    bucket = priorities[idx]
     if bucket >= BUCKET_NB:
         bucket = BUCKET_NB - 1
     buckets[2 * BUCKET_NB + idx] = -1  # new tail has no successor
@@ -84,7 +97,7 @@ def buckets_pop(buckets: NDArray) -> int:
     Removes and returns the head of the lowest-priority non-empty bucket.
     :return: -1 if the queue is empty
     """
-    capacity = (len(buckets) - 2 * BUCKET_NB - 1) >> 1
+    capacity = (len(buckets) - 2 * BUCKET_NB - 1) >> 1  # TODO: pass a parameter?
     bucket = buckets[-1]
     while bucket < BUCKET_NB and buckets[bucket] == -1:
         bucket += 1

@@ -19,16 +19,16 @@ class TestBuckets:
     def test_buckets(self) -> None:
         heap = buckets_init(4)
         # Bucket indices (already-bucketed weights). Lower bucket = higher priority.
-        weights = np.array([0, 1, 2, 3])
-        buckets_add(heap, 3, weights)
-        buckets_add(heap, 2, weights)
-        buckets_add(heap, 1, weights)
-        buckets_add(heap, 0, weights)
+        priorities = np.array([0, 1, 2, 3])
+        buckets_add(heap, 3, priorities)
+        buckets_add(heap, 2, priorities)
+        buckets_add(heap, 1, priorities)
+        buckets_add(heap, 0, priorities)
         # Re-adding existing elements is a no-op (set semantics).
-        buckets_add(heap, 3, weights)
-        buckets_add(heap, 2, weights)
-        buckets_add(heap, 1, weights)
-        buckets_add(heap, 0, weights)
+        buckets_add(heap, 3, priorities)
+        buckets_add(heap, 2, priorities)
+        buckets_add(heap, 1, priorities)
+        buckets_add(heap, 0, priorities)
         assert buckets_pop(heap) == 0
         assert buckets_pop(heap) == 1
         assert buckets_pop(heap) == 2
