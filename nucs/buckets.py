@@ -24,15 +24,16 @@ BUCKET_NB = 8  # TODO: play with bucket nb and log
 
 @njit(cache=True, fastmath=True)
 def compute_priority(complexity: int) -> int:
-    """floor(log2(complexity)), clamped to [0, NB_BUCKETS-1]."""
+    """
+    Floor(log2(complexity)), clamped to [0, NB_BUCKETS-1].
+    """
     if complexity <= 1:
         return 0
-    b = 0
-    c = complexity
-    while c > 1:
-        c >>= 1
-        b += 1
-    return min(b, BUCKET_NB - 1)
+    bucket = 0
+    while complexity > 1:
+        complexity >>= 2
+        bucket += 1
+    return min(bucket, BUCKET_NB - 1)
 
 
 @njit(cache=True, fastmath=True)

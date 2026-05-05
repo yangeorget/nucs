@@ -156,23 +156,24 @@ def has_no_changes(
 ) -> bool:
     no_changes = True
     for var_idx in range(prop_var_end - prop_var_start):
-        events = 0
         variable = propagator_variables[prop_var_start + var_idx]
         domain = domains[variable]
-        domain_min = prop_domains[var_idx, MIN]
-        if domain[MIN] != domain_min:
-            domain[MIN] = domain_min
-            events |= EVENT_MASK_MIN
-        domain_max = prop_domains[var_idx, MAX]
-        if domain[MAX] != domain_max:
-            domain[MAX] = domain_max
-            events |= EVENT_MASK_MAX
-        if events:
-            if domain_min == domain_max:
-                events |= EVENT_MASK_GROUND
-                unbound_variable_nb_stk[top] -= 1
-            update_propagators_with_previous_prop(
-                triggered_propagators, entailed_propagators, triggers[variable, events], prop_idx, priorities
-            )
-            no_changes = False
+        if domain[MIN] != domain[MAX]:
+            events = 0
+            domain_min = prop_domains[var_idx, MIN]
+            if domain[MIN] != domain_min:
+                domain[MIN] = domain_min
+                events |= EVENT_MASK_MIN
+            domain_max = prop_domains[var_idx, MAX]
+            if domain[MAX] != domain_max:
+                domain[MAX] = domain_max
+                events |= EVENT_MASK_MAX
+            if events:
+                if domain_min == domain_max:
+                    events |= EVENT_MASK_GROUND
+                    unbound_variable_nb_stk[top] -= 1
+                update_propagators_with_previous_prop(
+                    triggered_propagators, entailed_propagators, triggers[variable, events], prop_idx, priorities
+                )
+                no_changes = False
     return no_changes
