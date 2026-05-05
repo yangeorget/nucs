@@ -27,10 +27,10 @@ from nucs.constants import (
     OPTIM_RESET,
     PROBLEM_BOUND,
     PROBLEM_UNBOUND,
-    SIGNATURE_COMPUTE_DOMAINS,
-    SIGNATURE_CONSISTENCY_ALG,
-    SIGNATURE_DOM_HEURISTIC,
-    SIGNATURE_VAR_HEURISTIC,
+    SIGN_COMPUTE_DOMAINS,
+    SIGN_CONSISTENCY_ALG,
+    SIGN_DOM_HEURISTIC,
+    SIGN_VAR_HEURISTIC,
     STATS_IDX_ALG_BC_NB,
     STATS_IDX_ALG_BC_WITH_SHAVING_NB,
     STATS_IDX_ALG_SHAVING_CHANGE_NB,
@@ -79,6 +79,7 @@ from nucs.propagators.propagators import (
     update_propagators,
     get_algorithm_nb,
 )
+from nucs.solvers.bound_consistency_algorithm import get_domain_buffer
 from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_points, fix_choice_point
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.queue_solver import QueueSolver
@@ -129,6 +130,7 @@ class BacktrackSolver(Solver, QueueSolver):
         self.dom_heuristic_params = np.array(dom_heuristic_params, dtype=np.int64)
         logger.info(f"BacktrackSolver uses consistency algorithm {consistency_alg}")
         self.triggered_propagators = buckets_init(problem.propagator_nb)
+        self.domain_buffer = get_domain_buffer(problem.bounds)
         logger.debug("Initializing choice points")
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
         self.entailed_propagators_stk = np.empty((stks_max_height, self.problem.propagator_nb), dtype=np.bool)
@@ -156,15 +158,13 @@ class BacktrackSolver(Solver, QueueSolver):
             self.var_heuristic_fcts = [VAR_HEURISTIC_FCTS[var_heuristic]]
             self.dom_heuristic_fcts = [DOM_HEURISTIC_FCTS[dom_heuristic]]
         else:
-            compute_domains_addrs = addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGNATURE_COMPUTE_DOMAINS)
+            compute_domains_addrs = addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGN_COMPUTE_DOMAINS)
             self.compute_domains_fcts = build_compute_domains_fcts(compute_domains_addrs)
-            consistency_alg_addr = address_from_function(
-                CONSISTENCY_ALG_FCTS[consistency_alg], SIGNATURE_CONSISTENCY_ALG
-            )
+            consistency_alg_addr = address_from_function(CONSISTENCY_ALG_FCTS[consistency_alg], SIGN_CONSISTENCY_ALG)
             self.consistency_alg_fcts = build_consistency_alg_fcts(consistency_alg_addr)
-            var_heuristic_addr = address_from_function(VAR_HEURISTIC_FCTS[var_heuristic], SIGNATURE_VAR_HEURISTIC)
+            var_heuristic_addr = address_from_function(VAR_HEURISTIC_FCTS[var_heuristic], SIGN_VAR_HEURISTIC)
             self.var_heuristic_fcts = build_var_heuristic_fcts(var_heuristic_addr)
-            dom_heuristic_addr = address_from_function(DOM_HEURISTIC_FCTS[dom_heuristic], SIGNATURE_DOM_HEURISTIC)
+            dom_heuristic_addr = address_from_function(DOM_HEURISTIC_FCTS[dom_heuristic], SIGN_DOM_HEURISTIC)
             self.dom_heuristic_fcts = build_dom_heuristic_fcts(dom_heuristic_addr)
         logger.debug("BacktrackSolver initialized")
 
@@ -242,6 +242,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.dom_heuristic_fcts,
                 self.dom_heuristic_params,
                 self.compute_domains_fcts,
+                self.domain_buffer,
             )
         ) is not None:
             logger.info(f"Found a local optimum: {solution[variable]}")
@@ -307,6 +308,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.dom_heuristic_fcts,
                 self.dom_heuristic_params,
                 self.compute_domains_fcts,
+                self.domain_buffer,
             )
             if solution is None:
                 break
@@ -381,6 +383,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.dom_heuristic_fcts,
                 self.dom_heuristic_params,
                 self.compute_domains_fcts,
+                self.domain_buffer,
             )
             if solution is None:
                 break
@@ -448,6 +451,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.dom_heuristic_fcts,
                 self.dom_heuristic_params,
                 self.compute_domains_fcts,
+                self.domain_buffer,
             )
             if solution is None:
                 break
@@ -488,6 +492,7 @@ def solve_one(
     dom_heuristic_fcts: Any,
     dom_heuristic_params: NDArray,
     compute_domains_fcts: Any,
+    domain_buffer: NDArray,
 ) -> Optional[NDArray]:
     """
     Find at most one solution.
@@ -540,6 +545,7 @@ def solve_one(
             triggered_propagators,
             compute_domains_fcts,
             decision_variables,
+            domain_buffer,
         )
         top = stks_top[0]
         if status == PROBLEM_BOUND:

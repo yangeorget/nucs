@@ -69,6 +69,7 @@ class TestBacktrackSolver:
             solver.dom_heuristic_fcts,
             solver.dom_heuristic_params,
             solver.compute_domains_fcts,
+            solver.domain_buffer,
         )
         assert solution.tolist() == [0, 0]
         assert solver.stks_top == 2

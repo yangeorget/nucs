@@ -26,7 +26,7 @@ from nucs.constants import (
     PARAM,
     RANGE_END,
     RANGE_START,
-    SIGNATURE_GET_TRIGGERS,
+    SIGN_GET_TRIGGERS,
     TYPE_GET_TRIGGERS,
     VARIABLE,
 )
@@ -148,7 +148,7 @@ class Problem:
             self.propagator_variables,
             self.propagator_parameters,
             self.algorithms,
-            addresses_from_functions(GET_TRIGGERS_FCTS, SIGNATURE_GET_TRIGGERS),
+            addresses_from_functions(GET_TRIGGERS_FCTS, SIGN_GET_TRIGGERS),
         )
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.propagator_nb} propagators")

@@ -53,6 +53,7 @@ def shave_bound(
     triggered_propagators: NDArray,
     compute_domains_fcts: Any,
     decision_variables: NDArray,
+    domain_buffer: NDArray,
 ) -> bool:
     events = (
         max_value_dom_heuristic(
@@ -86,6 +87,7 @@ def shave_bound(
             triggered_propagators,
             compute_domains_fcts,
             decision_variables,
+            domain_buffer,
         )
         == PROBLEM_INCONSISTENT
     ):
@@ -117,6 +119,7 @@ def shaving_consistency_algorithm(
     triggered_propagators: NDArray,
     compute_domains_fcts: Any,
     decision_variables: NDArray,
+    domain_buffer: NDArray,
 ) -> int:
     """
     Shaving consistency algorithm.
@@ -161,6 +164,7 @@ def shaving_consistency_algorithm(
                 triggered_propagators,
                 compute_domains_fcts,
                 decision_variables,
+                domain_buffer,
             )
             if status != PROBLEM_UNBOUND:
                 return status
@@ -189,6 +193,7 @@ def shaving_consistency_algorithm(
             triggered_propagators,
             compute_domains_fcts,
             decision_variables,
+            domain_buffer,
         )
         start_idx = variable
         if has_shaved:

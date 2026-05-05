@@ -43,12 +43,12 @@ from nucs.constants import (
 from nucs.propagators.propagators import update_propagators_with_previous_prop
 
 
-@njit(cache=True, fastmath=True)
 def get_domain_buffer(bounds: NDArray) -> NDArray:
     """
     Reusable scratch buffer for prop_domains: avoids one allocation per propagator call.
     Sized to the largest propagator arity (which can exceed domain_nb when a propagator
     references the same variable twice, e.g. count_eq).
+    Allocated once at solver init and threaded through the consistency algorithms.
     """
     max_arity = np.int64(0)
     for propagator_idx in range(len(bounds)):
@@ -76,6 +76,7 @@ def bound_consistency_algorithm(
     triggered_propagators: NDArray,
     compute_domains_fcts: Any,
     decision_variables: NDArray,
+    domain_buffer: NDArray,
 ) -> int:
     """
     :param statistics: a Numpy array of statistics
@@ -93,13 +94,13 @@ def bound_consistency_algorithm(
     :param triggered_propagators: the Numpy array of triggered propagators
     :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
     :param decision_variables: the variables on which decisions will be made
+    :param domain_buffer: a scratch buffer for prop_domains, sized to max propagator arity, allocated once at solver init
     :return: a status (consistency, inconsistency or entailment) as an integer
     """
     top = stks_top[0]
     domains = domains_stk[top]
     entailed_propagators = entailed_propagators_stk[top]
     statistics[STATS_IDX_ALG_BC_NB] += 1
-    domain_buffer = get_domain_buffer(bounds)
     while True:
         prop_idx = buckets_pop(triggered_propagators)
         if prop_idx == -1:
