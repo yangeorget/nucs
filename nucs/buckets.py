@@ -60,7 +60,7 @@ def buckets_reset(buckets: NDArray, priorities: NDArray) -> None:
     """
     nb = len(priorities)
     buckets[: 2 * BUCKET_NB + nb] = -1
-    buckets[2 * BUCKET_NB + nb: 2 * BUCKET_NB + 2 * nb] = 0
+    buckets[2 * BUCKET_NB + nb : 2 * BUCKET_NB + 2 * nb] = 0
     buckets[-1] = BUCKET_NB
     for prop_idx in range(nb):
         buckets_add(buckets, prop_idx, priorities)
