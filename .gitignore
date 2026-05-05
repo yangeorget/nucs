@@ -5,10 +5,9 @@ __pycache__
 build
 dist
 docs/output
+logs
 venv*
 .venv*
 profile.pstats
 NUCS.egg-info
-TODO.md
-DOCKER.md
 .DS_Store

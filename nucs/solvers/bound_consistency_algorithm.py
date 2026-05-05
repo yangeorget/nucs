@@ -38,6 +38,7 @@ from nucs.constants import (
     STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
     VARIABLE,
+    EVENT_MASK_NONE,
 )
 from nucs.propagators.propagators import update_propagators_with_previous_prop
 
@@ -157,7 +158,7 @@ def has_no_changes(
         variable = propagator_variables[prop_var_start + var_idx]
         domain = domains[variable]
         if domain[MIN] != domain[MAX]:
-            events = 0
+            events = EVENT_MASK_NONE
             domain_min = prop_domains[var_idx, MIN]
             if domain[MIN] != domain_min:
                 domain[MIN] = domain_min

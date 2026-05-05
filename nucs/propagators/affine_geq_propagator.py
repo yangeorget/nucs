@@ -20,7 +20,8 @@ from nucs.constants import (
     MIN,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
-    PROP_INCONSISTENCY, EVENT_MASK_NONE,
+    PROP_INCONSISTENCY,
+    EVENT_MASK_NONE,
 )
 
 
