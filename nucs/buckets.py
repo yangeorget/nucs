@@ -69,19 +69,20 @@ def buckets_add(buckets: NDArray, idx: int, priorities: NDArray) -> None:
     Appends idx at the tail of bucket weights[idx].
     No-op if idx is already present.
     """
-    capacity = (len(buckets) - 2 * BUCKET_NB - 1) >> 1
-    membership_idx = 2 * BUCKET_NB + capacity + idx
+    storage_start = 2 * BUCKET_NB
+    capacity = (len(buckets) - storage_start - 1) >> 1
+    membership_idx = storage_start + capacity + idx
     if buckets[membership_idx]:
         return
     bucket = priorities[idx]
     if bucket >= BUCKET_NB:
         bucket = BUCKET_NB - 1
-    buckets[2 * BUCKET_NB + idx] = -1  # new tail has no successor
+    buckets[storage_start + idx] = -1  # new tail has no successor
     old_tail = buckets[BUCKET_NB + bucket]
     if old_tail == -1:
         buckets[bucket] = idx  # bucket was empty, set head
     else:
-        buckets[2 * BUCKET_NB + old_tail] = idx  # link previous tail to new node
+        buckets[storage_start + old_tail] = idx  # link previous tail to new node
     buckets[BUCKET_NB + bucket] = idx
     buckets[membership_idx] = 1
     if bucket < buckets[-1]:
@@ -94,7 +95,8 @@ def buckets_pop(buckets: NDArray) -> int:
     Removes and returns the head of the lowest-priority non-empty bucket.
     :return: -1 if the queue is empty
     """
-    capacity = (len(buckets) - 2 * BUCKET_NB - 1) >> 1  # TODO: pass a parameter?
+    storage_start = 2 * BUCKET_NB
+    capacity = (len(buckets) - storage_start - 1) >> 1
     bucket = buckets[-1]
     while bucket < BUCKET_NB and buckets[bucket] == -1:
         bucket += 1
@@ -102,10 +104,10 @@ def buckets_pop(buckets: NDArray) -> int:
         buckets[-1] = BUCKET_NB
         return -1
     idx = buckets[bucket]
-    new_head = buckets[2 * BUCKET_NB + idx]
+    new_head = buckets[storage_start + idx]
     buckets[bucket] = new_head
     if new_head == -1:
         buckets[BUCKET_NB + bucket] = -1  # bucket now empty, clear tail too
-    buckets[2 * BUCKET_NB + capacity + idx] = 0
+    buckets[storage_start + capacity + idx] = 0
     buckets[-1] = bucket
     return idx
