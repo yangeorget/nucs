@@ -59,7 +59,7 @@ def buckets_empty(buckets: NDArray, priorities: NDArray) -> None:
     """
     nb = len(priorities)
     buckets[: 2 * BUCKET_NB + nb] = -1
-    buckets[2 * BUCKET_NB + nb : 2 * BUCKET_NB + 2 * nb] = 0
+    buckets[2 * BUCKET_NB + nb: 2 * BUCKET_NB + 2 * nb] = 0
     buckets[-1] = BUCKET_NB
 
 
@@ -95,8 +95,8 @@ def buckets_pop(buckets: NDArray) -> int:
     Removes and returns the head of the lowest-priority non-empty bucket.
     :return: -1 if the queue is empty
     """
-    storage_start = 2 * BUCKET_NB
-    capacity = (len(buckets) - storage_start - 1) >> 1
+    storage_offset = 2 * BUCKET_NB
+    capacity = (len(buckets) - storage_offset - 1) >> 1
     bucket = buckets[-1]
     while bucket < BUCKET_NB and buckets[bucket] == -1:
         bucket += 1
@@ -104,10 +104,10 @@ def buckets_pop(buckets: NDArray) -> int:
         buckets[-1] = BUCKET_NB
         return -1
     idx = buckets[bucket]
-    new_head = buckets[storage_start + idx]
+    new_head = buckets[storage_offset + idx]
     buckets[bucket] = new_head
     if new_head == -1:
         buckets[BUCKET_NB + bucket] = -1  # bucket now empty, clear tail too
-    buckets[storage_start + capacity + idx] = 0
+    buckets[storage_offset + capacity + idx] = 0
     buckets[-1] = bucket
     return idx

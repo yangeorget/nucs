@@ -17,7 +17,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import buckets_pop
+from nucs.buckets import BUCKET_NB, buckets_add, buckets_pop
 from nucs.constants import (
     EVENT_MASK_GROUND,
     EVENT_MASK_MAX,
@@ -40,7 +40,6 @@ from nucs.constants import (
     VARIABLE,
     EVENT_MASK_NONE,
 )
-from nucs.propagators.propagators import update_propagators_with_previous_prop
 
 
 def get_domain_buffer(bounds: NDArray) -> NDArray:
@@ -114,7 +113,7 @@ def bound_consistency_algorithm(
             prop_domains[var_idx] = domains[propagator_variables[prop_var_start + var_idx]]
         status = compute_domains_fcts[algorithms[prop_idx]](
             prop_domains,
-            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]],
+            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START]: bounds[prop_idx, PARAM, RANGE_END]],
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
@@ -155,6 +154,10 @@ def has_no_changes(
     priorities: NDArray,
 ) -> bool:
     no_changes = True
+    # Layout of triggered_propagators (see nucs/buckets.py): the membership flag of propagator p
+    # lives at index membership_offset + p. Caching the offset lets us short-circuit buckets_add
+    # for propagators already in the queue without paying the function-call overhead.
+    membership_offset = (2 * BUCKET_NB) + ((len(triggered_propagators) - (2 * BUCKET_NB) - 1) >> 1)
     for var_idx in range(prop_var_end - prop_var_start):
         variable = propagator_variables[prop_var_start + var_idx]
         domain = domains[variable]
@@ -172,8 +175,13 @@ def has_no_changes(
                 if domain_min == domain_max:
                     events |= EVENT_MASK_GROUND
                     unbound_variable_nb_stk[top] -= 1
-                update_propagators_with_previous_prop(
-                    triggered_propagators, entailed_propagators, triggers[variable, events], prop_idx, priorities
-                )
+                propagators = triggers[variable, events]
+                for other_prop_idx in propagators[1:propagators[0] + 1]:
+                    if (
+                        not triggered_propagators[membership_offset + other_prop_idx]
+                        and other_prop_idx != prop_idx
+                        and not entailed_propagators[other_prop_idx]
+                    ):
+                        buckets_add(triggered_propagators, other_prop_idx, priorities)
                 no_changes = False
     return no_changes
