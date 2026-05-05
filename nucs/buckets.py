@@ -19,7 +19,8 @@ from numpy.typing import NDArray
 # Number of priority buckets.
 # priorities[val] is interpreted directly as a bucket index; values >= NB_BUCKETS are clamped to the last bucket.
 # Within a bucket: FIFO order (insertion order is preserved on pop).
-BUCKET_NB = 8  # TODO: play with bucket nb and log
+BUCKET_NB = 8
+BUCKET_FACTOR = 2
 
 
 @njit(cache=True, fastmath=True)
@@ -31,7 +32,7 @@ def compute_priority(complexity: int) -> int:
         return 0
     bucket = 0
     while complexity > 1:
-        complexity >>= 2
+        complexity >>= BUCKET_FACTOR
         bucket += 1
     return min(bucket, BUCKET_NB - 1)
 
@@ -48,23 +49,18 @@ def buckets_init(capacity: int) -> NDArray:
       [2*BUCKET_NB + capacity : 2*BUCKET_NB + 2*capacity]     membership flag per element (0/1)
       [-1]                                                      cached min bucket index
     """
-    buckets = np.zeros(2 * BUCKET_NB + 2 * capacity + 1, dtype=np.int32)
-    buckets[: 2 * BUCKET_NB + capacity] = -1
-    buckets[-1] = BUCKET_NB
-    return buckets
+    return np.empty(2 * BUCKET_NB + 2 * capacity + 1, dtype=np.int32)
 
 
 @njit(cache=True, fastmath=True)
-def buckets_reset(buckets: NDArray, priorities: NDArray) -> None:
+def buckets_empty(buckets: NDArray, priorities: NDArray) -> None:
     """
-    Empty the bucket FIFO queue then re-add every propagator.
+    Empty the bucket FIFO queue.
     """
     nb = len(priorities)
     buckets[: 2 * BUCKET_NB + nb] = -1
     buckets[2 * BUCKET_NB + nb : 2 * BUCKET_NB + 2 * nb] = 0
     buckets[-1] = BUCKET_NB
-    for prop_idx in range(nb):
-        buckets_add(buckets, prop_idx, priorities)
 
 
 @njit(cache=True, fastmath=True)

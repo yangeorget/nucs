@@ -85,7 +85,7 @@ def bound_consistency_algorithm(
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :param domains_stk: a stack of domains;
     the first level correspond to the current domains, the rest correspond to the choice points
-    :param entailed_propagators_stk: a stack of entailed propagatorspropagators;
+    :param entailed_propagators_stk: a stack of entailed propagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
     :param domain_update_stk: the stack of domain updates, unused here
     :param stks_top: the height of the stacks as a Numpy array
@@ -109,9 +109,7 @@ def bound_consistency_algorithm(
         prop_arity = prop_var_end - prop_var_start
         prop_domains = domain_buffer[:prop_arity]
         for var_idx in range(prop_arity):
-            variable = propagator_variables[prop_var_start + var_idx]
-            prop_domains[var_idx, MIN] = domains[variable, MIN]
-            prop_domains[var_idx, MAX] = domains[variable, MAX]
+            prop_domains[var_idx] = domains[propagator_variables[prop_var_start + var_idx]]
         status = compute_domains_fcts[algorithms[prop_idx]](
             prop_domains,
             propagator_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]],

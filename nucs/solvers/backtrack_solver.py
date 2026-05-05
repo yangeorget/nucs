@@ -18,7 +18,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import buckets_init, buckets_reset
+from nucs.buckets import buckets_init, buckets_empty, buckets_add
 from nucs.constants import (
     LOG_LEVEL_INFO,
     MAX,
@@ -129,7 +129,6 @@ class BacktrackSolver(Solver, QueueSolver):
         self.dom_heuristic_params = np.array(dom_heuristic_params, dtype=np.int64)
         logger.info(f"BacktrackSolver uses consistency algorithm {consistency_alg}")
         self.triggered_propagators = buckets_init(problem.propagator_nb)
-        buckets_reset(self.triggered_propagators, self.problem.priorities)
         logger.debug("Initializing choice points")
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
         self.entailed_propagators_stk = np.empty((stks_max_height, self.problem.propagator_nb), dtype=np.bool)
@@ -277,7 +276,6 @@ class BacktrackSolver(Solver, QueueSolver):
                     bound,
                 ):
                     break
-            buckets_reset(self.triggered_propagators, self.problem.priorities)
         return best_solution
 
     def solve(self) -> Iterator[NDArray]:
@@ -418,7 +416,6 @@ class BacktrackSolver(Solver, QueueSolver):
                     bound,
                 ):
                     break
-            buckets_reset(self.triggered_propagators, self.problem.priorities)
         solution_queue.put((processor_idx, None, self.statistics))
 
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
@@ -473,7 +470,7 @@ def solve_one(
     algorithm_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
-    complexities: NDArray,
+    priorities: NDArray,
     bounds: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -522,12 +519,15 @@ def solve_one(
     consistency_alg_fct = consistency_alg_fcts[0]
     var_heuristic_fct = var_heuristic_fcts[0]
     dom_heuristic_fct = dom_heuristic_fcts[0]
+    buckets_empty(triggered_propagators, priorities)
+    for prop_idx in range(len(priorities)):
+        buckets_add(triggered_propagators, prop_idx, priorities)
     while True:
         status = consistency_alg_fct(
             algorithm_nb,
             statistics,
             algorithms,
-            complexities,
+            priorities,
             bounds,
             propagator_variables,
             propagator_parameters,
@@ -558,7 +558,7 @@ def solve_one(
             )
             top = stks_top[0]
             update_propagators(
-                triggered_propagators, entailed_propagators_stk[top], triggers[variable, events], complexities
+                triggered_propagators, entailed_propagators_stk[top], triggers[variable, events], priorities
             )
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
             if top > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
@@ -570,6 +570,6 @@ def solve_one(
             stks_top,
             triggered_propagators,
             triggers,
-            complexities,
+            priorities,
         ):
             return None

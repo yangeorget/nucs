@@ -12,25 +12,26 @@
 ###############################################################################
 import numpy as np
 
-from nucs.buckets import buckets_add, buckets_init, buckets_pop
+from nucs.buckets import buckets_add, buckets_init, buckets_pop, buckets_empty
 
 
 class TestBuckets:
     def test_buckets(self) -> None:
-        heap = buckets_init(4)
+        buckets = buckets_init(4)
         # Bucket indices (already-bucketed weights). Lower bucket = higher priority.
         priorities = np.array([0, 1, 2, 3])
-        buckets_add(heap, 3, priorities)
-        buckets_add(heap, 2, priorities)
-        buckets_add(heap, 1, priorities)
-        buckets_add(heap, 0, priorities)
+        buckets_empty(buckets, priorities)
+        buckets_add(buckets, 3, priorities)
+        buckets_add(buckets, 2, priorities)
+        buckets_add(buckets, 1, priorities)
+        buckets_add(buckets, 0, priorities)
         # Re-adding existing elements is a no-op (set semantics).
-        buckets_add(heap, 3, priorities)
-        buckets_add(heap, 2, priorities)
-        buckets_add(heap, 1, priorities)
-        buckets_add(heap, 0, priorities)
-        assert buckets_pop(heap) == 0
-        assert buckets_pop(heap) == 1
-        assert buckets_pop(heap) == 2
-        assert buckets_pop(heap) == 3
-        assert buckets_pop(heap) == -1
+        buckets_add(buckets, 3, priorities)
+        buckets_add(buckets, 2, priorities)
+        buckets_add(buckets, 1, priorities)
+        buckets_add(buckets, 0, priorities)
+        assert buckets_pop(buckets) == 0
+        assert buckets_pop(buckets) == 1
+        assert buckets_pop(buckets) == 2
+        assert buckets_pop(buckets) == 3
+        assert buckets_pop(buckets) == -1
