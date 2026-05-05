@@ -73,7 +73,7 @@ SIGNATURE_CONSISTENCY_ALG = int64(
     uint32[:, :],  # domain_update_stk
     uint32[:],  # unbound_variable_nb_stk
     uint32[:],  # stks_top
-    uint32[:],  # triggered_propagators
+    int32[:],  # triggered_propagators
     TYPE_COMPUTE_DOMAINS_LIST,  # compute_domains_fcts
     uint32[:],  # decision_variables
 )

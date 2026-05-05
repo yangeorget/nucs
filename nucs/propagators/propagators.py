@@ -15,7 +15,7 @@ from typing import Callable, List
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.heaps import min_heap_add
+from nucs.buckets import buckets_add
 from nucs.propagators.abs_eq_propagator import compute_domains_abs_eq, get_complexity_abs_eq, get_triggers_abs_eq
 from nucs.propagators.affine_eq_propagator import (
     compute_domains_affine_eq,
@@ -217,13 +217,6 @@ ALG_SUM_LEQ_C = register_propagator(get_triggers_sum_leq_c, get_complexity_sum_l
 
 
 @njit(cache=True, fastmath=True)
-def reset_triggered_propagators(triggered_propagators: NDArray, complexities: NDArray) -> None:
-    triggered_propagators[:] = 0
-    for prop_idx in range(len(complexities)):
-        min_heap_add(triggered_propagators, prop_idx, complexities)
-
-
-@njit(cache=True, fastmath=True)
 def update_propagators_with_previous_prop(
     triggered_propagators: NDArray,
     entailed_propagators: NDArray,
@@ -233,7 +226,7 @@ def update_propagators_with_previous_prop(
 ) -> None:
     for prop_idx in triggers[1 : triggers[0] + 1]:
         if not entailed_propagators[prop_idx] and prop_idx != previous_prop_idx:
-            min_heap_add(triggered_propagators, prop_idx, complexities)
+            buckets_add(triggered_propagators, prop_idx, complexities)
 
 
 @njit(cache=True, fastmath=True)
@@ -245,4 +238,4 @@ def update_propagators(
 ) -> None:
     for prop_idx in triggers[1 : triggers[0] + 1]:
         if not entailed_propagators[prop_idx]:
-            min_heap_add(triggered_propagators, prop_idx, complexities)
+            buckets_add(triggered_propagators, prop_idx, complexities)

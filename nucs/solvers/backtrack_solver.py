@@ -18,6 +18,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
+from nucs.buckets import buckets_init, buckets_reset
 from nucs.constants import (
     LOG_LEVEL_INFO,
     MAX,
@@ -58,7 +59,6 @@ from nucs.constants import (
     STATS_LBL_SOLVER_CHOICE_NB,
     STATS_MAX,
 )
-from nucs.heaps import min_heap_init
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_FCTS,
     DOM_HEURISTIC_MIN_VALUE,
@@ -76,7 +76,6 @@ from nucs.numba_helper import (
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     COMPUTE_DOMAINS_FCTS,
-    reset_triggered_propagators,
     update_propagators,
     get_algorithm_nb,
 )
@@ -129,8 +128,8 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.info(f"BacktrackSolver uses domain heuristic {dom_heuristic}")
         self.dom_heuristic_params = np.array(dom_heuristic_params, dtype=np.int64)
         logger.info(f"BacktrackSolver uses consistency algorithm {consistency_alg}")
-        self.triggered_propagators = min_heap_init(problem.propagator_nb)
-        reset_triggered_propagators(self.triggered_propagators, self.problem.complexities)
+        self.triggered_propagators = buckets_init(problem.propagator_nb)
+        buckets_reset(self.triggered_propagators, self.problem.complexities)
         logger.debug("Initializing choice points")
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
         self.entailed_propagators_stk = np.empty((stks_max_height, self.problem.propagator_nb), dtype=np.bool)
@@ -278,7 +277,7 @@ class BacktrackSolver(Solver, QueueSolver):
                     bound,
                 ):
                     break
-            reset_triggered_propagators(self.triggered_propagators, self.problem.complexities)
+            buckets_reset(self.triggered_propagators, self.problem.complexities)
         return best_solution
 
     def solve(self) -> Iterator[NDArray]:
@@ -419,7 +418,7 @@ class BacktrackSolver(Solver, QueueSolver):
                     bound,
                 ):
                     break
-            reset_triggered_propagators(self.triggered_propagators, self.problem.complexities)
+            buckets_reset(self.triggered_propagators, self.problem.complexities)
         solution_queue.put((processor_idx, None, self.statistics))
 
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:

@@ -408,15 +408,15 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     bounds_nb = 2 * (n + 1)
     empty_buffer = np.empty(4 * bounds_nb, dtype=np.int32)  # to reduce the number of allocations
     bounds = empty_buffer[:bounds_nb]
-    t = empty_buffer[bounds_nb: 2 * bounds_nb]  # critical capacity pointers
-    d = empty_buffer[2 * bounds_nb: 3 * bounds_nb]  # differences between critical capacities
-    h = empty_buffer[3 * bounds_nb:]  # Hall interval pointers
+    t = empty_buffer[bounds_nb : 2 * bounds_nb]  # critical capacity pointers
+    d = empty_buffer[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
+    h = empty_buffer[3 * bounds_nb :]  # Hall interval pointers
     zero_buffer = np.zeros(2 * bounds_nb + n, dtype=np.int32)  # to reduce the number of allocations
     stable_intervals = zero_buffer[:bounds_nb]
-    stable_sets = zero_buffer[bounds_nb: 2 * bounds_nb]
-    new_mins = zero_buffer[2 * bounds_nb:]
-    l = init_partial_sum(parameters[0], m, parameters[1: 1 + m])
-    u = init_partial_sum(parameters[0], m, parameters[1 + m:])
+    stable_sets = zero_buffer[bounds_nb : 2 * bounds_nb]
+    new_mins = zero_buffer[2 * bounds_nb :]
+    l = init_partial_sum(parameters[0], m, parameters[1 : 1 + m])
+    u = init_partial_sum(parameters[0], m, parameters[1 + m :])
     min_sorted_vars = np.argsort(domains[:, MIN])
     max_sorted_vars = np.argsort(domains[:, MAX])
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)

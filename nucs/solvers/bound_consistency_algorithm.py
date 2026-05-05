@@ -17,6 +17,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
+from nucs.buckets import buckets_pop
 from nucs.constants import (
     EVENT_MASK_GROUND,
     EVENT_MASK_MAX,
@@ -38,7 +39,6 @@ from nucs.constants import (
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
     VARIABLE,
 )
-from nucs.heaps import min_heap_pop
 from nucs.propagators.propagators import update_propagators_with_previous_prop
 
 
@@ -100,7 +100,7 @@ def bound_consistency_algorithm(
     statistics[STATS_IDX_ALG_BC_NB] += 1
     domain_buffer = get_domain_buffer(bounds)
     while True:
-        prop_idx = min_heap_pop(triggered_propagators, complexities)
+        prop_idx = buckets_pop(triggered_propagators)
         if prop_idx == -1:
             return PROBLEM_BOUND if unbound_variable_nb_stk[top] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
