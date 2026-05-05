@@ -120,3 +120,26 @@ solution = solver.find_one()
 - `nucs/propagators/*_propagator.py`: Individual propagator implementations
 - Tests mirror the source structure: `tests/examples/`, `tests/propagators/`, etc.
 - Documentation source is in `docs/source/` using Sphinx/rst format
+
+## Docstring Format
+
+Use Sphinx-style docstrings with this exact layout:
+
+```python
+"""
+Returns the time complexity of the propagator as an int.
+:param n: the number of variables
+:type n: int
+:param parameters: the parameters, unused here
+:type parameters: NDArray
+:return: an int
+:rtype: int
+"""
+```
+
+- Triple double-quotes, opening and closing on their own lines
+- One-line summary on the line after the opening `"""`
+- No blank line between the summary and the `:param`/`:return` lines
+- For each parameter, a `:param <name>: <description>` line followed by a `:type <name>: <type>` line, in declaration order
+- `:return: <description>` followed by `:rtype: <type>` for the return value
+- Descriptions are lowercase and have no trailing period
