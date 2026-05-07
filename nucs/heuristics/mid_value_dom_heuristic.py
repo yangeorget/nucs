@@ -29,12 +29,14 @@ def mid_value_dom_heuristic(
 ) -> int:
     """
     Chooses the middle value of the domain.
+
     :param domains_stk: the stack of domains
     :param entailed_propagators_stk: the stack of entailed propagators
     :param domain_update_stk: the stack of domain updates
     :param stks_top: the index of the top of the stacks as a Numpy array
     :param variable: the variable
     :param params: a two-dimensional parameter array, unused here
+
     :return: the events
     """
     return value_dom_heuristic(

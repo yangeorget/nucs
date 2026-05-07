@@ -82,7 +82,9 @@ def build_consistency_alg_fcts(addr: int) -> NumbaList:
 
 @njit(cache=True)
 def build_var_heuristic_fcts(addr: int) -> NumbaList:
-    """Recovers a variable-heuristic function from its address."""
+    """
+    Recovers a variable-heuristic function from its address.
+    """
     fcts = NumbaList.empty_list(TYPE_VAR_HEURISTIC)
     fcts.append(function_from_address(TYPE_VAR_HEURISTIC, addr))
     return fcts
@@ -90,7 +92,9 @@ def build_var_heuristic_fcts(addr: int) -> NumbaList:
 
 @njit(cache=True)
 def build_dom_heuristic_fcts(addr: int) -> NumbaList:
-    """Recovers a domain-heuristic function from its address."""
+    """
+    Recovers a domain-heuristic function from its address.
+    """
     fcts = NumbaList.empty_list(TYPE_DOM_HEURISTIC)
     fcts.append(function_from_address(TYPE_DOM_HEURISTIC, addr))
     return fcts

@@ -24,8 +24,10 @@ PATH_LENGTH = 2
 def get_complexity_no_sub_cycle(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an int
     """
     return n * n
@@ -35,8 +37,10 @@ def get_complexity_no_sub_cycle(n: int, parameters: NDArray) -> int:
 def get_triggers_no_sub_cycle(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an array of triggers
     """
     return EVENT_MASK_GROUND
@@ -46,8 +50,10 @@ def get_triggers_no_sub_cycle(n: int, variable: int, parameters: NDArray) -> int
 def compute_domains_no_sub_cycle(domains: NDArray, parameters: NDArray) -> int:
     """
     Enforces that a permutation does not contain any sub-cycle.
+
     :param domains: the domains of the variables
     :param parameters: unused here
+
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     n = len(domains)

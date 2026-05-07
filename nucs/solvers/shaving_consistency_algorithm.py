@@ -122,7 +122,8 @@ def shaving_consistency_algorithm(
     domain_buffer: NDArray,
 ) -> int:
     """
-    Shaving consistency algorithm.
+    This algorithm reduces the need of searching by shaving the domains.
+
     :param statistics: a Numpy array of statistics
     :param algorithms: the algorithms indexed by propagators
     :param bounds: the bounds indexed by propagators
@@ -130,14 +131,16 @@ def shaving_consistency_algorithm(
     :param propagator_parameters: the parameters by propagators
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :param domains_stk: a stack of  domains;
-    the first level correspond to the current domains, the rest correspond to the choice points
+                        the first level correspond to the current domains, the rest correspond to the choice points
     :param entailed_propagators_stk: a stack of entailed propagatorspropagators;
-    the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
+                                     the first level correspond to the propagators currently not entailed,
+                                     the rest correspond to the choice points
     :param domain_update_stk: the stack of domain updates
     :param stks_top: the height of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param compute_domains_fcts: the typed list of compute_domains functions
     :param decision_variables: the variables on which decisions will be made
+
     :return: a status (consistency, inconsistency or entailment) as an integer
     """
     statistics[STATS_IDX_ALG_BC_WITH_SHAVING_NB] += 1

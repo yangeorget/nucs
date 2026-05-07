@@ -19,8 +19,10 @@ from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_
 def get_complexity_equiv_eq(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an int
     """
     return 1
@@ -30,9 +32,11 @@ def get_complexity_equiv_eq(n: int, parameters: NDArray) -> int:
 def get_triggers_equiv_eq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
+
     :param n: the number of variables
     :param variable: the variable
     :param parameters: the parameters
+
     :return: an array of triggers
     """
     return EVENT_MASK_MIN_MAX
@@ -41,9 +45,11 @@ def get_triggers_equiv_eq(n: int, variable: int, parameters: NDArray) -> int:
 @njit(cache=True, fastmath=True)
 def compute_domains_equiv_eq(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements b <=> x = y.
+    Implements :math:`b <=> x = y`.
+
     :param domains: the domains of the variables, b is the first domain, x is the second, y is the third
     :param parameters: unused
+
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     b = domains[0]

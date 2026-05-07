@@ -19,8 +19,10 @@ from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_
 def get_complexity_lexicographic_leq(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an int
     """
     return n
@@ -30,7 +32,9 @@ def get_complexity_lexicographic_leq(n: int, parameters: NDArray) -> int:
 def get_triggers_lexicographic_leq(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
+
     :param parameters: the parameters, unused here
+
     :return: an array of triggers
     """
     return EVENT_MASK_MIN_MAX
@@ -145,12 +149,14 @@ def compute_domains_1(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
 @njit(cache=True, fastmath=True)
 def compute_domains_lexicographic_leq(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements lexicographic leq: x <_leq y.
+    Implements lexicographic leq: :math:`x <_leq y`.
     See https://www.diva-portal.org/smash/record.jsf?pid=diva2:1041533.
+
     :param domains: the domains of the variables,
            x is the list of the first n domains,
            y is the list of the last n domains
     :param parameters: unused here
+
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     # TODO: make incremental, use a var?

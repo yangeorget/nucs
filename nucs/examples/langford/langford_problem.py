@@ -32,6 +32,7 @@ class LangfordProblem(Problem):
     def __init__(self, k: int, n: int) -> None:
         """
         Initializes the problem.
+
         :param k: the number of occurences
         :param n: the number of values
         """

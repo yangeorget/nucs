@@ -28,8 +28,10 @@ from nucs.constants import (
 def get_complexity_affine_geq(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an int
     """
     return n
@@ -39,7 +41,9 @@ def get_complexity_affine_geq(n: int, parameters: NDArray) -> int:
 def get_triggers_affine_geq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
+
     :param parameters: the parameters
+
     :return: an array of triggers
     """
     if parameters[variable] == 0:
@@ -50,9 +54,11 @@ def get_triggers_affine_geq(n: int, variable: int, parameters: NDArray) -> int:
 @njit(cache=True, fastmath=True)
 def compute_domains_affine_geq(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements Sigma_i a_i * x_i >= a_{n}.
+    Implements :math:`\\sum_i a_i * x_i >= a_{n}`.
+
     :param domains: the domains of the variables, x is an alias for domains
     :param parameters: the parameters of the propagator, a is an alias for parameters
+
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     factors = parameters[:-1]

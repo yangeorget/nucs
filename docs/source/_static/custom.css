@@ -1,0 +1,5 @@
+dl.py.class > dd,
+dl.py.function > dd,
+dl.py.method > dd {
+    margin-top: 1em;
+}

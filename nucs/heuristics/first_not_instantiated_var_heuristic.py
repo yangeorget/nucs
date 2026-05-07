@@ -22,10 +22,12 @@ def first_not_instantiated_var_heuristic(
 ) -> int:
     """
     Chooses the first non-instantiated variable.
+
     :param decision_variables: the decision variables
     :param domains_stk: the stack of domains
     :param top: the index of the top of the stacks
     :param params: a two-dimensional parameter array, unused here
+
     :return: the variable
     """
     for variable in decision_variables:

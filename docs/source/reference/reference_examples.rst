@@ -22,10 +22,7 @@ Most of these examples can be run from the command line and support the followin
 * :code:`--symmetry-breaking/--no-symmetry-breaking`: leverage symmetries in the problem, defaults to true
 
 
-.. py:module:: nucs.examples.all_interval_series.all_interval_series_problem
-.. py:class:: nucs.examples.all_interval_series.all_interval_series_problem.AllIntervalSeriesProblem
-
-This problem is problem `007 <https://www.csplib.org/Problems/prob007>`_ on CSPLib.
+.. autoclass:: nucs.examples.all_interval_series.all_interval_series_problem.AllIntervalSeriesProblem
 
 This problem can be run with the command:
 
@@ -41,8 +38,7 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.sum_eq_propagator`.
 
 
-.. py:module:: nucs.examples.alphanumeric.alphanumeric_problem
-.. py:class:: nucs.examples.alphanumeric.alphanumeric_problem.AlphanumericProblem
+.. autoclass:: nucs.examples.alphanumeric.alphanumeric_problem.AlphanumericProblem
 
 This problem can be run with the command:
 
@@ -56,10 +52,7 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.alldifferent_propagator`.
 
 
-.. py:module:: nucs.examples.bibd.bibd_problem
-.. py:class:: nucs.examples.bibd.bibd_problem.BIBDProblem
-
-This problem is problem `028 <https://www.csplib.org/Problems/prob028>`_ on CSPLib.
+.. autoclass:: nucs.examples.bibd.bibd_problem.BIBDProblem
 
 This problem can be run with the command:
 
@@ -74,8 +67,7 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.lexicographic_leq_propagator`.
 
 
-.. py:module:: nucs.examples.cryptarithmetic.cryptarithmetic_problem
-.. py:class:: nucs.examples.cryptarithmetic.cryptarithmetic_problem.CryptarithmeticProblem
+.. autoclass:: nucs.examples.cryptarithmetic.cryptarithmetic_problem.CryptarithmeticProblem
 
 This problem can be run with the command:
 
@@ -89,8 +81,7 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.alldifferent_propagator`.
 
 
-. py:module:: nucs.examples.employee_scheduling.employee_scheduling_problem
-.. py:class:: nucs.examples.employee_scheduling.employee_scheduling.EmployeeSchedulingProblem
+.. autoclass:: nucs.examples.employee_scheduling.employee_scheduling_problem.EmployeeSchedulingProblem
 
 This problem can be run with the command:
 
@@ -105,10 +96,7 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.count_leq_c_propagator`.
 
 
-.. py:module:: nucs.examples.golomb.golomb_problem
-.. py:class:: nucs.examples.golomb.golomb_problem.GolombProblem
-
-This problem is problem `006 <https://www.csplib.org/Problems/prob006>`_ on CSPLib.
+.. autoclass:: nucs.examples.golomb.golomb_problem.GolombProblem
 
 This problem can be run with the command:
 
@@ -123,10 +111,7 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.sum_eq_propagator`.
 
 
-.. py:module:: nucs.examples.knapsack.knapsack_problem
-.. py:class:: nucs.examples.knapsack.knapsack_problem.KnapsackProblem
-
-This problem is problem `133 <https://www.csplib.org/Problems/prob133>`_ on CSPLib.
+.. autoclass:: nucs.examples.knapsack.knapsack_problem.KnapsackProblem
 
 This problem can be run with the command:
 
@@ -140,10 +125,7 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.affine_leq_propagator`.
 
 
-.. py:module:: nucs.examples.langford.langford_problem
-.. py:class:: nucs.examples.langford.langford_problem.LangfordProblem
-
-This problem is problem `24 <https://www.csplib.org/Problems/prob024>`_ on CSPLib.
+.. autoclass:: nucs.examples.langford.langford_problem.LangfordProblem
 
 This problem can be run with the command:
 
@@ -157,10 +139,7 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.alldifferent_propagator`.
 
 
-.. py:module:: nucs.examples.magic_sequence.magic_sequence_problem
-.. py:class:: nucs.examples.magic_sequence.magic_sequence_problem.MagicSequenceProblem
-
-This problem is problem `019 <https://www.csplib.org/Problems/prob019>`_ on CSPLib.
+.. autoclass:: nucs.examples.magic_sequence.magic_sequence_problem.MagicSequenceProblem
 
 This problem can be run with the command:
 
@@ -175,10 +154,7 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.sum_eq_propagator`.
 
 
-.. py:module:: nucs.examples.magic_square.magic_square_problem
-.. py:class:: nucs.examples.magic_square.magic_square_problem.MagicSquareProblem
-
-This problem is problem `019 <https://www.csplib.org/Problems/prob019>`_ on CSPLib.
+.. autoclass:: nucs.examples.magic_square.magic_square_problem.MagicSquareProblem
 
 This problem can be run with the command:
 
@@ -193,10 +169,7 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.sum_eq_propagator`.
 
 
-.. py:module:: nucs.examples.quasigroup.quasigroup_problem
-.. py:class:: nucs.examples.quasigroup.quasigroup_problem.QuasigroupProblem
-
-This problem is problem `003 <https://www.csplib.org/Problems/prob003>`_ on CSPLib.
+.. autoclass:: nucs.examples.quasigroup.quasigroup_problem.QuasigroupProblem
 
 This problem can be run with the command:
 
@@ -209,10 +182,7 @@ This quasigroup problem leverages the problem :mod:`nucs.problems.latin_square_p
 * :mod:`nucs.propagators.element_liv_alldifferent_propagator`.
 
 
-.. py:module:: nucs.examples.queens.queens_problem
-.. py:class:: nucs.examples.queens.queens_problem.QueensProblem
-
-This problem is problem `054 <https://www.csplib.org/Problems/prob054>`_ on CSPLib.
+.. autoclass:: nucs.examples.queens.queens_problem.QueensProblem
 
 The problem can be run with the command:
 
@@ -225,10 +195,7 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.alldifferent_propagator`.
 
 
-.. py:module:: nucs.examples.schur_lemma.schur_lemma_problem
-.. py:class:: nucs.examples.schur_lemma.schur_lemma_problem.SchurLemmaProblem
-
-This problem is problem `015 <https://www.csplib.org/Problems/prob015>`_ on CSPLib.
+.. autoclass:: nucs.examples.schur_lemma.schur_lemma_problem.SchurLemmaProblem
 
 The problem can be run with the command:
 
@@ -243,10 +210,7 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.lexicographic_leq_propagator`.
 
 
-.. py:module:: nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem
-.. py:class:: nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem.SportSchedulingTournamentProblem
-
-This problem is problem `026 <https://www.csplib.org/Problems/prob026>`_ on CSPLib.
+.. autoclass:: nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem.SportsTournamentSchedulingProblem
 
 The problem can be run with the command:
 
@@ -262,16 +226,14 @@ This problem leverages the propagators:
 * :mod:`nucs.propagators.relation_propagator`.
 
 
-.. py:module:: nucs.examples.sudoku.sudoku_problem
-.. py:class:: nucs.examples.sudoku.sudoku_problem.SudokuProblem
+.. autoclass:: nucs.examples.sudoku.sudoku_problem.SudokuProblem
 
 This problem leverages the :mod:`nucs.problems.latin_square_problem` and the propagators:
 
 * :mod:`nucs.propagators.alldifferent_propagator`.
 
 
-.. py:module:: nucs.examples.tsp.tsp_problem
-.. py:class:: nucs.examples.tsp.tsp_problem.TSPProblem
+.. autoclass:: nucs.examples.tsp.tsp_problem.TSPProblem
 
 The problem can be run with the command:
 

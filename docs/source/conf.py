@@ -18,12 +18,13 @@ version = ".".join(release.split(".")[:2])
 tls_verify = False
 
 extensions = [
-    'sphinx.ext.linkcode',
-    'sphinx.ext.duration',
-    'sphinx.ext.doctest',
-    'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.doctest',
+    'sphinx.ext.duration',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.linkcode',
+    'sphinx.ext.mathjax',
 ]
 
 intersphinx_mapping = {
@@ -34,9 +35,13 @@ intersphinx_disabled_domains = ['std']
 
 templates_path = ['_templates']
 
+autoclass_content = "class"
+
 # -- Options for HTML output
 
 html_theme = 'alabaster'
+html_static_path = ['_static']
+html_css_files = ['custom.css']
 
 html_context = {
     "display_github": True,  # Integrate GitHub
@@ -57,3 +62,14 @@ def linkcode_resolve(domain, info):
         filename = info['module'].replace('.', '/')
         return f"https://github.com/yangeorget/nucs/tree/main/{filename}.py"
     return None
+
+
+def _strip_signature(app, what, name, obj, options, signature, return_annotation):
+    if what in ("function", "method"):
+        return ("(...)", return_annotation)
+    if what in ("class"):
+        return ("", return_annotation)
+
+
+def setup(app):
+    app.connect("autodoc-process-signature", _strip_signature)

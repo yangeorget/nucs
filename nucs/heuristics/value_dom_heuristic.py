@@ -42,6 +42,7 @@ def value_dom_heuristic(
 ) -> int:
     """
     Chooses a value given as a parameter.
+
     :param domains_stk: the stack of domains
     :param entailed_propagators_stk: the stack of entailed propagators
     :param domain_update_stk: the stack of domain updates
@@ -49,6 +50,7 @@ def value_dom_heuristic(
     :param variable: the variable
     :param value: the value
     :param params: a two-dimensional parameter array
+
     :return: the events
     """
     top = stks_top[0]

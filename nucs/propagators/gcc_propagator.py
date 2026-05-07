@@ -23,8 +23,10 @@ from nucs.propagators.alldifferent_propagator import path_max, path_min, path_se
 def get_complexity_gcc(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an int
     """
     return int(n * math.log(n))
@@ -34,6 +36,7 @@ def get_complexity_gcc(n: int, parameters: NDArray) -> int:
 def get_triggers_gcc(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
+
     :return: an array of triggers
     """
     return EVENT_MASK_MIN_MAX
@@ -396,11 +399,13 @@ def filter_upper_min(
 @njit(cache=True, fastmath=True)
 def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     """
-    This propagator (Global Cardinality Constraint) enforces that l_j <= |{ i / x_i =v_j }| <= c_j for all j.
-    Adapted from "An efficient bounds consistency algorithm for the global cardinality constraint".
+    This propagator (Global Cardinality Constraint) enforces that
+    :math:`l_j \le |\{ i : x_i = v_j \}| \le c_j` for all j.
+    It is adapted from "An efficient bounds consistency algorithm for the global cardinality constraint".
+
     :param domains: the domains of the variables
     :param parameters: there are 1 + 2 * m parameters:
-    the first domain value (v_0), then the m lower bounds, then the m upper bounds (capacities)
+                       the first domain value (v_0), then the m lower bounds, then the m upper bounds (capacities)
     """
     n = len(domains)
     m = (len(parameters) - 1) >> 1  # number of values

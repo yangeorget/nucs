@@ -20,10 +20,12 @@ from nucs.constants import MAX, MIN
 def greatest_domain_var_heuristic(decision_variables: NDArray, domains_stk: NDArray, top: int, params: NDArray) -> int:
     """
     Chooses the first variable which is not instantiated with the greatest domain.
+
     :param decision_variables: the decision variables
     :param domains_stk: the stack of domains
     :param top: the index of the top of the stacks
     :param params: a two-dimensional parameter array, unused here
+
     :return: the variable
     """
     best_score = 0

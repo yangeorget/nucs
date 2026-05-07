@@ -59,7 +59,7 @@ def buckets_empty(buckets: NDArray, priorities: NDArray) -> None:
     """
     nb = len(priorities)
     buckets[: 2 * BUCKET_NB + nb] = -1
-    buckets[2 * BUCKET_NB + nb: 2 * BUCKET_NB + 2 * nb] = 0
+    buckets[2 * BUCKET_NB + nb : 2 * BUCKET_NB + 2 * nb] = 0
     buckets[-1] = BUCKET_NB
 
 
@@ -93,6 +93,7 @@ def buckets_add(buckets: NDArray, idx: int, priorities: NDArray) -> None:
 def buckets_pop(buckets: NDArray) -> int:
     """
     Removes and returns the head of the lowest-priority non-empty bucket.
+
     :return: -1 if the queue is empty
     """
     storage_offset = 2 * BUCKET_NB

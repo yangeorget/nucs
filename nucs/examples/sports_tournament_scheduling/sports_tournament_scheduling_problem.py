@@ -37,7 +37,9 @@ class SportsTournamentSchedulingProblem(Problem):
     def solution_as_printable(self, solution: NDArray) -> List[List[str]]:
         """
         Returns the solutions as a matrix of strings.
+
         :param solution: the solution as a list of ints
+
         :return: a matrix
         """
         return [
@@ -79,6 +81,7 @@ class SportsTournamentSchedulingProblem(Problem):
     def __init__(self, n: int, symmetry_breaking: bool = True) -> None:
         """
         Initializes the problem.
+
         :param n: the size of the problem
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
         """

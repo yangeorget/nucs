@@ -28,8 +28,10 @@ from nucs.constants import (
 def get_complexity_max_leq(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an int
     """
     return n
@@ -39,7 +41,9 @@ def get_complexity_max_leq(n: int, parameters: NDArray) -> int:
 def get_triggers_max_leq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
+
     :param parameters: the parameters, unused here
+
     :return: an array of triggers
     """
     return EVENT_MASK_MIN if variable < n - 1 else EVENT_MASK_MAX
@@ -48,9 +52,11 @@ def get_triggers_max_leq(n: int, variable: int, parameters: NDArray) -> int:
 @njit(cache=True, fastmath=True)
 def compute_domains_max_leq(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements Max_i x_i <= x_{n-1}.
+    Implements :math:`\\max_i x_i <= x_{n-1}`.
+
     :param domains: the domains of the variables, x is an alias for domains
     :param parameters: unused here
+
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     x = domains[:-1]

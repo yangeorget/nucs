@@ -21,8 +21,10 @@ from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_
 def get_complexity_element_eq(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an int
     """
     return n
@@ -32,7 +34,9 @@ def get_complexity_element_eq(n: int, parameters: NDArray) -> int:
 def get_triggers_element_eq(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
+
     :param parameters: the parameters, unused here
+
     :return: an array of triggers
     """
     return EVENT_MASK_MIN_MAX
@@ -41,11 +45,13 @@ def get_triggers_element_eq(n: int, variable: int, parameters: NDArray) -> int:
 @njit(cache=True, fastmath=True)
 def compute_domains_element_eq(domains: NDArray, parameters: NDArray) -> int:
     """
-    Enforces l_i = v.
+    Enforces :math:`l_i = v`.
+
     :param domains: the domains of the variables,
            i is the first domain,
            v is the last domain
     :param parameters: the parameters of the propagator, l is an alias for parameters
+
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     l = parameters

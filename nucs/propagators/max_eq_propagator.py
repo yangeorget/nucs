@@ -20,8 +20,10 @@ from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_
 def get_complexity_max_eq(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an int
     """
     return n
@@ -31,7 +33,9 @@ def get_complexity_max_eq(n: int, parameters: NDArray) -> int:
 def get_triggers_max_eq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
+
     :param parameters: the parameters, unused here
+
     :return: an array of triggers
     """
     return EVENT_MASK_MIN_MAX
@@ -40,9 +44,11 @@ def get_triggers_max_eq(n: int, variable: int, parameters: NDArray) -> int:
 @njit(cache=True, fastmath=True)
 def compute_domains_max_eq(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements Max_i x_i = x_{n-1}.
+    Implements :math:`\\max_i x_i = x_{n-1}`.
+
     :param domains: the domains of the variables, x is an alias for domains
     :param parameters: unused here
+
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     x = domains[:-1]

@@ -31,7 +31,9 @@ DOM_HEURISTIC_FCTS = []
 def register_var_heuristic(var_heuristic_fct: Callable) -> int:
     """
     Registers a variable heuristic by adding it function to the corresponding list of functions.
+
     :param var_heuristic_fct: a function that implements the variable heuristic
+
     :return: the index of the variable heuristic
     """
     VAR_HEURISTIC_FCTS.append(var_heuristic_fct)
@@ -41,7 +43,9 @@ def register_var_heuristic(var_heuristic_fct: Callable) -> int:
 def register_dom_heuristic(dom_heuristic_fct: Callable) -> int:
     """
     Registers a domain heuristic by adding it function to the corresponding list of functions.
+
     :param dom_heuristic_fct: a function that implements the domain heuristic
+
     :return: the index of the domain heuristic
     """
     DOM_HEURISTIC_FCTS.append(dom_heuristic_fct)

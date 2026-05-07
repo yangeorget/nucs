@@ -47,6 +47,7 @@ class Problem:
     def __init__(self, domains: Union[Iterable[Tuple[int, int]]]):
         """
         Initializes the problem.
+
         :param domains: the domains
         """
         self.unbound_variable_nb = 0
@@ -58,8 +59,10 @@ class Problem:
     def split(self, split_nb: int, var: int) -> List[Self]:
         """
         Splits a problem into several sub-problems by splitting the domain of a variable.
+
         :param split_nb: the number of sub-problems
         :param var: the index of the variable
+
         :return: a list of sub-problems
         """
         logger.debug(f"Splitting in {split_nb} problems with variable {var}")
@@ -79,7 +82,9 @@ class Problem:
     def add_variable(self, domain: Union[int, Tuple[int, int]]) -> int:
         """
         Adds an extra variable to the problem.
+
         :param domain: the domain of the variable
+
         :return: the extra variable
         """
         var = len(self.domains)
@@ -90,7 +95,9 @@ class Problem:
     def add_variables(self, domains: Sequence[Union[int, Tuple[int, int]]]) -> int:
         """
         Adds extra variables to the problem.
+
         :param domains: the domains of the variables
+
         :return: the first added variable
         """
         var = len(self.domains)

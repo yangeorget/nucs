@@ -19,8 +19,10 @@ from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_
 def get_complexity_count_eq_c(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an int
     """
     return n
@@ -30,7 +32,9 @@ def get_complexity_count_eq_c(n: int, parameters: NDArray) -> int:
 def get_triggers_count_eq_c(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
+
     :param parameters: the parameters, unused here
+
     :return: an array of triggers
     """
     return EVENT_MASK_MIN_MAX
@@ -39,9 +43,11 @@ def get_triggers_count_eq_c(n: int, variable: int, parameters: NDArray) -> int:
 @njit(cache=True, fastmath=True)
 def compute_domains_count_eq_c(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements Sigma_i (x_i == a) = c.
+    Implements :math:`\\sum_i (x_i == a) = c`.
+
     :param domains: the domains of the variables, x is an alias for domains
     :param parameters: the parameters of the propagator, a is the first parameter, c is the second parameter
+
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     a = parameters[0]

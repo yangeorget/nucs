@@ -19,8 +19,10 @@ from nucs.constants import EVENT_MASK_MAX, EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CO
 def get_complexity_abs_eq(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an int
     """
     return 2
@@ -30,7 +32,9 @@ def get_complexity_abs_eq(n: int, parameters: NDArray) -> int:
 def get_triggers_abs_eq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
+
     :param parameters: the parameters, unused here
+
     :return: an array of triggers
     """
     if variable == 0:
@@ -41,9 +45,11 @@ def get_triggers_abs_eq(n: int, variable: int, parameters: NDArray) -> int:
 @njit(cache=True, fastmath=True)
 def compute_domains_abs_eq(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements abs(y)=x.
+    Implements :math:`abs(y)=x`.
+
     :param domains: the domains of the variables, y is the first domain, x the second
     :param parameters: unused here
+
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     y = domains[0]

@@ -22,8 +22,10 @@ from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_
 def get_complexity_alldifferent(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an int
     """
     return int(n * math.log(n))
@@ -33,7 +35,9 @@ def get_complexity_alldifferent(n: int, parameters: NDArray) -> int:
 def get_triggers_alldifferent(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
+
     :param parameters: the parameters, unused here
+
     :return: an array of triggers
     """
     return EVENT_MASK_MIN_MAX
@@ -43,6 +47,7 @@ def get_triggers_alldifferent(n: int, variable: int, parameters: NDArray) -> int
 def path_set(t: NDArray, start: int, end: int, value: int) -> None:
     """
     Sets t[start], t[t[start]], ..., a[idx] to value until a[idx] = end.
+
     :param t: an array of pointers
     :param start: an index
     :param end: an index
@@ -57,8 +62,10 @@ def path_set(t: NDArray, start: int, end: int, value: int) -> None:
 def path_min(t: NDArray, i: int) -> int:
     """
     Follows i, t[i], t[t[i], ... until it stops decreasing.
+
     :param t: an array of pointers
     :param i: an index
+
     :return: the index found
     """
     while t[i] < i:
@@ -70,8 +77,10 @@ def path_min(t: NDArray, i: int) -> int:
 def path_max(t: NDArray, i: int) -> int:
     """
     Follows i, t[i], t[t[i], ... until it stops increasing.
+
     :param t: an array of pointers
     :param i: an index
+
     :return: the index found
     """
     while t[i] > i:
@@ -200,10 +209,12 @@ def filter_upper(
 @njit(cache=True, fastmath=True)
 def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     """
-    Enforces that x_i <> x_j when i<>j.
+    Enforces that :math:`x_i <> x_j when i<>j`.
+
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
     :param domains: the domains of the variables, x is an alias for domains
     :param parameters: either empty or offsets
+
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     n = len(domains)

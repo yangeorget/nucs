@@ -28,6 +28,7 @@ class QueensProblem(Problem):
     def __init__(self, n: int):
         """
         Initializes the problem.
+
         :param n: the number of queens
         """
         super().__init__([(0, n - 1)] * n)
@@ -51,6 +52,7 @@ class QueensDualProblem(Problem):
     def __init__(self, n: int):
         """
         Initializes the problem.
+
         :param n: the number of queens
         """
         super().__init__([(0, n - 1)] * 2 * n)

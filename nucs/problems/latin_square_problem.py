@@ -30,10 +30,11 @@ class LatinSquareProblem(Problem):
     def __init__(self, colors: Iterable[int], givens: Optional[List[List[int]]] = None):
         """
         Initializes the latin square.
-        :colors: the possible values for the cells,
-        usually [0, ..., n-1] except in some cases (e.g., Sudokus) where [1, ..., n] is preferred;
-        the number of colors is also the size of the square
-        :givens: initial values for the cells, any value different from the possible colors is used as a wildcard
+
+        :param colors: the possible values for the cells,
+                       usually [0, ..., n-1] except in some cases (e.g., Sudokus) where [1, ..., n] is preferred;
+                       the number of colors is also the size of the square
+        :param givens: initial values for the cells, any value different from the possible colors is used as a wildcard
         """
         self.colors = list(colors)
         self.n = len(self.colors)
@@ -78,6 +79,7 @@ class LatinSquareRCProblem(LatinSquareProblem):
     def __init__(self, n: int):
         """
         Inits the problem.
+
         :param n: the size of the square
         """
         super().__init__(range(n))  # the color model

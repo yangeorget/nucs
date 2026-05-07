@@ -19,8 +19,10 @@ from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_
 def get_complexity_relation(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
+
     :param n: the number of variables, unused here
     :param parameters: the parameters
+
     :return: an int
     """
     return len(parameters)
@@ -30,8 +32,10 @@ def get_complexity_relation(n: int, parameters: NDArray) -> int:
 def get_triggers_relation(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an array of triggers
     """
     return EVENT_MASK_MIN_MAX
@@ -41,10 +45,12 @@ def get_triggers_relation(n: int, variable: int, parameters: NDArray) -> int:
 def compute_domains_relation(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements a relation over n variables defined by its allowed tuples.
+
     :param domains: the domains of the variables
     :param parameters: the parameters of the propagator,
            the allowed tuples correspond to:
            (parameters_0, ..., parameters_n-1), (parameters_n, ..., parameters_2n-1), ...
+
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     n = len(domains)

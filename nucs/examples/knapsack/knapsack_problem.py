@@ -23,6 +23,7 @@ class KnapsackProblem(Problem):
     def __init__(self, dataset: dict) -> None:
         """
         Inits the problem.
+
         :param dataset: the dataset
         """
         capacity = dataset["capacity"]

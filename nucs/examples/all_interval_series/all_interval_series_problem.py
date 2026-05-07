@@ -20,12 +20,13 @@ from nucs.propagators.propagators import ALG_ABS_EQ, ALG_ALLDIFFERENT, ALG_LEQ_C
 
 class AllIntervalSeriesProblem(Problem):
     """
-    CSPLIB problem #7 - https://www.csplib.org/Problems/prob007/
+    This is CSPLIB problem #7 (https://www.csplib.org/Problems/prob007/).
     """
 
     def __init__(self, n: int, symmetry_breaking: bool):
         """
         Initializes the problem.
+
         :param n: the size of the sequence
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
         """

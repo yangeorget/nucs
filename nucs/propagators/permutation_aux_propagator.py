@@ -19,8 +19,10 @@ from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_
 def get_complexity_permutation_aux(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an int
     """
     return n * n
@@ -29,8 +31,11 @@ def get_complexity_permutation_aux(n: int, parameters: NDArray) -> int:
 @njit(cache=True, fastmath=True)
 def get_triggers_permutation_aux(n: int, variable: int, parameters: NDArray) -> int:
     """
+    Returns the triggers for this propagator.
+
     :param n: the number of variables
     :param parameters: the parameters, unused here
+
     :return: an array of triggers
     """
     return EVENT_MASK_MIN_MAX
@@ -40,8 +45,10 @@ def get_triggers_permutation_aux(n: int, variable: int, parameters: NDArray) -> 
 def compute_domains_permutation_aux(domains: NDArray, parameters: NDArray) -> int:
     """
     An auxiliary propagator needed to connect the next and prev variables of a permutation problem.
+
     :param domains: the domains of the variables, the next and prev variables
     :param parameters: the parameters of the propagator, unused here
+
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     """
     n = len(domains) >> 1

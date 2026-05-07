@@ -22,6 +22,7 @@ class CircuitProblem(PermutationProblem):
     def __init__(self, n: int):
         """
         Initializes the circuit problem.
+
         :param n: the number of vertices
         """
         self.n = n

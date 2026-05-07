@@ -78,23 +78,29 @@ def bound_consistency_algorithm(
     domain_buffer: NDArray,
 ) -> int:
     """
+    This is the default consistency algorithm used by the solver.
+
     :param statistics: a Numpy array of statistics
     :param algorithms: the algorithms indexed by propagators
     :param bounds: the bounds indexed by propagators
     :param propagator_variables: the variables by propagators
     :param propagator_parameters: the parameters by propagators
     :param triggers: a Numpy array of event masks indexed by variables and propagators
-    :param domains_stk: a stack of domains;
-    the first level correspond to the current domains, the rest correspond to the choice points
-    :param entailed_propagators_stk: a stack of entailed propagators;
-    the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
+    :param domains_stk: a stack of domains, the first level correspond to the current domains,
+                        the rest correspond to the choice points
+    :param entailed_propagators_stk: a stack of entailed propagators,
+                                     the first level correspond to the propagators currently not entailed,
+                                     the rest correspond to the choice points
     :param domain_update_stk: the stack of domain updates, unused here
     :param stks_top: the height of the stacks as a Numpy array
     :param triggered_propagators: the Numpy array of triggered propagators
     :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
     :param decision_variables: the variables on which decisions will be made
-    :param domain_buffer: a scratch buffer for prop_domains, sized to max propagator arity, allocated once at solver init
+    :param domain_buffer: a scratch buffer for prop_domains,
+                          sized to max propagator arity, allocated once at solver init
+
     :return: a status (consistency, inconsistency or entailment) as an integer
+    :rtype: int
     """
     top = stks_top[0]
     domains = domains_stk[top]
@@ -113,7 +119,7 @@ def bound_consistency_algorithm(
             prop_domains[var_idx] = domains[propagator_variables[prop_var_start + var_idx]]
         status = compute_domains_fcts[algorithms[prop_idx]](
             prop_domains,
-            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START]: bounds[prop_idx, PARAM, RANGE_END]],
+            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]],
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
@@ -176,7 +182,7 @@ def has_no_changes(
                     events |= EVENT_MASK_GROUND
                     unbound_variable_nb_stk[top] -= 1
                 propagators = triggers[variable, events]
-                for other_prop_idx in propagators[1:propagators[0] + 1]:
+                for other_prop_idx in propagators[1 : propagators[0] + 1]:
                     if (
                         not triggered_propagators[membership_offset + other_prop_idx]
                         and other_prop_idx != prop_idx

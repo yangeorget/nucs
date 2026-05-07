@@ -30,7 +30,9 @@ GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 1
 def sum_first(n: int) -> int:
     """
     Returns the sum of the first n integers.
+
     :param n: an integer
+
     :return: the sum
     """
     return (n * (n + 1)) >> 1
@@ -40,9 +42,11 @@ def sum_first(n: int) -> int:
 def index(mark_nb: int, i: int, j: int) -> int:
     """
     Returns the index of the distance variable between two marks.
+
     :param mark_nb: the total number of marks
     :param i: the first mark
     :param j: the second mark
+
     :return: the index of the distance variable
     """
     return i * mark_nb - sum_first(i) + j - i - 1
@@ -64,6 +68,7 @@ class GolombProblem(Problem):
     def __init__(self, mark_nb: int, symmetry_breaking: bool = True) -> None:
         """
         Initializes the problem.
+
         :param mark_nb: the number of marks
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
         """
@@ -126,7 +131,9 @@ def golomb_consistency_algorithm(
 ) -> int:
     """
     Applies a custom consistency algorithm for the Golomb Ruler problem.
+
     :param statistics: the statistics array
+
     :return: the status as an int
     """
     top = stks_top[0]
