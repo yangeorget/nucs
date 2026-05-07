@@ -22,9 +22,12 @@ def get_complexity_and_eq(n: int, parameters: NDArray) -> int:
     Returns the time complexity of the propagator as an int.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an int
+    :rtype: int
     """
     return n
 
@@ -35,8 +38,10 @@ def get_triggers_and_eq(n: int, variable: int, parameters: NDArray) -> int:
     Returns the triggers for this propagator.
 
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an array of triggers
+    :rtype: int
     """
     return EVENT_MASK_MIN_MAX
 
@@ -47,9 +52,12 @@ def compute_domains_and_eq(domains: NDArray, parameters: NDArray) -> int:
     Implements :math:`\\& b_i = b_{n-1}` where for each i, b_i is a boolean variable.
 
     :param domains: the domains of the variables, b is an alias for domains
+    :type domains: NDArray
     :param parameters: unused here
+    :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
     """
     x = domains[:-1]
     y = domains[-1]

@@ -39,8 +39,10 @@ class SportsTournamentSchedulingProblem(Problem):
         Returns the solutions as a matrix of strings.
 
         :param solution: the solution as a list of ints
+        :type solution: NDArray
 
         :return: a matrix
+        :rtype: List[List[str]]
         """
         return [
             [
@@ -83,7 +85,9 @@ class SportsTournamentSchedulingProblem(Problem):
         Initializes the problem.
 
         :param n: the size of the problem
+        :type n: int
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
+        :type symmetry_breaking: bool
         """
         self.team_nb = n
         self.slot_nb = 2

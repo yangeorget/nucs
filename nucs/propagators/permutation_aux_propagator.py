@@ -21,9 +21,12 @@ def get_complexity_permutation_aux(n: int, parameters: NDArray) -> int:
     Returns the time complexity of the propagator as an int.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an int
+    :rtype: int
     """
     return n * n
 
@@ -34,9 +37,12 @@ def get_triggers_permutation_aux(n: int, variable: int, parameters: NDArray) -> 
     Returns the triggers for this propagator.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an array of triggers
+    :rtype: int
     """
     return EVENT_MASK_MIN_MAX
 
@@ -47,9 +53,12 @@ def compute_domains_permutation_aux(domains: NDArray, parameters: NDArray) -> in
     An auxiliary propagator needed to connect the next and prev variables of a permutation problem.
 
     :param domains: the domains of the variables, the next and prev variables
+    :type domains: NDArray
     :param parameters: the parameters of the propagator, unused here
+    :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
     """
     n = len(domains) >> 1
     next = domains[:n]

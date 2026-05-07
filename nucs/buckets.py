@@ -95,6 +95,7 @@ def buckets_pop(buckets: NDArray) -> int:
     Removes and returns the head of the lowest-priority non-empty bucket.
 
     :return: -1 if the queue is empty
+    :rtype: int
     """
     storage_offset = 2 * BUCKET_NB
     capacity = (len(buckets) - storage_offset - 1) >> 1

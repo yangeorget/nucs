@@ -22,9 +22,12 @@ def get_complexity_scc(n: int, parameters: NDArray) -> int:
     Returns the time complexity of the propagator as an int.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an int
+    :rtype: int
     """
     return n * n
 
@@ -35,9 +38,12 @@ def get_triggers_scc(n: int, variable: int, parameters: NDArray) -> int:
     Returns the triggers for this propagator.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an array of triggers
+    :rtype: int
     """
     return EVENT_MASK_MIN_MAX
 
@@ -62,9 +68,12 @@ def dfs_col(n: int, graph: NDArray, j: int, visited: NDArray) -> None:
 def compute_domains_scc(domains: NDArray, parameters: NDArray) -> int:
     """
     :param domains: the domains of the variables
+    :type domains: NDArray
     :param parameters: unused here
+    :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
     """
     n = len(domains)
     graph = np.zeros((n, n), dtype=np.bool)

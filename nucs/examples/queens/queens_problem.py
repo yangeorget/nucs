@@ -30,6 +30,7 @@ class QueensProblem(Problem):
         Initializes the problem.
 
         :param n: the number of queens
+        :type n: int
         """
         super().__init__([(0, n - 1)] * n)
         self.n = n
@@ -54,6 +55,7 @@ class QueensDualProblem(Problem):
         Initializes the problem.
 
         :param n: the number of queens
+        :type n: int
         """
         super().__init__([(0, n - 1)] * 2 * n)
         self.n = n

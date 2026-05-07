@@ -23,10 +23,15 @@ from nucs.heuristics.max_regret_var_heuristic import regret
 def tsp_var_heuristic(decision_variables: NDArray, domains_stk: NDArray, top: int, params: NDArray) -> int:
     """
     :param decision_variables: the decision variables
+    :type decision_variables: NDArray
     :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
     :param top: the index of the top of the stacks
+    :type top: int
     :param params: a two-dimensional (first dimension correspond to variables, second to values) cost array
+    :type params: NDArray
     :return: the variable
+    :rtype: int
     """
     best_score = -sys.maxsize
     best_variable = -1

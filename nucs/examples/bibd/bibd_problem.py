@@ -28,11 +28,17 @@ class BIBDProblem(Problem):
         Initializes the problem.
 
         :param v: the number of points/rows
+        :type v: int
         :param b: the number of blocks
+        :type b: int
         :param r: the number of true values per row
+        :type r: int
         :param k: the number of true values per column
+        :type k: int
         :param l: the scalar product between two rows
+        :type l: int
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
+        :type symmetry_breaking: bool
         """
         self.v = v  # number of points/rows
         self.b = b  # number of blocks/columns
@@ -70,8 +76,10 @@ class BIBDProblem(Problem):
         Returns the solutions as a matrix of ints.
 
         :param solution: the solution as a list of ints
+        :type solution: NDArray
 
         :return: a matrix
+        :rtype: Any
         """
         solution_as_list = solution.tolist()
         return [[solution_as_list[i * self.b + j] for j in range(0, self.b)] for i in range(0, self.v)]

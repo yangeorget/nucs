@@ -21,9 +21,12 @@ def get_complexity_sum_eq(n: int, parameters: NDArray) -> int:
     Returns the time complexity of the propagator as an int.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an int
+    :rtype: int
     """
     return n
 
@@ -34,8 +37,10 @@ def get_triggers_sum_eq(n: int, variable: int, parameters: NDArray) -> int:
     This propagator is triggered whenever there is a change in the domain of a variable.
 
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an array of triggers
+    :rtype: int
     """
     return EVENT_MASK_MIN_MAX
 
@@ -46,9 +51,12 @@ def compute_domains_sum_eq(domains: NDArray, parameters: NDArray) -> int:
     Implements :math:`\\sum_i x_i = x_{n-1}`.
 
     :param domains: the domains of the variables, x is an alias for domains
+    :type domains: NDArray
     :param parameters: the parameters of the propagator, unused here
+    :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
     """
     n = len(domains) - 1
     domain_sum_min = -domains[-1, MIN]

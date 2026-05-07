@@ -81,23 +81,37 @@ def bound_consistency_algorithm(
     This is the default consistency algorithm used by the solver.
 
     :param statistics: a Numpy array of statistics
+    :type statistics: NDArray
     :param algorithms: the algorithms indexed by propagators
+    :type algorithms: NDArray
     :param bounds: the bounds indexed by propagators
+    :type bounds: NDArray
     :param propagator_variables: the variables by propagators
+    :type propagator_variables: NDArray
     :param propagator_parameters: the parameters by propagators
+    :type propagator_parameters: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :type triggers: NDArray
     :param domains_stk: a stack of domains, the first level correspond to the current domains,
                         the rest correspond to the choice points
+    :type domains_stk: NDArray
     :param entailed_propagators_stk: a stack of entailed propagators,
                                      the first level correspond to the propagators currently not entailed,
                                      the rest correspond to the choice points
+    :type entailed_propagators_stk: NDArray
     :param domain_update_stk: the stack of domain updates, unused here
+    :type domain_update_stk: NDArray
     :param stks_top: the height of the stacks as a Numpy array
+    :type stks_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
+    :type triggered_propagators: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
+    :type compute_domains_fcts: Any
     :param decision_variables: the variables on which decisions will be made
+    :type decision_variables: NDArray
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
+    :type domain_buffer: NDArray
 
     :return: a status (consistency, inconsistency or entailment) as an integer
     :rtype: int

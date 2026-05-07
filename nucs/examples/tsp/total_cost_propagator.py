@@ -23,8 +23,11 @@ def get_complexity_total_cost(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
     :return: an int
+    :rtype: int
     """
     return n * n
 
@@ -33,8 +36,11 @@ def get_triggers_total_cost(n: int, parameters: NDArray) -> NDArray:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
     :return: an array of triggers
+    :rtype: NDArray
     """
     triggers = np.full(n, dtype=np.uint8, fill_value=EVENT_MASK_MIN_MAX)
     triggers[-1] = 0
@@ -45,8 +51,11 @@ def get_triggers_total_cost(n: int, parameters: NDArray) -> NDArray:
 def compute_domains_total_cost(domains: NDArray, parameters: NDArray) -> int:
     """
     :param domains: the domains of the variables
+    :type domains: NDArray
     :param parameters: the parameters of the propagator
+    :type parameters: NDArray
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
     """
     n = len(domains) - 1
     used = np.zeros(n, dtype=np.bool)

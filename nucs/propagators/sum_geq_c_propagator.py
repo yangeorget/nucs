@@ -28,9 +28,12 @@ def get_complexity_sum_geq_c(n: int, parameters: NDArray) -> int:
     Returns the time complexity of the propagator as an int.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an int
+    :rtype: int
     """
     return n
 
@@ -41,8 +44,10 @@ def get_triggers_sum_geq_c(n: int, variable: int, parameters: NDArray) -> int:
     Returns the triggers for this propagator.
 
     :param parameters: the parameters
+    :type parameters: NDArray
 
     :return: an array of triggers
+    :rtype: int
     """
     return EVENT_MASK_MAX
 
@@ -53,9 +58,12 @@ def compute_domains_sum_geq_c(domains: NDArray, parameters: NDArray) -> int:
     Implements :math:`\\sum_i x_i >= c`.
 
     :param domains: the domains of the variables, x is an alias for domains
+    :type domains: NDArray
     :param parameters: the parameters of the propagator, c is the first parameter
+    :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
     """
     n = len(domains)
     domain_sum_min = domain_sum_max = -parameters[0]

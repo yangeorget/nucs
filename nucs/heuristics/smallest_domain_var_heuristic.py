@@ -24,11 +24,16 @@ def smallest_domain_var_heuristic(decision_variables: NDArray, domains_stk: NDAr
     Chooses the first variable which is not instantiated with the smallest domain.
 
     :param decision_variables: the decision variables
+    :type decision_variables: NDArray
     :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
     :param top: the index of the top of the stacks
+    :type top: int
     :param params: a two-dimensional parameter array, unused here
+    :type params: NDArray
 
     :return: the variable
+    :rtype: int
     """
     best_score = -sys.maxsize
     best_variable = -1

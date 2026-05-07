@@ -24,7 +24,9 @@ class SchurLemmaProblem(Problem):
         Initializes the problem.
 
         :param n: the size of the problem
+        :type n: int
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
+        :type symmetry_breaking: bool
         """
         super().__init__([(0, 1)] * n * 3)
         for x in range(n):

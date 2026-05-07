@@ -24,9 +24,12 @@ def get_complexity_alldifferent(n: int, parameters: NDArray) -> int:
     Returns the time complexity of the propagator as an int.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an int
+    :rtype: int
     """
     return int(n * math.log(n))
 
@@ -37,8 +40,10 @@ def get_triggers_alldifferent(n: int, variable: int, parameters: NDArray) -> int
     This propagator is triggered whenever there is a change in the domain of a variable.
 
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an array of triggers
+    :rtype: int
     """
     return EVENT_MASK_MIN_MAX
 
@@ -49,9 +54,13 @@ def path_set(t: NDArray, start: int, end: int, value: int) -> None:
     Sets t[start], t[t[start]], ..., a[idx] to value until a[idx] = end.
 
     :param t: an array of pointers
+    :type t: NDArray
     :param start: an index
+    :type start: int
     :param end: an index
+    :type end: int
     :param value: a value
+    :type value: int
     """
     while (p := start) != end:
         start = t[p]
@@ -64,9 +73,12 @@ def path_min(t: NDArray, i: int) -> int:
     Follows i, t[i], t[t[i], ... until it stops decreasing.
 
     :param t: an array of pointers
+    :type t: NDArray
     :param i: an index
+    :type i: int
 
     :return: the index found
+    :rtype: int
     """
     while t[i] < i:
         i = t[i]
@@ -79,9 +91,12 @@ def path_max(t: NDArray, i: int) -> int:
     Follows i, t[i], t[t[i], ... until it stops increasing.
 
     :param t: an array of pointers
+    :type t: NDArray
     :param i: an index
+    :type i: int
 
     :return: the index found
+    :rtype: int
     """
     while t[i] > i:
         i = t[i]
@@ -213,9 +228,12 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
 
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
     :param domains: the domains of the variables, x is an alias for domains
+    :type domains: NDArray
     :param parameters: either empty or offsets
+    :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
     """
     n = len(domains)
     has_offsets = len(parameters) != 0

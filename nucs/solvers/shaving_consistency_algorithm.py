@@ -125,23 +125,37 @@ def shaving_consistency_algorithm(
     This algorithm reduces the need of searching by shaving the domains.
 
     :param statistics: a Numpy array of statistics
+    :type statistics: NDArray
     :param algorithms: the algorithms indexed by propagators
+    :type algorithms: NDArray
     :param bounds: the bounds indexed by propagators
+    :type bounds: NDArray
     :param propagator_variables: the variables by propagators
+    :type propagator_variables: NDArray
     :param propagator_parameters: the parameters by propagators
+    :type propagator_parameters: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :type triggers: NDArray
     :param domains_stk: a stack of  domains;
                         the first level correspond to the current domains, the rest correspond to the choice points
+    :type domains_stk: NDArray
     :param entailed_propagators_stk: a stack of entailed propagatorspropagators;
                                      the first level correspond to the propagators currently not entailed,
                                      the rest correspond to the choice points
+    :type entailed_propagators_stk: NDArray
     :param domain_update_stk: the stack of domain updates
+    :type domain_update_stk: NDArray
     :param stks_top: the height of the stacks as a Numpy array
+    :type stks_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
+    :type triggered_propagators: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions
+    :type compute_domains_fcts: Any
     :param decision_variables: the variables on which decisions will be made
+    :type decision_variables: NDArray
 
     :return: a status (consistency, inconsistency or entailment) as an integer
+    :rtype: int
     """
     statistics[STATS_IDX_ALG_BC_WITH_SHAVING_NB] += 1
     shr_domains_nb = len(domains_stk[0])

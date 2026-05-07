@@ -21,9 +21,12 @@ def get_complexity_lexicographic_leq(n: int, parameters: NDArray) -> int:
     Returns the time complexity of the propagator as an int.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an int
+    :rtype: int
     """
     return n
 
@@ -34,8 +37,10 @@ def get_triggers_lexicographic_leq(n: int, variable: int, parameters: NDArray) -
     This propagator is triggered whenever there is a change in the domain of a variable.
 
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an array of triggers
+    :rtype: int
     """
     return EVENT_MASK_MIN_MAX
 
@@ -155,9 +160,12 @@ def compute_domains_lexicographic_leq(domains: NDArray, parameters: NDArray) -> 
     :param domains: the domains of the variables,
            x is the list of the first n domains,
            y is the list of the last n domains
+    :type domains: NDArray
     :param parameters: unused here
+    :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
     """
     # TODO: make incremental, use a var?
     n = len(domains) >> 1

@@ -26,6 +26,7 @@ class SudokuProblem(LatinSquareProblem):
         Initializes the problem.
 
         :param givens: the givens per rows then per columns
+        :type givens: List[List[int]]
         """
         super().__init__(list(range(1, 10)), givens)
         for i in range(3):

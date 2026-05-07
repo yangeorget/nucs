@@ -26,6 +26,7 @@ class MagicSequenceProblem(Problem):
         Initializes the problem.
 
         :param n: the size of the sequence
+        :type n: int
         """
         super().__init__([(0, n)] * n)
         for i in range(n):

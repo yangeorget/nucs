@@ -152,10 +152,14 @@ def register_propagator(get_triggers_fct: Callable, get_complexity_fct: Callable
     Registers a propagator by adding its 3 functions to the corresponding lists of functions.
 
     :param get_triggers_fct: a function that returns the triggers
+    :type get_triggers_fct: Callable
     :param get_complexity_fct: a function that computes the complexity
+    :type get_complexity_fct: Callable
     :param compute_domains_fct: a function that computes the domains
+    :type compute_domains_fct: Callable
 
     :return: the index of the propagator
+    :rtype: int
     """
     GET_TRIGGERS_FCTS.append(get_triggers_fct)
     GET_COMPLEXITY_FCTS.append(get_complexity_fct)

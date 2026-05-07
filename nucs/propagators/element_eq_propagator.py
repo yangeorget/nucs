@@ -23,9 +23,12 @@ def get_complexity_element_eq(n: int, parameters: NDArray) -> int:
     Returns the time complexity of the propagator as an int.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an int
+    :rtype: int
     """
     return n
 
@@ -36,8 +39,10 @@ def get_triggers_element_eq(n: int, variable: int, parameters: NDArray) -> int:
     This propagator is triggered whenever there is a change in the domain of a variable.
 
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an array of triggers
+    :rtype: int
     """
     return EVENT_MASK_MIN_MAX
 
@@ -50,9 +55,12 @@ def compute_domains_element_eq(domains: NDArray, parameters: NDArray) -> int:
     :param domains: the domains of the variables,
            i is the first domain,
            v is the last domain
+    :type domains: NDArray
     :param parameters: the parameters of the propagator, l is an alias for parameters
+    :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
     """
     l = parameters
     i = domains[0]

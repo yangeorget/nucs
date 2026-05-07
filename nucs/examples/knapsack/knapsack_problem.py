@@ -25,6 +25,7 @@ class KnapsackProblem(Problem):
         Inits the problem.
 
         :param dataset: the dataset
+        :type dataset: dict
         """
         capacity = dataset["capacity"]
         weights = dataset["weights"]

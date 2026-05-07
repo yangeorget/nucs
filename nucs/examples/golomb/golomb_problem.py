@@ -32,8 +32,10 @@ def sum_first(n: int) -> int:
     Returns the sum of the first n integers.
 
     :param n: an integer
+    :type n: int
 
     :return: the sum
+    :rtype: int
     """
     return (n * (n + 1)) >> 1
 
@@ -44,10 +46,14 @@ def index(mark_nb: int, i: int, j: int) -> int:
     Returns the index of the distance variable between two marks.
 
     :param mark_nb: the total number of marks
+    :type mark_nb: int
     :param i: the first mark
+    :type i: int
     :param j: the second mark
+    :type j: int
 
     :return: the index of the distance variable
+    :rtype: int
     """
     return i * mark_nb - sum_first(i) + j - i - 1
 
@@ -70,7 +76,9 @@ class GolombProblem(Problem):
         Initializes the problem.
 
         :param mark_nb: the number of marks
+        :type mark_nb: int
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
+        :type symmetry_breaking: bool
         """
         self.mark_nb = mark_nb
         dist_nb = sum_first(mark_nb - 1)
@@ -133,8 +141,10 @@ def golomb_consistency_algorithm(
     Applies a custom consistency algorithm for the Golomb Ruler problem.
 
     :param statistics: the statistics array
+    :type statistics: NDArray
 
     :return: the status as an int
+    :rtype: int
     """
     top = stks_top[0]
     # first prune the search space

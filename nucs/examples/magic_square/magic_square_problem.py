@@ -28,7 +28,9 @@ class MagicSquareProblem(Problem):
         Initializes the problem.
 
         :param n: the size of the square
+        :type n: int
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
+        :type symmetry_breaking: bool
         """
         self.n = n
         self.m = ((n**2 - 1) * n) >> 1

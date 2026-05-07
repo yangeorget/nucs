@@ -44,14 +44,22 @@ def value_dom_heuristic(
     Chooses a value given as a parameter.
 
     :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
     :param entailed_propagators_stk: the stack of entailed propagators
+    :type entailed_propagators_stk: NDArray
     :param domain_update_stk: the stack of domain updates
+    :type domain_update_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
+    :type stks_top: NDArray
     :param variable: the variable
+    :type variable: int
     :param value: the value
+    :type value: int
     :param params: a two-dimensional parameter array
+    :type params: NDArray
 
     :return: the events
+    :rtype: int
     """
     top = stks_top[0]
     if value == domains_stk[top, variable, MIN]:

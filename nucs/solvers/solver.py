@@ -32,8 +32,11 @@ class Solver:
     def __init__(self, problem: Optional[Problem], log_level: str = LOG_LEVEL_INFO):
         """
         Initializes the solver.
+
         :param problem: a problem or None
+        :type problem: Optional[Problem]
         :param log_level: the log level as a string
+        :type log_level: str
         """
         logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, log_level))
         logging.getLogger("numba").setLevel(logging.WARNING)
@@ -46,7 +49,9 @@ class Solver:
     def get_statistics_as_dictionary(self) -> Dict[str, int]:
         """
         Returns the statistics as a dictionary.
+
         :return: a dictionary
+        :rtype: Dict[str, int]
         """
         ...
 
@@ -60,14 +65,18 @@ class Solver:
     def solve(self) -> Iterator[NDArray]:
         """
         Returns an iterator over the solutions.
+
         :return: an iterator
+        :rtype: Iterator[NDArray]
         """
         ...
 
     def solve_all(self, func: Optional[Callable] = None) -> None:
         """
         Finds all solutions.
+
         :param func: a function to handle each solution found
+        :type func: Optional[Callable]
         """
         for solution in self.solve():
             if func is not None:
@@ -76,7 +85,9 @@ class Solver:
     def find_all(self) -> List[NDArray]:
         """
         Finds all solutions.
+
         :return: the list of all solutions
+        :rtype: List[NDArray]
         """
         logger.info("Finding all solutions")
         solutions = []
@@ -93,9 +104,14 @@ class Solver:
     def minimize(self, variable_idx: int, mode: str) -> Optional[NDArray]:
         """
         Finds, if it exists, the solution to the problem that minimizes a given variable.
+
         :param variable_idx: the index of the variable
+        :type variable_idx: int
         :param mode: the optimization mode
+        :type mode: str
+
         :return: the solution if it exists or None
+        :rtype: Optional[NDArray]
         """
         ...
 
@@ -103,9 +119,14 @@ class Solver:
     def maximize(self, variable_idx: int, mode: str) -> Optional[NDArray]:
         """
         Finds, if it exists, the solution to the problem that maximizes a given variable.
+
         :param variable_idx: the index of the variable
+        :type variable_idx: int
         :param mode: the optimization mode
+        :type mode: str
+
         :return: the solution if it exists or None
+        :rtype: Optional[NDArray]
         """
         ...
 
@@ -114,8 +135,13 @@ class Solver:
 def get_solution(domains_stk: NDArray, top: int) -> NDArray:
     """
     Returns the solution to the problem.
+
     :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
     :param top: the index of the top of the stacks
+    :type top: int
+
     :return: a Numpy array
+    :rtype: NDArray
     """
     return domains_stk[top, :, MIN].copy()

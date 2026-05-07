@@ -29,14 +29,24 @@ def cp_init(
 ) -> None:
     """
     Initializes the choice points.
+
     :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
     :param entailed_propagators_stk: the stack of entailed propagators
+    :type entailed_propagators_stk: NDArray
     :param domain_update_stk: the stack of domain updates
+    :type domain_update_stk: NDArray
     :param unbound_variable_nb_stk: the stack of unbound variable nb
+    :type unbound_variable_nb_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
-    :param domains: the domains
+    :type stks_top: NDArray
+    :param domains_arr: the domains
+    :type domains_arr: NDArray
     :param unbound_variable_nb: the number of unbound variables
+    :type unbound_variable_nb: int
+
     :return: a Numpy array
+    :rtype: None
     """
     domains_stk[0] = domains_arr
     entailed_propagators_stk[0] = False
@@ -49,9 +59,13 @@ def cp_init(
 def cp_put(domains_stk: NDArray, entailed_propagators_stk: NDArray, unbound_variable_nb_stk: NDArray, top: int) -> None:
     """
     Adds a choice point to the stack of choice points.
+
     :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
     :param entailed_propagators_stk: the stack of entailed propagators
+    :type entailed_propagators_stk: NDArray
     :param top: the index of the top of the stacks
+    :type top: int
     """
     domains_stk[top + 1] = domains_stk[top]  # copy the domains
     entailed_propagators_stk[top + 1] = entailed_propagators_stk[top]  # copy the entailed propagators
@@ -70,13 +84,22 @@ def backtrack(
 ) -> bool:
     """
     Backtracks and updates the problem's domains.
+
     :param statistics: the statistics array
+    :type statistics: NDArray
     :param entailed_propagators_stk: the stack of entailed propagators
+    :type entailed_propagators_stk: NDArray
     :param domain_update_stk: the stack of domain updates
+    :type domain_update_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
+    :type stks_top: NDArray
     :param triggered_propagators: the set propagators that are currently triggered as a Numpy array
+    :type triggered_propagators: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :type triggers: NDArray
+
     :return: true iff it is possible to backtrack
+    :rtype: bool
     """
     if stks_top[0] == 0:
         return False
@@ -104,11 +127,17 @@ def fix_choice_points(
 ) -> bool:
     """
     Fixes the domain of the variable being optimized in the choice points.
+
     :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
+    :type stks_top: NDArray
     :param variable: the variable being optimized
+    :type variable: int
     :param value: the current optimal value for the variable
+    :type value: int
     :param bound: the bound being optimized
+    :type bound: int
     """
     if stks_top[0] == 0:
         return False
@@ -140,10 +169,15 @@ def fix_choice_point(
 ) -> bool:
     """
     Fixes the domain of the variable being optimized in the top choice point.
+
     :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
     :param variable:  the variable being optimized
+    :type variable: int
     :param value: the current optimal value for the variable
+    :type value: int
     :param bound: the bound being optimized
+    :type bound: int
     """
     if bound == MIN:
         domains_stk[0, variable, bound] = value + 1

@@ -21,9 +21,12 @@ def get_complexity_abs_eq(n: int, parameters: NDArray) -> int:
     Returns the time complexity of the propagator as an int.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an int
+    :rtype: int
     """
     return 2
 
@@ -34,8 +37,10 @@ def get_triggers_abs_eq(n: int, variable: int, parameters: NDArray) -> int:
     Returns the triggers for this propagator.
 
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an array of triggers
+    :rtype: int
     """
     if variable == 0:
         return EVENT_MASK_MIN_MAX
@@ -48,9 +53,12 @@ def compute_domains_abs_eq(domains: NDArray, parameters: NDArray) -> int:
     Implements :math:`abs(y)=x`.
 
     :param domains: the domains of the variables, y is the first domain, x the second
+    :type domains: NDArray
     :param parameters: unused here
+    :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
     """
     y = domains[0]
     x = domains[1]

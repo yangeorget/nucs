@@ -24,6 +24,7 @@ class CircuitProblem(PermutationProblem):
         Initializes the circuit problem.
 
         :param n: the number of vertices
+        :type n: int
         """
         self.n = n
         super().__init__(n)

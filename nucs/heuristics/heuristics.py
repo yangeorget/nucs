@@ -33,8 +33,10 @@ def register_var_heuristic(var_heuristic_fct: Callable) -> int:
     Registers a variable heuristic by adding it function to the corresponding list of functions.
 
     :param var_heuristic_fct: a function that implements the variable heuristic
+    :type var_heuristic_fct: Callable
 
     :return: the index of the variable heuristic
+    :rtype: int
     """
     VAR_HEURISTIC_FCTS.append(var_heuristic_fct)
     return len(VAR_HEURISTIC_FCTS) - 1
@@ -45,8 +47,10 @@ def register_dom_heuristic(dom_heuristic_fct: Callable) -> int:
     Registers a domain heuristic by adding it function to the corresponding list of functions.
 
     :param dom_heuristic_fct: a function that implements the domain heuristic
+    :type dom_heuristic_fct: Callable
 
     :return: the index of the domain heuristic
+    :rtype: int
     """
     DOM_HEURISTIC_FCTS.append(dom_heuristic_fct)
     return len(DOM_HEURISTIC_FCTS) - 1

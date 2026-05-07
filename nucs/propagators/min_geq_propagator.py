@@ -30,9 +30,12 @@ def get_complexity_min_geq(n: int, parameters: NDArray) -> int:
     Returns the time complexity of the propagator as an int.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an int
+    :rtype: int
     """
     return n
 
@@ -43,9 +46,12 @@ def get_triggers_min_geq(n: int, variable: int, parameters: NDArray) -> int:
     Returns the triggers for this propagator.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an array of triggers
+    :rtype: int
     """
     return EVENT_MASK_MAX if variable < n - 1 else EVENT_MASK_MIN
 
@@ -56,9 +62,12 @@ def compute_domains_min_geq(domains: NDArray, parameters: NDArray) -> int:
     Implements :math:`\\min_i x_i >= x_{n-1}`.
 
     :param domains: the domains of the variables, x is an alias for domains
+    :type domains: NDArray
     :param parameters: unused here
+    :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
     """
     x = domains[:-1]
     y = domains[-1]

@@ -24,6 +24,7 @@ class PermutationProblem(Problem):
         Initializes the permutation problem.
 
         :param n: the number of variables/values
+        :type n: int
         """
         self.n = n
         super().__init__([(0, n - 1)] * 2 * n)

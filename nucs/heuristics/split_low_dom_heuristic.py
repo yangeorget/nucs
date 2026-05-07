@@ -39,13 +39,20 @@ def split_low_dom_heuristic(
     Chooses the first half of the domain.
 
     :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
     :param entailed_propagators_stk: the stack of entailed propagators
+    :type entailed_propagators_stk: NDArray
     :param domain_update_stk: the stack of domain updates
+    :type domain_update_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
+    :type stks_top: NDArray
     :param variable: the variable
+    :type variable: int
     :param params: a two-dimensional parameter array, unused here
+    :type params: NDArray
 
     :return: the events
+    :rtype: int
     """
     top = stks_top[0]
     cp_put(domains_stk, entailed_propagators_stk, unbound_variable_nb_stk, top)

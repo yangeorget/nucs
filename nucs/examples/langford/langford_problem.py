@@ -34,7 +34,9 @@ class LangfordProblem(Problem):
         Initializes the problem.
 
         :param k: the number of occurences
+        :type k: int
         :param n: the number of values
+        :type n: int
         """
         self.k = k
         self.n = n

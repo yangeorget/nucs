@@ -29,9 +29,12 @@ def get_complexity_leq_c(n: int, parameters: NDArray) -> int:
     Returns the time complexity of the propagator as an int.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an int
+    :rtype: int
     """
     return 1
 
@@ -42,8 +45,10 @@ def get_triggers_leq_c(n: int, variable: int, parameters: NDArray) -> int:
     Returns the triggers for this propagator.
 
     :param parameters: the parameters
+    :type parameters: NDArray
 
     :return: an array of triggers
+    :rtype: int
     """
     return EVENT_MASK_MIN if variable == 0 else EVENT_MASK_MAX
 
@@ -54,9 +59,12 @@ def compute_domains_leq_c(domains: NDArray, parameters: NDArray) -> int:
     Implements :math:`x <= y + c`.
 
     :param domains: the domains of the variables, x is the first domain, y is the second domain
+    :type domains: NDArray
     :param parameters: the parameters of the propagator, c is the first parameter
+    :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
     """
     x = domains[0]
     y = domains[1]

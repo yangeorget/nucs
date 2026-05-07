@@ -24,8 +24,11 @@ class QuasigroupProblem(LatinSquareRCProblem):
         Initializes the problem.
 
         :param n: the size of the quasigroup
+        :type n: int
         :param idempotent: a boolean indicating if the quasigroup is idempotent
+        :type idempotent: bool
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
+        :type symmetry_breaking: bool
         """
         super().__init__(n)
         if symmetry_breaking:

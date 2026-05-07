@@ -49,6 +49,7 @@ class Problem:
         Initializes the problem.
 
         :param domains: the domains
+        :type domains: Union[Iterable[Tuple[int, int]]]
         """
         self.unbound_variable_nb = 0
         self.domains = [(domain, domain) if isinstance(domain, int) else domain for domain in domains]
@@ -61,9 +62,12 @@ class Problem:
         Splits a problem into several sub-problems by splitting the domain of a variable.
 
         :param split_nb: the number of sub-problems
+        :type split_nb: int
         :param var: the index of the variable
+        :type var: int
 
         :return: a list of sub-problems
+        :rtype: List[Self]
         """
         logger.debug(f"Splitting in {split_nb} problems with variable {var}")
         domain = self.domains[var]
@@ -84,8 +88,10 @@ class Problem:
         Adds an extra variable to the problem.
 
         :param domain: the domain of the variable
+        :type domain: Union[int, Tuple[int, int]]
 
         :return: the extra variable
+        :rtype: int
         """
         var = len(self.domains)
         self.domains.append((domain, domain) if isinstance(domain, int) else domain)
@@ -97,8 +103,10 @@ class Problem:
         Adds extra variables to the problem.
 
         :param domains: the domains of the variables
+        :type domains: Sequence[Union[int, Tuple[int, int]]]
 
         :return: the first added variable
+        :rtype: int
         """
         var = len(self.domains)
         self.domains.extend([(domain, domain) if isinstance(domain, int) else domain for domain in domains])

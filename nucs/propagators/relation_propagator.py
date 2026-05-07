@@ -21,9 +21,12 @@ def get_complexity_relation(n: int, parameters: NDArray) -> int:
     Returns the time complexity of the propagator as an int.
 
     :param n: the number of variables, unused here
+    :type n: int
     :param parameters: the parameters
+    :type parameters: NDArray
 
     :return: an int
+    :rtype: int
     """
     return len(parameters)
 
@@ -34,9 +37,12 @@ def get_triggers_relation(n: int, variable: int, parameters: NDArray) -> int:
     This propagator is triggered whenever there is a change in the domain of a variable.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an array of triggers
+    :rtype: int
     """
     return EVENT_MASK_MIN_MAX
 
@@ -47,11 +53,14 @@ def compute_domains_relation(domains: NDArray, parameters: NDArray) -> int:
     Implements a relation over n variables defined by its allowed tuples.
 
     :param domains: the domains of the variables
+    :type domains: NDArray
     :param parameters: the parameters of the propagator,
            the allowed tuples correspond to:
            (parameters_0, ..., parameters_n-1), (parameters_n, ..., parameters_2n-1), ...
+    :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
     """
     n = len(domains)
     tuples = parameters.copy().reshape((-1, n))

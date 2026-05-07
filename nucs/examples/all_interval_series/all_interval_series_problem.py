@@ -28,7 +28,9 @@ class AllIntervalSeriesProblem(Problem):
         Initializes the problem.
 
         :param n: the size of the sequence
+        :type n: int
         :param symmetry_breaking: a boolean indicating if symmetry constraints should be added to the model
+        :type symmetry_breaking: bool
         """
         super().__init__([(0, n - 1)] * n + [(-n + 1, n - 1)] * (n - 1) + [(1, n - 1)] * (n - 1))
         self.n = n

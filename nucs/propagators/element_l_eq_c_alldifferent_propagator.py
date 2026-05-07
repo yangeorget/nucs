@@ -21,9 +21,12 @@ def get_complexity_element_l_eq_c_alldifferent(n: int, parameters: NDArray) -> i
     Returns the time complexity of the propagator as an int.
 
     :param n: the number of variables
+    :type n: int
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an int
+    :rtype: int
     """
     return n
 
@@ -34,8 +37,10 @@ def get_triggers_element_l_eq_c_alldifferent(n: int, variable: int, parameters: 
     This propagator is triggered whenever there is a change in the domain of a variable.
 
     :param parameters: the parameters, unused here
+    :type parameters: NDArray
 
     :return: an array of triggers
+    :rtype: int
     """
     return EVENT_MASK_MIN_MAX
 
@@ -46,9 +51,12 @@ def compute_domains_element_l_eq_c_alldifferent(domains: NDArray, parameters: ND
     Enforces :math:`l_i = c` when alldifferent(l).
 
     :param domains: the domains of the variables, l is the list of the first n-1 domains, i is the last domain
+    :type domains: NDArray
     :param parameters: the parameters of the propagator, c is the first parameter
+    :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
     """
     l = domains[:-1]
     i = domains[-1]

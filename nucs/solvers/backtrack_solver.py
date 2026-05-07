@@ -107,17 +107,27 @@ class BacktrackSolver(Solver, QueueSolver):
     ):
         """
         Initializes the solver.
+
         :param problem: the problem to be solved
+        :type problem: Problem
         :param consistency_alg: the index of the consistency algorithm
+        :type consistency_alg: int
         :param decision_variables: the variables on which decisions will be made
+        :type decision_variables: Optional[Iterable[int]]
         :param var_heuristic: the index of the heuristic for selecting a variable
+        :type var_heuristic: int
         :param var_heuristic_params: a list of lists of parameters,
         usually parameters are costs and there is a list of value costs per variable
+        :type var_heuristic_params: List[List[int]]
         :param dom_heuristic: the index of the heuristic for reducing a domain
+        :type dom_heuristic: int
         :param dom_heuristic_params: a list of lists of parameters,
         usually parameters are costs and there is a list of value costs per variable
+        :type dom_heuristic_params: List[List[int]]
         :param stks_max_height: the maximal height of the choice point stacks
+        :type stks_max_height: int
         :param log_level: the log level as a string
+        :type log_level: str
         """
         super().__init__(problem, log_level)
         decision_variables = range(problem.domain_nb) if decision_variables is None else decision_variables
@@ -191,9 +201,14 @@ class BacktrackSolver(Solver, QueueSolver):
     def minimize(self, variable: int, mode: str = OPTIM_RESET) -> Optional[NDArray]:
         """
         Return the solution that minimizes a variable.
+
         :param variable: the variable to minimize
+        :type variable: int
         :param mode: the optimization mode
+        :type mode: str
+
         :return: the optimal solution if it exists or None
+        :rtype: Optional[NDArray]
         """
         domain = self.domains_stk[self.stks_top[0], variable]
         logger.info(f"Minimizing (mode {mode}) variable {variable} (domain {domain}))")
@@ -202,9 +217,14 @@ class BacktrackSolver(Solver, QueueSolver):
     def maximize(self, variable: int, mode: str = OPTIM_RESET) -> Optional[NDArray]:
         """
         Return the solution that maximizes a variable.
+
         :param variable: the variable to maximize
+        :type variable: int
         :param mode: the optimization mode
+        :type mode: str
+
         :return: the optimal solution if it exists or None
+        :rtype: Optional[NDArray]
         """
         domain = self.domains_stk[self.stks_top[0], variable]
         logger.info(f"Maximizing (mode {mode}) variable {variable} (domain {domain}))")
@@ -213,10 +233,16 @@ class BacktrackSolver(Solver, QueueSolver):
     def optimize(self, variable: int, bound: int, mode: str) -> Optional[NDArray]:
         """
         Finds, if it exists, the solution to the problem that optimizes a given variable.
+
         :param variable: the variable
+        :type variable: int
         :param bound: the bound to optimize
+        :type bound: int
         :param mode: the optimization mode
+        :type mode: str
+
         :return: the solution if it exists or None
+        :rtype: Optional[NDArray]
         """
         best_solution = None
         while (
@@ -282,7 +308,9 @@ class BacktrackSolver(Solver, QueueSolver):
     def solve(self) -> Iterator[NDArray]:
         """
         Returns an iterator over the solutions.
+
         :return: an iterator
+        :rtype: Iterator[NDArray]
         """
         logger.info("Solving and iterating over the solutions")
         while True:
@@ -328,10 +356,15 @@ class BacktrackSolver(Solver, QueueSolver):
     def minimize_and_queue(self, variable: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
         """
         Enqueues the solution that minimizes a variable.
+
         :param variable: the variable to minimize
+        :type variable: int
         :param processor_idx: the index of the processor running the minimizer
+        :type processor_idx: int
         :param solution_queue: the solution queue
+        :type solution_queue: Queue
         :param mode: the optimization mode
+        :type mode: str
         """
         domain = self.domains_stk[self.stks_top[0], variable]
         logger.info(f"Minimizing (mode {mode}) variable {variable} (domain {domain})) and queuing solutions")
@@ -340,10 +373,15 @@ class BacktrackSolver(Solver, QueueSolver):
     def maximize_and_queue(self, variable: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
         """
         Enqueues the solution that maximizes a variable.
+
         :param variable: the variable to maximize
+        :type variable: int
         :param processor_idx: the index of the processor running the maximizer
+        :type processor_idx: int
         :param solution_queue: the solution queue
+        :type solution_queue: Queue
         :param mode: the optimization mode
+        :type mode: str
         """
         domain = self.domains_stk[self.stks_top[0], variable]
         logger.info(f"Minimizing (mode {mode}) variable {variable} (domain {domain})) and queuing solutions")
@@ -354,11 +392,17 @@ class BacktrackSolver(Solver, QueueSolver):
     ) -> None:
         """
         Enqueues the solution that optimizes a variable.
+
         :param variable: the variable
+        :type variable: int
         :param bound: the bound to optimize
+        :type bound: int
         :param processor_idx: the index of the processor
+        :type processor_idx: int
         :param solution_queue: the solution queue
+        :type solution_queue: Queue
         :param mode: the optimization mode
+        :type mode: str
         """
         while True:
             solution = solve_one(
@@ -424,8 +468,11 @@ class BacktrackSolver(Solver, QueueSolver):
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
         """
         Enqueues the solutions.
+
         :param processor_idx: the index of the processor
+        :type processor_idx: int
         :param solution_queue: the solution queue
+        :type solution_queue: Queue
         """
         logger.info("Solving and queuing solutions found")
         while True:
@@ -496,30 +543,52 @@ def solve_one(
 ) -> Optional[NDArray]:
     """
     Find at most one solution.
+
     :param statistics: a Numpy array of statistics
+    :type statistics: NDArray
     :param algorithms: the algorithms indexed by propagators
+    :type algorithms: NDArray
     :param bounds: the bounds indexed by propagators
+    :type bounds: NDArray
     :param propagator_variables: the variables by propagators
+    :type propagator_variables: NDArray
     :param propagator_parameters: the parameters by propagators
+    :type propagator_parameters: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :type triggers: NDArray
     :param domains_stk: a stack of domains;
     the first level correspond to the current domains, the rest correspond to the choice points
+    :type domains_stk: NDArray
     :param entailed_propagators_stk: a stack of entailed propagators;
     the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
+    :type entailed_propagators_stk: NDArray
     :param domain_update_stk: the stack of domain updates
+    :type domain_update_stk: NDArray
     :param unbound_variable_nb_stk: the stack of the unbound variables nb
+    :type unbound_variable_nb_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
+    :type stks_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
+    :type triggered_propagators: NDArray
     :param consistency_alg_fcts: a 1-element list holding the consistency algorithm function
+    :type consistency_alg_fcts: Any
     :param decision_variables: the variables on which decisions will be made
+    :type decision_variables: NDArray
     :param var_heuristic_fcts: a 1-element list holding the variable heuristic function
+    :type var_heuristic_fcts: Any
     :param var_heuristic_params: a list of lists of parameters,
     usually parameters are costs and there is a list of value costs per variable
+    :type var_heuristic_params: NDArray
     :param dom_heuristic_fcts: a 1-element list holding the domain heuristic function
+    :type dom_heuristic_fcts: Any
     :param dom_heuristic_params: a list of lists of parameters,
     usually parameters are costs and there is a list of value costs per variable
+    :type dom_heuristic_params: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
+    :type compute_domains_fcts: Any
+
     :return: the solution if it exists or None
+    :rtype: Optional[NDArray]
     """
     consistency_alg_fct = consistency_alg_fcts[0]
     var_heuristic_fct = var_heuristic_fcts[0]

@@ -28,9 +28,13 @@ class QueueSolver:
     def minimize_and_queue(self, variable: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
         """
         Enqueues the solution that minimizes a variable.
+
         :param variable: the variable to minimize
+        :type variable: int
         :param processor_idx: the index of the processor running the minimizer
+        :type processor_idx: int
         :param solution_queue: the solution queue
+        :type solution_queue: Queue
         """
         ...
 
@@ -38,9 +42,13 @@ class QueueSolver:
     def maximize_and_queue(self, variable: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
         """
         Enqueues the solution that maximizes a variable.
+
         :param variable: the variable to maximizer
+        :type variable: int
         :param processor_idx: the index of the processor running the maximizer
+        :type processor_idx: int
         :param solution_queue: the solution queue
+        :type solution_queue: Queue
         """
         ...
 
@@ -48,7 +56,10 @@ class QueueSolver:
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
         """
         Enqueues the solutions.
+
         :param processor_idx: the index of the processor
+        :type processor_idx: int
         :param solution_queue: the solution queue
+        :type solution_queue: Queue
         """
         ...

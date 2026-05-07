@@ -24,11 +24,16 @@ def first_not_instantiated_var_heuristic(
     Chooses the first non-instantiated variable.
 
     :param decision_variables: the decision variables
+    :type decision_variables: NDArray
     :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
     :param top: the index of the top of the stacks
+    :type top: int
     :param params: a two-dimensional parameter array, unused here
+    :type params: NDArray
 
     :return: the variable
+    :rtype: int
     """
     for variable in decision_variables:
         if domains_stk[top, variable, MIN] < domains_stk[top, variable, MAX]:

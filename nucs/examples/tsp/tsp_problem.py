@@ -23,6 +23,7 @@ class TSPProblem(CircuitProblem):
         """
         Initializes the problem.
         :param costs: the costs between vertices as a list of lists of integers
+        :type costs: List[List[int]]
         """
         n = len(costs)
         super().__init__(n)
