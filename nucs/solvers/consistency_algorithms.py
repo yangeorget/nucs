@@ -10,12 +10,12 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Callable
+from typing import Callable, List
 
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
 from nucs.solvers.shaving_consistency_algorithm import shaving_consistency_algorithm
 
-CONSISTENCY_ALG_FCTS = []
+CONSISTENCY_ALG_FCTS: List[Callable] = []
 
 
 def register_consistency_algorithm(consistency_algorithm_fct: Callable) -> int:

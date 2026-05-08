@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Callable
+from typing import Callable, List
 
 from nucs.heuristics.first_not_instantiated_var_heuristic import first_not_instantiated_var_heuristic
 from nucs.heuristics.greatest_domain_var_heuristic import greatest_domain_var_heuristic
@@ -24,8 +24,8 @@ from nucs.heuristics.split_high_dom_heuristic import split_high_dom_heuristic
 from nucs.heuristics.split_low_dom_heuristic import split_low_dom_heuristic
 from nucs.heuristics.split_random_dom_heuristic import split_random_dom_heuristic
 
-VAR_HEURISTIC_FCTS = []
-DOM_HEURISTIC_FCTS = []
+VAR_HEURISTIC_FCTS: List[Callable] = []
+DOM_HEURISTIC_FCTS: List[Callable] = []
 
 
 def register_var_heuristic(var_heuristic_fct: Callable) -> int:
