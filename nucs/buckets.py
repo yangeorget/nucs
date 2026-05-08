@@ -69,20 +69,20 @@ def buckets_add(buckets: NDArray, idx: int, priorities: NDArray) -> None:
     Appends idx at the tail of bucket weights[idx].
     No-op if idx is already present.
     """
-    storage_start = 2 * BUCKET_NB
-    capacity = (len(buckets) - storage_start - 1) >> 1
-    membership_idx = storage_start + capacity + idx
+    storage_offset = BUCKET_NB << 1
+    capacity = (len(buckets) - storage_offset - 1) >> 1
+    membership_idx = storage_offset + capacity + idx
     if buckets[membership_idx]:
         return
     bucket = priorities[idx]
     if bucket >= BUCKET_NB:
         bucket = BUCKET_NB - 1
-    buckets[storage_start + idx] = -1  # new tail has no successor
+    buckets[storage_offset + idx] = -1  # new tail has no successor
     old_tail = buckets[BUCKET_NB + bucket]
     if old_tail == -1:
         buckets[bucket] = idx  # bucket was empty, set head
     else:
-        buckets[storage_start + old_tail] = idx  # link previous tail to new node
+        buckets[storage_offset + old_tail] = idx  # link previous tail to new node
     buckets[BUCKET_NB + bucket] = idx
     buckets[membership_idx] = 1
     if bucket < buckets[-1]:
@@ -97,7 +97,7 @@ def buckets_pop(buckets: NDArray) -> int:
     :return: -1 if the queue is empty
     :rtype: int
     """
-    storage_offset = 2 * BUCKET_NB
+    storage_offset = BUCKET_NB << 1
     capacity = (len(buckets) - storage_offset - 1) >> 1
     bucket = buckets[-1]
     while bucket < BUCKET_NB and buckets[bucket] == -1:

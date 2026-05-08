@@ -177,7 +177,8 @@ def has_no_changes(
     # Layout of triggered_propagators (see nucs/buckets.py): the membership flag of propagator p
     # lives at index membership_offset + p. Caching the offset lets us short-circuit buckets_add
     # for propagators already in the queue without paying the function-call overhead.
-    membership_offset = (2 * BUCKET_NB) + ((len(triggered_propagators) - (2 * BUCKET_NB) - 1) >> 1)
+    storage_offset = BUCKET_NB << 1
+    membership_offset = storage_offset + ((len(triggered_propagators) - storage_offset - 1) >> 1)  # TODO: precompute
     for var_idx in range(prop_var_end - prop_var_start):
         variable = propagator_variables[prop_var_start + var_idx]
         domain = domains[variable]
