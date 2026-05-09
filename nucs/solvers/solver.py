@@ -73,6 +73,9 @@ class Solver:
         ...
 
     def run(self, args: Namespace) -> None:
+        """
+        Runs the solver according to the CLI arguments.
+        """
         if not args.find_all:
             solution: Optional[NDArray] = next(self.solve())
             if args is not None:
@@ -99,6 +102,7 @@ class Solver:
         :param func: a function to handle each solution found
         :type func: Optional[Callable]
         """
+        logger.info("Iterating over the solutions")
         for solution in self.solve():
             if func is not None:
                 func(solution)
@@ -110,7 +114,7 @@ class Solver:
         :return: the list of all solutions
         :rtype: List[NDArray]
         """
-        logger.info("Finding all solutions")
+        logger.info("Returning all solutions")
         solutions = []
         self.solve_all(lambda solution: solutions.append(solution))
         return solutions
