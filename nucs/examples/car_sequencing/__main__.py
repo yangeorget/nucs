@@ -25,14 +25,4 @@ if __name__ == "__main__":
     with open(args.dataset, "r") as json_file:
         dataset = json.load(json_file)
         problem = CarSequencingProblem(dataset)
-        solver = BacktrackSolver(problem, log_level=args.log_level, stks_max_height=args.cp_max_height)
-        if args.find_all:
-            solver.solve_all()
-            if args.display_stats:
-                solver.print_statistics()
-        else:
-            solution = solver.find_one()
-            if args.display_stats:
-                solver.print_statistics()
-            if args.display_solutions:
-                problem.print_solution(solution)
+        BacktrackSolver(problem, args).run(args)

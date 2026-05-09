@@ -27,22 +27,12 @@ if __name__ == "__main__":
     solver = (
         MultiprocessingSolver(
             [
-                BacktrackSolver(
-                    prob,
-                    consistency_alg=args.consistency,
-                    log_level=args.log_level,
-                    stks_max_height=args.cp_max_height,
-                )
+                BacktrackSolver(prob, args, consistency_algorithm=args.consistency)
                 for prob in problem.split(args.processors, 0)
             ]
         )
         if args.processors > 1
-        else BacktrackSolver(
-            problem,
-            consistency_alg=args.consistency,
-            log_level=args.log_level,
-            stks_max_height=args.cp_max_height,
-        )
+        else BacktrackSolver(problem, args, consistency_algorithm=args.consistency)
     )
     solution = solver.minimize(problem.length_idx, mode=args.optimization_mode)
     if args.display_stats:

@@ -12,7 +12,6 @@
 ###############################################################################
 from nucs.examples.all_interval_series.all_interval_series_problem import AllIntervalSeriesProblem
 from nucs.examples.default_argument_parser import DefaultArgumentParser
-from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -22,20 +21,4 @@ if __name__ == "__main__":
     parser.add_argument("-n", type=int, default=8)
     args = parser.parse_args()
     problem = AllIntervalSeriesProblem(args.n, args.symmetry_breaking)
-    solver = BacktrackSolver(
-        problem,
-        decision_variables=range(args.n),
-        var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
-        log_level=args.log_level,
-        stks_max_height=args.cp_max_height,
-    )
-    if args.find_all:
-        solutions = solver.find_all()
-        if args.display_stats:
-            solver.print_statistics()
-    else:
-        solution = solver.find_one()
-        if args.display_stats:
-            solver.print_statistics()
-        if args.display_solutions:
-            problem.print_solution(solution)
+    BacktrackSolver(problem, args, decision_variables=range(args.n)).run(args)

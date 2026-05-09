@@ -14,7 +14,7 @@ import argparse
 
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
-from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_SMALLEST_DOMAIN
+from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 
@@ -32,12 +32,9 @@ if __name__ == "__main__":
             [
                 BacktrackSolver(
                     problem,
+                    args,
                     decision_variables=range(0, args.n * args.n),
-                    consistency_alg=args.consistency,
-                    var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
                     dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
-                    log_level=args.log_level,
-                    stks_max_height=args.cp_max_height,
                 )
                 for problem in problem.split(args.processors, 1)
             ]
@@ -45,21 +42,9 @@ if __name__ == "__main__":
         if args.processors > 1
         else BacktrackSolver(
             problem,
+            args,
             decision_variables=range(0, args.n * args.n),
-            consistency_alg=args.consistency,
-            var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
             dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
-            log_level=args.log_level,
-            stks_max_height=args.cp_max_height,
         )
     )
-    if args.find_all:
-        solver.solve_all()
-        if args.display_stats:
-            solver.print_statistics()
-    else:
-        solution = solver.find_one()
-        if args.display_stats:
-            solver.print_statistics()
-        if args.display_solutions:
-            problem.print_solution(solution)
+    solver.run(args)

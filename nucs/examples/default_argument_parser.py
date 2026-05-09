@@ -12,24 +12,26 @@
 ###############################################################################
 import argparse
 
-from nucs.constants import LOG_LEVEL_INFO, LOG_LEVELS, OPTIM_MODES, OPTIM_RESET
-from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC
+from nucs.constants import LOG_LEVELS, OPTIM_MODES
 
 
 class DefaultArgumentParser(argparse.ArgumentParser):
     def __init__(self) -> None:
         super().__init__()
         self.add_argument(
-            "--consistency",
+            "--consistency-algorithm",
             help="set the consistency algorithm (0 is for BC, 1 for BC+shaving)",
             type=int,
-            default=CONSISTENCY_ALG_BC,
         )
         self.add_argument(
             "--cp-max-height",
-            help="set the maximal height of the choice points stack (default is 512)",
+            help="set the maximal height of the choice points stack",
             type=int,
-            default=512,
+        )
+        self.add_argument(
+            "--dom-heuristic",
+            help="set the domain heuristic",
+            type=int,
         )
         self.add_argument(
             "--display-solutions",
@@ -50,31 +52,28 @@ class DefaultArgumentParser(argparse.ArgumentParser):
             default=False,
         )
         self.add_argument(
-            "--ff",
-            action=argparse.BooleanOptionalAction,
-            default=False,
-        )
-        self.add_argument(
             "--log-level",
             help="set the log level",
             choices=LOG_LEVELS,
-            default=LOG_LEVEL_INFO,
         )
         self.add_argument(
             "--optimization-mode",
             help="set the optimization mode",
             choices=OPTIM_MODES,
-            default=OPTIM_RESET,
         )
         self.add_argument(
             "--processors",
             help="set the number of processors",
             type=int,
-            default=1,
         )
         self.add_argument(
             "--symmetry-breaking",
             help="add symmetry breaking constraints",
             action=argparse.BooleanOptionalAction,
             default=True,
+        )
+        self.add_argument(
+            "--var-heuristic",
+            help="set the variable heuristic",
+            type=int,
         )

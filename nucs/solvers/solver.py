@@ -12,6 +12,7 @@
 ###############################################################################
 import logging
 from abc import abstractmethod
+from argparse import Namespace
 from typing import Callable, Dict, Iterator, List, Optional
 
 from numba import njit  # type: ignore
@@ -71,6 +72,26 @@ class Solver:
         """
         ...
 
+    def run(self, args: Namespace) -> None:
+        if not args.find_all:
+            solution: Optional[NDArray] = next(self.solve())
+            if args is not None:
+                if args.display_stats:
+                    self.print_statistics()
+                if args.display_solutions:
+                    self.problem.print_solution(solution)
+        else:
+            solutions = self.find_all()
+            if args is not None:
+                if args.display_solutions:
+                    for solution in solutions:
+                        self.problem.print_solution(solution)
+                if args.display_stats:
+                    self.print_statistics()
+                if args.display_solutions:
+                    for solution in solutions:
+                        self.problem.print_solution(solution)
+
     def solve_all(self, func: Optional[Callable] = None) -> None:
         """
         Finds all solutions.
@@ -93,12 +114,6 @@ class Solver:
         solutions = []
         self.solve_all(lambda solution: solutions.append(solution))
         return solutions
-
-    def find_one(self) -> Optional[NDArray]:
-        logger.info("Finding one solution")
-        for solution in self.solve():
-            return solution
-        return None
 
     @abstractmethod
     def minimize(self, variable_idx: int, mode: str) -> Optional[NDArray]:

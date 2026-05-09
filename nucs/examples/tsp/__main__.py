@@ -37,14 +37,12 @@ if __name__ == "__main__":
                 [
                     BacktrackSolver(
                         prob,
-                        consistency_alg=args.consistency,
+                        args,
                         decision_variables=decision_variables,
                         var_heuristic=tsp_var_heuristic_idx,
                         var_heuristic_params=costs,
                         dom_heuristic=DOM_HEURISTIC_MIN_COST,
                         dom_heuristic_params=costs,
-                        log_level=args.log_level,
-                        stks_max_height=args.cp_max_height,
                     )
                     for prob in problem.split(args.processors, 0)
                 ]
@@ -52,14 +50,12 @@ if __name__ == "__main__":
             if args.processors > 1
             else BacktrackSolver(
                 problem,
-                consistency_alg=args.consistency,
+                args,
                 decision_variables=decision_variables,
                 var_heuristic=tsp_var_heuristic_idx,
                 var_heuristic_params=costs,
                 dom_heuristic=DOM_HEURISTIC_MIN_COST,
                 dom_heuristic_params=costs,
-                log_level=args.log_level,
-                stks_max_height=args.cp_max_height,
             )
         )
         solution = solver.minimize(problem.total_cost, mode=args.optimization_mode)

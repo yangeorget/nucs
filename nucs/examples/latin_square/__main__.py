@@ -24,14 +24,4 @@ if __name__ == "__main__":
     parser.add_argument("--rc", type=bool, action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     problem = LatinSquareRCProblem(args.n) if args.rc else LatinSquareProblem(range(args.n))
-    solver = BacktrackSolver(problem, log_level=args.log_level, stks_max_height=args.cp_max_height)
-    if args.find_all:
-        solver.solve_all()
-        if args.display_stats:
-            solver.print_statistics()
-    else:
-        solution = solver.find_one()
-        if args.display_stats:
-            solver.print_statistics()
-        if args.display_solutions:
-            problem.print_solution(solution)
+    BacktrackSolver(problem, args).run(args)

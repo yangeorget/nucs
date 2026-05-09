@@ -22,11 +22,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     problem = EmployeeSchedulingProblem()
     solver = BacktrackSolver(
-        problem,
-        decision_variables=problem.requested_shifts,
-        dom_heuristic=DOM_HEURISTIC_MAX_VALUE,
-        log_level=args.log_level,
-        stks_max_height=args.cp_max_height,
+        problem, args, decision_variables=problem.requested_shifts, dom_heuristic=DOM_HEURISTIC_MAX_VALUE
     )
     solution = solver.maximize(problem.satisfied_request_nb, mode=args.optimization_mode)
     if args.display_stats:

@@ -12,11 +12,6 @@
 ###############################################################################
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.queens.queens_problem import QueensProblem
-from nucs.heuristics.heuristics import (
-    DOM_HEURISTIC_MID_VALUE,
-    VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
-    VAR_HEURISTIC_SMALLEST_DOMAIN,
-)
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 
@@ -28,35 +23,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     problem = QueensProblem(args.n)
     solver = (
-        MultiprocessingSolver(
-            [
-                BacktrackSolver(
-                    problem,
-                    consistency_alg=args.consistency,
-                    var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
-                    log_level=args.log_level,
-                    stks_max_height=args.cp_max_height,
-                )
-                for problem in problem.split(args.processors, 0)
-            ]
-        )
+        MultiprocessingSolver([BacktrackSolver(problem, args) for problem in problem.split(args.processors, 0)])
         if args.processors > 1
-        else BacktrackSolver(
-            problem,
-            consistency_alg=args.consistency,
-            var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
-            dom_heuristic=DOM_HEURISTIC_MID_VALUE,
-            log_level=args.log_level,
-            stks_max_height=args.cp_max_height,
-        )
+        else BacktrackSolver(problem, args)
     )
-    if args.find_all:
-        solver.solve_all()
-        if args.display_stats:
-            solver.print_statistics()
-    else:
-        solution = solver.find_one()
-        if args.display_stats:
-            solver.print_statistics()
-        if args.display_solutions:
-            problem.print_solution(solution)
+    solver.run(args)

@@ -21,13 +21,12 @@ class TestDefaultArgumentParser:
     @pytest.mark.parametrize(
         "args, expected_args",
         [
-            (["--consistency", "0"], {"consistency": 0}),
-            (["--consistency", "1"], {"consistency": 1}),
+            (["--consistency-algorithm", "0"], {"consistency_algorithm": 0}),
+            (["--consistency-algorithm", "1"], {"consistency_algorithm": 1}),
             (["--cp-max-height", "512"], {"cp_max_height": 512}),
             (["--display-solutions"], {"display_solutions": True}),
             (["--display-stats"], {"display_stats": True}),
             (["--find-all"], {"find_all": True}),
-            (["--ff"], {"ff": True}),
             (["--log-level", "INFO"], {"log_level": "INFO"}),
             (["--optimization-mode", "RESET"], {"optimization_mode": "RESET"}),
             (["--processors", "4"], {"processors": 4}),

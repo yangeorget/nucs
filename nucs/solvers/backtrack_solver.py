@@ -11,6 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import logging
+from argparse import Namespace
 from multiprocessing import Queue
 from typing import Any, Dict, Iterable, Iterator, List, Optional
 
@@ -96,7 +97,8 @@ class BacktrackSolver(Solver, QueueSolver):
     def __init__(
         self,
         problem: Problem,
-        consistency_alg: int = CONSISTENCY_ALG_BC,
+        args: Optional[Namespace] = None,
+        consistency_algorithm: int = CONSISTENCY_ALG_BC,
         decision_variables: Optional[Iterable[int]] = None,
         var_heuristic: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
         var_heuristic_params: List[List[int]] = [[]],
@@ -110,35 +112,51 @@ class BacktrackSolver(Solver, QueueSolver):
 
         :param problem: the problem to be solved
         :type problem: Problem
-        :param consistency_alg: the index of the consistency algorithm
-        :type consistency_alg: int
-        :param decision_variables: the variables on which decisions will be made
+        :param args: the CLI arguments, they override the following parameters
+        :type args: Namespace
+        :param consistency_algorithm: the consistency algorithm, defaults to bound consistency
+        :type consistency_algorithm: int
+        :param decision_variables: the variables on which decisions will be made, defaults to None
         :type decision_variables: Optional[Iterable[int]]
-        :param var_heuristic: the index of the heuristic for selecting a variable
+        :param var_heuristic: the heuristic for selecting a variable,
+                              defaults to the first non instantiated
         :type var_heuristic: int
         :param var_heuristic_params: a list of lists of parameters,
-        usually parameters are costs and there is a list of value costs per variable
+                                     usually parameters are costs and there is a list of value costs per variable
         :type var_heuristic_params: List[List[int]]
-        :param dom_heuristic: the index of the heuristic for reducing a domain
+        :param dom_heuristic: the heuristic for reducing a domain,
+                              defaults to instantiating the domain to its first value
         :type dom_heuristic: int
         :param dom_heuristic_params: a list of lists of parameters,
-        usually parameters are costs and there is a list of value costs per variable
+                                     usually parameters are costs and there is a list of value costs per variable
         :type dom_heuristic_params: List[List[int]]
-        :param stks_max_height: the maximal height of the choice point stacks
+        :param stks_max_height: the maximal height of the choice point stacks,
+                                defaults to 512
         :type stks_max_height: int
-        :param log_level: the log level as a string
+        :param log_level: the log level,
+                          defaults to INFO
         :type log_level: str
         """
+        if args is not None:
+            if args.consistency_algorithm is not None:
+                consistency_algorithm = args.consistency_algorithm
+            if args.cp_max_height is not None:
+                stks_max_height = args.cp_max_height
+            if args.var_heuristic is not None:
+                var_heuristic = args.var_heuristic
+            if args.dom_heuristic is not None:
+                dom_heuristic = args.dom_heuristic
+            if args.log_level is not None:
+                log_level = args.log_level
         super().__init__(problem, log_level)
-        decision_variables = range(problem.domain_nb) if decision_variables is None else decision_variables
-        decision_variables = list(decision_variables)
+        decision_variables = list(range(problem.domain_nb)) if decision_variables is None else list(decision_variables)
         logger.info(f"BacktrackSolver uses decision domains {decision_variables}")
         self.decision_variables = np.array(decision_variables, dtype=np.uint32)
         logger.info(f"BacktrackSolver uses variable heuristic {var_heuristic}")
         self.var_heuristic_params = np.array(var_heuristic_params, dtype=np.int64)
         logger.info(f"BacktrackSolver uses domain heuristic {dom_heuristic}")
         self.dom_heuristic_params = np.array(dom_heuristic_params, dtype=np.int64)
-        logger.info(f"BacktrackSolver uses consistency algorithm {consistency_alg}")
+        logger.info(f"BacktrackSolver uses consistency algorithm {consistency_algorithm}")
         self.triggered_propagators = buckets_init(problem.propagator_nb)
         self.domain_buffer = get_domain_buffer(problem.bounds)
         logger.debug("Initializing choice points")
@@ -164,13 +182,15 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.debug("Statistics initialized")
         if NUMBA_DISABLE_JIT:
             self.compute_domains_fcts = COMPUTE_DOMAINS_FCTS
-            self.consistency_alg_fcts = [CONSISTENCY_ALG_FCTS[consistency_alg]]
+            self.consistency_alg_fcts = [CONSISTENCY_ALG_FCTS[consistency_algorithm]]
             self.var_heuristic_fcts = [VAR_HEURISTIC_FCTS[var_heuristic]]
             self.dom_heuristic_fcts = [DOM_HEURISTIC_FCTS[dom_heuristic]]
         else:
             compute_domains_addrs = addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGN_COMPUTE_DOMAINS)
             self.compute_domains_fcts = build_compute_domains_fcts(compute_domains_addrs)
-            consistency_alg_addr = address_from_function(CONSISTENCY_ALG_FCTS[consistency_alg], SIGN_CONSISTENCY_ALG)
+            consistency_alg_addr = address_from_function(
+                CONSISTENCY_ALG_FCTS[consistency_algorithm], SIGN_CONSISTENCY_ALG
+            )
             self.consistency_alg_fcts = build_consistency_alg_fcts(consistency_alg_addr)
             var_heuristic_addr = address_from_function(VAR_HEURISTIC_FCTS[var_heuristic], SIGN_VAR_HEURISTIC)
             self.var_heuristic_fcts = build_var_heuristic_fcts(var_heuristic_addr)
@@ -179,9 +199,15 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.debug("BacktrackSolver initialized")
 
     def get_statistics_as_array(self) -> NDArray:
+        """
+        Returns the statistics.
+        """
         return self.statistics
 
     def get_statistics_as_dictionary(self) -> Dict[str, int]:
+        """
+        Returns the statistics.
+        """
         return {
             STATS_LBL_ALG_BC_NB: int(self.statistics[STATS_IDX_ALG_BC_NB]),
             STATS_LBL_ALG_BC_WITH_SHAVING_NB: int(self.statistics[STATS_IDX_ALG_BC_WITH_SHAVING_NB]),
@@ -204,7 +230,7 @@ class BacktrackSolver(Solver, QueueSolver):
 
         :param variable: the variable to minimize
         :type variable: int
-        :param mode: the optimization mode
+        :param mode: the optimization mode (RESET or PRUNE), defaults to RESET
         :type mode: str
 
         :return: the optimal solution if it exists or None
@@ -220,7 +246,7 @@ class BacktrackSolver(Solver, QueueSolver):
 
         :param variable: the variable to maximize
         :type variable: int
-        :param mode: the optimization mode
+        :param mode: the optimization mode (RESET or PRUNE), defaults to RESET
         :type mode: str
 
         :return: the optimal solution if it exists or None
@@ -556,11 +582,12 @@ def solve_one(
     :type propagator_parameters: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :type triggers: NDArray
-    :param domains_stk: a stack of domains;
-    the first level correspond to the current domains, the rest correspond to the choice points
+    :param domains_stk: a stack of domains,
+                        the first level correspond to the current domains, the rest correspond to the choice points
     :type domains_stk: NDArray
-    :param entailed_propagators_stk: a stack of entailed propagators;
-    the first level correspond to the propagators currently not entailed, the rest correspond to the choice points
+    :param entailed_propagators_stk: a stack of entailed propagators,
+                                     the first level correspond to the propagators currently not entailed,
+                                     the rest correspond to the choice points
     :type entailed_propagators_stk: NDArray
     :param domain_update_stk: the stack of domain updates
     :type domain_update_stk: NDArray
@@ -582,7 +609,7 @@ def solve_one(
     :param dom_heuristic_fcts: a 1-element list holding the domain heuristic function
     :type dom_heuristic_fcts: Any
     :param dom_heuristic_params: a list of lists of parameters,
-    usually parameters are costs and there is a list of value costs per variable
+                                 usually parameters are costs and there is a list of value costs per variable
     :type dom_heuristic_params: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
     :type compute_domains_fcts: Any

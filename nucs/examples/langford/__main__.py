@@ -22,14 +22,4 @@ if __name__ == "__main__":
     parser.add_argument("-k", type=int, default=3)
     args = parser.parse_args()
     problem = LangfordProblem(args.k, args.n)
-    solver = BacktrackSolver(problem, log_level=args.log_level)
-    if args.find_all:
-        solver.solve_all(lambda sol: print(sol))
-        if args.display_stats:
-            solver.print_statistics()
-    else:
-        solution = solver.find_one()
-        if args.display_stats:
-            solver.print_statistics()
-        if args.display_solutions:
-            problem.print_solution(solution)
+    BacktrackSolver(problem, args).run(args)

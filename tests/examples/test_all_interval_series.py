@@ -27,10 +27,10 @@ class TestAllIntervalSeries:
             (9, [0, 8, 1, 7, 2, 6, 3, 5, 4]),
         ],
     )
-    def test_find_one(self, size: int, values: List[int]) -> None:
+    def test_solve(self, size: int, values: List[int]) -> None:
         problem = AllIntervalSeriesProblem(size, True)
         solver = BacktrackSolver(problem)
-        solution = solver.find_one()
+        solution = next(solver.solve())
         assert solution is not None
         assert solution[:size].tolist() == values
 
@@ -49,5 +49,5 @@ class TestAllIntervalSeries:
     def test_solve_all(self, size: int, solution_nb: int) -> None:
         problem = AllIntervalSeriesProblem(size, True)
         solver = BacktrackSolver(problem)
-        solver.solve_all()
+        solver.find_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb

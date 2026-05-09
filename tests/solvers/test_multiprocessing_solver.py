@@ -26,7 +26,7 @@ from nucs.solvers.queue_solver import QueueSolver
 
 
 class TestMultiprocessingSolver:
-    def test_find_one(self) -> None:
+    def test_solve(self) -> None:
         class FastSolver(QueueSolver):
             def get_statistics_as_array(self) -> NDArray:
                 return np.array(0)
@@ -63,7 +63,7 @@ class TestMultiprocessingSolver:
                 pass
 
         solver = MultiprocessingSolver([SlowSolver(), FastSolver()])
-        assert solver.find_one() is not None
+        assert next(solver.solve()) is not None
 
     def test_find_all_1(self) -> None:
         problem = Problem([(0, 99), (0, 99)])

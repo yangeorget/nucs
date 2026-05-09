@@ -14,7 +14,6 @@ import json
 
 from nucs.examples.default_argument_parser import DefaultArgumentParser
 from nucs.examples.sudoku.sudoku_problem import SudokuProblem
-from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -26,19 +25,4 @@ if __name__ == "__main__":
     with open(args.dataset, "r") as json_file:
         givens = json.load(json_file)["givens"]
         problem = SudokuProblem(givens)
-        solver = BacktrackSolver(
-            problem,
-            var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN if args.ff else VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
-            log_level=args.log_level,
-            stks_max_height=args.cp_max_height,
-        )
-        if args.find_all:
-            solver.solve_all()
-            if args.display_stats:
-                solver.print_statistics()
-        else:
-            solution = solver.find_one()
-            if args.display_stats:
-                solver.print_statistics()
-            if args.display_solutions:
-                problem.print_solution(solution)
+        BacktrackSolver(problem, args).run(args)
