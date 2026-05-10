@@ -11,7 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 
-from nucs.examples.default_argument_parser import DefaultArgumentParser
+from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem import (
     SportsTournamentSchedulingProblem,
 )
@@ -24,4 +24,4 @@ if __name__ == "__main__":
     parser.add_argument("-n", type=int, default=8)
     args = parser.parse_args()
     problem = SportsTournamentSchedulingProblem(args.n, args.symmetry_breaking)
-    BacktrackSolver(problem, args).run(args)
+    run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args)), args)

@@ -11,7 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 from nucs.examples.all_interval_series.all_interval_series_problem import AllIntervalSeriesProblem
-from nucs.examples.default_argument_parser import DefaultArgumentParser
+from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -21,4 +21,5 @@ if __name__ == "__main__":
     parser.add_argument("-n", type=int, default=8)
     args = parser.parse_args()
     problem = AllIntervalSeriesProblem(args.n, args.symmetry_breaking)
-    BacktrackSolver(problem, args, decision_variables=range(args.n)).run(args)
+    kwargs = solver_kwargs_from_args(args, decision_variables=range(args.n))
+    run_solver(BacktrackSolver(problem, **kwargs), args)

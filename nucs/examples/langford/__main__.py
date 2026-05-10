@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from nucs.examples.default_argument_parser import DefaultArgumentParser
+from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.examples.langford.langford_problem import LangfordProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
@@ -22,4 +22,4 @@ if __name__ == "__main__":
     parser.add_argument("-k", type=int, default=3)
     args = parser.parse_args()
     problem = LangfordProblem(args.k, args.n)
-    BacktrackSolver(problem, args).run(args)
+    run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args)), args)

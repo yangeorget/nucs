@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from nucs.examples.default_argument_parser import DefaultArgumentParser
+from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
@@ -21,4 +21,5 @@ if __name__ == "__main__":
     parser.add_argument("-n", type=int, default=100)
     args = parser.parse_args()
     problem = MagicSequenceProblem(args.n)
-    BacktrackSolver(problem, args, decision_variables=list(range(args.n - 1, -1, -1))).run(args)
+    kwargs = solver_kwargs_from_args(args, decision_variables=list(range(args.n - 1, -1, -1)))
+    run_solver(BacktrackSolver(problem, **kwargs), args)

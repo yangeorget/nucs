@@ -12,7 +12,7 @@
 ###############################################################################
 
 from nucs.examples.bibd.bibd_problem import BIBDProblem
-from nucs.examples.default_argument_parser import DefaultArgumentParser
+from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -26,4 +26,4 @@ if __name__ == "__main__":
     parser.add_argument("-l", type=int)
     args = parser.parse_args()
     problem = BIBDProblem(args.v, args.b, args.r, args.k, args.l, args.symmetry_breaking)
-    BacktrackSolver(problem, args).run(args)
+    run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args)), args)

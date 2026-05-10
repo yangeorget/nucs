@@ -12,7 +12,7 @@
 ###############################################################################
 import json
 
-from nucs.examples.default_argument_parser import DefaultArgumentParser
+from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.examples.sudoku.sudoku_problem import SudokuProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
@@ -25,4 +25,4 @@ if __name__ == "__main__":
     with open(args.dataset, "r") as json_file:
         givens = json.load(json_file)["givens"]
         problem = SudokuProblem(givens)
-        BacktrackSolver(problem, args).run(args)
+        run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args)), args)

@@ -12,7 +12,7 @@
 ###############################################################################
 import argparse
 
-from nucs.examples.default_argument_parser import DefaultArgumentParser
+from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -27,24 +27,14 @@ if __name__ == "__main__":
     parser.add_argument("--kind", type=int, choices=[3, 4, 5, 6, 7], default=5)
     args = parser.parse_args()
     problem = QuasigroupProblem(args.kind, args.n, args.idempotent, args.symmetry_breaking)
-    solver = (
-        MultiprocessingSolver(
-            [
-                BacktrackSolver(
-                    problem,
-                    args,
-                    decision_variables=range(0, args.n * args.n),
-                    dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
-                )
-                for problem in problem.split(args.processors, 1)
-            ]
-        )
-        if args.processors > 1
-        else BacktrackSolver(
-            problem,
-            args,
-            decision_variables=range(0, args.n * args.n),
-            dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
-        )
+    kwargs = solver_kwargs_from_args(
+        args,
+        decision_variables=range(0, args.n * args.n),
+        dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
     )
-    solver.run(args)
+    solver = (
+        MultiprocessingSolver([BacktrackSolver(problem, **kwargs) for problem in problem.split(args.processors, 1)])
+        if args.processors > 1
+        else BacktrackSolver(problem, **kwargs)
+    )
+    run_solver(solver, args)

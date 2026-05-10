@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from nucs.examples.default_argument_parser import DefaultArgumentParser
+from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
 from nucs.examples.employee_scheduling.employee_scheduling_problem import EmployeeSchedulingProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -22,7 +22,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     problem = EmployeeSchedulingProblem()
     solver = BacktrackSolver(
-        problem, args, decision_variables=problem.requested_shifts, dom_heuristic=DOM_HEURISTIC_MAX_VALUE
+        problem,
+        **solver_kwargs_from_args(
+            args, decision_variables=problem.requested_shifts, dom_heuristic=DOM_HEURISTIC_MAX_VALUE
+        ),
     )
     solution = solver.maximize(problem.satisfied_request_nb, mode=args.optimization_mode)
     if args.display_stats:

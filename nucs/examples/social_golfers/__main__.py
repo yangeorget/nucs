@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from nucs.examples.default_argument_parser import DefaultArgumentParser
+from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.examples.social_golfers.social_golfers_problem import SocialGolfersProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
@@ -23,4 +23,4 @@ if __name__ == "__main__":
     parser.add_argument("-s", type=int, default=2)
     parser.add_argument("-w", type=int, default=3)
     problem = SocialGolfersProblem(args.n, args.s, args.w, args.symmetry_breaking)
-    BacktrackSolver(problem, args).run(args)
+    run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args)), args)

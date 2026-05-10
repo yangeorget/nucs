@@ -12,7 +12,7 @@
 ###############################################################################
 import json
 
-from nucs.examples.default_argument_parser import DefaultArgumentParser
+from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
@@ -32,31 +32,18 @@ if __name__ == "__main__":
         problem = TSPProblem(costs)
         costs = costs + costs
         tsp_var_heuristic_idx = register_var_heuristic(tsp_var_heuristic)
+        kwargs = solver_kwargs_from_args(
+            args,
+            decision_variables=decision_variables,
+            var_heuristic=tsp_var_heuristic_idx,
+            var_heuristic_params=costs,
+            dom_heuristic=DOM_HEURISTIC_MIN_COST,
+            dom_heuristic_params=costs,
+        )
         solver = (
-            MultiprocessingSolver(
-                [
-                    BacktrackSolver(
-                        prob,
-                        args,
-                        decision_variables=decision_variables,
-                        var_heuristic=tsp_var_heuristic_idx,
-                        var_heuristic_params=costs,
-                        dom_heuristic=DOM_HEURISTIC_MIN_COST,
-                        dom_heuristic_params=costs,
-                    )
-                    for prob in problem.split(args.processors, 0)
-                ]
-            )
+            MultiprocessingSolver([BacktrackSolver(prob, **kwargs) for prob in problem.split(args.processors, 0)])
             if args.processors > 1
-            else BacktrackSolver(
-                problem,
-                args,
-                decision_variables=decision_variables,
-                var_heuristic=tsp_var_heuristic_idx,
-                var_heuristic_params=costs,
-                dom_heuristic=DOM_HEURISTIC_MIN_COST,
-                dom_heuristic_params=costs,
-            )
+            else BacktrackSolver(problem, **kwargs)
         )
         solution = solver.minimize(problem.total_cost, mode=args.optimization_mode)
         if args.display_stats:

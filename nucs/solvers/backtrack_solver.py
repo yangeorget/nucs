@@ -11,7 +11,6 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import logging
-from argparse import Namespace
 from multiprocessing import Queue
 from typing import Any, Dict, Iterable, Iterator, List, Optional
 
@@ -97,7 +96,6 @@ class BacktrackSolver(Solver, QueueSolver):
     def __init__(
         self,
         problem: Problem,
-        args: Optional[Namespace] = None,
         consistency_algorithm: int = CONSISTENCY_ALG_BC,
         decision_variables: Optional[Iterable[int]] = None,
         var_heuristic: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
@@ -112,8 +110,6 @@ class BacktrackSolver(Solver, QueueSolver):
 
         :param problem: the problem to be solved
         :type problem: Problem
-        :param args: the CLI arguments, they override the following parameters
-        :type args: Namespace
         :param consistency_algorithm: the consistency algorithm, defaults to bound consistency
         :type consistency_algorithm: int
         :param decision_variables: the variables on which decisions will be made, defaults to None
@@ -137,17 +133,6 @@ class BacktrackSolver(Solver, QueueSolver):
                           defaults to INFO
         :type log_level: str
         """
-        if args is not None:
-            if args.consistency_algorithm is not None:
-                consistency_algorithm = args.consistency_algorithm
-            if args.cp_max_height is not None:
-                stks_max_height = args.cp_max_height
-            if args.var_heuristic is not None:
-                var_heuristic = args.var_heuristic
-            if args.dom_heuristic is not None:
-                dom_heuristic = args.dom_heuristic
-            if args.log_level is not None:
-                log_level = args.log_level
         super().__init__(problem, log_level)
         decision_variables = list(range(problem.domain_nb)) if decision_variables is None else list(decision_variables)
         logger.info(f"BacktrackSolver uses decision domains {decision_variables}")

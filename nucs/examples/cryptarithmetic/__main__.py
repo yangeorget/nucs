@@ -13,7 +13,7 @@
 import json
 
 from nucs.examples.cryptarithmetic.cryptarithmetic_problem import CryptarithmeticProblem
-from nucs.examples.default_argument_parser import DefaultArgumentParser
+from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -25,4 +25,4 @@ if __name__ == "__main__":
     with open(args.dataset, "r") as json_file:
         dataset = json.load(json_file)
         problem = CryptarithmeticProblem(dataset)
-        BacktrackSolver(problem, args).run(args)
+        run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args)), args)

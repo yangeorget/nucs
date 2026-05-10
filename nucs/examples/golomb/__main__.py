@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from nucs.examples.default_argument_parser import DefaultArgumentParser
+from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import register_consistency_algorithm
@@ -24,15 +24,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     problem = GolombProblem(args.n, args.symmetry_breaking)
     register_consistency_algorithm(golomb_consistency_algorithm)
+    kwargs = solver_kwargs_from_args(args, consistency_algorithm=args.consistency)
     solver = (
-        MultiprocessingSolver(
-            [
-                BacktrackSolver(prob, args, consistency_algorithm=args.consistency)
-                for prob in problem.split(args.processors, 0)
-            ]
-        )
+        MultiprocessingSolver([BacktrackSolver(prob, **kwargs) for prob in problem.split(args.processors, 0)])
         if args.processors > 1
-        else BacktrackSolver(problem, args, consistency_algorithm=args.consistency)
+        else BacktrackSolver(problem, **kwargs)
     )
     solution = solver.minimize(problem.length_idx, mode=args.optimization_mode)
     if args.display_stats:

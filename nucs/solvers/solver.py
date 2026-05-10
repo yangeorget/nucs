@@ -12,7 +12,6 @@
 ###############################################################################
 import logging
 from abc import abstractmethod
-from argparse import Namespace
 from typing import Callable, Dict, Iterator, List, Optional
 
 from numba import njit  # type: ignore
@@ -71,29 +70,6 @@ class Solver:
         :rtype: Iterator[NDArray]
         """
         ...
-
-    def run(self, args: Namespace) -> None:
-        """
-        Runs the solver according to the CLI arguments.
-        """
-        if not args.find_all:
-            solution: Optional[NDArray] = next(self.solve())
-            if args is not None:
-                if args.display_stats:
-                    self.print_statistics()
-                if args.display_solutions:
-                    self.problem.print_solution(solution)
-        else:
-            solutions = self.find_all()
-            if args is not None:
-                if args.display_solutions:
-                    for solution in solutions:
-                        self.problem.print_solution(solution)
-                if args.display_stats:
-                    self.print_statistics()
-                if args.display_solutions:
-                    for solution in solutions:
-                        self.problem.print_solution(solution)
 
     def solve_all(self, func: Optional[Callable] = None) -> None:
         """
