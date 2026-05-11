@@ -118,6 +118,13 @@ class Problem:
     ) -> None:
         """
         Adds an extra propagator.
+
+        :param algorithm: the algorithm id
+        :type algorithm: int
+        :param variables: the variables on which the propagator applies
+        :type variables: Iterable[int]
+        :param parameters: the parameters of the propagator
+        :type parameters: Optional[Iterable[int]]
         """
         parameters = [] if parameters is None else list(parameters)
         variables = list(variables)
@@ -170,13 +177,36 @@ class Problem:
         logger.info(f"Problem has {self.domain_nb} variables")
 
     def solution_as_printable(self, solution: NDArray) -> Any:
+        """
+        Returns a printable representation of a solution.
+
+        :param solution: the solution
+        :type solution: NDArray
+
+        :return: a printable representation of the solution
+        :rtype: Any
+        """
         return solution.tolist()
 
     def print_solution(self, solution: Optional[NDArray]) -> None:
+        """
+        Prints a solution.
+
+        :param solution: the solution, or None if there is no solution
+        :type solution: Optional[NDArray]
+        """
         print("No solution" if solution is None else self.solution_as_printable(solution))
 
 
 def init_bounds(bounds: NDArray, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
+    """
+    Initializes the variable and parameter bounds for each propagator.
+
+    :param bounds: the bounds to initialize
+    :type bounds: NDArray
+    :param propagators: the propagators
+    :type propagators: List[Tuple[List[int], int, List[int]]]
+    """
     for propagator_idx, propagator in enumerate(propagators):
         if propagator_idx > 0:
             bounds[propagator_idx, :, RANGE_START] = bounds[propagator_idx - 1, :, RANGE_END]
@@ -190,6 +220,18 @@ def init_propagator_variables_and_parameters(
     bounds: NDArray,
     propagators: List[Tuple[List[int], int, List[int]]],
 ) -> None:
+    """
+    Initializes the propagator variables and parameters arrays.
+
+    :param propagator_variables: the propagator variables array to fill
+    :type propagator_variables: NDArray
+    :param propagator_parameters: the propagator parameters array to fill
+    :type propagator_parameters: NDArray
+    :param bounds: the bounds
+    :type bounds: NDArray
+    :param propagators: the propagators
+    :type propagators: List[Tuple[List[int], int, List[int]]]
+    """
     for propagator_idx, propagator in enumerate(propagators):
         var_start = bounds[propagator_idx, VARIABLE, RANGE_START]
         var_end = bounds[propagator_idx, VARIABLE, RANGE_END]
@@ -210,6 +252,26 @@ def init_triggers(
     algorithms: NDArray,
     get_triggers_addrs: NDArray,
 ) -> None:
+    """
+    Initializes the triggers array that maps each (variable, event) pair to the propagators to schedule.
+
+    :param triggers: the triggers array to fill
+    :type triggers: NDArray
+    :param domain_nb: the number of domains
+    :type domain_nb: int
+    :param propagator_nb: the number of propagators
+    :type propagator_nb: int
+    :param bounds: the bounds
+    :type bounds: NDArray
+    :param propagator_variables: the propagator variables
+    :type propagator_variables: NDArray
+    :param propagator_parameters: the propagator parameters
+    :type propagator_parameters: NDArray
+    :param algorithms: the algorithm ids of the propagators
+    :type algorithms: NDArray
+    :param get_triggers_addrs: the addresses of the get_triggers functions
+    :type get_triggers_addrs: NDArray
+    """
     variable_propagator = np.full((domain_nb, propagator_nb), False)
     for propagator in range(propagator_nb):
         algorithm = algorithms[propagator]

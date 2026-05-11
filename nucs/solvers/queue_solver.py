@@ -22,7 +22,14 @@ class QueueSolver:
     """
 
     @abstractmethod
-    def get_statistics_as_array(self) -> NDArray: ...
+    def get_statistics_as_array(self) -> NDArray:
+        """
+        Returns the statistics as a Numpy array.
+
+        :return: the statistics array
+        :rtype: NDArray
+        """
+        ...
 
     @abstractmethod
     def minimize_and_queue(self, variable: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
@@ -35,6 +42,8 @@ class QueueSolver:
         :type processor_idx: int
         :param solution_queue: the solution queue
         :type solution_queue: Queue
+        :param mode: the optimization mode
+        :type mode: str
         """
         ...
 
@@ -49,6 +58,8 @@ class QueueSolver:
         :type processor_idx: int
         :param solution_queue: the solution queue
         :type solution_queue: Queue
+        :param mode: the optimization mode
+        :type mode: str
         """
         ...
 

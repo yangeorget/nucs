@@ -121,7 +121,7 @@ def run_solver(solver: Solver, args: Namespace) -> None:
             for solution in solutions:
                 solver.problem.print_solution(solution)
     else:
-        solution = next(solver.solve(), None)
+        solution = next(solver.solve(), None)  # type: ignore
         if args.display_stats:
             solver.print_statistics()
         if args.display_solutions:

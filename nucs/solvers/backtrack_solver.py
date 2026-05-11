@@ -185,13 +185,19 @@ class BacktrackSolver(Solver, QueueSolver):
 
     def get_statistics_as_array(self) -> NDArray:
         """
-        Returns the statistics.
+        Returns the statistics as a Numpy array.
+
+        :return: the statistics array
+        :rtype: NDArray
         """
         return self.statistics
 
     def get_statistics_as_dictionary(self) -> Dict[str, int]:
         """
-        Returns the statistics.
+        Returns the statistics as a dictionary.
+
+        :return: a dictionary mapping statistic labels to values
+        :rtype: Dict[str, int]
         """
         return {
             STATS_LBL_ALG_BC_NB: int(self.statistics[STATS_IDX_ALG_BC_NB]),
@@ -555,10 +561,14 @@ def solve_one(
     """
     Find at most one solution.
 
+    :param algorithm_nb: the number of registered propagator algorithms
+    :type algorithm_nb: int
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
     :param algorithms: the algorithms indexed by propagators
     :type algorithms: NDArray
+    :param priorities: the propagation queue bucket priorities indexed by propagators
+    :type priorities: NDArray
     :param bounds: the bounds indexed by propagators
     :type bounds: NDArray
     :param propagator_variables: the variables by propagators
@@ -598,6 +608,9 @@ def solve_one(
     :type dom_heuristic_params: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
     :type compute_domains_fcts: Any
+    :param domain_buffer: a scratch buffer for prop_domains,
+                          sized to max propagator arity, allocated once at solver init
+    :type domain_buffer: NDArray
 
     :return: the solution if it exists or None
     :rtype: Optional[NDArray]

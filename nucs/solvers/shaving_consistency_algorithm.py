@@ -55,6 +55,52 @@ def shave_bound(
     decision_variables: NDArray,
     domain_buffer: NDArray,
 ) -> bool:
+    """
+    Tries to shave one bound of a variable by enforcing bound consistency on the resulting sub-problem.
+
+    :param algorithm_nb: the number of registered propagator algorithms
+    :type algorithm_nb: int
+    :param bound: the bound to shave (MIN or MAX)
+    :type bound: int
+    :param variable: the variable whose bound is being shaved
+    :type variable: int
+    :param statistics: a Numpy array of statistics
+    :type statistics: NDArray
+    :param algorithms: the algorithms indexed by propagators
+    :type algorithms: NDArray
+    :param priorities: the propagation queue bucket priorities indexed by propagators
+    :type priorities: NDArray
+    :param bounds: the bounds indexed by propagators
+    :type bounds: NDArray
+    :param propagator_variables: the variables by propagators
+    :type propagator_variables: NDArray
+    :param propagator_parameters: the parameters by propagators
+    :type propagator_parameters: NDArray
+    :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :type triggers: NDArray
+    :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
+    :param entailed_propagators_stk: the stack of entailed propagators
+    :type entailed_propagators_stk: NDArray
+    :param domain_update_stk: the stack of domain updates
+    :type domain_update_stk: NDArray
+    :param unbound_variable_nb_stk: the stack of the unbound variables nb
+    :type unbound_variable_nb_stk: NDArray
+    :param stks_top: the height of the stacks as a Numpy array
+    :type stks_top: NDArray
+    :param triggered_propagators: the Numpy array of triggered propagators
+    :type triggered_propagators: NDArray
+    :param compute_domains_fcts: the typed list of compute_domains functions
+    :type compute_domains_fcts: Any
+    :param decision_variables: the variables on which decisions will be made
+    :type decision_variables: NDArray
+    :param domain_buffer: a scratch buffer for prop_domains,
+                          sized to max propagator arity, allocated once at solver init
+    :type domain_buffer: NDArray
+
+    :return: true iff the bound was shaved
+    :rtype: bool
+    """
     events = (
         max_value_dom_heuristic(
             domains_stk, entailed_propagators_stk, domain_update_stk, unbound_variable_nb_stk, stks_top, variable, None
@@ -124,10 +170,14 @@ def shaving_consistency_algorithm(
     """
     This algorithm reduces the need of searching by shaving the domains.
 
+    :param algorithm_nb: the number of registered propagator algorithms
+    :type algorithm_nb: int
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
     :param algorithms: the algorithms indexed by propagators
     :type algorithms: NDArray
+    :param priorities: the propagation queue bucket priorities indexed by propagators
+    :type priorities: NDArray
     :param bounds: the bounds indexed by propagators
     :type bounds: NDArray
     :param propagator_variables: the variables by propagators
@@ -145,6 +195,8 @@ def shaving_consistency_algorithm(
     :type entailed_propagators_stk: NDArray
     :param domain_update_stk: the stack of domain updates
     :type domain_update_stk: NDArray
+    :param unbound_variable_nb_stk: the stack of the unbound variables nb
+    :type unbound_variable_nb_stk: NDArray
     :param stks_top: the height of the stacks as a Numpy array
     :type stks_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
@@ -153,6 +205,9 @@ def shaving_consistency_algorithm(
     :type compute_domains_fcts: Any
     :param decision_variables: the variables on which decisions will be made
     :type decision_variables: NDArray
+    :param domain_buffer: a scratch buffer for prop_domains,
+                          sized to max propagator arity, allocated once at solver init
+    :type domain_buffer: NDArray
 
     :return: a status (consistency, inconsistency or entailment) as an integer
     :rtype: int

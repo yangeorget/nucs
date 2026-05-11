@@ -44,10 +44,17 @@ from nucs.constants import (
 
 def get_domain_buffer(bounds: NDArray) -> NDArray:
     """
-    Reusable scratch buffer for prop_domains: avoids one allocation per propagator call.
+    Allocates a reusable scratch buffer for prop_domains to avoid one allocation per propagator call.
+
     Sized to the largest propagator arity (which can exceed domain_nb when a propagator
     references the same variable twice, e.g. count_eq).
     Allocated once at solver init and threaded through the consistency algorithms.
+
+    :param bounds: the bounds indexed by propagators
+    :type bounds: NDArray
+
+    :return: a scratch buffer sized to the maximal propagator arity
+    :rtype: NDArray
     """
     max_arity = np.int64(0)
     for propagator_idx in range(len(bounds)):
@@ -80,10 +87,14 @@ def bound_consistency_algorithm(
     """
     This is the default consistency algorithm used by the solver.
 
+    :param algorithm_nb: the number of registered propagator algorithms
+    :type algorithm_nb: int
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
     :param algorithms: the algorithms indexed by propagators
     :type algorithms: NDArray
+    :param priorities: the propagation queue bucket priorities indexed by propagators
+    :type priorities: NDArray
     :param bounds: the bounds indexed by propagators
     :type bounds: NDArray
     :param propagator_variables: the variables by propagators
@@ -101,6 +112,8 @@ def bound_consistency_algorithm(
     :type entailed_propagators_stk: NDArray
     :param domain_update_stk: the stack of domain updates, unused here
     :type domain_update_stk: NDArray
+    :param unbound_variable_nb_stk: the stack of the unbound variables nb
+    :type unbound_variable_nb_stk: NDArray
     :param stks_top: the height of the stacks as a Numpy array
     :type stks_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
@@ -133,7 +146,7 @@ def bound_consistency_algorithm(
             prop_domains[var_idx] = domains[propagator_variables[prop_var_start + var_idx]]
         status = compute_domains_fcts[algorithms[prop_idx]](
             prop_domains,
-            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]],
+            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START]: bounds[prop_idx, PARAM, RANGE_END]],
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
@@ -141,7 +154,7 @@ def bound_consistency_algorithm(
         if status == PROP_ENTAILMENT:
             entailed_propagators[prop_idx] = True
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
-        if has_no_changes(
+        if update_domains(
             top,
             prop_idx,
             prop_var_start,
@@ -159,7 +172,7 @@ def bound_consistency_algorithm(
 
 
 @njit(cache=True, fastmath=True)
-def has_no_changes(
+def update_domains(
     top: int,
     prop_idx: int,
     prop_var_start: int,
@@ -173,6 +186,37 @@ def has_no_changes(
     unbound_variable_nb_stk: NDArray,
     priorities: NDArray,
 ) -> bool:
+    """
+    Updates the domains with the prop_domains computed by a propagator and schedules other propagators triggered by the changes.
+
+    :param top: the index of the top of the stacks
+    :type top: int
+    :param prop_idx: the index of the propagator that just ran
+    :type prop_idx: int
+    :param prop_var_start: the start index of the propagator's variables in propagator_variables
+    :type prop_var_start: int
+    :param prop_var_end: the end index of the propagator's variables in propagator_variables
+    :type prop_var_end: int
+    :param prop_domains: the domains computed by the propagator
+    :type prop_domains: NDArray
+    :param propagator_variables: the variables by propagators
+    :type propagator_variables: NDArray
+    :param domains: the current domains
+    :type domains: NDArray
+    :param triggered_propagators: the Numpy array of triggered propagators
+    :type triggered_propagators: NDArray
+    :param entailed_propagators: the entailed propagators at the current choice point
+    :type entailed_propagators: NDArray
+    :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :type triggers: NDArray
+    :param unbound_variable_nb_stk: the stack of the unbound variables nb
+    :type unbound_variable_nb_stk: NDArray
+    :param priorities: the propagation queue bucket priorities indexed by propagators
+    :type priorities: NDArray
+
+    :return: true iff no domain was changed
+    :rtype: bool
+    """
     no_changes = True
     # Layout of triggered_propagators (see nucs/buckets.py): the membership flag of propagator p
     # lives at index membership_offset + p. Caching the offset lets us short-circuit buckets_add
@@ -197,7 +241,7 @@ def has_no_changes(
                     events |= EVENT_MASK_GROUND
                     unbound_variable_nb_stk[top] -= 1
                 propagators = triggers[variable, events]
-                for other_prop_idx in propagators[1 : propagators[0] + 1]:
+                for other_prop_idx in propagators[1: propagators[0] + 1]:
                     if (
                         not triggered_propagators[membership_offset + other_prop_idx]
                         and other_prop_idx != prop_idx

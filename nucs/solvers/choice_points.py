@@ -44,9 +44,6 @@ def cp_init(
     :type domains_arr: NDArray
     :param unbound_variable_nb: the number of unbound variables
     :type unbound_variable_nb: int
-
-    :return: a Numpy array
-    :rtype: None
     """
     domains_stk[0] = domains_arr
     entailed_propagators_stk[0] = False
@@ -64,6 +61,8 @@ def cp_put(domains_stk: NDArray, entailed_propagators_stk: NDArray, unbound_vari
     :type domains_stk: NDArray
     :param entailed_propagators_stk: the stack of entailed propagators
     :type entailed_propagators_stk: NDArray
+    :param unbound_variable_nb_stk: the stack of the unbound variables nb
+    :type unbound_variable_nb_stk: NDArray
     :param top: the index of the top of the stacks
     :type top: int
     """
@@ -97,6 +96,8 @@ def backtrack(
     :type triggered_propagators: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :type triggers: NDArray
+    :param complexities: the propagation queue bucket priorities indexed by propagators
+    :type complexities: NDArray
 
     :return: true iff it is possible to backtrack
     :rtype: bool
@@ -130,6 +131,8 @@ def fix_choice_points(
 
     :param domains_stk: the stack of domains
     :type domains_stk: NDArray
+    :param unbound_variable_nb_stk: the stack of the unbound variables nb
+    :type unbound_variable_nb_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
     :type stks_top: NDArray
     :param variable: the variable being optimized
@@ -138,6 +141,9 @@ def fix_choice_points(
     :type value: int
     :param bound: the bound being optimized
     :type bound: int
+
+    :return: true iff at least one choice point remains
+    :rtype: bool
     """
     if stks_top[0] == 0:
         return False
@@ -172,12 +178,17 @@ def fix_choice_point(
 
     :param domains_stk: the stack of domains
     :type domains_stk: NDArray
+    :param unbound_variable_nb_stk: the stack of the unbound variables nb
+    :type unbound_variable_nb_stk: NDArray
     :param variable:  the variable being optimized
     :type variable: int
     :param value: the current optimal value for the variable
     :type value: int
     :param bound: the bound being optimized
     :type bound: int
+
+    :return: true iff the resulting domain is non-empty
+    :rtype: bool
     """
     if bound == MIN:
         domains_stk[0, variable, bound] = value + 1
