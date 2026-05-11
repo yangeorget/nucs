@@ -30,7 +30,7 @@ class TestAllIntervalSeries:
     def test_solve(self, size: int, values: List[int]) -> None:
         problem = AllIntervalSeriesProblem(size, True)
         solver = BacktrackSolver(problem)
-        solution = next(solver.solve())
+        solution = next(solver.solve(), None)
         assert solution is not None
         assert solution[:size].tolist() == values
 
