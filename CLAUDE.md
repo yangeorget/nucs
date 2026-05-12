@@ -1,129 +1,80 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code working in this repository.
 
-## Build, Test, and Development Commands
+## Common commands
 
 ```bash
-# Check code style (uses ruff)
+# Style (ruff)
 ./scripts/bash/style.sh
 
-# Run all tests (must set PYTHONPATH and NUMBA_CACHE_DIR)
-NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. pytest
+# All tests
+NUMBA_CACHE_DIR=.numba/cache pytest
 
-# Run a single test file
-NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. pytest tests/examples/test_queens.py
+# Single file / single test
+NUMBA_CACHE_DIR=.numba/cache pytest tests/examples/test_queens.py
+NUMBA_CACHE_DIR=.numba/cache pytest tests/examples/test_queens.py::test_queens_4
 
-# Run a single test
-NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. pytest tests/examples/test_queens.py::test_queens_4
+# Debug or profile with pure Python (no JIT)
+NUMBA_DISABLE_JIT=1 pytest tests/...
+NUMBA_DISABLE_JIT=1 python -m cProfile -s time -m nucs.examples.queens | more
 
-# Compute code coverage
-NUMBA_DISABLE_JIT=1 PYTHONPATH=. coverage run --source=nucs,tests -m pytest
-coverage html
+# Coverage
+NUMBA_DISABLE_JIT=1 PYTHONPATH=. coverage run --source=nucs,tests -m pytest && coverage html
+```
 
-# Measure the performance
-NUMBA_DISABLE_JIT=1 python -m "cProfile" -s time -m nucs.examples.queens | more
+`NUMBA_CACHE_DIR` is required for tests to share the JIT cache across runs. `NUMBA_DISABLE_JIT=1` falls back to
+interpreted Python — slow, but tracebacks land in real source lines.
 
-# Build the pip package
-python -m build
+## Architecture
 
-# Publish the package
-python -m twine upload --verbose dist/*
+NuCS is a **Constraint Satisfaction Problem solver** that uses **Numba JIT** for performance. Pure Python, compiled at
+runtime.
 
-# Fix source file headers
+- **`nucs/problems/`** — a `Problem` carries `domains` (one `(min, max)` per variable; bound when `min == max`) and a
+  list of propagators added via `add_propagator(ALG_*, *variable_index_iterables, parameters=...)`.
+- **`nucs/propagators/`** — one file per constraint, plus `propagators.py` which registers each as a numeric `ALG_*` id.
+  Each propagator is three functions: `compute_domains_*` (filtering, returns `PROP_INCONSISTENCY` /
+  `PROP_CONSISTENCY` / `PROP_ENTAILMENT`), `get_triggers_*` (when to re-wake), `get_complexity_*` (queue ordering). See
+  `nucs/propagators/abs_eq_propagator.py` for the minimal template.
+- **`nucs/solvers/`** — `BacktrackSolver` (backtracking + propagation) and `MultiprocessingSolver` (wraps several
+  `BacktrackSolver`s over `problem.split(...)`). Iterate solutions with `solver.solve()`, or call
+  `solver.minimize(var)` / `solver.maximize(var)`.
+- **`nucs/heuristics/`** — variable heuristics pick the next unbound variable, domain heuristics pick the next value to
+  try. Both are Numba-jitted with signatures in `nucs/constants.py`.
+
+Constants worth knowing: `MIN`/`MAX` (domain row indices), `EVENT_MASK_*` (trigger flags), `PROP_*` (propagation result
+codes), `STATS_IDX_*` (16 counters tracking backtracks, propagator calls, solutions, etc.).
+
+## Numba rules
+
+These apply to every `@njit` function in `nucs/` — most of the codebase.
+
+- Use `@njit(cache=True, fastmath=True)`. `cache=True` is what makes warm starts fast; never remove it.
+- No Python objects in jitted code: no `dict`, no exceptions, no `isinstance`, no strings other than literals. Pass
+  typed `NDArray`s and ints.
+- Mutate arrays in place (`domains[i][MIN] = ...`). Never rebind a slot (`domains[i] = ...`) — Numba can't always type
+  that.
+- Functions passed as values go through `_get_wrapper_address` (see `nucs/numba_helper.py`); the address is recovered to
+  a typed callable at runtime. If you're adding a callable-typed parameter, this is the mechanism.
+- When a Numba compile error is cryptic, re-run with `NUMBA_DISABLE_JIT=1` — the real Python traceback points to the
+  line.
+
+## Adding a propagator
+
+Use the `/add-propagator` skill — it walks through the file layout, registration, and test pattern.
+
+## Source file headers
+
+Every file under `nucs/` and `tests/` starts with the ASCII-art copyright banner in `header.txt`. New files need it. To
+re-stamp existing files:
+
+```bash
 addheader nucs -t header.txt
 addheader tests -t header.txt
-
-# Generate documentation
-sphinx-build -M html docs/source docs/output
 ```
 
-## High-Level Architecture
-
-NuCS is a **Constraint Satisfaction Problem (CSP) solver** that uses **Numba JIT compilation** for performance.
-It is 100% Python but compiles hot paths to machine code at runtime.
-
-### Core Components
-
-**1. Problems** (`nucs/problems/`)
-
-- A `Problem` is defined by **domains** (possible values for variables) and **propagators** (constraints).
-- Domain values are stored as `(min, max)` tuples. When min equals max, the variable is bound.
-- Subclass `Problem` to define new problems, then call `add_propagator()` to add constraints.
-
-**2. Propagators** (`nucs/propagators/`)
-
-- Each propagator implements constraint propagation logic using three Numba-jitted functions:
-    - `compute_domains()`: Prunes inconsistent values from domains
-    - `get_triggers()`: Returns when the propagator should be triggered (on min change, max change, or ground)
-    - `get_complexity()`: Estimates computational cost for sorting propagators
-- Propagators are registered in `nucs/propagators/propagators.py` using `register_propagator()` which assigns them a
-  unique algorithm ID (e.g., `ALG_ALLDIFFERENT`).
-- Propagation returns: `PROP_INCONSISTENCY` (failure), `PROP_CONSISTENCY` (pruned), or `PROP_ENTAILMENT` (done).
-
-**3. Solvers** (`nucs/solvers/`)
-
-- `BacktrackSolver`: Main solver using backtracking search with constraint propagation
-- `MultiprocessingSolver`: Parallel solver that splits the problem across multiple processes
-- Uses choice points for state restoration and a propagation queue to manage triggered propagators
-
-**4. Heuristics** (`nucs/heuristics/`)
-
-- **Variable heuristics** select which unbound variable to branch on next (e.g., smallest domain first)
-- **Domain heuristics** select which value to try first for a chosen variable (e.g., min value, mid value)
-- Heuristics are Numba-jitted functions with signatures defined in `nucs/constants.py`.
-
-### Key Technical Details
-
-**Numba Integration**
-
-- Heavy use of `@njit(cache=True, fastmath=True)` for performance-critical code
-- Function pointers are passed via `_get_wrapper_address` from `numba.experimental.function_type`
-- See `nucs/numba_helper.py` for the mechanism to recover functions from addresses at runtime
-- Set `NUMBA_CACHE_DIR` to cache compiled code between runs
-- Set `NUMBA_DISABLE_JIT=1` to disable JIT (useful for profiling/debugging)
-
-**Consistency Algorithms**
-
-- `CONSISTENCY_ALG_BC`: Bound consistency (default) - propagates on bound changes
-- Shaving variants try to reduce domains by testing values
-
-**Statistics**
-
-- 16 statistics counters defined in `nucs/constants.py` (indices `STATS_IDX_*`)
-- Track propagator calls, backtracks, solutions, search space size, etc.
-
-### Example Problem Structure
-
-```python
-from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT
-from nucs.solvers.backtrack_solver import BacktrackSolver
-
-
-class QueensProblem(Problem):
-    def __init__(self, n):
-        super().__init__([(0, n - 1)] * n)  # n variables with domains [0, n-1]
-        self.add_propagator(ALG_ALLDIFFERENT, range(n))  # columns
-        self.add_propagator(ALG_ALLDIFFERENT, range(n), range(n))  # diagonals
-        self.add_propagator(ALG_ALLDIFFERENT, range(n), range(0, -n, -1))  # anti-diagonals
-
-
-problem = QueensProblem(8)
-solver = BacktrackSolver(problem)
-solution = solver.find_one()
-```
-
-### File Organization Patterns
-
-- `nucs/examples/*/`: Each example is a self-contained module with a `*_problem.py` and `__main__.py`
-- `nucs/propagators/*_propagator.py`: Individual propagator implementations
-- Tests mirror the source structure: `tests/examples/`, `tests/propagators/`, etc.
-- Documentation source is in `docs/source/` using Sphinx/rst format
-
-## Docstring Format
-
-Use Sphinx-style docstrings with this exact layout:
+## Docstring format (Sphinx)
 
 ```python
 """
@@ -139,9 +90,27 @@ Returns the time complexity of the propagator as an int.
 """
 ```
 
-- Triple double-quotes, opening and closing on their own lines
-- One-line summary on the line after the opening `"""`
-- For each parameter, a `:param <name>: <description>` line followed by a `:type <name>: <type>` line, in declaration
-  order
-- `:return: <description>` followed by `:rtype: <type>` for the return value
-- Descriptions are lowercase and have no trailing period
+- Triple double-quotes on their own lines.
+- One-line summary directly after the opening `"""`.
+- `:param` / `:type` pair per parameter, in declaration order; `:return` / `:rtype` for the return.
+- Descriptions are lowercase, no trailing period.
+
+## Example
+
+```python
+from nucs.problems.problem import Problem
+from nucs.propagators.propagators import ALG_ALLDIFFERENT
+from nucs.solvers.backtrack_solver import BacktrackSolver
+
+
+class QueensProblem(Problem):
+    def __init__(self, n: int):
+        super().__init__([(0, n - 1)] * n)
+        self.add_propagator(ALG_ALLDIFFERENT, range(n))
+        self.add_propagator(ALG_ALLDIFFERENT, range(n), range(n))
+        self.add_propagator(ALG_ALLDIFFERENT, range(n), range(0, -n, -1))
+
+
+solver = BacktrackSolver(QueensProblem(8))
+solution = next(solver.solve(), None)
+```
