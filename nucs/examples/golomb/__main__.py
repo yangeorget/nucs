@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from nucs.constants import OPTIM_RESET
+
 from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -30,7 +32,7 @@ if __name__ == "__main__":
         if args.processors is not None and args.processors > 1
         else BacktrackSolver(problem, **kwargs)
     )
-    solution = solver.minimize(problem.length_idx, mode=args.optimization_mode)
+    solution = solver.minimize(problem.length_idx, mode=args.optimization_mode or OPTIM_RESET)
     if args.display_stats:
         solver.print_statistics()
     if args.display_solutions:

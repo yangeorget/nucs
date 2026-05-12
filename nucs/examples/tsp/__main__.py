@@ -12,6 +12,7 @@
 ###############################################################################
 import json
 
+from nucs.constants import OPTIM_RESET
 from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
@@ -42,9 +43,9 @@ if __name__ == "__main__":
         )
         solver = (
             MultiprocessingSolver([BacktrackSolver(prob, **kwargs) for prob in problem.split(args.processors, 0)])
-            if args.processors > 1
+            if args.processors is not None and args.processors > 1
             else BacktrackSolver(problem, **kwargs)
         )
-        solution = solver.minimize(problem.total_cost, mode=args.optimization_mode)
+        solution = solver.minimize(problem.total_cost, mode=args.optimization_mode or OPTIM_RESET)
         if args.display_stats:
             solver.print_statistics()

@@ -25,7 +25,7 @@ if __name__ == "__main__":
     kwargs = solver_kwargs_from_args(args)
     solver = (
         MultiprocessingSolver([BacktrackSolver(problem, **kwargs) for problem in problem.split(args.processors, 0)])
-        if args.processors > 1
+        if args.processors is not None and args.processors > 1
         else BacktrackSolver(problem, **kwargs)
     )
     run_solver(solver, args)

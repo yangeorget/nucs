@@ -146,7 +146,7 @@ def bound_consistency_algorithm(
             prop_domains[var_idx] = domains[propagator_variables[prop_var_start + var_idx]]
         status = compute_domains_fcts[algorithms[prop_idx]](
             prop_domains,
-            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START]: bounds[prop_idx, PARAM, RANGE_END]],
+            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]],
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
@@ -241,7 +241,7 @@ def update_domains(
                     events |= EVENT_MASK_GROUND
                     unbound_variable_nb_stk[top] -= 1
                 propagators = triggers[variable, events]
-                for other_prop_idx in propagators[1: propagators[0] + 1]:
+                for other_prop_idx in propagators[1 : propagators[0] + 1]:
                     if (
                         not triggered_propagators[membership_offset + other_prop_idx]
                         and other_prop_idx != prop_idx
