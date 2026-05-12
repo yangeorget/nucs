@@ -60,7 +60,7 @@ def compute_domains_element_l_eq_c_alldifferent(domains: NDArray, parameters: ND
     """
     l = domains[:-1]
     i = domains[-1]
-    c = parameters[0]
+    c = int(parameters[0])
     # i could be updated only once
     i[MIN] = max(i[MIN], 0)
     i[MAX] = min(i[MAX], len(l) - 1)

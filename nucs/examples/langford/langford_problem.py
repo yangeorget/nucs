@@ -15,7 +15,7 @@ from typing import Any
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_AFFINE_EQ
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_ADD_C_EQ
 
 
 class LangfordProblem(Problem):
@@ -40,17 +40,16 @@ class LangfordProblem(Problem):
         """
         self.k = k
         self.n = n
-        # domain[i * n + j] is the position in the sequence of the ith occurrence of j
-        domains = [(0, k * n - 1)] * k * n
+        domains = [(0, k * n - 1)] * k * n  # domain[index(i,j)] is the position of the ith occurence of j
         super().__init__(domains)
         self.add_propagator(ALG_ALLDIFFERENT, range(0, k * n))
         for i in range(k - 1):
             for j in range(n):
-                self.add_propagator(ALG_AFFINE_EQ, [self.index(i + 1, j), self.index(i, j)], [1, -1, j + 2])
+                self.add_propagator(ALG_ADD_C_EQ, [self.index(i, j), self.index(i + 1, j)], [j + 2])
 
     def solution_as_printable(self, solution: NDArray) -> Any:
-        values = solution.tolist()
-        out = [0] * self.n * self.k
+        positions = solution.tolist()
+        colors = [0] * self.n * self.k
         for idx in range(self.k * self.n):
-            out[values[idx]] = self.color(idx)
-        return out
+            colors[positions[idx]] = idx % self.n
+        return colors

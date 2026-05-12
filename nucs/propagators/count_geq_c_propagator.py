@@ -58,8 +58,8 @@ def compute_domains_count_geq_c(domains: NDArray, parameters: NDArray) -> int:
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int
     """
-    a = parameters[0]
-    c = parameters[1]
+    a = int(parameters[0])
+    c = int(parameters[1])
     count_max = len(domains)
     count_min = 0
     for domain in domains:

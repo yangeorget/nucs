@@ -58,7 +58,7 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray) -> int:
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int
     """
-    a = parameters[0]
+    a = int(parameters[0])
     x = domains[:-1]
     counter = domains[-1]
     count_max = len(x)

@@ -18,8 +18,7 @@ from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_
 
 def get_complexity_equiv_eq_c(n: int, parameters: NDArray) -> int:
     """
-    Returns the time complexity of the propagator as an int
-    t.
+    Returns the time complexity of the propagator as an int.
 
     :param n: the number of variables
     :type n: int
@@ -63,7 +62,7 @@ def compute_domains_equiv_eq_c(domains: NDArray, parameters: NDArray) -> int:
     """
     b = domains[0]
     x = domains[1]
-    c = parameters[0]
+    c = int(parameters[0])
     if b[MIN] == 0 and b[MAX] == 0:
         if x[MIN] == c:
             x[MIN] = c + 1

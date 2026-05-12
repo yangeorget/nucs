@@ -28,7 +28,7 @@ def get_complexity_abs_eq(n: int, parameters: NDArray) -> int:
     :return: an int
     :rtype: int
     """
-    return 2
+    return 1
 
 
 @njit(cache=True, fastmath=True)

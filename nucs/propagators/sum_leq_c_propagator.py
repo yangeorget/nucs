@@ -66,7 +66,7 @@ def compute_domains_sum_leq_c(domains: NDArray, parameters: NDArray) -> int:
     :rtype: int
     """
     n = len(domains)
-    domain_sum_min = domain_sum_max = -parameters[0]
+    domain_sum_min = domain_sum_max = -int(parameters[0])
     for i in range(n):
         domain_sum_min += domains[i, MAX]
         domain_sum_max += domains[i, MIN]

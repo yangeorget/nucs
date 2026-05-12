@@ -68,7 +68,7 @@ def compute_domains_leq_c(domains: NDArray, parameters: NDArray) -> int:
     """
     x = domains[0]
     y = domains[1]
-    c = parameters[0]
+    c = int(parameters[0])
     if x[MAX] <= y[MIN] + c:
         return PROP_ENTAILMENT
     x[MAX] = min(x[MAX], y[MAX] + c)

@@ -12,6 +12,7 @@
 ###############################################################################
 from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.examples.langford.langford_problem import LangfordProblem
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -22,4 +23,12 @@ if __name__ == "__main__":
     parser.add_argument("-k", type=int, default=3)
     args = parser.parse_args()
     problem = LangfordProblem(args.k, args.n)
-    run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args)), args)
+    run_solver(
+        BacktrackSolver(
+            problem,
+            **solver_kwargs_from_args(
+                args, var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MAX_VALUE
+            ),
+        ),
+        args,
+    )
