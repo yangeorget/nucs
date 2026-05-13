@@ -17,7 +17,7 @@ NUMBA_CACHE_DIR=.numba/cache pytest tests/examples/test_queens.py::test_queens_4
 
 # Debug or profile with pure Python (no JIT)
 NUMBA_DISABLE_JIT=1 pytest tests/...
-NUMBA_DISABLE_JIT=1 python -m cProfile -s time -m nucs.examples.queens | more
+NUMBA_DISABLE_JIT=1 python -m "cProfile" -s time -m pytest tests/examples >> logs/examples.log
 
 # Coverage
 NUMBA_DISABLE_JIT=1 PYTHONPATH=. coverage run --source=nucs,tests -m pytest && coverage html

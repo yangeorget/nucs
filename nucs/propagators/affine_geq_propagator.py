@@ -89,12 +89,12 @@ def compute_domains_affine_geq(domains: NDArray, parameters: NDArray) -> int:
             factor = factors[i]
             if factor != 0:
                 if factor > 0:
-                    new_min = domains[i, MAX] - (-domain_sum_min // -factor)
+                    new_min = domains[i, MAX] - (domain_sum_min // factor)
                     if new_min > domains[i, MIN]:
                         domains[i, MIN] = new_min
                         has_changed = True
                 else:
-                    new_max = domains[i, MIN] + (domain_sum_min // -factor)
+                    new_max = domains[i, MIN] + (-domain_sum_min // factor)
                     if new_max < domains[i, MAX]:
                         domains[i, MAX] = new_max
                         has_changed = True
