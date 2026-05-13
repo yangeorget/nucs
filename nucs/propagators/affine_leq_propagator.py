@@ -80,7 +80,7 @@ def compute_domains_affine_leq(domains: NDArray, parameters: NDArray) -> int:
             if factor > 0:
                 domain_sum_min += factor * domains[i, MAX]
                 domain_sum_max += factor * domains[i, MIN]
-            elif factor < 0:
+            else:
                 domain_sum_min += factor * domains[i, MIN]
                 domain_sum_max += factor * domains[i, MAX]
         if domain_sum_min <= 0:

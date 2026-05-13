@@ -69,7 +69,7 @@ def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
             if factor > 0:
                 domain_sum_min += factor * domains[i, MAX]
                 domain_sum_max += factor * domains[i, MIN]
-            elif factor < 0:
+            else:
                 domain_sum_min += factor * domains[i, MIN]
                 domain_sum_max += factor * domains[i, MAX]
         for i in range(n):

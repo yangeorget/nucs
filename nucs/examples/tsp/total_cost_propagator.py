@@ -92,8 +92,10 @@ def compute_domains_total_cost(domains: NDArray, parameters: NDArray) -> int:
             #     return PROP_INCONSISTENCY
         global_min += local_min
         global_max += local_max
-    domains[-1, MIN] = max(domains[-1, MIN], global_min)
-    domains[-1, MAX] = min(domains[-1, MAX], global_max)
+    if global_min > domains[-1, MIN]:
+        domains[-1, MIN] = global_min
+    if global_max < domains[-1, MAX]:
+        domains[-1, MAX] = global_max
     if domains[-1, MIN] > domains[-1, MAX]:
         return PROP_INCONSISTENCY
     return PROP_CONSISTENCY
