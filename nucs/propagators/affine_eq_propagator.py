@@ -13,7 +13,15 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY, EVENT_MASK_NONE
+from nucs.constants import (
+    EVENT_MASK_MIN_MAX,
+    EVENT_MASK_NONE,
+    MAX,
+    MIN,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_affine_eq(n: int, parameters: NDArray) -> int:
@@ -64,29 +72,41 @@ def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
     while has_changed:
         has_changed = False
         domain_sum_min = domain_sum_max = -parameters[-1]
+        unbound_count = 0
         for i in range(n):
             factor = factors[i]
+            x_min = domains[i, MIN]
+            x_max = domains[i, MAX]
             if factor > 0:
-                domain_sum_min += factor * domains[i, MAX]
-                domain_sum_max += factor * domains[i, MIN]
+                domain_sum_min += factor * x_max
+                domain_sum_max += factor * x_min
             else:
-                domain_sum_min += factor * domains[i, MIN]
-                domain_sum_max += factor * domains[i, MAX]
+                domain_sum_min += factor * x_min
+                domain_sum_max += factor * x_max
+            if factor != 0 and x_min < x_max:
+                unbound_count += 1
+        if unbound_count == 0:
+            return PROP_ENTAILMENT if domain_sum_min == 0 else PROP_INCONSISTENCY
         for i in range(n):
             factor = factors[i]
-            if factor != 0:
-                if factor > 0:
-                    new_min = domains[i, MAX] - (domain_sum_min // factor)
-                    new_max = domains[i, MIN] + (-domain_sum_max // factor)
-                else:
-                    new_min = domains[i, MAX] - (domain_sum_max // factor)
-                    new_max = domains[i, MIN] + (-domain_sum_min // factor)
-                if new_min > domains[i, MIN]:
-                    domains[i, MIN] = new_min
-                    has_changed = True
-                if new_max < domains[i, MAX]:
-                    domains[i, MAX] = new_max
-                    has_changed = True
-                if domains[i, MIN] > domains[i, MAX]:
-                    return PROP_INCONSISTENCY
+            if factor == 0:
+                continue
+            x_min = domains[i, MIN]
+            x_max = domains[i, MAX]
+            if x_min == x_max:
+                continue
+            if factor > 0:
+                new_min = x_max - (domain_sum_min // factor)
+                new_max = x_min + (-domain_sum_max // factor)
+            else:
+                new_min = x_max - (domain_sum_max // factor)
+                new_max = x_min + (-domain_sum_min // factor)
+            if new_min > x_min:
+                domains[i, MIN] = new_min
+                has_changed = True
+            if new_max < x_max:
+                domains[i, MAX] = new_max
+                has_changed = True
+            if domains[i, MIN] > domains[i, MAX]:
+                return PROP_INCONSISTENCY
     return PROP_CONSISTENCY

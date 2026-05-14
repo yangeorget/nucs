@@ -14,7 +14,7 @@ from typing import List, Optional, Tuple, Union
 
 import pytest
 
-from nucs.constants import PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.affine_eq_propagator import compute_domains_affine_eq
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -30,12 +30,12 @@ class TestAffineEq(PropagatorTest):
             # three variables, all factor 1
             ([(5, 10), (5, 10), (5, 10)], [1, 1, 1, 27], PROP_CONSISTENCY, [[7, 10], [7, 10], [7, 10]]),
             # negative c parameter, both bounds collapse
-            ([(-2, -1), (2, 3)], [1, 1, 0], PROP_CONSISTENCY, [[-2, -2], [2, 2]]),
+            ([(-2, -1), (2, 3)], [1, 1, 0], PROP_ENTAILMENT, [[-2, -2], [2, 2]]),
             # all already bound, equation holds
             (
                 [4, 3, 5, 9, 1, 8, 6, 2, 7, 0],
                 [200, -1000, 100002, 9900, 100000, 20, 1000, 0, -99010, -1, 0],
-                PROP_CONSISTENCY,
+                PROP_ENTAILMENT,
                 [[4, 4], [3, 3], [5, 5], [9, 9], [1, 1], [8, 8], [6, 6], [2, 2], [7, 7], [0, 0]],
             ),
             # inconsistency: max reachable sum < c
@@ -46,8 +46,8 @@ class TestAffineEq(PropagatorTest):
             ([(0, 1), (5, 6)], [1, -1, 0], PROP_INCONSISTENCY, None),
             # zero coefficient: x_1 ignored
             ([(1, 10), (1, 10), (1, 10)], [1, 0, 1, 8], PROP_CONSISTENCY, [[1, 7], [1, 10], [1, 7]]),
-            # no-op: already tight
-            ([(2, 2), (3, 3)], [1, 1, 5], PROP_CONSISTENCY, [[2, 2], [3, 3]]),
+            # all bound, equation holds: entailment
+            ([(2, 2), (3, 3)], [1, 1, 5], PROP_ENTAILMENT, [[2, 2], [3, 3]]),
         ],
     )
     def test_compute_domains(
