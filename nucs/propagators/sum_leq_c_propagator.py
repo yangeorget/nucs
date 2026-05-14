@@ -67,15 +67,26 @@ def compute_domains_sum_leq_c(domains: NDArray, parameters: NDArray) -> int:
     """
     n = len(domains)
     domain_sum_min = domain_sum_max = -int(parameters[0])
+    unbound_count = 0
     for i in range(n):
-        domain_sum_min += domains[i, MAX]
-        domain_sum_max += domains[i, MIN]
+        x_min = domains[i, MIN]
+        x_max = domains[i, MAX]
+        domain_sum_min += x_max
+        domain_sum_max += x_min
+        if x_min < x_max:
+            unbound_count += 1
     if domain_sum_min <= 0:
         return PROP_ENTAILMENT
+    if unbound_count == 0:
+        return PROP_INCONSISTENCY
     for i in range(n):
-        new_max = domains[i, MIN] - domain_sum_max
-        if new_max < domains[i, MAX]:
+        x_min = domains[i, MIN]
+        x_max = domains[i, MAX]
+        if x_min == x_max:
+            continue
+        new_max = x_min - domain_sum_max
+        if new_max < x_max:
             domains[i, MAX] = new_max
         if domains[i, MIN] > domains[i, MAX]:
             return PROP_INCONSISTENCY
-    return PROP_CONSISTENCY
+    return PROP_ENTAILMENT if unbound_count == 1 else PROP_CONSISTENCY

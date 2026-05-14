@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 
 
 def get_complexity_sum_eq_c(n: int, parameters: NDArray) -> int:
@@ -60,16 +60,27 @@ def compute_domains_sum_eq_c(domains: NDArray, parameters: NDArray) -> int:
     """
     n = len(domains)
     domain_sum_min = domain_sum_max = -int(parameters[0])
+    unbound_count = 0
     for i in range(n):
-        domain_sum_min += domains[i, MAX]
-        domain_sum_max += domains[i, MIN]
+        x_min = domains[i, MIN]
+        x_max = domains[i, MAX]
+        domain_sum_min += x_max
+        domain_sum_max += x_min
+        if x_min < x_max:
+            unbound_count += 1
+    if unbound_count == 0:
+        return PROP_ENTAILMENT if domain_sum_min == 0 else PROP_INCONSISTENCY
     for i in range(n):
-        new_min = domains[i, MAX] - domain_sum_min
-        new_max = domains[i, MIN] - domain_sum_max
-        if new_min > domains[i, MIN]:
+        x_min = domains[i, MIN]
+        x_max = domains[i, MAX]
+        if x_min == x_max:
+            continue
+        new_min = x_max - domain_sum_min
+        new_max = x_min - domain_sum_max
+        if new_min > x_min:
             domains[i, MIN] = new_min
-        if new_max < domains[i, MAX]:
+        if new_max < x_max:
             domains[i, MAX] = new_max
         if domains[i, MIN] > domains[i, MAX]:
             return PROP_INCONSISTENCY
-    return PROP_CONSISTENCY
+    return PROP_ENTAILMENT if unbound_count == 1 else PROP_CONSISTENCY
