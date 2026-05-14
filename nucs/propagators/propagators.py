@@ -110,6 +110,11 @@ from nucs.propagators.max_eq_propagator import compute_domains_max_eq, get_compl
 from nucs.propagators.max_leq_propagator import compute_domains_max_leq, get_complexity_max_leq, get_triggers_max_leq
 from nucs.propagators.min_eq_propagator import compute_domains_min_eq, get_complexity_min_eq, get_triggers_min_eq
 from nucs.propagators.min_geq_propagator import compute_domains_min_geq, get_complexity_min_geq, get_triggers_min_geq
+from nucs.propagators.mul_c_eq_propagator import (
+    compute_domains_mul_c_eq,
+    get_complexity_mul_c_eq,
+    get_triggers_mul_c_eq,
+)
 from nucs.propagators.no_sub_cycle_propagator import (
     compute_domains_no_sub_cycle,
     get_complexity_no_sub_cycle,
@@ -214,6 +219,7 @@ ALG_MAX_EQ = register_propagator(get_triggers_max_eq, get_complexity_max_eq, com
 ALG_MAX_LEQ = register_propagator(get_triggers_max_leq, get_complexity_max_leq, compute_domains_max_leq)
 ALG_MIN_EQ = register_propagator(get_triggers_min_eq, get_complexity_min_eq, compute_domains_min_eq)
 ALG_MIN_GEQ = register_propagator(get_triggers_min_geq, get_complexity_min_geq, compute_domains_min_geq)
+ALG_MUL_C_EQ = register_propagator(get_triggers_mul_c_eq, get_complexity_mul_c_eq, compute_domains_mul_c_eq)
 ALG_NO_SUB_CYCLE = register_propagator(
     get_triggers_no_sub_cycle, get_complexity_no_sub_cycle, compute_domains_no_sub_cycle
 )
