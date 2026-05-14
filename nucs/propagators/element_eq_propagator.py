@@ -68,27 +68,32 @@ def compute_domains_element_eq(domains: NDArray, parameters: NDArray) -> int:
     # i could be updated only once
     i[MIN] = max(i[MIN], 0)
     i[MAX] = min(i[MAX], len(l) - 1)
-    v_min = sys.maxsize
-    v_max = -sys.maxsize
-    start = -1
+    l_v_min = sys.maxsize
+    l_v_max = -sys.maxsize
+    old_v_min = v[MIN]
+    old_v_max = v[MAX]
+    non_intersecting_idx = -1
     for idx in range(i[MIN], i[MAX] + 1):
-        if v[MAX] < l[idx] or v[MIN] > l[idx]:  # no intersection
-            if start == -1:
-                start = idx
+        l_idx = l[idx]
+        if old_v_max < l_idx or old_v_min > l_idx:  # no intersection
+            if non_intersecting_idx == -1:
+                non_intersecting_idx = idx
             if idx == i[MIN]:
                 i[MIN] += 1
         else:  # intersection
-            start = -1
-            if l[idx] < v_min:
-                v_min = l[idx]
-            if l[idx] > v_max:
-                v_max = l[idx]
-    if start >= 0:
-        i[MAX] = start - 1
+            non_intersecting_idx = -1
+            if l_idx < l_v_min:
+                l_v_min = l_idx
+            if l_idx > l_v_max:
+                l_v_max = l_idx
+    if non_intersecting_idx >= 0:
+        i[MAX] = non_intersecting_idx - 1
         if i[MAX] < i[MIN]:
             return PROP_INCONSISTENCY
-    v[MIN] = max(v[MIN], v_min)
-    v[MAX] = min(v[MAX], v_max)
+    if l_v_min > old_v_min:
+        v[MIN] = l_v_min
+    if l_v_max < old_v_max:
+        v[MAX] = l_v_max
     if i[MIN] == i[MAX]:
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY

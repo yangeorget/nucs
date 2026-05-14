@@ -48,7 +48,7 @@ def get_triggers_element_l_eq_c_alldifferent(n: int, variable: int, parameters: 
 @njit(cache=True, fastmath=True)
 def compute_domains_element_l_eq_c_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     """
-    Enforces :math:`l_i = c` when alldifferent(l).
+    Enforces :math:`l_i = c` when the elements of l are all different.
 
     :param domains: the domains of the variables, l is the list of the first n-1 domains, i is the last domain
     :type domains: NDArray
@@ -64,20 +64,20 @@ def compute_domains_element_l_eq_c_alldifferent(domains: NDArray, parameters: ND
     # i could be updated only once
     i[MIN] = max(i[MIN], 0)
     i[MAX] = min(i[MAX], len(l) - 1)
-    start = -1
+    non_intersecting_idx = -1
     for idx in range(i[MIN], i[MAX] + 1):
         if c < l[idx, MIN] or c > l[idx, MAX]:  # no intersection
-            if start == -1:
-                start = idx
+            if non_intersecting_idx == -1:
+                non_intersecting_idx = idx
             if idx == i[MIN]:
                 i[MIN] += 1
         else:  # intersection
             if c == l[idx, MIN] and c == l[idx, MAX]:
                 i[:] = idx
                 return PROP_ENTAILMENT
-            start = -1
-    if start >= 0:
-        i[MAX] = start - 1
+            non_intersecting_idx = -1
+    if non_intersecting_idx >= 0:
+        i[MAX] = non_intersecting_idx - 1
         if i[MAX] < i[MIN]:
             return PROP_INCONSISTENCY
     if i[MIN] == i[MAX]:
