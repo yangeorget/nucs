@@ -28,7 +28,7 @@ Reference: `nucs/propagators/abs_eq_propagator.py` is the minimal template.
 def get_complexity_<
 
 
-    name > (n: int, parameters: NDArray) -> int:
+name > (n: int, parameters: NDArray) -> int:
 # Not jitted. Return an int estimate of work per call.
 # Used to order propagators in the queue — relative magnitude matters, not units.
 ...
@@ -38,7 +38,7 @@ def get_complexity_<
 def get_triggers_<
 
 
-    name > (n: int, variable: int, parameters: NDArray) -> int:
+name > (n: int, variable: int, parameters: NDArray) -> int:
 # Return an EVENT_MASK_* constant from nucs.constants for the given variable index.
 # Controls when this propagator wakes up after another propagator filters that variable.
 ...
@@ -48,7 +48,7 @@ def get_triggers_<
 def compute_domains_<
 
 
-    name > (domains: NDArray, parameters: NDArray) -> int:
+name > (domains: NDArray, parameters: NDArray) -> int:
 # Mutate domains in place. Return PROP_INCONSISTENCY, PROP_CONSISTENCY, or PROP_ENTAILMENT.
 # Use domains[i][MIN] and domains[i][MAX]; never reassign domains[i] = ....
 ...
