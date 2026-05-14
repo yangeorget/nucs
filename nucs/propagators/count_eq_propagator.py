@@ -64,12 +64,16 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray) -> int:
     count_max = len(x)
     count_min = 0
     for x_i in x:
-        if x_i[MIN] > a or x_i[MAX] < a:
+        x_i_min = x_i[MIN]
+        x_i_max = x_i[MAX]
+        if x_i_min > a or x_i_max < a:
             count_max -= 1
-        elif x_i[MIN] == a and x_i[MAX] == a:
+        elif x_i_min == a and x_i_max == a:
             count_min += 1
-    counter[MIN] = max(counter[MIN], count_min)
-    counter[MAX] = min(counter[MAX], count_max)
+    if count_min > counter[MIN]:
+        counter[MIN] = count_min
+    if count_max < counter[MAX]:
+        counter[MAX] = count_max
     if counter[MIN] > counter[MAX]:
         return PROP_INCONSISTENCY
     if count_min == count_max:
@@ -77,13 +81,15 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray) -> int:
     if count_min == counter[MAX]:  # we cannot have more domains equal to a
         all_different = True
         for x_i in x:
-            if x_i[MIN] == a:
-                if x_i[MAX] > a:
+            x_i_min = x_i[MIN]
+            x_i_max = x_i[MAX]
+            if x_i_min == a:
+                if x_i_max > a:
                     x_i[MIN] = a + 1
-            elif x_i[MIN] < a:
-                if x_i[MAX] == a:
+            elif x_i_min < a:
+                if x_i_max == a:
                     x_i[MAX] = a - 1
-                elif x_i[MAX] > a:
+                elif x_i_max > a:
                     all_different = False
         if all_different:
             return PROP_ENTAILMENT

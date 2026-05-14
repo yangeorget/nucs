@@ -63,24 +63,28 @@ def compute_domains_count_leq_c(domains: NDArray, parameters: NDArray) -> int:
     count_max = len(domains)
     count_min = 0
     for domain in domains:
-        if domain[MIN] > a or domain[MAX] < a:
+        domain_min = domain[MIN]
+        domain_max = domain[MAX]
+        if domain_min > a or domain_max < a:
             count_max -= 1
             if count_max <= c:
                 return PROP_ENTAILMENT
-        elif domain[MIN] == a and domain[MAX] == a:
+        elif domain_min == a and domain_max == a:
             count_min += 1
             if count_min > c:
                 return PROP_INCONSISTENCY
     if count_min == c:  # we cannot have more domains equal to a
         all_different = True
         for domain in domains:
-            if domain[MIN] == a:
-                if domain[MAX] > a:
+            domain_min = domain[MIN]
+            domain_max = domain[MAX]
+            if domain_min == a:
+                if domain_max > a:
                     domain[MIN] = a + 1
-            elif domain[MIN] < a:
-                if domain[MAX] == a:
+            elif domain_min < a:
+                if domain_max == a:
                     domain[MAX] = a - 1
-                elif domain[MAX] > a:
+                elif domain_max > a:
                     all_different = False
         if all_different:
             return PROP_ENTAILMENT

@@ -24,6 +24,12 @@ class TestCountEq(PropagatorTest):
         "domains,parameters,consistency_result,expected_domains",
         [
             (
+                [(1, 4), (3, 5), (3, 6), (6, 8), 3, 5, 0],
+                [5],
+                PROP_INCONSISTENCY,
+                [],
+            ),
+            (
                 [(1, 4), (3, 5), (3, 6), (6, 8), 3, 5, 1],
                 [5],
                 PROP_CONSISTENCY,
@@ -34,12 +40,6 @@ class TestCountEq(PropagatorTest):
                 [5],
                 PROP_CONSISTENCY,
                 [[1, 4], [3, 5], [3, 6], [6, 8], [3, 3], [5, 5], [2, 2]],
-            ),
-            (
-                [(1, 4), (3, 5), (3, 6), (6, 8), 3, 5, 0],
-                [5],
-                PROP_INCONSISTENCY,
-                [],
             ),
             (
                 [(1, 4), 5, (3, 6), (6, 8), 3, 5, (1, 2)],
@@ -58,6 +58,18 @@ class TestCountEq(PropagatorTest):
                 [2],
                 PROP_ENTAILMENT,
                 [[2, 2], [0, 1], [3, 4], [2, 2], [2, 2], [3, 3]],
+            ),
+            (
+                [(3, 5), 5, 5, 5, 3],
+                [5],
+                PROP_ENTAILMENT,
+                [[3, 4], [5, 5], [5, 5], [5, 5], [3, 3]],
+            ),
+            (
+                [(3, 5), (3, 5), 5, (1, 4), 3],
+                [5],
+                PROP_ENTAILMENT,
+                [[5, 5], [5, 5], [5, 5], [1, 4], [3, 3]],
             ),
         ],
     )

@@ -23,6 +23,8 @@ class TestCountEqC(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
+            ([(1, 4), (3, 5), (3, 6), (6, 8), 3, 5], [5, 0], PROP_INCONSISTENCY, None),
+            ([2, 2, 2], [2, 1], PROP_INCONSISTENCY, None),
             (
                 [(1, 4), (3, 5), (3, 6), (6, 8), 3, 5],
                 [5, 1],
@@ -35,8 +37,9 @@ class TestCountEqC(PropagatorTest):
                 PROP_CONSISTENCY,
                 [[1, 4], [3, 5], [3, 6], [6, 8], [3, 3], [5, 5]],
             ),
-            ([(1, 4), (3, 5), (3, 6), (6, 8), 3, 5], [5, 0], PROP_INCONSISTENCY, None),
             ([2, (0, 1), (3, 4), 2, 2], [2, 3], PROP_ENTAILMENT, [[2, 2], [0, 1], [3, 4], [2, 2], [2, 2]]),
+            ([(1, 2), 2, 2, (5, 7)], [2, 2], PROP_ENTAILMENT, [[1, 1], [2, 2], [2, 2], [5, 7]]),
+            ([(1, 3), 2, (5, 7)], [2, 2], PROP_ENTAILMENT, [[2, 2], [2, 2], [5, 7]]),
         ],
     )
     def test_compute_domains(
