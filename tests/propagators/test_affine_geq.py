@@ -14,7 +14,7 @@ from typing import List, Optional, Tuple, Union
 
 import pytest
 
-from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT
+from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.affine_geq_propagator import compute_domains_affine_geq
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -23,9 +23,22 @@ class TestAffineGeq(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
+            # mixed-sign coefficients: x - y >= 1
             ([(1, 10), (1, 10)], [1, -1, 1], PROP_CONSISTENCY, [[2, 10], [1, 9]]),
+            # positive coefficients pruning
             ([(5, 10), (5, 10), (5, 10)], [1, 1, 1, 27], PROP_CONSISTENCY, [[7, 10], [7, 10], [7, 10]]),
+            # already entailed: min sum >= c
             ([(5, 10), (1, 2)], [1, 1, 6], PROP_ENTAILMENT, [[5, 10], [1, 2]]),
+            # negative coefficient pruning: -x + y >= 5
+            ([(0, 10), (0, 10)], [-1, 1, 5], PROP_CONSISTENCY, [[0, 5], [5, 10]]),
+            # zero coefficient: x_1 ignored
+            ([(0, 5), (0, 5), (0, 5)], [1, 0, 1, 8], PROP_CONSISTENCY, [[3, 5], [0, 5], [3, 5]]),
+            # inconsistency: max reachable sum < c
+            ([(0, 2), (0, 2)], [1, 1, 10], PROP_INCONSISTENCY, None),
+            # inconsistency with negative coefficient: -x >= 1 with x in [2, 5]
+            ([(2, 5)], [-1, 1], PROP_INCONSISTENCY, None),
+            # no-op: not entailed, no tightening possible
+            ([(0, 5), (0, 5)], [1, 1, 5], PROP_CONSISTENCY, [[0, 5], [0, 5]]),
         ],
     )
     def test_compute_domains(

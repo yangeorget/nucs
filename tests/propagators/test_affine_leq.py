@@ -14,7 +14,7 @@ from typing import List, Optional, Tuple, Union
 
 import pytest
 
-from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT
+from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.affine_leq_propagator import compute_domains_affine_leq
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -23,9 +23,22 @@ class TestAffineLeq(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
+            # mixed-sign coefficients: x - y <= -1
             ([(1, 10), (1, 10)], [1, -1, -1], PROP_CONSISTENCY, [[1, 9], [2, 10]]),
+            # positive coefficients pruning
             ([(1, 10), (1, 10)], [1, 1, 8], PROP_CONSISTENCY, [[1, 7], [1, 7]]),
+            # already entailed: max sum <= c
             ([(2, 3), (1, 2)], [1, 1, 5], PROP_ENTAILMENT, [[2, 3], [1, 2]]),
+            # negative coefficient pruning: -x + y <= -3
+            ([(0, 10), (0, 10)], [-1, 1, -3], PROP_CONSISTENCY, [[3, 10], [0, 7]]),
+            # zero coefficient: x_1 ignored
+            ([(0, 5), (0, 5), (0, 5)], [1, 0, 1, 3], PROP_CONSISTENCY, [[0, 3], [0, 5], [0, 3]]),
+            # inconsistency: min reachable sum > c
+            ([(5, 9), (5, 9)], [1, 1, 5], PROP_INCONSISTENCY, None),
+            # inconsistency with negative coefficient: -x <= -5 with x in [0, 2]
+            ([(0, 2)], [-1, -5], PROP_INCONSISTENCY, None),
+            # no-op: not entailed, no tightening possible
+            ([(0, 3), (0, 3)], [1, 1, 4], PROP_CONSISTENCY, [[0, 3], [0, 3]]),
         ],
     )
     def test_compute_domains(
