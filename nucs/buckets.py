@@ -64,14 +64,12 @@ def buckets_empty(buckets: NDArray, priorities: NDArray) -> None:
 
 
 @njit(cache=True, fastmath=True)
-def buckets_add(buckets: NDArray, idx: int, priorities: NDArray) -> None:
+def buckets_add(buckets: NDArray, priorities: NDArray, idx: int, storage_offset: int, membership_offset: int) -> None:
     """
     Appends idx at the tail of bucket weights[idx].
     No-op if idx is already present.
     """
-    storage_offset = BUCKET_NB << 1
-    capacity = (len(buckets) - storage_offset - 1) >> 1
-    membership_idx = storage_offset + capacity + idx
+    membership_idx = membership_offset + idx
     if buckets[membership_idx]:
         return
     bucket = priorities[idx]
@@ -90,15 +88,13 @@ def buckets_add(buckets: NDArray, idx: int, priorities: NDArray) -> None:
 
 
 @njit(cache=True, fastmath=True)
-def buckets_pop(buckets: NDArray) -> int:
+def buckets_pop(buckets: NDArray, storage_offset: int, membership_offset: int) -> int:
     """
     Removes and returns the head of the lowest-priority non-empty bucket.
 
     :return: -1 if the queue is empty
     :rtype: int
     """
-    storage_offset = BUCKET_NB << 1
-    capacity = (len(buckets) - storage_offset - 1) >> 1
     bucket = buckets[-1]
     while bucket < BUCKET_NB and buckets[bucket] == -1:
         bucket += 1
@@ -110,6 +106,6 @@ def buckets_pop(buckets: NDArray) -> int:
     buckets[bucket] = new_head
     if new_head == -1:
         buckets[BUCKET_NB + bucket] = -1  # bucket now empty, clear tail too
-    buckets[storage_offset + capacity + idx] = 0
+    buckets[membership_offset + idx] = 0
     buckets[-1] = bucket
     return idx

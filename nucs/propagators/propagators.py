@@ -15,7 +15,7 @@ from typing import Callable, List
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import buckets_add
+from nucs.buckets import buckets_add, BUCKET_NB
 from nucs.propagators.abs_eq_propagator import compute_domains_abs_eq, get_complexity_abs_eq, get_triggers_abs_eq
 from nucs.propagators.add_c_eq_propagator import (
     compute_domains_add_c_eq,
@@ -241,6 +241,9 @@ def update_propagators(
     triggers: NDArray,
     priorities: NDArray,
 ) -> None:
+    storage_offset = BUCKET_NB << 1
+    capacity = (len(triggered_propagators) - storage_offset - 1) >> 1
+    membership_offset = storage_offset + capacity
     for prop_idx in triggers[1 : triggers[0] + 1]:
         if not entailed_propagators[prop_idx]:
-            buckets_add(triggered_propagators, prop_idx, priorities)
+            buckets_add(triggered_propagators, priorities, prop_idx, storage_offset, membership_offset)

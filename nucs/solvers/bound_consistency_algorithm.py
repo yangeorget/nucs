@@ -133,8 +133,11 @@ def bound_consistency_algorithm(
     domains = domains_stk[top]
     entailed_propagators = entailed_propagators_stk[top]
     statistics[STATS_IDX_ALG_BC_NB] += 1
+    storage_offset = BUCKET_NB << 1
+    capacity = (len(triggered_propagators) - storage_offset - 1) >> 1
+    membership_offset = storage_offset + capacity
     while True:
-        prop_idx = buckets_pop(triggered_propagators)
+        prop_idx = buckets_pop(triggered_propagators, storage_offset, membership_offset)
         if prop_idx == -1:
             return PROBLEM_BOUND if unbound_variable_nb_stk[top] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
@@ -222,7 +225,8 @@ def update_domains(
     # lives at index membership_offset + p. Caching the offset lets us short-circuit buckets_add
     # for propagators already in the queue without paying the function-call overhead.
     storage_offset = BUCKET_NB << 1
-    membership_offset = storage_offset + ((len(triggered_propagators) - storage_offset - 1) >> 1)  # TODO: precompute
+    capacity = (len(triggered_propagators) - storage_offset - 1) >> 1
+    membership_offset = storage_offset + capacity
     for var_idx in range(prop_var_end - prop_var_start):
         variable = propagator_variables[prop_var_start + var_idx]
         domain = domains[variable]
@@ -247,6 +251,8 @@ def update_domains(
                         and other_prop_idx != prop_idx
                         and not entailed_propagators[other_prop_idx]
                     ):
-                        buckets_add(triggered_propagators, other_prop_idx, priorities)
+                        buckets_add(
+                            triggered_propagators, priorities, other_prop_idx, storage_offset, membership_offset
+                        )
                 no_changes = False
     return no_changes
