@@ -12,6 +12,7 @@
 ###############################################################################
 import pytest
 
+from nucs.buckets import buckets_empty, STORAGE_OFFSET
 from nucs.constants import (
     OPTIM_PRUNE,
     OPTIM_RESET,
@@ -47,8 +48,10 @@ class TestBacktrackSolver:
     def test_solve_one(self) -> None:
         problem = Problem([(0, 1), (0, 1)])
         solver = BacktrackSolver(problem, stks_max_height=3)
+        buckets_empty(solver.triggered_propagators, problem.priorities)
         solution = solve_one(
             get_algorithm_nb(),
+            problem.propagator_nb,
             solver.statistics,
             problem.algorithms,
             problem.priorities,
@@ -77,6 +80,7 @@ class TestBacktrackSolver:
         assert solver.domains_stk[0, 1].tolist() == [0, 1]
         assert solver.domains_stk[1, 0].tolist() == [0, 0]
         assert solver.domains_stk[1, 1].tolist() == [1, 1]
+        membership_offset = STORAGE_OFFSET + problem.propagator_nb
         assert backtrack(
             solver.statistics,
             solver.entailed_propagators_stk,
@@ -85,6 +89,7 @@ class TestBacktrackSolver:
             solver.triggered_propagators,
             problem.triggers,
             problem.priorities,
+            membership_offset,
         )
         assert solver.stks_top == 1
         assert solver.domains_stk[0, 0].tolist() == [1, 1]

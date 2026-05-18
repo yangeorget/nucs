@@ -21,6 +21,7 @@ from numpy.typing import NDArray
 # Within a bucket: FIFO order (insertion order is preserved on pop).
 BUCKET_NB = 8
 BUCKET_FACTOR = 2
+STORAGE_OFFSET = BUCKET_NB << 1
 
 
 @njit(cache=True, fastmath=True)
@@ -64,7 +65,7 @@ def buckets_empty(buckets: NDArray, priorities: NDArray) -> None:
 
 
 @njit(cache=True, fastmath=True)
-def buckets_add(buckets: NDArray, priorities: NDArray, idx: int, storage_offset: int, membership_offset: int) -> None:
+def buckets_add(buckets: NDArray, priorities: NDArray, idx: int, membership_offset: int) -> None:
     """
     Appends idx at the tail of bucket weights[idx].
     No-op if idx is already present.
@@ -75,12 +76,12 @@ def buckets_add(buckets: NDArray, priorities: NDArray, idx: int, storage_offset:
     bucket = priorities[idx]
     if bucket >= BUCKET_NB:
         bucket = BUCKET_NB - 1
-    buckets[storage_offset + idx] = -1  # new tail has no successor
+    buckets[STORAGE_OFFSET + idx] = -1  # new tail has no successor
     old_tail = buckets[BUCKET_NB + bucket]
     if old_tail == -1:
         buckets[bucket] = idx  # bucket was empty, set head
     else:
-        buckets[storage_offset + old_tail] = idx  # link previous tail to new node
+        buckets[STORAGE_OFFSET + old_tail] = idx  # link previous tail to new node
     buckets[BUCKET_NB + bucket] = idx
     buckets[membership_idx] = 1
     if bucket < buckets[-1]:
@@ -88,7 +89,7 @@ def buckets_add(buckets: NDArray, priorities: NDArray, idx: int, storage_offset:
 
 
 @njit(cache=True, fastmath=True)
-def buckets_pop(buckets: NDArray, storage_offset: int, membership_offset: int) -> int:
+def buckets_pop(buckets: NDArray, membership_offset: int) -> int:
     """
     Removes and returns the head of the lowest-priority non-empty bucket.
 
@@ -102,7 +103,7 @@ def buckets_pop(buckets: NDArray, storage_offset: int, membership_offset: int) -
         buckets[-1] = BUCKET_NB
         return -1
     idx = buckets[bucket]
-    new_head = buckets[storage_offset + idx]
+    new_head = buckets[STORAGE_OFFSET + idx]
     buckets[bucket] = new_head
     if new_head == -1:
         buckets[BUCKET_NB + bucket] = -1  # bucket now empty, clear tail too

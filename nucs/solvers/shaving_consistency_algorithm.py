@@ -15,6 +15,7 @@ from typing import Any
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
+from nucs.buckets import STORAGE_OFFSET
 from nucs.constants import (
     EVENT_MASK_GROUND,
     MAX,
@@ -36,6 +37,7 @@ from nucs.solvers.choice_points import backtrack
 @njit(cache=True, fastmath=True)
 def shave_bound(
     algorithm_nb: int,
+    propagator_nb: int,
     bound: int,
     variable: int,
     statistics: NDArray,
@@ -113,11 +115,16 @@ def shave_bound(
     if domains_stk[stks_top[0], variable, MIN] == domains_stk[stks_top[0], variable, MAX]:
         events |= EVENT_MASK_GROUND
     update_propagators(
-        triggered_propagators, entailed_propagators_stk[stks_top[0]], triggers[variable, events], priorities
+        triggered_propagators,
+        entailed_propagators_stk[stks_top[0]],
+        triggers[variable, events],
+        priorities,
+        STORAGE_OFFSET + propagator_nb,
     )
     if (
         bound_consistency_algorithm(
             algorithm_nb,
+            propagator_nb,
             statistics,
             algorithms,
             priorities,
@@ -142,7 +149,14 @@ def shave_bound(
         domains_stk[stks_top[0] - 1, variable, bound] += 1 if bound == MAX else -1
         has_shaved = False
     backtrack(
-        statistics, entailed_propagators_stk, domain_update_stk, stks_top, triggered_propagators, triggers, priorities
+        statistics,
+        entailed_propagators_stk,
+        domain_update_stk,
+        stks_top,
+        triggered_propagators,
+        triggers,
+        priorities,
+        propagator_nb,
     )
     return has_shaved
 
@@ -150,6 +164,7 @@ def shave_bound(
 @njit(cache=True, fastmath=True)
 def shaving_consistency_algorithm(
     algorithm_nb: int,
+    propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
@@ -221,6 +236,7 @@ def shaving_consistency_algorithm(
         if has_shaved:
             status = bound_consistency_algorithm(
                 algorithm_nb,
+                propagator_nb,
                 statistics,
                 algorithms,
                 priorities,
@@ -248,6 +264,7 @@ def shaving_consistency_algorithm(
         statistics[STATS_IDX_ALG_SHAVING_NB] += 1
         has_shaved = shave_bound(
             algorithm_nb,
+            propagator_nb,
             bound,
             variable,
             statistics,

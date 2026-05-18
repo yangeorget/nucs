@@ -17,7 +17,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import BUCKET_NB, buckets_add, buckets_pop
+from nucs.buckets import buckets_add, buckets_pop, STORAGE_OFFSET
 from nucs.constants import (
     EVENT_MASK_GROUND,
     EVENT_MASK_MAX,
@@ -67,6 +67,7 @@ def get_domain_buffer(bounds: NDArray) -> NDArray:
 @njit(cache=True, fastmath=True)
 def bound_consistency_algorithm(
     algorithm_nb: int,
+    propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
@@ -133,11 +134,9 @@ def bound_consistency_algorithm(
     domains = domains_stk[top]
     entailed_propagators = entailed_propagators_stk[top]
     statistics[STATS_IDX_ALG_BC_NB] += 1
-    storage_offset = BUCKET_NB << 1
-    capacity = (len(triggered_propagators) - storage_offset - 1) >> 1
-    membership_offset = storage_offset + capacity
+    membership_offset = STORAGE_OFFSET + propagator_nb
     while True:
-        prop_idx = buckets_pop(triggered_propagators, storage_offset, membership_offset)
+        prop_idx = buckets_pop(triggered_propagators, membership_offset)
         if prop_idx == -1:
             return PROBLEM_BOUND if unbound_variable_nb_stk[top] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
@@ -162,6 +161,7 @@ def bound_consistency_algorithm(
             prop_idx,
             prop_var_start,
             prop_var_end,
+            membership_offset,
             prop_domains,
             propagator_variables,
             domains,
@@ -180,6 +180,7 @@ def update_domains(
     prop_idx: int,
     prop_var_start: int,
     prop_var_end: int,
+    membership_offset: int,
     prop_domains: NDArray,
     propagator_variables: NDArray,
     domains: NDArray,
@@ -224,9 +225,6 @@ def update_domains(
     # Layout of triggered_propagators (see nucs/buckets.py): the membership flag of propagator p
     # lives at index membership_offset + p. Caching the offset lets us short-circuit buckets_add
     # for propagators already in the queue without paying the function-call overhead.
-    storage_offset = BUCKET_NB << 1
-    capacity = (len(triggered_propagators) - storage_offset - 1) >> 1
-    membership_offset = storage_offset + capacity
     for var_idx in range(prop_var_end - prop_var_start):
         variable = propagator_variables[prop_var_start + var_idx]
         domain = domains[variable]
@@ -251,8 +249,6 @@ def update_domains(
                         and other_prop_idx != prop_idx
                         and not entailed_propagators[other_prop_idx]
                     ):
-                        buckets_add(
-                            triggered_propagators, priorities, other_prop_idx, storage_offset, membership_offset
-                        )
+                        buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
                 no_changes = False
     return no_changes

@@ -18,7 +18,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import buckets_init, buckets_empty, buckets_add, BUCKET_NB
+from nucs.buckets import buckets_init, buckets_empty, buckets_add, STORAGE_OFFSET
 from nucs.constants import (
     LOG_LEVEL_INFO,
     MAX,
@@ -261,10 +261,12 @@ class BacktrackSolver(Solver, QueueSolver):
         :return: the solution if it exists or None
         :rtype: Optional[NDArray]
         """
+        buckets_empty(self.triggered_propagators, self.problem.priorities)
         best_solution = None
         while (
             solution := solve_one(
                 get_algorithm_nb(),
+                self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.priorities,
@@ -330,9 +332,11 @@ class BacktrackSolver(Solver, QueueSolver):
         :rtype: Iterator[NDArray]
         """
         logger.info("Solving and iterating over the solutions")
+        buckets_empty(self.triggered_propagators, self.problem.priorities)
         while True:
             solution = solve_one(
                 get_algorithm_nb(),
+                self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.priorities,
@@ -367,6 +371,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.triggered_propagators,
                 self.problem.triggers,
                 self.problem.priorities,
+                self.problem.propagator_nb,
             ):
                 break
 
@@ -421,9 +426,11 @@ class BacktrackSolver(Solver, QueueSolver):
         :param mode: the optimization mode
         :type mode: str
         """
+        buckets_empty(self.triggered_propagators, self.problem.priorities)
         while True:
             solution = solve_one(
                 get_algorithm_nb(),
+                self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.priorities,
@@ -492,9 +499,11 @@ class BacktrackSolver(Solver, QueueSolver):
         :type solution_queue: Queue
         """
         logger.info("Solving and queuing solutions found")
+        buckets_empty(self.triggered_propagators, self.problem.priorities)
         while True:
             solution = solve_one(
                 get_algorithm_nb(),
+                self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
                 self.problem.priorities,
@@ -528,6 +537,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.triggered_propagators,
                 self.problem.triggers,
                 self.problem.priorities,
+                self.problem.propagator_nb,
             ):
                 break
         solution_queue.put((processor_idx, None, self.statistics))
@@ -536,6 +546,7 @@ class BacktrackSolver(Solver, QueueSolver):
 @njit(cache=True, fastmath=True)
 def solve_one(
     algorithm_nb: int,
+    propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
@@ -618,15 +629,13 @@ def solve_one(
     consistency_alg_fct = consistency_alg_fcts[0]
     var_heuristic_fct = var_heuristic_fcts[0]
     dom_heuristic_fct = dom_heuristic_fcts[0]
-    buckets_empty(triggered_propagators, priorities)
-    storage_offset = BUCKET_NB << 1
-    capacity = (len(triggered_propagators) - storage_offset - 1) >> 1
-    membership_offset = storage_offset + capacity
+    membership_offset = STORAGE_OFFSET + propagator_nb
     for prop_idx in range(len(priorities)):
-        buckets_add(triggered_propagators, priorities, prop_idx, storage_offset, membership_offset)
+        buckets_add(triggered_propagators, priorities, prop_idx, membership_offset)
     while True:
         status = consistency_alg_fct(
             algorithm_nb,
+            propagator_nb,
             statistics,
             algorithms,
             priorities,
@@ -661,7 +670,11 @@ def solve_one(
             )
             top = stks_top[0]
             update_propagators(
-                triggered_propagators, entailed_propagators_stk[top], triggers[variable, events], priorities
+                triggered_propagators,
+                entailed_propagators_stk[top],
+                triggers[variable, events],
+                priorities,
+                membership_offset,
             )
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
             if top > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
@@ -674,5 +687,6 @@ def solve_one(
             triggered_propagators,
             triggers,
             priorities,
+            propagator_nb,
         ):
             return None

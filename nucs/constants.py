@@ -61,7 +61,8 @@ SIGN_GET_TRIGGERS = int64(uint64, uint64, int32[:])
 TYPE_GET_TRIGGERS = types.FunctionType(SIGN_GET_TRIGGERS)
 
 SIGN_CONSISTENCY_ALG = int64(
-    int64,  # algorithm_nb,
+    int64,  # algorithm_nb
+    int64,  # propagator_nb
     int64[:],  # statistics
     uint8[:],  # algorithms
     uint32[:],  # complexities
