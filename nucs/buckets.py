@@ -39,7 +39,7 @@ def compute_priority(complexity: int) -> int:
 
 
 @njit(cache=True, fastmath=True)
-def buckets_init(capacity: int) -> NDArray:
+def buckets_create(capacity: int) -> NDArray:
     """
     Creates a bucketed FIFO queue with set semantics over integers in [0, capacity).
 
@@ -51,6 +51,13 @@ def buckets_init(capacity: int) -> NDArray:
       [-1]                                                      cached min bucket index
     """
     return np.empty(2 * BUCKET_NB + 2 * capacity + 1, dtype=np.int32)
+
+
+@njit(cache=True, fastmath=True)
+def buckets_init(buckets: NDArray, priorities: NDArray) -> None:
+    membership_offset = STORAGE_OFFSET + len(priorities)
+    for prop_idx in range(len(priorities)):
+        buckets_add(buckets, priorities, prop_idx, membership_offset)
 
 
 @njit(cache=True, fastmath=True)

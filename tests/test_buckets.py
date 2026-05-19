@@ -12,12 +12,12 @@
 ###############################################################################
 import numpy as np
 
-from nucs.buckets import buckets_add, buckets_init, buckets_pop, buckets_empty, STORAGE_OFFSET
+from nucs.buckets import buckets_add, buckets_pop, buckets_empty, STORAGE_OFFSET, buckets_create
 
 
 class TestBuckets:
     def test_buckets(self) -> None:
-        buckets = buckets_init(4)
+        buckets = buckets_create(4)
         # Bucket indices (already-bucketed weights). Lower bucket = higher priority.
         priorities = np.array([0, 1, 2, 3])
         membership_offset = STORAGE_OFFSET + 4

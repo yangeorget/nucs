@@ -17,7 +17,6 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import STORAGE_OFFSET
 from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MIN, MAX, MIN
 from nucs.heuristics.heuristics import first_not_instantiated_var_heuristic
 from nucs.problems.problem import Problem
@@ -149,7 +148,6 @@ def golomb_consistency_algorithm(
     :rtype: int
     """
     top = stks_top[0]
-    membership_offset = STORAGE_OFFSET + len(algorithms)
     # first prune the search space
     mark_nb = (1 + int(math.sqrt(8 * len(triggers) + 1))) >> 1
     ni_var = first_not_instantiated_var_heuristic(decision_variables, domains_stk, top, None)
@@ -186,7 +184,7 @@ def golomb_consistency_algorithm(
                         entailed_propagators_stk[top],
                         triggers[var, events],
                         complexities,
-                        membership_offset,
+                        propagator_nb,
                     )
     return bound_consistency_algorithm(
         algorithm_nb,

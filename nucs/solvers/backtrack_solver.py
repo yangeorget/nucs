@@ -18,7 +18,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import buckets_init, buckets_empty, buckets_add, STORAGE_OFFSET
+from nucs.buckets import buckets_init, buckets_empty, buckets_create
 from nucs.constants import (
     LOG_LEVEL_INFO,
     MAX,
@@ -142,7 +142,7 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.info(f"BacktrackSolver uses domain heuristic {dom_heuristic}")
         self.dom_heuristic_params = np.array(dom_heuristic_params, dtype=np.int64)
         logger.info(f"BacktrackSolver uses consistency algorithm {consistency_algorithm}")
-        self.triggered_propagators = buckets_init(problem.propagator_nb)
+        self.triggered_propagators = buckets_create(problem.propagator_nb)
         self.domain_buffer = get_domain_buffer(problem.bounds)
         logger.debug("Initializing choice points")
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
@@ -629,9 +629,7 @@ def solve_one(
     consistency_alg_fct = consistency_alg_fcts[0]
     var_heuristic_fct = var_heuristic_fcts[0]
     dom_heuristic_fct = dom_heuristic_fcts[0]
-    membership_offset = STORAGE_OFFSET + propagator_nb
-    for prop_idx in range(len(priorities)):
-        buckets_add(triggered_propagators, priorities, prop_idx, membership_offset)
+    buckets_init(triggered_propagators, priorities)
     while True:
         status = consistency_alg_fct(
             algorithm_nb,
@@ -674,7 +672,7 @@ def solve_one(
                 entailed_propagators_stk[top],
                 triggers[variable, events],
                 priorities,
-                membership_offset,
+                propagator_nb,
             )
             statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
             if top > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:

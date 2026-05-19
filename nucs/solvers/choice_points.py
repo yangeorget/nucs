@@ -13,7 +13,6 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import STORAGE_OFFSET
 from nucs.constants import DOM_UPDATE_EVENTS, DOM_UPDATE_VARIABLE, MAX, MIN, STATS_IDX_SOLVER_BACKTRACK_NB
 from nucs.propagators.propagators import update_propagators
 
@@ -115,7 +114,7 @@ def backtrack(
         entailed_propagators_stk[top],
         triggers[domain_update[DOM_UPDATE_VARIABLE], domain_update[DOM_UPDATE_EVENTS]],
         complexities,
-        STORAGE_OFFSET + propagator_nb,
+        propagator_nb,
     )
     return True
 

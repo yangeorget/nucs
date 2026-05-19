@@ -15,7 +15,6 @@ from typing import Any
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import STORAGE_OFFSET
 from nucs.constants import (
     EVENT_MASK_GROUND,
     MAX,
@@ -119,7 +118,7 @@ def shave_bound(
         entailed_propagators_stk[stks_top[0]],
         triggers[variable, events],
         priorities,
-        STORAGE_OFFSET + propagator_nb,
+        propagator_nb,
     )
     if (
         bound_consistency_algorithm(
