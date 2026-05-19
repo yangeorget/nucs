@@ -107,7 +107,7 @@ def compute_domains_equiv_eq(domains: NDArray, parameters: NDArray) -> int:
     if x[MAX] < y[MIN] or y[MAX] < x[MIN]:
         b[:] = 0
         return PROP_ENTAILMENT
-    # If x and y are fixed to the same value, then b = 1
+    # If x and y are fixed, then b = 1 or 0
     if x[MIN] == x[MAX] and y[MIN] == y[MAX]:
         b[:] = 1 if x[MIN] == y[MIN] else 0
         return PROP_ENTAILMENT
