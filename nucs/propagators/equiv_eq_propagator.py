@@ -98,10 +98,8 @@ def compute_domains_equiv_eq(domains: NDArray, parameters: NDArray) -> int:
         new_max = min(x[MAX], y[MAX])
         if new_min > new_max:
             return PROP_INCONSISTENCY
-        x[MIN] = new_min
-        x[MAX] = new_max
-        y[MIN] = new_min
-        y[MAX] = new_max
+        x[MIN] = y[MIN] = new_min
+        x[MAX] = y[MAX] = new_max
         if x[MIN] == x[MAX]:
             return PROP_ENTAILMENT
         return PROP_CONSISTENCY
@@ -110,11 +108,7 @@ def compute_domains_equiv_eq(domains: NDArray, parameters: NDArray) -> int:
         b[:] = 0
         return PROP_ENTAILMENT
     # If x and y are fixed to the same value, then b = 1
-    if x[MIN] == x[MAX] and y[MIN] == y[MAX] and x[MIN] == y[MIN]:
-        b[:] = 1
-        return PROP_ENTAILMENT
-    # If x and y are fixed to different values, then b = 0
-    if x[MIN] == x[MAX] and y[MIN] == y[MAX] and x[MIN] != y[MIN]:
-        b[:] = 0
+    if x[MIN] == x[MAX] and y[MIN] == y[MAX]:
+        b[:] = 1 if x[MIN] == y[MIN] else 0
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY
