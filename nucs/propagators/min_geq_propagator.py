@@ -77,7 +77,8 @@ def compute_domains_min_geq(domains: NDArray, parameters: NDArray) -> int:
     if y[MIN] > y[MAX]:
         return PROP_INCONSISTENCY
     for i in range(len(x)):
-        x[i, MIN] = max(x[i, MIN], y[MIN])
+        if y[MIN] > x[i, MIN]:
+            x[i, MIN] = y[MIN]
         if x[i, MAX] < x[i, MIN]:
             return PROP_INCONSISTENCY
     return PROP_CONSISTENCY

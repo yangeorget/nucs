@@ -75,7 +75,8 @@ def compute_domains_max_leq(domains: NDArray, parameters: NDArray) -> int:
     if y[MIN] > y[MAX]:
         return PROP_INCONSISTENCY
     for i in range(len(x)):
-        x[i, MAX] = min(x[i, MAX], y[MAX])
+        if y[MAX] < x[i, MAX]:
+            x[i, MAX] = y[MAX]
         if x[i, MAX] < x[i, MIN]:
             return PROP_INCONSISTENCY
     return PROP_CONSISTENCY
