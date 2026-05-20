@@ -73,9 +73,10 @@ def compute_domains_count_eq_c(domains: NDArray, parameters: NDArray) -> int:
             count_min += 1
             if count_min > c:
                 return PROP_INCONSISTENCY
-    if count_min == c and count_max == c:
-        return PROP_ENTAILMENT
-    if count_min == c:  # we cannot have more domains equal to a
+    if count_min == c:
+        if count_max == c:
+            return PROP_ENTAILMENT
+        # we cannot have more domains equal to a
         all_different = True
         for domain in domains:
             domain_min = domain[MIN]
@@ -90,9 +91,10 @@ def compute_domains_count_eq_c(domains: NDArray, parameters: NDArray) -> int:
                     all_different = False
         if all_different:
             return PROP_ENTAILMENT
-    elif count_max == c:  # we cannot have more domains different from a
-        for domain in domains:
-            if domain[MIN] <= a <= domain[MAX]:
-                domain[:] = a
-        return PROP_ENTAILMENT
+    else:
+        if count_max == c:  # we cannot have more domains different from a
+            for domain in domains:
+                if domain[MIN] <= a <= domain[MAX]:
+                    domain[:] = a
+            return PROP_ENTAILMENT
     return PROP_CONSISTENCY
