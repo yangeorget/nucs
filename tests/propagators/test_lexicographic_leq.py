@@ -44,6 +44,41 @@ class TestLexicographicLeq(PropagatorTest):
             ([1, 1, 0, 1], [], PROP_INCONSISTENCY, None),
             ([1, 1, 1, 0], [], PROP_INCONSISTENCY, None),
             ([1, 1, 1, 1], [], PROP_ENTAILMENT, None),
+            # n=3, exercises compute_domains_2 while loop body (all 4 equal at position 1)
+            (
+                [(0, 2), 5, (0, 2), (0, 2), 5, (0, 2)],
+                [],
+                PROP_CONSISTENCY,
+                [[0, 2], [5, 5], [0, 2], [0, 2], [5, 5], [0, 2]],
+            ),
+            # n=3, routes to compute_domains_2's x[i,MIN] > y[i,MAX] branch (forces xq < yq)
+            (
+                [(0, 2), (3, 5), 0, (0, 2), (0, 2), 5],
+                [],
+                PROP_CONSISTENCY,
+                [[0, 1], [3, 5], [0, 0], [1, 2], [0, 2], [5, 5]],
+            ),
+            # n=3, routes to compute_domains_3 via x[i,MAX] == y[i,MIN] branch
+            (
+                [(0, 2), (0, 2), 0, (0, 2), (2, 5), 5],
+                [],
+                PROP_CONSISTENCY,
+                [[0, 2], [0, 2], [0, 0], [0, 2], [2, 5], [5, 5]],
+            ),
+            # n=4, exercises compute_domains_3 while loop body
+            (
+                [(0, 2), (0, 2), 5, 0, (0, 2), (2, 5), 5, 5],
+                [],
+                PROP_CONSISTENCY,
+                [[0, 2], [0, 2], [5, 5], [0, 0], [0, 2], [2, 5], [5, 5], [5, 5]],
+            ),
+            # n=4, exercises compute_domains_4 while loop body and forces xq < yq
+            (
+                [(0, 2), (2, 5), 5, 5, (0, 2), (0, 2), 5, 0],
+                [],
+                PROP_CONSISTENCY,
+                [[0, 1], [2, 5], [5, 5], [5, 5], [1, 2], [0, 2], [5, 5], [0, 0]],
+            ),
         ],
     )
     def test_compute_domains(
