@@ -11,6 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import logging
+import time
 from multiprocessing import Queue
 from typing import Any, Dict, Iterable, Iterator, List, Optional
 
@@ -44,6 +45,7 @@ from nucs.constants import (
     STATS_IDX_SOLVER_BACKTRACK_NB,
     STATS_IDX_SOLVER_CHOICE_DEPTH,
     STATS_IDX_SOLVER_CHOICE_NB,
+    STATS_IDX_SOLVER_ELAPSED_TIME,
     STATS_LBL_ALG_BC_NB,
     STATS_LBL_ALG_BC_WITH_SHAVING_NB,
     STATS_LBL_ALG_SHAVING_CHANGE_NB,
@@ -57,6 +59,7 @@ from nucs.constants import (
     STATS_LBL_SOLVER_BACKTRACK_NB,
     STATS_LBL_SOLVER_CHOICE_DEPTH,
     STATS_LBL_SOLVER_CHOICE_NB,
+    STATS_LBL_SOLVER_ELAPSED_TIME,
     STATS_MAX,
 )
 from nucs.heuristics.heuristics import (
@@ -213,6 +216,7 @@ class BacktrackSolver(Solver, QueueSolver):
             STATS_LBL_SOLVER_CHOICE_NB: int(self.statistics[STATS_IDX_SOLVER_CHOICE_NB]),
             STATS_LBL_SOLVER_CHOICE_DEPTH: int(self.statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]),
             STATS_LBL_SOLUTION_NB: int(self.statistics[STATS_IDX_SOLUTION_NB]),
+            STATS_LBL_SOLVER_ELAPSED_TIME: int(self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME]),
         }
 
     def minimize(self, variable: int, mode: str = OPTIM_RESET) -> Optional[NDArray]:
@@ -261,6 +265,7 @@ class BacktrackSolver(Solver, QueueSolver):
         :return: the solution if it exists or None
         :rtype: Optional[NDArray]
         """
+        t0 = time.perf_counter_ns()
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         best_solution = None
         while (
@@ -322,6 +327,7 @@ class BacktrackSolver(Solver, QueueSolver):
                     bound,
                 ):
                     break
+        self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += (time.perf_counter_ns() - t0) // 1_000_000
         return best_solution
 
     def solve(self) -> Iterator[NDArray]:
@@ -333,6 +339,7 @@ class BacktrackSolver(Solver, QueueSolver):
         """
         logger.info("Solving and iterating over the solutions")
         buckets_empty(self.triggered_propagators, self.problem.priorities)
+        t0 = time.perf_counter_ns()
         while True:
             solution = solve_one(
                 get_algorithm_nb(),
@@ -359,10 +366,12 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.compute_domains_fcts,
                 self.domain_buffer,
             )
+            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += (time.perf_counter_ns() - t0) // 1_000_000
             if solution is None:
                 break
             logger.debug("Found a solution")
             yield solution
+            t0 = time.perf_counter_ns()
             if not backtrack(
                 self.statistics,
                 self.entailed_propagators_stk,
@@ -373,7 +382,10 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.priorities,
                 self.problem.propagator_nb,
             ):
+                self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += (time.perf_counter_ns() - t0) // 1_000_000
                 break
+            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += (time.perf_counter_ns() - t0) // 1_000_000
+            t0 = time.perf_counter_ns()
 
     def minimize_and_queue(self, variable: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
         """
@@ -426,6 +438,7 @@ class BacktrackSolver(Solver, QueueSolver):
         :param mode: the optimization mode
         :type mode: str
         """
+        t0 = time.perf_counter_ns()
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         while True:
             solution = solve_one(
@@ -487,6 +500,7 @@ class BacktrackSolver(Solver, QueueSolver):
                     bound,
                 ):
                     break
+        self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += (time.perf_counter_ns() - t0) // 1_000_000
         solution_queue.put((processor_idx, None, self.statistics))
 
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
@@ -499,6 +513,7 @@ class BacktrackSolver(Solver, QueueSolver):
         :type solution_queue: Queue
         """
         logger.info("Solving and queuing solutions found")
+        t0 = time.perf_counter_ns()
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         while True:
             solution = solve_one(
@@ -540,6 +555,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_nb,
             ):
                 break
+        self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += (time.perf_counter_ns() - t0) // 1_000_000
         solution_queue.put((processor_idx, None, self.statistics))
 
 

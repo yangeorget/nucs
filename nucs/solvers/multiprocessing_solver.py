@@ -32,6 +32,7 @@ from nucs.constants import (
     STATS_IDX_SOLVER_BACKTRACK_NB,
     STATS_IDX_SOLVER_CHOICE_DEPTH,
     STATS_IDX_SOLVER_CHOICE_NB,
+    STATS_IDX_SOLVER_ELAPSED_TIME,
     STATS_LBL_ALG_BC_NB,
     STATS_LBL_ALG_BC_WITH_SHAVING_NB,
     STATS_LBL_ALG_SHAVING_CHANGE_NB,
@@ -45,6 +46,7 @@ from nucs.constants import (
     STATS_LBL_SOLVER_BACKTRACK_NB,
     STATS_LBL_SOLVER_CHOICE_DEPTH,
     STATS_LBL_SOLVER_CHOICE_NB,
+    STATS_LBL_SOLVER_ELAPSED_TIME,
 )
 from nucs.solvers.queue_solver import QueueSolver
 from nucs.solvers.solver import Solver
@@ -99,6 +101,7 @@ class MultiprocessingSolver(Solver):
             STATS_LBL_SOLVER_CHOICE_NB: sum_stats(self.statistics, STATS_IDX_SOLVER_CHOICE_NB),
             STATS_LBL_SOLVER_CHOICE_DEPTH: max_stats(self.statistics, STATS_IDX_SOLVER_CHOICE_DEPTH),
             STATS_LBL_SOLUTION_NB: sum_stats(self.statistics, STATS_IDX_SOLUTION_NB),
+            STATS_LBL_SOLVER_ELAPSED_TIME: max_stats(self.statistics, STATS_IDX_SOLVER_ELAPSED_TIME),
         }
 
     def solve(self) -> Iterator[NDArray]:
