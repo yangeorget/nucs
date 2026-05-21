@@ -32,7 +32,7 @@ from nucs.constants import (
     STATS_LBL_PROPAGATOR_INCONSISTENCY_NB,
     STATS_LBL_SOLUTION_NB,
     STATS_LBL_SOLVER_BACKTRACK_NB,
-    STATS_LBL_SOLVER_ELAPSED_TIME, )
+    STATS_LBL_SOLVER_ELAPSED_TIME, OPTIM_PRUNE, )
 from nucs.examples.all_interval_series.all_interval_series_problem import AllIntervalSeriesProblem
 from nucs.examples.bibd.bibd_problem import BIBDProblem
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm
@@ -66,7 +66,7 @@ def first_solution(name: str, solver: BacktrackSolver) -> BenchmarkResult:
 
 
 def minimize(name: str, solver: BacktrackSolver, variable: int) -> BenchmarkResult:
-    solution = solver.minimize(variable)
+    solution = solver.minimize(variable, mode=OPTIM_PRUNE)
     return name, solver.get_statistics_as_dictionary(), solution
 
 
@@ -84,6 +84,9 @@ def _benchmarks() -> List[Callable[[], BenchmarkResult]]:
 
     def queens_12():
         return solve_all("queens(12)", BacktrackSolver(QueensProblem(12), log_level="WARNING"))
+
+    def queens_13():
+        return solve_all("queens(13)", BacktrackSolver(QueensProblem(13), log_level="WARNING"))
 
     def golomb_9():
         alg = register_consistency_algorithm(golomb_consistency_algorithm)
@@ -110,12 +113,6 @@ def _benchmarks() -> List[Callable[[], BenchmarkResult]]:
             "golomb(11)",
             BacktrackSolver(problem, consistency_algorithm=alg, log_level="WARNING"),
             problem.length_idx,
-        )
-
-    def magic_sequence_50():
-        return solve_all(
-            "magic_sequence(50)",
-            BacktrackSolver(MagicSequenceProblem(50), decision_variables=range(49, -1, -1), log_level="WARNING"),
         )
 
     def magic_sequence_100():
@@ -152,11 +149,6 @@ def _benchmarks() -> List[Callable[[], BenchmarkResult]]:
             ),
         )
 
-    def all_interval_9():
-        return solve_all(
-            "all_interval(9)", BacktrackSolver(AllIntervalSeriesProblem(9, True), log_level="WARNING")
-        )
-
     def all_interval_10():
         return solve_all(
             "all_interval(10)", BacktrackSolver(AllIntervalSeriesProblem(10, True), log_level="WARNING")
@@ -164,7 +156,12 @@ def _benchmarks() -> List[Callable[[], BenchmarkResult]]:
 
     def all_interval_11():
         return solve_all(
-            "all_interval(10)", BacktrackSolver(AllIntervalSeriesProblem(10, True), log_level="WARNING")
+            "all_interval(11)", BacktrackSolver(AllIntervalSeriesProblem(11, True), log_level="WARNING")
+        )
+
+    def all_interval_12():
+        return solve_all(
+            "all_interval(12)", BacktrackSolver(AllIntervalSeriesProblem(12, True), log_level="WARNING")
         )
 
     def langford_2_9():
@@ -270,9 +267,9 @@ def _benchmarks() -> List[Callable[[], BenchmarkResult]]:
             ), problem.total_cost)
 
     return [
-        all_interval_9,
         all_interval_10,
         all_interval_11,
+        all_interval_12,
         bibd_7,
         bibd_8,
         golfers_3_2_5,
@@ -282,7 +279,6 @@ def _benchmarks() -> List[Callable[[], BenchmarkResult]]:
         golomb_11,
         langford_2_9,
         langford_3_9,
-        magic_sequence_50,
         magic_sequence_100,
         magic_sequence_200,
         magic_square_3,
@@ -294,6 +290,7 @@ def _benchmarks() -> List[Callable[[], BenchmarkResult]]:
         queens_10,
         queens_11,
         queens_12,
+        queens_13,
         tsp_gr17,
         tsp_gr21
     ]
