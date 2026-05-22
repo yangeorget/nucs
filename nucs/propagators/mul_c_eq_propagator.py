@@ -70,35 +70,22 @@ def compute_domains_mul_c_eq(domains: NDArray, parameters: NDArray) -> int:
             return PROP_INCONSISTENCY
         y[:] = 0
         return PROP_ENTAILMENT
-    has_changed = True
-    while has_changed:
-        has_changed = False
-        if c > 0:
-            new_y_min = c * x[MIN]
-            new_y_max = c * x[MAX]
-        else:
-            new_y_min = c * x[MAX]
-            new_y_max = c * x[MIN]
-        if new_y_min > y[MIN]:
-            y[MIN] = new_y_min
-            has_changed = True
-        if new_y_max < y[MAX]:
-            y[MAX] = new_y_max
-            has_changed = True
-        if y[MIN] > y[MAX]:
-            return PROP_INCONSISTENCY
-        if c > 0:
-            new_x_min = -((-y[MIN]) // c)
-            new_x_max = y[MAX] // c
-        else:
-            new_x_min = -((-y[MAX]) // c)
-            new_x_max = y[MIN] // c
-        if new_x_min > x[MIN]:
-            x[MIN] = new_x_min
-            has_changed = True
-        if new_x_max < x[MAX]:
-            x[MAX] = new_x_max
-            has_changed = True
-        if x[MIN] > x[MAX]:
-            return PROP_INCONSISTENCY
+    # The fixpoint of x * c = y has a closed form: tighten x from y (with ceil/floor
+    # rounding), then set y to the exact image c * x, which needs no further iteration.
+    if c > 0:
+        new_x_min = max(x[MIN], -((-y[MIN]) // c))
+        new_x_max = min(x[MAX], y[MAX] // c)
+    else:
+        new_x_min = max(x[MIN], -((-y[MAX]) // c))
+        new_x_max = min(x[MAX], y[MIN] // c)
+    if new_x_min > new_x_max:
+        return PROP_INCONSISTENCY
+    x[MIN] = new_x_min
+    x[MAX] = new_x_max
+    if c > 0:
+        y[MIN] = c * new_x_min
+        y[MAX] = c * new_x_max
+    else:
+        y[MIN] = c * new_x_max
+        y[MAX] = c * new_x_min
     return PROP_CONSISTENCY

@@ -71,40 +71,42 @@ def compute_domains_affine_leq(domains: NDArray, parameters: NDArray) -> int:
     """
     factors = parameters[:-1]
     n = len(factors)
-    has_changed = True
-    while has_changed:
-        has_changed = False
-        domain_sum_min = domain_sum_max = -parameters[-1]
-        for i in range(n):
-            factor = factors[i]
-            x_min = domains[i, MIN]
-            x_max = domains[i, MAX]
-            if factor > 0:
-                domain_sum_min += factor * x_max
-                domain_sum_max += factor * x_min
-            else:
-                domain_sum_min += factor * x_min
-                domain_sum_max += factor * x_max
-        if domain_sum_min <= 0:
-            return PROP_ENTAILMENT
-        if domain_sum_max > 0:
-            return PROP_INCONSISTENCY
-        for i in range(n):
-            factor = factors[i]
-            if factor == 0:
-                continue
-            x_min = domains[i, MIN]
-            x_max = domains[i, MAX]
-            if x_min == x_max:
-                continue
-            if factor > 0:
-                new_max = x_min + (-domain_sum_max // factor)
-                if new_max < x_max:
-                    domains[i, MAX] = new_max
-                    has_changed = True
-            else:
-                new_min = x_max - (domain_sum_max // factor)
-                if new_min > x_min:
-                    domains[i, MIN] = new_min
-                    has_changed = True
+    domain_sum_min = domain_sum_max = -parameters[-1]
+    for i in range(n):
+        factor = factors[i]
+        x_min = domains[i, MIN]
+        x_max = domains[i, MAX]
+        if factor > 0:
+            domain_sum_min += factor * x_max
+            domain_sum_max += factor * x_min
+        else:
+            domain_sum_min += factor * x_min
+            domain_sum_max += factor * x_max
+    if domain_sum_min <= 0:
+        return PROP_ENTAILMENT
+    if domain_sum_max > 0:
+        return PROP_INCONSISTENCY
+    # A single pass reaches the fixpoint: the bounds are derived from domain_sum_max, and
+    # tightening x_max (factor > 0) or x_min (factor < 0) never changes domain_sum_max, so a
+    # second pass would compute the same bounds. domain_sum_min is updated to detect entailment.
+    for i in range(n):
+        factor = factors[i]
+        if factor == 0:
+            continue
+        x_min = domains[i, MIN]
+        x_max = domains[i, MAX]
+        if x_min == x_max:
+            continue
+        if factor > 0:
+            new_max = x_min + (-domain_sum_max // factor)
+            if new_max < x_max:
+                domains[i, MAX] = new_max
+                domain_sum_min += factor * (new_max - x_max)
+        else:
+            new_min = x_max - (domain_sum_max // factor)
+            if new_min > x_min:
+                domains[i, MIN] = new_min
+                domain_sum_min += factor * (new_min - x_min)
+    if domain_sum_min <= 0:
+        return PROP_ENTAILMENT
     return PROP_CONSISTENCY
