@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -63,17 +62,31 @@ def compute_domains_min_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     x = domains[:-1]
     y = domains[-1]
-    y[MIN] = max(y[MIN], np.min(x[:, MIN]))
-    y[MAX] = min(y[MAX], np.min(x[:, MAX]))
-    if y[MIN] > y[MAX]:
+    n = len(x)
+    min_x_min = x[0, MIN]
+    min_x_max = x[0, MAX]
+    for i in range(1, n):
+        if x[i, MIN] < min_x_min:
+            min_x_min = x[i, MIN]
+        if x[i, MAX] < min_x_max:
+            min_x_max = x[i, MAX]
+    y_min = y[MIN]
+    y_max = y[MAX]
+    if min_x_min > y_min:
+        y_min = min_x_min
+        y[MIN] = y_min
+    if min_x_max < y_max:
+        y_max = min_x_max
+        y[MAX] = y_max
+    if y_min > y_max:
         return PROP_INCONSISTENCY
     candidates_nb = 0
     candidate_idx = -1
-    for i in range(len(x)):
-        if x[i, MIN] <= y[MIN]:
-            x[i, MIN] = y[MIN]
+    for i in range(n):
+        if x[i, MIN] <= y_min:
+            x[i, MIN] = y_min
             candidate_idx = i
             candidates_nb += 1
     if candidates_nb == 1:
-        x[candidate_idx, MAX] = y[MAX]
+        x[candidate_idx, MAX] = y_max
     return PROP_CONSISTENCY

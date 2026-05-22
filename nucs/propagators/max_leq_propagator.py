@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -69,14 +68,25 @@ def compute_domains_max_leq(domains: NDArray, parameters: NDArray) -> int:
     """
     x = domains[:-1]
     y = domains[-1]
-    if np.max(x[:, MAX]) <= y[MIN]:
+    n = len(x)
+    y_min = y[MIN]
+    y_max = y[MAX]
+    max_x_max = x[0, MAX]
+    for i in range(1, n):
+        if x[i, MAX] > max_x_max:
+            max_x_max = x[i, MAX]
+    if max_x_max <= y_min:
         return PROP_ENTAILMENT
-    y[MIN] = max(y[MIN], np.max(x[:, MIN]))
-    if y[MIN] > y[MAX]:
-        return PROP_INCONSISTENCY
-    for i in range(len(x)):
-        if y[MAX] < x[i, MAX]:
-            x[i, MAX] = y[MAX]
-        if x[i, MAX] < x[i, MIN]:
+    max_x_min = x[0, MIN]
+    for i in range(n):
+        if x[i, MIN] > max_x_min:
+            max_x_min = x[i, MIN]
+        if y_max < x[i, MAX]:
+            x[i, MAX] = y_max
+            if y_max < x[i, MIN]:
+                return PROP_INCONSISTENCY
+    if max_x_min > y_min:
+        y[MIN] = max_x_min
+        if max_x_min > y_max:
             return PROP_INCONSISTENCY
     return PROP_CONSISTENCY

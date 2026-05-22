@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -71,14 +70,25 @@ def compute_domains_min_geq(domains: NDArray, parameters: NDArray) -> int:
     """
     x = domains[:-1]
     y = domains[-1]
-    if y[MAX] <= np.min(x[:, MIN]):
+    n = len(x)
+    y_min = y[MIN]
+    y_max = y[MAX]
+    min_x_min = x[0, MIN]
+    for i in range(1, n):
+        if x[i, MIN] < min_x_min:
+            min_x_min = x[i, MIN]
+    if y_max <= min_x_min:
         return PROP_ENTAILMENT
-    y[MAX] = min(y[MAX], np.min(x[:, MAX]))
-    if y[MIN] > y[MAX]:
-        return PROP_INCONSISTENCY
-    for i in range(len(x)):
-        if y[MIN] > x[i, MIN]:
-            x[i, MIN] = y[MIN]
-        if x[i, MAX] < x[i, MIN]:
+    min_x_max = x[0, MAX]
+    for i in range(n):
+        if x[i, MAX] < min_x_max:
+            min_x_max = x[i, MAX]
+        if y_min > x[i, MIN]:
+            x[i, MIN] = y_min
+            if x[i, MAX] < y_min:
+                return PROP_INCONSISTENCY
+    if min_x_max < y_max:
+        y[MAX] = min_x_max
+        if y_min > min_x_max:
             return PROP_INCONSISTENCY
     return PROP_CONSISTENCY
