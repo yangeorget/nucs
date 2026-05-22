@@ -75,7 +75,6 @@ def compute_domains_affine_leq(domains: NDArray, parameters: NDArray) -> int:
     while has_changed:
         has_changed = False
         domain_sum_min = domain_sum_max = -parameters[-1]
-        unbound_count = 0
         for i in range(n):
             factor = factors[i]
             x_min = domains[i, MIN]
@@ -86,11 +85,9 @@ def compute_domains_affine_leq(domains: NDArray, parameters: NDArray) -> int:
             else:
                 domain_sum_min += factor * x_min
                 domain_sum_max += factor * x_max
-            if factor != 0 and x_min < x_max:
-                unbound_count += 1
         if domain_sum_min <= 0:
             return PROP_ENTAILMENT
-        if unbound_count == 0:
+        if domain_sum_max > 0:
             return PROP_INCONSISTENCY
         for i in range(n):
             factor = factors[i]
@@ -110,6 +107,4 @@ def compute_domains_affine_leq(domains: NDArray, parameters: NDArray) -> int:
                 if new_min > x_min:
                     domains[i, MIN] = new_min
                     has_changed = True
-            if domains[i, MIN] > domains[i, MAX]:
-                return PROP_INCONSISTENCY
     return PROP_CONSISTENCY

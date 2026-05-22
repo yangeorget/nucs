@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MAX, EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import EVENT_MASK_MAX, EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 
 
 def get_complexity_abs_eq(n: int, parameters: NDArray) -> int:
@@ -71,8 +71,10 @@ def compute_domains_abs_eq(domains: NDArray, parameters: NDArray) -> int:
             x[MAX] = y[MAX]
         elif x[MAX] < y[MAX]:
             y[MAX] = x[MAX]
-        if x[MIN] > x[MAX] or y[MIN] > y[MAX]:
+        if x[MIN] > x[MAX]:
             return PROP_INCONSISTENCY
+        if x[MIN] == x[MAX]:
+            return PROP_ENTAILMENT
     elif y[MAX] < 0:
         if -y[MAX] > x[MIN]:
             x[MIN] = -y[MAX]
@@ -82,8 +84,10 @@ def compute_domains_abs_eq(domains: NDArray, parameters: NDArray) -> int:
             x[MAX] = -y[MIN]
         elif -x[MAX] > y[MIN]:
             y[MIN] = -x[MAX]
-        if x[MIN] > x[MAX] or y[MIN] > y[MAX]:
+        if x[MIN] > x[MAX]:
             return PROP_INCONSISTENCY
+        if x[MIN] == x[MAX]:
+            return PROP_ENTAILMENT
     else:
         if x[MIN] < 0:
             x[MIN] = 0
@@ -96,6 +100,6 @@ def compute_domains_abs_eq(domains: NDArray, parameters: NDArray) -> int:
             y[MIN] = -x[MAX]
         if x[MAX] < y[MAX]:
             y[MAX] = x[MAX]
-        if y[MIN] > y[MAX]:
-            return PROP_INCONSISTENCY
+        if y[MIN] == y[MAX]:
+            return PROP_ENTAILMENT
     return PROP_CONSISTENCY

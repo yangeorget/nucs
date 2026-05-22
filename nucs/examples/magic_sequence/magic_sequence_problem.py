@@ -11,7 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_COUNT_EQ, ALG_SUM_EQ_C
+from nucs.propagators.propagators import ALG_COUNT_EQ, ALG_AFFINE_EQ, ALG_SUM_EQ_C
 
 
 class MagicSequenceProblem(Problem):
@@ -28,7 +28,7 @@ class MagicSequenceProblem(Problem):
         :param n: the size of the sequence
         :type n: int
         """
-        super().__init__([(0, n)] * n)
+        super().__init__([(0, n - 1)] * n)
         for i in range(n):
             self.add_propagator(ALG_COUNT_EQ, list(range(n)) + [i], [i])
         # redundant constraints

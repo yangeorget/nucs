@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 
 
 def get_complexity_add_c_eq(n: int, parameters: NDArray) -> int:
@@ -69,8 +69,8 @@ def compute_domains_add_c_eq(domains: NDArray, parameters: NDArray) -> int:
     y[MAX] = min(y[MAX], x[MAX] + c)
     if y[MIN] > y[MAX]:
         return PROP_INCONSISTENCY
-    x[MIN] = max(x[MIN], y[MIN] - c)
-    x[MAX] = min(x[MAX], y[MAX] - c)
-    if x[MIN] > x[MAX]:
-        return PROP_INCONSISTENCY
+    x[MIN] = y[MIN] - c
+    x[MAX] = y[MAX] - c
+    if x[MIN] == x[MAX]:
+        return PROP_ENTAILMENT
     return PROP_CONSISTENCY

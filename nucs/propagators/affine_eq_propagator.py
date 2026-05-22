@@ -85,8 +85,10 @@ def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
                 domain_sum_max += factor * x_max
             if factor != 0 and x_min < x_max:
                 unbound_count += 1
+        if domain_sum_max > 0 or domain_sum_min < 0:
+            return PROP_INCONSISTENCY
         if unbound_count == 0:
-            return PROP_ENTAILMENT if domain_sum_min == 0 else PROP_INCONSISTENCY
+            return PROP_ENTAILMENT
         for i in range(n):
             factor = factors[i]
             if factor == 0:

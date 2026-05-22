@@ -14,7 +14,7 @@ from typing import List, Optional, Tuple, Union
 
 import pytest
 
-from nucs.constants import PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.abs_eq_propagator import compute_domains_abs_eq
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -23,8 +23,9 @@ class TestAbsEq(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
+            ([(1, 4), (-2, -1)], [], PROP_INCONSISTENCY, [[1, -1], [1, -1]]),
             ([(-4, 4), (-5, 5)], [], PROP_CONSISTENCY, [[-4, 4], [0, 4]]),
-            ([(-4, 4), (-5, 0)], [], PROP_CONSISTENCY, [[0, 0], [0, 0]]),
+            ([(-4, 4), (-5, 0)], [], PROP_ENTAILMENT, [[0, 0], [0, 0]]),
             ([(2, 4), (-5, 5)], [], PROP_CONSISTENCY, [[2, 4], [2, 4]]),
             ([(-4, -2), (-5, 5)], [], PROP_CONSISTENCY, [[-4, -2], [2, 4]]),
             # y[MIN] > 0 branch, y narrowed by x
