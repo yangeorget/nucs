@@ -243,6 +243,6 @@ def update_propagators(
     propagator_nb: int,
 ) -> None:
     membership_offset = STORAGE_OFFSET + propagator_nb
-    for prop_idx in triggers[1 : triggers[0] + 1]:
+    for prop_idx in triggers[1: triggers[0] + 1]:
         if not entailed_propagators[prop_idx]:
             buckets_add(triggered_propagators, priorities, prop_idx, membership_offset)
