@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -61,23 +60,22 @@ def compute_domains_and_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     x = domains[:-1]
     y = domains[-1]
-    if np.any(x[:, MAX] == 0):
-        y[MAX] = 0
-        return PROP_INCONSISTENCY if y[MIN] > y[MAX] else PROP_ENTAILMENT
-    if np.all(x[:, MIN] == 1):
+    undetermined_nb = 0
+    candidate_idx = -1
+    for i in range(len(x)):
+        if x[i, MAX] == 0:  # some b_i is 0, so the conjunction is 0
+            y[MAX] = 0
+            return PROP_INCONSISTENCY if y[MIN] > y[MAX] else PROP_ENTAILMENT
+        if x[i, MIN] == 0:  # b_i is undetermined
+            undetermined_nb += 1
+            candidate_idx = i
+    if undetermined_nb == 0:  # all b_i are 1, so the conjunction is 1
         y[MIN] = 1
         return PROP_INCONSISTENCY if y[MIN] > y[MAX] else PROP_ENTAILMENT
-    if y[MIN] == 1:
+    if y[MIN] == 1:  # the conjunction is 1, so all b_i are 1
         x[:, MIN] = 1
         return PROP_ENTAILMENT  # no need to check for inconsistency
-    elif y[MAX] == 0:
-        candidates_nb = 0
-        candidate_idx = -1
-        for i in range(len(x)):
-            if x[i, MIN] == 0:
-                candidate_idx = i
-                candidates_nb += 1
-        if candidates_nb == 1:
-            x[candidate_idx, MAX] = 0
-            return PROP_ENTAILMENT  # no need to check for inconsistency
+    if y[MAX] == 0 and undetermined_nb == 1:  # the conjunction is 0 with a single undetermined b_i
+        x[candidate_idx, MAX] = 0
+        return PROP_ENTAILMENT  # no need to check for inconsistency
     return PROP_CONSISTENCY

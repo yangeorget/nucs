@@ -109,6 +109,4 @@ def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
             if new_max < x_max:
                 domains[i, MAX] = new_max
                 has_changed = True
-            if domains[i, MIN] > domains[i, MAX]:
-                return PROP_INCONSISTENCY
     return PROP_CONSISTENCY
