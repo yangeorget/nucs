@@ -73,21 +73,19 @@ def compute_domains_permutation_aux(domains: NDArray, parameters: NDArray) -> in
 @njit(cache=True, fastmath=True)
 def filter_domains_permutation(n: int, next: NDArray, prev: NDArray) -> bool:
     for j in range(n):
-        if prev[j, MIN] == prev[j, MAX]:
-            i = prev[j, MIN]
-            next[i] = j
+        lo = prev[j, MIN]
+        hi = prev[j, MAX]
+        if lo == hi:
+            next[lo] = j
         else:
-            start = -1
-            for i in range(prev[j, MIN], prev[j, MAX] + 1):
-                if j < next[i, MIN] or j > next[i, MAX]:  # then prev[j] != i
-                    if start == -1:
-                        start = i
-                    if i == prev[j, MIN]:
-                        prev[j, MIN] += 1
-                else:
-                    start = -1
-            if start >= 0:
-                prev[j, MAX] = start - 1
-                if prev[j, MAX] < prev[j, MIN]:
-                    return False
+            # raise the lower bound past the leading i where prev[j] != i (j is outside next[i])
+            while lo <= hi and (j < next[lo, MIN] or j > next[lo, MAX]):
+                lo += 1
+            if lo > hi:
+                return False
+            prev[j, MIN] = lo
+            # lower the upper bound past the trailing i where prev[j] != i
+            while j < next[hi, MIN] or j > next[hi, MAX]:
+                hi -= 1
+            prev[j, MAX] = hi
     return True
