@@ -71,6 +71,8 @@ def compute_domains_min_geq(domains: NDArray, parameters: NDArray) -> int:
     x = domains[:-1]
     y = domains[-1]
     n = len(x)
+    # min_i x_i >= y means every x_i >= y, and y <= min_i x_i. The constraint is entailed once even
+    # the smallest x_i[MIN] cannot fall below y, so that cheap test is done first in its own short loop.
     y_min = y[MIN]
     y_max = y[MAX]
     min_x_min = x[0, MIN]
@@ -79,6 +81,8 @@ def compute_domains_min_geq(domains: NDArray, parameters: NDArray) -> int:
             min_x_min = x[i, MIN]
     if y_max <= min_x_min:
         return PROP_ENTAILMENT
+    # Otherwise a single fused loop raises each x_i[MIN] to y_min (with an inline inconsistency check)
+    # while accumulating min_x_max, which then lowers y[MAX]; no second pass over x is needed.
     min_x_max = x[0, MAX]
     for i in range(n):
         if x[i, MAX] < min_x_max:

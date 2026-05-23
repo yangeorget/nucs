@@ -61,6 +61,10 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray) -> int:
     a = int(parameters[0])
     x = domains[:-1]
     counter = domains[-1]
+    # count_min = number of x_i already fixed to a, count_max = number that can still equal a;
+    # the counter must lie in [count_min, count_max]. The counter bounds are read once into locals,
+    # and the loop bails out as soon as count_max drops below them (too few possible) or count_min
+    # rises above them (too many forced), saving the rest of the scan.
     counter_min = counter[MIN]
     counter_max = counter[MAX]
     count_max = len(x)
@@ -68,11 +72,11 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray) -> int:
     for x_i in x:
         x_i_min = x_i[MIN]
         x_i_max = x_i[MAX]
-        if x_i_min > a or x_i_max < a:
+        if x_i_min > a or x_i_max < a:  # a is not in the domain: this x_i can never equal a
             count_max -= 1
             if count_max < counter_min:
                 return PROP_INCONSISTENCY
-        elif x_i_min == a and x_i_max == a:
+        elif x_i_min == a and x_i_max == a:  # x_i is fixed to a
             count_min += 1
             if count_min > counter_max:
                 return PROP_INCONSISTENCY

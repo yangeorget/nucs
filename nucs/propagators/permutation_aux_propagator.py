@@ -72,16 +72,20 @@ def compute_domains_permutation_aux(domains: NDArray, parameters: NDArray) -> in
 
 @njit(cache=True, fastmath=True)
 def filter_domains_permutation(n: int, next: NDArray, prev: NDArray) -> bool:
+    # next and prev are inverse: prev[j] = i iff next[i] = j. So prev[j] can take value i only when
+    # j belongs to next[i]'s domain; the test (j < next[i, MIN] or j > next[i, MAX]) means prev[j] != i.
+    # Since prev[j]'s feasible values form a contiguous run, we trim its domain from both ends with two
+    # pointers, touching only the infeasible prefix and suffix instead of scanning the whole range.
     for j in range(n):
         lo = prev[j, MIN]
         hi = prev[j, MAX]
-        if lo == hi:
+        if lo == hi:  # prev[j] is fixed, propagate it to next
             next[lo] = j
         else:
             # raise the lower bound past the leading i where prev[j] != i (j is outside next[i])
             while lo <= hi and (j < next[lo, MIN] or j > next[lo, MAX]):
                 lo += 1
-            if lo > hi:
+            if lo > hi:  # no feasible value left
                 return False
             prev[j, MIN] = lo
             # lower the upper bound past the trailing i where prev[j] != i

@@ -65,13 +65,15 @@ def compute_domains_mul_c_eq(domains: NDArray, parameters: NDArray) -> int:
     x = domains[0]
     y = domains[1]
     c = int(parameters[0])
-    if c == 0:
+    if c == 0:  # the constraint degenerates to y == 0
         if y[MIN] > 0 or y[MAX] < 0:
             return PROP_INCONSISTENCY
         y[:] = 0
         return PROP_ENTAILMENT
-    # The fixpoint of x * c = y has a closed form: tighten x from y (with ceil/floor
-    # rounding), then set y to the exact image c * x, which needs no further iteration.
+    # The fixpoint of x * c = y has a closed form, so the former has_changed loop is unnecessary:
+    # tighten x by dividing y's bounds by c (ceil for the lower bound via -((-v) // c), floor for
+    # the upper, with the bounds swapped when c < 0), then set y to the exact image c * x. Because
+    # x is now bound-consistent, c * x reproduces y's bounds and no second iteration can tighten.
     if c > 0:
         new_x_min = max(x[MIN], -((-y[MIN]) // c))
         new_x_max = min(x[MAX], y[MAX] // c)

@@ -13,7 +13,15 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MAX, EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    EVENT_MASK_MAX,
+    EVENT_MASK_MIN_MAX,
+    MAX,
+    MIN,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_abs_eq(n: int, parameters: NDArray) -> int:
@@ -62,6 +70,10 @@ def compute_domains_abs_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     y = domains[0]
     x = domains[1]
+    # Three cases on the sign of y. When y is strictly positive (resp. negative) abs is monotone,
+    # so x and y are tied together: the mirrored assignments below leave x and y with identical
+    # bounds, hence testing x alone suffices for inconsistency and entailment (entailment as soon
+    # as x is bound, which avoids being re-woken for nothing).
     if y[MIN] > 0:
         if y[MIN] > x[MIN]:
             x[MIN] = y[MIN]
@@ -89,6 +101,8 @@ def compute_domains_abs_eq(domains: NDArray, parameters: NDArray) -> int:
         if x[MIN] == x[MAX]:
             return PROP_ENTAILMENT
     else:
+        # 0 lies in y's range: x ranges in [0, max(-y[MIN], y[MAX])] and y in [-x[MAX], x[MAX]].
+        # Here y drives the result, so entailment is reported once y is bound.
         if x[MIN] < 0:
             x[MIN] = 0
         max_y = max(-y[MIN], y[MAX])

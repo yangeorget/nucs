@@ -60,6 +60,9 @@ def compute_domains_and_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     x = domains[:-1]
     y = domains[-1]
+    # A single scan replaces the former np.any / np.all reductions plus a separate candidate search:
+    # it detects a false b_i (which forces the conjunction to 0), counts the undetermined b_i and
+    # remembers the last one, so the cases below resolve from these two values alone.
     undetermined_nb = 0
     candidate_idx = -1
     for i in range(len(x)):

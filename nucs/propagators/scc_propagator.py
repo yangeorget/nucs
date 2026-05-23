@@ -76,6 +76,11 @@ def compute_domains_scc(domains: NDArray, parameters: NDArray) -> int:
     """
     Enforces that the digraph whose arcs are i -> j for j in [domains[i, MIN], domains[i, MAX]] is strongly connected.
 
+    A digraph is strongly connected iff, from any single root (node 0), every node is reachable
+    (forward DFS) and the root is reachable from every node (backward DFS). Both searches are
+    iterative with an explicit stack: the former recursive dfs_row / dfs_col helpers could not use
+    cache=True because of a Numba issue with cached recursion.
+
     The out-neighbors of every node form a contiguous interval, so the forward traversal never
     materializes the adjacency matrix and skips already-visited ranges via a union-find.
 

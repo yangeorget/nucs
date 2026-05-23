@@ -63,6 +63,9 @@ def compute_domains_min_eq(domains: NDArray, parameters: NDArray) -> int:
     x = domains[:-1]
     y = domains[-1]
     n = len(x)
+    # y = min_i x_i, so y is bounded by [min of the x mins, min of the x maxes]. A single manual
+    # loop computes both reductions at once (replacing two np.min passes) and y's bounds are kept in
+    # locals to avoid repeated array indexing.
     min_x_min = x[0, MIN]
     min_x_max = x[0, MAX]
     for i in range(1, n):
@@ -80,6 +83,8 @@ def compute_domains_min_eq(domains: NDArray, parameters: NDArray) -> int:
         y[MAX] = y_max
     if y_min > y_max:
         return PROP_INCONSISTENCY
+    # No x_i may fall below y, so raise every x_i[MIN] to y_min. If a single x_i can still reach
+    # y_min it is the only one able to attain the minimum, hence it must be at most y_max.
     candidates_nb = 0
     candidate_idx = -1
     for i in range(n):

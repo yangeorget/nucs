@@ -65,10 +65,14 @@ def compute_domains_add_c_eq(domains: NDArray, parameters: NDArray) -> int:
     x = domains[0]
     y = domains[1]
     c = int(parameters[0])
+    # Tighten y against x + c first.
     y[MIN] = max(y[MIN], x[MIN] + c)
     y[MAX] = min(y[MAX], x[MAX] + c)
     if y[MIN] > y[MAX]:
         return PROP_INCONSISTENCY
+    # y is now contained in [x[MIN] + c, x[MAX] + c], so y - c lies inside x's current bounds:
+    # we can assign x directly instead of intersecting (no max/min) and skip its inconsistency
+    # check since y[MIN] <= y[MAX] already guarantees x[MIN] <= x[MAX].
     x[MIN] = y[MIN] - c
     x[MAX] = y[MAX] - c
     if x[MIN] == x[MAX]:

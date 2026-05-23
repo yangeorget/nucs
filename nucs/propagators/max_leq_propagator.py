@@ -69,6 +69,8 @@ def compute_domains_max_leq(domains: NDArray, parameters: NDArray) -> int:
     x = domains[:-1]
     y = domains[-1]
     n = len(x)
+    # max_i x_i <= y means every x_i <= y, and y >= max_i x_i. The constraint is entailed once even
+    # the largest x_i[MAX] cannot exceed y, so that cheap test is done first in its own short loop.
     y_min = y[MIN]
     y_max = y[MAX]
     max_x_max = x[0, MAX]
@@ -77,6 +79,8 @@ def compute_domains_max_leq(domains: NDArray, parameters: NDArray) -> int:
             max_x_max = x[i, MAX]
     if max_x_max <= y_min:
         return PROP_ENTAILMENT
+    # Otherwise a single fused loop caps each x_i[MAX] at y_max (with an inline inconsistency check)
+    # while accumulating max_x_min, which then raises y[MIN]; no second pass over x is needed.
     max_x_min = x[0, MIN]
     for i in range(n):
         if x[i, MIN] > max_x_min:

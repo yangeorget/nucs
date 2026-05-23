@@ -71,6 +71,9 @@ def compute_domains_affine_geq(domains: NDArray, parameters: NDArray) -> int:
     """
     factors = parameters[:-1]
     n = len(factors)
+    # domain_sum_min / domain_sum_max bracket the value of (sum a_i * x_i - a_n): domain_sum_min is
+    # its largest possible value, domain_sum_max its smallest. The constraint holds when this value
+    # can be >= 0, i.e. domain_sum_min >= 0; it is entailed once domain_sum_max >= 0.
     domain_sum_min = domain_sum_max = -parameters[-1]
     for i in range(n):
         factor = factors[i]

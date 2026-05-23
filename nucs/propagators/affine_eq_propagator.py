@@ -68,6 +68,9 @@ def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     factors = parameters[:-1]
     n = len(factors)
+    # domain_sum_min / domain_sum_max bracket the value of (sum a_i * x_i - a_n): domain_sum_min is
+    # its largest possible value, domain_sum_max its smallest (the swapped naming is shared with the
+    # geq/leq propagators). The bounds are recomputed and re-filtered until a fixpoint is reached.
     has_changed = True
     while has_changed:
         has_changed = False
@@ -85,6 +88,9 @@ def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
                 domain_sum_max += factor * x_max
             if factor != 0 and x_min < x_max:
                 unbound_count += 1
+        # If the sum is forced strictly above or below a_n the equality is unsatisfiable. This single
+        # global test catches every inconsistency, so the per-variable x[MIN] > x[MAX] check that used
+        # to sit inside the filtering loop below is redundant and was dropped.
         if domain_sum_max > 0 or domain_sum_min < 0:
             return PROP_INCONSISTENCY
         if unbound_count == 0:

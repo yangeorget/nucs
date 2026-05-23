@@ -61,6 +61,9 @@ def compute_domains_max_eq(domains: NDArray, parameters: NDArray) -> int:
     x = domains[:-1]
     y = domains[-1]
     n = len(x)
+    # y = max_i x_i, so y is bounded by [max of the x mins, max of the x maxes]. A single manual
+    # loop computes both reductions at once (replacing two np.max passes) and y's bounds are kept in
+    # locals to avoid repeated array indexing.
     max_x_min = x[0, MIN]
     max_x_max = x[0, MAX]
     for i in range(1, n):
@@ -78,6 +81,8 @@ def compute_domains_max_eq(domains: NDArray, parameters: NDArray) -> int:
         y[MAX] = y_max
     if y_min > y_max:
         return PROP_INCONSISTENCY
+    # No x_i may exceed y, so cap every x_i[MAX] at y_max. If a single x_i can still reach y_max it
+    # is the only one able to attain the maximum, hence it must be at least y_min.
     candidates_nb = 0
     candidate_idx = -1
     for i in range(n):
