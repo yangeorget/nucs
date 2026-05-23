@@ -27,7 +27,7 @@ classifiers = [
 ]
 dependencies = [
     "numba==0.65.1",
-    "numpy==2.4.4",
+    "numpy==2.4.6",
     "rich==14.3.3"
 ]
 [project.optional-dependencies]
