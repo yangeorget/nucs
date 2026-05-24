@@ -244,10 +244,10 @@ def update_domains(
                     unbound_variable_nb_stk[top] -= 1
                 propagators = triggers[variable, events]
                 for other_prop_idx in propagators[1 : propagators[0] + 1]:
-                    if (
-                        not triggered_propagators[membership_offset + other_prop_idx]
-                        and other_prop_idx != prop_idx
-                        and not entailed_propagators[other_prop_idx]
+                    if not (
+                        triggered_propagators[membership_offset + other_prop_idx]
+                        or other_prop_idx == prop_idx
+                        or entailed_propagators[other_prop_idx]
                     ):
                         buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
                 no_changes = False
