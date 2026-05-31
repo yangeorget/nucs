@@ -21,5 +21,5 @@ if __name__ == "__main__":
     parser.add_argument("-n", type=int, default=100)
     args = parser.parse_args()
     problem = MagicSequenceProblem(args.n)
-    kwargs = solver_kwargs_from_args(args, decision_variables=list(range(args.n - 1, -1, -1)))
+    kwargs = solver_kwargs_from_args(args)
     run_solver(BacktrackSolver(problem, **kwargs), args)

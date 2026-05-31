@@ -41,33 +41,33 @@ class LatinSquareProblem(Problem):
         self.colors = list(colors)
         self.n = len(self.colors)
         if givens is None:
-            shr_domains = [(self.colors[0], self.colors[-1])] * self.n**2
+            domains = [(self.colors[0], self.colors[-1])] * self.n ** 2
         else:
-            shr_domains = [
+            domains = [
                 (self.colors[0], self.colors[-1]) if given not in self.colors else (given, given)
                 for line in givens
                 for given in line
             ]
-        super().__init__(shr_domains)
+        super().__init__(domains)
         for i in range(self.n):
             self.add_propagator(ALG_ALLDIFFERENT, self.row(i))
             self.add_propagator(ALG_ALLDIFFERENT, self.column(i))
 
     def cell(self, i: int, j: int, model: int = M_COLOR) -> int:
-        offset = model * (self.n**2)
+        offset = model * (self.n ** 2)
         return offset + i * self.n + j
 
     def row(self, i: int, model: int = M_COLOR) -> Iterable[int]:
-        offset = model * (self.n**2)
+        offset = model * (self.n ** 2)
         return range(offset + i * self.n, offset + self.n + i * self.n)
 
     def column(self, j: int, model: int = M_COLOR) -> Iterable[int]:
-        offset = model * (self.n**2)
-        return range(offset + j, offset + self.n**2 + j, self.n)
+        offset = model * (self.n ** 2)
+        return range(offset + j, offset + self.n ** 2 + j, self.n)
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         solution_as_list = solution.tolist()
-        return [solution_as_list[i : i + self.n] for i in range(0, self.n**2, self.n)]
+        return [solution_as_list[i: i + self.n] for i in range(0, self.n ** 2, self.n)]
 
 
 class LatinSquareRCProblem(LatinSquareProblem):
@@ -86,8 +86,8 @@ class LatinSquareRCProblem(LatinSquareProblem):
         :type n: int
         """
         super().__init__(range(n))  # the color model
-        self.add_variables([(0, n - 1)] * n**2)  # the row model
-        self.add_variables([(0, n - 1)] * n**2)  # the column model
+        self.add_variables([(0, n - 1)] * n ** 2)  # the row model
+        self.add_variables([(0, n - 1)] * n ** 2)  # the column model
         for i in range(self.n):
             self.add_propagator(ALG_ALLDIFFERENT, self.row(i, M_ROW))
             self.add_propagator(ALG_ALLDIFFERENT, self.column(i, M_ROW))

@@ -11,7 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_COUNT_EQ, ALG_AFFINE_EQ, ALG_SUM_EQ_C
+from nucs.propagators.propagators import ALG_COUNT_EQ, ALG_SUM_EQ_C, ALG_AFFINE_EQ
 
 
 class MagicSequenceProblem(Problem):
