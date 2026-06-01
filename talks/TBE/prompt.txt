@@ -1,0 +1,7 @@
+I would like to make a 60 minutes presentation on constraint programming to my team. The audience is a team of engineers with computer science background but no knowledge of constraint programming.
+
+The presentation should focus on constraint programming on integers. It can leverage NuCS to give precise examples.
+
+The presentation could start about NP completeness, some theory about constraint programming.
+Then it could give some examples of common problems (travelling salesman, sudokus, golomb ruler for example) and how to solve them.
+Then it could explain how a constraint solver is build. The output should be a markdown file that I will convert into PDF with Mart.

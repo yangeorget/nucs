@@ -15,7 +15,7 @@ from typing import Any, Iterable
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_COUNT_EQ, ALG_COUNT_EQ_C, ALG_COUNT_LEQ_C
+from nucs.propagators.propagators import ALG_COUNT_EQ, ALG_COUNT_LEQ_C, ALG_SUM_EQ_C
 
 
 # TODO: use GCC instead of booleans
@@ -72,7 +72,7 @@ class EmployeeSchedulingProblem(Problem):
         self.satisfied_request_nb = self.add_variable((0, self.shift_total_nb))  # the number of satisfied requests
         for d in range(self.day_nb):
             for s in range(self.shift_nb):
-                self.add_propagator(ALG_COUNT_EQ_C, self.nurses(d, s), [1, 1])
+                self.add_propagator(ALG_SUM_EQ_C, self.nurses(d, s), [1])
         for d in range(self.day_nb):
             for n in range(self.nurse_nb):
                 self.add_propagator(ALG_COUNT_LEQ_C, self.shifts(d, n), [1, 1])
