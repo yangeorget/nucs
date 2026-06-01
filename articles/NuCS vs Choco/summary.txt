@@ -1,0 +1,28 @@
+Title:
+NuCS vs Choco: a pure-Python solver meets a JVM veteran
+
+Article:
+https://github.com/yangeorget/nucs/blob/main/articles/NuCS%20vs%20Choco/nucs-vs-choco.md
+
+Summary:
+NuCS (https://github.com/yangeorget/nucs), a constraint solver written entirely in Python, is benchmarked against Choco
+(https://github.com/chocoteam/choco-solver), a mature Java solver with two decades of optimization behind it. The
+results upend the expected mismatch.
+
+Same model, same speed. Run both on an identical formulation and the curves overlap — NuCS even pulls ahead on the
+largest instances. Once Numba compiles the inner loops, the Python penalty disappears.
+
+Different models, decisive wins. On Latin squares and magic sequences, NuCS is 13x and 40x faster — not because of the
+language, but the model. Cheap redundant constraints and channeling recover most of what Choco's heavyweight
+arc-consistent globals provide, at a fraction of the per-node cost.
+
+Where Choco holds the edge. On the Golomb ruler, its richer domains prune in ways plain NuCS can't — until a short
+custom propagator closes the gap to within 2%.
+
+The root cause. One design choice explains everything: NuCS stores each domain as a min..max interval (compact,
+vectorizable, but limited to bound consistency), while Choco can remove values from the middle of a domain and run full
+arc consistency. That single difference shapes what each solver is good at.
+
+There's no overall winner — just two different bets. Choco offers a deep catalog of battle-tested global constraints;
+NuCS lets you reshape a model in a few lines of Python and still get native-code speed. Increasingly, that modeling
+freedom matters more than raw engine performance.
