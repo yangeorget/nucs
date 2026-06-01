@@ -12,3 +12,4 @@ profile.pstats
 NUCS.egg-info
 .DS_Store
 papers
+*.private.*
