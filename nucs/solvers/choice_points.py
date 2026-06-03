@@ -10,6 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -51,10 +52,9 @@ def cp_init(
     """
     domains_stk[0] = domains_arr
     entailed_propagator_depths.fill(-1)
-    entailment_trail[0] = 0
     domain_update_stk.fill(0)
     unbound_variable_nb_stk[0] = unbound_variable_nb
-    stks_top[0] = 0
+    entailment_trail[0] = stks_top[0] = 0
 
 
 @njit(cache=True, fastmath=True)
@@ -192,12 +192,10 @@ def fix_choice_points(
         return False
     stks_top[0] -= 1
     for stks_idx in range(stks_top[0], -1, -1):
-        was_bound = domains_stk[stks_idx, variable, MAX] == domains_stk[stks_idx, variable, MIN]
-        if bound == MIN:
-            domains_stk[stks_idx, variable, bound] = max(value + 1, domains_stk[stks_idx, variable, bound])
-        else:
-            domains_stk[stks_idx, variable, bound] = min(value - 1, domains_stk[stks_idx, variable, bound])
-        range_sz = domains_stk[stks_idx, variable, MAX] - domains_stk[stks_idx, variable, MIN]
+        domain = domains_stk[stks_idx, variable]
+        was_bound = domain[MAX] == domain[MIN]
+        domain[bound] = max(value + 1, domain[bound]) if bound == MIN else min(value - 1, domain[bound])
+        range_sz = domain[MAX] - domain[MIN]
         if range_sz < 0:
             if stks_top[0] == 0:
                 unwind_entailment_trail(entailed_propagator_depths, entailment_trail, stks_top[0])
@@ -235,11 +233,9 @@ def fix_choice_point(
     :return: true iff the resulting domain is non-empty
     :rtype: bool
     """
-    if bound == MIN:
-        domains_stk[0, variable, bound] = value + 1
-    else:
-        domains_stk[0, variable, bound] = value - 1
-    range_sz = domains_stk[0, variable, MAX] - domains_stk[0, variable, MIN]
+    domain = domains_stk[0, variable]
+    domain[bound] = value + (1 if bound == MIN else -1)
+    range_sz = domain[MAX] - domain[MIN]
     if range_sz < 0:
         return False
     if range_sz == 0:
