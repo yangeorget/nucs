@@ -237,12 +237,12 @@ ALG_SUM_LEQ_C = register_propagator(get_triggers_sum_leq_c, get_complexity_sum_l
 @njit(cache=True, fastmath=True)
 def update_propagators(
     triggered_propagators: NDArray,
-    entailed_propagators: NDArray,
+    entailed_propagator_depths: NDArray,
     triggers: NDArray,
     priorities: NDArray,
     propagator_nb: int,
 ) -> None:
     membership_offset = STORAGE_OFFSET + propagator_nb
     for prop_idx in triggers[1 : triggers[0] + 1]:
-        if not entailed_propagators[prop_idx]:
+        if entailed_propagator_depths[prop_idx] == -1:
             buckets_add(triggered_propagators, priorities, prop_idx, membership_offset)

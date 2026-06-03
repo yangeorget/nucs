@@ -149,7 +149,11 @@ class BacktrackSolver(Solver, QueueSolver):
         self.domain_buffer = get_domain_buffer(problem.bounds)
         logger.debug("Initializing choice points")
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
-        self.entailed_propagators_stk = np.empty((stks_max_height, self.problem.propagator_nb), dtype=np.bool)
+        # entailment is tracked by a trail rather than a per-level array: entailed_propagator_depths[p]
+        # holds the depth at which propagator p was entailed (-1 when active), entailment_trail records the
+        # entailed propagators in order (its first cell is the trail size) so backtracking can reactivate them
+        self.entailed_propagator_depths = np.empty(self.problem.propagator_nb, dtype=np.int32)
+        self.entailment_trail = np.empty(self.problem.propagator_nb + 1, dtype=np.int32)
         self.domain_update_stk = np.empty((stks_max_height, 2), dtype=np.uint32)
         self.unbound_variable_nb_stk = np.empty(stks_max_height, dtype=np.uint32)
         self.stks_top = np.ones((1,), dtype=np.uint32)
@@ -157,7 +161,8 @@ class BacktrackSolver(Solver, QueueSolver):
         self.initial_domains = np.array(problem.domains)
         cp_init(
             self.domains_stk,
-            self.entailed_propagators_stk,
+            self.entailed_propagator_depths,
+            self.entailment_trail,
             self.domain_update_stk,
             self.unbound_variable_nb_stk,
             self.stks_top,
@@ -280,7 +285,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_parameters,
                 self.problem.triggers,
                 self.domains_stk,
-                self.entailed_propagators_stk,
+                self.entailed_propagator_depths,
+                self.entailment_trail,
                 self.domain_update_stk,
                 self.unbound_variable_nb_stk,
                 self.stks_top,
@@ -301,7 +307,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 logger.debug("Resetting solver")
                 cp_init(
                     self.domains_stk,
-                    self.entailed_propagators_stk,
+                    self.entailed_propagator_depths,
+                    self.entailment_trail,
                     self.domain_update_stk,
                     self.unbound_variable_nb_stk,
                     self.stks_top,
@@ -320,6 +327,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 logger.debug("Pruning choice points")
                 if not fix_choice_points(
                     self.domains_stk,
+                    self.entailed_propagator_depths,
+                    self.entailment_trail,
                     self.unbound_variable_nb_stk,
                     self.stks_top,
                     variable,
@@ -352,7 +361,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_parameters,
                 self.problem.triggers,
                 self.domains_stk,
-                self.entailed_propagators_stk,
+                self.entailed_propagator_depths,
+                self.entailment_trail,
                 self.domain_update_stk,
                 self.unbound_variable_nb_stk,
                 self.stks_top,
@@ -374,7 +384,8 @@ class BacktrackSolver(Solver, QueueSolver):
             t0 = time.perf_counter_ns()
             if not backtrack(
                 self.statistics,
-                self.entailed_propagators_stk,
+                self.entailed_propagator_depths,
+                self.entailment_trail,
                 self.domain_update_stk,
                 self.stks_top,
                 self.triggered_propagators,
@@ -452,7 +463,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_parameters,
                 self.problem.triggers,
                 self.domains_stk,
-                self.entailed_propagators_stk,
+                self.entailed_propagator_depths,
+                self.entailment_trail,
                 self.domain_update_stk,
                 self.unbound_variable_nb_stk,
                 self.stks_top,
@@ -474,7 +486,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 logger.debug("Resetting solver")
                 cp_init(
                     self.domains_stk,
-                    self.entailed_propagators_stk,
+                    self.entailed_propagator_depths,
+                    self.entailment_trail,
                     self.domain_update_stk,
                     self.unbound_variable_nb_stk,
                     self.stks_top,
@@ -493,6 +506,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 logger.debug("Pruning choice points")
                 if not fix_choice_points(
                     self.domains_stk,
+                    self.entailed_propagator_depths,
+                    self.entailment_trail,
                     self.unbound_variable_nb_stk,
                     self.stks_top,
                     variable,
@@ -527,7 +542,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_parameters,
                 self.problem.triggers,
                 self.domains_stk,
-                self.entailed_propagators_stk,
+                self.entailed_propagator_depths,
+                self.entailment_trail,
                 self.domain_update_stk,
                 self.unbound_variable_nb_stk,
                 self.stks_top,
@@ -546,7 +562,8 @@ class BacktrackSolver(Solver, QueueSolver):
             solution_queue.put((processor_idx, solution, self.statistics))
             if not backtrack(
                 self.statistics,
-                self.entailed_propagators_stk,
+                self.entailed_propagator_depths,
+                self.entailment_trail,
                 self.domain_update_stk,
                 self.stks_top,
                 self.triggered_propagators,
@@ -571,7 +588,8 @@ def solve_one(
     propagator_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
-    entailed_propagators_stk: NDArray,
+    entailed_propagator_depths: NDArray,
+    entailment_trail: NDArray,
     domain_update_stk: NDArray,
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
@@ -607,10 +625,10 @@ def solve_one(
     :param domains_stk: a stack of domains,
                         the first level correspond to the current domains, the rest correspond to the choice points
     :type domains_stk: NDArray
-    :param entailed_propagators_stk: a stack of entailed propagators,
-                                     the first level correspond to the propagators currently not entailed,
-                                     the rest correspond to the choice points
-    :type entailed_propagators_stk: NDArray
+    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
+    :type entailed_propagator_depths: NDArray
+    :param entailment_trail: the entailment trail, the first cell holds the trail size
+    :type entailment_trail: NDArray
     :param domain_update_stk: the stack of domain updates
     :type domain_update_stk: NDArray
     :param unbound_variable_nb_stk: the stack of the unbound variables nb
@@ -658,7 +676,8 @@ def solve_one(
             propagator_parameters,
             triggers,
             domains_stk,
-            entailed_propagators_stk,
+            entailed_propagator_depths,
+            entailment_trail,
             domain_update_stk,
             unbound_variable_nb_stk,
             stks_top,
@@ -675,7 +694,7 @@ def solve_one(
             variable = var_heuristic_fct(decision_variables, domains_stk, top, var_heuristic_params)
             events = dom_heuristic_fct(
                 domains_stk,
-                entailed_propagators_stk,
+                entailed_propagator_depths,
                 domain_update_stk,
                 unbound_variable_nb_stk,
                 stks_top,
@@ -685,7 +704,7 @@ def solve_one(
             top = stks_top[0]
             update_propagators(
                 triggered_propagators,
-                entailed_propagators_stk[top],
+                entailed_propagator_depths,
                 triggers[variable, events],
                 priorities,
                 propagator_nb,
@@ -695,7 +714,8 @@ def solve_one(
                 statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = top
         elif not backtrack(
             statistics,
-            entailed_propagators_stk,
+            entailed_propagator_depths,
+            entailment_trail,
             domain_update_stk,
             stks_top,
             triggered_propagators,

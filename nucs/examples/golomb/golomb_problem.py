@@ -129,7 +129,8 @@ def golomb_consistency_algorithm(
     propagator_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
-    entailed_propagators_stk: NDArray,
+    entailed_propagator_depths: NDArray,
+    entailment_trail: NDArray,
     domain_update_stk: NDArray,
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
@@ -181,7 +182,7 @@ def golomb_consistency_algorithm(
                         unbound_variable_nb_stk[top] -= 1
                     update_propagators(
                         triggered_propagators,
-                        entailed_propagators_stk[top],
+                        entailed_propagator_depths,
                         triggers[var, events],
                         complexities,
                         propagator_nb,
@@ -197,7 +198,8 @@ def golomb_consistency_algorithm(
         propagator_parameters,
         triggers,
         domains_stk,
-        entailed_propagators_stk,
+        entailed_propagator_depths,
+        entailment_trail,
         domain_update_stk,
         unbound_variable_nb_stk,
         stks_top,

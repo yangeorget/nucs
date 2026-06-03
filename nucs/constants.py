@@ -12,7 +12,7 @@
 ###############################################################################
 import os
 
-from numba import bool, int32, int64, types, uint8, uint32, uint64  # type: ignore
+from numba import int32, int64, types, uint8, uint32, uint64  # type: ignore
 
 # Optimizer modes
 OPTIM_RESET = "RESET"
@@ -71,7 +71,8 @@ SIGN_CONSISTENCY_ALG = int64(
     int32[:],  # propagator_parameters
     int32[:, :, :],  # triggers
     int32[:, :, :],  # domains_stk
-    bool[:, :],  # entailed_propagators_stk
+    int32[:],  # entailed_propagator_depths
+    int32[:],  # entailment_trail
     uint32[:, :],  # domain_update_stk
     uint32[:],  # unbound_variable_nb_stk
     uint32[:],  # stks_top
@@ -84,7 +85,7 @@ TYPE_CONSISTENCY_ALG = types.FunctionType(SIGN_CONSISTENCY_ALG)
 
 SIGN_DOM_HEURISTIC = int64(
     int32[:, :, :],  # domains_stk
-    bool[:, :],  # entailed_propagators_stk
+    int32[:],  # entailed_propagator_depths
     uint32[:, :],  # domain_update_stk
     uint32[:],  # unbound_variable_nb_stk
     uint32[:],  # stks_top

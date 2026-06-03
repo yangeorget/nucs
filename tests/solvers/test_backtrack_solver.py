@@ -60,7 +60,8 @@ class TestBacktrackSolver:
             problem.propagator_parameters,
             problem.triggers,
             solver.domains_stk,
-            solver.entailed_propagators_stk,
+            solver.entailed_propagator_depths,
+            solver.entailment_trail,
             solver.domain_update_stk,
             solver.unbound_variable_nb_stk,
             solver.stks_top,
@@ -83,7 +84,8 @@ class TestBacktrackSolver:
         membership_offset = STORAGE_OFFSET + problem.propagator_nb
         assert backtrack(
             solver.statistics,
-            solver.entailed_propagators_stk,
+            solver.entailed_propagator_depths,
+            solver.entailment_trail,
             solver.domain_update_stk,
             solver.stks_top,
             solver.triggered_propagators,

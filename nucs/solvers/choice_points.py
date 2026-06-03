@@ -20,7 +20,8 @@ from nucs.propagators.propagators import update_propagators
 @njit(cache=True, fastmath=True)
 def cp_init(
     domains_stk: NDArray,
-    entailed_propagators_stk: NDArray,
+    entailed_propagator_depths: NDArray,
+    entailment_trail: NDArray,
     domain_update_stk: NDArray,
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
@@ -32,8 +33,11 @@ def cp_init(
 
     :param domains_stk: the stack of domains
     :type domains_stk: NDArray
-    :param entailed_propagators_stk: the stack of entailed propagators
-    :type entailed_propagators_stk: NDArray
+    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
+    :type entailed_propagator_depths: NDArray
+    :param entailment_trail: the entailment trail, the first cell holds the trail size,
+                             the following cells hold the indices of the entailed propagators in entailment order
+    :type entailment_trail: NDArray
     :param domain_update_stk: the stack of domain updates
     :type domain_update_stk: NDArray
     :param unbound_variable_nb_stk: the stack of unbound variable nb
@@ -46,35 +50,63 @@ def cp_init(
     :type unbound_variable_nb: int
     """
     domains_stk[0] = domains_arr
-    entailed_propagators_stk[0] = False
+    entailed_propagator_depths.fill(-1)
+    entailment_trail[0] = 0
     domain_update_stk.fill(0)
     unbound_variable_nb_stk[0] = unbound_variable_nb
     stks_top[0] = 0
 
 
 @njit(cache=True, fastmath=True)
-def cp_put(domains_stk: NDArray, entailed_propagators_stk: NDArray, unbound_variable_nb_stk: NDArray, top: int) -> None:
+def cp_put(
+    domains_stk: NDArray, entailed_propagator_depths: NDArray, unbound_variable_nb_stk: NDArray, top: int
+) -> None:
     """
     Adds a choice point to the stack of choice points.
 
+    Entailment is monotonic within a branch, so descending to a deeper choice point requires no entailment
+    bookkeeping: the depths recorded so far stay valid and entailed_propagator_depths is left untouched.
+
     :param domains_stk: the stack of domains
     :type domains_stk: NDArray
-    :param entailed_propagators_stk: the stack of entailed propagators
-    :type entailed_propagators_stk: NDArray
+    :param entailed_propagator_depths: the depth at which each propagator was entailed, unused here
+    :type entailed_propagator_depths: NDArray
     :param unbound_variable_nb_stk: the stack of the unbound variables nb
     :type unbound_variable_nb_stk: NDArray
     :param top: the index of the top of the stacks
     :type top: int
     """
     domains_stk[top + 1] = domains_stk[top]  # copy the domains
-    entailed_propagators_stk[top + 1] = entailed_propagators_stk[top]  # copy the entailed propagators
     unbound_variable_nb_stk[top + 1] = unbound_variable_nb_stk[top]  # copy the number of unbound variables
+
+
+@njit(cache=True, fastmath=True)
+def unwind_entailment_trail(entailed_propagator_depths: NDArray, entailment_trail: NDArray, top: int) -> None:
+    """
+    Reactivates the propagators that were entailed below the current top.
+
+    The trail is ordered by non-decreasing entailment depth, so it suffices to pop, from the top of the trail,
+    every propagator whose entailment depth is strictly greater than the current top and reset it to active.
+
+    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
+    :type entailed_propagator_depths: NDArray
+    :param entailment_trail: the entailment trail, the first cell holds the trail size
+    :type entailment_trail: NDArray
+    :param top: the index of the top of the stacks
+    :type top: int
+    """
+    size = entailment_trail[0]
+    while size > 0 and entailed_propagator_depths[entailment_trail[size]] > top:
+        entailed_propagator_depths[entailment_trail[size]] = -1
+        size -= 1
+    entailment_trail[0] = size
 
 
 @njit(cache=True, fastmath=True)
 def backtrack(
     statistics: NDArray,
-    entailed_propagators_stk: NDArray,
+    entailed_propagator_depths: NDArray,
+    entailment_trail: NDArray,
     domain_update_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
@@ -87,8 +119,10 @@ def backtrack(
 
     :param statistics: the statistics array
     :type statistics: NDArray
-    :param entailed_propagators_stk: the stack of entailed propagators
-    :type entailed_propagators_stk: NDArray
+    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
+    :type entailed_propagator_depths: NDArray
+    :param entailment_trail: the entailment trail, the first cell holds the trail size
+    :type entailment_trail: NDArray
     :param domain_update_stk: the stack of domain updates
     :type domain_update_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
@@ -108,10 +142,11 @@ def backtrack(
     stks_top[0] -= 1
     top = stks_top[0]
     statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
+    unwind_entailment_trail(entailed_propagator_depths, entailment_trail, top)
     domain_update = domain_update_stk[top]
     update_propagators(
         triggered_propagators,
-        entailed_propagators_stk[top],
+        entailed_propagator_depths,
         triggers[domain_update[DOM_UPDATE_VARIABLE], domain_update[DOM_UPDATE_EVENTS]],
         complexities,
         propagator_nb,
@@ -122,6 +157,8 @@ def backtrack(
 @njit(cache=True, fastmath=True)
 def fix_choice_points(
     domains_stk: NDArray,
+    entailed_propagator_depths: NDArray,
+    entailment_trail: NDArray,
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     variable: int,
@@ -133,6 +170,10 @@ def fix_choice_points(
 
     :param domains_stk: the stack of domains
     :type domains_stk: NDArray
+    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
+    :type entailed_propagator_depths: NDArray
+    :param entailment_trail: the entailment trail, the first cell holds the trail size
+    :type entailment_trail: NDArray
     :param unbound_variable_nb_stk: the stack of the unbound variables nb
     :type unbound_variable_nb_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
@@ -159,11 +200,13 @@ def fix_choice_points(
         range_sz = domains_stk[stks_idx, variable, MAX] - domains_stk[stks_idx, variable, MIN]
         if range_sz < 0:
             if stks_top[0] == 0:
+                unwind_entailment_trail(entailed_propagator_depths, entailment_trail, stks_top[0])
                 return False
             stks_top[0] -= 1
         elif range_sz == 0:
             if not was_bound:
                 unbound_variable_nb_stk[stks_idx] -= 1
+    unwind_entailment_trail(entailed_propagator_depths, entailment_trail, stks_top[0])
     return True
 
 

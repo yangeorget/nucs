@@ -32,7 +32,7 @@ from nucs.solvers.choice_points import cp_put
 @njit(cache=True, fastmath=True)
 def value_dom_heuristic(
     domains_stk: NDArray,
-    entailed_propagators_stk: NDArray,
+    entailed_propagator_depths: NDArray,
     domain_update_stk: NDArray,
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
@@ -45,8 +45,8 @@ def value_dom_heuristic(
 
     :param domains_stk: the stack of domains
     :type domains_stk: NDArray
-    :param entailed_propagators_stk: the stack of entailed propagators
-    :type entailed_propagators_stk: NDArray
+    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
+    :type entailed_propagator_depths: NDArray
     :param domain_update_stk: the stack of domain updates
     :type domain_update_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
@@ -65,7 +65,7 @@ def value_dom_heuristic(
     if value == domains_stk[top, variable, MIN]:
         return min_value_dom_heuristic(
             domains_stk,
-            entailed_propagators_stk,
+            entailed_propagator_depths,
             domain_update_stk,
             unbound_variable_nb_stk,
             stks_top,
@@ -75,15 +75,15 @@ def value_dom_heuristic(
     if value == domains_stk[top, variable, MAX]:
         return max_value_dom_heuristic(
             domains_stk,
-            entailed_propagators_stk,
+            entailed_propagator_depths,
             domain_update_stk,
             unbound_variable_nb_stk,
             stks_top,
             variable,
             params,
         )
-    cp_put(domains_stk, entailed_propagators_stk, unbound_variable_nb_stk, top)
-    cp_put(domains_stk, entailed_propagators_stk, unbound_variable_nb_stk, top + 1)
+    cp_put(domains_stk, entailed_propagator_depths, unbound_variable_nb_stk, top)
+    cp_put(domains_stk, entailed_propagator_depths, unbound_variable_nb_stk, top + 1)
     domains_stk[top + 2, variable] = value
     domains_stk[top + 1, variable, MAX] = value - 1
     domains_stk[top, variable, MIN] = value + 1

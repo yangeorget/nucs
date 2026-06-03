@@ -47,7 +47,8 @@ def shave_bound(
     propagator_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
-    entailed_propagators_stk: NDArray,
+    entailed_propagator_depths: NDArray,
+    entailment_trail: NDArray,
     domain_update_stk: NDArray,
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
@@ -81,8 +82,10 @@ def shave_bound(
     :type triggers: NDArray
     :param domains_stk: the stack of domains
     :type domains_stk: NDArray
-    :param entailed_propagators_stk: the stack of entailed propagators
-    :type entailed_propagators_stk: NDArray
+    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
+    :type entailed_propagator_depths: NDArray
+    :param entailment_trail: the entailment trail, the first cell holds the trail size
+    :type entailment_trail: NDArray
     :param domain_update_stk: the stack of domain updates
     :type domain_update_stk: NDArray
     :param unbound_variable_nb_stk: the stack of the unbound variables nb
@@ -104,18 +107,30 @@ def shave_bound(
     """
     events = (
         max_value_dom_heuristic(
-            domains_stk, entailed_propagators_stk, domain_update_stk, unbound_variable_nb_stk, stks_top, variable, None
+            domains_stk,
+            entailed_propagator_depths,
+            domain_update_stk,
+            unbound_variable_nb_stk,
+            stks_top,
+            variable,
+            None,
         )
         if bound == MAX
         else min_value_dom_heuristic(
-            domains_stk, entailed_propagators_stk, domain_update_stk, unbound_variable_nb_stk, stks_top, variable, None
+            domains_stk,
+            entailed_propagator_depths,
+            domain_update_stk,
+            unbound_variable_nb_stk,
+            stks_top,
+            variable,
+            None,
         )
     )
     if domains_stk[stks_top[0], variable, MIN] == domains_stk[stks_top[0], variable, MAX]:
         events |= EVENT_MASK_GROUND
     update_propagators(
         triggered_propagators,
-        entailed_propagators_stk[stks_top[0]],
+        entailed_propagator_depths,
         triggers[variable, events],
         priorities,
         propagator_nb,
@@ -132,7 +147,8 @@ def shave_bound(
             propagator_parameters,
             triggers,
             domains_stk,
-            entailed_propagators_stk,
+            entailed_propagator_depths,
+            entailment_trail,
             domain_update_stk,
             unbound_variable_nb_stk,
             stks_top,
@@ -149,7 +165,8 @@ def shave_bound(
         has_shaved = False
     backtrack(
         statistics,
-        entailed_propagators_stk,
+        entailed_propagator_depths,
+        entailment_trail,
         domain_update_stk,
         stks_top,
         triggered_propagators,
@@ -172,7 +189,8 @@ def shaving_consistency_algorithm(
     propagator_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
-    entailed_propagators_stk: NDArray,
+    entailed_propagator_depths: NDArray,
+    entailment_trail: NDArray,
     domain_update_stk: NDArray,
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
@@ -203,10 +221,10 @@ def shaving_consistency_algorithm(
     :param domains_stk: a stack of  domains;
                         the first level correspond to the current domains, the rest correspond to the choice points
     :type domains_stk: NDArray
-    :param entailed_propagators_stk: a stack of entailed propagatorspropagators;
-                                     the first level correspond to the propagators currently not entailed,
-                                     the rest correspond to the choice points
-    :type entailed_propagators_stk: NDArray
+    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
+    :type entailed_propagator_depths: NDArray
+    :param entailment_trail: the entailment trail, the first cell holds the trail size
+    :type entailment_trail: NDArray
     :param domain_update_stk: the stack of domain updates
     :type domain_update_stk: NDArray
     :param unbound_variable_nb_stk: the stack of the unbound variables nb
@@ -244,7 +262,8 @@ def shaving_consistency_algorithm(
                 propagator_parameters,
                 triggers,
                 domains_stk,
-                entailed_propagators_stk,
+                entailed_propagator_depths,
+                entailment_trail,
                 domain_update_stk,
                 unbound_variable_nb_stk,
                 stks_top,
@@ -274,7 +293,8 @@ def shaving_consistency_algorithm(
             propagator_parameters,
             triggers,
             domains_stk,
-            entailed_propagators_stk,
+            entailed_propagator_depths,
+            entailment_trail,
             domain_update_stk,
             unbound_variable_nb_stk,
             stks_top,

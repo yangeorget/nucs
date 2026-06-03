@@ -76,7 +76,8 @@ def bound_consistency_algorithm(
     propagator_parameters: NDArray,
     triggers: NDArray,
     domains_stk: NDArray,
-    entailed_propagators_stk: NDArray,
+    entailed_propagator_depths: NDArray,
+    entailment_trail: NDArray,
     domain_update_stk: NDArray,
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
@@ -107,10 +108,11 @@ def bound_consistency_algorithm(
     :param domains_stk: a stack of domains, the first level correspond to the current domains,
                         the rest correspond to the choice points
     :type domains_stk: NDArray
-    :param entailed_propagators_stk: a stack of entailed propagators,
-                                     the first level correspond to the propagators currently not entailed,
-                                     the rest correspond to the choice points
-    :type entailed_propagators_stk: NDArray
+    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
+    :type entailed_propagator_depths: NDArray
+    :param entailment_trail: the entailment trail, the first cell holds the trail size,
+                             the following cells hold the indices of the entailed propagators in entailment order
+    :type entailment_trail: NDArray
     :param domain_update_stk: the stack of domain updates, unused here
     :type domain_update_stk: NDArray
     :param unbound_variable_nb_stk: the stack of the unbound variables nb
@@ -132,7 +134,6 @@ def bound_consistency_algorithm(
     """
     top = stks_top[0]
     domains = domains_stk[top]
-    entailed_propagators = entailed_propagators_stk[top]
     statistics[STATS_IDX_ALG_BC_NB] += 1
     membership_offset = STORAGE_OFFSET + propagator_nb
     while True:
@@ -154,8 +155,14 @@ def bound_consistency_algorithm(
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
-            entailed_propagators[prop_idx] = True
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
+            if entailed_propagator_depths[prop_idx] == -1:
+                # entailment is monotonic within a branch: record the shallowest depth at which the
+                # propagator became entailed and push it onto the trail, so a single comparison
+                # (depth != -1) detects it and a backtrack above that depth can reactivate it
+                entailed_propagator_depths[prop_idx] = top
+                entailment_trail[0] += 1
+                entailment_trail[entailment_trail[0]] = prop_idx
         if update_domains(
             top,
             prop_idx,
@@ -166,7 +173,7 @@ def bound_consistency_algorithm(
             propagator_variables,
             domains,
             triggered_propagators,
-            entailed_propagators,
+            entailed_propagator_depths,
             triggers,
             unbound_variable_nb_stk,
             priorities,
@@ -185,7 +192,7 @@ def update_domains(
     propagator_variables: NDArray,
     domains: NDArray,
     triggered_propagators: NDArray,
-    entailed_propagators: NDArray,
+    entailed_propagator_depths: NDArray,
     triggers: NDArray,
     unbound_variable_nb_stk: NDArray,
     priorities: NDArray,
@@ -209,8 +216,8 @@ def update_domains(
     :type domains: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
-    :param entailed_propagators: the entailed propagators at the current choice point
-    :type entailed_propagators: NDArray
+    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
+    :type entailed_propagator_depths: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :type triggers: NDArray
     :param unbound_variable_nb_stk: the stack of the unbound variables nb
@@ -247,7 +254,7 @@ def update_domains(
                     if not (
                         triggered_propagators[membership_offset + other_prop_idx]
                         or other_prop_idx == prop_idx
-                        or entailed_propagators[other_prop_idx]
+                        or entailed_propagator_depths[other_prop_idx] != -1
                     ):
                         buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
                 no_changes = False
