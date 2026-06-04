@@ -21,7 +21,7 @@ class MagicSequenceProblem(Problem):
     CSPLIB problem #19 - https://www.csplib.org/Problems/prob019/
     """
 
-    def __init__(self, n: int):
+    def __init__(self, n: int, model_r1: bool = True, model_r2: bool = True):
         """
         Initializes the problem.
 
@@ -32,5 +32,7 @@ class MagicSequenceProblem(Problem):
         for i in range(n):
             self.add_propagator(ALG_COUNT_EQ, list(range(n)) + [i], [i])
         # redundant constraints
-        self.add_propagator(ALG_SUM_EQ_C, range(n), [n])
-        self.add_propagator(ALG_AFFINE_EQ, range(n), range(n + 1))
+        if model_r1:
+            self.add_propagator(ALG_SUM_EQ_C, range(n), [n])
+        if model_r2:
+            self.add_propagator(ALG_AFFINE_EQ, range(n), range(n + 1))

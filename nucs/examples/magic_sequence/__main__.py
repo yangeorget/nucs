@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+import argparse
+
 from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -19,7 +21,9 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
     parser.add_argument("-n", type=int, default=100)
+    parser.add_argument("--model-r1", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--model-r2", action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
-    problem = MagicSequenceProblem(args.n)
+    problem = MagicSequenceProblem(args.n, args.model_r1, args.model_r2)
     kwargs = solver_kwargs_from_args(args)
     run_solver(BacktrackSolver(problem, **kwargs), args)
