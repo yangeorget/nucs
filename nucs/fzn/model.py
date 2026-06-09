@@ -19,8 +19,9 @@ allocates NuCS variables on demand, and dispatches each constraint through the b
 
 from typing import Dict, List, Optional, Tuple, Union
 
+from nucs.fzn.builtins import BUILTINS
 from nucs.fzn.errors import FznParseError, FznUnsupportedError
-from nucs.fzn.parser import ArrayAccess, ArrayDecl, Constraint, Id, ParDecl, Solve, Statement, Term, VarDecl
+from nucs.fzn.parser import ArrayAccess, ArrayDecl, Constraint, Id, ParDecl, Range, Solve, Statement, Term, VarDecl
 from nucs.problems.problem import Problem
 
 
@@ -65,8 +66,6 @@ class FznModel:
             elif isinstance(statement, Constraint):
                 constraints.append(statement)
         # The constraint pass happens after every declaration so that forward references resolve.
-        from nucs.fzn.builtins import BUILTINS
-
         for constraint in constraints:
             handler = BUILTINS.get(constraint.name)
             if handler is None:
@@ -292,8 +291,6 @@ def _index_set_bounds(decl: ArrayDecl, ann) -> Tuple[int, int]:  # type: ignore[
     :return: the index-set bounds
     :rtype: Tuple[int, int]
     """
-    from nucs.fzn.parser import Range
-
     if ann.args and isinstance(ann.args[0], list) and ann.args[0] and isinstance(ann.args[0][0], Range):
         rng = ann.args[0][0]
         return rng.lo, rng.hi

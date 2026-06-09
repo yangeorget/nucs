@@ -18,6 +18,8 @@ from typing import TYPE_CHECKING, TextIO
 
 from numpy.typing import NDArray
 
+from nucs.fzn.parser import Id
+
 if TYPE_CHECKING:
     from nucs.fzn.model import FznModel
 
@@ -80,6 +82,4 @@ def _id(name: str):  # type: ignore[no-untyped-def]
     :return: an Id term
     :rtype: Id
     """
-    from nucs.fzn.parser import Id
-
     return Id(name)

@@ -25,6 +25,7 @@ import tomllib
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
+import nucs.fzn
 from nucs.fzn.errors import FznError
 
 
@@ -60,8 +61,6 @@ def share_dir() -> Path:
     :return: the share directory
     :rtype: Path
     """
-    import nucs.fzn
-
     return Path(nucs.fzn.__file__).resolve().parent / "share"
 
 

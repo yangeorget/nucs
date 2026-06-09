@@ -22,6 +22,7 @@ from typing import List, Optional
 from nucs.fzn.errors import FznError
 from nucs.fzn.model import build_model
 from nucs.fzn.parser import parse
+from nucs.fzn.register import register
 from nucs.fzn.runner import run
 
 
@@ -63,8 +64,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = build_arg_parser()
     args = parser.parse_args(argv)
     if args.register:
-        from nucs.fzn.register import register
-
         try:
             target = register()
         except FznError as e:
