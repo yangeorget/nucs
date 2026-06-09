@@ -11,7 +11,8 @@ Comparing them looks lopsided: an interpreted language against a heavily optimiz
 arc-consistent global constraints. The reality is more interesting. When both solvers run the *same* model they are, for
 all practical purposes, **the same speed** — and on the largest instances NuCS actually pulls *ahead*, because once
 Numba has compiled the inner loops the Python tax is gone and only the cost-per-node remains. When the models differ the
-result is a genuine trade rather than a rout: on some problems Choco's arc consistency is the right, fast tool; on others
+result is a genuine trade rather than a rout: on some problems Choco's arc consistency is the right, fast tool; on
+others
 NuCS's cheap bound consistency plus a little remodeling wins outright; and on at least one problem NuCS's modeling
 freedom lets it solve instances that *neither* plain solver can.
 
@@ -133,8 +134,13 @@ thing under test is the engine.
 
 ### All-interval series (find one solution)
 
-This is CSPLIB #7: find a permutation of `0..n-1` whose `n-1` consecutive absolute differences are themselves all
-different. Both solvers use bound consistency and a first-fail (smallest-domain) heuristic on the same formulation.
+**The problem (CSPLIB #7).** An all-interval series is a permutation of the integers `0..n-1` such that the sequence of
+absolute differences between consecutive terms is *itself* a permutation of `1..n-1` — every interval appears exactly
+once. The name comes from twelve-tone music, where such a series sounds each interval once; combinatorially it is a
+compact, tightly coupled permutation problem that stresses an `allDifferent` over both the values and their differences.
+We look for a single solution.
+
+Both solvers use bound consistency and a first-fail (smallest-domain) heuristic on the same formulation.
 
 **NuCS command line:**
 
@@ -150,7 +156,7 @@ permutation; two `LEQ_C` propagators break the obvious reversal/complement symme
 
 ```python
 for i in range(n - 1):
-    self.add_propagator(ALG_SUM_EQ, [n + i, i, i + 1])       # diff_i = x_{i+1} - x_i
+    self.add_propagator(ALG_SUM_EQ, [n + i, i, i + 1])  # diff_i = x_{i+1} - x_i
     self.add_propagator(ALG_ABS_EQ, [n + i, 2 * n - 1 + i])  # |diff_i|
 self.add_propagator(ALG_ALLDIFFERENT, range(n))
 self.add_propagator(ALG_ALLDIFFERENT, range(2 * n - 1, 3 * n - 2))
@@ -159,15 +165,7 @@ if symmetry_breaking:
     self.add_propagator(ALG_LEQ_C, [3 * n - 3, 2 * n - 1], [-1])
 ```
 
-```mermaid
-%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#1f77b4, #ff7f0e"}}}}%%
-xychart-beta
-    title "All-interval series — time (ms) vs size"
-    x-axis "series size n" [500, 1000, 2000, 4000, 8000, 16000]
-    y-axis "time (ms)" 0 --> 121000
-    line [240, 392, 950, 3261, 16595, 120340]
-    line [225, 398, 972, 3352, 15153, 85236]
-```
+![All-interval series — time (ms) vs size](images/all_interval_series.png)
 
 _Series order: **Choco** (blue), **NuCS** (orange). Lower is better._
 
@@ -188,9 +186,13 @@ and on the biggest instance its lower constant factor wins.
 
 ### Schur's lemma (prove no solution)
 
-CSPLIB #15: partition `1..n` into 3 sum-free sets — here proven infeasible, so the *entire* search tree must be
-explored, which makes this a clean test of raw propagation throughput. Both solvers use bound consistency, and to keep
-the models identical the run is done **without symmetry breaking**.
+**The problem (CSPLIB #15).** Schur's lemma asks whether the integers `1..n` can be split into a given number of
+*sum-free* sets — sets containing no triple `x, y, z` with `x + y = z` (where `x` and `y` need not be distinct). With
+three sets there is a largest `n` for which a valid partition exists (tied to the Schur number `S(3) = 13`); beyond it
+the problem is infeasible. We use it here as an *unsatisfiable* instance, which forces the solver to exhaust the entire
+search tree to prove that no partition exists — a clean test of raw propagation throughput.
+
+Both solvers use bound consistency, and to keep the models identical the run is done **without symmetry breaking**.
 
 **NuCS command line:**
 
@@ -215,15 +217,7 @@ for k in range(3):
                 self.add_propagator(ALG_SUM_LEQ_C, [3 * x + k, 3 * y + k, 3 * z + k], [2])
 ```
 
-```mermaid
-%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#1f77b4, #ff7f0e"}}}}%%
-xychart-beta
-    title "Schur's lemma — time (ms) vs size"
-    x-axis "problem size n" [100, 200, 400, 800, 1600]
-    y-axis "time (ms)" 0 --> 18000
-    line [197, 333, 702, 2701, 17864]
-    line [418, 542, 1050, 3118, 14592]
-```
+![Schur's lemma — time (ms) vs size](images/schur_lemma.png)
 
 _Series order: **Choco** (blue), **NuCS** (orange). Lower is better._
 
@@ -242,7 +236,8 @@ infeasibility in 14.6 s against Choco's 17.9 s. NuCS pays a setup cost here, not
 is large enough its cheaper per-node propagation comes out ahead.
 
 **Takeaway for Group 1.** When the model is fixed, NuCS and Choco run at essentially the same asymptotic speed — and at
-the largest sizes NuCS edges in front on *both* problems. The only visible disadvantage is a small, constant NuCS startup
+the largest sizes NuCS edges in front on *both* problems. The only visible disadvantage is a small, constant NuCS
+startup
 cost that dominates tiny instances and is irrelevant on large ones. For a pure-Python solver against a two-decade-old
 JVM engine, that is a remarkable result.
 
@@ -257,8 +252,13 @@ the honest, interesting part.
 
 ### Latin square (find one solution)
 
-A Latin square is an `n×n` grid where every row and every column is a permutation of `0..n-1`. The straightforward
-model, used by both solvers, posts a bound-consistent `allDifferent` per row and per column.
+**The problem.** A Latin square of order `n` is an `n×n` grid filled with `n` symbols so that each symbol occurs exactly
+once in every row and exactly once in every column — equivalently, every row and every column is a permutation of
+`0..n-1`. It is the abstract structure behind Sudoku (which adds box constraints) and underlies many combinatorial
+designs. Latin squares exist for every `n`, so finding *one* is easy in principle; the interest here is how well a
+constraint model's propagation scales as `n` grows. We look for a single solution.
+
+The straightforward model, used by both solvers, posts a bound-consistent `allDifferent` per row and per column.
 
 **NuCS command lines:**
 
@@ -295,22 +295,13 @@ self.add_propagator(ALG_PERMUTATION_AUX, [*self.row(c, M_ROW), *self.column(c, M
 self.add_propagator(ALG_PERMUTATION_AUX, [*self.row(i), *self.row(i, M_COLUMN)])
 ```
 
-```mermaid
-%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#1f77b4, #ff7f0e, #2ca02c"}}}}%%
-xychart-beta
-    title "Latin square — time (ms) vs size"
-    x-axis "square size n" [20, 30, 40, 50]
-    y-axis "time (ms)" 0 --> 900
-    line [105, 126, 180, 900]
-    line [376, 380, 397, 900]
-    line [412, 453, 547, 728]
-```
+![Latin square — time (ms) vs size](images/latin_square.png)
 
 _Series order: **Choco (BC)** (blue), **NuCS (BC)** (orange), **NuCS (BC + redundant)** (green). At n=50 the two
 plain-BC lines leap to the top of the chart: this marks **"did not finish"**, not a measured time. NuCS with redundant
 constraints is the only model that completes n=50 — in 728 ms. Lower is better._
 
-| size | Choco (BC)       | NuCS (BC)        | NuCS (BC + redundant) |
+| size |       Choco (BC) |        NuCS (BC) | NuCS (BC + redundant) |
 |------|-----------------:|-----------------:|----------------------:|
 | 20   |              105 |              376 |                   412 |
 | 30   |              126 |              380 |                   453 |
@@ -330,9 +321,13 @@ loops in ordinary Python.
 
 ### Magic sequence (find one solution)
 
-A magic sequence (CSPLIB #19) is a sequence `x_0, …, x_{n-1}` where each `x_i` equals the number of occurrences of the
-value `i` in the sequence. Choco's natural model uses a **strong arc-consistent global constraint**. NuCS uses only
-simple `count` constraints plus redundant linear constraints.
+**The problem (CSPLIB #19).** A magic sequence of length `n` is a *self-descriptive* sequence `x_0, …, x_{n-1}` of
+non-negative integers in which each `x_i` counts exactly how many times the value `i` appears in the whole sequence. The
+twist is that every variable both contributes to and depends on the counts, which makes this a classic stress test of
+counting and cardinality constraints. We look for a single solution.
+
+Choco's natural model uses a **strong arc-consistent global constraint**. NuCS uses only simple `count` constraints plus
+redundant linear constraints.
 
 **NuCS command lines:**
 
@@ -355,21 +350,12 @@ heuristic via `--var-heuristic 3`.
 for i in range(n):
     self.add_propagator(ALG_COUNT_EQ, list(range(n)) + [i], [i])
 if model_r1:
-    self.add_propagator(ALG_SUM_EQ_C, range(n), [n])            # redundant: values sum to n
+    self.add_propagator(ALG_SUM_EQ_C, range(n), [n])  # redundant: values sum to n
 if model_r2:
     self.add_propagator(ALG_AFFINE_EQ, range(n), range(n + 1))  # redundant: weighted-sum identity
 ```
 
-```mermaid
-%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#1f77b4, #ff7f0e, #2ca02c"}}}}%%
-xychart-beta
-    title "Magic sequence — time (ms) vs size"
-    x-axis "sequence size n" [100, 200, 300, 400]
-    y-axis "time (ms)" 0 --> 3000
-    line [149, 307, 779, 1783]
-    line [416, 710, 1451, 2913]
-    line [387, 455, 624, 942]
-```
+![Magic sequence — time (ms) vs size](images/magic_sequence.png)
 
 _Series order: **Choco (AC)** (blue), **NuCS (BC, r1)** (orange), **NuCS (BC, r1 + r2)** (green). Lower is better._
 
@@ -390,7 +376,13 @@ redundant constraints has a far flatter cost-per-node, and overtakes decisively 
 
 ### Golomb ruler (minimize)
 
-Golomb (CSPLIB #6) is the most interesting comparison because it leans hardest on domain representation: find `n` marks
+**The problem (CSPLIB #6).** A Golomb ruler is a set of `n` integer marks placed on a ruler such that all
+`n(n-1)/2` pairwise distances between marks are *distinct*. An *optimal* Golomb ruler is one of minimal total length for
+a given number of marks. It is a deceptively small optimization problem that becomes very hard as the number of marks
+grows, and a staple benchmark for both pruning strength and the payoff of representing holes in domains. We minimize the
+length.
+
+Golomb is the most interesting comparison because it leans hardest on domain representation: find `n` marks
 `0 = m_0 < m_1 < … < m_{n-1}` whose pairwise distances are all different, minimizing `m_{n-1}`. Choco's sample uses
 **enumerated domains** — effectively stronger consistency — which lets it prune values in the *middle* of the distance
 intervals. Plain NuCS bound consistency cannot do that, and it shows. So NuCS offers a **problem-specific consistency
@@ -424,16 +416,7 @@ self.add_propagator(ALG_ALLDIFFERENT, range(self.domain_nb))
 # redundant length bounds + symmetry breaking omitted for brevity
 ```
 
-```mermaid
-%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#1f77b4, #ff7f0e, #2ca02c"}}}}%%
-xychart-beta
-    title "Golomb ruler — time (ms) vs number of marks"
-    x-axis "marks" [9, 10, 11, 12]
-    y-axis "time (ms)" 0 --> 130000
-    line [202, 481, 6800, 65705]
-    line [438, 883, 12428, 128040]
-    line [414, 641, 6791, 67319]
-```
+![Golomb ruler — time (ms) vs number of marks](images/golomb_ruler.png)
 
 _Series order: **Choco (enumerated domains)** (blue), **NuCS BC** (orange), **NuCS custom consistency** (green).
 Lower is better._
@@ -455,16 +438,17 @@ developer effort, not solver capability.
 
 ## What the numbers say
 
-| Problem             | Models    | Outcome at scale                            | Margin                       |
-|---------------------|-----------|---------------------------------------------|------------------------------|
-| All-interval series | same (BC) | NuCS, increasingly                          | 1.41× at n=16000             |
-| Schur's lemma       | same (BC) | NuCS overtakes                              | 1.22× at n=1600              |
-| Magic sequence      | different | Choco small, NuCS wins big at scale         | 1.89× at n=400               |
-| Golomb ruler        | different | Choco; tie with NuCS custom propagator      | ~2× plain, ~1× with custom   |
-| Latin square        | different | NuCS solves what plain BC cannot            | qualitative (feasibility)    |
+| Problem             | Models    | Outcome at scale                       | Margin                     |
+|---------------------|-----------|----------------------------------------|----------------------------|
+| All-interval series | same (BC) | NuCS, increasingly                     | 1.41× at n=16000           |
+| Schur's lemma       | same (BC) | NuCS overtakes                         | 1.22× at n=1600            |
+| Magic sequence      | different | Choco small, NuCS wins big at scale    | 1.89× at n=400             |
+| Golomb ruler        | different | Choco; tie with NuCS custom propagator | ~2× plain, ~1× with custom |
+| Latin square        | different | NuCS solves what plain BC cannot       | qualitative (feasibility)  |
 
 - **Equal models, equal speed — then NuCS edges ahead.** When both solvers run the same algorithm, NuCS matches Choco
-  through the mid sizes and *wins on the largest instances of both problems* (all-interval series and Schur's lemma). The
+  through the mid sizes and *wins on the largest instances of both problems* (all-interval series and Schur's lemma).
+  The
   only visible gap is a small, constant NuCS startup overhead that vanishes as the search grows.
 - **Stronger consistency often pays — but its cost-per-node grows.** On magic sequence Choco's arc-consistent global
   constraint is faster on small instances, yet NuCS's lightweight BC plus two redundant constraints has a far flatter
@@ -482,7 +466,8 @@ Step back from the individual problems and one design decision explains the whol
 
 **NuCS represents each variable domain as a single `min..max` interval.** A domain is two integers; binding a variable
 means `min == max`. This is compact, cache-friendly, and trivially vectorizable with NumPy — which is precisely what
-lets Numba make the propagators so fast. But it has a hard consequence: NuCS can only *shrink the bounds* of a domain. It
+lets Numba make the propagators so fast. But it has a hard consequence: NuCS can only *shrink the bounds* of a domain.
+It
 cannot punch a hole in the middle. The strongest filtering it can express is therefore **bound consistency (BC)** — it
 guarantees the endpoints of each domain are supported, nothing more.
 
