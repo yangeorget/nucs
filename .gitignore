@@ -9,7 +9,7 @@ logs
 venv*
 .venv*
 profile.pstats
-NUCS.egg-info
+*.egg-info/
 .DS_Store
 papers
 *.private.*

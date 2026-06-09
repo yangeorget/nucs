@@ -33,7 +33,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     :rtype: argparse.ArgumentParser
     """
     parser = argparse.ArgumentParser(prog="fzn-nucs", description="Solve a FlatZinc model with NuCS")
-    parser.add_argument("fzn", help="the FlatZinc (.fzn) file to solve")
+    parser.add_argument("fzn", nargs="?", help="the FlatZinc (.fzn) file to solve")
+    parser.add_argument(
+        "--register",
+        action="store_true",
+        help="register NuCS as a MiniZinc solver (writes a resolved nucs.msc into the user solvers directory)",
+    )
     parser.add_argument("-a", "--all-solutions", action="store_true", help="print all solutions")
     parser.add_argument("-n", "--num-solutions", type=int, default=None, help="stop after this many solutions")
     parser.add_argument("-s", "--statistics", action="store_true", help="print statistics to stderr")
@@ -55,7 +60,20 @@ def main(argv: Optional[List[str]] = None) -> int:
     :return: the process exit code
     :rtype: int
     """
-    args = build_arg_parser().parse_args(argv)
+    parser = build_arg_parser()
+    args = parser.parse_args(argv)
+    if args.register:
+        from nucs.fzn.register import register
+
+        try:
+            target = register()
+        except FznError as e:
+            sys.stderr.write(f"fzn-nucs: {e}\n")
+            return 1
+        sys.stderr.write(f"fzn-nucs: registered NuCS as a MiniZinc solver at {target}\n")
+        return 0
+    if args.fzn is None:
+        parser.error("a FlatZinc file is required (or use --register)")
     try:
         with open(args.fzn, "r") as f:
             text = f.read()

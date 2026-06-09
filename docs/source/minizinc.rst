@@ -13,14 +13,16 @@ Installing NuCS provides the :code:`fzn-nucs` executable and a MiniZinc solver c
 Register the solver
 *********************
 
-Point MiniZinc at the bundled solver config and make sure :code:`fzn-nucs` is on your :code:`PATH`:
+Run the one-off registration command:
 
 .. code-block:: bash
 
-   # directory containing nucs.msc (inside the installed nucs package)
-   export MZN_SOLVER_PATH="$(python -c 'import nucs.fzn, os; print(os.path.join(os.path.dirname(nucs.fzn.__file__), "share"))')"
-   # persist the Numba JIT cache so runs after the first are fast
-   export NUMBA_CACHE_DIR=.numba/cache
+   fzn-nucs --register
+
+This writes a resolved ``nucs.msc`` into MiniZinc's user solvers directory
+(:code:`~/.minizinc/solvers` on Linux/macOS, :code:`%APPDATA%\\MiniZinc\\solvers` on Windows),
+with the version taken from the installed package and absolute :code:`executable` and :code:`mznlib`
+paths, so no environment variable is needed.
 
 Check that NuCS is registered:
 
@@ -28,7 +30,17 @@ Check that NuCS is registered:
 
    minizinc --solvers
 
-NuCS should appear in the list as :code:`NuCS 11.2.0 (org.nucs.nucs, cp, int)`.
+NuCS should appear in the list as :code:`NuCS <version> (org.nucs.nucs, cp, int)`.
+
+.. note::
+   Re-run :code:`fzn-nucs --register` after upgrading NuCS or recreating the virtual environment,
+   so the recorded version and paths stay correct.
+
+For a temporary, non-persistent alternative, point MiniZinc at the bundled config instead:
+
+.. code-block:: bash
+
+   export MZN_SOLVER_PATH="$(python -c 'import nucs.fzn, os; print(os.path.join(os.path.dirname(nucs.fzn.__file__), "share"))')"
 
 
 ***************
@@ -54,6 +66,6 @@ A model that uses a builtin the adapter does not yet support exits with a clear
 Use the MiniZinc IDE
 **********************
 
-In the MiniZinc IDE, add the same directory under
-*Preferences → Additional solver search paths*, and launch the IDE from a shell
-where :code:`fzn-nucs` is on your :code:`PATH`. NuCS then appears in the solver dropdown.
+Once you have run :code:`fzn-nucs --register`, NuCS appears automatically in the MiniZinc IDE
+solver dropdown (the registration uses absolute paths in the standard user solvers directory,
+so no extra IDE configuration is required).

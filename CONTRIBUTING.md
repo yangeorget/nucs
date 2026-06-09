@@ -7,8 +7,11 @@ Guidance for human developers.
 ### Build the pip package
 
 ```bash
-python -m build
+./scripts/bash/build.sh
 ```
+
+This cleans `dist/` and `build/`, builds the dist and wheel with `python -m build`, and validates the
+result with `twine check`.
 
 ### Publish the package
 
