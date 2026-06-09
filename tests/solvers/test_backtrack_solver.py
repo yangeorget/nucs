@@ -27,7 +27,7 @@ from nucs.heuristics.heuristics import (
 )
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
-    ALG_AFFINE_LEQ,
+    ALG_LINEAR_LEQ_C,
     ALG_ALLDIFFERENT,
     ALG_RELATION,
     get_algorithm_nb,
@@ -139,9 +139,9 @@ class TestBacktrackSolver:
         statistics = solver.get_statistics_as_dictionary()
         assert statistics[STATS_LBL_SOLUTION_NB] == 6
 
-    def test_minimize_affine_leq(self) -> None:
+    def test_minimize_linear_leq_c(self) -> None:
         problem = Problem([(2, 5), (2, 5), (0, 10)])
-        problem.add_propagator(ALG_AFFINE_LEQ, [0, 1, 2], [1, 1, -1, 0])
+        problem.add_propagator(ALG_LINEAR_LEQ_C, [0, 1, 2], [1, 1, -1, 0])
         solver = BacktrackSolver(problem)
         solution = solver.minimize(2)
         assert solution is not None

@@ -15,7 +15,7 @@ from typing import Any, Dict, List
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ALLDIFFERENT
+from nucs.propagators.propagators import ALG_LINEAR_EQ_C, ALG_ALLDIFFERENT
 
 
 def starts_word(letter: str, words: List[str]) -> bool:
@@ -55,7 +55,7 @@ class CryptarithmeticProblem(Problem):
                 coefficient //= 10
             addition_letters = sorted(coefficients.keys(), key=lambda letter: letter_to_idx[letter])
             self.add_propagator(
-                ALG_AFFINE_EQ,
+                ALG_LINEAR_EQ_C,
                 [letter_to_idx[letter] for letter in addition_letters],
                 [coefficients[letter] for letter in addition_letters] + [0],
             )

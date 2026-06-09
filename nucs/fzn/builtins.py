@@ -25,13 +25,13 @@ from nucs.fzn.parser import Id, Term
 from nucs.propagators.propagators import (
     ALG_ABS_EQ,
     ALG_ADD_C_EQ,
-    ALG_AFFINE_EQ,
-    ALG_AFFINE_LEQ,
+    ALG_LINEAR_EQ_C,
+    ALG_LINEAR_LEQ_C,
     ALG_ALLDIFFERENT,
     ALG_AND_EQ,
     ALG_EQ,
-    ALG_EQUIV_EQ,
-    ALG_EQUIV_EQ_C,
+    ALG_EQ_REIF,
+    ALG_EQ_C_REIF,
     ALG_ELEMENT_EQ,
     ALG_ELEMENT_L_EQ,
     ALG_GCC,
@@ -69,27 +69,29 @@ def _is_const(model: "FznModel", term: Term) -> bool:
 
 def _int_lin_eq(model: "FznModel", args: List[Term]) -> None:
     """
-    Handles ``int_lin_eq(a, x, c)`` as the affine equality sum(a_i * x_i) = c.
+    Handles ``int_lin_eq(a, x, c)`` as the linear equality sum(a_i * x_i) = c.
     """
     coeffs = model.int_list_of(args[0])
     variables = model.var_list_of(args[1])
-    model.problem.add_propagator(ALG_AFFINE_EQ, variables, coeffs + [model.const_of(args[2])])
+    model.problem.add_propagator(ALG_LINEAR_EQ_C, variables, coeffs + [model.const_of(args[2])])
 
 
 def _int_lin_le(model: "FznModel", args: List[Term]) -> None:
     """
-    Handles ``int_lin_le(a, x, c)`` as the affine inequality sum(a_i * x_i) <= c.
+    Handles ``int_lin_le(a, x, c)`` as the linear inequality sum(a_i * x_i) <= c.
     """
     coeffs = model.int_list_of(args[0])
     variables = model.var_list_of(args[1])
-    model.problem.add_propagator(ALG_AFFINE_LEQ, variables, coeffs + [model.const_of(args[2])])
+    model.problem.add_propagator(ALG_LINEAR_LEQ_C, variables, coeffs + [model.const_of(args[2])])
 
 
 def _int_eq(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``int_eq(x, y)`` as x - y = 0.
     """
-    model.problem.add_propagator(ALG_AFFINE_EQ, [model.var_index_of(args[0]), model.var_index_of(args[1])], [1, -1, 0])
+    model.problem.add_propagator(
+        ALG_LINEAR_EQ_C, [model.var_index_of(args[0]), model.var_index_of(args[1])], [1, -1, 0]
+    )
 
 
 def _int_eq_reif(model: "FznModel", args: List[Term]) -> None:
@@ -100,9 +102,9 @@ def _int_eq_reif(model: "FznModel", args: List[Term]) -> None:
     reif = model.var_index_of(args[2])
     x = model.var_index_of(args[0])
     if _is_const(model, args[1]):
-        model.problem.add_propagator(ALG_EQUIV_EQ_C, [reif, x], [model.const_of(args[1])])
+        model.problem.add_propagator(ALG_EQ_C_REIF, [reif, x], [model.const_of(args[1])])
     else:
-        model.problem.add_propagator(ALG_EQUIV_EQ, [reif, x, model.var_index_of(args[1])])
+        model.problem.add_propagator(ALG_EQ_REIF, [reif, x, model.var_index_of(args[1])])
 
 
 def _bool2int(model: "FznModel", args: List[Term]) -> None:
@@ -133,7 +135,7 @@ def _bool_not(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``bool_not(a, b)`` as a + b = 1, i.e. b is the negation of a; booleans are 0..1 integers.
     """
-    model.problem.add_propagator(ALG_AFFINE_EQ, [model.var_index_of(args[0]), model.var_index_of(args[1])], [1, 1, 1])
+    model.problem.add_propagator(ALG_LINEAR_EQ_C, [model.var_index_of(args[0]), model.var_index_of(args[1])], [1, 1, 1])
 
 
 def _bool_eq(model: "FznModel", args: List[Term]) -> None:

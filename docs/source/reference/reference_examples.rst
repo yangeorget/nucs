@@ -48,7 +48,7 @@ This problem can be run with the command:
 
 This problem leverages the propagators:
 
-* :mod:`nucs.propagators.affine_eq_propagator`,
+* :mod:`nucs.propagators.linear_eq_c_propagator`,
 * :mod:`nucs.propagators.alldifferent_propagator`.
 
 
@@ -77,7 +77,7 @@ This problem can be run with the command:
 
 This problem leverages the propagators:
 
-* :mod:`nucs.propagators.affine_eq_propagator`,
+* :mod:`nucs.propagators.linear_eq_c_propagator`,
 * :mod:`nucs.propagators.alldifferent_propagator`.
 
 
@@ -121,8 +121,8 @@ This problem can be run with the command:
 
 This problem leverages the propagators:
 
-* :mod:`nucs.propagators.affine_eq_propagator`,
-* :mod:`nucs.propagators.affine_leq_propagator`.
+* :mod:`nucs.propagators.linear_eq_c_propagator`,
+* :mod:`nucs.propagators.linear_leq_c_propagator`.
 
 
 .. autoclass:: nucs.examples.langford.langford_problem.LangfordProblem
@@ -135,7 +135,7 @@ This problem can be run with the command:
 
 This problem leverages the propagators:
 
-* :mod:`nucs.propagators.affine_eq_propagator`,
+* :mod:`nucs.propagators.linear_eq_c_propagator`,
 * :mod:`nucs.propagators.alldifferent_propagator`.
 
 
@@ -149,7 +149,7 @@ This problem can be run with the command:
 
 This problem leverages the propagators:
 
-* :mod:`nucs.propagators.affine_eq_propagator`,
+* :mod:`nucs.propagators.linear_eq_c_propagator`,
 * :mod:`nucs.propagators.count_eq_propagator`,
 * :mod:`nucs.propagators.sum_eq_propagator`.
 
@@ -206,7 +206,7 @@ The problem can be run with the command:
 This problem leverages the propagators:
 
 * :mod:`nucs.propagators.exactly_true_propagator`,
-* :mod:`nucs.propagators.affine_leq_propagator`,
+* :mod:`nucs.propagators.linear_leq_c_propagator`,
 * :mod:`nucs.propagators.lexicographic_leq_propagator`.
 
 

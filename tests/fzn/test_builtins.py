@@ -19,7 +19,7 @@ from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import build_model
 from nucs.fzn.parser import parse
 from nucs.fzn.runner import run
-from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ALLDIFFERENT, ALG_LEQ_C
+from nucs.propagators.propagators import ALG_LINEAR_EQ_C, ALG_ALLDIFFERENT, ALG_LEQ_C
 
 
 def solve_fzn(fzn: str, all_solutions: bool = False, num_solutions: Optional[int] = None) -> str:
@@ -47,8 +47,8 @@ class TestBuiltins:
             )
         )
         algorithms = [prop[1] for prop in model.problem.propagators]
-        assert algorithms == [ALG_AFFINE_EQ, ALG_LEQ_C, ALG_ALLDIFFERENT]
-        # int_lin_eq([1,1], [x,y], 5) -> affine_eq with params coeffs + [c]
+        assert algorithms == [ALG_LINEAR_EQ_C, ALG_LEQ_C, ALG_ALLDIFFERENT]
+        # int_lin_eq([1,1], [x,y], 5) -> linear_eq_c with params coeffs + [c]
         assert model.problem.propagators[0][2] == [1, 1, 5]
 
     def test_all_different_plus_linear_satisfy(self) -> None:

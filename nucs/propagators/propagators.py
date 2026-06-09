@@ -22,20 +22,20 @@ from nucs.propagators.add_c_eq_propagator import (
     get_complexity_add_c_eq,
     get_triggers_add_c_eq,
 )
-from nucs.propagators.affine_eq_propagator import (
-    compute_domains_affine_eq,
-    get_complexity_affine_eq,
-    get_triggers_affine_eq,
+from nucs.propagators.linear_eq_c_propagator import (
+    compute_domains_linear_eq_c,
+    get_complexity_linear_eq_c,
+    get_triggers_linear_eq_c,
 )
-from nucs.propagators.affine_geq_propagator import (
-    compute_domains_affine_geq,
-    get_complexity_affine_geq,
-    get_triggers_affine_geq,
+from nucs.propagators.linear_geq_c_propagator import (
+    compute_domains_linear_geq_c,
+    get_complexity_linear_geq_c,
+    get_triggers_linear_geq_c,
 )
-from nucs.propagators.affine_leq_propagator import (
-    compute_domains_affine_leq,
-    get_complexity_affine_leq,
-    get_triggers_affine_leq,
+from nucs.propagators.linear_leq_c_propagator import (
+    compute_domains_linear_leq_c,
+    get_complexity_linear_leq_c,
+    get_triggers_linear_leq_c,
 )
 from nucs.propagators.alldifferent_propagator import (
     compute_domains_alldifferent,
@@ -90,15 +90,15 @@ from nucs.propagators.element_l_eq_propagator import (
     get_triggers_element_l_eq,
 )
 from nucs.propagators.eq_propagator import compute_domains_eq, get_complexity_eq, get_triggers_eq
-from nucs.propagators.equiv_eq_c_propagator import (
-    compute_domains_equiv_eq_c,
-    get_complexity_equiv_eq_c,
-    get_triggers_equiv_eq_c,
+from nucs.propagators.eq_c_reif_propagator import (
+    compute_domains_eq_c_reif,
+    get_complexity_eq_c_reif,
+    get_triggers_eq_c_reif,
 )
-from nucs.propagators.equiv_eq_propagator import (
-    compute_domains_equiv_eq,
-    get_complexity_equiv_eq,
-    get_triggers_equiv_eq,
+from nucs.propagators.eq_reif_propagator import (
+    compute_domains_eq_reif,
+    get_complexity_eq_reif,
+    get_triggers_eq_reif,
 )
 from nucs.propagators.gcc_propagator import compute_domains_gcc, get_complexity_gcc, get_triggers_gcc
 from nucs.propagators.leq_c_propagator import compute_domains_leq_c, get_complexity_leq_c, get_triggers_leq_c
@@ -181,9 +181,13 @@ def register_propagator(get_triggers_fct: Callable, get_complexity_fct: Callable
 ALG_ABS_EQ = register_propagator(get_triggers_abs_eq, get_complexity_abs_eq, compute_domains_abs_eq)
 ALG_ADD_C_EQ = register_propagator(get_triggers_add_c_eq, get_complexity_add_c_eq, compute_domains_add_c_eq)
 ALG_AND_EQ = register_propagator(get_triggers_and_eq, get_complexity_and_eq, compute_domains_and_eq)
-ALG_AFFINE_EQ = register_propagator(get_triggers_affine_eq, get_complexity_affine_eq, compute_domains_affine_eq)
-ALG_AFFINE_GEQ = register_propagator(get_triggers_affine_geq, get_complexity_affine_geq, compute_domains_affine_geq)
-ALG_AFFINE_LEQ = register_propagator(get_triggers_affine_leq, get_complexity_affine_leq, compute_domains_affine_leq)
+ALG_LINEAR_EQ_C = register_propagator(get_triggers_linear_eq_c, get_complexity_linear_eq_c, compute_domains_linear_eq_c)
+ALG_LINEAR_GEQ_C = register_propagator(
+    get_triggers_linear_geq_c, get_complexity_linear_geq_c, compute_domains_linear_geq_c
+)
+ALG_LINEAR_LEQ_C = register_propagator(
+    get_triggers_linear_leq_c, get_complexity_linear_leq_c, compute_domains_linear_leq_c
+)
 ALG_ALLDIFFERENT = register_propagator(
     get_triggers_alldifferent, get_complexity_alldifferent, compute_domains_alldifferent
 )
@@ -210,8 +214,8 @@ ALG_ELEMENT_L_EQ_C_ALLDIFFERENT = register_propagator(
     compute_domains_element_l_eq_c_alldifferent,
 )
 ALG_EQ = register_propagator(get_triggers_eq, get_complexity_eq, compute_domains_eq)
-ALG_EQUIV_EQ_C = register_propagator(get_triggers_equiv_eq_c, get_complexity_equiv_eq_c, compute_domains_equiv_eq_c)
-ALG_EQUIV_EQ = register_propagator(get_triggers_equiv_eq, get_complexity_equiv_eq, compute_domains_equiv_eq)
+ALG_EQ_C_REIF = register_propagator(get_triggers_eq_c_reif, get_complexity_eq_c_reif, compute_domains_eq_c_reif)
+ALG_EQ_REIF = register_propagator(get_triggers_eq_reif, get_complexity_eq_reif, compute_domains_eq_reif)
 ALG_GCC = register_propagator(get_triggers_gcc, get_complexity_gcc, compute_domains_gcc)
 ALG_LEQ_C = register_propagator(get_triggers_leq_c, get_complexity_leq_c, compute_domains_leq_c)
 ALG_LEXICOGRAPHIC_LEQ = register_propagator(

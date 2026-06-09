@@ -16,7 +16,7 @@ from numpy.typing import NDArray
 from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 
 
-def get_complexity_equiv_eq_c(n: int, parameters: NDArray) -> int:
+def get_complexity_eq_c_reif(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
 
@@ -32,7 +32,7 @@ def get_complexity_equiv_eq_c(n: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True, fastmath=True)
-def get_triggers_equiv_eq_c(n: int, variable: int, parameters: NDArray) -> int:
+def get_triggers_eq_c_reif(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
 
@@ -48,7 +48,7 @@ def get_triggers_equiv_eq_c(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True, fastmath=True)
-def compute_domains_equiv_eq_c(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_eq_c_reif(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements :math:`b <=> x = c`.
 

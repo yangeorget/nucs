@@ -13,13 +13,13 @@
 from typing import List, Optional, Tuple, Union
 
 import pytest
-from nucs.propagators.equiv_eq_c_propagator import compute_domains_equiv_eq_c
+from nucs.propagators.eq_c_reif_propagator import compute_domains_eq_c_reif
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestEquivEqC(PropagatorTest):
+class TestEqCReif(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
@@ -45,5 +45,5 @@ class TestEquivEqC(PropagatorTest):
         expected_domains: Optional[List[List[int]]],
     ) -> None:
         self.assert_compute_domains(
-            compute_domains_equiv_eq_c, domains, parameters, consistency_result, expected_domains
+            compute_domains_eq_c_reif, domains, parameters, consistency_result, expected_domains
         )

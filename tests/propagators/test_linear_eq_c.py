@@ -15,11 +15,11 @@ from typing import List, Optional, Tuple, Union
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
-from nucs.propagators.affine_eq_propagator import compute_domains_affine_eq
+from nucs.propagators.linear_eq_c_propagator import compute_domains_linear_eq_c
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestAffineEq(PropagatorTest):
+class TestLinearEqC(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
@@ -58,5 +58,5 @@ class TestAffineEq(PropagatorTest):
         expected_domains: Optional[List[List[int]]],
     ) -> None:
         self.assert_compute_domains(
-            compute_domains_affine_eq, domains, parameters, consistency_result, expected_domains
+            compute_domains_linear_eq_c, domains, parameters, consistency_result, expected_domains
         )

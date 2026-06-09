@@ -16,8 +16,8 @@ from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
-    ALG_AFFINE_EQ,
-    ALG_EQUIV_EQ_C,
+    ALG_LINEAR_EQ_C,
+    ALG_EQ_C_REIF,
     ALG_MAX_EQ,
     ALG_GCC,
     ALG_LEQ_C,
@@ -66,11 +66,13 @@ class BACPProblem(Problem):
         # link booleans to periods: b[i, j] <=> period[i] == j
         for i in range(self.n_courses):
             for j in range(self.n_periods):
-                self.add_propagator(ALG_EQUIV_EQ_C, [self.bool(i, j), i], [j])
+                self.add_propagator(ALG_EQ_C_REIF, [self.bool(i, j), i], [j])
         # for each period j, compute its load: load[j] = sum_i course_load[i] * b[i, j]
         for j in range(self.n_periods):
             self.add_propagator(
-                ALG_AFFINE_EQ, [self.bool(i, j) for i in range(self.n_courses)] + [self.load(j)], course_load + [-1, 0]
+                ALG_LINEAR_EQ_C,
+                [self.bool(i, j) for i in range(self.n_courses)] + [self.load(j)],
+                course_load + [-1, 0],
             )
         # max_load = max(load[j])
         self.add_propagator(ALG_MAX_EQ, [self.load(j) for j in range(self.n_periods)] + [self.max_load], [])

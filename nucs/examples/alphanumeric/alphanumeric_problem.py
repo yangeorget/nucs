@@ -15,7 +15,7 @@ from typing import Any, Dict
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_ALLDIFFERENT
+from nucs.propagators.propagators import ALG_LINEAR_EQ_C, ALG_ALLDIFFERENT
 
 
 class AlphanumericProblem(Problem):
@@ -37,7 +37,7 @@ class AlphanumericProblem(Problem):
                 word_counts[character] = word_counts.get(character, 0) + 1
             word_letters = sorted(word_counts.keys(), key=lambda letter: letter_to_idx[letter])
             self.add_propagator(
-                ALG_AFFINE_EQ,
+                ALG_LINEAR_EQ_C,
                 [letter_to_idx[letter] for letter in word_letters],
                 [word_counts[letter] for letter in word_letters] + [word_sum],
             )

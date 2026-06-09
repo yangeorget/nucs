@@ -11,7 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_COUNT_EQ, ALG_SUM_EQ_C, ALG_AFFINE_EQ
+from nucs.propagators.propagators import ALG_COUNT_EQ, ALG_SUM_EQ_C, ALG_LINEAR_EQ_C
 
 
 class MagicSequenceProblem(Problem):
@@ -35,4 +35,4 @@ class MagicSequenceProblem(Problem):
         if model_r1:
             self.add_propagator(ALG_SUM_EQ_C, range(n), [n])
         if model_r2:
-            self.add_propagator(ALG_AFFINE_EQ, range(n), range(n + 1))
+            self.add_propagator(ALG_LINEAR_EQ_C, range(n), range(n + 1))

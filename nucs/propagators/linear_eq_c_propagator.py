@@ -24,7 +24,7 @@ from nucs.constants import (
 )
 
 
-def get_complexity_affine_eq(n: int, parameters: NDArray) -> int:
+def get_complexity_linear_eq_c(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
 
@@ -40,7 +40,7 @@ def get_complexity_affine_eq(n: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True, fastmath=True)
-def get_triggers_affine_eq(n: int, variable: int, parameters: NDArray) -> int:
+def get_triggers_linear_eq_c(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
 
@@ -54,7 +54,7 @@ def get_triggers_affine_eq(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True, fastmath=True)
-def compute_domains_affine_eq(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_linear_eq_c(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements :math:`\\sum_i a_i * x_i = a_{n}`.
 

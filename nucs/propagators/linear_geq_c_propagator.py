@@ -25,7 +25,7 @@ from nucs.constants import (
 )
 
 
-def get_complexity_affine_leq(n: int, parameters: NDArray) -> int:
+def get_complexity_linear_geq_c(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
 
@@ -41,7 +41,7 @@ def get_complexity_affine_leq(n: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True, fastmath=True)
-def get_triggers_affine_leq(n: int, variable: int, parameters: NDArray) -> int:
+def get_triggers_linear_geq_c(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
 
@@ -53,13 +53,13 @@ def get_triggers_affine_leq(n: int, variable: int, parameters: NDArray) -> int:
     """
     if parameters[variable] == 0:
         return EVENT_MASK_NONE
-    return EVENT_MASK_MAX if parameters[variable] < 0 else EVENT_MASK_MIN
+    return EVENT_MASK_MIN if parameters[variable] < 0 else EVENT_MASK_MAX
 
 
 @njit(cache=True, fastmath=True)
-def compute_domains_affine_leq(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_linear_geq_c(domains: NDArray, parameters: NDArray) -> int:
     """
-    Implements :math:`\\sum_i a_i * x_i <= a_{n}`.
+    Implements :math:`\\sum_i a_i * x_i >= a_{n}`.
 
     :param domains: the domains of the variables, x is an alias for domains
     :type domains: NDArray
@@ -73,7 +73,7 @@ def compute_domains_affine_leq(domains: NDArray, parameters: NDArray) -> int:
     n = len(factors)
     # domain_sum_min / domain_sum_max bracket the value of (sum a_i * x_i - a_n): domain_sum_min is
     # its largest possible value, domain_sum_max its smallest. The constraint holds when this value
-    # can be <= 0, i.e. domain_sum_max <= 0; it is entailed once domain_sum_min <= 0.
+    # can be >= 0, i.e. domain_sum_min >= 0; it is entailed once domain_sum_max >= 0.
     domain_sum_min = domain_sum_max = -parameters[-1]
     for i in range(n):
         factor = factors[i]
@@ -85,13 +85,13 @@ def compute_domains_affine_leq(domains: NDArray, parameters: NDArray) -> int:
         else:
             domain_sum_min += factor * x_min
             domain_sum_max += factor * x_max
-    if domain_sum_min <= 0:
+    if domain_sum_max >= 0:
         return PROP_ENTAILMENT
-    if domain_sum_max > 0:
+    if domain_sum_min < 0:
         return PROP_INCONSISTENCY
-    # A single pass reaches the fixpoint: the bounds are derived from domain_sum_max, and
-    # tightening x_max (factor > 0) or x_min (factor < 0) never changes domain_sum_max, so a
-    # second pass would compute the same bounds. domain_sum_min is updated to detect entailment.
+    # A single pass reaches the fixpoint: the bounds are derived from domain_sum_min, and
+    # tightening x_min (factor > 0) or x_max (factor < 0) never changes domain_sum_min, so a
+    # second pass would compute the same bounds. domain_sum_max is updated to detect entailment.
     for i in range(n):
         factor = factors[i]
         if factor == 0:
@@ -101,15 +101,15 @@ def compute_domains_affine_leq(domains: NDArray, parameters: NDArray) -> int:
         if x_min == x_max:
             continue
         if factor > 0:
-            new_max = x_min + (-domain_sum_max // factor)
-            if new_max < x_max:
-                domains[i, MAX] = new_max
-                domain_sum_min += factor * (new_max - x_max)
-        else:
-            new_min = x_max - (domain_sum_max // factor)
+            new_min = x_max - (domain_sum_min // factor)
             if new_min > x_min:
                 domains[i, MIN] = new_min
-                domain_sum_min += factor * (new_min - x_min)
-    if domain_sum_min <= 0:
+                domain_sum_max += factor * (new_min - x_min)
+        else:
+            new_max = x_min + (-domain_sum_min // factor)
+            if new_max < x_max:
+                domains[i, MAX] = new_max
+                domain_sum_max += factor * (new_max - x_max)
+    if domain_sum_max >= 0:
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY

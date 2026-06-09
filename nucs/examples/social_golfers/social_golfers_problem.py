@@ -12,7 +12,7 @@
 ###############################################################################
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_EQUIV_EQ, ALG_SUM_LEQ_C, ALG_GCC, ALG_LEXICOGRAPHIC_LEQ
+from nucs.propagators.propagators import ALG_EQ_REIF, ALG_SUM_LEQ_C, ALG_GCC, ALG_LEXICOGRAPHIC_LEQ
 
 
 class SocialGolfersProblem(Problem):
@@ -57,10 +57,10 @@ class SocialGolfersProblem(Problem):
                 for p1 in range(self.player_nb - 1):
                     for p2 in range(p1 + 1, self.player_nb):
                         self.add_propagator(
-                            ALG_EQUIV_EQ, [self.bool_index(w1, p1, p2), self.index(w1, p1), self.index(w1, p2)]
+                            ALG_EQ_REIF, [self.bool_index(w1, p1, p2), self.index(w1, p1), self.index(w1, p2)]
                         )
                         self.add_propagator(
-                            ALG_EQUIV_EQ, [self.bool_index(w2, p1, p2), self.index(w2, p1), self.index(w2, p2)]
+                            ALG_EQ_REIF, [self.bool_index(w2, p1, p2), self.index(w2, p1), self.index(w2, p2)]
                         )
                         self.add_propagator(
                             ALG_SUM_LEQ_C, [self.bool_index(w1, p1, p2), self.bool_index(w2, p1, p2)], [1]

@@ -12,7 +12,7 @@
 ###############################################################################
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AFFINE_EQ, ALG_AFFINE_LEQ
+from nucs.propagators.propagators import ALG_LINEAR_EQ_C, ALG_LINEAR_LEQ_C
 
 
 class KnapsackProblem(Problem):
@@ -32,6 +32,6 @@ class KnapsackProblem(Problem):
         volumes = dataset["volumes"]
         n = len(weights)
         super().__init__([(0, 1)] * n + [(0, sum(weights))])
-        self.add_propagator(ALG_AFFINE_LEQ, range(n), [*volumes, capacity])
-        self.add_propagator(ALG_AFFINE_EQ, range(n + 1), [*weights, -1, 0])
+        self.add_propagator(ALG_LINEAR_LEQ_C, range(n), [*volumes, capacity])
+        self.add_propagator(ALG_LINEAR_EQ_C, range(n + 1), [*weights, -1, 0])
         self.weight = n
