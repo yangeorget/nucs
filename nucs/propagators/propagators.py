@@ -89,6 +89,7 @@ from nucs.propagators.element_l_eq_propagator import (
     get_complexity_element_l_eq,
     get_triggers_element_l_eq,
 )
+from nucs.propagators.eq_propagator import compute_domains_eq, get_complexity_eq, get_triggers_eq
 from nucs.propagators.equiv_eq_c_propagator import (
     compute_domains_equiv_eq_c,
     get_complexity_equiv_eq_c,
@@ -208,6 +209,7 @@ ALG_ELEMENT_L_EQ_C_ALLDIFFERENT = register_propagator(
     get_complexity_element_l_eq_c_alldifferent,
     compute_domains_element_l_eq_c_alldifferent,
 )
+ALG_EQ = register_propagator(get_triggers_eq, get_complexity_eq, compute_domains_eq)
 ALG_EQUIV_EQ_C = register_propagator(get_triggers_equiv_eq_c, get_complexity_equiv_eq_c, compute_domains_equiv_eq_c)
 ALG_EQUIV_EQ = register_propagator(get_triggers_equiv_eq, get_complexity_equiv_eq, compute_domains_equiv_eq)
 ALG_GCC = register_propagator(get_triggers_gcc, get_complexity_gcc, compute_domains_gcc)

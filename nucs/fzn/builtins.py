@@ -28,6 +28,7 @@ from nucs.propagators.propagators import (
     ALG_AFFINE_EQ,
     ALG_AFFINE_LEQ,
     ALG_ALLDIFFERENT,
+    ALG_EQ,
     ALG_EQUIV_EQ,
     ALG_EQUIV_EQ_C,
     ALG_ELEMENT_EQ,
@@ -106,7 +107,7 @@ def _bool2int(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``bool2int(b, x)`` as x = b; booleans are modelled as 0..1 integer variables.
     """
-    model.problem.add_propagator(ALG_AFFINE_EQ, [model.var_index_of(args[1]), model.var_index_of(args[0])], [1, -1, 0])
+    model.problem.add_propagator(ALG_EQ, [model.var_index_of(args[1]), model.var_index_of(args[0])])
 
 
 def _int_le(model: "FznModel", args: List[Term]) -> None:
