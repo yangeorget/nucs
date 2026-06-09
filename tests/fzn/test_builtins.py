@@ -96,6 +96,33 @@ class TestBuiltins:
         )
         assert "a = 0;" in out and "b = 1;" in out and "c = 2;" in out
 
+    def test_bool_builtins_and_bool_output(self) -> None:
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint bool_eq(a, true);\n"  # a = true
+            "constraint bool_not(a, b);\n"  # b = not a = false
+            "constraint bool_le(b, a);\n"  # false <= true, consistent
+            "array [1..2] of var bool: ps = [a, b];\n"
+            "constraint array_bool_and(ps, r);\n"  # r = a /\\ b = false
+            "solve satisfy;"
+        )
+        # booleans must be rendered as true/false, not 1/0
+        assert "a = true;" in out
+        assert "b = false;" in out
+        assert "r = false;" in out
+
+    def test_table(self) -> None:
+        out = solve_fzn(
+            "var 1..3: a :: output_var;\nvar 1..3: b :: output_var;\n"
+            "array [1..2] of var int: x = [a, b];\n"
+            "array [1..6] of int: t = [1, 2, 2, 3, 3, 1];\n"  # rows (1,2) (2,3) (3,1), flattened row-major
+            "constraint nucs_table_int(x, t);\n"
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 3  # exactly the three table rows
+        assert "a = 1;\nb = 2;" in out and "a = 2;\nb = 3;" in out and "a = 3;\nb = 1;" in out
+
     def test_minimize(self) -> None:
         out = solve_fzn(
             "var 0..10: x :: output_var;\nvar 0..10: y :: output_var;\n"

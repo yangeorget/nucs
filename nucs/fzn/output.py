@@ -42,14 +42,31 @@ def print_solution(model: "FznModel", solution: NDArray, out: TextIO) -> None:
     """
     for item in model.output_items:
         if item[0] == "scalar":
-            name = item[1]
-            out.write(f"{name} = {model.value_of(_id(name), solution)};\n")
+            _, name, is_bool = item
+            out.write(f"{name} = {_fmt(model.value_of(_id(name), solution), is_bool)};\n")
         else:
-            _, name, lo, hi = item
+            _, name, lo, hi, is_bool = item
             values = [model.value_of(e, solution) for e in model.elements_of(_id(name))]
-            body = ", ".join(str(v) for v in values)
+            body = ", ".join(_fmt(v, is_bool) for v in values)
             out.write(f"{name} = array1d({lo}..{hi}, [{body}]);\n")
     out.write(SOLUTION_SEPARATOR + "\n")
+
+
+def _fmt(value: int, is_bool: bool) -> str:
+    """
+    Formats a value for the FlatZinc solution stream: booleans as ``true``/``false``, integers as digits.
+
+    :param value: the value
+    :type value: int
+    :param is_bool: whether the value belongs to a boolean variable
+    :type is_bool: bool
+
+    :return: the formatted value
+    :rtype: str
+    """
+    if is_bool:
+        return "true" if value else "false"
+    return str(value)
 
 
 def print_search_complete(out: TextIO) -> None:

@@ -28,6 +28,7 @@ from nucs.propagators.propagators import (
     ALG_AFFINE_EQ,
     ALG_AFFINE_LEQ,
     ALG_ALLDIFFERENT,
+    ALG_AND_EQ,
     ALG_EQ,
     ALG_EQUIV_EQ,
     ALG_EQUIV_EQ_C,
@@ -39,6 +40,7 @@ from nucs.propagators.propagators import (
     ALG_MAX_EQ,
     ALG_MIN_EQ,
     ALG_MUL_C_EQ,
+    ALG_RELATION,
     ALG_SUM_EQ,
 )
 
@@ -108,6 +110,44 @@ def _bool2int(model: "FznModel", args: List[Term]) -> None:
     Handles ``bool2int(b, x)`` as x = b; booleans are modelled as 0..1 integer variables.
     """
     model.problem.add_propagator(ALG_EQ, [model.var_index_of(args[1]), model.var_index_of(args[0])])
+
+
+def _array_bool_and(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``array_bool_and(as, r)`` as the reification r <=> (and of the booleans in as).
+    """
+    variables = model.var_list_of(args[0]) + [model.var_index_of(args[1])]
+    model.problem.add_propagator(ALG_AND_EQ, variables)
+
+
+def _bool_and(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``bool_and(a, b, r)`` as the reification r <=> (a and b).
+    """
+    model.problem.add_propagator(
+        ALG_AND_EQ, [model.var_index_of(args[0]), model.var_index_of(args[1]), model.var_index_of(args[2])]
+    )
+
+
+def _bool_not(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``bool_not(a, b)`` as a + b = 1, i.e. b is the negation of a; booleans are 0..1 integers.
+    """
+    model.problem.add_propagator(ALG_AFFINE_EQ, [model.var_index_of(args[0]), model.var_index_of(args[1])], [1, 1, 1])
+
+
+def _bool_eq(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``bool_eq(a, b)`` as a = b.
+    """
+    model.problem.add_propagator(ALG_EQ, [model.var_index_of(args[0]), model.var_index_of(args[1])])
+
+
+def _bool_le(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``bool_le(a, b)`` as a <= b.
+    """
+    model.problem.add_propagator(ALG_LEQ_C, [model.var_index_of(args[0]), model.var_index_of(args[1])], [0])
 
 
 def _int_le(model: "FznModel", args: List[Term]) -> None:
@@ -183,6 +223,15 @@ def _lex_lesseq(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_LEXICOGRAPHIC_LEQ, variables)
 
 
+def _table_int(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``table_int(x, t)``: each tuple of x must be a row of the table t (an extensional constraint).
+    The 2D table is flattened row-major in FlatZinc, so it lines up with the RELATION tuple layout.
+    """
+    variables = model.var_list_of(args[0])
+    model.problem.add_propagator(ALG_RELATION, variables, model.int_list_of(args[1]))
+
+
 def _array_int_element(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``array_int_element(i, A, c)`` as A[i] = c, where A is an array of constants and i is 1-based.
@@ -221,24 +270,30 @@ def _global_cardinality_low_up(model: "FznModel", args: List[Term]) -> None:
 
 
 BUILTINS: Dict[str, Handler] = {
-    "int_lin_eq": _int_lin_eq,
-    "int_lin_le": _int_lin_le,
-    "int_eq": _int_eq,
-    "int_eq_reif": _int_eq_reif,
-    "bool2int": _bool2int,
-    "int_le": _int_le,
-    "int_lt": _int_lt,
-    "int_plus": _int_plus,
-    "int_abs": _int_abs,
-    "int_times": _int_times,
-    "int_max": _int_max,
-    "int_min": _int_min,
     "all_different_int": _all_different,
-    "fzn_all_different_int": _all_different,
-    "lex_lesseq_int": _lex_lesseq,
-    "fzn_lex_lesseq_int": _lex_lesseq,
+    "array_bool_and": _array_bool_and,
     "array_int_element": _array_int_element,
     "array_var_int_element": _array_var_int_element,
-    "global_cardinality_low_up": _global_cardinality_low_up,
+    "bool2int": _bool2int,
+    "bool_and": _bool_and,
+    "bool_eq": _bool_eq,
+    "bool_le": _bool_le,
+    "bool_not": _bool_not,
+    "fzn_all_different_int": _all_different,
     "fzn_global_cardinality_low_up": _global_cardinality_low_up,
+    "fzn_lex_lesseq_int": _lex_lesseq,
+    "global_cardinality_low_up": _global_cardinality_low_up,
+    "int_abs": _int_abs,
+    "int_eq": _int_eq,
+    "int_eq_reif": _int_eq_reif,
+    "int_le": _int_le,
+    "int_lin_eq": _int_lin_eq,
+    "int_lin_le": _int_lin_le,
+    "int_lt": _int_lt,
+    "int_max": _int_max,
+    "int_min": _int_min,
+    "int_plus": _int_plus,
+    "int_times": _int_times,
+    "lex_lesseq_int": _lex_lesseq,
+    "nucs_table_int": _table_int,
 }

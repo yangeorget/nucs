@@ -39,7 +39,7 @@ class FznModel:
         self.vars: Dict[str, int] = {}
         self.arrays: Dict[str, List[Term]] = {}
         self.const_var_cache: Dict[int, int] = {}
-        # output_items: ("scalar", name) or ("array", name, lo, hi)
+        # output_items: ("scalar", name, is_bool) or ("array", name, lo, hi, is_bool)
         self.output_items: List[Tuple] = []
         self.solve: Solve = Solve("satisfy")
 
@@ -96,7 +96,7 @@ class FznModel:
             self.vars[decl.name] = self.problem.add_variable((decl.lo, decl.hi))
         for ann in decl.annotations:
             if ann.name == "output_var":
-                self.output_items.append(("scalar", decl.name))
+                self.output_items.append(("scalar", decl.name, decl.is_bool))
 
     def _declare_array(self, decl: ArrayDecl) -> None:
         """
@@ -123,7 +123,7 @@ class FznModel:
         for ann in decl.annotations:
             if ann.name == "output_array":
                 lo, hi = _index_set_bounds(decl, ann)
-                self.output_items.append(("array", decl.name, lo, hi))
+                self.output_items.append(("array", decl.name, lo, hi, decl.is_bool))
 
     def var_index_of(self, term: Term) -> int:
         """

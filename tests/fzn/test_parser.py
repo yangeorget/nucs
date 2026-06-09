@@ -45,7 +45,7 @@ class TestParser:
     def test_var_decls_domains(self) -> None:
         statements = parse("var 1..4: x;\nvar bool: b;\nvar int: y;\nvar {1, 2, 3}: z;")
         assert statements[0] == VarDecl("x", 1, 4, [], None)
-        assert statements[1] == VarDecl("b", 0, 1, [], None)
+        assert statements[1] == VarDecl("b", 0, 1, [], None, True)
         y, z = statements[2], statements[3]
         assert isinstance(y, VarDecl) and isinstance(z, VarDecl)
         assert y.lo < 0 < y.hi  # unbounded int falls back to a wide interval

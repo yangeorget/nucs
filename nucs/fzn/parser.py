@@ -93,6 +93,7 @@ class VarDecl:
     hi: int
     annotations: List[Ann] = field(default_factory=list)
     rhs: Optional[Term] = None
+    is_bool: bool = False
 
 
 @dataclass
@@ -108,6 +109,7 @@ class ArrayDecl:
     lo: Optional[int] = None
     hi: Optional[int] = None
     size: Optional[int] = None
+    is_bool: bool = False
 
 
 @dataclass
@@ -461,6 +463,7 @@ class Parser:
         :rtype: VarDecl
         """
         self.expect("IDENT", "var")
+        is_bool = self.peek() == ("IDENT", "bool")
         lo, hi = self.parse_domain()
         self.expect("PUNCT", ":")
         name = str(self.expect("IDENT"))
@@ -469,7 +472,7 @@ class Parser:
         if self.accept("PUNCT", "="):
             rhs = self.parse_term()
         self.expect("PUNCT", ";")
-        return VarDecl(name, lo, hi, annotations, rhs)
+        return VarDecl(name, lo, hi, annotations, rhs, is_bool)
 
     def parse_par_decl(self) -> ParDecl:
         """
@@ -507,12 +510,15 @@ class Parser:
         is_var = self.accept("IDENT", "var")
         lo: Optional[int] = None
         hi: Optional[int] = None
+        is_bool = False
         if is_var:
+            is_bool = self.peek() == ("IDENT", "bool")
             lo, hi = self.parse_domain()
         else:
             elem_type = str(self.expect("IDENT"))
             if elem_type not in ("int", "bool"):
                 raise FznUnsupportedError(f"array element type '{elem_type}' is not supported")
+            is_bool = elem_type == "bool"
         self.expect("PUNCT", ":")
         name = str(self.expect("IDENT"))
         annotations = self.parse_annotations()
@@ -523,7 +529,7 @@ class Parser:
                 raise FznParseError("expected an array literal on the right-hand side of an array declaration")
             elems = term
         self.expect("PUNCT", ";")
-        return ArrayDecl(name, elems, annotations, is_var, lo, hi, size)
+        return ArrayDecl(name, elems, annotations, is_var, lo, hi, size, is_bool)
 
 
 def _term_to_par_value(term: Term) -> Union[int, bool, List[int]]:
