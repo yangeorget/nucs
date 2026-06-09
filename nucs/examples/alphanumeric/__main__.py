@@ -20,7 +20,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.alphanumeric
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
-    parser.add_argument("--dataset", default="datasets/alphanumeric/alpha.json")
+    parser.add_argument("--dataset", default="datasets/examples/alphanumeric/alpha.json")
     args = parser.parse_args()
     with open(args.dataset, "r") as json_file:
         dataset = json.load(json_file)

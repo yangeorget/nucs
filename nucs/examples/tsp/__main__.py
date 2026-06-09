@@ -24,7 +24,7 @@ from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.tsp
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
-    parser.add_argument("--dataset", default="datasets/tsp/gr17.json")
+    parser.add_argument("--dataset", default="datasets/examples/tsp/gr17.json")
     args = parser.parse_args()
     with open(args.dataset, "r") as json_file:
         costs = json.load(json_file)["costs"]

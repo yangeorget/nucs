@@ -22,7 +22,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.knapsack
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
-    parser.add_argument("--dataset", default="datasets/knapsack/simple.json")
+    parser.add_argument("--dataset", default="datasets/examples/knapsack/simple.json")
     args = parser.parse_args()
     with open(args.dataset, "r") as json_file:
         dataset = json.load(json_file)

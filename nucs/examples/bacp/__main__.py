@@ -22,7 +22,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.bacp
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
-    parser.add_argument("--dataset", default="datasets/bacp/bacp-1.json")
+    parser.add_argument("--dataset", default="datasets/examples/bacp/bacp-1.json")
     args = parser.parse_args()
     with open(args.dataset, "r") as json_file:
         dataset = json.load(json_file)

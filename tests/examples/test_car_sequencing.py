@@ -19,7 +19,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 
 class TestCarSequencing:
     def test_car_sequencing(self) -> None:
-        with open("datasets/car_sequencing/ecai88.json", "r") as json_file:
+        with open("datasets/examples/car_sequencing/ecai88.json", "r") as json_file:
             dataset = json.load(json_file)
             problem = CarSequencingProblem(dataset)
             solver = BacktrackSolver(problem)

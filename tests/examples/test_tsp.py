@@ -40,7 +40,7 @@ class TestTSP:
         ],
     )
     def test_tsp_gr(self, name: str, minimum: int) -> None:
-        with open("datasets/tsp/gr17.json", "r") as json_file:
+        with open("datasets/examples/tsp/gr17.json", "r") as json_file:
             costs = json.load(json_file)["costs"]
             n = len(costs)
             problem = TSPProblem(costs)

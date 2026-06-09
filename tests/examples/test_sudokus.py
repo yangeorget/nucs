@@ -20,7 +20,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
 class TestSudokus:
-    @pytest.mark.parametrize("path", ["datasets/sudoku/sudoku1.json", "datasets/sudoku/sudoku1.json"])
+    @pytest.mark.parametrize("path", ["datasets/examples/sudoku/sudoku1.json", "datasets/examples/sudoku/sudoku1.json"])
     def test_sudokus(self, path: str) -> None:
         with open(path, "r") as json_file:
             givens = json.load(json_file)["givens"]

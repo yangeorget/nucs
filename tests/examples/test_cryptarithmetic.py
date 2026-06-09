@@ -25,8 +25,8 @@ class TestCryptarithmetic:
     @pytest.mark.parametrize(
         "path, values",
         [
-            ("datasets/cryptarithmetic/donald.json", [4, 3, 5, 9, 1, 8, 6, 2, 7, 0]),
-            ("datasets/cryptarithmetic/sendmore.json", [7, 5, 1, 6, 0, 8, 9, 2]),
+            ("datasets/examples/cryptarithmetic/donald.json", [4, 3, 5, 9, 1, 8, 6, 2, 7, 0]),
+            ("datasets/examples/cryptarithmetic/sendmore.json", [7, 5, 1, 6, 0, 8, 9, 2]),
         ],
     )
     def test_puzzles(self, path: str, values: List[int]) -> None:

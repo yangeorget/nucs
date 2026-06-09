@@ -20,7 +20,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.cryptarithmetic
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
-    parser.add_argument("--dataset", default="datasets/cryptarithmetic/donald.json")
+    parser.add_argument("--dataset", default="datasets/examples/cryptarithmetic/donald.json")
     args = parser.parse_args()
     with open(args.dataset, "r") as json_file:
         dataset = json.load(json_file)

@@ -58,15 +58,15 @@ class TestBACP:
     @pytest.mark.parametrize(
         "path, max_load",
         [
-            # ("datasets/bacp/bacp-1.json", 28), slow
-            # ("datasets/bacp/bacp-2.json", ?), ?
-            ("datasets/bacp/bacp-3.json", 30),
-            ("datasets/bacp/bacp-4.json", 44),
-            ("datasets/bacp/bacp-5.json", 26),
-            ("datasets/bacp/bacp-6.json", 26),
-            ("datasets/bacp/bacp-7.json", 27),
-            ("datasets/bacp/bacp-8.json", 30),
-            ("datasets/bacp/bacp-9.json", 38),
+            # ("datasets/examples/bacp/bacp-1.json", 28), slow
+            # ("datasets/examples/bacp/bacp-2.json", ?), ?
+            ("datasets/examples/bacp/bacp-3.json", 30),
+            ("datasets/examples/bacp/bacp-4.json", 44),
+            ("datasets/examples/bacp/bacp-5.json", 26),
+            ("datasets/examples/bacp/bacp-6.json", 26),
+            ("datasets/examples/bacp/bacp-7.json", 27),
+            ("datasets/examples/bacp/bacp-8.json", 30),
+            ("datasets/examples/bacp/bacp-9.json", 38),
         ],
     )
     def test_datasets(self, path: str, max_load: int) -> None:

@@ -26,7 +26,7 @@ class TestAlphanumeric:
         "path, values",
         [
             (
-                "datasets/alphanumeric/alpha.json",
+                "datasets/examples/alphanumeric/alpha.json",
                 [
                     5,
                     13,
