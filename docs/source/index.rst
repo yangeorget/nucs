@@ -39,6 +39,7 @@ Contents
    consistency
    solvers
    heuristics
-   stats
+   statistics
    logging
+   minizinc
    reference/reference_index.rst
