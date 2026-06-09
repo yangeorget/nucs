@@ -44,6 +44,9 @@ test = [
     "coverage",
     "pytest"
 ]
+[project.scripts]
+fzn-nucs = "nucs.fzn.__main__:main"
+
 [project.urls]
 Homepage = "https://github.com/yangeorget/nucs"
 Issues = "https://github.com/yangeorget/nucs/issues"
@@ -66,8 +69,11 @@ line-ending = "auto"
 ignore_missing_imports = true
 disallow_untyped_defs = true
 
-[tool.setuptools.packages]
-find = { }
+[tool.setuptools.packages.find]
+include = ["nucs*"]
+
+[tool.setuptools.package-data]
+"nucs.fzn" = ["share/**/*", "README.md"]
 
 [tool.pytest]
 testpaths = ["tests"]

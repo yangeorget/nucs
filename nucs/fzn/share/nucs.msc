@@ -1,0 +1,16 @@
+{
+  "id": "org.nucs.nucs",
+  "name": "NuCS",
+  "description": "Fast constraint solving in Python",
+  "version": "11.2.0",
+  "mznlib": "./minizinc/nucs",
+  "executable": "fzn-nucs",
+  "tags": ["cp", "int"],
+  "stdFlags": ["-a", "-n", "-s"],
+  "supportsMzn": false,
+  "supportsFzn": true,
+  "needsSolns2Out": true,
+  "needsMznExecutable": false,
+  "needsStdlibDir": false,
+  "isGUIApplication": false
+}
