@@ -20,6 +20,7 @@ from nucs.fzn.parser import (
     Id,
     ParDecl,
     Range,
+    SetLit,
     Solve,
     VarDecl,
     parse,
@@ -86,6 +87,15 @@ class TestParser:
         with pytest.raises(FznUnsupportedError):
             parse("var float: x;")
 
-    def test_unsupported_set_domain(self) -> None:
-        with pytest.raises(FznUnsupportedError):
-            parse("var {1, 3, 5}: x;")
+    def test_non_contiguous_set_domain(self) -> None:
+        # a non-contiguous domain is kept as its interval plus the explicit list of allowed values
+        (decl,) = parse("var {1, 3, 5}: x;")
+        assert isinstance(decl, VarDecl)
+        assert (decl.lo, decl.hi) == (1, 5)
+        assert decl.values == [1, 3, 5]
+
+    def test_set_literal_term(self) -> None:
+        (cons,) = parse("constraint set_in(x, {1, 3, 5});")
+        assert isinstance(cons, Constraint)
+        assert cons.name == "set_in"
+        assert cons.args == [Id("x"), SetLit([1, 3, 5])]

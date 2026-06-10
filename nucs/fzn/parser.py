@@ -58,8 +58,18 @@ class ArrayAccess:
     index: int
 
 
-# A term is an int, a bool, an identifier, a range, an array access, or a (possibly nested) list of terms.
-Term = Union[int, bool, Id, Range, "ArrayAccess", list]
+@dataclass
+class SetLit:
+    """
+    A set literal ``{v0, v1, ...}`` of integer constants, kept in strictly ascending order.
+    """
+
+    values: List[int]
+
+
+# A term is an int, a bool, an identifier, a range, an array access, a set literal, or a (possibly nested)
+# list of terms.
+Term = Union[int, bool, Id, Range, "ArrayAccess", "SetLit", list]
 
 
 @dataclass
@@ -94,6 +104,7 @@ class VarDecl:
     annotations: List[Ann] = field(default_factory=list)
     rhs: Optional[Term] = None
     is_bool: bool = False
+    values: Optional[List[int]] = None  # explicit allowed values for a non-contiguous domain
 
 
 @dataclass
@@ -110,6 +121,7 @@ class ArrayDecl:
     hi: Optional[int] = None
     size: Optional[int] = None
     is_bool: bool = False
+    values: Optional[List[int]] = None  # explicit allowed values for a non-contiguous element domain
 
 
 @dataclass
@@ -385,6 +397,14 @@ class Parser:
             elems = self.parse_arg_list()
             self.expect("PUNCT", "]")
             return elems
+        if tk == "PUNCT" and tv == "{":
+            values: List[int] = []
+            if not self.accept("PUNCT", "}"):
+                values.append(self.expect_int())
+                while self.accept("PUNCT", ","):
+                    values.append(self.expect_int())
+                self.expect("PUNCT", "}")
+            return SetLit(sorted(set(values)))
         raise FznParseError(f"unexpected term token {tk} {tv!r}")
 
     def parse_constraint(self) -> Constraint:
@@ -422,20 +442,24 @@ class Parser:
             return Solve(kind, objective)
         raise FznParseError(f"unexpected solve kind {kind!r}")
 
-    def parse_domain(self) -> Tuple[int, int]:
+    def parse_domain(self) -> Tuple[int, int, Optional[List[int]]]:
         """
         Parses a scalar integer/bool domain after ``var``: ``int``, ``lo..hi``, ``{v,..}`` or ``bool``.
 
-        :return: the (lo, hi) bounds
-        :rtype: Tuple[int, int]
+        NuCS domains are intervals, so a non-contiguous ``{v,..}`` domain is returned as its (min, max)
+        interval together with the explicit list of allowed values; the model layer posts a member
+        constraint to enforce the holes. A contiguous domain returns ``None`` as its value list.
+
+        :return: the (lo, hi) bounds and, for a non-contiguous set, the list of allowed values
+        :rtype: Tuple[int, int, Optional[List[int]]]
         """
         tk, tv = self.peek()  # type: ignore[misc]
         if tk == "IDENT" and tv == "bool":
             self.next()
-            return 0, 1
+            return 0, 1, None
         if tk == "IDENT" and tv == "int":
             self.next()
-            return DEFAULT_INT_MIN, DEFAULT_INT_MAX
+            return DEFAULT_INT_MIN, DEFAULT_INT_MAX, None
         if tk == "IDENT" and tv in ("float", "set"):
             raise FznUnsupportedError(f"domain '{tv}' is not supported")
         if tk == "PUNCT" and tv == "{":
@@ -444,15 +468,17 @@ class Parser:
             while self.accept("PUNCT", ","):
                 values.append(self.expect_int())
             self.expect("PUNCT", "}")
-            lo, hi = min(values), max(values)
-            if sorted(values) != list(range(lo, hi + 1)):
-                raise FznUnsupportedError("non-contiguous set domain is not supported (NuCS domains are intervals)")
-            return lo, hi
+            values = sorted(set(values))
+            lo, hi = values[0], values[-1]
+            # A contiguous set is exactly its interval, so no member constraint is needed.
+            if values == list(range(lo, hi + 1)):
+                return lo, hi, None
+            return lo, hi, values
         if tk == "INT":
             lo = self.expect_int()
             self.expect("PUNCT", "..")
             hi = self.expect_int()
-            return lo, hi
+            return lo, hi, None
         raise FznParseError(f"unexpected domain token {tk} {tv!r}")
 
     def parse_var_decl(self) -> VarDecl:
@@ -464,7 +490,7 @@ class Parser:
         """
         self.expect("IDENT", "var")
         is_bool = self.peek() == ("IDENT", "bool")
-        lo, hi = self.parse_domain()
+        lo, hi, values = self.parse_domain()
         self.expect("PUNCT", ":")
         name = str(self.expect("IDENT"))
         annotations = self.parse_annotations()
@@ -472,7 +498,7 @@ class Parser:
         if self.accept("PUNCT", "="):
             rhs = self.parse_term()
         self.expect("PUNCT", ";")
-        return VarDecl(name, lo, hi, annotations, rhs, is_bool)
+        return VarDecl(name, lo, hi, annotations, rhs, is_bool, values)
 
     def parse_par_decl(self) -> ParDecl:
         """
@@ -510,10 +536,11 @@ class Parser:
         is_var = self.accept("IDENT", "var")
         lo: Optional[int] = None
         hi: Optional[int] = None
+        values: Optional[List[int]] = None
         is_bool = False
         if is_var:
             is_bool = self.peek() == ("IDENT", "bool")
-            lo, hi = self.parse_domain()
+            lo, hi, values = self.parse_domain()
         else:
             elem_type = str(self.expect("IDENT"))
             if elem_type not in ("int", "bool"):
@@ -529,7 +556,7 @@ class Parser:
                 raise FznParseError("expected an array literal on the right-hand side of an array declaration")
             elems = term
         self.expect("PUNCT", ";")
-        return ArrayDecl(name, elems, annotations, is_var, lo, hi, size, is_bool)
+        return ArrayDecl(name, elems, annotations, is_var, lo, hi, size, is_bool, values)
 
 
 def _term_to_par_value(term: Term) -> Union[int, bool, List[int]]:

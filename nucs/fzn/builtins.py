@@ -39,6 +39,7 @@ from nucs.propagators.propagators import (
     ALG_LEQ_C,
     ALG_LEXLEQ,
     ALG_MAX_EQ,
+    ALG_MEMBER,
     ALG_MIN_EQ,
     ALG_MUL_C_EQ,
     ALG_MUL_EQ,
@@ -259,6 +260,13 @@ def _table_int(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_RELATION, variables, model.int_list_of(args[1]))
 
 
+def _set_in(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``set_in(x, S)`` as x being a member of the set S (a ``{..}`` literal or a ``lo..hi`` range).
+    """
+    model.problem.add_propagator(ALG_MEMBER, [model.var_index_of(args[0])], model.set_values_of(args[1]))
+
+
 def _array_int_element(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``array_int_element(i, A, c)`` as A[i] = c, where A is an array of constants and i is 1-based.
@@ -325,4 +333,5 @@ BUILTINS: Dict[str, Handler] = {
     "int_times": _int_times,
     "lex_lesseq_int": _lex_lesseq,
     "nucs_table_int": _table_int,
+    "set_in": _set_in,
 }

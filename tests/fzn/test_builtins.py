@@ -140,6 +140,23 @@ class TestBuiltins:
         # x < y forces (1, 2) which sums to 3, excluded by the disequality -> unsatisfiable
         assert out.strip() == "=====UNSATISFIABLE====="
 
+    def test_set_in(self) -> None:
+        out = solve_fzn(
+            "var 0..10: x :: output_var;\nconstraint set_in(x, {1, 3, 5});\nconstraint int_lt(x, 4);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        # x in {1,3,5} and x < 4 -> {1, 3}
+        assert out.count("----------") == 2
+        assert "x = 1;" in out and "x = 3;" in out
+
+    def test_non_contiguous_var_domain(self) -> None:
+        out = solve_fzn(
+            "var {1, 3, 5}: x :: output_var;\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 3
+        assert "x = 1;" in out and "x = 3;" in out and "x = 5;" in out
+
     def test_minimize(self) -> None:
         out = solve_fzn(
             "var 0..10: x :: output_var;\nvar 0..10: y :: output_var;\n"

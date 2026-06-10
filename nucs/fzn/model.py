@@ -21,8 +21,21 @@ from typing import Dict, List, Optional, Tuple, Union
 
 from nucs.fzn.builtins import BUILTINS
 from nucs.fzn.errors import FznParseError, FznUnsupportedError
-from nucs.fzn.parser import ArrayAccess, ArrayDecl, Constraint, Id, ParDecl, Range, Solve, Statement, Term, VarDecl
+from nucs.fzn.parser import (
+    ArrayAccess,
+    ArrayDecl,
+    Constraint,
+    Id,
+    ParDecl,
+    Range,
+    SetLit,
+    Solve,
+    Statement,
+    Term,
+    VarDecl,
+)
 from nucs.problems.problem import Problem
+from nucs.propagators.propagators import ALG_MEMBER
 
 
 class FznModel:
@@ -93,7 +106,11 @@ class FznModel:
             else:
                 raise FznParseError(f"unknown identifier '{decl.rhs.name}'")
         else:
-            self.vars[decl.name] = self.problem.add_variable((decl.lo, decl.hi))
+            index = self.problem.add_variable((decl.lo, decl.hi))
+            self.vars[decl.name] = index
+            if decl.values is not None:
+                # A non-contiguous domain is stored as its interval plus a member constraint for the holes.
+                self.problem.add_propagator(ALG_MEMBER, [index], decl.values)
         for ann in decl.annotations:
             if ann.name == "output_var":
                 self.output_items.append(("scalar", decl.name, decl.is_bool))
@@ -112,7 +129,11 @@ class FznModel:
             elems: List[Term] = []
             for i in range(decl.size):
                 elem_name = f"{decl.name}[{i + 1}]"
-                self.vars[elem_name] = self.problem.add_variable((decl.lo, decl.hi))
+                index = self.problem.add_variable((decl.lo, decl.hi))
+                self.vars[elem_name] = index
+                if decl.values is not None:
+                    # Each element of a non-contiguous element domain gets its own member constraint.
+                    self.problem.add_propagator(ALG_MEMBER, [index], decl.values)
                 elems.append(Id(elem_name))
             self.arrays[decl.name] = elems
         elif decl.is_var:
@@ -205,6 +226,23 @@ class FznModel:
         :rtype: List[int]
         """
         return [self.const_of(e) for e in self._elements_of(term)]
+
+    def set_values_of(self, term: Term) -> List[int]:
+        """
+        Resolves a set term (a ``{..}`` literal or a ``lo..hi`` range) to its sorted list of values.
+
+        :param term: the term to resolve
+        :type term: Term
+
+        :return: the allowed values, in strictly ascending order
+        :rtype: List[int]
+        """
+        term = self._deref(term)
+        if isinstance(term, SetLit):
+            return term.values
+        if isinstance(term, Range):
+            return list(range(term.lo, term.hi + 1))
+        raise FznUnsupportedError(f"expected a set, got {term!r}")
 
     def value_of(self, term: Term, solution) -> int:  # type: ignore[no-untyped-def]
         """
