@@ -64,7 +64,7 @@ This problem leverages the propagators:
 
 * :mod:`nucs.propagators.exactly_true_propagator`,
 * :mod:`nucs.propagators.and_propagator`,
-* :mod:`nucs.propagators.lexicographic_leq_propagator`.
+* :mod:`nucs.propagators.lexleq_propagator`.
 
 
 .. autoclass:: nucs.examples.cryptarithmetic.cryptarithmetic_problem.CryptarithmeticProblem
@@ -207,7 +207,7 @@ This problem leverages the propagators:
 
 * :mod:`nucs.propagators.exactly_true_propagator`,
 * :mod:`nucs.propagators.linear_leq_c_propagator`,
-* :mod:`nucs.propagators.lexicographic_leq_propagator`.
+* :mod:`nucs.propagators.lexleq_propagator`.
 
 
 .. autoclass:: nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem.SportsTournamentSchedulingProblem

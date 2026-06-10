@@ -12,7 +12,7 @@
 ###############################################################################
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_EQ_REIF, ALG_SUM_LEQ_C, ALG_GCC, ALG_LEXICOGRAPHIC_LEQ
+from nucs.propagators.propagators import ALG_EQ_REIF, ALG_SUM_LEQ_C, ALG_GCC, ALG_LEXLEQ
 
 
 class SocialGolfersProblem(Problem):
@@ -74,4 +74,4 @@ class SocialGolfersProblem(Problem):
             )
         if symmetry_breaking:
             for w in range(week_nb - 1):
-                self.add_propagator(ALG_LEXICOGRAPHIC_LEQ, [*range(self.player_nb * w, self.player_nb * (w + 2))])
+                self.add_propagator(ALG_LEXLEQ, [*range(self.player_nb * w, self.player_nb * (w + 2))])

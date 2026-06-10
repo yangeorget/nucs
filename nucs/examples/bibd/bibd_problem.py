@@ -15,7 +15,7 @@ from typing import Any
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_AND_EQ, ALG_LEXICOGRAPHIC_LEQ, ALG_SUM_EQ_C
+from nucs.propagators.propagators import ALG_AND_EQ, ALG_LEXLEQ, ALG_SUM_EQ_C
 
 
 class BIBDProblem(Problem):
@@ -64,12 +64,10 @@ class BIBDProblem(Problem):
         if symmetry_breaking:
             # lexleq on rows
             for object_idx in range(0, v - 1):
-                self.add_propagator(ALG_LEXICOGRAPHIC_LEQ, range(object_idx * b, (object_idx + 2) * b))
+                self.add_propagator(ALG_LEXLEQ, range(object_idx * b, (object_idx + 2) * b))
             # lexleq on columns
             for block_idx in range(0, b - 1):
-                self.add_propagator(
-                    ALG_LEXICOGRAPHIC_LEQ, list(range(block_idx, v * b, b)) + list(range(block_idx + 1, v * b, b))
-                )
+                self.add_propagator(ALG_LEXLEQ, list(range(block_idx, v * b, b)) + list(range(block_idx + 1, v * b, b)))
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         """

@@ -36,7 +36,7 @@ from nucs.propagators.propagators import (
     ALG_ELEMENT_L_EQ,
     ALG_GCC,
     ALG_LEQ_C,
-    ALG_LEXICOGRAPHIC_LEQ,
+    ALG_LEXLEQ,
     ALG_MAX_EQ,
     ALG_MIN_EQ,
     ALG_MUL_C_EQ,
@@ -222,7 +222,7 @@ def _lex_lesseq(model: "FznModel", args: List[Term]) -> None:
     Handles ``lex_lesseq_int(x, y)`` as x <=_lex y.
     """
     variables = model.var_list_of(args[0]) + model.var_list_of(args[1])
-    model.problem.add_propagator(ALG_LEXICOGRAPHIC_LEQ, variables)
+    model.problem.add_propagator(ALG_LEXLEQ, variables)
 
 
 def _table_int(model: "FznModel", args: List[Term]) -> None:

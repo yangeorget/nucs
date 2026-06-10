@@ -11,7 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_LEXICOGRAPHIC_LEQ, ALG_SUM_EQ_C, ALG_SUM_LEQ_C
+from nucs.propagators.propagators import ALG_LEXLEQ, ALG_SUM_EQ_C, ALG_SUM_LEQ_C
 
 
 class SchurLemmaProblem(Problem):
@@ -39,5 +39,5 @@ class SchurLemmaProblem(Problem):
                         self.add_propagator(ALG_SUM_LEQ_C, [3 * x + k, 3 * y + k, 3 * z + k], [2])
         if symmetry_breaking:
             self.add_propagator(
-                ALG_LEXICOGRAPHIC_LEQ, list(range(0, n * 3, 3)) + list(range(1, n * 3, 3)) + list(range(2, n * 3, 3))
+                ALG_LEXLEQ, list(range(0, n * 3, 3)) + list(range(1, n * 3, 3)) + list(range(2, n * 3, 3))
             )
