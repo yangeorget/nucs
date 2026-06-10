@@ -34,6 +34,7 @@ NuCS currently provides the following highly-optimized propagators.
 .. autofunction:: nucs.propagators.min_eq_propagator.compute_domains_min_eq
 .. autofunction:: nucs.propagators.min_geq_propagator.compute_domains_min_geq
 .. autofunction:: nucs.propagators.mul_c_eq_propagator.compute_domains_mul_c_eq
+.. autofunction:: nucs.propagators.mul_eq_propagator.compute_domains_mul_eq
 .. autofunction:: nucs.propagators.no_sub_cycle_propagator.compute_domains_no_sub_cycle
 .. autofunction:: nucs.propagators.permutation_aux_propagator.compute_domains_permutation_aux
 .. autofunction:: nucs.propagators.relation_propagator.compute_domains_relation

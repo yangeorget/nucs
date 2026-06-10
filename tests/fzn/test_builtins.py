@@ -148,8 +148,9 @@ class TestBuiltins:
         with pytest.raises(FznUnsupportedError):
             build_model(parse("var 0..1: x;\nvar 0..1: y;\nconstraint int_ne(x, y);\nsolve satisfy;"))
 
-    def test_unsupported_var_times_var(self) -> None:
-        with pytest.raises(FznUnsupportedError):
-            build_model(
-                parse("var 0..9: x;\nvar 0..9: y;\nvar 0..81: z;\nconstraint int_times(x, y, z);\nsolve satisfy;")
-            )
+    def test_var_times_var(self) -> None:
+        out = solve_fzn(
+            "var 2..2: x :: output_var;\nvar 3..3: y :: output_var;\nvar 0..81: z :: output_var;\n"
+            "constraint int_times(x, y, z);\nsolve satisfy;"
+        )
+        assert "z = 6;" in out  # 2 * 3 = 6

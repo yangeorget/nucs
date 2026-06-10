@@ -40,6 +40,7 @@ from nucs.propagators.propagators import (
     ALG_MAX_EQ,
     ALG_MIN_EQ,
     ALG_MUL_C_EQ,
+    ALG_MUL_EQ,
     ALG_RELATION,
     ALG_SUM_EQ,
 )
@@ -183,15 +184,21 @@ def _int_abs(model: "FznModel", args: List[Term]) -> None:
 
 def _int_times(model: "FznModel", args: List[Term]) -> None:
     """
-    Handles ``int_times(x, y, z)`` as x * y = z, supported only when x or y is a constant.
+    Handles ``int_times(x, y, z)`` as x * y = z, using the constant-factor propagator when x or y is a
+    constant and the general var * var propagator otherwise.
     """
     if _is_const(model, args[1]):
-        x, c, z = model.var_index_of(args[0]), model.const_of(args[1]), model.var_index_of(args[2])
+        model.problem.add_propagator(
+            ALG_MUL_C_EQ, [model.var_index_of(args[0]), model.var_index_of(args[2])], [model.const_of(args[1])]
+        )
     elif _is_const(model, args[0]):
-        x, c, z = model.var_index_of(args[1]), model.const_of(args[0]), model.var_index_of(args[2])
+        model.problem.add_propagator(
+            ALG_MUL_C_EQ, [model.var_index_of(args[1]), model.var_index_of(args[2])], [model.const_of(args[0])]
+        )
     else:
-        raise FznUnsupportedError("int_times with two variables is not supported (no var*var propagator)")
-    model.problem.add_propagator(ALG_MUL_C_EQ, [x, z], [c])
+        model.problem.add_propagator(
+            ALG_MUL_EQ, [model.var_index_of(args[0]), model.var_index_of(args[1]), model.var_index_of(args[2])]
+        )
 
 
 def _int_max(model: "FznModel", args: List[Term]) -> None:
