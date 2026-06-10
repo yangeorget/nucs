@@ -123,6 +123,14 @@ class TestBuiltins:
         assert out.count("----------") == 3  # exactly the three table rows
         assert "a = 1;\nb = 2;" in out and "a = 2;\nb = 3;" in out and "a = 3;\nb = 1;" in out
 
+    def test_int_ne(self) -> None:
+        out = solve_fzn(
+            "var 1..2: x :: output_var;\nvar 1..2: y :: output_var;\n"
+            "constraint int_ne(x, y);\nconstraint int_lt(x, y);\n"
+            "solve satisfy;"
+        )
+        assert "x = 1;" in out and "y = 2;" in out
+
     def test_minimize(self) -> None:
         out = solve_fzn(
             "var 0..10: x :: output_var;\nvar 0..10: y :: output_var;\n"
@@ -146,7 +154,7 @@ class TestBuiltins:
 
     def test_unsupported_builtin(self) -> None:
         with pytest.raises(FznUnsupportedError):
-            build_model(parse("var 0..1: x;\nvar 0..1: y;\nconstraint int_ne(x, y);\nsolve satisfy;"))
+            build_model(parse("var 0..1: x;\nvar 0..1: y;\nconstraint int_pow(x, y, x);\nsolve satisfy;"))
 
     def test_var_times_var(self) -> None:
         out = solve_fzn(

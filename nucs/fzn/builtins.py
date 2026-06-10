@@ -41,6 +41,7 @@ from nucs.propagators.propagators import (
     ALG_MIN_EQ,
     ALG_MUL_C_EQ,
     ALG_MUL_EQ,
+    ALG_NEQ,
     ALG_RELATION,
     ALG_SUM_EQ,
 )
@@ -165,6 +166,13 @@ def _int_lt(model: "FznModel", args: List[Term]) -> None:
     Handles ``int_lt(x, y)`` as x <= y - 1.
     """
     model.problem.add_propagator(ALG_LEQ_C, [model.var_index_of(args[0]), model.var_index_of(args[1])], [-1])
+
+
+def _int_ne(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_ne(x, y)`` as x != y.
+    """
+    model.problem.add_propagator(ALG_NEQ, [model.var_index_of(args[0]), model.var_index_of(args[1])])
 
 
 def _int_plus(model: "FznModel", args: List[Term]) -> None:
@@ -301,6 +309,7 @@ BUILTINS: Dict[str, Handler] = {
     "int_lt": _int_lt,
     "int_max": _int_max,
     "int_min": _int_min,
+    "int_ne": _int_ne,
     "int_plus": _int_plus,
     "int_times": _int_times,
     "lex_lesseq_int": _lex_lesseq,
