@@ -37,6 +37,11 @@ from nucs.propagators.linear_leq_c_propagator import (
     get_complexity_linear_leq_c,
     get_triggers_linear_leq_c,
 )
+from nucs.propagators.linear_neq_c_propagator import (
+    compute_domains_linear_neq_c,
+    get_complexity_linear_neq_c,
+    get_triggers_linear_neq_c,
+)
 from nucs.propagators.alldifferent_propagator import (
     compute_domains_alldifferent,
     get_complexity_alldifferent,
@@ -189,6 +194,9 @@ ALG_LINEAR_GEQ_C = register_propagator(
 )
 ALG_LINEAR_LEQ_C = register_propagator(
     get_triggers_linear_leq_c, get_complexity_linear_leq_c, compute_domains_linear_leq_c
+)
+ALG_LINEAR_NEQ_C = register_propagator(
+    get_triggers_linear_neq_c, get_complexity_linear_neq_c, compute_domains_linear_neq_c
 )
 ALG_ALLDIFFERENT = register_propagator(
     get_triggers_alldifferent, get_complexity_alldifferent, compute_domains_alldifferent

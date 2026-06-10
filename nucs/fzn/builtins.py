@@ -27,6 +27,7 @@ from nucs.propagators.propagators import (
     ALG_ADD_C_EQ,
     ALG_LINEAR_EQ_C,
     ALG_LINEAR_LEQ_C,
+    ALG_LINEAR_NEQ_C,
     ALG_ALLDIFFERENT,
     ALG_AND_EQ,
     ALG_EQ,
@@ -85,6 +86,15 @@ def _int_lin_le(model: "FznModel", args: List[Term]) -> None:
     coeffs = model.int_list_of(args[0])
     variables = model.var_list_of(args[1])
     model.problem.add_propagator(ALG_LINEAR_LEQ_C, variables, coeffs + [model.const_of(args[2])])
+
+
+def _int_lin_ne(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_lin_ne(a, x, c)`` as the linear disequality sum(a_i * x_i) != c.
+    """
+    coeffs = model.int_list_of(args[0])
+    variables = model.var_list_of(args[1])
+    model.problem.add_propagator(ALG_LINEAR_NEQ_C, variables, coeffs + [model.const_of(args[2])])
 
 
 def _int_eq(model: "FznModel", args: List[Term]) -> None:
@@ -306,6 +316,7 @@ BUILTINS: Dict[str, Handler] = {
     "int_le": _int_le,
     "int_lin_eq": _int_lin_eq,
     "int_lin_le": _int_lin_le,
+    "int_lin_ne": _int_lin_ne,
     "int_lt": _int_lt,
     "int_max": _int_max,
     "int_min": _int_min,

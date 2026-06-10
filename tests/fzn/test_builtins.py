@@ -131,6 +131,15 @@ class TestBuiltins:
         )
         assert "x = 1;" in out and "y = 2;" in out
 
+    def test_int_lin_ne(self) -> None:
+        out = solve_fzn(
+            "var 1..2: x :: output_var;\nvar 1..2: y :: output_var;\n"
+            "constraint int_lin_ne([1, 1], [x, y], 3);\nconstraint int_lt(x, y);\n"
+            "solve satisfy;"
+        )
+        # x < y forces (1, 2) which sums to 3, excluded by the disequality -> unsatisfiable
+        assert out.strip() == "=====UNSATISFIABLE====="
+
     def test_minimize(self) -> None:
         out = solve_fzn(
             "var 0..10: x :: output_var;\nvar 0..10: y :: output_var;\n"
