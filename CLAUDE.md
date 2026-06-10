@@ -21,6 +21,10 @@ NUMBA_DISABLE_JIT=1 python -m "cProfile" -s time -m pytest tests/examples >> log
 
 # Coverage
 NUMBA_DISABLE_JIT=1 PYTHONPATH=. coverage run --source=nucs,tests -m pytest && coverage html
+
+# FlatZinc adapter: register NuCS as a MiniZinc solver, then solve a .mzn model
+fzn-nucs --register
+minizinc --solver nucs model.mzn
 ```
 
 `NUMBA_CACHE_DIR` is required for tests to share the JIT cache across runs. `NUMBA_DISABLE_JIT=1` falls back to
@@ -42,6 +46,13 @@ runtime.
   `solver.minimize(var)` / `solver.maximize(var)`.
 - **`nucs/heuristics/`** — variable heuristics pick the next unbound variable, domain heuristics pick the next value to
   try. Both are Numba-jitted with signatures in `nucs/constants.py`.
+- **`nucs/fzn/`** — the **FlatZinc adapter**: model in MiniZinc, solve with NuCS via `minizinc --solver nucs`. Pipeline
+  is `parser.py` (FlatZinc text → IR) → `model.py` (`FznModel` builds a `Problem`) → `builtins.py` (the `BUILTINS`
+  dispatch table: FlatZinc builtin name → `add_propagator` calls) → `runner.py` (solve) → `output.py` (FlatZinc solution
+  stream). `fzn-nucs` is the console script MiniZinc invokes; `fzn-nucs --register` writes the solver config into
+  `~/.minizinc/solvers`. `share/minizinc/nucs/` is the globals library that keeps selected globals (alldifferent, gcc,
+  lex, table) native instead of decomposed. Grow coverage by adding one entry to `BUILTINS` (and, for a kept global, one
+  predicate file under `share/minizinc/nucs/`) — see the `/add-propagator` skill, step 7.
 
 Constants worth knowing: `MIN`/`MAX` (domain row indices), `EVENT_MASK_*` (trigger flags), `PROP_*` (propagation result
 codes), `STATS_IDX_*` (16 counters tracking backtracks, propagator calls, solutions, etc.).
