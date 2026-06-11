@@ -303,6 +303,77 @@ class TestBuiltins:
         # r false so x + y = 2 must hold, x = 0 -> y = 2
         assert "y = 2;" in out
 
+    def test_array_int_maximum_minimum(self) -> None:
+        out = solve_fzn(
+            "var 0..9: a;\nvar 0..9: b;\nvar 0..9: c;\n"
+            "var 0..9: lo :: output_var;\nvar 0..9: hi :: output_var;\n"
+            "constraint int_eq(a, 3);\nconstraint int_eq(b, 7);\nconstraint int_eq(c, 5);\n"
+            "array [1..3] of var int: x = [a, b, c];\n"
+            "constraint array_int_maximum(hi, x);\nconstraint array_int_minimum(lo, x);\n"
+            "solve satisfy;"
+        )
+        assert "hi = 7;" in out and "lo = 3;" in out
+
+    def test_int_ge_gt(self) -> None:
+        out = solve_fzn(
+            "var 0..5: x :: output_var;\n"
+            "constraint int_ge(x, 3);\nconstraint int_gt(5, x);\n"  # x >= 3 and 5 > x -> x in {3, 4}
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 2
+        assert "x = 3;" in out and "x = 4;" in out
+
+    def test_int_ge_reif(self) -> None:
+        out = solve_fzn(
+            "var 0..5: x :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint int_ge_reif(x, 3, r);\nconstraint bool_eq(r, true);\n"
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        # r true so x >= 3 -> x in {3, 4, 5}
+        assert out.count("----------") == 3
+        assert "x = 3;" in out and "x = 5;" in out
+        assert "x = 2;" not in out
+
+    def test_int_lin_ge(self) -> None:
+        out = solve_fzn(
+            "var 0..5: x :: output_var;\nvar 0..5: y :: output_var;\n"
+            "constraint int_lin_ge([1, 1], [x, y], 9);\nconstraint int_eq(x, 5);\n"  # x + y >= 9, x = 5 -> y >= 4
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 2  # y in {4, 5}
+        assert "y = 4;" in out and "y = 5;" in out
+
+    def test_bool_lt(self) -> None:
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\n"
+            "constraint bool_lt(a, b);\n"  # a < b -> a = false, b = true
+            "solve satisfy;"
+        )
+        assert "a = false;" in out and "b = true;" in out
+
+    def test_count_eq(self) -> None:
+        out = solve_fzn(
+            "var 1..3: a;\nvar 1..3: b;\nvar 1..3: c;\nvar 0..3: n :: output_var;\n"
+            "constraint int_eq(a, 2);\nconstraint int_eq(b, 2);\nconstraint int_eq(c, 1);\n"
+            "array [1..3] of var int: x = [a, b, c];\n"
+            "constraint count_eq(x, 2, n);\n"  # number of 2s among [2, 2, 1] -> 2
+            "solve satisfy;"
+        )
+        assert "n = 2;" in out
+
+    def test_count_eq_variable_value_unsupported(self) -> None:
+        with pytest.raises(FznUnsupportedError):
+            build_model(
+                parse(
+                    "var 1..3: a;\nvar 1..3: y;\nvar 0..1: n;\n"
+                    "array [1..1] of var int: x = [a];\n"
+                    "constraint count_eq(x, y, n);\nsolve satisfy;"
+                )
+            )
+
     def test_minimize(self) -> None:
         out = solve_fzn(
             "var 0..10: x :: output_var;\nvar 0..10: y :: output_var;\n"

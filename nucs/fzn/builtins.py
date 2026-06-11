@@ -31,6 +31,7 @@ from nucs.propagators.propagators import (
     ALG_LINEAR_NEQ_C,
     ALG_ALLDIFFERENT,
     ALG_AND_EQ,
+    ALG_COUNT_EQ,
     ALG_EQ,
     ALG_EQ_REIF,
     ALG_EQ_C_REIF,
@@ -142,6 +143,24 @@ def _int_lin_ne_reif(model: "FznModel", args: List[Term]) -> None:
     """
     s = _aux_lin_sum(model, model.int_list_of(args[0]), model.var_list_of(args[1]))
     model.problem.add_propagator(ALG_NEQ_REIF, [model.var_index_of(args[3]), s, model.var_index_of(args[2])])
+
+
+def _int_lin_ge(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_lin_ge(a, x, c)`` as the linear inequality sum(a_i * x_i) >= c.
+    """
+    coeffs = model.int_list_of(args[0])
+    variables = model.var_list_of(args[1])
+    model.problem.add_propagator(ALG_LINEAR_GEQ_C, variables, coeffs + [model.const_of(args[2])])
+
+
+def _int_lin_ge_reif(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_lin_ge_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) >= c, i.e. r <=> c <= s, via an
+    auxiliary sum variable.
+    """
+    s = _aux_lin_sum(model, model.int_list_of(args[0]), model.var_list_of(args[1]))
+    model.problem.add_propagator(ALG_LEQ_C_REIF, [model.var_index_of(args[3]), model.var_index_of(args[2]), s], [0])
 
 
 def _int_eq(model: "FznModel", args: List[Term]) -> None:
@@ -277,6 +296,36 @@ def _ne_reif(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_NEQ_REIF, [r, model.var_index_of(args[0]), model.var_index_of(args[1])])
 
 
+def _int_ge(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_ge(x, y)`` as y <= x.
+    """
+    model.problem.add_propagator(ALG_LEQ_C, [model.var_index_of(args[1]), model.var_index_of(args[0])], [0])
+
+
+def _int_gt(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_gt(x, y)`` as y <= x - 1.
+    """
+    model.problem.add_propagator(ALG_LEQ_C, [model.var_index_of(args[1]), model.var_index_of(args[0])], [-1])
+
+
+def _ge_reif(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_ge_reif(x, y, r)`` / ``bool_ge_reif(x, y, r)`` as r <=> y <= x.
+    """
+    r = model.var_index_of(args[2])
+    model.problem.add_propagator(ALG_LEQ_C_REIF, [r, model.var_index_of(args[1]), model.var_index_of(args[0])], [0])
+
+
+def _gt_reif(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_gt_reif(x, y, r)`` / ``bool_gt_reif(x, y, r)`` as r <=> y <= x - 1.
+    """
+    r = model.var_index_of(args[2])
+    model.problem.add_propagator(ALG_LEQ_C_REIF, [r, model.var_index_of(args[1]), model.var_index_of(args[0])], [-1])
+
+
 def _bool_xor(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``bool_xor(a, b)`` as a != b and ``bool_xor(a, b, r)`` as the reification r <=> (a != b).
@@ -342,6 +391,30 @@ def _int_min(model: "FznModel", args: List[Term]) -> None:
     """
     variables = [model.var_index_of(args[0]), model.var_index_of(args[1]), model.var_index_of(args[2])]
     model.problem.add_propagator(ALG_MIN_EQ, variables)
+
+
+def _array_int_maximum(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``array_int_maximum(m, x)`` as m = max(x).
+    """
+    model.problem.add_propagator(ALG_MAX_EQ, model.var_list_of(args[1]) + [model.var_index_of(args[0])])
+
+
+def _array_int_minimum(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``array_int_minimum(m, x)`` as m = min(x).
+    """
+    model.problem.add_propagator(ALG_MIN_EQ, model.var_list_of(args[1]) + [model.var_index_of(args[0])])
+
+
+def _count_eq(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``count_eq(x, y, c)`` as the number of x_i equal to y is c, supported only when y is a constant.
+    """
+    if not _is_const(model, args[1]):
+        raise FznUnsupportedError("count_eq with a variable value is not supported")
+    variables = model.var_list_of(args[0]) + [model.var_index_of(args[2])]
+    model.problem.add_propagator(ALG_COUNT_EQ, variables, [model.const_of(args[1])])
 
 
 def _all_different(model: "FznModel", args: List[Term]) -> None:
@@ -418,6 +491,8 @@ BUILTINS: Dict[str, Handler] = {
     "array_bool_element": _array_int_element,
     "array_bool_or": _array_bool_or,
     "array_int_element": _array_int_element,
+    "array_int_maximum": _array_int_maximum,
+    "array_int_minimum": _array_int_minimum,
     "array_var_bool_element": _array_var_int_element,
     "array_var_int_element": _array_var_int_element,
     "bool2int": _bool2int,
@@ -425,25 +500,36 @@ BUILTINS: Dict[str, Handler] = {
     "bool_clause": _bool_clause,
     "bool_eq": _bool_eq,
     "bool_eq_reif": _int_eq_reif,
+    "bool_ge_reif": _ge_reif,
+    "bool_gt_reif": _gt_reif,
     "bool_le": _bool_le,
     "bool_le_reif": _le_reif,
     "bool_lin_eq": _int_lin_eq,
     "bool_lin_le": _int_lin_le,
+    "bool_lt": _int_lt,
     "bool_lt_reif": _lt_reif,
     "bool_not": _bool_not,
     "bool_or": _bool_or,
     "bool_xor": _bool_xor,
+    "count_eq": _count_eq,
     "fzn_all_different_int": _all_different,
+    "fzn_count_eq": _count_eq,
     "fzn_global_cardinality_low_up": _global_cardinality_low_up,
     "fzn_lex_lesseq_int": _lex_lesseq,
     "global_cardinality_low_up": _global_cardinality_low_up,
     "int_abs": _int_abs,
     "int_eq": _int_eq,
     "int_eq_reif": _int_eq_reif,
+    "int_ge": _int_ge,
+    "int_ge_reif": _ge_reif,
+    "int_gt": _int_gt,
+    "int_gt_reif": _gt_reif,
     "int_le": _int_le,
     "int_le_reif": _le_reif,
     "int_lin_eq": _int_lin_eq,
     "int_lin_eq_reif": _int_lin_eq_reif,
+    "int_lin_ge": _int_lin_ge,
+    "int_lin_ge_reif": _int_lin_ge_reif,
     "int_lin_le": _int_lin_le,
     "int_lin_le_reif": _int_lin_le_reif,
     "int_lin_ne": _int_lin_ne,
