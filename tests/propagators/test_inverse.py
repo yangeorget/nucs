@@ -15,11 +15,11 @@ from typing import List, Optional, Tuple, Union
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_INCONSISTENCY
-from nucs.propagators.permutation_aux_propagator import compute_domains_permutation_aux
+from nucs.propagators.inverse_propagator import compute_domains_inverse
 from tests.propagators.propagator_test import PropagatorTest
 
 
-class TestPermutationAux(PropagatorTest):
+class TestInverse(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
@@ -49,6 +49,4 @@ class TestPermutationAux(PropagatorTest):
         consistency_result: int,
         expected_domains: Optional[List[List[int]]],
     ) -> None:
-        self.assert_compute_domains(
-            compute_domains_permutation_aux, domains, parameters, consistency_result, expected_domains
-        )
+        self.assert_compute_domains(compute_domains_inverse, domains, parameters, consistency_result, expected_domains)

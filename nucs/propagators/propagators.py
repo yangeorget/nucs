@@ -106,6 +106,11 @@ from nucs.propagators.eq_reif_propagator import (
     get_triggers_eq_reif,
 )
 from nucs.propagators.gcc_propagator import compute_domains_gcc, get_complexity_gcc, get_triggers_gcc
+from nucs.propagators.inverse_propagator import (
+    compute_domains_inverse,
+    get_complexity_inverse,
+    get_triggers_inverse,
+)
 from nucs.propagators.leq_c_propagator import compute_domains_leq_c, get_complexity_leq_c, get_triggers_leq_c
 from nucs.propagators.leq_c_reif_propagator import (
     compute_domains_leq_c_reif,
@@ -138,11 +143,6 @@ from nucs.propagators.no_sub_cycle_propagator import (
     compute_domains_no_sub_cycle,
     get_complexity_no_sub_cycle,
     get_triggers_no_sub_cycle,
-)
-from nucs.propagators.permutation_aux_propagator import (
-    compute_domains_permutation_aux,
-    get_complexity_permutation_aux,
-    get_triggers_permutation_aux,
 )
 from nucs.propagators.relation_propagator import (
     compute_domains_relation,
@@ -238,6 +238,7 @@ ALG_EQ = register_propagator(get_triggers_eq, get_complexity_eq, compute_domains
 ALG_EQ_C_REIF = register_propagator(get_triggers_eq_c_reif, get_complexity_eq_c_reif, compute_domains_eq_c_reif)
 ALG_EQ_REIF = register_propagator(get_triggers_eq_reif, get_complexity_eq_reif, compute_domains_eq_reif)
 ALG_GCC = register_propagator(get_triggers_gcc, get_complexity_gcc, compute_domains_gcc)
+ALG_INVERSE = register_propagator(get_triggers_inverse, get_complexity_inverse, compute_domains_inverse)
 ALG_LEQ_C = register_propagator(get_triggers_leq_c, get_complexity_leq_c, compute_domains_leq_c)
 ALG_LEQ_C_REIF = register_propagator(get_triggers_leq_c_reif, get_complexity_leq_c_reif, compute_domains_leq_c_reif)
 ALG_LEXLEQ = register_propagator(get_triggers_lexleq, get_complexity_lexleq, compute_domains_lexleq)
@@ -252,9 +253,6 @@ ALG_NEQ = register_propagator(get_triggers_neq, get_complexity_neq, compute_doma
 ALG_NEQ_REIF = register_propagator(get_triggers_neq_reif, get_complexity_neq_reif, compute_domains_neq_reif)
 ALG_NO_SUB_CYCLE = register_propagator(
     get_triggers_no_sub_cycle, get_complexity_no_sub_cycle, compute_domains_no_sub_cycle
-)
-ALG_PERMUTATION_AUX = register_propagator(
-    get_triggers_permutation_aux, get_complexity_permutation_aux, compute_domains_permutation_aux
 )
 ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relation, compute_domains_relation)
 ALG_SCC = register_propagator(get_triggers_scc, get_complexity_scc, compute_domains_scc)

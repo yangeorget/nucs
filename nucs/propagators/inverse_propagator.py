@@ -16,7 +16,7 @@ from numpy.typing import NDArray
 from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 
 
-def get_complexity_permutation_aux(n: int, parameters: NDArray) -> int:
+def get_complexity_inverse(n: int, parameters: NDArray) -> int:
     """
     Returns the time complexity of the propagator as an int.
 
@@ -32,12 +32,14 @@ def get_complexity_permutation_aux(n: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True, fastmath=True)
-def get_triggers_permutation_aux(n: int, variable: int, parameters: NDArray) -> int:
+def get_triggers_inverse(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
 
     :param n: the number of variables
     :type n: int
+    :param variable: the index of the variable
+    :type variable: int
     :param parameters: the parameters, unused here
     :type parameters: NDArray
 
@@ -48,11 +50,11 @@ def get_triggers_permutation_aux(n: int, variable: int, parameters: NDArray) -> 
 
 
 @njit(cache=True, fastmath=True)
-def compute_domains_permutation_aux(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_inverse(domains: NDArray, parameters: NDArray) -> int:
     """
-    An auxiliary propagator needed to connect the next and prev variables of a permutation problem.
+    Channels two inverse arrays next and prev of equal length: prev[j] = i iff next[i] = j.
 
-    :param domains: the domains of the variables, the next and prev variables
+    :param domains: the domains of the variables, the next variables then the prev variables
     :type domains: NDArray
     :param parameters: the parameters of the propagator, unused here
     :type parameters: NDArray
@@ -65,13 +67,13 @@ def compute_domains_permutation_aux(domains: NDArray, parameters: NDArray) -> in
     prev = domains[n:]
     return (
         PROP_CONSISTENCY
-        if filter_domains_permutation(n, next, prev) and filter_domains_permutation(n, prev, next)
+        if filter_domains_inverse(n, next, prev) and filter_domains_inverse(n, prev, next)
         else PROP_INCONSISTENCY
     )
 
 
 @njit(cache=True, fastmath=True)
-def filter_domains_permutation(n: int, next: NDArray, prev: NDArray) -> bool:
+def filter_domains_inverse(n: int, next: NDArray, prev: NDArray) -> bool:
     # next and prev are inverse: prev[j] = i iff next[i] = j. So prev[j] can take value i only when
     # j belongs to next[i]'s domain; the test (j < next[i, MIN] or j > next[i, MAX]) means prev[j] != i.
     # Since prev[j]'s feasible values form a contiguous run, we trim its domain from both ends with two

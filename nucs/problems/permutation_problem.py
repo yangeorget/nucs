@@ -11,7 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_PERMUTATION_AUX
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_INVERSE
 
 
 class PermutationProblem(Problem):
@@ -30,4 +30,4 @@ class PermutationProblem(Problem):
         super().__init__([(0, n - 1)] * 2 * n)
         self.add_propagator(ALG_ALLDIFFERENT, range(n))
         self.add_propagator(ALG_ALLDIFFERENT, range(n, 2 * n))
-        self.add_propagator(ALG_PERMUTATION_AUX, range(2 * n))
+        self.add_propagator(ALG_INVERSE, range(2 * n))

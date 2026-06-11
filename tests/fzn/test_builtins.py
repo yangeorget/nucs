@@ -374,6 +374,50 @@ class TestBuiltins:
                 )
             )
 
+    def test_circuit(self) -> None:
+        # 3 nodes, 1-based successors: the only Hamiltonian circuits are the two 3-cycles
+        out = solve_fzn(
+            "var 1..3: a :: output_var;\nvar 1..3: b :: output_var;\nvar 1..3: c :: output_var;\n"
+            "array [1..3] of var int: x = [a, b, c];\n"
+            "constraint fzn_circuit(x);\n"
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        # (a,b,c) = (2,3,1) or (3,1,2); the subtour solutions like (1,3,2) are excluded
+        assert out.count("----------") == 2
+        assert "a = 2;\nb = 3;\nc = 1;" in out and "a = 3;\nb = 1;\nc = 2;" in out
+
+    def test_circuit_self_loop_unsatisfiable(self) -> None:
+        # forcing node 1 to point to itself cannot be part of a single circuit over 3 nodes
+        out = solve_fzn(
+            "var 1..3: a :: output_var;\nvar 1..3: b :: output_var;\nvar 1..3: c :: output_var;\n"
+            "array [1..3] of var int: x = [a, b, c];\n"
+            "constraint fzn_circuit(x);\nconstraint int_eq(a, 1);\n"
+            "solve satisfy;"
+        )
+        assert out.strip() == "=====UNSATISFIABLE====="
+
+    def test_inverse(self) -> None:
+        # 1-based inverse permutations: y is the inverse of x; fixing x pins y
+        out = solve_fzn(
+            "array [1..3] of var 1..3: x;\narray [1..3] of var 1..3: y :: output_array([1..3]);\n"
+            "constraint fzn_inverse(x, y);\n"
+            "constraint int_eq(x[1], 2);\nconstraint int_eq(x[2], 3);\nconstraint int_eq(x[3], 1);\n"
+            "solve satisfy;"
+        )
+        # x = [2,3,1] -> inverse y = [3,1,2]
+        assert "y = array1d(1..3, [3, 1, 2]);" in out
+
+    def test_inverse_infers_both_ways(self) -> None:
+        out = solve_fzn(
+            "array [1..3] of var 1..3: x :: output_array([1..3]);\narray [1..3] of var 1..3: y;\n"
+            "constraint fzn_inverse(x, y);\n"
+            "constraint int_eq(y[1], 2);\nconstraint int_eq(y[2], 3);\nconstraint int_eq(y[3], 1);\n"
+            "solve satisfy;"
+        )
+        # y = [2,3,1] -> x = inverse = [3,1,2]
+        assert "x = array1d(1..3, [3, 1, 2]);" in out
+
     def test_minimize(self) -> None:
         out = solve_fzn(
             "var 0..10: x :: output_var;\nvar 0..10: y :: output_var;\n"

@@ -15,7 +15,7 @@ from typing import Any
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_PERMUTATION_AUX
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_INVERSE
 
 
 class QueensProblem(Problem):
@@ -67,7 +67,7 @@ class QueensDualProblem(Problem):
         self.add_propagator(ALG_ALLDIFFERENT, row_variables)
         self.add_propagator(ALG_ALLDIFFERENT, row_variables, range(n))
         self.add_propagator(ALG_ALLDIFFERENT, row_variables, range(0, -n, -1))
-        self.add_propagator(ALG_PERMUTATION_AUX, list(column_variables) + list(row_variables))
+        self.add_propagator(ALG_INVERSE, list(column_variables) + list(row_variables))
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         return [([" "] * i + ["Q"] + [" "] * (self.n - i - 1)) for i in (solution[: self.n])]

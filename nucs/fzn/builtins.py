@@ -38,6 +38,7 @@ from nucs.propagators.propagators import (
     ALG_ELEMENT_EQ,
     ALG_ELEMENT_L_EQ,
     ALG_GCC,
+    ALG_INVERSE,
     ALG_LEQ_C,
     ALG_LEQ_C_REIF,
     ALG_LEXLEQ,
@@ -48,6 +49,7 @@ from nucs.propagators.propagators import (
     ALG_MUL_EQ,
     ALG_NEQ,
     ALG_NEQ_REIF,
+    ALG_NO_SUB_CYCLE,
     ALG_RELATION,
     ALG_SUM_EQ,
 )
@@ -424,6 +426,45 @@ def _all_different(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_ALLDIFFERENT, model.var_list_of(args[0]))
 
 
+def _zero_based(model: "FznModel", variables: List[int], n: int) -> List[int]:
+    """
+    Returns auxiliary 0-based copies (value - 1) of 1-based FlatZinc variables, for propagators that work
+    on a 0-based index/value representation.
+    """
+    shifted = []
+    for v in variables:
+        v0 = model.problem.add_variable((0, n - 1))
+        model.problem.add_propagator(ALG_ADD_C_EQ, [v, v0], [-1])
+        shifted.append(v0)
+    return shifted
+
+
+def _circuit(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``circuit(x)``: the 1-based successor array x forms a single Hamiltonian circuit. NuCS uses a
+    0-based successor representation, so each x[i] is shifted by -1 into an auxiliary variable, on which a
+    permutation (alldifferent) plus a no-sub-cycle constraint together enforce the circuit.
+    """
+    succ = model.var_list_of(args[0])
+    shifted = _zero_based(model, succ, len(succ))
+    model.problem.add_propagator(ALG_ALLDIFFERENT, shifted)
+    model.problem.add_propagator(ALG_NO_SUB_CYCLE, shifted)
+
+
+def _inverse(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``inverse(x, y)`` as the channeling x[i] = j <=> y[j] = i between two 1-based arrays. The
+    channeling propagator works on a 0-based representation, so both arrays are shifted by -1; an
+    alldifferent on each array is added for stronger (Hall) pruning than the channeling alone provides.
+    """
+    x = model.var_list_of(args[0])
+    y = model.var_list_of(args[1])
+    n = len(x)
+    model.problem.add_propagator(ALG_ALLDIFFERENT, x)
+    model.problem.add_propagator(ALG_ALLDIFFERENT, y)
+    model.problem.add_propagator(ALG_INVERSE, _zero_based(model, x, n) + _zero_based(model, y, n))
+
+
 def _lex_lesseq(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``lex_lesseq_int(x, y)`` as x <=_lex y.
@@ -511,10 +552,13 @@ BUILTINS: Dict[str, Handler] = {
     "bool_not": _bool_not,
     "bool_or": _bool_or,
     "bool_xor": _bool_xor,
+    "circuit": _circuit,
     "count_eq": _count_eq,
     "fzn_all_different_int": _all_different,
+    "fzn_circuit": _circuit,
     "fzn_count_eq": _count_eq,
     "fzn_global_cardinality_low_up": _global_cardinality_low_up,
+    "fzn_inverse": _inverse,
     "fzn_lex_lesseq_int": _lex_lesseq,
     "global_cardinality_low_up": _global_cardinality_low_up,
     "int_abs": _int_abs,
@@ -540,6 +584,7 @@ BUILTINS: Dict[str, Handler] = {
     "int_min": _int_min,
     "int_ne": _int_ne,
     "int_ne_reif": _ne_reif,
+    "inverse": _inverse,
     "int_plus": _int_plus,
     "int_times": _int_times,
     "lex_lesseq_int": _lex_lesseq,

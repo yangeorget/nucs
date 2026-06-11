@@ -15,7 +15,7 @@ from typing import Any, Iterable, List, Optional
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_PERMUTATION_AUX
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_INVERSE
 
 M_COLOR = 0  # the color model
 M_ROW = 1  # the row model
@@ -95,10 +95,10 @@ class LatinSquareRCProblem(LatinSquareProblem):
             self.add_propagator(ALG_ALLDIFFERENT, self.column(i, M_COLUMN))
         # row[c,j]=i <=> color[i,j]=c
         for j in range(n):
-            self.add_propagator(ALG_PERMUTATION_AUX, [*self.column(j), *self.column(j, M_ROW)])
+            self.add_propagator(ALG_INVERSE, [*self.column(j), *self.column(j, M_ROW)])
         # row[c,j]=i <=> column[i,c]=j
         for c in range(n):
-            self.add_propagator(ALG_PERMUTATION_AUX, [*self.row(c, M_ROW), *self.column(c, M_COLUMN)])
+            self.add_propagator(ALG_INVERSE, [*self.row(c, M_ROW), *self.column(c, M_COLUMN)])
         # color[i,j]=c <=> column[i,c]=j
         for i in range(n):
-            self.add_propagator(ALG_PERMUTATION_AUX, [*self.row(i), *self.row(i, M_COLUMN)])
+            self.add_propagator(ALG_INVERSE, [*self.row(i), *self.row(i, M_COLUMN)])

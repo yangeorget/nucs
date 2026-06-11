@@ -28,6 +28,7 @@ NuCS currently provides the following highly-optimized propagators.
 .. autofunction:: nucs.propagators.eq_c_reif_propagator.compute_domains_eq_c_reif
 .. autofunction:: nucs.propagators.eq_reif_propagator.compute_domains_eq_reif
 .. autofunction:: nucs.propagators.gcc_propagator.compute_domains_gcc
+.. autofunction:: nucs.propagators.inverse_propagator.compute_domains_inverse
 .. autofunction:: nucs.propagators.leq_c_propagator.compute_domains_leq_c
 .. autofunction:: nucs.propagators.leq_c_reif_propagator.compute_domains_leq_c_reif
 .. autofunction:: nucs.propagators.lexleq_propagator.compute_domains_lexleq
@@ -41,7 +42,6 @@ NuCS currently provides the following highly-optimized propagators.
 .. autofunction:: nucs.propagators.neq_propagator.compute_domains_neq
 .. autofunction:: nucs.propagators.neq_reif_propagator.compute_domains_neq_reif
 .. autofunction:: nucs.propagators.no_sub_cycle_propagator.compute_domains_no_sub_cycle
-.. autofunction:: nucs.propagators.permutation_aux_propagator.compute_domains_permutation_aux
 .. autofunction:: nucs.propagators.relation_propagator.compute_domains_relation
 .. autofunction:: nucs.propagators.scc_propagator.compute_domains_scc
 .. autofunction:: nucs.propagators.sum_eq_c_propagator.compute_domains_sum_eq_c
