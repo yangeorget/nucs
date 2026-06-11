@@ -157,6 +157,152 @@ class TestBuiltins:
         assert out.count("----------") == 3
         assert "x = 1;" in out and "x = 3;" in out and "x = 5;" in out
 
+    def test_int_le_reif(self) -> None:
+        out = solve_fzn(
+            "var 0..5: x :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint int_le_reif(x, 2, r);\nconstraint bool_eq(r, false);\n"
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        # r is false so x <= 2 must not hold -> x in {3, 4, 5}
+        assert out.count("----------") == 3
+        assert "x = 3;" in out and "x = 5;" in out
+        assert "x = 2;" not in out
+
+    def test_int_lt_reif(self) -> None:
+        out = solve_fzn(
+            "var 0..5: x :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint int_lt_reif(x, 3, r);\nconstraint bool_eq(r, true);\n"
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        # r is true so x < 3 -> x in {0, 1, 2}
+        assert out.count("----------") == 3
+        assert "x = 0;" in out and "x = 2;" in out
+        assert "x = 3;" not in out
+
+    def test_bool_le_reif_detects_truth_value(self) -> None:
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint bool_eq(a, true);\nconstraint bool_eq(b, false);\n"
+            "constraint bool_le_reif(a, b, r);\n"  # r <=> (true <= false) -> r = false
+            "solve satisfy;"
+        )
+        assert "r = false;" in out
+
+    def test_int_ne_reif(self) -> None:
+        out = solve_fzn(
+            "var 0..3: x :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint int_ne_reif(x, 2, r);\nconstraint bool_eq(r, false);\n"
+            "solve satisfy;"
+        )
+        # r is false so x != 2 must not hold -> x = 2
+        assert "x = 2;" in out
+
+    def test_bool_xor_reif(self) -> None:
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint bool_eq(a, true);\nconstraint bool_eq(b, false);\n"
+            "constraint bool_xor(a, b, r);\n"  # r <=> (true xor false) -> r = true
+            "solve satisfy;"
+        )
+        assert "r = true;" in out
+
+    def test_bool_xor_binary(self) -> None:
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\n"
+            "constraint bool_xor(a, b);\nconstraint bool_eq(a, true);\n"  # a xor b, a = true -> b = false
+            "solve satisfy;"
+        )
+        assert "a = true;" in out and "b = false;" in out
+
+    def test_bool_or(self) -> None:
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint bool_eq(a, true);\nconstraint bool_eq(b, false);\n"
+            "constraint bool_or(a, b, r);\n"  # r <=> (true or false) -> r = true
+            "solve satisfy;"
+        )
+        assert "r = true;" in out
+
+    def test_array_bool_or(self) -> None:
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint bool_eq(a, false);\nconstraint bool_eq(b, false);\n"
+            "array [1..2] of var bool: ps = [a, b];\n"
+            "constraint array_bool_or(ps, r);\n"  # r <=> (false or false) -> r = false
+            "solve satisfy;"
+        )
+        assert "r = false;" in out
+
+    def test_bool_clause(self) -> None:
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\n"
+            "constraint bool_eq(a, false);\n"
+            "constraint bool_clause([a], [b]);\n"  # a or not b, with a = false -> b = false
+            "solve satisfy;"
+        )
+        assert "a = false;" in out and "b = false;" in out
+
+    def test_bool_eq_reif(self) -> None:
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint bool_eq(a, true);\nconstraint bool_eq(b, false);\n"
+            "constraint bool_eq_reif(a, b, r);\n"  # r <=> (true = false) -> r = false
+            "solve satisfy;"
+        )
+        assert "r = false;" in out
+
+    def test_bool_lin_le(self) -> None:
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\n"
+            "constraint bool_eq(a, true);\n"
+            "constraint bool_lin_le([1, 1], [a, b], 1);\n"  # a + b <= 1, a = true -> b = false
+            "solve satisfy;"
+        )
+        assert "a = true;" in out and "b = false;" in out
+
+    def test_array_bool_element(self) -> None:
+        out = solve_fzn(
+            "array [1..3] of bool: A = [true, false, true];\n"
+            "var 2..2: i :: output_var;\nvar bool: c :: output_var;\n"
+            "constraint array_bool_element(i, A, c);\n"  # c = A[2] (1-based) = false
+            "solve satisfy;"
+        )
+        assert "c = false;" in out
+
+    def test_int_lin_eq_reif(self) -> None:
+        out = solve_fzn(
+            "var 0..5: x :: output_var;\nvar 0..5: y :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint int_lin_eq_reif([1, 1], [x, y], 4, r);\nconstraint bool_eq(r, true);\n"
+            "constraint int_eq(x, 1);\n"
+            "solve satisfy;"
+        )
+        # r true so x + y = 4, x = 1 -> y = 3
+        assert "y = 3;" in out
+
+    def test_int_lin_le_reif(self) -> None:
+        out = solve_fzn(
+            "var 0..5: x :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint int_lin_le_reif([1], [x], 2, r);\nconstraint bool_eq(r, false);\n"
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        # r false so NOT(x <= 2) -> x in {3, 4, 5}
+        assert out.count("----------") == 3
+        assert "x = 3;" in out and "x = 5;" in out
+        assert "x = 2;" not in out
+
+    def test_int_lin_ne_reif(self) -> None:
+        out = solve_fzn(
+            "var 0..3: x :: output_var;\nvar 0..3: y :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint int_lin_ne_reif([1, 1], [x, y], 2, r);\nconstraint bool_eq(r, false);\n"
+            "constraint int_eq(x, 0);\n"
+            "solve satisfy;"
+        )
+        # r false so x + y = 2 must hold, x = 0 -> y = 2
+        assert "y = 2;" in out
+
     def test_minimize(self) -> None:
         out = solve_fzn(
             "var 0..10: x :: output_var;\nvar 0..10: y :: output_var;\n"

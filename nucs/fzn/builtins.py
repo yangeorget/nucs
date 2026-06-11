@@ -26,6 +26,7 @@ from nucs.propagators.propagators import (
     ALG_ABS_EQ,
     ALG_ADD_C_EQ,
     ALG_LINEAR_EQ_C,
+    ALG_LINEAR_GEQ_C,
     ALG_LINEAR_LEQ_C,
     ALG_LINEAR_NEQ_C,
     ALG_ALLDIFFERENT,
@@ -37,6 +38,7 @@ from nucs.propagators.propagators import (
     ALG_ELEMENT_L_EQ,
     ALG_GCC,
     ALG_LEQ_C,
+    ALG_LEQ_C_REIF,
     ALG_LEXLEQ,
     ALG_MAX_EQ,
     ALG_MEMBER,
@@ -44,6 +46,7 @@ from nucs.propagators.propagators import (
     ALG_MUL_C_EQ,
     ALG_MUL_EQ,
     ALG_NEQ,
+    ALG_NEQ_REIF,
     ALG_RELATION,
     ALG_SUM_EQ,
 )
@@ -98,6 +101,49 @@ def _int_lin_ne(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_LINEAR_NEQ_C, variables, coeffs + [model.const_of(args[2])])
 
 
+def _aux_lin_sum(model: "FznModel", coeffs: List[int], variables: List[int]) -> int:
+    """
+    Creates an auxiliary variable s bound to sum(a_i * x_i) and returns its index. Used to reduce a
+    reified linear constraint to a reification on a single variable.
+    """
+    lo = hi = 0
+    for a, v in zip(coeffs, variables):
+        v_min, v_max = model.problem.domains[v]
+        if a >= 0:
+            lo += a * v_min
+            hi += a * v_max
+        else:
+            lo += a * v_max
+            hi += a * v_min
+    s = model.problem.add_variable((lo, hi))
+    model.problem.add_propagator(ALG_LINEAR_EQ_C, variables + [s], coeffs + [-1, 0])
+    return s
+
+
+def _int_lin_eq_reif(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_lin_eq_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) = c, via an auxiliary sum variable.
+    """
+    s = _aux_lin_sum(model, model.int_list_of(args[0]), model.var_list_of(args[1]))
+    model.problem.add_propagator(ALG_EQ_C_REIF, [model.var_index_of(args[3]), s], [model.const_of(args[2])])
+
+
+def _int_lin_le_reif(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_lin_le_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) <= c, via an auxiliary sum variable.
+    """
+    s = _aux_lin_sum(model, model.int_list_of(args[0]), model.var_list_of(args[1]))
+    model.problem.add_propagator(ALG_LEQ_C_REIF, [model.var_index_of(args[3]), s, model.var_index_of(args[2])], [0])
+
+
+def _int_lin_ne_reif(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_lin_ne_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) != c, via an auxiliary sum variable.
+    """
+    s = _aux_lin_sum(model, model.int_list_of(args[0]), model.var_list_of(args[1]))
+    model.problem.add_propagator(ALG_NEQ_REIF, [model.var_index_of(args[3]), s, model.var_index_of(args[2])])
+
+
 def _int_eq(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``int_eq(x, y)`` as x - y = 0.
@@ -133,6 +179,34 @@ def _array_bool_and(model: "FznModel", args: List[Term]) -> None:
     """
     variables = model.var_list_of(args[0]) + [model.var_index_of(args[1])]
     model.problem.add_propagator(ALG_AND_EQ, variables)
+
+
+def _array_bool_or(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``array_bool_or(as, r)`` as r <=> (or of the booleans in as), i.e. r = max(as) over 0..1.
+    """
+    variables = model.var_list_of(args[0]) + [model.var_index_of(args[1])]
+    model.problem.add_propagator(ALG_MAX_EQ, variables)
+
+
+def _bool_or(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``bool_or(a, b, r)`` as r <=> (a or b), i.e. r = max(a, b) over 0..1.
+    """
+    model.problem.add_propagator(
+        ALG_MAX_EQ, [model.var_index_of(args[0]), model.var_index_of(args[1]), model.var_index_of(args[2])]
+    )
+
+
+def _bool_clause(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``bool_clause(pos, neg)`` as the clause (or of pos) or (or of not neg), modelled as the linear
+    inequality sum(pos) - sum(neg) >= 1 - len(neg).
+    """
+    pos = model.var_list_of(args[0])
+    neg = model.var_list_of(args[1])
+    coeffs = [1] * len(pos) + [-1] * len(neg)
+    model.problem.add_propagator(ALG_LINEAR_GEQ_C, pos + neg, coeffs + [1 - len(neg)])
 
 
 def _bool_and(model: "FznModel", args: List[Term]) -> None:
@@ -177,6 +251,40 @@ def _int_lt(model: "FznModel", args: List[Term]) -> None:
     Handles ``int_lt(x, y)`` as x <= y - 1.
     """
     model.problem.add_propagator(ALG_LEQ_C, [model.var_index_of(args[0]), model.var_index_of(args[1])], [-1])
+
+
+def _le_reif(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_le_reif(x, y, r)`` / ``bool_le_reif(x, y, r)`` as r <=> x <= y.
+    """
+    r = model.var_index_of(args[2])
+    model.problem.add_propagator(ALG_LEQ_C_REIF, [r, model.var_index_of(args[0]), model.var_index_of(args[1])], [0])
+
+
+def _lt_reif(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_lt_reif(x, y, r)`` / ``bool_lt_reif(x, y, r)`` as r <=> x <= y - 1.
+    """
+    r = model.var_index_of(args[2])
+    model.problem.add_propagator(ALG_LEQ_C_REIF, [r, model.var_index_of(args[0]), model.var_index_of(args[1])], [-1])
+
+
+def _ne_reif(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_ne_reif(x, y, r)`` / ``bool_xor(x, y, r)`` as r <=> x != y.
+    """
+    r = model.var_index_of(args[2])
+    model.problem.add_propagator(ALG_NEQ_REIF, [r, model.var_index_of(args[0]), model.var_index_of(args[1])])
+
+
+def _bool_xor(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``bool_xor(a, b)`` as a != b and ``bool_xor(a, b, r)`` as the reification r <=> (a != b).
+    """
+    if len(args) == 3:
+        _ne_reif(model, args)
+    else:
+        model.problem.add_propagator(ALG_NEQ, [model.var_index_of(args[0]), model.var_index_of(args[1])])
 
 
 def _int_ne(model: "FznModel", args: List[Term]) -> None:
@@ -307,13 +415,24 @@ def _global_cardinality_low_up(model: "FznModel", args: List[Term]) -> None:
 BUILTINS: Dict[str, Handler] = {
     "all_different_int": _all_different,
     "array_bool_and": _array_bool_and,
+    "array_bool_element": _array_int_element,
+    "array_bool_or": _array_bool_or,
     "array_int_element": _array_int_element,
+    "array_var_bool_element": _array_var_int_element,
     "array_var_int_element": _array_var_int_element,
     "bool2int": _bool2int,
     "bool_and": _bool_and,
+    "bool_clause": _bool_clause,
     "bool_eq": _bool_eq,
+    "bool_eq_reif": _int_eq_reif,
     "bool_le": _bool_le,
+    "bool_le_reif": _le_reif,
+    "bool_lin_eq": _int_lin_eq,
+    "bool_lin_le": _int_lin_le,
+    "bool_lt_reif": _lt_reif,
     "bool_not": _bool_not,
+    "bool_or": _bool_or,
+    "bool_xor": _bool_xor,
     "fzn_all_different_int": _all_different,
     "fzn_global_cardinality_low_up": _global_cardinality_low_up,
     "fzn_lex_lesseq_int": _lex_lesseq,
@@ -322,13 +441,19 @@ BUILTINS: Dict[str, Handler] = {
     "int_eq": _int_eq,
     "int_eq_reif": _int_eq_reif,
     "int_le": _int_le,
+    "int_le_reif": _le_reif,
     "int_lin_eq": _int_lin_eq,
+    "int_lin_eq_reif": _int_lin_eq_reif,
     "int_lin_le": _int_lin_le,
+    "int_lin_le_reif": _int_lin_le_reif,
     "int_lin_ne": _int_lin_ne,
+    "int_lin_ne_reif": _int_lin_ne_reif,
     "int_lt": _int_lt,
+    "int_lt_reif": _lt_reif,
     "int_max": _int_max,
     "int_min": _int_min,
     "int_ne": _int_ne,
+    "int_ne_reif": _ne_reif,
     "int_plus": _int_plus,
     "int_times": _int_times,
     "lex_lesseq_int": _lex_lesseq,
