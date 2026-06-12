@@ -25,6 +25,17 @@ jobs:
                     pip install .
                     pip install .[dev]
                     pip install .[test]
+            -   name: Install MiniZinc
+                env:
+                    MZN_VERSION: "2.9.7"
+                run: |
+                    curl -fsSL -o /tmp/minizinc.tgz \
+                        "https://github.com/MiniZinc/MiniZincIDE/releases/download/${MZN_VERSION}/MiniZincIDE-${MZN_VERSION}-bundle-linux-x86_64.tgz"
+                    mkdir -p "$HOME/minizinc"
+                    tar -xzf /tmp/minizinc.tgz -C "$HOME/minizinc" --strip-components=1
+                    echo "$HOME/minizinc/bin" >> "$GITHUB_PATH"
+            -   name: Verify MiniZinc
+                run: minizinc --version
             -   name: Ruff check
                 run: ruff check --fix nucs tests
             -   name: Ruff format
