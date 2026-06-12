@@ -28,8 +28,10 @@ from nucs.propagators.propagators import (
     ALG_COUNT_LEQ_C,
     ALG_ELEMENT_L_EQ,
     ALG_ELEMENT_L_EQ_C,
+    ALG_INCREASING,
     ALG_LEQ_C,
     ALG_LINEAR_EQ_C,
+    ALG_STRICTLY_INCREASING,
 )
 
 
@@ -468,6 +470,37 @@ class TestBuiltins:
             build_model(
                 parse("var 0..3: n;\narray [1..3] of var 1..3: x;\nconstraint count_geq(x, 2, n);\nsolve satisfy;")
             )
+
+    def test_increasing_maps_to_increasing(self) -> None:
+        model = build_model(parse("array [1..3] of var 0..2: x;\nconstraint fzn_increasing_int(x);\nsolve satisfy;"))
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_INCREASING]
+
+    def test_increasing_solve(self) -> None:
+        # non-decreasing triples over {0, 1, 2}: there are C(3 + 3 - 1, 3) = 10 of them
+        out = solve_fzn(
+            "array [1..3] of var 0..2: x :: output_array([1..3]);\nconstraint fzn_increasing_int(x);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 10
+        assert "x = array1d(1..3, [0, 1, 1]);" in out
+        assert "x = array1d(1..3, [2, 1, 0]);" not in out  # not non-decreasing
+
+    def test_strictly_increasing_maps_to_strictly_increasing(self) -> None:
+        model = build_model(
+            parse("array [1..3] of var 0..4: x;\nconstraint fzn_strictly_increasing_int(x);\nsolve satisfy;")
+        )
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_STRICTLY_INCREASING]
+
+    def test_strictly_increasing_solve(self) -> None:
+        # strictly increasing triples over {0..4}: there are C(5, 3) = 10 of them
+        out = solve_fzn(
+            "array [1..3] of var 0..4: x :: output_array([1..3]);\n"
+            "constraint fzn_strictly_increasing_int(x);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 10
+        assert "x = array1d(1..3, [0, 1, 2]);" in out
+        assert "x = array1d(1..3, [0, 0, 1]);" not in out  # not strictly increasing
 
     def test_circuit(self) -> None:
         # 3 nodes, 1-based successors: the only Hamiltonian circuits are the two 3-cycles

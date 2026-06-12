@@ -106,6 +106,11 @@ from nucs.propagators.eq_reif_propagator import (
     get_triggers_eq_reif,
 )
 from nucs.propagators.gcc_propagator import compute_domains_gcc, get_complexity_gcc, get_triggers_gcc
+from nucs.propagators.increasing_propagator import (
+    compute_domains_increasing,
+    get_complexity_increasing,
+    get_triggers_increasing,
+)
 from nucs.propagators.inverse_propagator import (
     compute_domains_inverse,
     get_complexity_inverse,
@@ -150,6 +155,11 @@ from nucs.propagators.relation_propagator import (
     get_triggers_relation,
 )
 from nucs.propagators.scc_propagator import get_complexity_scc, get_triggers_scc, compute_domains_scc
+from nucs.propagators.strictly_increasing_propagator import (
+    compute_domains_strictly_increasing,
+    get_complexity_strictly_increasing,
+    get_triggers_strictly_increasing,
+)
 from nucs.propagators.sum_eq_c_propagator import (
     compute_domains_sum_eq_c,
     get_complexity_sum_eq_c,
@@ -238,6 +248,7 @@ ALG_EQ = register_propagator(get_triggers_eq, get_complexity_eq, compute_domains
 ALG_EQ_C_REIF = register_propagator(get_triggers_eq_c_reif, get_complexity_eq_c_reif, compute_domains_eq_c_reif)
 ALG_EQ_REIF = register_propagator(get_triggers_eq_reif, get_complexity_eq_reif, compute_domains_eq_reif)
 ALG_GCC = register_propagator(get_triggers_gcc, get_complexity_gcc, compute_domains_gcc)
+ALG_INCREASING = register_propagator(get_triggers_increasing, get_complexity_increasing, compute_domains_increasing)
 ALG_INVERSE = register_propagator(get_triggers_inverse, get_complexity_inverse, compute_domains_inverse)
 ALG_LEQ_C = register_propagator(get_triggers_leq_c, get_complexity_leq_c, compute_domains_leq_c)
 ALG_LEQ_C_REIF = register_propagator(get_triggers_leq_c_reif, get_complexity_leq_c_reif, compute_domains_leq_c_reif)
@@ -256,6 +267,9 @@ ALG_NO_SUB_CYCLE = register_propagator(
 )
 ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relation, compute_domains_relation)
 ALG_SCC = register_propagator(get_triggers_scc, get_complexity_scc, compute_domains_scc)
+ALG_STRICTLY_INCREASING = register_propagator(
+    get_triggers_strictly_increasing, get_complexity_strictly_increasing, compute_domains_strictly_increasing
+)
 ALG_SUM_EQ = register_propagator(get_triggers_sum_eq, get_complexity_sum_eq, compute_domains_sum_eq)
 ALG_SUM_EQ_C = register_propagator(get_triggers_sum_eq_c, get_complexity_sum_eq_c, compute_domains_sum_eq_c)
 ALG_SUM_GEQ_C = register_propagator(get_triggers_sum_geq_c, get_complexity_sum_geq_c, compute_domains_sum_geq_c)

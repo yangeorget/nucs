@@ -63,6 +63,11 @@ KEPT_GLOBALS = {
         "fzn_global_cardinality_low_up",
         "fzn_global_cardinality_low_up.mzn",
     ),
+    "increasing": (
+        "array[1..4] of var 0..9: x; constraint increasing(x);",
+        "fzn_increasing_int",
+        "fzn_increasing_int.mzn",
+    ),
     "inverse": (
         "array[1..3] of var 1..3: f; array[1..3] of var 1..3: g; constraint inverse(f,g);",
         "fzn_inverse",
@@ -72,6 +77,11 @@ KEPT_GLOBALS = {
         "array[1..3] of var 0..2: a; array[1..3] of var 0..2: b; constraint lex_lesseq(a,b);",
         "fzn_lex_lesseq_int",
         "fzn_lex_lesseq_int.mzn",
+    ),
+    "strictly_increasing": (
+        "array[1..4] of var 0..9: x; constraint strictly_increasing(x);",
+        "fzn_strictly_increasing_int",
+        "fzn_strictly_increasing_int.mzn",
     ),
     "table": (
         "array[1..2] of var 0..2: t; constraint table(t, [| 0,1 | 1,2 |]);",
