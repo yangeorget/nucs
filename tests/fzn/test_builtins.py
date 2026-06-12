@@ -20,11 +20,14 @@ from nucs.fzn.model import build_model
 from nucs.fzn.parser import parse
 from nucs.fzn.runner import run
 from nucs.propagators.propagators import (
+    ALG_ADD_C_EQ,
     ALG_ALLDIFFERENT,
     ALG_COUNT_EQ,
     ALG_COUNT_EQ_C,
     ALG_COUNT_GEQ_C,
     ALG_COUNT_LEQ_C,
+    ALG_ELEMENT_L_EQ,
+    ALG_ELEMENT_L_EQ_C,
     ALG_LEQ_C,
     ALG_LINEAR_EQ_C,
 )
@@ -90,6 +93,40 @@ class TestBuiltins:
             "solve satisfy;"
         )
         assert "v = 9;" in out  # X[3] (1-based) == 9
+
+    def test_var_element_variable_value_uses_element_l_eq(self) -> None:
+        model = build_model(
+            parse(
+                "var 0..9: a;\nvar 0..9: b;\nvar 1..2: i;\nvar 0..9: v;\n"
+                "array [1..2] of var int: X = [a, b];\n"
+                "constraint array_var_int_element(i, X, v);\nsolve satisfy;"
+            )
+        )
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_ADD_C_EQ, ALG_ELEMENT_L_EQ]
+
+    def test_var_element_constant_value_uses_element_l_eq_c(self) -> None:
+        # a constant value routes to the specialized element_l_eq_c propagator, no auxiliary value variable
+        model = build_model(
+            parse(
+                "var 0..9: a;\nvar 0..9: b;\nvar 1..2: i;\n"
+                "array [1..2] of var int: X = [a, b];\n"
+                "constraint array_var_int_element(i, X, 7);\nsolve satisfy;"
+            )
+        )
+        algorithms = [prop[1] for prop in model.problem.propagators]
+        assert algorithms == [ALG_ADD_C_EQ, ALG_ELEMENT_L_EQ_C]
+        assert model.problem.propagators[1][2] == [7]  # params = [value]
+
+    def test_var_element_constant_value_solves(self) -> None:
+        # X[i] = 8 with X = [7, 8, 9] selects index 2 (1-based)
+        out = solve_fzn(
+            "var 7..7: w0;\nvar 8..8: w1;\nvar 9..9: w2;\n"
+            "array [1..3] of var int: X = [w0, w1, w2];\n"
+            "var 1..3: i :: output_var;\n"
+            "constraint array_var_int_element(i, X, 8);\n"
+            "solve satisfy;"
+        )
+        assert "i = 2;" in out
 
     def test_gcc_permutation(self) -> None:
         out = solve_fzn(

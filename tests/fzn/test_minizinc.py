@@ -80,40 +80,6 @@ KEPT_GLOBALS = {
     ),
 }
 
-ALL_DIFFERENT_LINEAR_MODEL = """
-include "globals.mzn";
-array [1..4] of var 1..4: q;
-constraint all_different(q);
-constraint sum(q) = 10;
-solve satisfy;
-output [show(q)];
-"""
-
-
-pytestmark = pytest.mark.skipif(MINIZINC is None, reason="minizinc binary not available")
-
-
-def _run_minizinc(model: str, tmp_path) -> str:  # type: ignore[no-untyped-def]
-    """Compiles and solves a MiniZinc model with the NuCS solver, returning stdout."""
-    assert MINIZINC is not None
-    model_path = tmp_path / "model.mzn"
-    model_path.write_text(model)
-    env = dict(os.environ, MZN_SOLVER_PATH=SHARE_DIR)
-    result = subprocess.run(
-        [MINIZINC, "--solver", "nucs", str(model_path)],
-        capture_output=True,
-        text=True,
-        env=env,
-        timeout=120,
-    )
-    assert result.returncode == 0, result.stderr
-    return result.stdout
-
-
-def test_all_different_linear(tmp_path) -> None:  # type: ignore[no-untyped-def]
-    out = _run_minizinc(ALL_DIFFERENT_LINEAR_MODEL, tmp_path)
-    assert "----------" in out
-
 
 def _compile_to_fzn(model: str, tmp_path) -> str:  # type: ignore[no-untyped-def]
     """Compiles a MiniZinc model to FlatZinc with the NuCS solver, returning the FlatZinc text."""

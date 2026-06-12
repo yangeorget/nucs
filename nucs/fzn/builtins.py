@@ -33,6 +33,7 @@ from nucs.propagators.propagators import (
     ALG_COUNT_LEQ_C,
     ALG_ELEMENT_EQ,
     ALG_ELEMENT_L_EQ,
+    ALG_ELEMENT_L_EQ_C,
     ALG_EQ,
     ALG_EQ_C_REIF,
     ALG_EQ_REIF,
@@ -538,10 +539,12 @@ def _array_var_int_element(model: "FznModel", args: List[Term]) -> None:
     """
     index = model.var_index_of(args[0])
     array = model.var_list_of(args[1])
-    value = model.var_index_of(args[2])
     index0 = model.problem.add_variable((0, len(array) - 1))
     model.problem.add_propagator(ALG_ADD_C_EQ, [index, index0], [-1])
-    model.problem.add_propagator(ALG_ELEMENT_L_EQ, array + [index0, value])
+    if _is_const(model, args[2]):
+        model.problem.add_propagator(ALG_ELEMENT_L_EQ_C, array + [index0], [model.const_of(args[2])])
+    else:
+        model.problem.add_propagator(ALG_ELEMENT_L_EQ, array + [index0, model.var_index_of(args[2])])
 
 
 def _global_cardinality_low_up(model: "FznModel", args: List[Term]) -> None:
