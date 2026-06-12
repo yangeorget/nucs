@@ -25,23 +25,26 @@ from nucs.fzn.parser import Id, Term
 from nucs.propagators.propagators import (
     ALG_ABS_EQ,
     ALG_ADD_C_EQ,
-    ALG_LINEAR_EQ_C,
-    ALG_LINEAR_GEQ_C,
-    ALG_LINEAR_LEQ_C,
-    ALG_LINEAR_NEQ_C,
     ALG_ALLDIFFERENT,
     ALG_AND_EQ,
     ALG_COUNT_EQ,
-    ALG_EQ,
-    ALG_EQ_REIF,
-    ALG_EQ_C_REIF,
+    ALG_COUNT_EQ_C,
+    ALG_COUNT_GEQ_C,
+    ALG_COUNT_LEQ_C,
     ALG_ELEMENT_EQ,
     ALG_ELEMENT_L_EQ,
+    ALG_EQ,
+    ALG_EQ_C_REIF,
+    ALG_EQ_REIF,
     ALG_GCC,
     ALG_INVERSE,
     ALG_LEQ_C,
     ALG_LEQ_C_REIF,
     ALG_LEXLEQ,
+    ALG_LINEAR_EQ_C,
+    ALG_LINEAR_GEQ_C,
+    ALG_LINEAR_LEQ_C,
+    ALG_LINEAR_NEQ_C,
     ALG_MAX_EQ,
     ALG_MEMBER,
     ALG_MIN_EQ,
@@ -415,8 +418,36 @@ def _count_eq(model: "FznModel", args: List[Term]) -> None:
     """
     if not _is_const(model, args[1]):
         raise FznUnsupportedError("count_eq with a variable value is not supported")
-    variables = model.var_list_of(args[0]) + [model.var_index_of(args[2])]
-    model.problem.add_propagator(ALG_COUNT_EQ, variables, [model.const_of(args[1])])
+    value = model.const_of(args[1])
+    if _is_const(model, args[2]):
+        model.problem.add_propagator(ALG_COUNT_EQ_C, model.var_list_of(args[0]), [value, model.const_of(args[2])])
+    else:
+        variables = model.var_list_of(args[0]) + [model.var_index_of(args[2])]
+        model.problem.add_propagator(ALG_COUNT_EQ, variables, [value])
+
+
+def _count_geq(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``count_geq(x, y, c)`` as the number of x_i equal to y is at least c, supported only when y and c
+    are constants.
+    """
+    if not _is_const(model, args[1]) or not _is_const(model, args[2]):
+        raise FznUnsupportedError("count_geq with a variable value or count is not supported")
+    model.problem.add_propagator(
+        ALG_COUNT_GEQ_C, model.var_list_of(args[0]), [model.const_of(args[1]), model.const_of(args[2])]
+    )
+
+
+def _count_leq(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``count_leq(x, y, c)`` as the number of x_i equal to y is at most c, supported only when y and c
+    are constants.
+    """
+    if not _is_const(model, args[1]) or not _is_const(model, args[2]):
+        raise FznUnsupportedError("count_leq with a variable value or count is not supported")
+    model.problem.add_propagator(
+        ALG_COUNT_LEQ_C, model.var_list_of(args[0]), [model.const_of(args[1]), model.const_of(args[2])]
+    )
 
 
 def _all_different(model: "FznModel", args: List[Term]) -> None:
@@ -554,9 +585,13 @@ BUILTINS: Dict[str, Handler] = {
     "bool_xor": _bool_xor,
     "circuit": _circuit,
     "count_eq": _count_eq,
+    "count_geq": _count_geq,
+    "count_leq": _count_leq,
     "fzn_all_different_int": _all_different,
     "fzn_circuit": _circuit,
     "fzn_count_eq": _count_eq,
+    "fzn_count_geq": _count_geq,
+    "fzn_count_leq": _count_leq,
     "fzn_global_cardinality_low_up": _global_cardinality_low_up,
     "fzn_inverse": _inverse,
     "fzn_lex_lesseq_int": _lex_lesseq,

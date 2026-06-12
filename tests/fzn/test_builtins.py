@@ -19,7 +19,15 @@ from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import build_model
 from nucs.fzn.parser import parse
 from nucs.fzn.runner import run
-from nucs.propagators.propagators import ALG_LINEAR_EQ_C, ALG_ALLDIFFERENT, ALG_LEQ_C
+from nucs.propagators.propagators import (
+    ALG_ALLDIFFERENT,
+    ALG_COUNT_EQ,
+    ALG_COUNT_EQ_C,
+    ALG_COUNT_GEQ_C,
+    ALG_COUNT_LEQ_C,
+    ALG_LEQ_C,
+    ALG_LINEAR_EQ_C,
+)
 
 
 def solve_fzn(fzn: str, all_solutions: bool = False, num_solutions: Optional[int] = None) -> str:
@@ -372,6 +380,56 @@ class TestBuiltins:
                     "array [1..1] of var int: x = [a];\n"
                     "constraint count_eq(x, y, n);\nsolve satisfy;"
                 )
+            )
+
+    def test_count_eq_constant_count_uses_count_eq_c(self) -> None:
+        # a constant count routes to the specialized count_eq_c propagator, no auxiliary counter variable
+        model = build_model(parse("array [1..3] of var 1..3: x;\nconstraint count_eq(x, 2, 2);\nsolve satisfy;"))
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_COUNT_EQ_C]
+        assert model.problem.propagators[0][2] == [2, 2]  # params = [value, count]
+
+    def test_count_eq_variable_count_uses_count_eq(self) -> None:
+        # a variable count still uses the variable-counter propagator
+        model = build_model(
+            parse("var 0..3: n;\narray [1..3] of var 1..3: x;\nconstraint count_eq(x, 2, n);\nsolve satisfy;")
+        )
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_COUNT_EQ]
+
+    def test_count_geq(self) -> None:
+        # at least 2 of the three vars equal 2; fixing two to 2 and one to 1 satisfies it
+        out = solve_fzn(
+            "var 1..3: a :: output_var;\nvar 1..3: b :: output_var;\nvar 1..3: c :: output_var;\n"
+            "constraint int_eq(c, 1);\n"
+            "array [1..3] of var int: x = [a, b, c];\n"
+            "constraint count_geq(x, 2, 2);\n"
+            "solve satisfy;"
+        )
+        assert "a = 2;" in out and "b = 2;" in out and "c = 1;" in out
+
+    def test_count_geq_maps_to_count_geq_c(self) -> None:
+        model = build_model(parse("array [1..3] of var 1..3: x;\nconstraint count_geq(x, 2, 2);\nsolve satisfy;"))
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_COUNT_GEQ_C]
+        assert model.problem.propagators[0][2] == [2, 2]
+
+    def test_count_leq_too_many_unsatisfiable(self) -> None:
+        # at most 1 var may equal 2, but all three are forced to 2 -> inconsistent
+        out = solve_fzn(
+            "var 2..2: a;\nvar 2..2: b;\nvar 2..2: c;\n"
+            "array [1..3] of var int: x = [a, b, c];\n"
+            "constraint count_leq(x, 2, 1);\n"
+            "solve satisfy;"
+        )
+        assert "----------" not in out
+
+    def test_count_leq_maps_to_count_leq_c(self) -> None:
+        model = build_model(parse("array [1..3] of var 1..3: x;\nconstraint count_leq(x, 2, 1);\nsolve satisfy;"))
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_COUNT_LEQ_C]
+        assert model.problem.propagators[0][2] == [2, 1]
+
+    def test_count_geq_variable_count_unsupported(self) -> None:
+        with pytest.raises(FznUnsupportedError):
+            build_model(
+                parse("var 0..3: n;\narray [1..3] of var 1..3: x;\nconstraint count_geq(x, 2, n);\nsolve satisfy;")
             )
 
     def test_circuit(self) -> None:
