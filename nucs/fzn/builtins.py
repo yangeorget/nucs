@@ -60,6 +60,9 @@ from nucs.propagators.propagators import (
     ALG_STRICTLY_INCREASING,
     ALG_SUBCIRCUIT,
     ALG_SUM_EQ,
+    ALG_SUM_EQ_C,
+    ALG_SUM_GEQ_C,
+    ALG_SUM_LEQ_C,
     ALG_VALUE_PRECEDE,
 )
 
@@ -86,22 +89,71 @@ def _is_const(model: "FznModel", term: Term) -> bool:
     return isinstance(term, Id) and term.name in model.consts and isinstance(model.consts[term.name], int)
 
 
+def _post_linear(
+    model: "FznModel",
+    coeffs: List[int],
+    variables: List[int],
+    c: int,
+    alg_general: int,
+    sum_pos: int,
+    sum_neg: int,
+) -> None:
+    """
+    Posts a linear constraint sum(a_i * x_i) {=, <=, >=} c. When every coefficient is 1 (resp. -1) the
+    constraint is a plain sum, so the cheaper unit-coefficient propagator sum_pos with c (resp. sum_neg with
+    -c, since sum(-x_i) <= c is sum(x_i) >= -c) is used instead of the general coefficient propagator.
+
+    :param model: the model
+    :type model: FznModel
+    :param coeffs: the coefficients
+    :type coeffs: List[int]
+    :param variables: the variable indices
+    :type variables: List[int]
+    :param c: the right-hand side constant
+    :type c: int
+    :param alg_general: the general coefficient propagator id
+    :type alg_general: int
+    :param sum_pos: the unit-coefficient propagator id for all coefficients equal to 1
+    :type sum_pos: int
+    :param sum_neg: the unit-coefficient propagator id for all coefficients equal to -1
+    :type sum_neg: int
+    """
+    if coeffs and all(a == 1 for a in coeffs):
+        model.problem.add_propagator(sum_pos, variables, [c])
+    elif coeffs and all(a == -1 for a in coeffs):
+        model.problem.add_propagator(sum_neg, variables, [-c])
+    else:
+        model.problem.add_propagator(alg_general, variables, coeffs + [c])
+
+
 def _int_lin_eq(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``int_lin_eq(a, x, c)`` as the linear equality sum(a_i * x_i) = c.
     """
-    coeffs = model.int_list_of(args[0])
-    variables = model.var_list_of(args[1])
-    model.problem.add_propagator(ALG_LINEAR_EQ_C, variables, coeffs + [model.const_of(args[2])])
+    _post_linear(
+        model,
+        model.int_list_of(args[0]),
+        model.var_list_of(args[1]),
+        model.const_of(args[2]),
+        ALG_LINEAR_EQ_C,
+        ALG_SUM_EQ_C,
+        ALG_SUM_EQ_C,
+    )
 
 
 def _int_lin_le(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``int_lin_le(a, x, c)`` as the linear inequality sum(a_i * x_i) <= c.
     """
-    coeffs = model.int_list_of(args[0])
-    variables = model.var_list_of(args[1])
-    model.problem.add_propagator(ALG_LINEAR_LEQ_C, variables, coeffs + [model.const_of(args[2])])
+    _post_linear(
+        model,
+        model.int_list_of(args[0]),
+        model.var_list_of(args[1]),
+        model.const_of(args[2]),
+        ALG_LINEAR_LEQ_C,
+        ALG_SUM_LEQ_C,
+        ALG_SUM_GEQ_C,
+    )
 
 
 def _int_lin_ne(model: "FznModel", args: List[Term]) -> None:
@@ -160,9 +212,15 @@ def _int_lin_ge(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``int_lin_ge(a, x, c)`` as the linear inequality sum(a_i * x_i) >= c.
     """
-    coeffs = model.int_list_of(args[0])
-    variables = model.var_list_of(args[1])
-    model.problem.add_propagator(ALG_LINEAR_GEQ_C, variables, coeffs + [model.const_of(args[2])])
+    _post_linear(
+        model,
+        model.int_list_of(args[0]),
+        model.var_list_of(args[1]),
+        model.const_of(args[2]),
+        ALG_LINEAR_GEQ_C,
+        ALG_SUM_GEQ_C,
+        ALG_SUM_LEQ_C,
+    )
 
 
 def _int_lin_ge_reif(model: "FznModel", args: List[Term]) -> None:

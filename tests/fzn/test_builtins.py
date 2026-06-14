@@ -44,6 +44,9 @@ from nucs.propagators.propagators import (
     ALG_NVALUE,
     ALG_STRICTLY_INCREASING,
     ALG_SUBCIRCUIT,
+    ALG_SUM_EQ_C,
+    ALG_SUM_GEQ_C,
+    ALG_SUM_LEQ_C,
     ALG_VALUE_PRECEDE,
 )
 
@@ -74,7 +77,7 @@ class TestBuiltins:
         model = build_model(
             parse(
                 "var 0..9: x;\nvar 0..9: y;\n"
-                "constraint int_lin_eq([1, 1], [x, y], 5);\n"
+                "constraint int_lin_eq([2, 1], [x, y], 5);\n"  # non-unit coefficients -> general propagator
                 "constraint int_le(x, y);\n"
                 "constraint all_different_int([x, y]);\n"
                 "solve satisfy;"
@@ -82,8 +85,46 @@ class TestBuiltins:
         )
         algorithms = [prop[1] for prop in model.problem.propagators]
         assert algorithms == [ALG_LINEAR_EQ_C, ALG_LEQ_C, ALG_ALLDIFFERENT]
-        # int_lin_eq([1,1], [x,y], 5) -> linear_eq_c with params coeffs + [c]
-        assert model.problem.propagators[0][2] == [1, 1, 5]
+        # int_lin_eq([2,1], [x,y], 5) -> linear_eq_c with params coeffs + [c]
+        assert model.problem.propagators[0][2] == [2, 1, 5]
+
+    def test_unit_coefficient_linear_routes_to_sum(self) -> None:
+        # all-1 coefficients use the cheaper plain-sum propagators (param is just [c], no coefficients)
+        model = build_model(
+            parse(
+                "var 0..9: x;\nvar 0..9: y;\n"
+                "constraint int_lin_eq([1, 1], [x, y], 5);\n"
+                "constraint int_lin_le([1, 1], [x, y], 7);\n"
+                "constraint int_lin_ge([1, 1], [x, y], 3);\n"
+                "solve satisfy;"
+            )
+        )
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_SUM_EQ_C, ALG_SUM_LEQ_C, ALG_SUM_GEQ_C]
+        assert [prop[2] for prop in model.problem.propagators] == [[5], [7], [3]]
+
+    def test_negative_unit_coefficient_linear_routes_to_sum(self) -> None:
+        # all-(-1) coefficients negate the constant and flip le<->ge: sum(-x) <= c  <=>  sum(x) >= -c
+        model = build_model(
+            parse(
+                "var 0..9: x;\nvar 0..9: y;\n"
+                "constraint int_lin_eq([-1, -1], [x, y], -5);\n"
+                "constraint int_lin_le([-1, -1], [x, y], -3);\n"
+                "solve satisfy;"
+            )
+        )
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_SUM_EQ_C, ALG_SUM_GEQ_C]
+        assert [prop[2] for prop in model.problem.propagators] == [[5], [3]]
+
+    def test_unit_coefficient_sum_solves_correctly(self) -> None:
+        # x + y = 5, x + y <= 7 (redundant), x <= y: same solutions as the general propagator would give
+        out = solve_fzn(
+            "var 0..9: x :: output_var;\nvar 0..9: y :: output_var;\n"
+            "constraint int_lin_eq([1, 1], [x, y], 5);\nconstraint int_le(x, y);\n"
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 3  # (0,5), (1,4), (2,3)
+        assert "x = 0;\ny = 5;" in out and "x = 2;\ny = 3;" in out and "x = 3;" not in out
 
     def test_all_different_plus_linear_satisfy(self) -> None:
         out = solve_fzn(
