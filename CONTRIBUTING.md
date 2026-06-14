@@ -31,3 +31,25 @@ addheader tests -t header.txt
 ```bash
 sphinx-build -M html docs/source docs/output
 ```
+
+### Minizinc Docker image
+
+```bash
+docker build -t minizinc-nucs .
+```
+
+```bash
+docker tag minizinc-nucs:latest yangeorget/minizinc-nucs:version
+```
+
+```bash
+docker push yangeorget/minizinc-nucs:version
+```
+
+```bash
+docker pull yangeorget/minizinc-nucs:version
+```
+
+```bash
+docker run --rm -v "$PWD:/work" -w /work yangeorget/minizinc-nucs:12.2.0 minizinc tmp/mzn/latinbool.mzn
+```
