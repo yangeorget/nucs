@@ -24,6 +24,7 @@ from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
     DOM_HEURISTIC_MID_VALUE,
     DOM_HEURISTIC_MIN_VALUE,
+    DOM_HEURISTIC_SPLIT_HIGH,
     DOM_HEURISTIC_SPLIT_LOW,
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
     VAR_HEURISTIC_GREATEST_DOMAIN,
@@ -50,6 +51,7 @@ _DOM_HEURISTICS = {
     "indomain_max": DOM_HEURISTIC_MAX_VALUE,
     "indomain_median": DOM_HEURISTIC_MID_VALUE,
     "indomain_split": DOM_HEURISTIC_SPLIT_LOW,
+    "indomain_reverse_split": DOM_HEURISTIC_SPLIT_HIGH,
 }
 
 

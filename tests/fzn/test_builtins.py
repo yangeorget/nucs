@@ -23,6 +23,7 @@ from nucs.fzn.runner import run, search_heuristics
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
     DOM_HEURISTIC_MID_VALUE,
+    DOM_HEURISTIC_SPLIT_HIGH,
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
     VAR_HEURISTIC_LARGEST_MAXIMAL_VALUE,
     VAR_HEURISTIC_SMALLEST_DOMAIN,
@@ -675,6 +676,21 @@ class TestBuiltins:
         )
         assert "x = 2;" in out  # indomain_max takes the largest value first
         assert "x = 0;" in solve_fzn("var 0..2: x :: output_var;\nsolve satisfy;")  # default is min
+
+    def test_search_heuristics_maps_reverse_split(self) -> None:
+        model = build_model(
+            parse("var 0..3: x;\nsolve :: int_search([x], input_order, indomain_reverse_split, complete) satisfy;")
+        )
+        result = search_heuristics(model)
+        assert result
+        assert result[2] == DOM_HEURISTIC_SPLIT_HIGH
+
+    def test_search_annotation_reverse_split_takes_upper_half_first(self) -> None:
+        out = solve_fzn(
+            "var 0..3: x :: output_var;\n"
+            "solve :: int_search([x], input_order, indomain_reverse_split, complete) satisfy;"
+        )
+        assert "x = 3;" in out  # reverse split explores the upper half first
 
     def test_all_solutions_terminator(self) -> None:
         out = solve_fzn(
