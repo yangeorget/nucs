@@ -41,6 +41,7 @@ from nucs.propagators.propagators import (
     ALG_INCREASING,
     ALG_LEQ_C,
     ALG_LINEAR_EQ_C,
+    ALG_NVALUE,
     ALG_STRICTLY_INCREASING,
     ALG_SUBCIRCUIT,
 )
@@ -535,6 +536,38 @@ class TestBuiltins:
             build_model(
                 parse("var 0..3: n;\narray [1..3] of var 1..3: x;\nconstraint count_geq(x, 2, n);\nsolve satisfy;")
             )
+
+    def test_nvalue_maps_to_nvalue(self) -> None:
+        # n is declared first (index 0), a/b/c next; nvalue puts the x variables first and the count last
+        model = build_model(
+            parse(
+                "var 0..3: n;\nvar 0..2: a;\nvar 0..2: b;\nvar 0..2: c;\n"
+                "array [1..3] of var int: x = [a, b, c];\n"
+                "constraint fzn_nvalue(n, x);\nsolve satisfy;"
+            )
+        )
+        (propagator,) = model.problem.propagators
+        assert propagator[1] == ALG_NVALUE
+        assert list(propagator[0]) == [1, 2, 3, 0]
+
+    def test_nvalue_counts_distinct(self) -> None:
+        out = solve_fzn(
+            "var 0..3: n :: output_var;\nvar 1..1: a;\nvar 1..1: b;\nvar 2..2: c;\n"
+            "array [1..3] of var int: x = [a, b, c];\n"
+            "constraint fzn_nvalue(n, x);\nsolve satisfy;"
+        )
+        assert "n = 2;" in out  # {1, 1, 2} -> 2 distinct values
+
+    def test_nvalue_one_forces_all_equal(self) -> None:
+        # n = 1 forces a single distinct value: the intersection of [0,5], [2,3], [3,9] is {3}
+        out = solve_fzn(
+            "var 1..1: n;\nvar 0..5: a :: output_var;\nvar 2..3: b :: output_var;\nvar 3..9: c :: output_var;\n"
+            "array [1..3] of var int: x = [a, b, c];\n"
+            "constraint fzn_nvalue(n, x);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 1
+        assert "a = 3;" in out and "b = 3;" in out and "c = 3;" in out
 
     def test_increasing_maps_to_increasing(self) -> None:
         model = build_model(parse("array [1..3] of var 0..2: x;\nconstraint fzn_increasing_int(x);\nsolve satisfy;"))

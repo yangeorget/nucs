@@ -80,6 +80,11 @@ KEPT_GLOBALS = {
         "fzn_lex_lesseq_int",
         "fzn_lex_lesseq_int.mzn",
     ),
+    "nvalue": (
+        "var 0..4: n; array[1..4] of var 0..3: x; constraint nvalue(n, x);",
+        "fzn_nvalue",
+        "fzn_nvalue.mzn",
+    ),
     "strictly_increasing": (
         "array[1..4] of var 0..9: x; constraint strictly_increasing(x);",
         "fzn_strictly_increasing_int",

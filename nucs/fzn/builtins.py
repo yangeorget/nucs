@@ -55,6 +55,7 @@ from nucs.propagators.propagators import (
     ALG_NEQ,
     ALG_NEQ_REIF,
     ALG_NO_SUB_CYCLE,
+    ALG_NVALUE,
     ALG_RELATION,
     ALG_STRICTLY_INCREASING,
     ALG_SUBCIRCUIT,
@@ -454,6 +455,14 @@ def _count_leq(model: "FznModel", args: List[Term]) -> None:
     )
 
 
+def _nvalue(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``nvalue(n, x)`` as n being the number of distinct values taken by the array x.
+    """
+    variables = model.var_list_of(args[1]) + [model.var_index_of(args[0])]
+    model.problem.add_propagator(ALG_NVALUE, variables)
+
+
 def _all_different(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``all_different_int(x)``.
@@ -677,6 +686,7 @@ BUILTINS: Dict[str, Handler] = {
     "fzn_increasing_int": _increasing,
     "fzn_inverse": _inverse,
     "fzn_lex_lesseq_int": _lex_lesseq,
+    "fzn_nvalue": _nvalue,
     "fzn_strictly_decreasing_int": _strictly_decreasing,
     "fzn_strictly_increasing_int": _strictly_increasing,
     "fzn_subcircuit": _subcircuit,
@@ -710,6 +720,7 @@ BUILTINS: Dict[str, Handler] = {
     "int_times": _int_times,
     "lex_lesseq_int": _lex_lesseq,
     "nucs_table_int": _table_int,
+    "nvalue": _nvalue,
     "set_in": _set_in,
     "set_in_reif": _set_in_reif,
     "strictly_decreasing_int": _strictly_decreasing,
