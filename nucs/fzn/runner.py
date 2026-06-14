@@ -27,18 +27,22 @@ from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_SPLIT_LOW,
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
     VAR_HEURISTIC_GREATEST_DOMAIN,
+    VAR_HEURISTIC_LARGEST_MAXIMAL_VALUE,
     VAR_HEURISTIC_MAX_REGRET,
     VAR_HEURISTIC_SMALLEST_DOMAIN,
+    VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE,
 )
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # FlatZinc variable-selection annotations mapped to NuCS variable heuristics; unlisted ones
-# (smallest, largest, dom_w_deg, occurrence, ...) fall back to the default.
+# (dom_w_deg, occurrence, most_constrained, ...) fall back to the default.
 _VAR_HEURISTICS = {
     "input_order": VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
     "first_fail": VAR_HEURISTIC_SMALLEST_DOMAIN,
     "anti_first_fail": VAR_HEURISTIC_GREATEST_DOMAIN,
     "max_regret": VAR_HEURISTIC_MAX_REGRET,
+    "smallest": VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE,
+    "largest": VAR_HEURISTIC_LARGEST_MAXIMAL_VALUE,
 }
 # FlatZinc value-selection annotations mapped to NuCS domain heuristics.
 _DOM_HEURISTICS = {

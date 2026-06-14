@@ -24,7 +24,9 @@ from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
     DOM_HEURISTIC_MID_VALUE,
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
+    VAR_HEURISTIC_LARGEST_MAXIMAL_VALUE,
     VAR_HEURISTIC_SMALLEST_DOMAIN,
+    VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE,
 )
 from nucs.propagators.propagators import (
     ALG_ADD_C_EQ,
@@ -647,13 +649,25 @@ class TestBuiltins:
 
     def test_search_heuristics_unknown_selectors_fall_back(self) -> None:
         model = build_model(
-            parse("var 0..3: x;\nsolve :: int_search([x], smallest, indomain_median, complete) satisfy;")
+            parse("var 0..3: x;\nsolve :: int_search([x], dom_w_deg, indomain_median, complete) satisfy;")
         )
         result = search_heuristics(model)
         assert result
         _, var_heuristic, dom_heuristic = result
-        assert var_heuristic == VAR_HEURISTIC_FIRST_NOT_INSTANTIATED  # 'smallest' has no NuCS equivalent
+        assert var_heuristic == VAR_HEURISTIC_FIRST_NOT_INSTANTIATED  # 'dom_w_deg' has no NuCS equivalent
         assert dom_heuristic == DOM_HEURISTIC_MID_VALUE
+
+    def test_search_heuristics_maps_smallest_and_largest(self) -> None:
+        smallest = build_model(
+            parse("var 0..3: x;\nsolve :: int_search([x], smallest, indomain_min, complete) satisfy;")
+        )
+        result = search_heuristics(smallest)
+        assert result
+        assert result[1] == VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE
+        largest = build_model(parse("var 0..3: x;\nsolve :: int_search([x], largest, indomain_min, complete) satisfy;"))
+        result = search_heuristics(largest)
+        assert result
+        assert result[1] == VAR_HEURISTIC_LARGEST_MAXIMAL_VALUE
 
     def test_search_annotation_value_heuristic_changes_first_solution(self) -> None:
         out = solve_fzn(

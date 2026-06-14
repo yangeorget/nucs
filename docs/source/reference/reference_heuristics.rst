@@ -13,8 +13,10 @@ NUCS provides the following functions for selecting a variable
 
 .. autofunction:: nucs.heuristics.first_not_instantiated_var_heuristic.first_not_instantiated_var_heuristic
 .. autofunction:: nucs.heuristics.greatest_domain_var_heuristic.greatest_domain_var_heuristic
+.. autofunction:: nucs.heuristics.largest_maximal_value_var_heuristic.largest_maximal_value_var_heuristic
 .. autofunction:: nucs.heuristics.max_regret_var_heuristic.max_regret_var_heuristic
 .. autofunction:: nucs.heuristics.smallest_domain_var_heuristic.smallest_domain_var_heuristic
+.. autofunction:: nucs.heuristics.smallest_minimal_value_var_heuristic.smallest_minimal_value_var_heuristic
 
 
 Heuristics for reducing the chosen domain
