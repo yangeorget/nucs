@@ -144,8 +144,13 @@ def test_global_stays_native(name, tmp_path) -> None:  # type: ignore[no-untyped
 
 
 def test_every_redefinition_file_is_covered() -> None:
-    """Fails when a kept-global redefinition exists in the library but no test exercises it."""
-    on_disk = {f for f in os.listdir(GLOBALS_LIB) if f.endswith(".mzn")}
+    """Fails when a kept-global redefinition exists in the library but no test exercises it.
+
+    Only the per-global ``fzn_*.mzn`` native-predicate files are kept-globals; ``redefinitions.mzn`` is a
+    catch-all auto-included file (it supplies overloads, e.g. the non-optional strictly_decreasing), not a
+    kept global, so it is excluded.
+    """
+    on_disk = {f for f in os.listdir(GLOBALS_LIB) if f.startswith("fzn_") and f.endswith(".mzn")}
     covered = {entry[2] for entry in KEPT_GLOBALS.values()}
     assert on_disk == covered, f"uncovered: {sorted(on_disk - covered)}; stale: {sorted(covered - on_disk)}"
 
@@ -155,3 +160,11 @@ def test_native_predicate_is_dispatched(name) -> None:  # type: ignore[no-untype
     """Each native predicate the globals library emits has a handler in the BUILTINS dispatch table."""
     _, predicate, _ = KEPT_GLOBALS[name]
     assert predicate in BUILTINS
+
+
+def test_strictly_decreasing_reaches_native_strictly_increasing(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """The redefinitions.mzn non-optional overload routes strictly_decreasing to NuCS's native
+    strictly_increasing propagator (over the reversed array) instead of an int_lin_le decomposition chain."""
+    fzn = _compile_to_fzn("array[1..4] of var 0..9: x; constraint strictly_decreasing(x);", tmp_path)
+    assert "constraint fzn_strictly_increasing_int(" in fzn
+    assert "int_lin_le" not in fzn
