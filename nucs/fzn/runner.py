@@ -29,6 +29,8 @@ def run(
     all_solutions: bool = False,
     num_solutions: Optional[int] = None,
     statistics: bool = False,
+    output_mode: str = "item",
+    output_objective: bool = False,
 ) -> None:
     """
     Solves the model and writes the FlatZinc solution stream.
@@ -45,6 +47,10 @@ def run(
     :type num_solutions: Optional[int]
     :param statistics: whether to print solver statistics to err
     :type statistics: bool
+    :param output_mode: the solution output format, one of ``item``, ``dzn`` or ``json``
+    :type output_mode: str
+    :param output_objective: whether to include the objective value in each solution (optimization only)
+    :type output_objective: bool
     """
     # Resolve the objective before constructing the solver, since the solver snapshots the domains on init.
     objective_var = None
@@ -54,7 +60,7 @@ def run(
         objective_var = model.var_index_of(model.solve.objective)
     solver = BacktrackSolver(model.problem, log_level="ERROR")
     if model.solve.kind == "satisfy":
-        _run_satisfy(model, solver, out, all_solutions, num_solutions)
+        _run_satisfy(model, solver, out, all_solutions, num_solutions, output_mode)
     else:
         assert objective_var is not None
         if model.solve.kind == "minimize":
@@ -64,7 +70,8 @@ def run(
         if solution is None:
             print_unsatisfiable(out)
         else:
-            print_solution(model, solution, out)
+            objective_value = int(solution[objective_var]) if output_objective else None
+            print_solution(model, solution, out, output_mode, objective_value)
             print_search_complete(out)
     if statistics:
         _print_statistics(solver, err)
@@ -76,6 +83,7 @@ def _run_satisfy(
     out: TextIO,
     all_solutions: bool,
     num_solutions: Optional[int],
+    output_mode: str = "item",
 ) -> None:
     """
     Iterates satisfy solutions honoring the all/limit flags and prints the appropriate terminators.
@@ -90,13 +98,15 @@ def _run_satisfy(
     :type all_solutions: bool
     :param num_solutions: the maximum number of solutions, or None for one
     :type num_solutions: Optional[int]
+    :param output_mode: the solution output format, one of ``item``, ``dzn`` or ``json``
+    :type output_mode: str
     """
     limit = None if all_solutions else (num_solutions if num_solutions is not None else 1)
     count = 0
     found = False
     exhausted = True
     for solution in solver.solve():
-        print_solution(model, solution, out)
+        print_solution(model, solution, out, output_mode)
         found = True
         count += 1
         if limit is not None and count >= limit:

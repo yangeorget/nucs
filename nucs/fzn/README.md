@@ -32,7 +32,7 @@ minizinc --solver nucs model.mzn
 Alternatively, copy `share/nucs.msc` into a MiniZinc user solver directory (and edit `mznlib` to an
 absolute path to `share/minizinc/nucs`).
 
-## Supported builtins (v1)
+## Supported builtins
 
 `int_lin_eq`, `int_lin_le`, `int_eq`, `int_le`, `int_lt`, `int_plus`, `int_abs`,
 `int_times` (with a constant operand), `int_max`, `int_min`, `all_different_int`,
@@ -40,9 +40,10 @@ absolute path to `share/minizinc/nucs`).
 (contiguous cover). Unsupported builtins raise a clear error. Coverage grows by adding one entry to
 `nucs/fzn/builtins.py`.
 
-### Known v1 limitations
+### Known limitations
 
-- NuCS domains are intervals: non-contiguous set domains (`var {1, 3, 5}`) are rejected.
-- No reified (`*_reif`), boolean-clause, set or float constraints.
-- Boolean output variables are printed as `0`/`1`.
+- NuCS domains are intervals: a non-contiguous set domain (`var {1, 3, 5}`) is bounded to its enclosing
+  interval plus a `member` constraint for the holes.
+- No float constraints; set support is limited to `set_in` membership (no general set constraints).
+- Boolean output variables are printed as `true`/`false`.
 - Unbounded `var int` declarations fall back to a wide finite interval.

@@ -11,6 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import io
+import json
 from typing import Optional
 
 import pytest
@@ -35,7 +36,13 @@ from nucs.propagators.propagators import (
 )
 
 
-def solve_fzn(fzn: str, all_solutions: bool = False, num_solutions: Optional[int] = None) -> str:
+def solve_fzn(
+    fzn: str,
+    all_solutions: bool = False,
+    num_solutions: Optional[int] = None,
+    output_mode: str = "item",
+    output_objective: bool = False,
+) -> str:
     """Builds, solves and returns the FlatZinc solution stream as text."""
     out = io.StringIO()
     run(
@@ -44,6 +51,8 @@ def solve_fzn(fzn: str, all_solutions: bool = False, num_solutions: Optional[int
         io.StringIO(),
         all_solutions=all_solutions,
         num_solutions=num_solutions,
+        output_mode=output_mode,
+        output_objective=output_objective,
     )
     return out.getvalue()
 
@@ -554,6 +563,62 @@ class TestBuiltins:
         )
         assert "x = 5;" in out
         assert out.strip().endswith("==========")
+
+    def test_output_mode_dzn_matches_item(self) -> None:
+        fzn = "var 1..3: x :: output_var;\nvar 1..3: y :: output_var;\nconstraint int_lt(x, y);\nsolve satisfy;"
+        assert solve_fzn(fzn, output_mode="dzn") == solve_fzn(fzn, output_mode="item")
+
+    def test_output_mode_json(self) -> None:
+        out = solve_fzn(
+            "var 2..2: x :: output_var;\nvar bool: b :: output_var;\n"
+            "array [1..2] of var int: a :: output_array([1..2]) = [x, x];\n"
+            "constraint bool_eq(b, true);\nsolve satisfy;",
+            output_mode="json",
+        )
+        # json mode parses to a proper object with bools as true/false and arrays as json arrays
+        body = out[: out.index("----------")].strip()
+        assert json.loads(body) == {"x": 2, "b": True, "a": [2, 2]}
+
+    def test_output_objective_dzn(self) -> None:
+        # maximize x + y under x + y <= 7 -> objective 7
+        out = solve_fzn(
+            "var 0..9: x :: output_var;\nvar 0..9: y :: output_var;\nvar 0..18: z;\n"
+            "constraint int_plus(x, y, z);\nconstraint int_le(z, 7);\n"
+            "solve maximize z;",
+            output_objective=True,
+        )
+        assert "_objective = 7;" in out
+
+    def test_output_objective_omitted_by_default(self) -> None:
+        out = solve_fzn(
+            "var 0..9: x :: output_var;\nvar 0..18: z;\n"
+            "constraint int_le(x, z);\nconstraint int_le(z, 4);\nsolve maximize z;"
+        )
+        assert "_objective" not in out
+
+    def test_output_objective_json(self) -> None:
+        out = solve_fzn(
+            "var 0..9: x :: output_var;\nvar 0..18: z;\n"
+            "constraint int_eq(x, z);\nconstraint int_le(z, 4);\nsolve maximize z;",
+            output_mode="json",
+            output_objective=True,
+        )
+        body = out[: out.index("----------")].strip()
+        assert json.loads(body) == {"x": 4, "_objective": 4}
+
+    def test_cli_parses_output_options(self) -> None:
+        from nucs.fzn.__main__ import build_arg_parser
+
+        args = build_arg_parser().parse_args(["model.fzn", "--output-mode", "json", "--output-objective"])
+        assert args.output_mode == "json"
+        assert args.output_objective is True
+
+    def test_cli_output_mode_defaults_to_item(self) -> None:
+        from nucs.fzn.__main__ import build_arg_parser
+
+        args = build_arg_parser().parse_args(["model.fzn"])
+        assert args.output_mode == "item"
+        assert args.output_objective is False
 
     def test_all_solutions_terminator(self) -> None:
         out = solve_fzn(

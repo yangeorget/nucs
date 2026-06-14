@@ -43,7 +43,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("-a", "--all-solutions", action="store_true", help="print all solutions")
     parser.add_argument("-n", "--num-solutions", type=int, default=None, help="stop after this many solutions")
     parser.add_argument("-s", "--statistics", action="store_true", help="print statistics to stderr")
-    # Accepted and ignored in v1 for compatibility with the FlatZinc solver interface.
+    parser.add_argument(
+        "--output-mode",
+        choices=["item", "dzn", "json"],
+        default="item",
+        help="format solutions as a FlatZinc assignment stream (item/dzn) or as JSON",
+    )
+    parser.add_argument(
+        "--output-objective",
+        action="store_true",
+        help="include the objective value (as _objective) in each solution for optimization problems",
+    )
+    # Accepted and ignored for compatibility with the FlatZinc solver interface.
     parser.add_argument("-f", "--free-search", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("-p", "--parallel", type=int, default=None, help=argparse.SUPPRESS)
     parser.add_argument("-t", "--time-limit", type=int, default=None, help=argparse.SUPPRESS)
@@ -84,6 +95,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             all_solutions=args.all_solutions,
             num_solutions=args.num_solutions,
             statistics=args.statistics,
+            output_mode=args.output_mode,
+            output_objective=args.output_objective,
         )
     except FznError as e:
         sys.stderr.write(f"fzn-nucs: {e}\n")

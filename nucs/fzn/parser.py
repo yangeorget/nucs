@@ -431,7 +431,7 @@ class Parser:
         :rtype: Solve
         """
         self.expect("IDENT", "solve")
-        self.parse_annotations()  # search annotations are ignored in v1
+        self.parse_annotations()  # search annotations are ignored
         kind = str(self.expect("IDENT"))
         if kind == "satisfy":
             self.expect("PUNCT", ";")
