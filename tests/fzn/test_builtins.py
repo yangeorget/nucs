@@ -40,6 +40,7 @@ from nucs.propagators.propagators import (
     ALG_ELEMENT_L_EQ_C,
     ALG_INCREASING,
     ALG_LEQ_C,
+    ALG_LEXLEQ,
     ALG_LINEAR_EQ_C,
     ALG_NVALUE,
     ALG_STRICTLY_INCREASING,
@@ -654,6 +655,49 @@ class TestBuiltins:
             all_solutions=True,
         )
         expected = sum(1 for xs in product(range(3), repeat=3) if valid(xs))
+        assert out.count("----------") == expected
+
+    def test_lex_less_maps_to_lexleq_with_sentinels(self) -> None:
+        # a, b are vars 0,1,2,3; lex_less reduces to lexleq over (a ++ [1]) and (b ++ [0]).
+        # var_index_of(1)/(0) create the sentinel constants (indices 4, 5 here).
+        model = build_model(
+            parse(
+                "var 0..1: a0;\nvar 0..1: a1;\nvar 0..1: b0;\nvar 0..1: b1;\n"
+                "array [1..2] of var int: a = [a0, a1];\narray [1..2] of var int: b = [b0, b1];\n"
+                "constraint fzn_lex_less_int(a, b);\nsolve satisfy;"
+            )
+        )
+        (propagator,) = model.problem.propagators
+        assert propagator[1] == ALG_LEXLEQ
+        one, zero = model.var_index_of(1), model.var_index_of(0)
+        assert list(propagator[0]) == [0, 1, one, 2, 3, zero]  # (a ++ [1]) ++ (b ++ [0])
+
+    def test_lex_less_solves(self) -> None:
+        from itertools import product
+
+        out = solve_fzn(
+            "var 0..1: a0 :: output_var;\nvar 0..1: a1 :: output_var;\n"
+            "var 0..1: b0 :: output_var;\nvar 0..1: b1 :: output_var;\n"
+            "array [1..2] of var int: a = [a0, a1];\narray [1..2] of var int: b = [b0, b1];\n"
+            "constraint fzn_lex_less_int(a, b);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        # count strict-lex pairs over {0,1}^2: (a0,a1) <_lex (b0,b1)
+        expected = sum(1 for a in product(range(2), repeat=2) for b in product(range(2), repeat=2) if a < b)
+        assert out.count("----------") == expected
+
+    def test_lex_greater_solves_via_swap(self) -> None:
+        # MiniZinc lowers lex_greater(a, b) to fzn_lex_less_int(b, a); check the swapped form solves
+        from itertools import product
+
+        out = solve_fzn(
+            "var 0..1: a0 :: output_var;\nvar 0..1: a1 :: output_var;\n"
+            "var 0..1: b0 :: output_var;\nvar 0..1: b1 :: output_var;\n"
+            "array [1..2] of var int: a = [a0, a1];\narray [1..2] of var int: b = [b0, b1];\n"
+            "constraint fzn_lex_less_int(b, a);\nsolve satisfy;",  # a >_lex b
+            all_solutions=True,
+        )
+        expected = sum(1 for a in product(range(2), repeat=2) for b in product(range(2), repeat=2) if a > b)
         assert out.count("----------") == expected
 
     def test_increasing_maps_to_increasing(self) -> None:

@@ -638,6 +638,18 @@ def _lex_lesseq(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_LEXLEQ, variables)
 
 
+def _lex_less(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``lex_less_int(x, y)`` as x <_lex y, reduced to a lexleq over sentinel-extended vectors:
+    x <_lex y iff (x ++ [1]) <=_lex (y ++ [0]) (equal vectors fall to 1 <= 0, which is false).
+    (MiniZinc lowers lex_greater(x, y) to lex_less(y, x), so this covers the strict greater case too.)
+    """
+    x = model.var_list_of(args[0])
+    y = model.var_list_of(args[1])
+    variables = x + [model.var_index_of(1)] + y + [model.var_index_of(0)]
+    model.problem.add_propagator(ALG_LEXLEQ, variables)
+
+
 def _table_int(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``table_int(x, t)``: each tuple of x must be a row of the table t (an extensional constraint).
@@ -764,6 +776,7 @@ BUILTINS: Dict[str, Handler] = {
     "fzn_global_cardinality_low_up": _global_cardinality_low_up,
     "fzn_increasing_int": _increasing,
     "fzn_inverse": _inverse,
+    "fzn_lex_less_int": _lex_less,
     "fzn_lex_lesseq_int": _lex_lesseq,
     "fzn_nvalue": _nvalue,
     "fzn_strictly_decreasing_int": _strictly_decreasing,
@@ -799,6 +812,7 @@ BUILTINS: Dict[str, Handler] = {
     "inverse": _inverse,
     "int_plus": _int_plus,
     "int_times": _int_times,
+    "lex_less_int": _lex_less,
     "lex_lesseq_int": _lex_lesseq,
     "nucs_table_int": _table_int,
     "nvalue": _nvalue,

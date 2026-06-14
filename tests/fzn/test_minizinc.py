@@ -75,6 +75,11 @@ KEPT_GLOBALS = {
         "fzn_inverse",
         "fzn_inverse.mzn",
     ),
+    "lex_less": (
+        "array[1..3] of var 0..2: a; array[1..3] of var 0..2: b; constraint lex_less(a,b);",
+        "fzn_lex_less_int",
+        "fzn_lex_less_int.mzn",
+    ),
     "lex_lesseq": (
         "array[1..3] of var 0..2: a; array[1..3] of var 0..2: b; constraint lex_lesseq(a,b);",
         "fzn_lex_lesseq_int",
