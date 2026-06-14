@@ -105,7 +105,7 @@ class BacktrackSolver(Solver, QueueSolver):
         var_heuristic_params: List[List[int]] = [[]],
         dom_heuristic: int = DOM_HEURISTIC_MIN_VALUE,
         dom_heuristic_params: List[List[int]] = [[]],
-        stks_max_height: int = 512,
+        stks_max_height: int = 65536,
         log_level: str = LOG_LEVEL_INFO,
     ):
         """

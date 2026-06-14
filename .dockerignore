@@ -1,0 +1,42 @@
+# Keep the Docker build context small: only the package source, pyproject.toml and README are needed
+# to build the NuCS wheel (pyproject ships nucs/ + nucs/fzn/share/** as package data).
+
+# VCS / editor / CI
+.git
+.github
+.gitignore
+.idea
+.vscode
+.editorconfig
+.readthedocs.yaml
+.DS_Store
+.claude
+
+# Python build / test / type caches and artifacts
+**/__pycache__
+*.py[cod]
+.numba
+.coverage
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.egg-info
+NuCS.egg-info
+dist
+build
+
+# Local environments
+venv*
+.venv
+
+# Large, non-build assets
+articles
+assets
+docs
+papers
+talks
+datasets
+logs
+tmp
+Dockerfile
+.dockerignore

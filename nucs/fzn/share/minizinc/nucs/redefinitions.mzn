@@ -6,4 +6,10 @@
 % of reaching NuCS's native strictly_increasing propagator. Supplying the more specific non-optional overload
 % routes it straight to fzn_strictly_increasing_int(reverse(x)) -- one propagator instead of n-1, matching
 % how decreasing already maps to fzn_increasing_int.
+%
+% redefinitions.mzn is auto-included for every model, so it must declare fzn_strictly_increasing_int itself
+% (it is not pulled in unless the model includes globals.mzn) -- otherwise every compilation fails with
+% "no function or predicate with name 'fzn_strictly_increasing_int' found".
+include "fzn_strictly_increasing_int.mzn";
+
 predicate strictly_decreasing(array [$X] of var int: x) = fzn_strictly_increasing_int(reverse(array1d(x)));
