@@ -35,7 +35,7 @@ sphinx-build -M html docs/source docs/output
 ### Minizinc Docker image
 
 ```bash
-docker build -t minizinc-nucs .
+docker build --platform linux/amd64 -t minizinc-nucs .
 ```
 
 ```bash
@@ -47,9 +47,9 @@ docker push yangeorget/minizinc-nucs:version
 ```
 
 ```bash
-docker pull yangeorget/minizinc-nucs:version
+docker pull --platform linux/amd64 yangeorget/minizinc-nucs:version
 ```
 
 ```bash
-docker run --rm -v "$PWD:/work" -w /work yangeorget/minizinc-nucs:12.2.0 minizinc tmp/mzn/latinbool.mzn
+docker run --platform linux/amd64 --rm -v "$PWD:/work" -w /work yangeorget/minizinc-nucs:12.2.0 minizinc tmp/mzn/latinbool.mzn
 ```

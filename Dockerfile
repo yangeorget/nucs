@@ -9,7 +9,7 @@
 #   docker run --rm -v "$PWD:/work" -w /work minizinc-nucs minizinc model.mzn data.dzn
 #   docker run --rm -v "$PWD:/work" -w /work minizinc-nucs minizinc --solver nucs model.mzn
 
-FROM --platform=linux/amd64 minizinc/mznc2026:latest
+FROM minizinc/mznc2026:latest
 
 # Python version to run NuCS on.
 ARG PYTHON_VERSION=3.13
