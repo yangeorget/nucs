@@ -60,6 +60,7 @@ from nucs.propagators.propagators import (
     ALG_STRICTLY_INCREASING,
     ALG_SUBCIRCUIT,
     ALG_SUM_EQ,
+    ALG_VALUE_PRECEDE,
 )
 
 if TYPE_CHECKING:
@@ -463,6 +464,26 @@ def _nvalue(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_NVALUE, variables)
 
 
+def _value_precede(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``value_precede_int(s, t, x)``: the value s must first occur before the value t in x.
+    """
+    model.problem.add_propagator(
+        ALG_VALUE_PRECEDE, model.var_list_of(args[2]), [model.const_of(args[0]), model.const_of(args[1])]
+    )
+
+
+def _value_precede_chain(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``value_precede_chain_int(c, x)``: the values c[0], c[1], ... must first occur in that order in
+    x, which is exactly the conjunction of value_precede(c[i], c[i+1], x) over consecutive values.
+    """
+    chain = model.int_list_of(args[0])
+    variables = model.var_list_of(args[1])
+    for i in range(len(chain) - 1):
+        model.problem.add_propagator(ALG_VALUE_PRECEDE, variables, [chain[i], chain[i + 1]])
+
+
 def _all_different(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``all_different_int(x)``.
@@ -690,6 +711,8 @@ BUILTINS: Dict[str, Handler] = {
     "fzn_strictly_decreasing_int": _strictly_decreasing,
     "fzn_strictly_increasing_int": _strictly_increasing,
     "fzn_subcircuit": _subcircuit,
+    "fzn_value_precede_chain_int": _value_precede_chain,
+    "fzn_value_precede_int": _value_precede,
     "global_cardinality_low_up": _global_cardinality_low_up,
     "increasing_int": _increasing,
     "int_abs": _int_abs,
@@ -726,4 +749,6 @@ BUILTINS: Dict[str, Handler] = {
     "strictly_decreasing_int": _strictly_decreasing,
     "strictly_increasing_int": _strictly_increasing,
     "subcircuit": _subcircuit,
+    "value_precede_chain_int": _value_precede_chain,
+    "value_precede_int": _value_precede,
 }

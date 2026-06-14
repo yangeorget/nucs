@@ -52,3 +52,4 @@ NuCS currently provides the following highly-optimized propagators.
 .. autofunction:: nucs.propagators.sum_eq_propagator.compute_domains_sum_eq
 .. autofunction:: nucs.propagators.sum_geq_c_propagator.compute_domains_sum_geq_c
 .. autofunction:: nucs.propagators.sum_leq_c_propagator.compute_domains_sum_leq_c
+.. autofunction:: nucs.propagators.value_precede_propagator.compute_domains_value_precede

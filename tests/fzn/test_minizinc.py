@@ -100,6 +100,16 @@ KEPT_GLOBALS = {
         "nucs_table_int",
         "fzn_table_int.mzn",
     ),
+    "value_precede": (
+        "array[1..4] of var 0..3: x; constraint value_precede(1, 2, x);",
+        "fzn_value_precede_int",
+        "fzn_value_precede_int.mzn",
+    ),
+    "value_precede_chain": (
+        "array[1..4] of var 0..3: x; constraint value_precede_chain([1, 2, 3], x);",
+        "fzn_value_precede_chain_int",
+        "fzn_value_precede_chain_int.mzn",
+    ),
 }
 
 

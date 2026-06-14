@@ -44,6 +44,7 @@ from nucs.propagators.propagators import (
     ALG_NVALUE,
     ALG_STRICTLY_INCREASING,
     ALG_SUBCIRCUIT,
+    ALG_VALUE_PRECEDE,
 )
 
 
@@ -568,6 +569,51 @@ class TestBuiltins:
         )
         assert out.count("----------") == 1
         assert "a = 3;" in out and "b = 3;" in out and "c = 3;" in out
+
+    def test_value_precede_maps_to_value_precede(self) -> None:
+        model = build_model(
+            parse("array [1..3] of var 0..3: x;\nconstraint fzn_value_precede_int(1, 2, x);\nsolve satisfy;")
+        )
+        (propagator,) = model.problem.propagators
+        assert propagator[1] == ALG_VALUE_PRECEDE
+        assert propagator[2] == [1, 2]  # params [s, t]
+
+    def test_value_precede_solves(self) -> None:
+        # value 1 must precede value 2: of the 9 (a, b) pairs over {0,1,2}, 4 are excluded -> 5 remain,
+        # and a (the first position) can never be 2
+        out = solve_fzn(
+            "var 0..2: a :: output_var;\nvar 0..2: b :: output_var;\n"
+            "array [1..2] of var int: x = [a, b];\n"
+            "constraint fzn_value_precede_int(1, 2, x);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 5
+        assert "a = 2;" not in out
+
+    def test_value_precede_chain_maps_to_pairwise(self) -> None:
+        # a 3-value chain posts one value_precede propagator per consecutive pair
+        model = build_model(
+            parse("array [1..4] of var 0..3: x;\nconstraint fzn_value_precede_chain_int([1, 2, 3], x);\nsolve satisfy;")
+        )
+        propagators = model.problem.propagators
+        assert [p[1] for p in propagators] == [ALG_VALUE_PRECEDE, ALG_VALUE_PRECEDE]
+        assert [p[2] for p in propagators] == [[1, 2], [2, 3]]  # (1 before 2), (2 before 3)
+
+    def test_value_precede_chain_solves(self) -> None:
+        # chain [0, 1, 2] over 3 vars: enumerate and compare with the brute-force chain semantics
+        from itertools import product
+
+        def valid(xs):  # type: ignore[no-untyped-def]
+            return all(xs[:i].count(prev) > 0 for i, v in enumerate(xs) for prev in [v - 1] if 1 <= v <= 2)
+
+        out = solve_fzn(
+            "var 0..2: a :: output_var;\nvar 0..2: b :: output_var;\nvar 0..2: c :: output_var;\n"
+            "array [1..3] of var int: x = [a, b, c];\n"
+            "constraint fzn_value_precede_chain_int([0, 1, 2], x);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        expected = sum(1 for xs in product(range(3), repeat=3) if valid(xs))
+        assert out.count("----------") == expected
 
     def test_increasing_maps_to_increasing(self) -> None:
         model = build_model(parse("array [1..3] of var 0..2: x;\nconstraint fzn_increasing_int(x);\nsolve satisfy;"))

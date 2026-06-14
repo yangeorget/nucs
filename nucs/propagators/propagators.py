@@ -186,6 +186,11 @@ from nucs.propagators.sum_leq_c_propagator import (
     get_complexity_sum_leq_c,
     get_triggers_sum_leq_c,
 )
+from nucs.propagators.value_precede_propagator import (
+    compute_domains_value_precede,
+    get_complexity_value_precede,
+    get_triggers_value_precede,
+)
 
 GET_TRIGGERS_FCTS: List[Callable] = []
 GET_COMPLEXITY_FCTS: List[Callable] = []
@@ -286,6 +291,9 @@ ALG_SUM_EQ = register_propagator(get_triggers_sum_eq, get_complexity_sum_eq, com
 ALG_SUM_EQ_C = register_propagator(get_triggers_sum_eq_c, get_complexity_sum_eq_c, compute_domains_sum_eq_c)
 ALG_SUM_GEQ_C = register_propagator(get_triggers_sum_geq_c, get_complexity_sum_geq_c, compute_domains_sum_geq_c)
 ALG_SUM_LEQ_C = register_propagator(get_triggers_sum_leq_c, get_complexity_sum_leq_c, compute_domains_sum_leq_c)
+ALG_VALUE_PRECEDE = register_propagator(
+    get_triggers_value_precede, get_complexity_value_precede, compute_domains_value_precede
+)
 
 
 @njit(cache=True, fastmath=True)
