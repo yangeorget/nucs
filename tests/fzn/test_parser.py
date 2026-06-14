@@ -79,6 +79,13 @@ class TestParser:
         (solve,) = parse("% a comment\nsolve satisfy; % trailing\n")
         assert solve == Solve("satisfy", None)
 
+    def test_solve_search_annotation_is_kept(self) -> None:
+        (solve,) = parse("solve :: int_search([x, y], first_fail, indomain_max, complete) satisfy;")
+        assert isinstance(solve, Solve) and solve.kind == "satisfy"
+        annotation = solve.annotations[0]
+        assert annotation.name == "int_search"
+        assert annotation.args == [[Id("x"), Id("y")], Id("first_fail"), Id("indomain_max"), Id("complete")]
+
     def test_predicate_ignored(self) -> None:
         statements = parse("predicate foo(var int: x);\nsolve satisfy;")
         assert statements == [Solve("satisfy", None)]

@@ -19,7 +19,13 @@ import pytest
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import build_model
 from nucs.fzn.parser import parse
-from nucs.fzn.runner import run
+from nucs.fzn.runner import run, search_heuristics
+from nucs.heuristics.heuristics import (
+    DOM_HEURISTIC_MAX_VALUE,
+    DOM_HEURISTIC_MID_VALUE,
+    VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
+    VAR_HEURISTIC_SMALLEST_DOMAIN,
+)
 from nucs.propagators.propagators import (
     ALG_ADD_C_EQ,
     ALG_ALLDIFFERENT,
@@ -619,6 +625,42 @@ class TestBuiltins:
         args = build_arg_parser().parse_args(["model.fzn"])
         assert args.output_mode == "item"
         assert args.output_objective is False
+
+    def test_search_heuristics_maps_int_search(self) -> None:
+        # x is declared first (index 0), y second (index 1); int_search lists y before x
+        model = build_model(
+            parse(
+                "var 0..3: x;\nvar 0..3: y;\nsolve :: int_search([y, x], first_fail, indomain_max, complete) satisfy;"
+            )
+        )
+        result = search_heuristics(model)
+        assert result
+        decision, var_heuristic, dom_heuristic = result
+        assert var_heuristic == VAR_HEURISTIC_SMALLEST_DOMAIN
+        assert dom_heuristic == DOM_HEURISTIC_MAX_VALUE
+        assert decision[:2] == [1, 0]  # search variables first, in annotation order (y, x)
+        assert sorted(decision) == list(range(model.problem.domain_nb))  # remaining variables appended
+
+    def test_search_heuristics_none_without_annotation(self) -> None:
+        model = build_model(parse("var 0..3: x;\nsolve satisfy;"))
+        assert search_heuristics(model) is None
+
+    def test_search_heuristics_unknown_selectors_fall_back(self) -> None:
+        model = build_model(
+            parse("var 0..3: x;\nsolve :: int_search([x], smallest, indomain_median, complete) satisfy;")
+        )
+        result = search_heuristics(model)
+        assert result
+        _, var_heuristic, dom_heuristic = result
+        assert var_heuristic == VAR_HEURISTIC_FIRST_NOT_INSTANTIATED  # 'smallest' has no NuCS equivalent
+        assert dom_heuristic == DOM_HEURISTIC_MID_VALUE
+
+    def test_search_annotation_value_heuristic_changes_first_solution(self) -> None:
+        out = solve_fzn(
+            "var 0..2: x :: output_var;\nsolve :: int_search([x], input_order, indomain_max, complete) satisfy;"
+        )
+        assert "x = 2;" in out  # indomain_max takes the largest value first
+        assert "x = 0;" in solve_fzn("var 0..2: x :: output_var;\nsolve satisfy;")  # default is min
 
     def test_all_solutions_terminator(self) -> None:
         out = solve_fzn(

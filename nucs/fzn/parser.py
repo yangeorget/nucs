@@ -143,6 +143,7 @@ class Solve:
 
     kind: str
     objective: Optional[Term] = None
+    annotations: List[Ann] = field(default_factory=list)
 
 
 Statement = Union[ParDecl, VarDecl, ArrayDecl, Constraint, Solve]
@@ -431,15 +432,15 @@ class Parser:
         :rtype: Solve
         """
         self.expect("IDENT", "solve")
-        self.parse_annotations()  # search annotations are ignored
+        annotations = self.parse_annotations()
         kind = str(self.expect("IDENT"))
         if kind == "satisfy":
             self.expect("PUNCT", ";")
-            return Solve("satisfy")
+            return Solve("satisfy", annotations=annotations)
         if kind in ("minimize", "maximize"):
             objective = self.parse_term()
             self.expect("PUNCT", ";")
-            return Solve(kind, objective)
+            return Solve(kind, objective, annotations=annotations)
         raise FznParseError(f"unexpected solve kind {kind!r}")
 
     def parse_domain(self) -> Tuple[int, int, Optional[List[int]]]:

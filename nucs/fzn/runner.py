@@ -14,12 +14,96 @@
 Drives a built :class:`FznModel` through a :class:`BacktrackSolver` and streams the solutions.
 """
 
-from typing import Optional, TextIO
+from typing import List, Optional, TextIO, Tuple
 
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import FznModel
 from nucs.fzn.output import print_search_complete, print_solution, print_unsatisfiable
+from nucs.fzn.parser import Id
+from nucs.heuristics.heuristics import (
+    DOM_HEURISTIC_MAX_VALUE,
+    DOM_HEURISTIC_MID_VALUE,
+    DOM_HEURISTIC_MIN_VALUE,
+    DOM_HEURISTIC_SPLIT_LOW,
+    VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
+    VAR_HEURISTIC_GREATEST_DOMAIN,
+    VAR_HEURISTIC_MAX_REGRET,
+    VAR_HEURISTIC_SMALLEST_DOMAIN,
+)
 from nucs.solvers.backtrack_solver import BacktrackSolver
+
+# FlatZinc variable-selection annotations mapped to NuCS variable heuristics; unlisted ones
+# (smallest, largest, dom_w_deg, occurrence, ...) fall back to the default.
+_VAR_HEURISTICS = {
+    "input_order": VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
+    "first_fail": VAR_HEURISTIC_SMALLEST_DOMAIN,
+    "anti_first_fail": VAR_HEURISTIC_GREATEST_DOMAIN,
+    "max_regret": VAR_HEURISTIC_MAX_REGRET,
+}
+# FlatZinc value-selection annotations mapped to NuCS domain heuristics.
+_DOM_HEURISTICS = {
+    "indomain_min": DOM_HEURISTIC_MIN_VALUE,
+    "indomain_max": DOM_HEURISTIC_MAX_VALUE,
+    "indomain_median": DOM_HEURISTIC_MID_VALUE,
+    "indomain_split": DOM_HEURISTIC_SPLIT_LOW,
+}
+
+
+def search_heuristics(model: FznModel) -> Optional[Tuple[List[int], int, int]]:
+    """
+    Translates the first ``int_search``/``bool_search`` annotation on the solve item into a NuCS search
+    configuration.
+
+    The listed variables come first in the decision order (honoring ``input_order``), followed by every
+    remaining variable so that the search always grounds the whole problem. Unknown variable/value
+    selectors fall back to the NuCS defaults.
+
+    :param model: the built model
+    :type model: FznModel
+
+    :return: a triple (decision variables, variable heuristic, domain heuristic), or None when there is no
+             supported search annotation
+    :rtype: Optional[Tuple[List[int], int, int]]
+    """
+    for annotation in model.solve.annotations:
+        if annotation.name in ("int_search", "bool_search") and annotation.args:
+            search_variables = model.var_list_of(annotation.args[0])
+            var_heuristic = _var_heuristic_of(annotation.args[1] if len(annotation.args) > 1 else None)
+            dom_heuristic = _dom_heuristic_of(annotation.args[2] if len(annotation.args) > 2 else None)
+            seen = set(search_variables)
+            decision_variables = search_variables + [v for v in range(model.problem.domain_nb) if v not in seen]
+            return decision_variables, var_heuristic, dom_heuristic
+    return None
+
+
+def _var_heuristic_of(term: object) -> int:
+    """
+    Returns the NuCS variable heuristic for a FlatZinc selector term, defaulting to first-not-instantiated.
+
+    :param term: the selector term (an Id) or None
+    :type term: object
+
+    :return: the variable heuristic id
+    :rtype: int
+    """
+    if isinstance(term, Id):
+        return _VAR_HEURISTICS.get(term.name, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED)
+    return VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
+
+
+def _dom_heuristic_of(term: object) -> int:
+    """
+    Returns the NuCS domain heuristic for a FlatZinc selector term, defaulting to min-value.
+
+    :param term: the selector term (an Id) or None
+    :type term: object
+
+    :return: the domain heuristic id
+    :rtype: int
+    """
+    if isinstance(term, Id):
+        return _DOM_HEURISTICS.get(term.name, DOM_HEURISTIC_MIN_VALUE)
+    return DOM_HEURISTIC_MIN_VALUE
 
 
 def run(
@@ -58,7 +142,18 @@ def run(
         if model.solve.objective is None:
             raise FznUnsupportedError("an optimization objective is required")
         objective_var = model.var_index_of(model.solve.objective)
-    solver = BacktrackSolver(model.problem, log_level="ERROR")
+    search = search_heuristics(model)
+    if search is None:
+        solver = BacktrackSolver(model.problem, log_level="ERROR")
+    else:
+        decision_variables, var_heuristic, dom_heuristic = search
+        solver = BacktrackSolver(
+            model.problem,
+            decision_variables=decision_variables,
+            var_heuristic=var_heuristic,
+            dom_heuristic=dom_heuristic,
+            log_level="ERROR",
+        )
     if model.solve.kind == "satisfy":
         _run_satisfy(model, solver, out, all_solutions, num_solutions, output_mode)
     else:

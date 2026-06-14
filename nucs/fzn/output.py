@@ -62,9 +62,7 @@ def print_solution(
     out.write(SOLUTION_SEPARATOR + "\n")
 
 
-def _print_solution_dzn(
-    model: "FznModel", solution: NDArray, out: TextIO, objective_value: Optional[int]
-) -> None:
+def _print_solution_dzn(model: "FznModel", solution: NDArray, out: TextIO, objective_value: Optional[int]) -> None:
     """
     Prints a solution as a FlatZinc assignment stream (the ``item``/``dzn`` output mode).
 
@@ -90,9 +88,7 @@ def _print_solution_dzn(
         out.write(f"{OUTPUT_OBJECTIVE_NAME} = {objective_value};\n")
 
 
-def _print_solution_json(
-    model: "FznModel", solution: NDArray, out: TextIO, objective_value: Optional[int]
-) -> None:
+def _print_solution_json(model: "FznModel", solution: NDArray, out: TextIO, objective_value: Optional[int]) -> None:
     """
     Prints a solution as a JSON object (the ``json`` output mode).
 
