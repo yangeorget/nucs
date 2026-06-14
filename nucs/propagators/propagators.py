@@ -160,6 +160,11 @@ from nucs.propagators.strictly_increasing_propagator import (
     get_complexity_strictly_increasing,
     get_triggers_strictly_increasing,
 )
+from nucs.propagators.subcircuit_propagator import (
+    compute_domains_subcircuit,
+    get_complexity_subcircuit,
+    get_triggers_subcircuit,
+)
 from nucs.propagators.sum_eq_c_propagator import (
     compute_domains_sum_eq_c,
     get_complexity_sum_eq_c,
@@ -270,6 +275,7 @@ ALG_SCC = register_propagator(get_triggers_scc, get_complexity_scc, compute_doma
 ALG_STRICTLY_INCREASING = register_propagator(
     get_triggers_strictly_increasing, get_complexity_strictly_increasing, compute_domains_strictly_increasing
 )
+ALG_SUBCIRCUIT = register_propagator(get_triggers_subcircuit, get_complexity_subcircuit, compute_domains_subcircuit)
 ALG_SUM_EQ = register_propagator(get_triggers_sum_eq, get_complexity_sum_eq, compute_domains_sum_eq)
 ALG_SUM_EQ_C = register_propagator(get_triggers_sum_eq_c, get_complexity_sum_eq_c, compute_domains_sum_eq_c)
 ALG_SUM_GEQ_C = register_propagator(get_triggers_sum_geq_c, get_complexity_sum_geq_c, compute_domains_sum_geq_c)

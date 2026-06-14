@@ -57,6 +57,7 @@ from nucs.propagators.propagators import (
     ALG_NO_SUB_CYCLE,
     ALG_RELATION,
     ALG_STRICTLY_INCREASING,
+    ALG_SUBCIRCUIT,
     ALG_SUM_EQ,
 )
 
@@ -514,6 +515,19 @@ def _circuit(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_NO_SUB_CYCLE, shifted)
 
 
+def _subcircuit(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``subcircuit(x)``: the 1-based successor array x forms a sub-circuit -- the nodes with x[i] != i
+    form a single circuit and the rest are self-loops (excluded). Like ``circuit``, NuCS works on a 0-based
+    representation, so x is shifted by -1; a permutation (alldifferent) plus a self-loop-aware sub-circuit
+    constraint enforce it.
+    """
+    succ = model.var_list_of(args[0])
+    shifted = _zero_based(model, succ, len(succ))
+    model.problem.add_propagator(ALG_ALLDIFFERENT, shifted)
+    model.problem.add_propagator(ALG_SUBCIRCUIT, shifted)
+
+
 def _inverse(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``inverse(x, y)`` as the channeling x[i] = j <=> y[j] = i between two 1-based arrays. The
@@ -550,6 +564,37 @@ def _set_in(model: "FznModel", args: List[Term]) -> None:
     Handles ``set_in(x, S)`` as x being a member of the set S (a ``{..}`` literal or a ``lo..hi`` range).
     """
     model.problem.add_propagator(ALG_MEMBER, [model.var_index_of(args[0])], model.set_values_of(args[1]))
+
+
+def _set_in_reif(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``set_in_reif(x, S, b)`` as b <=> (x in S), where S is a constant set (a ``{..}`` literal or a
+    ``lo..hi`` range). A contiguous range reifies to lo <= x <= hi; a non-contiguous set to a disjunction of
+    equalities.
+    """
+    x = model.var_index_of(args[0])
+    b = model.var_index_of(args[2])
+    values = model.set_values_of(args[1])
+    if not values:  # x is never in the empty set, so b is false
+        model.problem.add_propagator(ALG_LEQ_C, [b, model.var_index_of(0)], [0])
+        return
+    if len(values) == 1:  # b <=> x == v
+        model.problem.add_propagator(ALG_EQ_C_REIF, [b, x], [values[0]])
+        return
+    lo, hi = values[0], values[-1]
+    if hi - lo + 1 == len(values):  # contiguous range: b <=> (lo <= x) and (x <= hi)
+        b_ge = model.problem.add_variable((0, 1))
+        b_le = model.problem.add_variable((0, 1))
+        model.problem.add_propagator(ALG_LEQ_C_REIF, [b_ge, model.var_index_of(lo), x], [0])
+        model.problem.add_propagator(ALG_LEQ_C_REIF, [b_le, x, model.var_index_of(hi)], [0])
+        model.problem.add_propagator(ALG_AND_EQ, [b_ge, b_le, b])
+        return
+    reifs = []  # non-contiguous set: b <=> or_i (x == v_i)
+    for value in values:
+        reif = model.problem.add_variable((0, 1))
+        model.problem.add_propagator(ALG_EQ_C_REIF, [reif, x], [value])
+        reifs.append(reif)
+    model.problem.add_propagator(ALG_MAX_EQ, reifs + [b])
 
 
 def _array_int_element(model: "FznModel", args: List[Term]) -> None:
@@ -634,6 +679,7 @@ BUILTINS: Dict[str, Handler] = {
     "fzn_lex_lesseq_int": _lex_lesseq,
     "fzn_strictly_decreasing_int": _strictly_decreasing,
     "fzn_strictly_increasing_int": _strictly_increasing,
+    "fzn_subcircuit": _subcircuit,
     "global_cardinality_low_up": _global_cardinality_low_up,
     "increasing_int": _increasing,
     "int_abs": _int_abs,
@@ -665,6 +711,8 @@ BUILTINS: Dict[str, Handler] = {
     "lex_lesseq_int": _lex_lesseq,
     "nucs_table_int": _table_int,
     "set_in": _set_in,
+    "set_in_reif": _set_in_reif,
     "strictly_decreasing_int": _strictly_decreasing,
     "strictly_increasing_int": _strictly_increasing,
+    "subcircuit": _subcircuit,
 }

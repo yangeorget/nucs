@@ -42,6 +42,7 @@ from nucs.propagators.propagators import (
     ALG_LEQ_C,
     ALG_LINEAR_EQ_C,
     ALG_STRICTLY_INCREASING,
+    ALG_SUBCIRCUIT,
 )
 
 
@@ -221,6 +222,52 @@ class TestBuiltins:
         )
         assert out.count("----------") == 3
         assert "x = 1;" in out and "x = 3;" in out and "x = 5;" in out
+
+    def test_set_in_reif_range_true(self) -> None:
+        # b is true so x must be in the contiguous range 1..2
+        out = solve_fzn(
+            "var 0..4: x :: output_var;\nconstraint set_in_reif(x, 1..2, true);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 2
+        assert "x = 1;" in out and "x = 2;" in out
+
+    def test_set_in_reif_range_false(self) -> None:
+        # b is false so x must be outside 1..2
+        out = solve_fzn(
+            "var 0..4: x :: output_var;\nconstraint set_in_reif(x, 1..2, false);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 3
+        assert "x = 0;" in out and "x = 3;" in out and "x = 4;" in out
+        assert "x = 1;" not in out and "x = 2;" not in out
+
+    def test_set_in_reif_non_contiguous(self) -> None:
+        # b is true so x must be one of the (non-contiguous) literal values
+        out = solve_fzn(
+            "var 0..4: x :: output_var;\nconstraint set_in_reif(x, {1, 3}, true);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 2
+        assert "x = 1;" in out and "x = 3;" in out
+
+    def test_set_in_reif_derives_reif(self) -> None:
+        # x is fixed to 2 which is in 1..3, so b is forced true
+        out = solve_fzn("var 2..2: x;\nvar bool: b :: output_var;\nconstraint set_in_reif(x, 1..3, b);\nsolve satisfy;")
+        assert "b = true;" in out
+
+    def test_set_in_reif_used_for_counting(self) -> None:
+        # set_in_reif feeding a linear sum on the reif bools is exactly how `among` is decomposed:
+        # forcing the count of members to 2 makes both x and y land in 1..2
+        out = solve_fzn(
+            "var 0..3: x :: output_var;\nvar 0..3: y :: output_var;\nvar bool: bx;\nvar bool: by;\n"
+            "constraint set_in_reif(x, 1..2, bx);\nconstraint set_in_reif(y, 1..2, by);\n"
+            "constraint bool_lin_eq([1, 1], [bx, by], 2);\n"
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 4  # x, y each independently in {1, 2}
+        assert "x = 0;" not in out and "x = 3;" not in out
 
     def test_int_le_reif(self) -> None:
         out = solve_fzn(
@@ -580,6 +627,37 @@ class TestBuiltins:
             "var 1..3: a :: output_var;\nvar 1..3: b :: output_var;\nvar 1..3: c :: output_var;\n"
             "array [1..3] of var int: x = [a, b, c];\n"
             "constraint fzn_circuit(x);\nconstraint int_eq(a, 1);\n"
+            "solve satisfy;"
+        )
+        assert out.strip() == "=====UNSATISFIABLE====="
+
+    def test_subcircuit_maps_to_alldifferent_and_subcircuit(self) -> None:
+        model = build_model(parse("array [1..3] of var 1..3: x;\nconstraint fzn_subcircuit(x);\nsolve satisfy;"))
+        # _zero_based adds an ADD_C_EQ per variable, then ALLDIFFERENT + SUBCIRCUIT on the shifted copies
+        algorithms = [prop[1] for prop in model.problem.propagators]
+        assert algorithms == [ALG_ADD_C_EQ, ALG_ADD_C_EQ, ALG_ADD_C_EQ, ALG_ALLDIFFERENT, ALG_SUBCIRCUIT]
+
+    def test_subcircuit_solves_without_duplicates(self) -> None:
+        # over 3 nodes the sub-circuits are: all self-loops, the three 2-cycles, and the two 3-cycles = 6,
+        # and crucially each is enumerated exactly once (no auxiliary-variable duplicates)
+        out = solve_fzn(
+            "var 1..3: a :: output_var;\nvar 1..3: b :: output_var;\nvar 1..3: c :: output_var;\n"
+            "array [1..3] of var int: x = [a, b, c];\n"
+            "constraint fzn_subcircuit(x);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 6
+        assert "a = 1;\nb = 2;\nc = 3;" in out  # the empty sub-circuit (all self-loops)
+        assert "a = 2;\nb = 1;\nc = 3;" in out  # the 2-cycle (1 2) with 3 excluded
+
+    def test_subcircuit_two_cycles_unsatisfiable(self) -> None:
+        # 4 nodes pinned to two disjoint 2-cycles (1 2) and (3 4) is not a single sub-circuit
+        out = solve_fzn(
+            "array [1..4] of var int: x = [a, b, c, d];\n"
+            "var 1..4: a;\nvar 1..4: b;\nvar 1..4: c;\nvar 1..4: d;\n"
+            "constraint fzn_subcircuit(x);\n"
+            "constraint int_eq(a, 2);\nconstraint int_eq(b, 1);\n"
+            "constraint int_eq(c, 4);\nconstraint int_eq(d, 3);\n"
             "solve satisfy;"
         )
         assert out.strip() == "=====UNSATISFIABLE====="

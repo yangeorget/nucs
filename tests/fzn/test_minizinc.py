@@ -85,6 +85,11 @@ KEPT_GLOBALS = {
         "fzn_strictly_increasing_int",
         "fzn_strictly_increasing_int.mzn",
     ),
+    "subcircuit": (
+        "array[1..4] of var 1..4: x; constraint subcircuit(x);",
+        "fzn_subcircuit",
+        "fzn_subcircuit.mzn",
+    ),
     "table": (
         "array[1..2] of var 0..2: t; constraint table(t, [| 0,1 | 1,2 |]);",
         "nucs_table_int",
