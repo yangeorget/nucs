@@ -14,9 +14,9 @@ solves with `BacktrackSolver`, and streams the FlatZinc solution format back to 
 final output via `solns2out`/`.ozn`.
 
 The globals library in `share/minizinc/nucs/` keeps `all_different`, `lex_lesseq` and
-`global_cardinality_low_up` as native predicates (body-less declarations) so they reach NuCS's global
-propagators instead of being decomposed. Linear and `element` constraints are standard FlatZinc builtins
-and are emitted natively by MiniZinc.
+`global_cardinality` (the low/up bounded form — its `fzn_global_cardinality_low_up` predicate) as native
+predicates (body-less declarations) so they reach NuCS's global propagators instead of being decomposed.
+Linear and `element` constraints are standard FlatZinc builtins and are emitted natively by MiniZinc.
 
 ## Registering the solver
 
@@ -36,9 +36,9 @@ absolute path to `share/minizinc/nucs`).
 
 `int_lin_eq`, `int_lin_le`, `int_eq`, `int_le`, `int_lt`, `int_plus`, `int_abs`,
 `int_times` (with a constant operand), `int_max`, `int_min`, `all_different_int`,
-`lex_lesseq_int`, `array_int_element`, `array_var_int_element`, `global_cardinality_low_up`
-(contiguous cover). Unsupported builtins raise a clear error. Coverage grows by adding one entry to
-`nucs/fzn/builtins.py`.
+`lex_lesseq_int`, `array_int_element`, `array_var_int_element`, `global_cardinality`
+(the low/up bounded form, contiguous cover). Unsupported builtins raise a clear error. Coverage grows by
+adding one entry to `nucs/fzn/builtins.py`.
 
 ### Known limitations
 

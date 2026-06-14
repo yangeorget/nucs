@@ -474,6 +474,21 @@ def _strictly_increasing(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_STRICTLY_INCREASING, model.var_list_of(args[0]))
 
 
+def _decreasing(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``decreasing_int(x)`` as x_i >= x_{i+1} for all i, i.e. increasing over the reversed list.
+    """
+    model.problem.add_propagator(ALG_INCREASING, model.var_list_of(args[0])[::-1])
+
+
+def _strictly_decreasing(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``strictly_decreasing_int(x)`` as x_i > x_{i+1} for all i, i.e. strictly increasing over the
+    reversed list.
+    """
+    model.problem.add_propagator(ALG_STRICTLY_INCREASING, model.var_list_of(args[0])[::-1])
+
+
 def _zero_based(model: "FznModel", variables: List[int], n: int) -> List[int]:
     """
     Returns auxiliary 0-based copies (value - 1) of 1-based FlatZinc variables, for propagators that work
@@ -606,15 +621,18 @@ BUILTINS: Dict[str, Handler] = {
     "count_eq": _count_eq,
     "count_geq": _count_geq,
     "count_leq": _count_leq,
+    "decreasing_int": _decreasing,
     "fzn_all_different_int": _all_different,
     "fzn_circuit": _circuit,
     "fzn_count_eq": _count_eq,
     "fzn_count_geq": _count_geq,
     "fzn_count_leq": _count_leq,
+    "fzn_decreasing_int": _decreasing,
     "fzn_global_cardinality_low_up": _global_cardinality_low_up,
     "fzn_increasing_int": _increasing,
     "fzn_inverse": _inverse,
     "fzn_lex_lesseq_int": _lex_lesseq,
+    "fzn_strictly_decreasing_int": _strictly_decreasing,
     "fzn_strictly_increasing_int": _strictly_increasing,
     "global_cardinality_low_up": _global_cardinality_low_up,
     "increasing_int": _increasing,
@@ -647,5 +665,6 @@ BUILTINS: Dict[str, Handler] = {
     "lex_lesseq_int": _lex_lesseq,
     "nucs_table_int": _table_int,
     "set_in": _set_in,
+    "strictly_decreasing_int": _strictly_decreasing,
     "strictly_increasing_int": _strictly_increasing,
 }

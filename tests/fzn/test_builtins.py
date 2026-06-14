@@ -520,6 +520,47 @@ class TestBuiltins:
         assert "x = array1d(1..3, [0, 1, 2]);" in out
         assert "x = array1d(1..3, [0, 0, 1]);" not in out  # not strictly increasing
 
+    def test_decreasing_reuses_increasing_on_reversed_list(self) -> None:
+        # a, b, c are variables 0, 1, 2; decreasing reuses the increasing propagator over the reversed list
+        model = build_model(
+            parse("var 0..3: a;\nvar 0..3: b;\nvar 0..3: c;\nconstraint fzn_decreasing_int([a, b, c]);\nsolve satisfy;")
+        )
+        (propagator,) = model.problem.propagators
+        assert propagator[1] == ALG_INCREASING
+        assert list(propagator[0]) == [2, 1, 0]  # increasing over [c, b, a] == a >= b >= c
+
+    def test_decreasing_solve(self) -> None:
+        # non-increasing triples over {0, 1, 2}: there are C(3 + 3 - 1, 3) = 10 of them
+        out = solve_fzn(
+            "var 0..2: a :: output_var;\nvar 0..2: b :: output_var;\nvar 0..2: c :: output_var;\n"
+            "constraint fzn_decreasing_int([a, b, c]);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 10
+        assert "a = 2;\nb = 1;\nc = 0;" in out
+        assert "a = 0;\nb = 1;\nc = 2;" not in out  # increasing not allowed
+
+    def test_strictly_decreasing_reuses_strictly_increasing_on_reversed_list(self) -> None:
+        model = build_model(
+            parse(
+                "var 0..4: a;\nvar 0..4: b;\nvar 0..4: c;\n"
+                "constraint fzn_strictly_decreasing_int([a, b, c]);\nsolve satisfy;"
+            )
+        )
+        (propagator,) = model.problem.propagators
+        assert propagator[1] == ALG_STRICTLY_INCREASING
+        assert list(propagator[0]) == [2, 1, 0]
+
+    def test_strictly_decreasing_solve(self) -> None:
+        # strictly decreasing triples over {0..4}: there are C(5, 3) = 10 of them
+        out = solve_fzn(
+            "var 0..4: a :: output_var;\nvar 0..4: b :: output_var;\nvar 0..4: c :: output_var;\n"
+            "constraint fzn_strictly_decreasing_int([a, b, c]);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 10
+        assert "a = 2;\nb = 1;\nc = 0;" in out
+
     def test_circuit(self) -> None:
         # 3 nodes, 1-based successors: the only Hamiltonian circuits are the two 3-cycles
         out = solve_fzn(

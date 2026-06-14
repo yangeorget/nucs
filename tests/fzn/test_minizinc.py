@@ -58,8 +58,10 @@ KEPT_GLOBALS = {
         "fzn_count_leq",
         "fzn_count_leq.mzn",
     ),
-    "global_cardinality_low_up": (
-        "array[1..4] of var 1..4: x; constraint global_cardinality_low_up(x,[1,2,3,4],[0,0,0,0],[2,2,2,2]);",
+    # global_cardinality_low_up is deprecated; the modern global_cardinality(x, cover, lb, ub) lowers to
+    # the same fzn_global_cardinality_low_up predicate that NuCS keeps native.
+    "global_cardinality": (
+        "array[1..4] of var 1..4: x; constraint global_cardinality(x,[1,2,3,4],[0,0,0,0],[2,2,2,2]);",
         "fzn_global_cardinality_low_up",
         "fzn_global_cardinality_low_up.mzn",
     ),
