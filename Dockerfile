@@ -31,8 +31,7 @@ RUN uv venv --python "${PYTHON_VERSION}" "${VIRTUAL_ENV}"
 # Build and install NuCS from the source tree (the build context) together with its dependencies
 # (numba, numpy, llvmlite, ...). The packaged share/minizinc globals library is installed with it.
 COPY . /src
-RUN uv pip install --python "${VIRTUAL_ENV}/bin/python" /src \
- && rm -rf /src
+RUN uv pip install --python "${VIRTUAL_ENV}/bin/python" /src
 
 # Sanity check: the FlatZinc adapter (fzn-nucs console script) was installed.
 RUN command -v fzn-nucs >/dev/null \
@@ -47,36 +46,26 @@ RUN fzn-nucs --register
 RUN mkdir -p /root/.minizinc \
  && printf '{\n    "tagDefaults": [["", "org.nucs.nucs"]]\n}\n' > /root/.minizinc/Preferences.json
 
-# Bake the Numba JIT cache into the image so the first solve at runtime is fast. The cache is keyed to the
-# (installed) package source, so warming it with the installed NuCS makes it valid at runtime too;
-# NUMBA_CACHE_DIR persists the cache, NUMBA_CPU_NAME=generic keeps it valid across CPUs of this architecture.
+# Bake the Numba JIT cache for ALL of NuCS's @njit code into the image, so no compilation happens at solve
+# time. warm_cache.py compiles every propagator, heuristic and the solver core with the exact int32
+# signatures the solver uses at run time. It runs from /src/scripts (not /src), so `import nucs` resolves to
+# the *installed* package -- the same source the runtime imports -- which is what makes the cache valid then.
+# NUMBA_CACHE_DIR persists the cache in the image; NUMBA_CPU_NAME=generic keeps it valid across CPUs of this
+# architecture. NOTE: this step takes several minutes (it LLVM-compiles the whole library once).
 ENV NUMBA_CACHE_DIR=/opt/numba-cache
 ENV NUMBA_CPU_NAME=generic
 ENV NUMBA_CPU_FEATURES=""
+RUN mkdir -p "$NUMBA_CACHE_DIR" && python /src/scripts/warm_cache.py
 
-# Warm-up: a small but constraint-diverse model. Solving it JIT-compiles and caches the common propagators
-# (alldifferent, increasing, lex, count, element, linear/sum, reified comparisons, global_cardinality).
-# This also doubles as a fatal end-to-end smoke test that NuCS solves via MiniZinc. Propagators not exercised
-# here still JIT on their first use at runtime; extend this model to warm more of them.
-RUN mkdir -p "$NUMBA_CACHE_DIR" \
- && printf 'include "globals.mzn";\n\
-array[1..5] of var 0..4: x;\n\
-array[1..5] of var 0..4: y;\n\
-var 0..5: c;\n\
-var 1..5: idx;\n\
-var 0..4: v;\n\
-constraint all_different(x);\n\
-constraint increasing(y);\n\
-constraint lex_lesseq(x, y);\n\
-constraint count(x, 3, c);\n\
-constraint v = x[idx];\n\
-constraint int_lin_le([1,1,1,1,1], x, 30);\n\
-constraint (x[1] = 0) -> (v >= 1);\n\
-constraint global_cardinality(x, [0,1,2,3,4], [0,0,0,0,0], [1,1,1,1,1]);\n\
-solve satisfy;\n' > /tmp/warm.mzn \
- && minizinc --solver nucs /tmp/warm.mzn > /dev/null
+# Source tree no longer needed.
+RUN rm -rf /src
+
+# Fatal: NuCS is registered and selecting it compiles a trivial model (validates the .msc + globals library).
+RUN printf 'var 1..3: x;\nconstraint x > 1;\nsolve satisfy;\n' > /tmp/check.mzn \
+ && minizinc --solvers | grep -qi 'nucs' \
+ && minizinc -c --solver nucs /tmp/check.mzn -o /tmp/check.fzn
 
 # Best-effort (non-fatal): warn if NuCS did not become the default solver. MiniZinc's --verbose output
 # format varies, so a mismatch here only prints a warning rather than breaking the build.
-RUN minizinc -c --verbose /tmp/warm.mzn 2>&1 | grep -qi 'nucs' \
+RUN minizinc -c --verbose /tmp/check.mzn 2>&1 | grep -qi 'nucs' \
  || echo "WARNING: NuCS is registered but may not be the default solver; run with '--solver nucs' if needed." >&2

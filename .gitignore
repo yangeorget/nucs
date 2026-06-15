@@ -14,3 +14,4 @@ profile.pstats
 .DS_Store
 papers
 *.private.*
+*.pem
