@@ -47,7 +47,36 @@ RUN fzn-nucs --register
 RUN mkdir -p /root/.minizinc \
  && printf '{\n    "tagDefaults": [["", "org.nucs.nucs"]]\n}\n' > /root/.minizinc/Preferences.json
 
+# Bake the Numba JIT cache into the image so the first solve at runtime is fast. The cache is keyed to the
+# (installed) package source, so warming it with the installed NuCS makes it valid at runtime too;
+# NUMBA_CACHE_DIR persists the cache, NUMBA_CPU_NAME=generic keeps it valid across CPUs of this architecture.
+ENV NUMBA_CACHE_DIR=/opt/numba-cache
+ENV NUMBA_CPU_NAME=generic
+ENV NUMBA_CPU_FEATURES=""
+
+# Warm-up: a small but constraint-diverse model. Solving it JIT-compiles and caches the common propagators
+# (alldifferent, increasing, lex, count, element, linear/sum, reified comparisons, global_cardinality).
+# This also doubles as a fatal end-to-end smoke test that NuCS solves via MiniZinc. Propagators not exercised
+# here still JIT on their first use at runtime; extend this model to warm more of them.
+RUN mkdir -p "$NUMBA_CACHE_DIR" \
+ && printf 'include "globals.mzn";\n\
+array[1..5] of var 0..4: x;\n\
+array[1..5] of var 0..4: y;\n\
+var 0..5: c;\n\
+var 1..5: idx;\n\
+var 0..4: v;\n\
+constraint all_different(x);\n\
+constraint increasing(y);\n\
+constraint lex_lesseq(x, y);\n\
+constraint count(x, 3, c);\n\
+constraint v = x[idx];\n\
+constraint int_lin_le([1,1,1,1,1], x, 30);\n\
+constraint (x[1] = 0) -> (v >= 1);\n\
+constraint global_cardinality(x, [0,1,2,3,4], [0,0,0,0,0], [1,1,1,1,1]);\n\
+solve satisfy;\n' > /tmp/warm.mzn \
+ && minizinc --solver nucs /tmp/warm.mzn > /dev/null
+
 # Best-effort (non-fatal): warn if NuCS did not become the default solver. MiniZinc's --verbose output
 # format varies, so a mismatch here only prints a warning rather than breaking the build.
-RUN minizinc -c --verbose /tmp/check.mzn 2>&1 | grep -qi 'nucs' \
+RUN minizinc -c --verbose /tmp/warm.mzn 2>&1 | grep -qi 'nucs' \
  || echo "WARNING: NuCS is registered but may not be the default solver; run with '--solver nucs' if needed." >&2
