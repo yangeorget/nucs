@@ -10,6 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -63,16 +64,41 @@ def compute_domains_relation(domains: NDArray, parameters: NDArray) -> int:
     :rtype: int
     """
     n = len(domains)
-    tuples = parameters.copy().reshape((-1, n))
-    for domain_idx in range(n):
-        tuples = tuples[
-            (tuples[:, domain_idx] >= domains[domain_idx, MIN]) & (tuples[:, domain_idx] <= domains[domain_idx, MAX])
-        ]
-        if len(tuples) == 0:
-            return PROP_INCONSISTENCY
-    for domain_idx in range(n):  # no support for .min(axis=0) in Numba
-        domains[domain_idx, MIN] = tuples[:, domain_idx].min()
-        domains[domain_idx, MAX] = tuples[:, domain_idx].max()
-    if len(tuples) == 1:
+    tuple_nb = len(parameters) // n
+    # Single allocation-free pass over the tuples: a tuple is valid when every value lies within the current
+    # domain bounds. We accumulate, per column, the min and max over the valid tuples in a small scratch array
+    # (we cannot write the result into domains yet, since the bounds are still needed to test validity). This
+    # avoids copying the whole tuple table -- and allocating a fresh array per filtered column -- on every call.
+    bounds = np.empty((n, 2), dtype=domains.dtype)
+    valid_nb = 0
+    offset = 0
+    for _ in range(tuple_nb):
+        valid = True
+        for col in range(n):
+            value = parameters[offset + col]
+            if value < domains[col, MIN] or value > domains[col, MAX]:
+                valid = False
+                break
+        if valid:
+            if valid_nb == 0:
+                for col in range(n):
+                    value = parameters[offset + col]
+                    bounds[col, MIN] = value
+                    bounds[col, MAX] = value
+            else:
+                for col in range(n):
+                    value = parameters[offset + col]
+                    if value < bounds[col, MIN]:
+                        bounds[col, MIN] = value
+                    if value > bounds[col, MAX]:
+                        bounds[col, MAX] = value
+            valid_nb += 1
+        offset += n
+    if valid_nb == 0:
+        return PROP_INCONSISTENCY
+    for col in range(n):
+        domains[col, MIN] = bounds[col, MIN]
+        domains[col, MAX] = bounds[col, MAX]
+    if valid_nb == 1:
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY
