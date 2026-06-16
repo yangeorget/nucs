@@ -580,13 +580,21 @@ def _strictly_decreasing(model: "FznModel", args: List[Term]) -> None:
 
 def _zero_based(model: "FznModel", variables: List[int], n: int) -> List[int]:
     """
-    Returns auxiliary 0-based copies (value - 1) of 1-based FlatZinc variables, for propagators that work
-    on a 0-based index/value representation.
+    Returns 0-based copies of FlatZinc successor/index variables, for propagators that work on a 0-based
+    index/value representation.
+
+    FlatZinc arrays are always reindexed 1..n, but their *values* keep the model's node numbering, which may
+    be 1-based (values 1..n) or already 0-based (values 0..n-1, e.g. from a 0-based enum or index set). The
+    base is detected as the minimum value across the variables; when it is already 0 the variables are
+    returned unchanged, otherwise auxiliary variables shifted by -base are created.
     """
+    offset = min(model.problem.domains[v][0] for v in variables)
+    if offset == 0:
+        return list(variables)
     shifted = []
     for v in variables:
         v0 = model.problem.add_variable((0, n - 1))
-        model.problem.add_propagator(ALG_ADD_C_EQ, [v, v0], [-1])
+        model.problem.add_propagator(ALG_ADD_C_EQ, [v, v0], [-offset])
         shifted.append(v0)
     return shifted
 

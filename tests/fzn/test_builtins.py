@@ -42,6 +42,7 @@ from nucs.propagators.propagators import (
     ALG_LEQ_C,
     ALG_LEXLEQ,
     ALG_LINEAR_EQ_C,
+    ALG_NO_SUB_CYCLE,
     ALG_NVALUE,
     ALG_STRICTLY_INCREASING,
     ALG_SUBCIRCUIT,
@@ -784,6 +785,37 @@ class TestBuiltins:
         # (a,b,c) = (2,3,1) or (3,1,2); the subtour solutions like (1,3,2) are excluded
         assert out.count("----------") == 2
         assert "a = 2;\nb = 3;\nc = 1;" in out and "a = 3;\nb = 1;\nc = 2;" in out
+
+    def test_circuit_zero_based(self) -> None:
+        # 3 nodes with 0-based successors (values 0..2): the array values share the model's 0-based node
+        # numbering, so _zero_based must NOT shift them. The only Hamiltonian circuits are the two 3-cycles.
+        out = solve_fzn(
+            "var 0..2: a :: output_var;\nvar 0..2: b :: output_var;\nvar 0..2: c :: output_var;\n"
+            "array [1..3] of var int: x = [a, b, c];\n"
+            "constraint fzn_circuit(x);\n"
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        # 0->1->2->0 = (1,2,0) and 0->2->1->0 = (2,0,1); subtour solutions are excluded
+        assert out.count("----------") == 2
+        assert "a = 1;\nb = 2;\nc = 0;" in out and "a = 2;\nb = 0;\nc = 1;" in out
+
+    def test_circuit_zero_based_uses_variables_directly(self) -> None:
+        # values are already 0-based, so no ADD_C_EQ shift is added: ALLDIFFERENT + NO_SUB_CYCLE on x itself
+        model = build_model(parse("array [1..3] of var 0..2: x;\nconstraint fzn_circuit(x);\nsolve satisfy;"))
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_ALLDIFFERENT, ALG_NO_SUB_CYCLE]
+
+    def test_seq_search_annotation(self) -> None:
+        # seq_search nests int_search/bool_search calls inside an array: the parser must accept call terms
+        # and the runner must flatten the nested searches into a single decision order.
+        out = solve_fzn(
+            "var 0..2: x :: output_var;\nvar bool: b :: output_var;\n"
+            "constraint int_le(x, 1);\n"
+            "solve :: seq_search(["
+            "int_search([x], first_fail, indomain_min, complete), "
+            "bool_search([b], input_order, indomain_max, complete)]) satisfy;"
+        )
+        assert "x = 0;" in out
 
     def test_circuit_self_loop_unsatisfiable(self) -> None:
         # forcing node 1 to point to itself cannot be part of a single circuit over 3 nodes

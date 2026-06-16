@@ -19,7 +19,7 @@ from typing import List, Optional, TextIO, Tuple
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import FznModel
 from nucs.fzn.output import print_search_complete, print_solution, print_unsatisfiable
-from nucs.fzn.parser import Id
+from nucs.fzn.parser import Ann, Id
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
     DOM_HEURISTIC_MID_VALUE,
@@ -57,12 +57,14 @@ _DOM_HEURISTICS = {
 
 def search_heuristics(model: FznModel) -> Optional[Tuple[List[int], int, int]]:
     """
-    Translates the first ``int_search``/``bool_search`` annotation on the solve item into a NuCS search
-    configuration.
+    Translates the first ``int_search``/``bool_search``/``seq_search`` annotation on the solve item into a
+    NuCS search configuration.
 
-    The listed variables come first in the decision order (honoring ``input_order``), followed by every
-    remaining variable so that the search always grounds the whole problem. Unknown variable/value
-    selectors fall back to the NuCS defaults.
+    A ``seq_search`` is flattened: the variables of its nested searches are concatenated in order. NuCS
+    applies a single variable/value heuristic to the whole search, so the heuristics of the first nested
+    search are used. The listed variables come first in the decision order (honoring ``input_order``),
+    followed by every remaining variable so that the search always grounds the whole problem. Unknown
+    variable/value selectors fall back to the NuCS defaults.
 
     :param model: the built model
     :type model: FznModel
@@ -72,13 +74,47 @@ def search_heuristics(model: FznModel) -> Optional[Tuple[List[int], int, int]]:
     :rtype: Optional[Tuple[List[int], int, int]]
     """
     for annotation in model.solve.annotations:
-        if annotation.name in ("int_search", "bool_search") and annotation.args:
-            search_variables = model.var_list_of(annotation.args[0])
-            var_heuristic = _var_heuristic_of(annotation.args[1] if len(annotation.args) > 1 else None)
-            dom_heuristic = _dom_heuristic_of(annotation.args[2] if len(annotation.args) > 2 else None)
-            seen = set(search_variables)
+        if annotation.name == "seq_search" and annotation.args and isinstance(annotation.args[0], list):
+            searches = [_single_search(model, item) for item in annotation.args[0] if isinstance(item, Ann)]
+            searches = [s for s in searches if s is not None]
+        else:
+            single = _single_search(model, annotation)
+            searches = [single] if single is not None else []
+        if searches:
+            search_variables: List[int] = []
+            seen: set = set()
+            for search in searches:
+                if search:
+                    variables, _, _ = search
+                    for v in variables:
+                        if v not in seen:
+                            seen.add(v)
+                            search_variables.append(v)
+            assert searches[0]
+            var_heuristic, dom_heuristic = searches[0][1], searches[0][2]
             decision_variables = search_variables + [v for v in range(model.problem.domain_nb) if v not in seen]
             return decision_variables, var_heuristic, dom_heuristic
+    return None
+
+
+def _single_search(model: FznModel, annotation: Ann) -> Optional[Tuple[List[int], int, int]]:
+    """
+    Translates a single ``int_search``/``bool_search`` annotation into a NuCS search configuration.
+
+    :param model: the built model
+    :type model: FznModel
+    :param annotation: the search annotation
+    :type annotation: Ann
+
+    :return: a triple (search variables, variable heuristic, domain heuristic), or None when the annotation
+             is not a supported search
+    :rtype: Optional[Tuple[List[int], int, int]]
+    """
+    if annotation.name in ("int_search", "bool_search") and annotation.args:
+        search_variables = model.var_list_of(annotation.args[0])
+        var_heuristic = _var_heuristic_of(annotation.args[1] if len(annotation.args) > 1 else None)
+        dom_heuristic = _dom_heuristic_of(annotation.args[2] if len(annotation.args) > 2 else None)
+        return search_variables, var_heuristic, dom_heuristic
     return None
 
 

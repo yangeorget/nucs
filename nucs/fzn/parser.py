@@ -67,9 +67,9 @@ class SetLit:
     values: List[int]
 
 
-# A term is an int, a bool, an identifier, a range, an array access, a set literal, or a (possibly nested)
-# list of terms.
-Term = Union[int, bool, Id, Range, "ArrayAccess", "SetLit", list]
+# A term is an int, a bool, an identifier, a range, an array access, a set literal, a call ``name(args)``
+# (e.g. a nested search annotation), or a (possibly nested) list of terms.
+Term = Union[int, bool, Id, Range, "ArrayAccess", "SetLit", "Ann", list]
 
 
 @dataclass
@@ -393,6 +393,10 @@ class Parser:
                 index = self.expect_int()
                 self.expect("PUNCT", "]")
                 return ArrayAccess(str(tv), index)
+            if self.accept("PUNCT", "("):  # a call, e.g. a nested search in seq_search([int_search(...)])
+                call_args = self.parse_arg_list()
+                self.expect("PUNCT", ")")
+                return Ann(str(tv), call_args)
             return Id(str(tv))
         if tk == "PUNCT" and tv == "[":
             elems = self.parse_arg_list()
