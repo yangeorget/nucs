@@ -50,10 +50,15 @@ RUN mkdir -p /root/.minizinc \
 # time. warm_cache.py compiles every propagator, heuristic and the solver core with the exact int32
 # signatures the solver uses at run time. It runs from /src/scripts (not /src), so `import nucs` resolves to
 # the *installed* package -- the same source the runtime imports -- which is what makes the cache valid then.
-# NUMBA_CACHE_DIR persists the cache in the image; NUMBA_CPU_NAME=generic keeps it valid across CPUs of this
-# architecture. NOTE: this step takes several minutes (it LLVM-compiles the whole library once).
+# NUMBA_CACHE_DIR persists the cache in the image. Numba keys cached code by (triple, cpu_name, cpu_features);
+# left unpinned, cpu_name/cpu_features are auto-detected from the *build* host, so the cache misses on any
+# machine with a different CPU model (e.g. a GitHub runner's cache is useless on EC2). Pinning both to fixed
+# values makes the baked cache portable across all amd64 hosts: NUMBA_CPU_NAME=x86-64-v3 is the AVX2
+# microarchitecture level (Haswell 2013+ / every modern cloud CPU), so codegen stays vectorized while the
+# cache key is constant. These ENV values persist into `docker run`, so the runtime computes the same key and
+# hits the cache. NOTE: warming takes several minutes (it LLVM-compiles the whole library once).
 ENV NUMBA_CACHE_DIR=/opt/numba-cache
-ENV NUMBA_CPU_NAME=generic
+ENV NUMBA_CPU_NAME=x86-64-v3
 ENV NUMBA_CPU_FEATURES=""
 RUN mkdir -p "$NUMBA_CACHE_DIR" && python /src/scripts/warm_cache.py
 
