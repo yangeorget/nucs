@@ -57,10 +57,19 @@ RUN mkdir -p /root/.minizinc \
 # microarchitecture level (Haswell 2013+ / every modern cloud CPU), so codegen stays vectorized while the
 # cache key is constant. These ENV values persist into `docker run`, so the runtime computes the same key and
 # hits the cache. NOTE: warming takes several minutes (it LLVM-compiles the whole library once).
+#
+# Numba also stamps each cached entry with the source file's (st_mtime, st_size) and discards the whole index
+# if the runtime stat doesn't match. The build host (ext4) records nanosecond mtimes, but the deploy host's
+# container storage may report a coarser sub-second precision (e.g. EC2 overlayfs truncates to whole seconds),
+# so the baked stamp would never match and EVERY function would recompile. We normalize all source mtimes to a
+# fixed whole second BEFORE warming, so the baked stamp has no sub-second component for any filesystem to
+# diverge from. This must run before warm_cache.py (the stamp is recorded at compile time).
 ENV NUMBA_CACHE_DIR=/opt/numba-cache
 ENV NUMBA_CPU_NAME=x86-64-v3
 ENV NUMBA_CPU_FEATURES=""
-RUN mkdir -p "$NUMBA_CACHE_DIR" && python /src/scripts/warm_cache.py
+RUN find "$VIRTUAL_ENV/lib" -name '*.py' -exec touch -d @1700000000 {} + \
+ && mkdir -p "$NUMBA_CACHE_DIR" \
+ && python /src/scripts/warm_cache.py
 
 # Source tree no longer needed.
 RUN rm -rf /src
