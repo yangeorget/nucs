@@ -200,18 +200,53 @@ def run(
         _run_satisfy(model, solver, out, all_solutions, num_solutions, output_mode)
     else:
         assert objective_var is not None
-        if model.solve.kind == "minimize":
-            solution = solver.minimize(objective_var)
-        else:
-            solution = solver.maximize(objective_var)
-        if solution is None:
-            print_unsatisfiable(out)
-        else:
-            objective_value = int(solution[objective_var]) if output_objective else None
-            print_solution(model, solution, out, output_mode, objective_value)
-            print_search_complete(out)
+        _run_optimize(model, solver, objective_var, out, output_mode, output_objective)
     if statistics:
         _print_statistics(solver, err)
+
+
+def _run_optimize(
+    model: FznModel,
+    solver: BacktrackSolver,
+    objective_var: int,
+    out: TextIO,
+    output_mode: str,
+    output_objective: bool,
+) -> None:
+    """
+    Streams the successively improving solutions of an optimization problem.
+
+    Each improving solution is printed (with its solution separator) as soon as it is found, matching the
+    FlatZinc protocol; the search-complete marker is printed once the optimum has been proven, and the
+    unsatisfiable marker when no solution exists at all.
+
+    :param model: the built model
+    :type model: FznModel
+    :param solver: the solver
+    :type solver: BacktrackSolver
+    :param objective_var: the NuCS variable index of the objective
+    :type objective_var: int
+    :param out: the solution output stream
+    :type out: TextIO
+    :param output_mode: the solution output format, one of ``item``, ``dzn`` or ``json``
+    :type output_mode: str
+    :param output_objective: whether to include the objective value in each solution
+    :type output_objective: bool
+    """
+    if model.solve.kind == "minimize":
+        solutions = solver.minimize_solutions(objective_var)
+    else:
+        solutions = solver.maximize_solutions(objective_var)
+    found = False
+    for solution in solutions:
+        found = True
+        objective_value = int(solution[objective_var]) if output_objective else None
+        print_solution(model, solution, out, output_mode, objective_value)
+        out.flush()
+    if found:
+        print_search_complete(out)
+    else:
+        print_unsatisfiable(out)
 
 
 def _run_satisfy(

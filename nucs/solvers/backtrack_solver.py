@@ -256,6 +256,38 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.info(f"Maximizing (mode {mode}) variable {variable} (domain {domain}))")
         return self.optimize(variable, MIN, mode)
 
+    def minimize_solutions(self, variable: int, mode: str = OPTIM_RESET) -> Iterator[NDArray]:
+        """
+        Iterates over the successively improving solutions while minimizing a variable.
+
+        :param variable: the variable to minimize
+        :type variable: int
+        :param mode: the optimization mode (RESET or PRUNE), defaults to RESET
+        :type mode: str
+
+        :return: an iterator over the improving solutions, the last one being optimal
+        :rtype: Iterator[NDArray]
+        """
+        domain = self.domains_stk[self.stks_top[0], variable]
+        logger.info(f"Minimizing (mode {mode}) variable {variable} (domain {domain}))")
+        return self.optimize_solutions(variable, MAX, mode)
+
+    def maximize_solutions(self, variable: int, mode: str = OPTIM_RESET) -> Iterator[NDArray]:
+        """
+        Iterates over the successively improving solutions while maximizing a variable.
+
+        :param variable: the variable to maximize
+        :type variable: int
+        :param mode: the optimization mode (RESET or PRUNE), defaults to RESET
+        :type mode: str
+
+        :return: an iterator over the improving solutions, the last one being optimal
+        :rtype: Iterator[NDArray]
+        """
+        domain = self.domains_stk[self.stks_top[0], variable]
+        logger.info(f"Maximizing (mode {mode}) variable {variable} (domain {domain}))")
+        return self.optimize_solutions(variable, MIN, mode)
+
     def optimize(self, variable: int, bound: int, mode: str) -> Optional[NDArray]:
         """
         Finds, if it exists, the solution to the problem that optimizes a given variable.
@@ -270,74 +302,98 @@ class BacktrackSolver(Solver, QueueSolver):
         :return: the solution if it exists or None
         :rtype: Optional[NDArray]
         """
+        best_solution = None
+        for best_solution in self.optimize_solutions(variable, bound, mode):
+            pass
+        return best_solution
+
+    def optimize_solutions(self, variable: int, bound: int, mode: str) -> Iterator[NDArray]:
+        """
+        Iterates over the successively improving solutions found while optimizing a given variable.
+
+        Each yielded solution improves on the previous one; the last yielded solution is the optimum.
+        Nothing is yielded when the problem is unsatisfiable. Consumers that only need the optimum should
+        use :meth:`optimize` (or :meth:`minimize` / :meth:`maximize`); streaming consumers (e.g. the
+        FlatZinc runner) print each solution as it is produced.
+
+        :param variable: the variable
+        :type variable: int
+        :param bound: the bound to optimize
+        :type bound: int
+        :param mode: the optimization mode
+        :type mode: str
+
+        :return: an iterator over the improving solutions, the last one being optimal
+        :rtype: Iterator[NDArray]
+        """
         t0 = time.perf_counter_ns()
         buckets_empty(self.triggered_propagators, self.problem.priorities)
-        best_solution = None
-        while (
-            solution := solve_one(
-                get_algorithm_nb(),
-                self.problem.propagator_nb,
-                self.statistics,
-                self.problem.algorithms,
-                self.problem.priorities,
-                self.problem.bounds,
-                self.problem.propagator_variables,
-                self.problem.propagator_parameters,
-                self.problem.triggers,
-                self.domains_stk,
-                self.entailed_propagator_depths,
-                self.entailment_trail,
-                self.domain_update_stk,
-                self.unbound_variable_nb_stk,
-                self.stks_top,
-                self.triggered_propagators,
-                self.consistency_alg_fcts,
-                self.decision_variables,
-                self.var_heuristic_fcts,
-                self.var_heuristic_params,
-                self.dom_heuristic_fcts,
-                self.dom_heuristic_params,
-                self.compute_domains_fcts,
-                self.domain_buffer,
-            )
-        ) is not None:
-            logger.info(f"Found a local optimum: {solution[variable]}")
-            best_solution = solution
-            if mode == OPTIM_RESET:
-                logger.debug("Resetting solver")
-                cp_init(
+        try:
+            while (
+                solution := solve_one(
+                    get_algorithm_nb(),
+                    self.problem.propagator_nb,
+                    self.statistics,
+                    self.problem.algorithms,
+                    self.problem.priorities,
+                    self.problem.bounds,
+                    self.problem.propagator_variables,
+                    self.problem.propagator_parameters,
+                    self.problem.triggers,
                     self.domains_stk,
                     self.entailed_propagator_depths,
                     self.entailment_trail,
                     self.domain_update_stk,
                     self.unbound_variable_nb_stk,
                     self.stks_top,
-                    self.initial_domains,
-                    self.problem.unbound_variable_nb,
+                    self.triggered_propagators,
+                    self.consistency_alg_fcts,
+                    self.decision_variables,
+                    self.var_heuristic_fcts,
+                    self.var_heuristic_params,
+                    self.dom_heuristic_fcts,
+                    self.dom_heuristic_params,
+                    self.compute_domains_fcts,
+                    self.domain_buffer,
                 )
-                if not fix_choice_point(
-                    self.domains_stk,
-                    self.unbound_variable_nb_stk,
-                    variable,
-                    best_solution[variable],
-                    bound,
-                ):
-                    break
-            else:
-                logger.debug("Pruning choice points")
-                if not fix_choice_points(
-                    self.domains_stk,
-                    self.entailed_propagator_depths,
-                    self.entailment_trail,
-                    self.unbound_variable_nb_stk,
-                    self.stks_top,
-                    variable,
-                    best_solution[variable],
-                    bound,
-                ):
-                    break
-        self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += (time.perf_counter_ns() - t0) // 1_000_000
-        return best_solution
+            ) is not None:
+                logger.info(f"Found a local optimum: {solution[variable]}")
+                yield solution
+                if mode == OPTIM_RESET:
+                    logger.debug("Resetting solver")
+                    cp_init(
+                        self.domains_stk,
+                        self.entailed_propagator_depths,
+                        self.entailment_trail,
+                        self.domain_update_stk,
+                        self.unbound_variable_nb_stk,
+                        self.stks_top,
+                        self.initial_domains,
+                        self.problem.unbound_variable_nb,
+                    )
+                    if not fix_choice_point(
+                        self.domains_stk,
+                        self.unbound_variable_nb_stk,
+                        variable,
+                        solution[variable],
+                        bound,
+                    ):
+                        break
+                else:
+                    logger.debug("Pruning choice points")
+                    if not fix_choice_points(
+                        self.domains_stk,
+                        self.entailed_propagator_depths,
+                        self.entailment_trail,
+                        self.unbound_variable_nb_stk,
+                        self.stks_top,
+                        variable,
+                        solution[variable],
+                        bound,
+                    ):
+                        break
+        finally:
+            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += (time.perf_counter_ns() - t0) // 1_000_000
 
     def solve(self) -> Iterator[NDArray]:
         """

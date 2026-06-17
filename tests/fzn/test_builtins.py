@@ -927,8 +927,23 @@ class TestBuiltins:
             output_mode="json",
             output_objective=True,
         )
-        body = out[: out.index("----------")].strip()
-        assert json.loads(body) == {"x": 4, "_objective": 4}
+        # optimization streams improving solutions; the optimum is the last one before the search-complete marker
+        json_blocks = [block.strip() for block in out.split("----------") if block.strip().startswith("{")]
+        assert json.loads(json_blocks[-1]) == {"x": 4, "_objective": 4}
+
+    def test_optimization_streams_improving_solutions(self) -> None:
+        # input_order/indomain_min finds z=0 first, then branch-and-bound improves it up to the optimum 4;
+        # every improving solution is streamed, in non-decreasing objective order, before the search-complete marker
+        out = solve_fzn(
+            "var 0..9: x :: output_var;\nvar 0..18: z;\n"
+            "constraint int_eq(x, z);\nconstraint int_le(z, 4);\nsolve maximize z;",
+            output_objective=True,
+        )
+        objectives = [int(line.split("=")[1].strip(" ;")) for line in out.splitlines() if "_objective" in line]
+        assert len(objectives) > 1  # streamed, not just the optimum
+        assert objectives == sorted(objectives)  # each solution improves on the previous
+        assert objectives[-1] == 4  # the last streamed solution is the optimum
+        assert out.rstrip().endswith("==========")  # optimality proven after the last solution
 
     def test_cli_parses_output_options(self) -> None:
         from nucs.fzn.__main__ import build_arg_parser
