@@ -94,6 +94,16 @@ class TestParser:
         with pytest.raises(FznUnsupportedError):
             parse("var float: x;")
 
+    def test_unsupported_set_domain_hints_at_variable_bounded_comprehension(self) -> None:
+        # a var set typically comes from a comprehension over a variable-bounded range; the error should
+        # point at that cause and the reification rewrite
+        with pytest.raises(FznUnsupportedError) as exc:
+            parse("var set of 1..5: s;")
+        message = str(exc.value)
+        assert "no set variables" in message
+        assert "variable-bounded range" in message
+        assert "bool2int" in message
+
     def test_non_contiguous_set_domain(self) -> None:
         # a non-contiguous domain is kept as its interval plus the explicit list of allowed values
         (decl,) = parse("var {1, 3, 5}: x;")

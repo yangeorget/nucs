@@ -465,8 +465,15 @@ class Parser:
         if tk == "IDENT" and tv == "int":
             self.next()
             return DEFAULT_INT_MIN, DEFAULT_INT_MAX, None
-        if tk == "IDENT" and tv in ("float", "set"):
-            raise FznUnsupportedError(f"domain '{tv}' is not supported")
+        if tk == "IDENT" and tv == "float":
+            raise FznUnsupportedError("domain 'float' is not supported: NuCS handles integer variables only")
+        if tk == "IDENT" and tv == "set":
+            raise FznUnsupportedError(
+                "domain 'set' is not supported: NuCS has no set variables. This usually comes from a "
+                "comprehension or aggregate over a variable-bounded range, e.g. 'sum(i in 1..x)(...)' with x "
+                "a variable; rewrite it over a fixed range gated by a reified comparison, e.g. "
+                "'sum(i in S)(t[i] * bool2int(i <= x))'"
+            )
         if tk == "PUNCT" and tv == "{":
             self.next()
             values = [self.expect_int()]
