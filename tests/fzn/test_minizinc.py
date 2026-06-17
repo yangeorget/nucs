@@ -170,6 +170,14 @@ def test_strictly_decreasing_reaches_native_strictly_increasing(tmp_path) -> Non
     assert "int_lin_le" not in fzn
 
 
+def test_set_variable_is_decomposed_into_bools(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """The nosets.mzn include rewrites a var set into an array of var bool, so no var set reaches NuCS
+    (which has no set variables); the model flattens instead of failing with 'domain set is not supported'."""
+    fzn = _compile_to_fzn("var set of 1..4: s; constraint 2 in s; constraint card(s) = 2;", tmp_path)
+    assert "var set" not in fzn
+    assert "var bool" in fzn
+
+
 def test_max_reaches_native_array_int_maximum(tmp_path) -> None:  # type: ignore[no-untyped-def]
     """The redefinitions-2.0.mzn body-less declaration keeps the n-ary max native (NuCS's MAX_EQ propagator)
     instead of decomposing it into a chain of binary int_max constraints with one introduced variable each."""

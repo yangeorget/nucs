@@ -733,15 +733,27 @@ def _array_var_int_element(model: "FznModel", args: List[Term]) -> None:
 
 def _global_cardinality_low_up(model: "FznModel", args: List[Term]) -> None:
     """
-    Handles ``global_cardinality_low_up(x, cover, lb, ub)``, supported only for a contiguous cover.
+    Handles ``global_cardinality_low_up(x, cover, lb, ub)``: value ``cover[i]`` occurs in ``x`` between
+    ``lb[i]`` and ``ub[i]`` times. Values not in the cover are unconstrained, and the variables may take
+    them (e.g. ``alldifferent_except_0`` covers only the non-zero values, leaving 0 free).
+
+    NuCS's GCC propagator works over a contiguous value range and constrains every value in it, so the
+    cover alone is not enough: a value a variable can take but that is outside the cover would be wrongly
+    forbidden. We therefore span the cover together with the variable domains into a contiguous range and
+    give every uncovered value the unbounded capacity ``[0, n]`` (n = number of variables).
     """
     variables = model.var_list_of(args[0])
     cover = model.int_list_of(args[1])
     lb = model.int_list_of(args[2])
     ub = model.int_list_of(args[3])
-    if cover != list(range(cover[0], cover[0] + len(cover))):
-        raise FznUnsupportedError("global_cardinality with a non-contiguous cover is not supported")
-    model.problem.add_propagator(ALG_GCC, variables, [cover[0]] + lb + ub)
+    capacities = {value: (lb[i], ub[i]) for i, value in enumerate(cover)}
+    n = len(variables)
+    domains = model.problem.domains
+    lo = min([min(cover)] + [domains[v][0] for v in variables])
+    hi = max([max(cover)] + [domains[v][1] for v in variables])
+    full_lb = [capacities[value][0] if value in capacities else 0 for value in range(lo, hi + 1)]
+    full_ub = [capacities[value][1] if value in capacities else n for value in range(lo, hi + 1)]
+    model.problem.add_propagator(ALG_GCC, variables, [lo] + full_lb + full_ub)
 
 
 BUILTINS: Dict[str, Handler] = {

@@ -207,6 +207,22 @@ class TestBuiltins:
         )
         assert "a = 0;" in out and "b = 1;" in out and "c = 2;" in out
 
+    def test_gcc_values_outside_cover_are_unconstrained(self) -> None:
+        # alldifferent_except_0 lowers to a gcc whose cover is only the non-zero values; values outside the
+        # cover (here 0) must stay unconstrained and may repeat. Forcing every variable to 0 must remain
+        # satisfiable even though 0 is not in the cover (regression for the spurious-UNSAT GCC bug).
+        out = solve_fzn(
+            "var 0..3: a :: output_var;\nvar 0..3: b :: output_var;\nvar 0..3: c :: output_var;\n"
+            "array [1..3] of var int: x = [a, b, c];\n"
+            "array [1..2] of int: cover = [1, 2];\n"  # only 1 and 2 are covered; 0 and 3 are free
+            "array [1..2] of int: lb = [0, 0];\n"
+            "array [1..2] of int: ub = [1, 1];\n"
+            "constraint fzn_global_cardinality_low_up(x, cover, lb, ub);\n"
+            "constraint int_eq(a, 0);\nconstraint int_eq(b, 0);\nconstraint int_eq(c, 0);\n"
+            "solve satisfy;"
+        )
+        assert "a = 0;" in out and "b = 0;" in out and "c = 0;" in out
+
     def test_bool_builtins_and_bool_output(self) -> None:
         out = solve_fzn(
             "var bool: a :: output_var;\nvar bool: b :: output_var;\nvar bool: r :: output_var;\n"
