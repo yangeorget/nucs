@@ -168,3 +168,19 @@ def test_strictly_decreasing_reaches_native_strictly_increasing(tmp_path) -> Non
     fzn = _compile_to_fzn("array[1..4] of var 0..9: x; constraint strictly_decreasing(x);", tmp_path)
     assert "constraint fzn_strictly_increasing_int(" in fzn
     assert "int_lin_le" not in fzn
+
+
+def test_max_reaches_native_array_int_maximum(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """The redefinitions-2.0.mzn body-less declaration keeps the n-ary max native (NuCS's MAX_EQ propagator)
+    instead of decomposing it into a chain of binary int_max constraints with one introduced variable each."""
+    fzn = _compile_to_fzn("array[1..4] of var 0..9: x; var int: m = max(x);", tmp_path)
+    assert "constraint array_int_maximum(" in fzn
+    assert "constraint int_max(" not in fzn
+
+
+def test_min_reaches_native_array_int_minimum(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """The redefinitions-2.0.mzn body-less declaration keeps the n-ary min native (NuCS's MIN_EQ propagator)
+    instead of decomposing it into a chain of binary int_min constraints with one introduced variable each."""
+    fzn = _compile_to_fzn("array[1..4] of var 0..9: x; var int: m = min(x);", tmp_path)
+    assert "constraint array_int_minimum(" in fzn
+    assert "constraint int_min(" not in fzn
