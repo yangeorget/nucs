@@ -13,7 +13,7 @@
 from typing import List
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_DISJUNCTIVE, ALG_LINEAR_LEQ_C
+from nucs.propagators.propagators import ALG_ADD_C_EQ, ALG_DISJUNCTIVE, ALG_LINEAR_LEQ_C, ALG_MAX_EQ
 
 
 class JobShopProblem(Problem):
@@ -24,9 +24,10 @@ class JobShopProblem(Problem):
     of a job runs on a given machine for a given duration. Each machine processes one operation at a time.
     The objective is to minimize the makespan (the completion time of the last operation).
 
-    The model has one start-time variable per operation plus a makespan variable. Operations of the same job
-    are chained by precedence constraints, the operations of each machine are constrained by a global
-    disjunctive (no-overlap) constraint, and the makespan bounds the completion of every job.
+    The model has one start-time variable per operation, one completion-time variable per job and a makespan
+    variable. Operations of the same job are chained by precedence constraints, the operations of each machine
+    are constrained by a global disjunctive (no-overlap) constraint, and the makespan is the maximum of the
+    job completion times (so it is fully determined once the start times are bound).
 
     Instances follow the OR-Library format: ``jobs[j]`` is the list of ``[machine, duration]`` operations of
     job j, in processing order.
@@ -61,17 +62,24 @@ class JobShopProblem(Problem):
             for k in range(self.machine_nb):
                 machine_load[machines[j][k]] += durations[j][k]
         makespan_lb = max(max(sum(d) for d in durations), max(machine_load))
-        super().__init__(start_domains + [(makespan_lb, horizon)])
-        self.makespan = self.job_nb * self.machine_nb
+        # one completion-time variable per job (the completion of its last operation) and the makespan
+        completion_domains = [(sum(durations[j]), horizon) for j in range(self.job_nb)]
+        super().__init__(start_domains + completion_domains + [(makespan_lb, horizon)])
+        self.completion_start = self.job_nb * self.machine_nb
+        self.makespan = self.completion_start + self.job_nb
         # precedence: operation k must finish before operation k+1 of the same job starts
         for j in range(self.job_nb):
             for k in range(self.machine_nb - 1):
                 self.add_propagator(
                     ALG_LINEAR_LEQ_C, [self.start(j, k), self.start(j, k + 1)], [1, -1, -durations[j][k]]
                 )
-            # makespan >= completion time of the last operation of the job
+            # completion[j] = start of the last operation + its duration
             last = self.machine_nb - 1
-            self.add_propagator(ALG_LINEAR_LEQ_C, [self.start(j, last), self.makespan], [1, -1, -durations[j][last]])
+            self.add_propagator(ALG_ADD_C_EQ, [self.start(j, last), self.completion_start + j], [durations[j][last]])
+        # makespan = max of the job completion times (determined once the starts are bound)
+        self.add_propagator(
+            ALG_MAX_EQ, list(range(self.completion_start, self.completion_start + self.job_nb)) + [self.makespan]
+        )
         # disjunctive: the operations assigned to a machine must not overlap
         for machine in range(self.machine_nb):
             machine_starts = []

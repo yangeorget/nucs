@@ -46,7 +46,7 @@ class TestJobShop:
         jobs = [[[0, 2], [1, 3]], [[1, 2], [0, 1]]]
         problem = JobShopProblem(jobs)
         solver = BacktrackSolver(
-            problem, decision_variables=range(problem.makespan), var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN
+            problem, decision_variables=range(problem.completion_start), var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN
         )
         solution = solver.minimize(problem.makespan, mode=OPTIM_PRUNE)
         assert solution is not None
@@ -72,7 +72,7 @@ class TestJobShop:
         problem = JobShopProblem(dataset["jobs"])
         solver = BacktrackSolver(
             problem,
-            decision_variables=range(problem.makespan),
+            decision_variables=range(problem.completion_start),
             var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
             log_level="ERROR",
         )

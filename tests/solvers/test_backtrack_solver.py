@@ -75,6 +75,7 @@ class TestBacktrackSolver:
             solver.compute_domains_fcts,
             solver.domain_buffer,
         )
+        assert solution is not None
         assert solution.tolist() == [0, 0]
         assert solver.stks_top == 2
         assert solver.domains_stk[0, 0].tolist() == [1, 1]

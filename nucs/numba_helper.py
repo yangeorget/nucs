@@ -34,7 +34,7 @@ def function_from_address(typingctx, func_type_ref: types.FunctionType, addr: in
     """
     Recovers a function from FunctionType and address.
     """
-    func_type = func_type_ref.instance_type
+    func_type = func_type_ref.instance_type  # type: ignore[attr-defined]
 
     def codegen(context, builder, sig, args):  # type: ignore
         sfunc = cgutils.create_struct_proxy(func_type)(context, builder)
@@ -64,7 +64,7 @@ def build_compute_domains_fcts(compute_domains_addrs: NDArray) -> NumbaList:
     """
     fcts = NumbaList.empty_list(TYPE_COMPUTE_DOMAINS)
     for alg_idx in range(len(compute_domains_addrs)):
-        fcts.append(function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[alg_idx]))
+        fcts.append(function_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[alg_idx]))  # type: ignore[call-arg, arg-type]
     return fcts
 
 
@@ -76,7 +76,7 @@ def build_consistency_alg_fcts(addr: int) -> NumbaList:
     triggers a "parent object not set" MemoryError. Index [0] once inside the JIT function to use.
     """
     fcts = NumbaList.empty_list(TYPE_CONSISTENCY_ALG)
-    fcts.append(function_from_address(TYPE_CONSISTENCY_ALG, addr))
+    fcts.append(function_from_address(TYPE_CONSISTENCY_ALG, addr))  # type: ignore[call-arg, arg-type]
     return fcts
 
 
@@ -86,7 +86,7 @@ def build_var_heuristic_fcts(addr: int) -> NumbaList:
     Recovers a variable-heuristic function from its address.
     """
     fcts = NumbaList.empty_list(TYPE_VAR_HEURISTIC)
-    fcts.append(function_from_address(TYPE_VAR_HEURISTIC, addr))
+    fcts.append(function_from_address(TYPE_VAR_HEURISTIC, addr))  # type: ignore[call-arg, arg-type]
     return fcts
 
 
@@ -96,5 +96,5 @@ def build_dom_heuristic_fcts(addr: int) -> NumbaList:
     Recovers a domain-heuristic function from its address.
     """
     fcts = NumbaList.empty_list(TYPE_DOM_HEURISTIC)
-    fcts.append(function_from_address(TYPE_DOM_HEURISTIC, addr))
+    fcts.append(function_from_address(TYPE_DOM_HEURISTIC, addr))  # type: ignore[call-arg, arg-type]
     return fcts

@@ -25,7 +25,7 @@ if __name__ == "__main__":
     parser.add_argument("-n", type=int, default=10)
     args = parser.parse_args()
     problem = GolombProblem(args.n, args.symmetry_breaking)
-    golomb_consistency_algorithm = register_consistency_algorithm(golomb_consistency_algorithm)
+    golomb_consistency_algorithm = register_consistency_algorithm(golomb_consistency_algorithm)  # type: ignore[assignment]
     kwargs = solver_kwargs_from_args(args, consistency_algorithm=golomb_consistency_algorithm)
     solver = (
         MultiprocessingSolver([BacktrackSolver(prob, **kwargs) for prob in problem.split(args.processors, 0)])

@@ -29,7 +29,7 @@ if __name__ == "__main__":
         problem = JobShopProblem(dataset["jobs"])
         kwargs = solver_kwargs_from_args(
             args,
-            decision_variables=range(problem.makespan),
+            decision_variables=range(problem.completion_start),
             var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
         )
         solver = BacktrackSolver(problem, **kwargs)

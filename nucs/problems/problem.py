@@ -278,7 +278,7 @@ def init_triggers(
         if NUMBA_DISABLE_JIT:
             trigger_fct = GET_TRIGGERS_FCTS[algorithm]
         else:
-            trigger_fct = function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])
+            trigger_fct = function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])  # type: ignore[call-arg, arg-type]
         parameters = propagator_parameters[
             bounds[propagator, PARAM, RANGE_START] : bounds[propagator, PARAM, RANGE_END]
         ]

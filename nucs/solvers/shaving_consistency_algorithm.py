@@ -113,7 +113,7 @@ def shave_bound(
             unbound_variable_nb_stk,
             stks_top,
             variable,
-            None,
+            None,  # type: ignore[arg-type]
         )
         if bound == MAX
         else min_value_dom_heuristic(
@@ -123,7 +123,7 @@ def shave_bound(
             unbound_variable_nb_stk,
             stks_top,
             variable,
-            None,
+            None,  # type: ignore[arg-type]
         )
     )
     if domains_stk[stks_top[0], variable, MIN] == domains_stk[stks_top[0], variable, MAX]:
@@ -275,7 +275,10 @@ def shaving_consistency_algorithm(
             if status != PROBLEM_UNBOUND:
                 return status
         variable = first_not_instantiated_var_heuristic(
-            decision_variables[decision_variables >= start_idx], domains_stk, stks_top, None
+            decision_variables[decision_variables >= start_idx],
+            domains_stk,
+            stks_top,  # type: ignore[arg-type]
+            None,  # type: ignore[arg-type]
         )
         if variable == -1:  # all variables after start_idx are instantiated
             break

@@ -156,7 +156,7 @@ def golomb_consistency_algorithm(
     top = stks_top[0]
     # first prune the search space
     mark_nb = (1 + int(math.sqrt(8 * len(triggers) + 1))) >> 1
-    ni_var = first_not_instantiated_var_heuristic(decision_variables, domains_stk, top, None)
+    ni_var = first_not_instantiated_var_heuristic(decision_variables, domains_stk, top, None)  # type: ignore[arg-type]
     if 1 < ni_var < mark_nb - 1:  # otherwise useless
         used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=np.bool)
         # a reusable array for storing the minimal sum of different integers:
