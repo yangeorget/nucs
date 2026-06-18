@@ -19,6 +19,7 @@ from nucs.constants import (
     EVENT_MASK_MAX,
     EVENT_MASK_MAX_GROUND,
     EVENT_MASK_MIN,
+    EVENT_MASK_MIN_GROUND,
     MAX,
     MIN,
 )
@@ -61,6 +62,9 @@ def split_high_dom_heuristic(
     domains_stk[top, variable, MAX] = value
     if domains_stk[top + 1, variable, MIN] == domains_stk[top + 1, variable, MAX]:
         unbound_variable_nb_stk[top + 1] -= 1
+        events = EVENT_MASK_MIN_GROUND
+    else:
+        events = EVENT_MASK_MIN
     domain_update_stk[top, DOM_UPDATE_VARIABLE] = variable
     if domains_stk[top, variable, MIN] == domains_stk[top, variable, MAX]:
         domain_update_stk[top, DOM_UPDATE_EVENTS] = EVENT_MASK_MAX_GROUND
@@ -68,4 +72,4 @@ def split_high_dom_heuristic(
     else:
         domain_update_stk[top, DOM_UPDATE_EVENTS] = EVENT_MASK_MAX
     stks_top[0] = top + 1
-    return EVENT_MASK_MIN
+    return events

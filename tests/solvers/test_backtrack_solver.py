@@ -24,10 +24,12 @@ from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MIN_VALUE,
     DOM_HEURISTIC_SPLIT_HIGH,
     DOM_HEURISTIC_SPLIT_LOW,
+    VAR_HEURISTIC_GREATEST_DOMAIN,
 )
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     ALG_LINEAR_LEQ_C,
+    ALG_LINEAR_NEQ_C,
     ALG_ALLDIFFERENT,
     ALG_RELATION,
     get_algorithm_nb,
@@ -127,6 +129,18 @@ class TestBacktrackSolver:
         assert solutions[5].tolist() == [2, 1, 0]
         statistics = solver.get_statistics_as_dictionary()
         assert statistics[STATS_LBL_SOLUTION_NB] == 6
+
+    def test_split_grounding_wakes_ground_triggered_propagator(self) -> None:
+        # A split heuristic that grounds a variable in its current branch must report a GROUND event,
+        # otherwise a propagator woken only on ground events (here linear_neq_c) never fires and an
+        # inconsistent solution slips through. Regression for indomain_reverse_split + anti_first_fail.
+        for dom_heuristic in (DOM_HEURISTIC_SPLIT_HIGH, DOM_HEURISTIC_SPLIT_LOW):
+            problem = Problem([(1, 5), (4, 5)])
+            problem.add_propagator(ALG_LINEAR_NEQ_C, [0, 1], [1, -1, 0])  # x != y
+            solver = BacktrackSolver(problem, var_heuristic=VAR_HEURISTIC_GREATEST_DOMAIN, dom_heuristic=dom_heuristic)
+            solutions = solver.find_all()
+            assert len(solutions) == 8
+            assert all(x != y for x, y in (s.tolist() for s in solutions))
 
     def test_minimize_relation(self) -> None:
         problem = Problem([(-5, 5), (-100, 100)])
