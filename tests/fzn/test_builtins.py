@@ -235,6 +235,28 @@ class TestBuiltins:
         # s[1] (0-based variable 0) <= 2, so s[2] >= 3; the first solution sets them to their minima
         assert "s = array1d(1..2, [0, 3]);" in out
 
+    def test_diffn(self) -> None:
+        # rectangle 0 is a 2x2 square pinned at the origin; rectangle 1 (also 2x2) is pinned to overlap it
+        # vertically (y in [0,1]), so it is forced to the right: x[1] >= 2
+        out = solve_fzn(
+            "array [1..2] of var 0..5: x :: output_array([1..2]);\n"
+            "array [1..2] of var 0..5: y;\n"
+            "array [1..2] of int: dx = [2, 2];\narray [1..2] of int: dy = [2, 2];\n"
+            "constraint int_eq(x[1], 0);\nconstraint int_eq(y[1], 0);\nconstraint int_le(y[2], 1);\n"
+            "constraint nucs_diffn(x, y, dx, dy);\nsolve satisfy;",
+        )
+        # x[1] (0-based variable 0) = 0; first solution puts x[2] at its forced minimum 2
+        assert "x = array1d(1..2, [0, 2]);" in out
+
+    def test_diffn_inconsistent(self) -> None:
+        # two unit squares both pinned to the same cell must overlap
+        out = solve_fzn(
+            "array [1..2] of var 0..0: x;\narray [1..2] of var 0..0: y;\n"
+            "array [1..2] of int: dx = [1, 1];\narray [1..2] of int: dy = [1, 1];\n"
+            "constraint nucs_diffn(x, y, dx, dy);\nsolve satisfy;",
+        )
+        assert "UNSATISFIABLE" in out
+
     def test_disjunctive_inconsistent(self) -> None:
         # three length-2 tasks cannot all fit, non-overlapping, into the window [0, 5]
         out = solve_fzn(
