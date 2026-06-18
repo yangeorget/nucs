@@ -60,6 +60,11 @@ KEPT_GLOBALS = {
     ),
     # global_cardinality_low_up is deprecated; the modern global_cardinality(x, cover, lb, ub) lowers to
     # the same fzn_global_cardinality_low_up predicate that NuCS keeps native.
+    "disjunctive": (
+        "array[1..3] of var 0..9: s; constraint disjunctive(s, [2, 3, 1]);",
+        "nucs_disjunctive",
+        "fzn_disjunctive_strict.mzn",
+    ),
     "global_cardinality": (
         "array[1..4] of var 1..4: x; constraint global_cardinality(x,[1,2,3,4],[0,0,0,0],[2,2,2,2]);",
         "fzn_global_cardinality_low_up",

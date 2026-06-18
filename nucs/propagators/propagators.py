@@ -68,6 +68,11 @@ from nucs.propagators.count_leq_c_propagator import (
     get_complexity_count_leq_c,
     get_triggers_count_leq_c,
 )
+from nucs.propagators.disjunctive_propagator import (
+    compute_domains_disjunctive,
+    get_complexity_disjunctive,
+    get_triggers_disjunctive,
+)
 from nucs.propagators.dummy_propagator import compute_domains_dummy, get_complexity_dummy, get_triggers_dummy
 from nucs.propagators.element_eq_propagator import (
     compute_domains_element_eq,
@@ -241,6 +246,7 @@ ALG_COUNT_EQ = register_propagator(get_triggers_count_eq, get_complexity_count_e
 ALG_COUNT_EQ_C = register_propagator(get_triggers_count_eq_c, get_complexity_count_eq_c, compute_domains_count_eq_c)
 ALG_COUNT_GEQ_C = register_propagator(get_triggers_count_geq_c, get_complexity_count_geq_c, compute_domains_count_geq_c)
 ALG_COUNT_LEQ_C = register_propagator(get_triggers_count_leq_c, get_complexity_count_leq_c, compute_domains_count_leq_c)
+ALG_DISJUNCTIVE = register_propagator(get_triggers_disjunctive, get_complexity_disjunctive, compute_domains_disjunctive)
 ALG_DUMMY = register_propagator(get_triggers_dummy, get_complexity_dummy, compute_domains_dummy)
 ALG_ELEMENT_EQ = register_propagator(get_triggers_element_eq, get_complexity_element_eq, compute_domains_element_eq)
 ALG_ELEMENT_L_EQ = register_propagator(

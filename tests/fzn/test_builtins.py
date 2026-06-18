@@ -223,6 +223,26 @@ class TestBuiltins:
         )
         assert "a = 0;" in out and "b = 0;" in out and "c = 0;" in out
 
+    def test_disjunctive(self) -> None:
+        # two length-3 tasks on a unary resource: s[0] is pinned to [0,2], forcing s[1] to start at/after 3
+        out = solve_fzn(
+            "array [1..2] of var 0..5: s :: output_array([1..2]);\n"
+            "array [1..2] of int: d = [3, 3];\n"
+            "constraint int_le(s[1], 2);\n"
+            "constraint nucs_disjunctive(s, d);\n"
+            "solve satisfy;",
+        )
+        # s[1] (0-based variable 0) <= 2, so s[2] >= 3; the first solution sets them to their minima
+        assert "s = array1d(1..2, [0, 3]);" in out
+
+    def test_disjunctive_inconsistent(self) -> None:
+        # three length-2 tasks cannot all fit, non-overlapping, into the window [0, 5]
+        out = solve_fzn(
+            "array [1..3] of var 0..3: s;\narray [1..3] of int: d = [2, 2, 2];\n"
+            "constraint nucs_disjunctive(s, d);\nsolve satisfy;",
+        )
+        assert "UNSATISFIABLE" in out
+
     def test_bool_builtins_and_bool_output(self) -> None:
         out = solve_fzn(
             "var bool: a :: output_var;\nvar bool: b :: output_var;\nvar bool: r :: output_var;\n"
@@ -475,6 +495,43 @@ class TestBuiltins:
         )
         # r false so x + y = 2 must hold, x = 0 -> y = 2
         assert "y = 2;" in out
+
+    def test_int_lin_le_reif_binary_difference(self) -> None:
+        # the [1,-1]/[-1,1] difference pattern is posted directly as r <=> x <= y + c (no aux variable);
+        # check both the reif direction (deriving r) and the filtering direction (deriving x from r)
+        out = solve_fzn(
+            "var 0..9: x :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint int_eq(x, 4);\nvar 0..9: y;\nconstraint int_eq(y, 2);\n"
+            "constraint int_lin_le_reif([1, -1], [x, y], 1, r);\n"  # 4 - 2 = 2 <= 1 ? no -> r false
+            "solve satisfy;"
+        )
+        assert "r = false;" in out
+        out = solve_fzn(
+            "var 0..9: x :: output_var;\nvar 0..9: y :: output_var;\nvar bool: r;\n"
+            "constraint int_eq(y, 3);\nconstraint bool_eq(r, true);\n"
+            "constraint int_lin_le_reif([-1, 1], [x, y], 1, r);\n"  # r true: y - x <= 1 -> x >= 2
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        # x in {2,...,9}; never below 2
+        assert "x = 2;" in out and "x = 1;" not in out and "x = 0;" not in out
+
+    def test_int_lin_ge_reif_binary_difference(self) -> None:
+        out = solve_fzn(
+            "var 0..9: x :: output_var;\nvar bool: r :: output_var;\n"
+            "constraint int_eq(x, 4);\nvar 0..9: y;\nconstraint int_eq(y, 2);\n"
+            "constraint int_lin_ge_reif([1, -1], [x, y], 3, r);\n"  # 4 - 2 = 2 >= 3 ? no -> r false
+            "solve satisfy;"
+        )
+        assert "r = false;" in out
+        out = solve_fzn(
+            "var 0..9: x :: output_var;\nvar 0..9: y;\nvar bool: r;\n"
+            "constraint int_eq(y, 2);\nconstraint bool_eq(r, true);\n"
+            "constraint int_lin_ge_reif([1, -1], [x, y], 3, r);\n"  # r true: x - 2 >= 3 -> x >= 5
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        assert "x = 5;" in out and "x = 4;" not in out
 
     def test_array_int_maximum_minimum(self) -> None:
         out = solve_fzn(

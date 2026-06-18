@@ -31,6 +31,7 @@ from nucs.propagators.propagators import (
     ALG_COUNT_EQ_C,
     ALG_COUNT_GEQ_C,
     ALG_COUNT_LEQ_C,
+    ALG_DISJUNCTIVE,
     ALG_ELEMENT_EQ,
     ALG_ELEMENT_L_EQ,
     ALG_ELEMENT_L_EQ_C,
@@ -180,7 +181,11 @@ def _aux_lin_sum(model: "FznModel", coeffs: List[int], variables: List[int]) -> 
             lo += a * v_max
             hi += a * v_min
     s = model.problem.add_variable((lo, hi))
-    model.problem.add_propagator(ALG_LINEAR_EQ_C, variables + [s], coeffs + [-1, 0])
+    if all(a == 1 for a in coeffs):
+        # a plain sum: the cheaper unit-coefficient propagator (sum(variables) = s)
+        model.problem.add_propagator(ALG_SUM_EQ, variables + [s])
+    else:
+        model.problem.add_propagator(ALG_LINEAR_EQ_C, variables + [s], coeffs + [-1, 0])
     return s
 
 
@@ -194,10 +199,23 @@ def _int_lin_eq_reif(model: "FznModel", args: List[Term]) -> None:
 
 def _int_lin_le_reif(model: "FznModel", args: List[Term]) -> None:
     """
-    Handles ``int_lin_le_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) <= c, via an auxiliary sum variable.
+    Handles ``int_lin_le_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) <= c.
+
+    The binary difference pattern (coefficients [1, -1] or [-1, 1]) -- pervasive in scheduling/disjunctive
+    models -- is posted directly as r <=> x <= y + c via ALG_LEQ_C_REIF, with no auxiliary sum variable.
+    Other shapes go through an auxiliary sum variable.
     """
-    s = _aux_lin_sum(model, model.int_list_of(args[0]), model.var_list_of(args[1]))
-    model.problem.add_propagator(ALG_LEQ_C_REIF, [model.var_index_of(args[3]), s, model.var_index_of(args[2])], [0])
+    coeffs = model.int_list_of(args[0])
+    variables = model.var_list_of(args[1])
+    c = model.const_of(args[2])
+    r = model.var_index_of(args[3])
+    if coeffs == [1, -1]:  # r <=> x - y <= c  ==  r <=> x <= y + c
+        model.problem.add_propagator(ALG_LEQ_C_REIF, [r, variables[0], variables[1]], [c])
+    elif coeffs == [-1, 1]:  # r <=> y - x <= c  ==  r <=> y <= x + c
+        model.problem.add_propagator(ALG_LEQ_C_REIF, [r, variables[1], variables[0]], [c])
+    else:
+        s = _aux_lin_sum(model, coeffs, variables)
+        model.problem.add_propagator(ALG_LEQ_C_REIF, [r, s, model.var_index_of(args[2])], [0])
 
 
 def _int_lin_ne_reif(model: "FznModel", args: List[Term]) -> None:
@@ -225,11 +243,22 @@ def _int_lin_ge(model: "FznModel", args: List[Term]) -> None:
 
 def _int_lin_ge_reif(model: "FznModel", args: List[Term]) -> None:
     """
-    Handles ``int_lin_ge_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) >= c, i.e. r <=> c <= s, via an
-    auxiliary sum variable.
+    Handles ``int_lin_ge_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) >= c, i.e. r <=> c <= s.
+
+    The binary difference pattern (coefficients [1, -1] or [-1, 1]) is posted directly via ALG_LEQ_C_REIF
+    with no auxiliary sum variable; other shapes go through an auxiliary sum variable.
     """
-    s = _aux_lin_sum(model, model.int_list_of(args[0]), model.var_list_of(args[1]))
-    model.problem.add_propagator(ALG_LEQ_C_REIF, [model.var_index_of(args[3]), model.var_index_of(args[2]), s], [0])
+    coeffs = model.int_list_of(args[0])
+    variables = model.var_list_of(args[1])
+    c = model.const_of(args[2])
+    r = model.var_index_of(args[3])
+    if coeffs == [1, -1]:  # r <=> x - y >= c  ==  r <=> y <= x - c
+        model.problem.add_propagator(ALG_LEQ_C_REIF, [r, variables[1], variables[0]], [-c])
+    elif coeffs == [-1, 1]:  # r <=> y - x >= c  ==  r <=> x <= y - c
+        model.problem.add_propagator(ALG_LEQ_C_REIF, [r, variables[0], variables[1]], [-c])
+    else:
+        s = _aux_lin_sum(model, coeffs, variables)
+        model.problem.add_propagator(ALG_LEQ_C_REIF, [r, model.var_index_of(args[2]), s], [0])
 
 
 def _int_eq(model: "FznModel", args: List[Term]) -> None:
@@ -514,6 +543,15 @@ def _count_leq(model: "FznModel", args: List[Term]) -> None:
     )
 
 
+def _disjunctive(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``nucs_disjunctive(s, d)``: tasks starting at ``s`` with constant durations ``d`` do not overlap.
+    The globals library only emits this predicate when the durations are fixed, so they map directly to the
+    propagator parameters.
+    """
+    model.problem.add_propagator(ALG_DISJUNCTIVE, model.var_list_of(args[0]), model.int_list_of(args[1]))
+
+
 def _nvalue(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``nvalue(n, x)`` as n being the number of distinct values taken by the array x.
@@ -787,6 +825,7 @@ BUILTINS: Dict[str, Handler] = {
     "count_geq": _count_geq,
     "count_leq": _count_leq,
     "decreasing_int": _decreasing,
+    "nucs_disjunctive": _disjunctive,
     "fzn_all_different_int": _all_different,
     "fzn_circuit": _circuit,
     "fzn_count_eq": _count_eq,
