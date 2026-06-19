@@ -59,7 +59,8 @@ def search_heuristics(model: FznModel) -> Optional[List[Search]]:
     """
     Translates the first ``int_search``/``bool_search``/``seq_search`` annotation on the solve item into a
     NuCS sequential search: one :class:`Search` per nested search, each keeping its own variable and value
-    selectors. A ``seq_search`` becomes the ordered list of its nested searches; a single ``int_search`` /
+    selectors. A ``seq_search`` becomes the ordered list of its nested searches (flattened recursively, since
+    MiniZinc nests a ``seq_search`` when decomposing e.g. ``set_search``); a single ``int_search`` /
     ``bool_search`` becomes a one-element list. Each variable is assigned to the first search that lists it,
     and a trailing catch-all search over the remaining variables (NuCS defaults) makes the search ground the
     whole problem. Unknown variable/value selectors fall back to the NuCS defaults.
@@ -71,18 +72,11 @@ def search_heuristics(model: FznModel) -> Optional[List[Search]]:
     :rtype: Optional[List[Search]]
     """
     for annotation in model.solve.annotations:
-        if annotation.name == "seq_search" and annotation.args and isinstance(annotation.args[0], list):
-            nested = [_single_search(model, item) for item in annotation.args[0] if isinstance(item, Ann)]
-            nested = [s for s in nested if s is not None]
-        else:
-            single = _single_search(model, annotation)
-            nested = [single] if single is not None else []
+        nested = _flatten_searches(model, annotation)
         if nested:
             searches: List[Search] = []
             seen: set = set()
-            for search in nested:
-                assert search
-                variables, var_heuristic, dom_heuristic = search
+            for variables, var_heuristic, dom_heuristic in nested:
                 group = [v for v in variables if v not in seen]  # a variable belongs to the first search listing it
                 seen.update(group)
                 if group:
@@ -92,6 +86,29 @@ def search_heuristics(model: FznModel) -> Optional[List[Search]]:
                 searches.append(Search(remaining))
             return searches or None
     return None
+
+
+def _flatten_searches(model: FznModel, annotation: Ann) -> List[Tuple[List[int], int, int]]:
+    """
+    Flattens a search annotation into an ordered list of (search variables, variable heuristic, domain
+    heuristic) triples, recursing into nested ``seq_search`` annotations and dropping unsupported ones.
+
+    :param model: the built model
+    :type model: FznModel
+    :param annotation: the search annotation
+    :type annotation: Ann
+
+    :return: the flattened list of search triples (empty when nothing is supported)
+    :rtype: List[Tuple[List[int], int, int]]
+    """
+    if annotation.name == "seq_search" and annotation.args and isinstance(annotation.args[0], list):
+        flattened: List[Tuple[List[int], int, int]] = []
+        for item in annotation.args[0]:
+            if isinstance(item, Ann):
+                flattened.extend(_flatten_searches(model, item))
+        return flattened
+    single = _single_search(model, annotation)
+    return [single] if single is not None else []
 
 
 def _single_search(model: FznModel, annotation: Ann) -> Optional[Tuple[List[int], int, int]]:

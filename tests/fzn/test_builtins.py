@@ -1160,6 +1160,27 @@ class TestBuiltins:
         assert result[2].var_heuristic == VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
         assert result[2].dom_heuristic == DOM_HEURISTIC_MIN_VALUE
 
+    def test_search_heuristics_flattens_nested_seq_search(self) -> None:
+        # MiniZinc nests a seq_search when decomposing e.g. set_search; the nested searches must be flattened
+        # in order instead of dropped (which would lose their selectors)
+        model = build_model(
+            parse(
+                "var 0..3: a;\nvar 0..3: b;\n"
+                "solve :: seq_search(["
+                "int_search([a], input_order, indomain_max, complete),"
+                "seq_search([int_search([b], first_fail, indomain_min, complete)])"
+                "]) satisfy;"
+            )
+        )
+        result = search_heuristics(model)
+        assert result is not None
+        assert len(result) == 2  # a and b cover every variable, so no catch-all
+        assert result[0].decision_variables == [0]  # a
+        assert result[0].dom_heuristic == DOM_HEURISTIC_MAX_VALUE
+        assert result[1].decision_variables == [1]  # b, lifted out of the nested seq_search
+        assert result[1].var_heuristic == VAR_HEURISTIC_SMALLEST_DOMAIN
+        assert result[1].dom_heuristic == DOM_HEURISTIC_MIN_VALUE
+
     def test_search_annotation_reverse_split_takes_upper_half_first(self) -> None:
         out = solve_fzn(
             "var 0..3: x :: output_var;\n"
