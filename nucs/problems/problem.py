@@ -161,7 +161,14 @@ class Problem:
             self.propagator_variables, self.propagator_parameters, self.bounds, self.propagators
         )
         logger.debug("Initializing triggers")
-        self.triggers = np.zeros((self.domain_nb, EVENT_MASK_NB, self.propagator_nb + 1), dtype=np.int32)
+        self.triggers = np.zeros(
+            (
+                self.domain_nb,
+                EVENT_MASK_NB,
+                self.propagator_nb + 1,  # TODO: this will be mostly empty, maybe we can limit the length to save memory
+            ),
+            dtype=np.int32,
+        )
         init_triggers(
             self.triggers,
             self.domain_nb,
