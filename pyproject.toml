@@ -1,6 +1,6 @@
 [project]
 name = "NuCS"
-version = "12.4.5"
+version = "12.4.6"
 authors = [
     { name = "Yan Georget", email = "yan.georget@gmail.com" },
 ]
@@ -26,7 +26,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dependencies = [
-    "numba==0.66.0rc2",
+    "numba==0.65.1",
     "numpy==2.4.6",
     "rich==15.0.0"
 ]
