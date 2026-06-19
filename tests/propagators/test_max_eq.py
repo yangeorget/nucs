@@ -28,6 +28,10 @@ class TestMaxEq(PropagatorTest):
             ([(2, 4), (2, 5), (0, 1)], [], PROP_INCONSISTENCY, None),
             ([(0, 1), (0, 1), (0, 0)], [], PROP_CONSISTENCY, [[0, 0], [0, 0], [0, 0]]),
             ([(0, 1), (0, 1), (2, 3)], [], PROP_INCONSISTENCY, None),
+            # another x_i can reach y_min, so x_0 is not the unique maximizer and must not be forced up
+            ([(0, 10), (5, 5), (0, 10)], [], PROP_CONSISTENCY, [[0, 10], [5, 5], [5, 10]]),
+            # x_0 cannot reach y_min, so x_1 is the unique maximizer and is forced to at least y_min
+            ([(0, 3), (6, 10), (7, 20)], [], PROP_CONSISTENCY, [[0, 3], [7, 10], [7, 10]]),
         ],
     )
     def test_compute_domains(

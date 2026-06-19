@@ -83,13 +83,15 @@ def compute_domains_min_eq(domains: NDArray, parameters: NDArray) -> int:
         y[MAX] = y_max
     if y_min > y_max:
         return PROP_INCONSISTENCY
-    # No x_i may fall below y, so raise every x_i[MIN] to y_min. If a single x_i can still reach
-    # y_min it is the only one able to attain the minimum, hence it must be at most y_max.
+    # No x_i may fall below y, so raise every x_i[MIN] to y_min. The minimum y can take any value in
+    # [y_min, y_max], so an x_i is a possible minimizer as soon as it can reach y_max; if a single
+    # x_i can, it is the only one able to attain the minimum, hence it must be at most y_max.
     candidates_nb = 0
     candidate_idx = -1
     for i in range(n):
-        if x[i, MIN] <= y_min:
+        if x[i, MIN] < y_min:
             x[i, MIN] = y_min
+        if x[i, MIN] <= y_max:
             candidate_idx = i
             candidates_nb += 1
     if candidates_nb == 1:
