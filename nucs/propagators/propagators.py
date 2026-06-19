@@ -320,11 +320,11 @@ ALG_VALUE_PRECEDE = register_propagator(
 def update_propagators(
     triggered_propagators: NDArray,
     entailed_propagator_depths: NDArray,
-    triggers: NDArray,
+    propagators: NDArray,
     priorities: NDArray,
     propagator_nb: int,
 ) -> None:
     membership_offset = STORAGE_OFFSET + propagator_nb
-    for prop_idx in triggers[1 : triggers[0] + 1]:
+    for prop_idx in propagators:
         if entailed_propagator_depths[prop_idx] == -1:
             buckets_add(triggered_propagators, priorities, prop_idx, membership_offset)

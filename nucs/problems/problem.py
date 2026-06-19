@@ -161,23 +161,34 @@ class Problem:
             self.propagator_variables, self.propagator_parameters, self.bounds, self.propagators
         )
         logger.debug("Initializing triggers")
-        self.triggers = np.zeros(
-            (
-                self.domain_nb,
-                EVENT_MASK_NB,
-                self.propagator_nb + 1,  # TODO: this will be mostly empty, maybe we can limit the length to save memory
-            ),
-            dtype=np.int32,
-        )
-        init_triggers(
-            self.triggers,
-            self.domain_nb,
+        # The triggers map each (variable, event) pair to the propagators to schedule. A dense
+        # (domain_nb, EVENT_MASK_NB, propagator_nb) array would be mostly empty (and huge), so it is stored
+        # in CSR form: triggers is the flat list of propagators and triggers_offsets delimits, for each
+        # (variable, event), its slice -- offsets[variable * EVENT_MASK_NB + event] up to the next offset.
+        get_triggers_addrs = addresses_from_functions(GET_TRIGGERS_FCTS, SIGN_GET_TRIGGERS)
+        counts = np.zeros((self.domain_nb, EVENT_MASK_NB), dtype=np.int32)
+        count_triggers(
+            counts,
             self.propagator_nb,
             self.bounds,
             self.propagator_variables,
             self.propagator_parameters,
             self.algorithms,
-            addresses_from_functions(GET_TRIGGERS_FCTS, SIGN_GET_TRIGGERS),
+            get_triggers_addrs,
+        )
+        self.triggers_offsets = np.zeros(self.domain_nb * EVENT_MASK_NB + 1, dtype=np.int32)
+        np.cumsum(counts.reshape(-1), out=self.triggers_offsets[1:])
+        self.triggers = np.empty(int(self.triggers_offsets[-1]), dtype=np.int32)
+        cursors = self.triggers_offsets[:-1].copy()
+        fill_triggers(
+            self.triggers,
+            cursors,
+            self.propagator_nb,
+            self.bounds,
+            self.propagator_variables,
+            self.propagator_parameters,
+            self.algorithms,
+            get_triggers_addrs,
         )
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.propagator_nb} propagators")
@@ -249,9 +260,8 @@ def init_propagator_variables_and_parameters(
 
 
 @njit(cache=True, fastmath=True)
-def init_triggers(
-    triggers: NDArray,
-    domain_nb: int,
+def count_triggers(
+    counts: NDArray,
     propagator_nb: int,
     bounds: NDArray,
     propagator_variables: NDArray,
@@ -260,12 +270,10 @@ def init_triggers(
     get_triggers_addrs: NDArray,
 ) -> None:
     """
-    Initializes the triggers array that maps each (variable, event) pair to the propagators to schedule.
+    Counts, for each (variable, event) pair, the number of propagators to schedule, sizing the CSR triggers.
 
-    :param triggers: the triggers array to fill
-    :type triggers: NDArray
-    :param domain_nb: the number of domains
-    :type domain_nb: int
+    :param counts: the (domain_nb, EVENT_MASK_NB) array of counts to fill
+    :type counts: NDArray
     :param propagator_nb: the number of propagators
     :type propagator_nb: int
     :param bounds: the bounds
@@ -279,7 +287,6 @@ def init_triggers(
     :param get_triggers_addrs: the addresses of the get_triggers functions
     :type get_triggers_addrs: NDArray
     """
-    variable_propagator = np.full((domain_nb, propagator_nb), False)
     for propagator in range(propagator_nb):
         algorithm = algorithms[propagator]
         if NUMBA_DISABLE_JIT:
@@ -294,11 +301,76 @@ def init_triggers(
         var_nb = var_end - var_start
         for var_idx in range(var_nb):
             variable = propagator_variables[var_start + var_idx]
-            # beware, a propagator can have two variables corresponding to the same real variable
-            if not variable_propagator[variable, propagator]:
-                variable_propagator[variable, propagator] = True
-                trigger = trigger_fct(var_nb, var_idx, parameters)
-                for event_mask in range(1, EVENT_MASK_NB):
-                    if trigger & event_mask:
-                        triggers[variable, event_mask, 0] += 1
-                        triggers[variable, event_mask, triggers[variable, event_mask, 0]] = propagator
+            # beware, a propagator can reference the same variable twice; only the first occurrence counts
+            duplicate = False
+            for prev in range(var_idx):
+                if propagator_variables[var_start + prev] == variable:
+                    duplicate = True
+                    break
+            if duplicate:
+                continue
+            trigger = trigger_fct(var_nb, var_idx, parameters)
+            for event_mask in range(1, EVENT_MASK_NB):
+                if trigger & event_mask:
+                    counts[variable, event_mask] += 1
+
+
+@njit(cache=True, fastmath=True)
+def fill_triggers(
+    triggers: NDArray,
+    cursors: NDArray,
+    propagator_nb: int,
+    bounds: NDArray,
+    propagator_variables: NDArray,
+    propagator_parameters: NDArray,
+    algorithms: NDArray,
+    get_triggers_addrs: NDArray,
+) -> None:
+    """
+    Fills the flat CSR triggers array, writing each propagator into the slice of every (variable, event) it
+    triggers; cursors holds, per (variable, event), the next write position (initialized to the slice start).
+
+    :param triggers: the flat triggers array to fill
+    :type triggers: NDArray
+    :param cursors: the per (variable, event) write cursors, indexed variable * EVENT_MASK_NB + event
+    :type cursors: NDArray
+    :param propagator_nb: the number of propagators
+    :type propagator_nb: int
+    :param bounds: the bounds
+    :type bounds: NDArray
+    :param propagator_variables: the propagator variables
+    :type propagator_variables: NDArray
+    :param propagator_parameters: the propagator parameters
+    :type propagator_parameters: NDArray
+    :param algorithms: the algorithm ids of the propagators
+    :type algorithms: NDArray
+    :param get_triggers_addrs: the addresses of the get_triggers functions
+    :type get_triggers_addrs: NDArray
+    """
+    for propagator in range(propagator_nb):
+        algorithm = algorithms[propagator]
+        if NUMBA_DISABLE_JIT:
+            trigger_fct = GET_TRIGGERS_FCTS[algorithm]
+        else:
+            trigger_fct = function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])  # type: ignore[call-arg, arg-type]
+        parameters = propagator_parameters[
+            bounds[propagator, PARAM, RANGE_START] : bounds[propagator, PARAM, RANGE_END]
+        ]
+        var_start = bounds[propagator, VARIABLE, RANGE_START]
+        var_end = bounds[propagator, VARIABLE, RANGE_END]
+        var_nb = var_end - var_start
+        for var_idx in range(var_nb):
+            variable = propagator_variables[var_start + var_idx]
+            duplicate = False
+            for prev in range(var_idx):
+                if propagator_variables[var_start + prev] == variable:
+                    duplicate = True
+                    break
+            if duplicate:
+                continue
+            trigger = trigger_fct(var_nb, var_idx, parameters)
+            for event_mask in range(1, EVENT_MASK_NB):
+                if trigger & event_mask:
+                    position = cursors[variable * EVENT_MASK_NB + event_mask]
+                    triggers[position] = propagator
+                    cursors[variable * EVENT_MASK_NB + event_mask] = position + 1

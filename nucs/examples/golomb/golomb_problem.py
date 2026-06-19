@@ -17,7 +17,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MIN, MAX, MIN
+from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MIN, EVENT_MASK_NB, MAX, MIN
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     ALG_ALLDIFFERENT,
@@ -132,6 +132,7 @@ def golomb_consistency_algorithm(
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
     triggers: NDArray,
+    triggers_offsets: NDArray,
     domains_stk: NDArray,
     entailed_propagator_depths: NDArray,
     entailment_trail: NDArray,
@@ -154,7 +155,8 @@ def golomb_consistency_algorithm(
     """
     top = stks_top[0]
     # first prune the search space
-    mark_nb = (1 + int(math.sqrt(8 * len(triggers) + 1))) >> 1
+    domain_nb = (len(triggers_offsets) - 1) // EVENT_MASK_NB
+    mark_nb = (1 + int(math.sqrt(8 * domain_nb + 1))) >> 1
     ni_var = first_unbound_decision_variable(decision_variables, domains_stk, top, 0)
     if 1 < ni_var < mark_nb - 1:  # otherwise useless
         used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=np.bool)
@@ -184,10 +186,11 @@ def golomb_consistency_algorithm(
                     if domains_stk[top, var, MIN] == domains_stk[top, var, MAX]:
                         events |= EVENT_MASK_GROUND
                         unbound_variable_nb_stk[top] -= 1
+                    offset = var * EVENT_MASK_NB + events
                     update_propagators(
                         triggered_propagators,
                         entailed_propagator_depths,
-                        triggers[var, events],
+                        triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]],
                         complexities,
                         propagator_nb,
                     )
@@ -201,6 +204,7 @@ def golomb_consistency_algorithm(
         propagator_variables,
         propagator_parameters,
         triggers,
+        triggers_offsets,
         domains_stk,
         entailed_propagator_depths,
         entailment_trail,

@@ -17,6 +17,7 @@ from numpy.typing import NDArray
 
 from nucs.constants import (
     EVENT_MASK_GROUND,
+    EVENT_MASK_NB,
     MAX,
     MIN,
     PROBLEM_INCONSISTENT,
@@ -45,6 +46,7 @@ def shave_bound(
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
     triggers: NDArray,
+    triggers_offsets: NDArray,
     domains_stk: NDArray,
     entailed_propagator_depths: NDArray,
     entailment_trail: NDArray,
@@ -79,6 +81,8 @@ def shave_bound(
     :type propagator_parameters: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :type triggers: NDArray
+    :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
+    :type triggers_offsets: NDArray
     :param domains_stk: the stack of domains
     :type domains_stk: NDArray
     :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
@@ -131,10 +135,11 @@ def shave_bound(
     )
     if domains_stk[stks_top[0], variable, MIN] == domains_stk[stks_top[0], variable, MAX]:
         events |= EVENT_MASK_GROUND
+    offset = variable * EVENT_MASK_NB + events
     update_propagators(
         triggered_propagators,
         entailed_propagator_depths,
-        triggers[variable, events],
+        triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]],
         priorities,
         propagator_nb,
     )
@@ -149,6 +154,7 @@ def shave_bound(
             propagator_variables,
             propagator_parameters,
             triggers,
+            triggers_offsets,
             domains_stk,
             entailed_propagator_depths,
             entailment_trail,
@@ -175,6 +181,7 @@ def shave_bound(
         stks_top,
         triggered_propagators,
         triggers,
+        triggers_offsets,
         priorities,
         propagator_nb,
     )
@@ -192,6 +199,7 @@ def shaving_consistency_algorithm(
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
     triggers: NDArray,
+    triggers_offsets: NDArray,
     domains_stk: NDArray,
     entailed_propagator_depths: NDArray,
     entailment_trail: NDArray,
@@ -222,6 +230,8 @@ def shaving_consistency_algorithm(
     :type propagator_parameters: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :type triggers: NDArray
+    :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
+    :type triggers_offsets: NDArray
     :param domains_stk: a stack of  domains;
                         the first level correspond to the current domains, the rest correspond to the choice points
     :type domains_stk: NDArray
@@ -265,6 +275,7 @@ def shaving_consistency_algorithm(
                 propagator_variables,
                 propagator_parameters,
                 triggers,
+                triggers_offsets,
                 domains_stk,
                 entailed_propagator_depths,
                 entailment_trail,
@@ -294,6 +305,7 @@ def shaving_consistency_algorithm(
             propagator_variables,
             propagator_parameters,
             triggers,
+            triggers_offsets,
             domains_stk,
             entailed_propagator_depths,
             entailment_trail,

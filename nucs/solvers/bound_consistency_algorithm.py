@@ -22,6 +22,7 @@ from nucs.constants import (
     EVENT_MASK_GROUND,
     EVENT_MASK_MAX,
     EVENT_MASK_MIN,
+    EVENT_MASK_NB,
     MAX,
     MIN,
     PARAM,
@@ -102,6 +103,7 @@ def bound_consistency_algorithm(
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
     triggers: NDArray,
+    triggers_offsets: NDArray,
     domains_stk: NDArray,
     entailed_propagator_depths: NDArray,
     entailment_trail: NDArray,
@@ -132,6 +134,8 @@ def bound_consistency_algorithm(
     :type propagator_parameters: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :type triggers: NDArray
+    :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
+    :type triggers_offsets: NDArray
     :param domains_stk: a stack of domains, the first level correspond to the current domains,
                         the rest correspond to the choice points
     :type domains_stk: NDArray
@@ -202,6 +206,7 @@ def bound_consistency_algorithm(
             triggered_propagators,
             entailed_propagator_depths,
             triggers,
+            triggers_offsets,
             unbound_variable_nb_stk,
             priorities,
         ):
@@ -221,6 +226,7 @@ def update_domains(
     triggered_propagators: NDArray,
     entailed_propagator_depths: NDArray,
     triggers: NDArray,
+    triggers_offsets: NDArray,
     unbound_variable_nb_stk: NDArray,
     priorities: NDArray,
 ) -> bool:
@@ -247,6 +253,8 @@ def update_domains(
     :type entailed_propagator_depths: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :type triggers: NDArray
+    :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
+    :type triggers_offsets: NDArray
     :param unbound_variable_nb_stk: the stack of the unbound variables nb
     :type unbound_variable_nb_stk: NDArray
     :param priorities: the propagation queue bucket priorities indexed by propagators
@@ -276,8 +284,8 @@ def update_domains(
                 if domain_min == domain_max:
                     events |= EVENT_MASK_GROUND
                     unbound_variable_nb_stk[top] -= 1
-                propagators = triggers[variable, events]
-                for other_prop_idx in propagators[1 : propagators[0] + 1]:
+                offset = variable * EVENT_MASK_NB + events
+                for other_prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
                     if not (
                         triggered_propagators[membership_offset + other_prop_idx]
                         or other_prop_idx == prop_idx

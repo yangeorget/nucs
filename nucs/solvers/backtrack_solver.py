@@ -22,6 +22,7 @@ from numpy.typing import NDArray
 
 from nucs.buckets import buckets_init, buckets_empty, buckets_create
 from nucs.constants import (
+    EVENT_MASK_NB,
     LOG_LEVEL_INFO,
     MAX,
     MIN,
@@ -381,6 +382,7 @@ class BacktrackSolver(Solver, QueueSolver):
                     self.problem.propagator_variables,
                     self.problem.propagator_parameters,
                     self.problem.triggers,
+                    self.problem.triggers_offsets,
                     self.domains_stk,
                     self.entailed_propagator_depths,
                     self.entailment_trail,
@@ -457,6 +459,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_variables,
                 self.problem.propagator_parameters,
                 self.problem.triggers,
+                self.problem.triggers_offsets,
                 self.domains_stk,
                 self.entailed_propagator_depths,
                 self.entailment_trail,
@@ -487,6 +490,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.stks_top,
                 self.triggered_propagators,
                 self.problem.triggers,
+                self.problem.triggers_offsets,
                 self.problem.priorities,
                 self.problem.propagator_nb,
             ):
@@ -559,6 +563,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_variables,
                 self.problem.propagator_parameters,
                 self.problem.triggers,
+                self.problem.triggers_offsets,
                 self.domains_stk,
                 self.entailed_propagator_depths,
                 self.entailment_trail,
@@ -638,6 +643,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_variables,
                 self.problem.propagator_parameters,
                 self.problem.triggers,
+                self.problem.triggers_offsets,
                 self.domains_stk,
                 self.entailed_propagator_depths,
                 self.entailment_trail,
@@ -665,6 +671,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.stks_top,
                 self.triggered_propagators,
                 self.problem.triggers,
+                self.problem.triggers_offsets,
                 self.problem.priorities,
                 self.problem.propagator_nb,
             ):
@@ -684,6 +691,7 @@ def solve_one(
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
     triggers: NDArray,
+    triggers_offsets: NDArray,
     domains_stk: NDArray,
     entailed_propagator_depths: NDArray,
     entailment_trail: NDArray,
@@ -719,6 +727,8 @@ def solve_one(
     :type propagator_parameters: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :type triggers: NDArray
+    :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
+    :type triggers_offsets: NDArray
     :param domains_stk: a stack of domains,
                         the first level correspond to the current domains, the rest correspond to the choice points
     :type domains_stk: NDArray
@@ -769,6 +779,7 @@ def solve_one(
             propagator_variables,
             propagator_parameters,
             triggers,
+            triggers_offsets,
             domains_stk,
             entailed_propagator_depths,
             entailment_trail,
@@ -805,10 +816,11 @@ def solve_one(
                         dom_heuristic_params[search_idx],
                     )
                     top = stks_top[0]
+                    offset = variable * EVENT_MASK_NB + events
                     update_propagators(
                         triggered_propagators,
                         entailed_propagator_depths,
-                        triggers[variable, events],
+                        triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]],
                         priorities,
                         propagator_nb,
                     )
@@ -824,6 +836,7 @@ def solve_one(
             stks_top,
             triggered_propagators,
             triggers,
+            triggers_offsets,
             priorities,
             propagator_nb,
         ):

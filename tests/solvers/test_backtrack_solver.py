@@ -66,6 +66,7 @@ class TestBacktrackSolver:
             problem.propagator_variables,
             problem.propagator_parameters,
             problem.triggers,
+            problem.triggers_offsets,
             solver.domains_stk,
             solver.entailed_propagator_depths,
             solver.entailment_trail,
@@ -98,6 +99,7 @@ class TestBacktrackSolver:
             solver.stks_top,
             solver.triggered_propagators,
             problem.triggers,
+            problem.triggers_offsets,
             problem.priorities,
             membership_offset,
         )

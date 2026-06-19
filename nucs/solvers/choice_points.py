@@ -14,7 +14,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import DOM_UPDATE_EVENTS, DOM_UPDATE_VARIABLE, MAX, MIN, STATS_IDX_SOLVER_BACKTRACK_NB
+from nucs.constants import (
+    DOM_UPDATE_EVENTS,
+    DOM_UPDATE_VARIABLE,
+    EVENT_MASK_NB,
+    MAX,
+    MIN,
+    STATS_IDX_SOLVER_BACKTRACK_NB,
+)
 from nucs.propagators.propagators import update_propagators
 
 
@@ -111,6 +118,7 @@ def backtrack(
     stks_top: NDArray,
     triggered_propagators: NDArray,
     triggers: NDArray,
+    triggers_offsets: NDArray,
     complexities: NDArray,
     propagator_nb: int,
 ) -> bool:
@@ -131,6 +139,8 @@ def backtrack(
     :type triggered_propagators: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :type triggers: NDArray
+    :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
+    :type triggers_offsets: NDArray
     :param complexities: the propagation queue bucket priorities indexed by propagators
     :type complexities: NDArray
 
@@ -144,10 +154,11 @@ def backtrack(
     statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
     unwind_entailment_trail(entailed_propagator_depths, entailment_trail, top)
     domain_update = domain_update_stk[top]
+    offset = domain_update[DOM_UPDATE_VARIABLE] * EVENT_MASK_NB + domain_update[DOM_UPDATE_EVENTS]
     update_propagators(
         triggered_propagators,
         entailed_propagator_depths,
-        triggers[domain_update[DOM_UPDATE_VARIABLE], domain_update[DOM_UPDATE_EVENTS]],
+        triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]],
         complexities,
         propagator_nb,
     )

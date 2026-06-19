@@ -72,7 +72,8 @@ SIGN_CONSISTENCY_ALG = int64(
     uint32[:, :, :],  # bounds
     uint32[:],  # propagator_variables
     int32[:],  # propagator_parameters
-    int32[:, :, :],  # triggers
+    int32[:],  # triggers
+    int32[:],  # triggers_offsets
     int32[:, :, :],  # domains_stk
     int32[:],  # entailed_propagator_depths
     int32[:],  # entailment_trail
