@@ -20,10 +20,12 @@ from nucs.constants import (
     STATS_LBL_SOLVER_CHOICE_DEPTH,
 )
 from nucs.heuristics.heuristics import (
+    DOM_HEURISTIC_MAX_VALUE,
     DOM_HEURISTIC_MID_VALUE,
     DOM_HEURISTIC_MIN_VALUE,
     DOM_HEURISTIC_SPLIT_HIGH,
     DOM_HEURISTIC_SPLIT_LOW,
+    VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
     VAR_HEURISTIC_GREATEST_DOMAIN,
 )
 from nucs.problems.problem import Problem
@@ -31,10 +33,11 @@ from nucs.propagators.propagators import (
     ALG_LINEAR_LEQ_C,
     ALG_LINEAR_NEQ_C,
     ALG_ALLDIFFERENT,
+    ALG_NEQ,
     ALG_RELATION,
     get_algorithm_nb,
 )
-from nucs.solvers.backtrack_solver import BacktrackSolver, solve_one
+from nucs.solvers.backtrack_solver import BacktrackSolver, Search, solve_one
 from nucs.solvers.choice_points import backtrack
 
 
@@ -70,6 +73,8 @@ class TestBacktrackSolver:
             solver.triggered_propagators,
             solver.consistency_alg_fcts,
             solver.decision_variables,
+            solver.search_starts,
+            solver.nb_searches,
             solver.var_heuristic_fcts,
             solver.var_heuristic_params,
             solver.dom_heuristic_fcts,
@@ -129,6 +134,38 @@ class TestBacktrackSolver:
         assert solutions[5].tolist() == [2, 1, 0]
         statistics = solver.get_statistics_as_dictionary()
         assert statistics[STATS_LBL_SOLUTION_NB] == 6
+
+    def test_sequential_search(self) -> None:
+        # two searches: the first branches variable 0 (indomain_max), the second variable 1 (indomain_min)
+        problem = Problem([(1, 3), (1, 3)])
+        problem.add_propagator(ALG_NEQ, [0, 1])  # x != y
+        solver = BacktrackSolver(
+            problem,
+            searches=[
+                Search([0], VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, [[]], DOM_HEURISTIC_MAX_VALUE, [[]]),
+                Search([1], VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, [[]], DOM_HEURISTIC_MIN_VALUE, [[]]),
+            ],
+        )
+        solutions = solver.find_all()
+        # variable 0 takes its largest value first, then variable 1 its smallest (the only constraint is x != y)
+        assert solutions[0].tolist() == [3, 1]
+        # the sequential search still enumerates every solution, just in a different order
+        assert len(solutions) == 6
+        assert all(x != y for x, y in (s.tolist() for s in solutions))
+
+    def test_sequential_search_second_group_only_after_first_bound(self) -> None:
+        # the second search must stay dormant until every decision variable of the first search is bound:
+        # variable 2 (searched first) is fixed to its max before variables 0 and 1 are touched
+        problem = Problem([(0, 9), (0, 9), (0, 9)])
+        solver = BacktrackSolver(
+            problem,
+            searches=[
+                Search([2], VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, [[]], DOM_HEURISTIC_MAX_VALUE, [[]]),
+                Search([0, 1], VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, [[]], DOM_HEURISTIC_MIN_VALUE, [[]]),
+            ],
+        )
+        solution = next(solver.solve())
+        assert solution.tolist() == [0, 0, 9]  # variable 2 grounded to 9 first, then 0 and 1 to their min
 
     def test_split_grounding_wakes_ground_triggered_propagator(self) -> None:
         # A split heuristic that grounds a variable in its current branch must report a GROUND event,

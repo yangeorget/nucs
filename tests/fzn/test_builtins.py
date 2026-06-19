@@ -23,6 +23,7 @@ from nucs.fzn.runner import run, search_heuristics
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
     DOM_HEURISTIC_MID_VALUE,
+    DOM_HEURISTIC_MIN_VALUE,
     DOM_HEURISTIC_SPLIT_HIGH,
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
     VAR_HEURISTIC_LARGEST_MAXIMAL_VALUE,
@@ -1088,11 +1089,12 @@ class TestBuiltins:
         )
         result = search_heuristics(model)
         assert result
-        decision, var_heuristic, dom_heuristic = result
-        assert var_heuristic == VAR_HEURISTIC_SMALLEST_DOMAIN
-        assert dom_heuristic == DOM_HEURISTIC_MAX_VALUE
-        assert decision[:2] == [1, 0]  # search variables first, in annotation order (y, x)
-        assert sorted(decision) == list(range(model.problem.domain_nb))  # remaining variables appended
+        assert len(result) == 1  # y and x cover every variable, so there is no trailing catch-all search
+        assert result[0].var_heuristic == VAR_HEURISTIC_SMALLEST_DOMAIN
+        assert result[0].dom_heuristic == DOM_HEURISTIC_MAX_VALUE
+        assert result[0].decision_variables == [1, 0]  # search variables in annotation order (y, x)
+        covered = [v for search in result for v in (search.decision_variables or [])]
+        assert sorted(covered) == list(range(model.problem.domain_nb))  # every variable is branched
 
     def test_search_heuristics_none_without_annotation(self) -> None:
         model = build_model(parse("var 0..3: x;\nsolve satisfy;"))
@@ -1104,9 +1106,8 @@ class TestBuiltins:
         )
         result = search_heuristics(model)
         assert result
-        _, var_heuristic, dom_heuristic = result
-        assert var_heuristic == VAR_HEURISTIC_FIRST_NOT_INSTANTIATED  # 'dom_w_deg' has no NuCS equivalent
-        assert dom_heuristic == DOM_HEURISTIC_MID_VALUE
+        assert result[0].var_heuristic == VAR_HEURISTIC_FIRST_NOT_INSTANTIATED  # 'dom_w_deg' has no NuCS equivalent
+        assert result[0].dom_heuristic == DOM_HEURISTIC_MID_VALUE
 
     def test_search_heuristics_maps_smallest_and_largest(self) -> None:
         smallest = build_model(
@@ -1114,11 +1115,11 @@ class TestBuiltins:
         )
         result = search_heuristics(smallest)
         assert result
-        assert result[1] == VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE
+        assert result[0].var_heuristic == VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE
         largest = build_model(parse("var 0..3: x;\nsolve :: int_search([x], largest, indomain_min, complete) satisfy;"))
         result = search_heuristics(largest)
         assert result
-        assert result[1] == VAR_HEURISTIC_LARGEST_MAXIMAL_VALUE
+        assert result[0].var_heuristic == VAR_HEURISTIC_LARGEST_MAXIMAL_VALUE
 
     def test_search_annotation_value_heuristic_changes_first_solution(self) -> None:
         out = solve_fzn(
@@ -1133,7 +1134,31 @@ class TestBuiltins:
         )
         result = search_heuristics(model)
         assert result
-        assert result[2] == DOM_HEURISTIC_SPLIT_HIGH
+        assert result[0].dom_heuristic == DOM_HEURISTIC_SPLIT_HIGH
+
+    def test_search_heuristics_seq_search_keeps_groups_and_appends_catch_all(self) -> None:
+        # seq_search becomes one Search per nested search (each with its own selectors), plus a catch-all
+        model = build_model(
+            parse(
+                "var 0..3: a;\nvar 0..3: b;\nvar 0..3: c;\n"
+                "solve :: seq_search(["
+                "int_search([b], input_order, indomain_max, complete),"
+                "int_search([a], first_fail, indomain_min, complete)"
+                "]) satisfy;"
+            )
+        )
+        result = search_heuristics(model)
+        assert result is not None
+        assert len(result) == 3  # the two nested searches and a catch-all for c
+        assert result[0].decision_variables == [1]  # b
+        assert result[0].var_heuristic == VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
+        assert result[0].dom_heuristic == DOM_HEURISTIC_MAX_VALUE
+        assert result[1].decision_variables == [0]  # a
+        assert result[1].var_heuristic == VAR_HEURISTIC_SMALLEST_DOMAIN
+        assert result[1].dom_heuristic == DOM_HEURISTIC_MIN_VALUE
+        assert result[2].decision_variables == [2]  # c, the remaining variable, with the defaults
+        assert result[2].var_heuristic == VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
+        assert result[2].dom_heuristic == DOM_HEURISTIC_MIN_VALUE
 
     def test_search_annotation_reverse_split_takes_upper_half_first(self) -> None:
         out = solve_fzn(

@@ -56,6 +56,20 @@ def addresses_from_functions(functions: List[Callable], signature: Any) -> NDArr
     )
 
 
+def build_params_list(params: List[NDArray]) -> Any:
+    """
+    Builds a per-search list of 2D parameter arrays. Under the JIT a Numba typed list is returned (so the
+    jitted search loop can index it by search), otherwise a plain Python list. The arrays may have different
+    shapes; only their dtype and rank must match.
+    """
+    if NUMBA_DISABLE_JIT:
+        return list(params)
+    typed = NumbaList()
+    for param in params:
+        typed.append(param)
+    return typed
+
+
 @njit(cache=True)
 def build_compute_domains_fcts(compute_domains_addrs: NDArray) -> NumbaList:
     """
@@ -81,20 +95,24 @@ def build_consistency_alg_fcts(addr: int) -> NumbaList:
 
 
 @njit(cache=True)
-def build_var_heuristic_fcts(addr: int) -> NumbaList:
+def build_var_heuristic_fcts(var_heuristic_addrs: NDArray) -> NumbaList:
     """
-    Recovers a variable-heuristic function from its address.
+    Materializes the typed list of variable-heuristic function pointers from their addresses, one per search,
+    so a sequential search can apply a different variable heuristic to each of its nested searches.
     """
     fcts = NumbaList.empty_list(TYPE_VAR_HEURISTIC)
-    fcts.append(function_from_address(TYPE_VAR_HEURISTIC, addr))  # type: ignore[call-arg, arg-type]
+    for search_idx in range(len(var_heuristic_addrs)):
+        fcts.append(function_from_address(TYPE_VAR_HEURISTIC, var_heuristic_addrs[search_idx]))  # type: ignore[call-arg, arg-type]
     return fcts
 
 
 @njit(cache=True)
-def build_dom_heuristic_fcts(addr: int) -> NumbaList:
+def build_dom_heuristic_fcts(dom_heuristic_addrs: NDArray) -> NumbaList:
     """
-    Recovers a domain-heuristic function from its address.
+    Materializes the typed list of domain-heuristic function pointers from their addresses, one per search,
+    so a sequential search can apply a different domain heuristic to each of its nested searches.
     """
     fcts = NumbaList.empty_list(TYPE_DOM_HEURISTIC)
-    fcts.append(function_from_address(TYPE_DOM_HEURISTIC, addr))  # type: ignore[call-arg, arg-type]
+    for search_idx in range(len(dom_heuristic_addrs)):
+        fcts.append(function_from_address(TYPE_DOM_HEURISTIC, dom_heuristic_addrs[search_idx]))  # type: ignore[call-arg, arg-type]
     return fcts

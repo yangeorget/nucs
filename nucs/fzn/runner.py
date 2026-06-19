@@ -33,7 +33,7 @@ from nucs.heuristics.heuristics import (
     VAR_HEURISTIC_SMALLEST_DOMAIN,
     VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE,
 )
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack_solver import BacktrackSolver, Search
 
 # FlatZinc variable-selection annotations mapped to NuCS variable heuristics; unlisted ones
 # (dom_w_deg, occurrence, most_constrained, ...) fall back to the default.
@@ -55,45 +55,42 @@ _DOM_HEURISTICS = {
 }
 
 
-def search_heuristics(model: FznModel) -> Optional[Tuple[List[int], int, int]]:
+def search_heuristics(model: FznModel) -> Optional[List[Search]]:
     """
     Translates the first ``int_search``/``bool_search``/``seq_search`` annotation on the solve item into a
-    NuCS search configuration.
-
-    A ``seq_search`` is flattened: the variables of its nested searches are concatenated in order. NuCS
-    applies a single variable/value heuristic to the whole search, so the heuristics of the first nested
-    search are used. The listed variables come first in the decision order (honoring ``input_order``),
-    followed by every remaining variable so that the search always grounds the whole problem. Unknown
-    variable/value selectors fall back to the NuCS defaults.
+    NuCS sequential search: one :class:`Search` per nested search, each keeping its own variable and value
+    selectors. A ``seq_search`` becomes the ordered list of its nested searches; a single ``int_search`` /
+    ``bool_search`` becomes a one-element list. Each variable is assigned to the first search that lists it,
+    and a trailing catch-all search over the remaining variables (NuCS defaults) makes the search ground the
+    whole problem. Unknown variable/value selectors fall back to the NuCS defaults.
 
     :param model: the built model
     :type model: FznModel
 
-    :return: a triple (decision variables, variable heuristic, domain heuristic), or None when there is no
-             supported search annotation
-    :rtype: Optional[Tuple[List[int], int, int]]
+    :return: the ordered list of searches, or None when there is no supported search annotation
+    :rtype: Optional[List[Search]]
     """
     for annotation in model.solve.annotations:
         if annotation.name == "seq_search" and annotation.args and isinstance(annotation.args[0], list):
-            searches = [_single_search(model, item) for item in annotation.args[0] if isinstance(item, Ann)]
-            searches = [s for s in searches if s is not None]
+            nested = [_single_search(model, item) for item in annotation.args[0] if isinstance(item, Ann)]
+            nested = [s for s in nested if s is not None]
         else:
             single = _single_search(model, annotation)
-            searches = [single] if single is not None else []
-        if searches:
-            search_variables: List[int] = []
+            nested = [single] if single is not None else []
+        if nested:
+            searches: List[Search] = []
             seen: set = set()
-            for search in searches:
-                if search:
-                    variables, _, _ = search
-                    for v in variables:
-                        if v not in seen:
-                            seen.add(v)
-                            search_variables.append(v)
-            assert searches[0]
-            var_heuristic, dom_heuristic = searches[0][1], searches[0][2]
-            decision_variables = search_variables + [v for v in range(model.problem.domain_nb) if v not in seen]
-            return decision_variables, var_heuristic, dom_heuristic
+            for search in nested:
+                assert search
+                variables, var_heuristic, dom_heuristic = search
+                group = [v for v in variables if v not in seen]  # a variable belongs to the first search listing it
+                seen.update(group)
+                if group:
+                    searches.append(Search(group, var_heuristic, [[]], dom_heuristic, [[]]))
+            remaining = [v for v in range(model.problem.domain_nb) if v not in seen]
+            if remaining:  # ground every remaining variable with the defaults
+                searches.append(Search(remaining))
+            return searches or None
     return None
 
 
@@ -184,18 +181,11 @@ def run(
         if model.solve.objective is None:
             raise FznUnsupportedError("an optimization objective is required")
         objective_var = model.var_index_of(model.solve.objective)
-    search = search_heuristics(model)
-    if search is None:
+    searches = search_heuristics(model)
+    if searches is None:
         solver = BacktrackSolver(model.problem, log_level="ERROR")
     else:
-        decision_variables, var_heuristic, dom_heuristic = search
-        solver = BacktrackSolver(
-            model.problem,
-            decision_variables=decision_variables,
-            var_heuristic=var_heuristic,
-            dom_heuristic=dom_heuristic,
-            log_level="ERROR",
-        )
+        solver = BacktrackSolver(model.problem, searches=searches, log_level="ERROR")
     if model.solve.kind == "satisfy":
         _run_satisfy(model, solver, out, all_solutions, num_solutions, output_mode)
     else:
