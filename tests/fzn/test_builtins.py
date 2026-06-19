@@ -42,6 +42,8 @@ from nucs.propagators.propagators import (
     ALG_LEQ_C,
     ALG_LEXLEQ,
     ALG_LINEAR_EQ_C,
+    ALG_MOD_C_EQ,
+    ALG_MOD_EQ,
     ALG_NO_SUB_CYCLE,
     ALG_NVALUE,
     ALG_STRICTLY_INCREASING,
@@ -1162,3 +1164,40 @@ class TestBuiltins:
             "constraint int_times(x, y, z);\nsolve satisfy;"
         )
         assert "z = 6;" in out  # 2 * 3 = 6
+
+    def test_int_mod(self) -> None:
+        out = solve_fzn(
+            "var 17..17: x :: output_var;\nvar 5..5: y :: output_var;\nvar -20..20: z :: output_var;\n"
+            "constraint int_mod(x, y, z);\nsolve satisfy;"
+        )
+        assert "z = 2;" in out  # 17 mod 5 = 2
+
+    def test_int_mod_negative_dividend(self) -> None:
+        # truncated division: the remainder takes the sign of the dividend, so -17 mod 5 = -2
+        out = solve_fzn(
+            "var -17..-17: x :: output_var;\nvar 5..5: y :: output_var;\nvar -20..20: z :: output_var;\n"
+            "constraint int_mod(x, y, z);\nsolve satisfy;"
+        )
+        assert "z = -2;" in out
+
+    def test_int_mod_constant_divisor_uses_mod_c_eq(self) -> None:
+        # a literal divisor routes to the bound-consistent constant-modulus propagator (no divisor variable)
+        model = build_model(parse("var 0..9: x;\nvar -9..9: z;\nconstraint int_mod(x, 5, z);\nsolve satisfy;"))
+        algorithms = [prop[1] for prop in model.problem.propagators]
+        assert algorithms == [ALG_MOD_C_EQ]
+        assert model.problem.propagators[0][2] == [5]  # params = [modulus]
+
+    def test_int_mod_variable_divisor_uses_mod_eq(self) -> None:
+        model = build_model(
+            parse("var 0..9: x;\nvar 1..9: y;\nvar -9..9: z;\nconstraint int_mod(x, y, z);\nsolve satisfy;")
+        )
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_MOD_EQ]
+
+    def test_int_mod_constant_divisor_prunes_dividend(self) -> None:
+        # the constant-modulus propagator also prunes x to the residue class fixed by z (x mod 7 = 3)
+        out = solve_fzn(
+            "var 0..100: x :: output_var;\nvar 3..3: z :: output_var;\n"
+            "constraint int_mod(x, 7, z);\n"
+            "solve :: int_search([x], input_order, indomain_min, complete) satisfy;"
+        )
+        assert "x = 3;" in out  # smallest non-negative x with x mod 7 = 3

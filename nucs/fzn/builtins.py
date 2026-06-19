@@ -52,6 +52,8 @@ from nucs.propagators.propagators import (
     ALG_MAX_EQ,
     ALG_MEMBER,
     ALG_MIN_EQ,
+    ALG_MOD_C_EQ,
+    ALG_MOD_EQ,
     ALG_MUL_C_EQ,
     ALG_MUL_EQ,
     ALG_NEQ,
@@ -491,6 +493,21 @@ def _int_times(model: "FznModel", args: List[Term]) -> None:
         )
 
 
+def _int_mod(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``int_mod(x, y, z)`` as x mod y = z (truncated division, the remainder takes the sign of x),
+    using the bound-consistent constant-modulus propagator when the divisor y is a constant.
+    """
+    if _is_const(model, args[1]):
+        model.problem.add_propagator(
+            ALG_MOD_C_EQ, [model.var_index_of(args[0]), model.var_index_of(args[2])], [model.const_of(args[1])]
+        )
+    else:
+        model.problem.add_propagator(
+            ALG_MOD_EQ, [model.var_index_of(args[0]), model.var_index_of(args[1]), model.var_index_of(args[2])]
+        )
+
+
 def _int_max(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``int_max(x, y, z)`` as max(x, y) = z.
@@ -897,6 +914,7 @@ BUILTINS: Dict[str, Handler] = {
     "int_lt_reif": _lt_reif,
     "int_max": _int_max,
     "int_min": _int_min,
+    "int_mod": _int_mod,
     "int_ne": _int_ne,
     "int_ne_reif": _ne_reif,
     "inverse": _inverse,
