@@ -128,6 +128,29 @@ class TestBuiltins:
         assert out.count("----------") == 3  # (0,5), (1,4), (2,3)
         assert "x = 0;\ny = 5;" in out and "x = 2;\ny = 3;" in out and "x = 3;" not in out
 
+    def test_bool_lin_eq_variable_result(self) -> None:
+        # bool_lin_eq's result is a variable (unlike int_lin_eq's constant): sum of true booleans = s
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\nvar bool: c :: output_var;\n"
+            "var 0..3: s :: output_var;\n"
+            "constraint bool_lin_eq([1, 1, 1], [a, b, c], s);\nconstraint int_eq(s, 2);\n"
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 3  # exactly two of the three booleans are true
+        assert "s = 2;" in out and "s = 3;" not in out
+
+    def test_bool_lin_eq_non_unit_coefficients(self) -> None:
+        # non-unit coefficients route through the general linear propagator: 2a + 3b = 3 forces a=0, b=1
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\nvar 0..5: s :: output_var;\n"
+            "constraint bool_lin_eq([2, 3], [a, b], s);\nconstraint int_eq(s, 3);\n"
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 1
+        assert "a = false;" in out and "b = true;" in out
+
     def test_all_different_plus_linear_satisfy(self) -> None:
         out = solve_fzn(
             "array [1..4] of int: c = [1, 1, 1, 1];\n"

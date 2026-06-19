@@ -143,6 +143,21 @@ def _int_lin_eq(model: "FznModel", args: List[Term]) -> None:
     )
 
 
+def _bool_lin_eq(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``bool_lin_eq(a, b, c)`` as the linear equality sum(a_i * b_i) = c. Unlike ``int_lin_eq``,
+    the result c is a variable (the booleans b_i are 0/1 variables), so it is posted as sum = c.
+    """
+    coeffs = model.int_list_of(args[0])
+    variables = model.var_list_of(args[1])
+    c = model.var_index_of(args[2])
+    if all(a == 1 for a in coeffs):
+        # a plain count of true booleans: the cheaper unit-coefficient propagator (sum(b_i) = c)
+        model.problem.add_propagator(ALG_SUM_EQ, variables + [c])
+    else:
+        model.problem.add_propagator(ALG_LINEAR_EQ_C, variables + [c], coeffs + [-1, 0])
+
+
 def _int_lin_le(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``int_lin_le(a, x, c)`` as the linear inequality sum(a_i * x_i) <= c.
@@ -825,7 +840,7 @@ BUILTINS: Dict[str, Handler] = {
     "bool_gt_reif": _gt_reif,
     "bool_le": _bool_le,
     "bool_le_reif": _le_reif,
-    "bool_lin_eq": _int_lin_eq,
+    "bool_lin_eq": _bool_lin_eq,
     "bool_lin_le": _int_lin_le,
     "bool_lt": _int_lt,
     "bool_lt_reif": _lt_reif,
