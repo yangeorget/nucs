@@ -26,10 +26,9 @@ from nucs.constants import (
     STATS_IDX_ALG_SHAVING_NB,
     STATS_IDX_ALG_SHAVING_NO_CHANGE_NB,
 )
-from nucs.heuristics.first_not_instantiated_var_heuristic import first_not_instantiated_var_heuristic
 from nucs.heuristics.heuristics import max_value_dom_heuristic, min_value_dom_heuristic
 from nucs.propagators.propagators import update_propagators
-from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
+from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm, first_unbound_decision_variable
 from nucs.solvers.choice_points import backtrack
 
 
@@ -54,7 +53,7 @@ def shave_bound(
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_fcts: Any,
-    decision_variables: NDArray,
+    decision_variables: Any,
     domain_buffer: NDArray,
 ) -> bool:
     """
@@ -96,8 +95,8 @@ def shave_bound(
     :type triggered_propagators: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions
     :type compute_domains_fcts: Any
-    :param decision_variables: the variables on which decisions will be made
-    :type decision_variables: NDArray
+    :param decision_variables: the per-search list of decision variable arrays
+    :type decision_variables: Any
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray
@@ -105,6 +104,10 @@ def shave_bound(
     :return: true iff the bound was shaved
     :rtype: bool
     """
+    # the branching domain heuristic splits off the bound value as a choice point, decrementing the unbound
+    # count of the base level when the leftover sub-domain happens to be ground (a size-2 domain). When the
+    # bound cannot be shaved that split is only a probe, so the base unbound count is saved and restored.
+    unbound_before = unbound_variable_nb_stk[stks_top[0]]
     events = (
         max_value_dom_heuristic(
             domains_stk,
@@ -162,6 +165,7 @@ def shave_bound(
         has_shaved = True
     else:
         domains_stk[stks_top[0] - 1, variable, bound] += 1 if bound == MAX else -1
+        unbound_variable_nb_stk[stks_top[0] - 1] = unbound_before
         has_shaved = False
     backtrack(
         statistics,
@@ -196,7 +200,7 @@ def shaving_consistency_algorithm(
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_fcts: Any,
-    decision_variables: NDArray,
+    decision_variables: Any,
     domain_buffer: NDArray,
 ) -> int:
     """
@@ -235,8 +239,8 @@ def shaving_consistency_algorithm(
     :type triggered_propagators: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions
     :type compute_domains_fcts: Any
-    :param decision_variables: the variables on which decisions will be made
-    :type decision_variables: NDArray
+    :param decision_variables: the per-search list of decision variable arrays
+    :type decision_variables: Any
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray
@@ -274,12 +278,7 @@ def shaving_consistency_algorithm(
             )
             if status != PROBLEM_UNBOUND:
                 return status
-        variable = first_not_instantiated_var_heuristic(
-            decision_variables[decision_variables >= start_idx],
-            domains_stk,
-            stks_top,  # type: ignore[arg-type]
-            None,  # type: ignore[arg-type]
-        )
+        variable = first_unbound_decision_variable(decision_variables, domains_stk, stks_top[0], start_idx)
         if variable == -1:  # all variables after start_idx are instantiated
             break
         statistics[STATS_IDX_ALG_SHAVING_NB] += 1

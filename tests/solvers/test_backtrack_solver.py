@@ -16,6 +16,7 @@ from nucs.buckets import buckets_empty, STORAGE_OFFSET
 from nucs.constants import (
     OPTIM_PRUNE,
     OPTIM_RESET,
+    STATS_LBL_ALG_SHAVING_NB,
     STATS_LBL_SOLUTION_NB,
     STATS_LBL_SOLVER_CHOICE_DEPTH,
 )
@@ -39,6 +40,7 @@ from nucs.propagators.propagators import (
 )
 from nucs.solvers.backtrack_solver import BacktrackSolver, Search, solve_one
 from nucs.solvers.choice_points import backtrack
+from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_SHAVING
 
 
 class TestBacktrackSolver:
@@ -73,8 +75,6 @@ class TestBacktrackSolver:
             solver.triggered_propagators,
             solver.consistency_alg_fcts,
             solver.decision_variables,
-            solver.search_starts,
-            solver.nb_searches,
             solver.var_heuristic_fcts,
             solver.var_heuristic_params,
             solver.dom_heuristic_fcts,
@@ -166,6 +166,25 @@ class TestBacktrackSolver:
         )
         solution = next(solver.solve())
         assert solution.tolist() == [0, 0, 9]  # variable 2 grounded to 9 first, then 0 and 1 to their min
+
+    def test_shaving_consistency_algorithm_matches_bound_consistency(self) -> None:
+        # the shaving consistency algorithm must reach exactly the same solutions as plain bound consistency.
+        # Shaving a size-2 domain used to leak the unbound-variable count (the leftover sub-domain grounds,
+        # decrementing the count, which the failed-shave restore did not undo), so the count underflowed and
+        # the solver looped forever; this test both checks correctness and guards against that regression.
+        def solve_with(consistency_algorithm: int) -> "tuple":
+            problem = Problem([(0, 4), (0, 4), (0, 4), (0, 4)])
+            problem.add_propagator(ALG_ALLDIFFERENT, [0, 1, 2, 3])
+            problem.add_propagator(ALG_LINEAR_LEQ_C, [0, 1, 2, 3], [1, 1, 1, 1, 6])  # sum <= 6
+            solver = BacktrackSolver(problem, consistency_algorithm=consistency_algorithm)
+            return sorted(tuple(s.tolist()) for s in solver.solve()), solver
+
+        bc_solutions, _ = solve_with(CONSISTENCY_ALG_BC)
+        shaving_solutions, shaving_solver = solve_with(CONSISTENCY_ALG_SHAVING)
+        assert len(bc_solutions) == 24
+        assert shaving_solutions == bc_solutions
+        # the shaving branch was genuinely exercised (not silently skipped)
+        assert shaving_solver.get_statistics_as_dictionary()[STATS_LBL_ALG_SHAVING_NB] > 0
 
     def test_split_grounding_wakes_ground_triggered_propagator(self) -> None:
         # A split heuristic that grounds a variable in its current branch must report a GROUND event,

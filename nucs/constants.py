@@ -60,6 +60,9 @@ TYPE_COMPUTE_DOMAINS_LIST = types.ListType(TYPE_COMPUTE_DOMAINS)
 SIGN_GET_TRIGGERS = int64(uint64, uint64, int32[:])
 TYPE_GET_TRIGGERS = types.FunctionType(SIGN_GET_TRIGGERS)
 
+# one array of decision variables per search, concatenated in branching order across the sequential search
+TYPE_DECISION_VARIABLES_LIST = types.ListType(uint32[::1])
+
 SIGN_CONSISTENCY_ALG = int64(
     int64,  # algorithm_nb
     int64,  # propagator_nb
@@ -78,7 +81,7 @@ SIGN_CONSISTENCY_ALG = int64(
     uint32[:],  # stks_top
     int32[:],  # triggered_propagators
     TYPE_COMPUTE_DOMAINS_LIST,  # compute_domains_fcts
-    uint32[:],  # decision_variables
+    TYPE_DECISION_VARIABLES_LIST,  # decision_variables
     int32[:, :],  # domain_buffer
 )
 TYPE_CONSISTENCY_ALG = types.FunctionType(SIGN_CONSISTENCY_ALG)

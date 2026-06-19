@@ -65,6 +65,33 @@ def get_domain_buffer(bounds: NDArray) -> NDArray:
 
 
 @njit(cache=True, fastmath=True)
+def first_unbound_decision_variable(decision_variables: Any, domains_stk: NDArray, top: int, start_idx: int) -> int:
+    """
+    Returns the first unbound decision variable whose index is at least start_idx, scanning the per-search
+    decision variable arrays in their branching order, or -1 when every such variable is bound.
+
+    :param decision_variables: the per-search list of decision variable arrays
+    :type decision_variables: Any
+    :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
+    :param top: the index of the top of the stacks
+    :type top: int
+    :param start_idx: the smallest variable index to consider
+    :type start_idx: int
+
+    :return: the first unbound decision variable index >= start_idx, or -1
+    :rtype: int
+    """
+    for search_idx in range(len(decision_variables)):
+        search_vars = decision_variables[search_idx]
+        for i in range(len(search_vars)):
+            variable = search_vars[i]
+            if variable >= start_idx and domains_stk[top, variable, MIN] < domains_stk[top, variable, MAX]:
+                return variable
+    return -1
+
+
+@njit(cache=True, fastmath=True)
 def bound_consistency_algorithm(
     algorithm_nb: int,
     propagator_nb: int,
@@ -83,7 +110,7 @@ def bound_consistency_algorithm(
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_fcts: Any,
-    decision_variables: NDArray,
+    decision_variables: Any,
     domain_buffer: NDArray,
 ) -> int:
     """
@@ -123,8 +150,8 @@ def bound_consistency_algorithm(
     :type triggered_propagators: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
     :type compute_domains_fcts: Any
-    :param decision_variables: the variables on which decisions will be made
-    :type decision_variables: NDArray
+    :param decision_variables: the per-search list of decision variable arrays (unused here)
+    :type decision_variables: Any
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray

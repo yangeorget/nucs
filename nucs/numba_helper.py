@@ -56,17 +56,17 @@ def addresses_from_functions(functions: List[Callable], signature: Any) -> NDArr
     )
 
 
-def build_params_list(params: List[NDArray]) -> Any:
+def build_typed_list(arrays: List[NDArray]) -> Any:
     """
-    Builds a per-search list of 2D parameter arrays. Under the JIT a Numba typed list is returned (so the
-    jitted search loop can index it by search), otherwise a plain Python list. The arrays may have different
-    shapes; only their dtype and rank must match.
+    Builds a per-search list of arrays (the search's decision variables, or its heuristic parameters). Under
+    the JIT a Numba typed list is returned (so the jitted search loop can index it by search), otherwise a
+    plain Python list. The arrays may have different shapes; only their dtype and rank must match.
     """
     if NUMBA_DISABLE_JIT:
-        return list(params)
+        return list(arrays)
     typed = NumbaList()
-    for param in params:
-        typed.append(param)
+    for array in arrays:
+        typed.append(array)
     return typed
 
 

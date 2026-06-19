@@ -18,7 +18,6 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MIN, MAX, MIN
-from nucs.heuristics.heuristics import first_not_instantiated_var_heuristic
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     ALG_ALLDIFFERENT,
@@ -26,7 +25,7 @@ from nucs.propagators.propagators import (
     ALG_SUM_EQ,
     update_propagators,
 )
-from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
+from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm, first_unbound_decision_variable
 
 GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])
 
@@ -141,7 +140,7 @@ def golomb_consistency_algorithm(
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_fcts: Any,
-    decision_variables: NDArray,
+    decision_variables: Any,
     domain_buffer: NDArray,
 ) -> int:
     """
@@ -156,7 +155,7 @@ def golomb_consistency_algorithm(
     top = stks_top[0]
     # first prune the search space
     mark_nb = (1 + int(math.sqrt(8 * len(triggers) + 1))) >> 1
-    ni_var = first_not_instantiated_var_heuristic(decision_variables, domains_stk, top, None)  # type: ignore[arg-type]
+    ni_var = first_unbound_decision_variable(decision_variables, domains_stk, top, 0)
     if 1 < ni_var < mark_nb - 1:  # otherwise useless
         used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=np.bool)
         # a reusable array for storing the minimal sum of different integers:
