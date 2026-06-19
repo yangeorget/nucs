@@ -82,7 +82,7 @@ KEPT_GLOBALS = {
     ),
     "inverse": (
         "array[1..3] of var 1..3: f; array[1..3] of var 1..3: g; constraint inverse(f,g);",
-        "fzn_inverse",
+        "nucs_inverse",
         "fzn_inverse.mzn",
     ),
     "lex_less": (
@@ -193,6 +193,20 @@ def test_subcircuit_non_one_based_index_with_wide_domain(tmp_path) -> None:  # t
     )
     # indomain_min first grounds every node to a self-loop (the empty sub-circuit)
     assert "c = [2: 2, 3: 3, 4: 4, 5: 5];" in out
+
+
+def test_inverse_non_one_based_index_with_wide_domain(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """inverse over index sets 2..4 whose declared domains (-100..100) are wider than the node sets: the
+    fzn_inverse library rebases each array's values to the other's index set, so g is the genuine inverse of
+    f on nodes 2..4 (not garbage from an offset guessed off the variable domain)."""
+    out = _solve(
+        "array[2..4] of var -100..100: f;\narray[2..4] of var -100..100: g;\n"
+        "constraint inverse(f, g);\nconstraint f[2] = 3;\nconstraint f[3] = 4;\nconstraint f[4] = 2;\n"
+        "solve satisfy;",
+        tmp_path,
+    )
+    assert "f = [2: 3, 3: 4, 4: 2];" in out
+    assert "g = [2: 4, 3: 2, 4: 3];" in out  # the inverse permutation, on nodes 2..4
 
 
 def test_every_redefinition_file_is_covered() -> None:
