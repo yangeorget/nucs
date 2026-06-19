@@ -869,6 +869,8 @@ BUILTINS: Dict[str, Handler] = {
     "fzn_strictly_decreasing_int": _strictly_decreasing,
     "fzn_strictly_increasing_int": _strictly_increasing,
     "fzn_subcircuit": _subcircuit,
+    "nucs_circuit": _circuit,
+    "nucs_subcircuit": _subcircuit,
     "fzn_value_precede_chain_int": _value_precede_chain,
     "fzn_value_precede_int": _value_precede,
     "global_cardinality_low_up": _global_cardinality_low_up,

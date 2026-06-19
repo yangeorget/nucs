@@ -40,7 +40,7 @@ KEPT_GLOBALS = {
     ),
     "circuit": (
         "array[1..4] of var 1..4: s; constraint circuit(s);",
-        "fzn_circuit",
+        "nucs_circuit",
         "fzn_circuit.mzn",
     ),
     "count_eq": (
@@ -107,7 +107,7 @@ KEPT_GLOBALS = {
     ),
     "subcircuit": (
         "array[1..4] of var 1..4: x; constraint subcircuit(x);",
-        "fzn_subcircuit",
+        "nucs_subcircuit",
         "fzn_subcircuit.mzn",
     ),
     "table": (
@@ -145,12 +145,54 @@ def _compile_to_fzn(model: str, tmp_path) -> str:  # type: ignore[no-untyped-def
     return result.stdout
 
 
+def _solve(model: str, tmp_path) -> str:  # type: ignore[no-untyped-def]
+    """Solves a MiniZinc model with the NuCS solver, returning the solution stream text."""
+    assert MINIZINC is not None
+    model_path = tmp_path / "model.mzn"
+    model_path.write_text(f'include "globals.mzn";\n{model}\n')
+    env = dict(os.environ, MZN_SOLVER_PATH=SHARE_DIR)
+    result = subprocess.run(
+        [MINIZINC, "--solver", "nucs", str(model_path)],
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=120,
+    )
+    assert result.returncode == 0, result.stderr
+    return result.stdout
+
+
 @pytest.mark.parametrize("name", sorted(KEPT_GLOBALS))
 def test_global_stays_native(name, tmp_path) -> None:  # type: ignore[no-untyped-def]
     """The NuCS globals library keeps each kept global native instead of decomposing it."""
     model, predicate, _ = KEPT_GLOBALS[name]
     fzn = _compile_to_fzn(model, tmp_path)
     assert f"constraint {predicate}(" in fzn, f"{name} was decomposed instead of kept native:\n{fzn}"
+
+
+def test_circuit_non_one_based_index_with_wide_domain(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """circuit over an index set 2..5 whose declared domain (-100..100) is wider than the node set: the
+    fzn_circuit library rebases successor values to the index set, so the solution is a circuit on 2..5
+    (not the garbage negative values produced when the offset was guessed from the variable domain)."""
+    out = _solve(
+        "array[2..5] of var -100..100: c;\nconstraint circuit(c);\n"
+        "solve :: int_search(c, input_order, indomain_min, complete) satisfy;",
+        tmp_path,
+    )
+    # the lexicographically first circuit on nodes 2..5 explored with indomain_min
+    assert "c = [2: 3, 3: 4, 4: 5, 5: 2];" in out
+
+
+def test_subcircuit_non_one_based_index_with_wide_domain(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """subcircuit over an index set 2..5 with a wide declared domain: like circuit, successor values are
+    rebased to the node set, so self-loops and the sub-circuit stay within 2..5."""
+    out = _solve(
+        "array[2..5] of var -100..100: c;\nconstraint subcircuit(c);\n"
+        "solve :: int_search(c, input_order, indomain_min, complete) satisfy;",
+        tmp_path,
+    )
+    # indomain_min first grounds every node to a self-loop (the empty sub-circuit)
+    assert "c = [2: 2, 3: 3, 4: 4, 5: 5];" in out
 
 
 def test_every_redefinition_file_is_covered() -> None:
