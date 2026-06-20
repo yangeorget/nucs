@@ -11,7 +11,6 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 
-from typing import Any
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -41,6 +40,7 @@ from nucs.constants import (
     VARIABLE,
     EVENT_MASK_NONE,
 )
+from nucs.numba_helper import NDArrayList, ComputeDomainsFunctions
 
 
 def get_domain_buffer(bounds: NDArray) -> NDArray:
@@ -66,13 +66,15 @@ def get_domain_buffer(bounds: NDArray) -> NDArray:
 
 
 @njit(cache=True, fastmath=True)
-def first_unbound_decision_variable(decision_variables: Any, domains_stk: NDArray, top: int, start_idx: int) -> int:
+def first_unbound_decision_variable(
+    decision_variables: NDArrayList, domains_stk: NDArray, top: int, start_idx: int
+) -> int:
     """
     Returns the first unbound decision variable whose index is at least start_idx, scanning the per-search
     decision variable arrays in their branching order, or -1 when every such variable is bound.
 
     :param decision_variables: the per-search list of decision variable arrays
-    :type decision_variables: Any
+    :type decision_variables: ArrayList
     :param domains_stk: the stack of domains
     :type domains_stk: NDArray
     :param top: the index of the top of the stacks
@@ -111,8 +113,8 @@ def bound_consistency_algorithm(
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
-    compute_domains_fcts: Any,
-    decision_variables: Any,
+    compute_domains_fcts: ComputeDomainsFunctions,
+    decision_variables: NDArrayList,
     domain_buffer: NDArray,
 ) -> int:
     """
@@ -153,9 +155,9 @@ def bound_consistency_algorithm(
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
-    :type compute_domains_fcts: Any
+    :type compute_domains_fcts: ComputeDomainsFcts
     :param decision_variables: the per-search list of decision variable arrays (unused here)
-    :type decision_variables: Any
+    :type decision_variables: ArrayList
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray

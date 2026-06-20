@@ -28,6 +28,7 @@ RANGE_END = 1  # index corresponding to the end of a value range
 # Domain bounds
 MIN = 0  # min value of a domain
 MAX = 1  # max value of a domain
+GROUND = 2
 
 # Domain update stack indices
 DOM_UPDATE_VARIABLE = 0  # index for the variable
@@ -35,11 +36,11 @@ DOM_UPDATE_EVENTS = 1  # index for the events
 
 # Events
 EVENT_NB = 3
-EVENT_MASK_NB = 1 << 3
+EVENT_MASK_NB = 1 << EVENT_NB
 EVENT_MASK_NONE = 0
 EVENT_MASK_MIN = 1 << MIN
 EVENT_MASK_MAX = 1 << MAX
-EVENT_MASK_GROUND = 1 << 2
+EVENT_MASK_GROUND = 1 << GROUND
 EVENT_MASK_MIN_MAX = EVENT_MASK_MIN | EVENT_MASK_MAX
 EVENT_MASK_MIN_GROUND = EVENT_MASK_MIN | EVENT_MASK_GROUND
 EVENT_MASK_MAX_GROUND = EVENT_MASK_MAX | EVENT_MASK_GROUND

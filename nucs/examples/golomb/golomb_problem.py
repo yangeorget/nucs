@@ -18,6 +18,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MIN, EVENT_MASK_NB, MAX, MIN
+from nucs.numba_helper import NDArrayList, ComputeDomainsFunctions
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     ALG_ALLDIFFERENT,
@@ -140,8 +141,8 @@ def golomb_consistency_algorithm(
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
-    compute_domains_fcts: Any,
-    decision_variables: Any,
+    compute_domains_fcts: ComputeDomainsFunctions,
+    decision_variables: NDArrayList,
     domain_buffer: NDArray,
 ) -> int:
     """

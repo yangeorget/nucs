@@ -14,7 +14,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from multiprocessing import Queue
-from typing import Any, Dict, Iterable, Iterator, List, Optional
+from typing import Dict, Iterable, Iterator, List, Optional
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -71,6 +71,11 @@ from nucs.heuristics.heuristics import (
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
 )
 from nucs.numba_helper import (
+    NDArrayList,
+    ComputeDomainsFunctions,
+    ConsistencyAlgorithmFunctions,
+    DomainHeuristicFunctions,
+    VariableHeuristicFunctions,
     addresses_from_functions,
     build_compute_domains_fcts,
     build_consistency_alg_fcts,
@@ -110,6 +115,16 @@ class BacktrackSolver(Solver, QueueSolver):
     """
     A solver relying on a backtracking mechanism.
     """
+
+    # the per-search / per-propagator collections threaded into solve_one (Numba typed lists under the JIT,
+    # plain Python lists otherwise)
+    decision_variables: NDArrayList
+    var_heuristic_params: NDArrayList
+    dom_heuristic_params: NDArrayList
+    consistency_alg_fcts: ConsistencyAlgorithmFunctions
+    var_heuristic_fcts: VariableHeuristicFunctions
+    dom_heuristic_fcts: DomainHeuristicFunctions
+    compute_domains_fcts: ComputeDomainsFunctions
 
     def __init__(
         self,
@@ -699,13 +714,13 @@ def solve_one(
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
-    consistency_alg_fcts: Any,
-    decision_variables: Any,
-    var_heuristic_fcts: Any,
-    var_heuristic_params: Any,
-    dom_heuristic_fcts: Any,
-    dom_heuristic_params: Any,
-    compute_domains_fcts: Any,
+    consistency_alg_fcts: ConsistencyAlgorithmFunctions,
+    decision_variables: NDArrayList,
+    var_heuristic_fcts: VariableHeuristicFunctions,
+    var_heuristic_params: NDArrayList,
+    dom_heuristic_fcts: DomainHeuristicFunctions,
+    dom_heuristic_params: NDArrayList,
+    compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
 ) -> Optional[NDArray]:
     """
@@ -745,19 +760,19 @@ def solve_one(
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param consistency_alg_fcts: a 1-element list holding the consistency algorithm function
-    :type consistency_alg_fcts: Any
+    :type consistency_alg_fcts: ConsistencyAlgFcts
     :param decision_variables: the per-search list of decision variable arrays
-    :type decision_variables: Any
+    :type decision_variables: ArrayList
     :param var_heuristic_fcts: the typed list of variable heuristic functions, one per search
-    :type var_heuristic_fcts: Any
+    :type var_heuristic_fcts: VarHeuristicFcts
     :param var_heuristic_params: the per-search list of variable heuristic parameter arrays
-    :type var_heuristic_params: Any
+    :type var_heuristic_params: ArrayList
     :param dom_heuristic_fcts: the typed list of domain heuristic functions, one per search
-    :type dom_heuristic_fcts: Any
+    :type dom_heuristic_fcts: DomHeuristicFcts
     :param dom_heuristic_params: the per-search list of domain heuristic parameter arrays
-    :type dom_heuristic_params: Any
+    :type dom_heuristic_params: ArrayList
     :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
-    :type compute_domains_fcts: Any
+    :type compute_domains_fcts: ComputeDomainsFcts
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray

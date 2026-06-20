@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List, Callable, Any
+from typing import Any, Callable, List, Sequence
 
 import numpy as np
 from numba import njit, types  # type: ignore
@@ -27,6 +27,16 @@ from nucs.constants import (
     TYPE_DOM_HEURISTIC,
     TYPE_VAR_HEURISTIC,
 )
+
+# These per-search / per-propagator collections are Numba typed lists under the JIT and plain Python lists
+# under NUMBA_DISABLE_JIT; both are indexed, iterated and measured the same way, so they are typed
+# structurally as read-only sequences. The Callable element signatures mirror the matching SIGN_* in
+# nucs.constants (under the JIT the element is actually a Numba FunctionType, which has no Python type).
+NDArrayList = Sequence[NDArray]
+ComputeDomainsFunctions = Sequence[Callable[[NDArray, NDArray], int]]
+VariableHeuristicFunctions = Sequence[Callable[[NDArray, NDArray, int, NDArray], int]]
+DomainHeuristicFunctions = Sequence[Callable[[NDArray, NDArray, NDArray, NDArray, NDArray, int, NDArray], int]]
+ConsistencyAlgorithmFunctions = Sequence[Callable[..., int]]
 
 
 @intrinsic

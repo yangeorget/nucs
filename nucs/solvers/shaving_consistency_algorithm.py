@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Any
 
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -28,6 +27,7 @@ from nucs.constants import (
     STATS_IDX_ALG_SHAVING_NO_CHANGE_NB,
 )
 from nucs.heuristics.heuristics import max_value_dom_heuristic, min_value_dom_heuristic
+from nucs.numba_helper import NDArrayList, ComputeDomainsFunctions
 from nucs.propagators.propagators import update_propagators
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm, first_unbound_decision_variable
 from nucs.solvers.choice_points import backtrack
@@ -54,8 +54,8 @@ def shave_bound(
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
-    compute_domains_fcts: Any,
-    decision_variables: Any,
+    compute_domains_fcts: ComputeDomainsFunctions,
+    decision_variables: NDArrayList,
     domain_buffer: NDArray,
 ) -> bool:
     """
@@ -98,9 +98,9 @@ def shave_bound(
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions
-    :type compute_domains_fcts: Any
+    :type compute_domains_fcts: ComputeDomainsFcts
     :param decision_variables: the per-search list of decision variable arrays
-    :type decision_variables: Any
+    :type decision_variables: ArrayList
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray
@@ -207,8 +207,8 @@ def shaving_consistency_algorithm(
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
-    compute_domains_fcts: Any,
-    decision_variables: Any,
+    compute_domains_fcts: ComputeDomainsFunctions,
+    decision_variables: NDArrayList,
     domain_buffer: NDArray,
 ) -> int:
     """
@@ -248,9 +248,9 @@ def shaving_consistency_algorithm(
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions
-    :type compute_domains_fcts: Any
+    :type compute_domains_fcts: ComputeDomainsFcts
     :param decision_variables: the per-search list of decision variable arrays
-    :type decision_variables: Any
+    :type decision_variables: ArrayList
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray

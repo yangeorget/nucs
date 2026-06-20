@@ -126,7 +126,8 @@ If the propagator exists to support a MiniZinc/FlatZinc constraint, also connect
   resolves the args (`model.var_index_of` / `var_list_of` / `int_list_of` / `const_of`) and calls
   `model.problem.add_propagator(ALG_<NAME>, variables, parameters)`.
 - If it is a **global** you want MiniZinc to keep native rather than decompose, add a body-less predicate file under
-  `nucs/fzn/share/minizinc/nucs/` (see `fzn_all_different_int.mzn`), and key the dispatch entry on the `fzn_*` (or custom)
+  `nucs/fzn/share/minizinc/nucs/` (see `fzn_all_different_int.mzn`), and key the dispatch entry on the `fzn_*` (or
+  custom)
   predicate name that file produces.
 
 Verify end-to-end with `tests/fzn/` and, when `minizinc` is installed, `minizinc --solver nucs`.
