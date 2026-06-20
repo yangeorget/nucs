@@ -52,6 +52,13 @@ class TestDisjunctive(PropagatorTest):
             ([(0, 3), (0, 3), (0, 3)], [2, 2, 2], PROP_INCONSISTENCY, None),
             # all start times fixed and non-overlapping: entailed
             ([(0, 0), (2, 2)], [2, 2], PROP_ENTAILMENT, [[0, 0], [2, 2]]),
+            # not-first/not-last: task 0 is forced after the fixed task 1 (start 2), then task 2 cannot be
+            # anything but last, so its start is raised to 4 -- a prune edge finding needs a second pass for
+            ([(0, 2), (1, 1), (2, 4)], [2, 1, 1], PROP_CONSISTENCY, [[2, 2], [1, 1], [4, 4]]),
+            # detectable precedence 0 << 2 (task 2 cannot precede task 0), so task 0 must complete before
+            # task 2's latest start 2, lowering task 0's latest start to 1 -- a prune neither edge finding nor
+            # not-first/not-last makes (even at fixpoint)
+            ([(0, 2), (6, 6), (1, 2)], [1, 3, 3], PROP_CONSISTENCY, [[0, 1], [6, 6], [1, 2]]),
         ],
     )
     def test_compute_domains(
