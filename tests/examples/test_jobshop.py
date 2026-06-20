@@ -14,9 +14,7 @@ import json
 
 import pytest
 
-from nucs.constants import OPTIM_PRUNE
 from nucs.examples.jobshop.jobshop_problem import JobShopProblem
-from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
@@ -41,43 +39,51 @@ def _assert_valid_schedule(problem: JobShopProblem, solution) -> int:  # type: i
 
 
 class TestJobShop:
-    def test_jobshop_optimum_small(self) -> None:
-        # a 2-job, 2-machine instance whose optimum makespan is 5 (provable quickly)
-        jobs = [[[0, 2], [1, 3]], [[1, 2], [0, 1]]]
-        problem = JobShopProblem(jobs)
-        solver = BacktrackSolver(
-            problem, decision_variables=range(problem.completion_start), var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN
-        )
-        solution = solver.minimize(problem.makespan, mode=OPTIM_PRUNE)
-        assert solution is not None
-        assert _assert_valid_schedule(problem, solution) == 5
-        assert int(solution[problem.makespan]) == 5
+    @pytest.mark.parametrize(
+        "name, optimum",
+        [("mt06", 55), ("mt20", 1165), ("la01", 666), ("la31", 1784)],
+    )
+    def test_jobshop_optimality_proof(self, name: str, optimum: int) -> None:
+        with open(f"datasets/examples/jobshop/{name}.json", "r") as json_file:
+            dataset = json.load(json_file)
+        problem = JobShopProblem(dataset["jobs"], optimum - 1)
+        solver = BacktrackSolver(problem, searches=problem.jobshop_searches())
+        solution = next(solver.solve(), None)
+        assert solution is None
 
-    # Proving the optima of these classic benchmarks is out of reach for a bounds branch-and-bound solver
-    # (e.g. mt10 stayed open for decades), so we only check that the disjunctive model yields a valid
-    # schedule whose makespan is no smaller than the known optimum.
     @pytest.mark.parametrize(
         "name, optimum",
         [
             ("mt06", 55),
             ("mt10", 930),
             ("mt20", 1165),
+            ("la01", 666),
             ("la05", 593),
         ],
     )
-    def test_jobshop_feasible(self, name: str, optimum: int) -> None:
+    def test_jobshop_first_solution(self, name: str, optimum: int) -> None:
+        # the critical-resource search keeps branching on one machine until its tasks are sequenced, then
+        # schedules each task at its earliest start: a valid schedule whose first-solution makespan is
+        # reproducible (and, on the larger instances, far better than the smallest-domain baseline)
         with open(f"datasets/examples/jobshop/{name}.json", "r") as json_file:
             dataset = json.load(json_file)
-        assert dataset["optimum"] == optimum
         problem = JobShopProblem(dataset["jobs"])
-        solver = BacktrackSolver(
-            problem,
-            decision_variables=range(problem.completion_start),
-            var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
-            log_level="ERROR",
-        )
-        solution = next(solver.solve(), None)
+        solution = next(BacktrackSolver(problem, searches=problem.jobshop_searches()).solve(), None)
         assert solution is not None
         makespan = _assert_valid_schedule(problem, solution)
         assert makespan == int(solution[problem.makespan])
         assert makespan >= optimum
+
+    @pytest.mark.parametrize(
+        "name, optimum",
+        [("mt06", 55)],
+    )
+    def test_jobshop_best_solution(self, name: str, optimum: int) -> None:
+        with open(f"datasets/examples/jobshop/{name}.json", "r") as json_file:
+            dataset = json.load(json_file)
+        assert dataset["optimum"] == optimum
+        problem = JobShopProblem(dataset["jobs"])
+        solver = BacktrackSolver(problem, searches=problem.jobshop_searches())
+        solution = solver.minimize(problem.makespan)
+        assert solution is not None
+        assert solution[problem.makespan] == optimum

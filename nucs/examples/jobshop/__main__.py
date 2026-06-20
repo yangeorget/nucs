@@ -15,7 +15,6 @@ import json
 from nucs.constants import OPTIM_PRUNE
 from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
 from nucs.examples.jobshop.jobshop_problem import JobShopProblem
-from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -27,11 +26,7 @@ if __name__ == "__main__":
     with open(args.dataset, "r") as json_file:
         dataset = json.load(json_file)
         problem = JobShopProblem(dataset["jobs"])
-        kwargs = solver_kwargs_from_args(
-            args,
-            decision_variables=range(problem.completion_start),
-            var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
-        )
+        kwargs = solver_kwargs_from_args(args, searches=problem.jobshop_searches())
         solver = BacktrackSolver(problem, **kwargs)
         solution = solver.minimize(problem.makespan, mode=args.optimization_mode or OPTIM_PRUNE)
         if args.display_stats:

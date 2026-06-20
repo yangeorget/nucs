@@ -12,11 +12,13 @@
 ###############################################################################
 from typing import Callable, List
 
+from nucs.heuristics.critical_resource_var_heuristic import critical_resource_var_heuristic
 from nucs.heuristics.first_not_instantiated_var_heuristic import first_not_instantiated_var_heuristic
 from nucs.heuristics.greatest_domain_var_heuristic import greatest_domain_var_heuristic
 from nucs.heuristics.largest_maximal_value_var_heuristic import largest_maximal_value_var_heuristic
 from nucs.heuristics.max_regret_var_heuristic import max_regret_var_heuristic
 from nucs.heuristics.max_value_dom_heuristic import max_value_dom_heuristic
+from nucs.heuristics.min_earliest_start_var_heuristic import min_earliest_start_var_heuristic
 from nucs.heuristics.mid_value_dom_heuristic import mid_value_dom_heuristic
 from nucs.heuristics.min_cost_dom_heuristic import min_cost_dom_heuristic
 from nucs.heuristics.min_value_dom_heuristic import min_value_dom_heuristic
@@ -58,10 +60,12 @@ def register_dom_heuristic(dom_heuristic_fct: Callable) -> int:
     return len(DOM_HEURISTIC_FCTS) - 1
 
 
+VAR_HEURISTIC_CRITICAL_RESOURCE = register_var_heuristic(critical_resource_var_heuristic)
 VAR_HEURISTIC_FIRST_NOT_INSTANTIATED = register_var_heuristic(first_not_instantiated_var_heuristic)
 VAR_HEURISTIC_GREATEST_DOMAIN = register_var_heuristic(greatest_domain_var_heuristic)
 VAR_HEURISTIC_LARGEST_MAXIMAL_VALUE = register_var_heuristic(largest_maximal_value_var_heuristic)
 VAR_HEURISTIC_MAX_REGRET = register_var_heuristic(max_regret_var_heuristic)
+VAR_HEURISTIC_MIN_EARLIEST_START = register_var_heuristic(min_earliest_start_var_heuristic)
 VAR_HEURISTIC_SMALLEST_DOMAIN = register_var_heuristic(smallest_domain_var_heuristic)
 VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE = register_var_heuristic(smallest_minimal_value_var_heuristic)
 

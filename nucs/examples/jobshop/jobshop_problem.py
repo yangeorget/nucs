@@ -10,10 +10,12 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List
+from typing import List, Optional
 
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_CRITICAL_RESOURCE
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ADD_C_EQ, ALG_DISJUNCTIVE, ALG_LINEAR_LEQ_C, ALG_MAX_EQ
+from nucs.solvers.backtrack_solver import Search
 
 
 class JobShopProblem(Problem):
@@ -31,9 +33,11 @@ class JobShopProblem(Problem):
 
     Instances follow the OR-Library format: ``jobs[j]`` is the list of ``[machine, duration]`` operations of
     job j, in processing order.
+
+    :meth:`recommended_searches` returns the search to drive a :class:`BacktrackSolver` with.
     """
 
-    def __init__(self, jobs: List[List[List[int]]]) -> None:
+    def __init__(self, jobs: List[List[List[int]]], horizon: Optional[int] = None) -> None:
         """
         Inits the problem.
 
@@ -45,7 +49,8 @@ class JobShopProblem(Problem):
         self.machine_nb = len(jobs[0])
         machines = [[op[0] for op in job] for job in jobs]
         durations = [[op[1] for op in job] for job in jobs]
-        horizon = sum(sum(job_durations) for job_durations in durations)
+        if horizon is None:
+            horizon = sum(sum(job_durations) for job_durations in durations)
         # earliest start = sum of preceding durations in the job (head); latest start = horizon minus the
         # remaining durations from that operation on (tail).
         start_domains = []
@@ -90,6 +95,41 @@ class JobShopProblem(Problem):
                         machine_starts.append(self.start(j, k))
                         machine_durations.append(durations[j][k])
             self.add_propagator(ALG_DISJUNCTIVE, machine_starts, machine_durations)
+
+    def resource_params(self) -> List[List[int]]:
+        """
+        Returns the ``(machine, duration)`` of each start-time variable, in variable-index order.
+
+        This is the parameter array consumed by the critical-resource variable heuristic: it tells the
+        heuristic which machine every task belongs to and how long it runs, so it can focus branching on one
+        critical machine at a time.
+
+        :return: one ``[machine, duration]`` row per start-time variable
+        :rtype: List[List[int]]
+        """
+        return [[op[0], op[1]] for job in self.jobs for op in job]
+
+    def jobshop_searches(self) -> List[Search]:
+        """
+        Returns the recommended search for this problem.
+
+        It branches only on the start times, sequencing one critical machine at a time (the critical-resource
+        variable heuristic) and committing each selected task to its earliest start (the min_value domain
+        heuristic) -- a cheap, backtrack-light schedule-earliest strategy and, of NuCS's job-shop searches, the
+        strongest at proving optimality. Pass it to a solver with ``BacktrackSolver(problem,
+        searches=problem.recommended_searches())``.
+
+        :return: a single-search sequential search
+        :rtype: List[Search]
+        """
+        return [
+            Search(
+                decision_variables=range(self.completion_start),
+                var_heuristic=VAR_HEURISTIC_CRITICAL_RESOURCE,
+                var_heuristic_params=self.resource_params(),
+                dom_heuristic=DOM_HEURISTIC_MIN_VALUE,
+            )
+        ]
 
     def start(self, job: int, operation: int) -> int:
         """
