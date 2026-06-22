@@ -58,6 +58,11 @@ KEPT_GLOBALS = {
         "fzn_count_leq",
         "fzn_count_leq.mzn",
     ),
+    "cumulative": (
+        "array[1..3] of var 0..9: s; constraint cumulative(s, [2, 3, 1], [1, 2, 1], 3);",
+        "nucs_cumulative",
+        "fzn_cumulative.mzn",
+    ),
     "diffn": (
         "array[1..3] of var 0..9: x; array[1..3] of var 0..9: y; constraint diffn(x, y, [2, 3, 1], [2, 1, 2]);",
         "nucs_diffn",

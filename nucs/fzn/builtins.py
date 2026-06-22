@@ -31,6 +31,7 @@ from nucs.propagators.propagators import (
     ALG_COUNT_EQ_C,
     ALG_COUNT_GEQ_C,
     ALG_COUNT_LEQ_C,
+    ALG_CUMULATIVE,
     ALG_DIFFN,
     ALG_DISJUNCTIVE,
     ALG_ELEMENT_EQ,
@@ -585,6 +586,17 @@ def _disjunctive(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_DISJUNCTIVE, model.var_list_of(args[0]), model.int_list_of(args[1]))
 
 
+def _cumulative(model: "FznModel", args: List[Term]) -> None:
+    """
+    Handles ``nucs_cumulative(s, d, r, b)``: tasks starting at ``s`` with constant durations ``d`` and constant
+    demands ``r`` never exceed the constant capacity ``b`` at any instant. The globals library only emits this
+    predicate when the durations, demands and capacity are fixed, so they map directly to the propagator
+    parameters: the durations, then the demands, then the capacity.
+    """
+    parameters = model.int_list_of(args[1]) + model.int_list_of(args[2]) + [model.const_of(args[3])]
+    model.problem.add_propagator(ALG_CUMULATIVE, model.var_list_of(args[0]), parameters)
+
+
 def _diffn(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``nucs_diffn(x, y, dx, dy)``: rectangles with bottom-left corners ``(x, y)`` and constant sizes
@@ -869,6 +881,7 @@ BUILTINS: Dict[str, Handler] = {
     "count_geq": _count_geq,
     "count_leq": _count_leq,
     "decreasing_int": _decreasing,
+    "nucs_cumulative": _cumulative,
     "nucs_diffn": _diffn,
     "nucs_disjunctive": _disjunctive,
     "fzn_all_different_int": _all_different,

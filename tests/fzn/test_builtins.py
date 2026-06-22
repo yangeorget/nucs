@@ -261,6 +261,37 @@ class TestBuiltins:
         # s[1] (0-based variable 0) <= 2, so s[2] >= 3; the first solution sets them to their minima
         assert "s = array1d(1..2, [0, 3]);" in out
 
+    def test_cumulative(self) -> None:
+        # two height-2 tasks on a capacity-2 resource cannot overlap (2 + 2 > 2): with s[1] <= 2, s[2] >= 3
+        out = solve_fzn(
+            "array [1..2] of var 0..5: s :: output_array([1..2]);\n"
+            "array [1..2] of int: d = [3, 3];\narray [1..2] of int: r = [2, 2];\n"
+            "constraint int_le(s[1], 2);\n"
+            "constraint nucs_cumulative(s, d, r, 2);\n"
+            "solve satisfy;",
+        )
+        assert "s = array1d(1..2, [0, 3]);" in out
+
+    def test_cumulative_allows_overlap(self) -> None:
+        # unlike disjunctive, two height-1 tasks may overlap under capacity 2, so s[2] is not pushed off s[1]
+        out = solve_fzn(
+            "array [1..2] of var 0..5: s :: output_array([1..2]);\n"
+            "array [1..2] of int: d = [3, 3];\narray [1..2] of int: r = [1, 1];\n"
+            "constraint int_le(s[1], 2);\n"
+            "constraint nucs_cumulative(s, d, r, 2);\n"
+            "solve satisfy;",
+        )
+        assert "s = array1d(1..2, [0, 0]);" in out
+
+    def test_cumulative_inconsistent(self) -> None:
+        # three height-1 tasks all forced to run during [0, 2) overload a capacity-2 resource
+        out = solve_fzn(
+            "array [1..3] of var 0..0: s;\n"
+            "array [1..3] of int: d = [2, 2, 2];\narray [1..3] of int: r = [1, 1, 1];\n"
+            "constraint nucs_cumulative(s, d, r, 2);\nsolve satisfy;",
+        )
+        assert "UNSATISFIABLE" in out
+
     def test_diffn(self) -> None:
         # rectangle 0 is a 2x2 square pinned at the origin; rectangle 1 (also 2x2) is pinned to overlap it
         # vertically (y in [0,1]), so it is forced to the right: x[1] >= 2

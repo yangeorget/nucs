@@ -68,6 +68,11 @@ from nucs.propagators.count_leq_c_propagator import (
     get_complexity_count_leq_c,
     get_triggers_count_leq_c,
 )
+from nucs.propagators.cumulative_propagator import (
+    compute_domains_cumulative,
+    get_complexity_cumulative,
+    get_triggers_cumulative,
+)
 from nucs.propagators.diffn_propagator import (
     compute_domains_diffn,
     get_complexity_diffn,
@@ -257,6 +262,7 @@ ALG_COUNT_EQ = register_propagator(get_triggers_count_eq, get_complexity_count_e
 ALG_COUNT_EQ_C = register_propagator(get_triggers_count_eq_c, get_complexity_count_eq_c, compute_domains_count_eq_c)
 ALG_COUNT_GEQ_C = register_propagator(get_triggers_count_geq_c, get_complexity_count_geq_c, compute_domains_count_geq_c)
 ALG_COUNT_LEQ_C = register_propagator(get_triggers_count_leq_c, get_complexity_count_leq_c, compute_domains_count_leq_c)
+ALG_CUMULATIVE = register_propagator(get_triggers_cumulative, get_complexity_cumulative, compute_domains_cumulative)
 ALG_DIFFN = register_propagator(get_triggers_diffn, get_complexity_diffn, compute_domains_diffn)
 ALG_DISJUNCTIVE = register_propagator(get_triggers_disjunctive, get_complexity_disjunctive, compute_domains_disjunctive)
 ALG_DUMMY = register_propagator(get_triggers_dummy, get_complexity_dummy, compute_domains_dummy)
