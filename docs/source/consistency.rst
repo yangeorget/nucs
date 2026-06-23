@@ -12,13 +12,6 @@ Bound consistency algorithm
 NuCS provides :mod:`nucs.solvers.bound_consistency_algorithm` which is the default consistency algorithm.
 
 
-****************************************
-Bound consistency algorithm with shaving
-****************************************
-NuCS provides :mod:`nucs.solvers.shaving_consistency_algorithm` which performs some shaving of the domains.
-Note that this algorithm is experimental and is subject to change.
-
-
 *****************************
 Custom consistency algorithms
 *****************************

@@ -61,11 +61,7 @@ TYPE_COMPUTE_DOMAINS_LIST = types.ListType(TYPE_COMPUTE_DOMAINS)
 SIGN_GET_TRIGGERS = int64(uint64, uint64, int32[:])
 TYPE_GET_TRIGGERS = types.FunctionType(SIGN_GET_TRIGGERS)
 
-# one array of decision variables per search, concatenated in branching order across the sequential search
-TYPE_DECISION_VARIABLES_LIST = types.ListType(uint32[::1])
-
 SIGN_CONSISTENCY_ALG = int64(
-    int64,  # algorithm_nb
     int64,  # propagator_nb
     int64[:],  # statistics
     uint8[:],  # algorithms
@@ -78,12 +74,10 @@ SIGN_CONSISTENCY_ALG = int64(
     int32[:, :, :],  # domains_stk
     int32[:],  # entailed_propagator_depths
     int32[:],  # entailment_trail
-    uint32[:, :],  # domain_update_stk
     uint32[:],  # unbound_variable_nb_stk
     uint32[:],  # stks_top
     int32[:],  # triggered_propagators
     TYPE_COMPUTE_DOMAINS_LIST,  # compute_domains_fcts
-    TYPE_DECISION_VARIABLES_LIST,  # decision_variables
     int32[:, :],  # domain_buffer
 )
 TYPE_CONSISTENCY_ALG = types.FunctionType(SIGN_CONSISTENCY_ALG)
@@ -117,13 +111,9 @@ LOG_LEVEL_ERROR = "ERROR"
 LOG_LEVEL_CRITICAL = "CRITICAL"
 LOG_LEVELS = [LOG_LEVEL_DEBUG, LOG_LEVEL_INFO, LOG_LEVEL_WARNING, LOG_LEVEL_ERROR, LOG_LEVEL_CRITICAL]
 
-STATS_MAX = 17
+STATS_MAX = 13
 (
     STATS_IDX_ALG_BC_NB,
-    STATS_IDX_ALG_BC_WITH_SHAVING_NB,
-    STATS_IDX_ALG_SHAVING_CHANGE_NB,
-    STATS_IDX_ALG_SHAVING_NB,
-    STATS_IDX_ALG_SHAVING_NO_CHANGE_NB,
     STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
     STATS_IDX_PROPAGATOR_FILTER_NB,
     STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
@@ -139,10 +129,6 @@ STATS_MAX = 17
 ) = tuple(range(STATS_MAX))
 
 STATS_LBL_ALG_BC_NB = "ALG_BC_NB"
-STATS_LBL_ALG_BC_WITH_SHAVING_NB = "ALG_BC_WITH_SHAVING_NB"
-STATS_LBL_ALG_SHAVING_CHANGE_NB = "ALG_SHAVING_CHANGE_NB"
-STATS_LBL_ALG_SHAVING_NB = "ALG_SHAVING_NB"
-STATS_LBL_ALG_SHAVING_NO_CHANGE_NB = "ALG_SHAVING_NO_CHANGE_NB"
 STATS_LBL_PROPAGATOR_ENTAILMENT_NB = "PROPAGATOR_ENTAILMENT_NB"
 STATS_LBL_PROPAGATOR_FILTER_NB = "PROPAGATOR_FILTER_NB"
 STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB = "PROPAGATOR_FILTER_NO_CHANGE_NB"

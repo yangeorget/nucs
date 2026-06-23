@@ -8,7 +8,7 @@ NUCS comes with several examples.
 
 Most of these examples can be run from the command line and support the following options:
 
-* :code:`--consistency`: set the consistency algorithm (0 is for BC, 1 for BC+shaving), defaults to BC
+* :code:`--consistency`: set the consistency algorithm (0 is for BC), defaults to BC
 * :code:`--cp-max-height`: set the maximal height of the choice points stack, defaults to 512
 * :code:`--dataset`: the dataset to use
 * :code:`--display-solutions`: display the solution(s), defaults to true

@@ -23,7 +23,7 @@ class DefaultArgumentParser(argparse.ArgumentParser):
         super().__init__()
         self.add_argument(
             "--consistency-algorithm",
-            help="set the consistency algorithm (0 is for BC, 1 for BC+shaving)",
+            help="set the consistency algorithm (0 is for BC)",
             type=int,
         )
         self.add_argument(

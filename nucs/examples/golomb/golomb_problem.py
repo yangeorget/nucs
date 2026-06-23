@@ -18,7 +18,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MIN, EVENT_MASK_NB, MAX, MIN
-from nucs.numba_helper import NDArrayList, ComputeDomainsFunctions
+from nucs.numba_helper import ComputeDomainsFunctions
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     ALG_ALLDIFFERENT,
@@ -26,7 +26,7 @@ from nucs.propagators.propagators import (
     ALG_SUM_EQ,
     update_propagators,
 )
-from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm, first_unbound_decision_variable
+from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
 
 GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])
 
@@ -124,7 +124,6 @@ class GolombProblem(Problem):
 
 @njit(cache=True, fastmath=True)
 def golomb_consistency_algorithm(
-    algorithm_nb: int,
     propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
@@ -137,12 +136,10 @@ def golomb_consistency_algorithm(
     domains_stk: NDArray,
     entailed_propagator_depths: NDArray,
     entailment_trail: NDArray,
-    domain_update_stk: NDArray,
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
-    decision_variables: NDArrayList,
     domain_buffer: NDArray,
 ) -> int:
     """
@@ -158,7 +155,12 @@ def golomb_consistency_algorithm(
     # first prune the search space
     domain_nb = (len(triggers_offsets) - 1) // EVENT_MASK_NB
     mark_nb = (1 + int(math.sqrt(8 * domain_nb + 1))) >> 1
-    ni_var = first_unbound_decision_variable(decision_variables, domains_stk, top, 0)
+    # the first unbound variable in index order (the marks are the leading variables), -1 when all are bound
+    ni_var = -1
+    for var in range(domain_nb):
+        if domains_stk[top, var, MIN] < domains_stk[top, var, MAX]:
+            ni_var = var
+            break
     if 1 < ni_var < mark_nb - 1:  # otherwise useless
         used_distance = np.zeros(sum_first(mark_nb - 2) + 1, dtype=np.bool)
         # a reusable array for storing the minimal sum of different integers:
@@ -196,7 +198,6 @@ def golomb_consistency_algorithm(
                         propagator_nb,
                     )
     return bound_consistency_algorithm(
-        algorithm_nb,
         propagator_nb,
         statistics,
         algorithms,
@@ -209,11 +210,9 @@ def golomb_consistency_algorithm(
         domains_stk,
         entailed_propagator_depths,
         entailment_trail,
-        domain_update_stk,
         unbound_variable_nb_stk,
         stks_top,
         triggered_propagators,
         compute_domains_fcts,
-        decision_variables,
         domain_buffer,
     )

@@ -47,10 +47,6 @@ Produces the following output:
    [ 2025-01-27 14:55:53,196 | MainProcess | INFO ] nucs.solvers.backtrack_solver.solve - Solving and iterating over the solutions
    {
        'ALG_BC_NB': 262011,
-       'ALG_BC_WITH_SHAVING_NB': 0,
-       'ALG_SHAVING_NB': 0,
-       'ALG_SHAVING_CHANGE_NB': 0,
-       'ALG_SHAVING_NO_CHANGE_NB': 0,
        'PROPAGATOR_ENTAILMENT_NB': 0,
        'PROPAGATOR_FILTER_NB': 2269980,
        'PROPAGATOR_FILTER_NO_CHANGE_NB': 990450,
@@ -98,10 +94,6 @@ Produces the following output:
    [ 2025-01-27 14:58:17,748 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 55
    {
        'ALG_BC_NB': 20780,
-       'ALG_BC_WITH_SHAVING_NB': 0,
-       'ALG_SHAVING_NB': 0,
-       'ALG_SHAVING_CHANGE_NB': 0,
-       'ALG_SHAVING_NO_CHANGE_NB': 0,
        'PROPAGATOR_ENTAILMENT_NB': 115080,
        'PROPAGATOR_FILTER_NB': 2829457,
        'PROPAGATOR_FILTER_NO_CHANGE_NB': 1794797,

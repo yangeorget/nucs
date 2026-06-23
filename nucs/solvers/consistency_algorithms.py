@@ -13,7 +13,6 @@
 from typing import Callable, List
 
 from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
-from nucs.solvers.shaving_consistency_algorithm import shaving_consistency_algorithm
 
 CONSISTENCY_ALG_FCTS: List[Callable] = []
 
@@ -33,4 +32,3 @@ def register_consistency_algorithm(consistency_algorithm_fct: Callable) -> int:
 
 
 CONSISTENCY_ALG_BC = register_consistency_algorithm(bound_consistency_algorithm)
-CONSISTENCY_ALG_SHAVING = register_consistency_algorithm(shaving_consistency_algorithm)

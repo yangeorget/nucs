@@ -35,10 +35,6 @@ from nucs.constants import (
     SIGN_DOM_HEURISTIC,
     SIGN_VAR_HEURISTIC,
     STATS_IDX_ALG_BC_NB,
-    STATS_IDX_ALG_BC_WITH_SHAVING_NB,
-    STATS_IDX_ALG_SHAVING_CHANGE_NB,
-    STATS_IDX_ALG_SHAVING_NB,
-    STATS_IDX_ALG_SHAVING_NO_CHANGE_NB,
     STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
     STATS_IDX_PROPAGATOR_FILTER_NB,
     STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
@@ -49,10 +45,6 @@ from nucs.constants import (
     STATS_IDX_SOLVER_CHOICE_NB,
     STATS_IDX_SOLVER_ELAPSED_TIME,
     STATS_LBL_ALG_BC_NB,
-    STATS_LBL_ALG_BC_WITH_SHAVING_NB,
-    STATS_LBL_ALG_SHAVING_CHANGE_NB,
-    STATS_LBL_ALG_SHAVING_NB,
-    STATS_LBL_ALG_SHAVING_NO_CHANGE_NB,
     STATS_LBL_PROPAGATOR_ENTAILMENT_NB,
     STATS_LBL_PROPAGATOR_FILTER_NB,
     STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
@@ -85,7 +77,7 @@ from nucs.numba_helper import (
     address_from_function,
 )
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagators, get_algorithm_nb
+from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagators
 from nucs.solvers.bound_consistency_algorithm import get_domain_buffer
 from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_points, fix_choice_point
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
@@ -266,10 +258,6 @@ class BacktrackSolver(Solver, QueueSolver):
         """
         return {
             STATS_LBL_ALG_BC_NB: int(self.statistics[STATS_IDX_ALG_BC_NB]),
-            STATS_LBL_ALG_BC_WITH_SHAVING_NB: int(self.statistics[STATS_IDX_ALG_BC_WITH_SHAVING_NB]),
-            STATS_LBL_ALG_SHAVING_NB: int(self.statistics[STATS_IDX_ALG_SHAVING_NB]),
-            STATS_LBL_ALG_SHAVING_CHANGE_NB: int(self.statistics[STATS_IDX_ALG_SHAVING_CHANGE_NB]),
-            STATS_LBL_ALG_SHAVING_NO_CHANGE_NB: int(self.statistics[STATS_IDX_ALG_SHAVING_NO_CHANGE_NB]),
             STATS_LBL_PROPAGATOR_ENTAILMENT_NB: int(self.statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB]),
             STATS_LBL_PROPAGATOR_FILTER_NB: int(self.statistics[STATS_IDX_PROPAGATOR_FILTER_NB]),
             STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB: int(self.statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB]),
@@ -388,7 +376,6 @@ class BacktrackSolver(Solver, QueueSolver):
         try:
             while (
                 solution := solve_one(
-                    get_algorithm_nb(),
                     self.problem.propagator_nb,
                     self.statistics,
                     self.problem.algorithms,
@@ -465,7 +452,6 @@ class BacktrackSolver(Solver, QueueSolver):
         t0 = time.perf_counter_ns()
         while True:
             solution = solve_one(
-                get_algorithm_nb(),
                 self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
@@ -569,7 +555,6 @@ class BacktrackSolver(Solver, QueueSolver):
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         while True:
             solution = solve_one(
-                get_algorithm_nb(),
                 self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
@@ -649,7 +634,6 @@ class BacktrackSolver(Solver, QueueSolver):
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         while True:
             solution = solve_one(
-                get_algorithm_nb(),
                 self.problem.propagator_nb,
                 self.statistics,
                 self.problem.algorithms,
@@ -697,7 +681,6 @@ class BacktrackSolver(Solver, QueueSolver):
 
 @njit(cache=True, fastmath=True)
 def solve_one(
-    algorithm_nb: int,
     propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
@@ -726,8 +709,6 @@ def solve_one(
     """
     Find at most one solution.
 
-    :param algorithm_nb: the number of registered propagator algorithms
-    :type algorithm_nb: int
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
     :param algorithms: the algorithms indexed by propagators
@@ -785,7 +766,6 @@ def solve_one(
     buckets_init(triggered_propagators, priorities)
     while True:
         status = consistency_alg_fct(
-            algorithm_nb,
             propagator_nb,
             statistics,
             algorithms,
@@ -798,12 +778,10 @@ def solve_one(
             domains_stk,
             entailed_propagator_depths,
             entailment_trail,
-            domain_update_stk,
             unbound_variable_nb_stk,
             stks_top,
             triggered_propagators,
             compute_domains_fcts,
-            decision_variables,
             domain_buffer,
         )
         top = stks_top[0]

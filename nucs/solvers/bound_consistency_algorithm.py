@@ -40,7 +40,7 @@ from nucs.constants import (
     VARIABLE,
     EVENT_MASK_NONE,
 )
-from nucs.numba_helper import NDArrayList, ComputeDomainsFunctions
+from nucs.numba_helper import ComputeDomainsFunctions
 
 
 def get_domain_buffer(bounds: NDArray) -> NDArray:
@@ -66,37 +66,7 @@ def get_domain_buffer(bounds: NDArray) -> NDArray:
 
 
 @njit(cache=True, fastmath=True)
-def first_unbound_decision_variable(
-    decision_variables: NDArrayList, domains_stk: NDArray, top: int, start_idx: int
-) -> int:
-    """
-    Returns the first unbound decision variable whose index is at least start_idx, scanning the per-search
-    decision variable arrays in their branching order, or -1 when every such variable is bound.
-
-    :param decision_variables: the per-search list of decision variable arrays
-    :type decision_variables: ArrayList
-    :param domains_stk: the stack of domains
-    :type domains_stk: NDArray
-    :param top: the index of the top of the stacks
-    :type top: int
-    :param start_idx: the smallest variable index to consider
-    :type start_idx: int
-
-    :return: the first unbound decision variable index >= start_idx, or -1
-    :rtype: int
-    """
-    for search_idx in range(len(decision_variables)):
-        search_vars = decision_variables[search_idx]
-        for i in range(len(search_vars)):
-            variable = search_vars[i]
-            if variable >= start_idx and domains_stk[top, variable, MIN] < domains_stk[top, variable, MAX]:
-                return variable
-    return -1
-
-
-@njit(cache=True, fastmath=True)
 def bound_consistency_algorithm(
-    algorithm_nb: int,
     propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
@@ -109,19 +79,15 @@ def bound_consistency_algorithm(
     domains_stk: NDArray,
     entailed_propagator_depths: NDArray,
     entailment_trail: NDArray,
-    domain_update_stk: NDArray,
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
-    decision_variables: NDArrayList,
     domain_buffer: NDArray,
 ) -> int:
     """
     This is the default consistency algorithm used by the solver.
 
-    :param algorithm_nb: the number of registered propagator algorithms
-    :type algorithm_nb: int
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
     :param algorithms: the algorithms indexed by propagators
@@ -146,8 +112,6 @@ def bound_consistency_algorithm(
     :param entailment_trail: the entailment trail, the first cell holds the trail size,
                              the following cells hold the indices of the entailed propagators in entailment order
     :type entailment_trail: NDArray
-    :param domain_update_stk: the stack of domain updates, unused here
-    :type domain_update_stk: NDArray
     :param unbound_variable_nb_stk: the stack of the unbound variables nb
     :type unbound_variable_nb_stk: NDArray
     :param stks_top: the height of the stacks as a Numpy array
@@ -156,8 +120,6 @@ def bound_consistency_algorithm(
     :type triggered_propagators: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
     :type compute_domains_fcts: ComputeDomainsFcts
-    :param decision_variables: the per-search list of decision variable arrays (unused here)
-    :type decision_variables: ArrayList
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray

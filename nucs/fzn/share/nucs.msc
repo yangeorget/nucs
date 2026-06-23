@@ -2,7 +2,7 @@
   "id": "org.nucs.nucs",
   "name": "NuCS",
   "description": "Fast constraint solving in Python",
-  "version": "12.4.9",
+  "version": "13.0.0",
   "mznlib": "./minizinc/nucs",
   "executable": "fzn-nucs",
   "tags": ["cp", "int"],
