@@ -68,13 +68,8 @@ from nucs.numba_helper import (
     ConsistencyAlgorithmFunctions,
     DomainHeuristicFunctions,
     VariableHeuristicFunctions,
-    addresses_from_functions,
-    build_compute_domains_fcts,
-    build_consistency_alg_fcts,
-    build_dom_heuristic_fcts,
     build_typed_list,
-    build_var_heuristic_fcts,
-    address_from_function,
+    build_function_ptrs,
 )
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagators
@@ -224,20 +219,16 @@ class BacktrackSolver(Solver, QueueSolver):
             self.var_heuristic_fcts = [VAR_HEURISTIC_FCTS[h] for h in var_heuristics]
             self.dom_heuristic_fcts = [DOM_HEURISTIC_FCTS[h] for h in dom_heuristics]
         else:
-            compute_domains_addrs = addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGN_COMPUTE_DOMAINS)
-            self.compute_domains_fcts = build_compute_domains_fcts(compute_domains_addrs)
-            consistency_alg_addr = address_from_function(
-                CONSISTENCY_ALG_FCTS[consistency_algorithm], SIGN_CONSISTENCY_ALG
+            self.compute_domains_fcts = build_function_ptrs(COMPUTE_DOMAINS_FCTS, SIGN_COMPUTE_DOMAINS)
+            self.consistency_alg_fcts = build_function_ptrs(
+                [CONSISTENCY_ALG_FCTS[consistency_algorithm]], SIGN_CONSISTENCY_ALG
             )
-            self.consistency_alg_fcts = build_consistency_alg_fcts(consistency_alg_addr)
-            var_heuristic_addrs = addresses_from_functions(
+            self.var_heuristic_fcts = build_function_ptrs(
                 [VAR_HEURISTIC_FCTS[h] for h in var_heuristics], SIGN_VAR_HEURISTIC
             )
-            self.var_heuristic_fcts = build_var_heuristic_fcts(var_heuristic_addrs)
-            dom_heuristic_addrs = addresses_from_functions(
+            self.dom_heuristic_fcts = build_function_ptrs(
                 [DOM_HEURISTIC_FCTS[h] for h in dom_heuristics], SIGN_DOM_HEURISTIC
             )
-            self.dom_heuristic_fcts = build_dom_heuristic_fcts(dom_heuristic_addrs)
         logger.debug("BacktrackSolver initialized")
 
     def get_statistics_as_array(self) -> NDArray:

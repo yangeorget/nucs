@@ -33,7 +33,7 @@ from nucs.constants import (
     SIGN_VAR_HEURISTIC,
 )
 from nucs.heuristics.heuristics import DOM_HEURISTIC_FCTS, VAR_HEURISTIC_FCTS
-from nucs.numba_helper import address_from_function
+from nucs.numba_helper import addresses_from_functions
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, COMPUTE_DOMAINS_FCTS, GET_TRIGGERS_FCTS
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -45,16 +45,11 @@ def warm() -> None:
     Compiles and caches every propagator, heuristic and consistency algorithm with the solver's signatures.
     """
     # Compile each function for the exact signature the solver dispatches through (see BacktrackSolver.__init__).
-    for compute_domains in COMPUTE_DOMAINS_FCTS:
-        address_from_function(compute_domains, SIGN_COMPUTE_DOMAINS)
-    for get_triggers in GET_TRIGGERS_FCTS:
-        address_from_function(get_triggers, SIGN_GET_TRIGGERS)
-    for var_heuristic in VAR_HEURISTIC_FCTS:
-        address_from_function(var_heuristic, SIGN_VAR_HEURISTIC)
-    for dom_heuristic in DOM_HEURISTIC_FCTS:
-        address_from_function(dom_heuristic, SIGN_DOM_HEURISTIC)
-    for consistency_algorithm in CONSISTENCY_ALG_FCTS:
-        address_from_function(consistency_algorithm, SIGN_CONSISTENCY_ALG)
+    addresses_from_functions(COMPUTE_DOMAINS_FCTS, SIGN_COMPUTE_DOMAINS)
+    addresses_from_functions(GET_TRIGGERS_FCTS, SIGN_GET_TRIGGERS)
+    addresses_from_functions(VAR_HEURISTIC_FCTS, SIGN_VAR_HEURISTIC)
+    addresses_from_functions(DOM_HEURISTIC_FCTS, SIGN_DOM_HEURISTIC)
+    addresses_from_functions(CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG)
     # A tiny solve compiles the remaining @njit glue (typed-list builders, choice-point and bucket helpers)
     # exactly as it is compiled at run time.
     problem = Problem([(0, 3)] * 4)

@@ -47,7 +47,7 @@ class TestJobShop:
         with open(f"datasets/examples/jobshop/{name}.json", "r") as json_file:
             dataset = json.load(json_file)
         problem = JobShopProblem(dataset["jobs"], optimum - 1)
-        solver = BacktrackSolver(problem, searches=problem.jobshop_searches())
+        solver = BacktrackSolver(problem, searches=problem.recommended_searches())
         solution = next(solver.solve(), None)
         assert solution is None
 
@@ -68,7 +68,7 @@ class TestJobShop:
         with open(f"datasets/examples/jobshop/{name}.json", "r") as json_file:
             dataset = json.load(json_file)
         problem = JobShopProblem(dataset["jobs"])
-        solution = next(BacktrackSolver(problem, searches=problem.jobshop_searches()).solve(), None)
+        solution = next(BacktrackSolver(problem, searches=problem.recommended_searches()).solve(), None)
         assert solution is not None
         makespan = _assert_valid_schedule(problem, solution)
         assert makespan == int(solution[problem.makespan])
@@ -83,7 +83,7 @@ class TestJobShop:
             dataset = json.load(json_file)
         assert dataset["optimum"] == optimum
         problem = JobShopProblem(dataset["jobs"])
-        solver = BacktrackSolver(problem, searches=problem.jobshop_searches())
+        solver = BacktrackSolver(problem, searches=problem.recommended_searches())
         solution = solver.minimize(problem.makespan)
         assert solution is not None
         assert solution[problem.makespan] == optimum

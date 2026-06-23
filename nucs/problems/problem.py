@@ -30,7 +30,7 @@ from nucs.constants import (
     TYPE_GET_TRIGGERS,
     VARIABLE,
 )
-from nucs.numba_helper import addresses_from_functions, function_from_address
+from nucs.numba_helper import addresses_from_functions, function_ptr_from_address
 from nucs.propagators.propagators import GET_TRIGGERS_FCTS, GET_COMPLEXITY_FCTS
 
 logger = logging.getLogger(__name__)
@@ -292,7 +292,7 @@ def count_triggers(
         if NUMBA_DISABLE_JIT:
             trigger_fct = GET_TRIGGERS_FCTS[algorithm]
         else:
-            trigger_fct = function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])  # type: ignore[call-arg, arg-type]
+            trigger_fct = function_ptr_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])  # type: ignore[call-arg, arg-type]
         parameters = propagator_parameters[
             bounds[propagator, PARAM, RANGE_START] : bounds[propagator, PARAM, RANGE_END]
         ]
@@ -352,7 +352,7 @@ def fill_triggers(
         if NUMBA_DISABLE_JIT:
             trigger_fct = GET_TRIGGERS_FCTS[algorithm]
         else:
-            trigger_fct = function_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])  # type: ignore[call-arg, arg-type]
+            trigger_fct = function_ptr_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])  # type: ignore[call-arg, arg-type]
         parameters = propagator_parameters[
             bounds[propagator, PARAM, RANGE_START] : bounds[propagator, PARAM, RANGE_END]
         ]

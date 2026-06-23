@@ -109,7 +109,7 @@ class JobShopProblem(Problem):
         """
         return [[op[0], op[1]] for job in self.jobs for op in job]
 
-    def jobshop_searches(self) -> List[Search]:
+    def recommended_searches(self) -> List[Search]:
         """
         Returns the recommended search for this problem.
 

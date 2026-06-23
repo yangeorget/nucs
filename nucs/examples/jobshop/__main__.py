@@ -26,7 +26,7 @@ if __name__ == "__main__":
     with open(args.dataset, "r") as json_file:
         dataset = json.load(json_file)
         problem = JobShopProblem(dataset["jobs"])
-        kwargs = solver_kwargs_from_args(args, searches=problem.jobshop_searches())
+        kwargs = solver_kwargs_from_args(args, searches=problem.recommended_searches())
         solver = BacktrackSolver(problem, **kwargs)
         solution = solver.minimize(problem.makespan, mode=args.optimization_mode or OPTIM_PRUNE)
         if args.display_stats:
