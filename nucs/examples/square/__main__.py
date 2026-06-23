@@ -12,7 +12,7 @@
 ###############################################################################
 import json
 
-from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
+from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args, run_solver
 from nucs.examples.square.square_problem import SquarePlacementProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
@@ -25,11 +25,4 @@ if __name__ == "__main__":
     with open(args.dataset, "r") as json_file:
         dataset = json.load(json_file)
     problem = SquarePlacementProblem(dataset["width"], dataset["height"], dataset["squares"])
-    kwargs = solver_kwargs_from_args(args, searches=problem.recommended_searches())
-    solver = BacktrackSolver(problem, **kwargs)
-    solution = next(solver.solve(), None)
-    if args.display_stats:
-        solver.print_statistics()
-    if args.display_solutions and solution is not None:
-        for i in range(problem.square_nb):
-            print(f"square {problem.sizes[i]}: ({int(solution[problem.x(i)])}, {int(solution[problem.y(i)])})")
+    run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args, searches=problem.recommended_searches())), args)

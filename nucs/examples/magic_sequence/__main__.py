@@ -25,5 +25,4 @@ if __name__ == "__main__":
     parser.add_argument("--model-r2", action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     problem = MagicSequenceProblem(args.n, args.model_r1, args.model_r2)
-    kwargs = solver_kwargs_from_args(args)
-    run_solver(BacktrackSolver(problem, **kwargs), args)
+    run_solver(BacktrackSolver(problem, **(solver_kwargs_from_args(args))), args)

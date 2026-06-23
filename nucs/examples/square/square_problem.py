@@ -10,7 +10,9 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List
+from typing import List, Any
+
+from numpy.typing import NDArray
 
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE
 from nucs.problems.problem import Problem
@@ -106,3 +108,9 @@ class SquarePlacementProblem(Problem):
         :rtype: int
         """
         return self.square_nb + square
+
+    def solution_as_printable(self, solution: NDArray) -> Any:
+        sol_as_printable = ""
+        for i in range(self.square_nb):
+            sol_as_printable += f"square {self.sizes[i]}: ({int(solution[self.x(i)])}, {int(solution[self.y(i)])})\n"
+        return sol_as_printable

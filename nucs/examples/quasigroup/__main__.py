@@ -16,7 +16,6 @@ from nucs.examples.default_argument_parser import DefaultArgumentParser, run_sol
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.quasigroup -n 10 --symmetry_breaking
@@ -27,14 +26,14 @@ if __name__ == "__main__":
     parser.add_argument("--kind", type=int, choices=[3, 4, 5, 6, 7], default=5)
     args = parser.parse_args()
     problem = QuasigroupProblem(args.kind, args.n, args.idempotent, args.symmetry_breaking)
-    kwargs = solver_kwargs_from_args(
+    run_solver(
+        BacktrackSolver(
+            problem,
+            **solver_kwargs_from_args(
+                args,
+                decision_variables=range(0, args.n * args.n),
+                dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
+            ),
+        ),
         args,
-        decision_variables=range(0, args.n * args.n),
-        dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
     )
-    solver = (
-        MultiprocessingSolver([BacktrackSolver(problem, **kwargs) for problem in problem.split(args.processors, 1)])
-        if args.processors is not None and args.processors > 1
-        else BacktrackSolver(problem, **kwargs)
-    )
-    run_solver(solver, args)

@@ -18,7 +18,6 @@ from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.multiprocessing_solver import MultiprocessingSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.tsp
@@ -33,18 +32,16 @@ if __name__ == "__main__":
         problem = TSPProblem(costs)
         costs = costs + costs
         tsp_var_heuristic_idx = register_var_heuristic(tsp_var_heuristic)
-        kwargs = solver_kwargs_from_args(
-            args,
-            decision_variables=decision_variables,
-            var_heuristic=tsp_var_heuristic_idx,
-            var_heuristic_params=costs,
-            dom_heuristic=DOM_HEURISTIC_MIN_COST,
-            dom_heuristic_params=costs,
-        )
-        solver = (
-            MultiprocessingSolver([BacktrackSolver(prob, **kwargs) for prob in problem.split(args.processors, 0)])
-            if args.processors is not None and args.processors > 1
-            else BacktrackSolver(problem, **kwargs)
+        solver = BacktrackSolver(
+            problem,
+            **solver_kwargs_from_args(
+                args,
+                decision_variables=decision_variables,
+                var_heuristic=tsp_var_heuristic_idx,
+                var_heuristic_params=costs,
+                dom_heuristic=DOM_HEURISTIC_MIN_COST,
+                dom_heuristic_params=costs,
+            ),
         )
         solution = solver.minimize(problem.total_cost, mode=args.optimization_mode or OPTIM_RESET)
         if args.display_stats:
