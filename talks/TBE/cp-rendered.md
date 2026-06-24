@@ -150,16 +150,7 @@ How a fast solver is actually built.
 
 # A short history of CP
 
-```mermaid
-timeline
-    title From logic programming to modern solvers
-    1970s: Logic programming (Prolog): "what" not "how"
-    1980s: Constraint Logic Programming: CHIP, Prolog III, CLP(R)
-    1990s: ILOG Solver (C++): Régin's global alldifferent (1994)
-    2000s: MiniZinc: a standard modeling language: Lazy Clause Generation
-    2010s: OR-Tools CP-SAT: CP meets SAT at industrial scale
-    2020s: NuCS: pure Python + Numba JIT
-```
+![diagram](./cp-rendered-1.svg)
 
 <div class="takeaway">CP grew out of the idea: <strong>state the constraints, let the machine search</strong>. Forty years of making that search smart.</div>
 
@@ -271,14 +262,7 @@ print(next(BacktrackSolver(QueensProblem(8)).solve()))
 
 # The modeling recipe
 
-```mermaid
-flowchart LR
-    A[Real problem] --> B[Choose variables<br/>+ their domains]
-    B --> C[Express constraints<br/>as propagators]
-    C --> D[Pick an objective<br/>optional]
-    D --> E[Hand it to the solver]
-    E --> F[Solution / optimum]
-```
+![diagram](./cp-rendered-2.svg)
 
 The skill is in **B** and **C**: a good choice of variables makes the constraints natural and the propagation strong.
 
@@ -535,17 +519,7 @@ Each constraint pushes the **bounds** inward using the others' bounds. No guessi
 
 # The propagation fixpoint
 
-```mermaid
-flowchart TD
-    S([Some bounds changed]) --> Q{Queue empty?}
-    Q -- yes --> F([Fixpoint: stable])
-    Q -- no --> P[Pop cheapest propagator]
-    P --> C["compute_domains: tighten min/max"]
-    C --> R{Result}
-    R -- INCONSISTENCY --> X([Fail → backtrack])
-R -- CONSISTENCY / ENTAILMENT --> W[For each changed bound,<br/>wake propagators watching it]
-W --> Q
-```
+![diagram](./cp-rendered-3.svg)
 
 <div class="takeaway">Only re-wake constraints whose variables actually changed. Terminates because domains are <strong>finite</strong> and only <strong>shrink</strong>.</div>
 
@@ -596,16 +570,7 @@ reasons over the **whole set**: Hall intervals (BC), bipartite matching (Régin'
 
 When propagation stalls, pick a variable, split its domain, recurse — undo on failure.
 
-```mermaid
-flowchart TD
-    R[propagate root] --> A{branch on x}
-    A -- " x = 0 " --> B[propagate]
-    A -- " x ≥ 1 " --> C[propagate]
-    B --> B1{branch on y}
-    B1 -- " y = 0 " --> D[✗ fail → backtrack]
-B1 -- " y ≥ 1 " --> E[✓ all ground: solution]
-C --> F[...]
-```
+![diagram](./cp-rendered-4.svg)
 
 <div class="takeaway">A <strong>trail</strong> stores the bounds before each branch, so backtracking is just restoring two integers per touched variable.</div>
 
@@ -705,22 +670,7 @@ This is **branch-and-bound**. &nbsp; In NuCS: `solver.minimize(var)` / `solver.m
 
 # Anatomy of the solver
 
-```mermaid
-flowchart LR
-    subgraph Model
-        DV[Domains<br/>min/max arrays]
-        PR[Propagators]
-    end
-subgraph Engine
-Q[Propagation queue] --> PR
-PR --> DV
-DV --> TT[Trigger table<br/>variable×event → propagators]
-TT --> Q
-H[Heuristics] --> BR[Branch / backtrack]
-BR --> DV
-end
-Model --> Engine --> OUT([Solutions / optimum])
-```
+![diagram](./cp-rendered-5.svg)
 
 <div class="takeaway">Everything is a <strong>NumPy array</strong> — domains, propagator tables, the queue — so the hot loop can be <strong>JIT-compiled with Numba</strong>.</div>
 
