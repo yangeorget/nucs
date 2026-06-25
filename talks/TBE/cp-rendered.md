@@ -62,6 +62,7 @@ style: |
   tr:nth-child(even) td { background: #f9fafb; }
   .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
   .columns-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 28px; }
+  .columns-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 28px; align-items: center; }
   .takeaway {
     background: #f3f4f6;
     border-left: 4px solid #2563eb;
@@ -180,12 +181,23 @@ Classic NP-complete problems you've already met:
 
 8-queens — place 8 queens on a board, none attacking another.
 
+<div class="columns-2-1">
+<div>
+
 | Encoding                                  |                           Search space |
 |-------------------------------------------|---------------------------------------:|
 | Naive: pick any 8 squares                 | $\binom{64}{8} \approx 4.4 \cdot 10^9$ |
 | One queen per column                      |           $8^8 \approx 1.7 \cdot 10^7$ |
 | Permutations (one per column **and** row) |                         $8! = 40\,320$ |
 | **A good CP model**                       |                **~100 nodes explored** |
+
+</div>
+<div>
+
+![An 8-queens solution](queens.png)
+
+</div>
+</div>
 
 <div class="takeaway">The art is <strong>encoding</strong> the problem so the solver can prune aggressively — not brute force.</div>
 

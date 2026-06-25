@@ -12,7 +12,7 @@
 ###############################################################################
 import json
 
-from nucs.constants import OPTIM_RESET
+from nucs.constants import OPTIM_RESET, OPTIM_PRUNE
 from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
@@ -43,6 +43,6 @@ if __name__ == "__main__":
                 dom_heuristic_params=costs,
             ),
         )
-        solution = solver.minimize(problem.total_cost, mode=args.optimization_mode or OPTIM_RESET)
+        solution = solver.minimize(problem.total_cost, mode=args.optimization_mode or OPTIM_PRUNE)
         if args.display_stats:
             solver.print_statistics()
