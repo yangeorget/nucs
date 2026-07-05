@@ -89,7 +89,8 @@ class MultiprocessingSolver(Solver):
             STATS_LBL_SOLVER_CHOICE_NB: sum_stats(self.statistics, STATS_IDX_SOLVER_CHOICE_NB),
             STATS_LBL_SOLVER_CHOICE_DEPTH: max_stats(self.statistics, STATS_IDX_SOLVER_CHOICE_DEPTH),
             STATS_LBL_SOLUTION_NB: sum_stats(self.statistics, STATS_IDX_SOLUTION_NB),
-            STATS_LBL_SOLVER_ELAPSED_TIME: max_stats(self.statistics, STATS_IDX_SOLVER_ELAPSED_TIME),
+            # the statistics arrays accumulate nanoseconds, the reported statistic is in milliseconds
+            STATS_LBL_SOLVER_ELAPSED_TIME: max_stats(self.statistics, STATS_IDX_SOLVER_ELAPSED_TIME) // 1_000_000,
         }
 
     def solve(self) -> Iterator[NDArray]:

@@ -17,6 +17,9 @@ from numpy.typing import NDArray
 from nucs.constants import (
     DOM_UPDATE_EVENTS,
     DOM_UPDATE_VARIABLE,
+    EVENT_MASK_GROUND,
+    EVENT_MASK_MAX,
+    EVENT_MASK_MIN,
     EVENT_MASK_NB,
     MAX,
     MIN,
@@ -172,12 +175,20 @@ def fix_choice_points(
     entailment_trail: NDArray,
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
+    triggered_propagators: NDArray,
+    triggers: NDArray,
+    triggers_offsets: NDArray,
+    priorities: NDArray,
+    propagator_nb: int,
     variable: int,
     value: int,
     bound: int,
 ) -> bool:
     """
     Fixes the domain of the variable being optimized in the choice points.
+
+    Schedules the propagators watching the optimized variable, so that the tightened bound gets
+    propagated by the next consistency run without a full requeue of all the propagators.
 
     :param domains_stk: the stack of domains
     :type domains_stk: NDArray
@@ -189,6 +200,16 @@ def fix_choice_points(
     :type unbound_variable_nb_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
     :type stks_top: NDArray
+    :param triggered_propagators: the Numpy array of triggered propagators
+    :type triggered_propagators: NDArray
+    :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :type triggers: NDArray
+    :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
+    :type triggers_offsets: NDArray
+    :param priorities: the propagation queue bucket priorities indexed by propagators
+    :type priorities: NDArray
+    :param propagator_nb: the number of propagators
+    :type propagator_nb: int
     :param variable: the variable being optimized
     :type variable: int
     :param value: the current optimal value for the variable
@@ -215,7 +236,20 @@ def fix_choice_points(
         elif range_sz == 0:
             if not was_bound:
                 unbound_variable_nb_stk[stks_idx] -= 1
-    unwind_entailment_trail(entailed_propagator_depths, entailment_trail, stks_top[0])
+    top = stks_top[0]
+    unwind_entailment_trail(entailed_propagator_depths, entailment_trail, top)
+    events = EVENT_MASK_MIN if bound == MIN else EVENT_MASK_MAX
+    domain = domains_stk[top, variable]
+    if domain[MIN] == domain[MAX]:
+        events |= EVENT_MASK_GROUND
+    offset = variable * EVENT_MASK_NB + events
+    update_propagators(
+        triggered_propagators,
+        entailed_propagator_depths,
+        triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]],
+        priorities,
+        propagator_nb,
+    )
     return True
 
 

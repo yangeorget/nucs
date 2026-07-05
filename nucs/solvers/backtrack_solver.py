@@ -257,7 +257,8 @@ class BacktrackSolver(Solver, QueueSolver):
             STATS_LBL_SOLVER_CHOICE_NB: int(self.statistics[STATS_IDX_SOLVER_CHOICE_NB]),
             STATS_LBL_SOLVER_CHOICE_DEPTH: int(self.statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]),
             STATS_LBL_SOLUTION_NB: int(self.statistics[STATS_IDX_SOLUTION_NB]),
-            STATS_LBL_SOLVER_ELAPSED_TIME: int(self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME]),
+            # the statistics array accumulates nanoseconds, the reported statistic is in milliseconds
+            STATS_LBL_SOLVER_ELAPSED_TIME: int(self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME]) // 1_000_000,
         }
 
     def minimize(self, variable: int, mode: str = OPTIM_RESET) -> Optional[NDArray]:
@@ -364,6 +365,7 @@ class BacktrackSolver(Solver, QueueSolver):
         """
         t0 = time.perf_counter_ns()
         buckets_empty(self.triggered_propagators, self.problem.priorities)
+        buckets_init(self.triggered_propagators, self.problem.priorities)
         try:
             while (
                 solution := solve_one(
@@ -415,6 +417,7 @@ class BacktrackSolver(Solver, QueueSolver):
                         bound,
                     ):
                         break
+                    buckets_init(self.triggered_propagators, self.problem.priorities)
                 else:
                     logger.debug("Pruning choice points")
                     if not fix_choice_points(
@@ -423,13 +426,18 @@ class BacktrackSolver(Solver, QueueSolver):
                         self.entailment_trail,
                         self.unbound_variable_nb_stk,
                         self.stks_top,
+                        self.triggered_propagators,
+                        self.problem.triggers,
+                        self.problem.triggers_offsets,
+                        self.problem.priorities,
+                        self.problem.propagator_nb,
                         variable,
                         solution[variable],
                         bound,
                     ):
                         break
         finally:
-            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += (time.perf_counter_ns() - t0) // 1_000_000
+            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
 
     def solve(self) -> Iterator[NDArray]:
         """
@@ -440,6 +448,7 @@ class BacktrackSolver(Solver, QueueSolver):
         """
         logger.info("Solving and iterating over the solutions")
         buckets_empty(self.triggered_propagators, self.problem.priorities)
+        buckets_init(self.triggered_propagators, self.problem.priorities)
         t0 = time.perf_counter_ns()
         while True:
             solution = solve_one(
@@ -468,7 +477,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.compute_domains_fcts,
                 self.domain_buffer,
             )
-            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += (time.perf_counter_ns() - t0) // 1_000_000
+            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
             if solution is None:
                 break
             logger.debug("Found a solution")
@@ -486,9 +495,9 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.priorities,
                 self.problem.propagator_nb,
             ):
-                self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += (time.perf_counter_ns() - t0) // 1_000_000
+                self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
                 break
-            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += (time.perf_counter_ns() - t0) // 1_000_000
+            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
             t0 = time.perf_counter_ns()
 
     def minimize_and_queue(self, variable: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
@@ -544,6 +553,7 @@ class BacktrackSolver(Solver, QueueSolver):
         """
         t0 = time.perf_counter_ns()
         buckets_empty(self.triggered_propagators, self.problem.priorities)
+        buckets_init(self.triggered_propagators, self.problem.priorities)
         while True:
             solution = solve_one(
                 self.problem.propagator_nb,
@@ -595,6 +605,7 @@ class BacktrackSolver(Solver, QueueSolver):
                     bound,
                 ):
                     break
+                buckets_init(self.triggered_propagators, self.problem.priorities)
             else:
                 logger.debug("Pruning choice points")
                 if not fix_choice_points(
@@ -603,12 +614,17 @@ class BacktrackSolver(Solver, QueueSolver):
                     self.entailment_trail,
                     self.unbound_variable_nb_stk,
                     self.stks_top,
+                    self.triggered_propagators,
+                    self.problem.triggers,
+                    self.problem.triggers_offsets,
+                    self.problem.priorities,
+                    self.problem.propagator_nb,
                     variable,
                     solution[variable],
                     bound,
                 ):
                     break
-        self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += (time.perf_counter_ns() - t0) // 1_000_000
+        self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
         solution_queue.put((processor_idx, None, self.statistics))
 
     def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
@@ -623,6 +639,7 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.info("Solving and queuing solutions found")
         t0 = time.perf_counter_ns()
         buckets_empty(self.triggered_propagators, self.problem.priorities)
+        buckets_init(self.triggered_propagators, self.problem.priorities)
         while True:
             solution = solve_one(
                 self.problem.propagator_nb,
@@ -666,7 +683,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.problem.propagator_nb,
             ):
                 break
-        self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += (time.perf_counter_ns() - t0) // 1_000_000
+        self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
         solution_queue.put((processor_idx, None, self.statistics))
 
 
@@ -699,6 +716,10 @@ def solve_one(
 ) -> Optional[NDArray]:
     """
     Find at most one solution.
+
+    Expects the propagation queue to already hold the propagators that need to run: the callers enqueue
+    all the propagators (buckets_init) before the first call, and rely on backtrack / fix_choice_points to
+    schedule the propagators affected by a refutation or a bound tightening between subsequent calls.
 
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
@@ -754,7 +775,6 @@ def solve_one(
     """
     consistency_alg_fct = consistency_alg_fcts[0]
     nb_searches = len(decision_variables)
-    buckets_init(triggered_propagators, priorities)
     while True:
         status = consistency_alg_fct(
             propagator_nb,
