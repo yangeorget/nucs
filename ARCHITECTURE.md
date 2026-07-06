@@ -30,3 +30,38 @@ Constants worth knowing: `MIN`/`MAX` (domain row indices), `EVENT_MASK_*` (trigg
 codes), `STATS_IDX_*` (16 counters tracking backtracks, propagator calls, solutions, etc.).
 
 ## Important decisions
+
+- **Interval domains only — bound consistency, no holes.** A domain is a single `(min, max)` `int32` pair; there are
+  no sparse sets or bitmaps, and a propagator cannot remove a value from the middle of a domain. The trade: weaker
+  pruning than arc consistency, but domains form a flat contiguous array that is O(1) to index and cheap to copy —
+  which is what makes the choice-point and multiprocessing decisions below work.
+- **Data-oriented state: all solver state lives in preallocated NumPy arrays.** No Python objects in the hot path:
+  propagator metadata is laid out CSR-style (`bounds`, `propagator_variables`, `triggers` + `triggers_offsets`),
+  statistics are an `int64` array, and everything is allocated once at solver init. Numba nopython mode forbids
+  objects, and flat arrays make solver state trivially clonable. Consequence: jitted functions take many positional
+  array arguments instead of a solver object — that is deliberate.
+- **Choice points copy the whole domains array instead of trailing.** `cp_put` copies the top of `domains_stk`;
+  backtracking is a stack-pointer decrement. O(variables) memcpy per choice point beats O(changes) trail bookkeeping
+  because the copy is a contiguous `int32` memcpy and restore becomes free. The one exception is entailment, which
+  *is* trailed (`entailed_propagator_depths` + `entailment_trail`): it is indexed by propagator, not variable, and
+  entailment is monotonic within a branch, so a depth per propagator plus a depth-ordered trail to unwind is cheaper
+  than copying a propagator-sized array at every choice point.
+- **Propagators are stateless pure functions on a scratch buffer.** `compute_domains_*` receives a gathered copy of
+  only its variables' domains (`domain_buffer`, sized once to the maximal arity) and mutates that copy;
+  `update_domains` diffs it against the real domains to derive events. A propagator that detects inconsistency
+  halfway through cannot corrupt global state, event computation is centralized in one place, and there is no
+  per-propagator state to restore on backtrack.
+- **Functions are values via numeric ids and wrapper addresses.** Propagators and heuristics register into typed
+  lists indexed by `ALG_*` / heuristic ids; the ids live in integer arrays, and callables cross into nopython mode
+  through `_get_wrapper_address` plus the `function_ptr_from_address` intrinsic (see `nucs/numba_helper.py`). Numba
+  cannot dispatch on heterogeneous Python callables, so indirection through ids and addresses is the mechanism.
+- **The propagation queue is a bucketed FIFO keyed by complexity.** `get_complexity_*` estimates a propagator's work
+  per call; the queue (`nucs/buckets.py`) hashes that into 8 buckets by floor-log2, FIFO within a bucket, with
+  membership flags for set semantics. Cheapest propagators run first, add and pop are O(1), no heap.
+- **Parallelism is search-space splitting, not shared memory.** `MultiprocessingSolver` wraps N independent
+  `BacktrackSolver`s over `problem.split(...)`, communicating only solutions through a queue. The GIL rules out
+  shared-memory threading, and flat-array state makes cloning a subproblem cheap. There are no locks anywhere by
+  construction.
+- **The pure-Python escape hatch is a hard constraint.** Everything must also run under `NUMBA_DISABLE_JIT=1`
+  (debugging, coverage, real tracebacks) — this is why `nucs/numba_helper.py` degrades typed lists to plain Python
+  lists. Do not introduce Numba-only constructs without a non-JIT fallback.
