@@ -422,21 +422,36 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     """
     n = len(domains)
     m = (len(parameters) - 1) >> 1  # number of values
-    ranks = np.empty((n, 2), dtype=np.uint16)
     bounds_nb = 2 * (n + 1)
-    empty_buffer = np.empty(4 * bounds_nb, dtype=np.int32)  # to reduce the number of allocations
+    empty_buffer = np.empty(4 * bounds_nb + 4 * n, dtype=np.int32)  # single allocation for all the scratch arrays
     bounds = empty_buffer[:bounds_nb]
     t = empty_buffer[bounds_nb : 2 * bounds_nb]  # critical capacity pointers
     d = empty_buffer[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
-    h = empty_buffer[3 * bounds_nb :]  # Hall interval pointers
+    h = empty_buffer[3 * bounds_nb : 4 * bounds_nb]  # Hall interval pointers
+    min_sorted_vars = empty_buffer[4 * bounds_nb : 4 * bounds_nb + n]
+    max_sorted_vars = empty_buffer[4 * bounds_nb + n : 4 * bounds_nb + 2 * n]
+    ranks = empty_buffer[4 * bounds_nb + 2 * n :].reshape(n, 2)
     zero_buffer = np.zeros(2 * bounds_nb + n, dtype=np.int32)  # to reduce the number of allocations
     stable_intervals = zero_buffer[:bounds_nb]
     stable_sets = zero_buffer[bounds_nb : 2 * bounds_nb]
     new_mins = zero_buffer[2 * bounds_nb :]
     l = init_partial_sum(parameters[0], m, parameters[1 : 1 + m])
     u = init_partial_sum(parameters[0], m, parameters[1 + m :])
-    min_sorted_vars = np.argsort(domains[:, MIN])
-    max_sorted_vars = np.argsort(domains[:, MAX])
+    # insertion argsorts: the domains barely move between two calls, so the keys are nearly sorted
+    # and insertion sort beats np.argsort (which would also allocate its result)
+    for i in range(n):
+        min_key = domains[i, MIN]
+        max_key = domains[i, MAX]
+        j = i - 1
+        while j >= 0 and domains[min_sorted_vars[j], MIN] > min_key:
+            min_sorted_vars[j + 1] = min_sorted_vars[j]
+            j -= 1
+        min_sorted_vars[j + 1] = i
+        j = i - 1
+        while j >= 0 and domains[max_sorted_vars[j], MAX] > max_key:
+            max_sorted_vars[j + 1] = max_sorted_vars[j]
+            j -= 1
+        max_sorted_vars[j + 1] = i
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
     # assert get_min_value(l) == get_min_value(u)
     # assert get_max_value(l) == get_max_value(u)

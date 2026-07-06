@@ -16,7 +16,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 
 
 def get_complexity_alldifferent(n: int, parameters: NDArray) -> int:
@@ -240,21 +240,40 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     if has_offsets:
         offsets = parameters[:, np.newaxis]
         domains += offsets
-    ranks = np.empty((n, 2), dtype=np.uint16)
     bounds_nb = 2 * (n + 1)
-    empty_buffer = np.empty(4 * bounds_nb, dtype=np.int32)  # to reduce the number of allocations
+    empty_buffer = np.empty(4 * bounds_nb + 4 * n, dtype=np.int32)  # single allocation for all the scratch arrays
     bounds = empty_buffer[:bounds_nb]
     t = empty_buffer[bounds_nb : 2 * bounds_nb]  # critical capacity pointers
     d = empty_buffer[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
-    h = empty_buffer[3 * bounds_nb :]  # Hall interval pointers
-    min_sorted_vars = np.argsort(domains[:, MIN])
-    max_sorted_vars = np.argsort(domains[:, MAX])
+    h = empty_buffer[3 * bounds_nb : 4 * bounds_nb]  # Hall interval pointers
+    min_sorted_vars = empty_buffer[4 * bounds_nb : 4 * bounds_nb + n]
+    max_sorted_vars = empty_buffer[4 * bounds_nb + n : 4 * bounds_nb + 2 * n]
+    ranks = empty_buffer[4 * bounds_nb + 2 * n :].reshape(n, 2)
+    # insertion argsorts: the domains barely move between two calls, so the keys are nearly sorted
+    # and insertion sort beats np.argsort (which would also allocate its result)
+    ground = True
+    for i in range(n):
+        min_key = domains[i, MIN]
+        max_key = domains[i, MAX]
+        if min_key != max_key:
+            ground = False
+        j = i - 1
+        while j >= 0 and domains[min_sorted_vars[j], MIN] > min_key:
+            min_sorted_vars[j + 1] = min_sorted_vars[j]
+            j -= 1
+        min_sorted_vars[j + 1] = i
+        j = i - 1
+        while j >= 0 and domains[max_sorted_vars[j], MAX] > max_key:
+            max_sorted_vars[j + 1] = max_sorted_vars[j]
+            j -= 1
+        max_sorted_vars[j + 1] = i
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars)
     if filter_lower(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars) and filter_upper(
         n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars
     ):
         if has_offsets:
             domains -= offsets
-        return PROP_CONSISTENCY
+        # all the variables were ground and pairwise distinct: the constraint stays true in the subtree
+        return PROP_ENTAILMENT if ground else PROP_CONSISTENCY
     else:
         return PROP_INCONSISTENCY

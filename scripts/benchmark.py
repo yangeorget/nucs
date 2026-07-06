@@ -235,7 +235,7 @@ def _benchmarks() -> List[Callable[[], BenchmarkResult]]:
         )
 
     def tsp_gr17():
-        with open("datasets/tsp/gr17.json", "r") as json_file:
+        with open("datasets/examples/tsp/gr17.json", "r") as json_file:
             costs = json.load(json_file)["costs"]
             n = len(costs)
             problem = TSPProblem(costs)
@@ -251,7 +251,7 @@ def _benchmarks() -> List[Callable[[], BenchmarkResult]]:
             ), problem.total_cost)
 
     def tsp_gr21():
-        with open("datasets/tsp/gr21.json", "r") as json_file:
+        with open("datasets/examples/tsp/gr21.json", "r") as json_file:
             costs = json.load(json_file)["costs"]
             n = len(costs)
             problem = TSPProblem(costs)
