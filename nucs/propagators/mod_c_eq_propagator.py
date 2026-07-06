@@ -33,7 +33,7 @@ def get_complexity_mod_c_eq(n: int, parameters: NDArray) -> int:
     return 1
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_mod_c_eq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -51,7 +51,7 @@ def get_triggers_mod_c_eq(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def _res_minmax(a: int, b: int, lo: int, hi: int, m: int) -> Tuple[bool, int, int]:
     """
     Returns ``(found, rmin, rmax)``: the smallest and largest remainder achievable as v % m for some v in the
@@ -91,7 +91,7 @@ def _res_minmax(a: int, b: int, lo: int, hi: int, m: int) -> Tuple[bool, int, in
     return found, rmin, rmax
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def _first_ge(start: int, rl: int, ru: int, m: int) -> int:
     """
     Returns the smallest v >= start (start >= 0) whose remainder v % m lies in [rl, ru] (0 <= rl <= ru < m).
@@ -104,7 +104,7 @@ def _first_ge(start: int, rl: int, ru: int, m: int) -> int:
     return start + (m - r) + rl  # the next block's rl
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def _last_le(end: int, rl: int, ru: int, m: int) -> int:
     """
     Returns the largest v <= end (end >= 0) whose remainder v % m lies in [rl, ru] (0 <= rl <= ru < m).
@@ -117,7 +117,7 @@ def _last_le(end: int, rl: int, ru: int, m: int) -> int:
     return end - r - (m - ru)  # the previous block's ru
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_mod_c_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements :math:`x \\bmod m = z` for a constant modulus m, with truncated division (the remainder takes

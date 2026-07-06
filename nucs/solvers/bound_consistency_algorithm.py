@@ -65,7 +65,7 @@ def get_domain_buffer(bounds: NDArray) -> NDArray:
     return np.empty((max_arity, 2), dtype=np.int32)
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def bound_consistency_algorithm(
     propagator_nb: int,
     statistics: NDArray,
@@ -177,7 +177,7 @@ def bound_consistency_algorithm(
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def update_domains(
     top: int,
     prop_idx: int,

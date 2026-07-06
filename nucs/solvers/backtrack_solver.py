@@ -687,7 +687,7 @@ class BacktrackSolver(Solver, QueueSolver):
         solution_queue.put((processor_idx, None, self.statistics))
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def solve_one(
     propagator_nb: int,
     statistics: NDArray,

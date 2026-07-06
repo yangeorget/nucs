@@ -32,7 +32,7 @@ def get_complexity_relation(n: int, parameters: NDArray) -> int:
     return len(parameters)
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_relation(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
@@ -48,7 +48,7 @@ def get_triggers_relation(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_relation(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements a relation over n variables defined by its allowed tuples.

@@ -25,7 +25,7 @@ from nucs.constants import (
 from nucs.solvers.choice_points import cp_put
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def min_value_dom_heuristic(
     domains_stk: NDArray,
     entailed_propagator_depths: NDArray,

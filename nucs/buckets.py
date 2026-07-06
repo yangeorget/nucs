@@ -24,7 +24,7 @@ BUCKET_FACTOR = 2
 STORAGE_OFFSET = BUCKET_NB << 1
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_priority(complexity: int) -> int:
     """
     Floor(log2(complexity)), clamped to [0, NB_BUCKETS-1].
@@ -38,7 +38,7 @@ def compute_priority(complexity: int) -> int:
     return min(bucket, BUCKET_NB - 1)
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def buckets_create(capacity: int) -> NDArray:
     """
     Creates a bucketed FIFO queue with set semantics over integers in [0, capacity).
@@ -53,14 +53,14 @@ def buckets_create(capacity: int) -> NDArray:
     return np.empty(2 * BUCKET_NB + 2 * capacity + 1, dtype=np.int32)
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def buckets_init(buckets: NDArray, priorities: NDArray) -> None:
     membership_offset = STORAGE_OFFSET + len(priorities)
     for prop_idx in range(len(priorities)):
         buckets_add(buckets, priorities, prop_idx, membership_offset)
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def buckets_empty(buckets: NDArray, priorities: NDArray) -> None:
     """
     Empty the bucket FIFO queue.
@@ -71,7 +71,7 @@ def buckets_empty(buckets: NDArray, priorities: NDArray) -> None:
     buckets[-1] = BUCKET_NB
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def buckets_add(buckets: NDArray, priorities: NDArray, idx: int, membership_offset: int) -> None:
     """
     Appends idx at the tail of bucket weights[idx].
@@ -95,7 +95,7 @@ def buckets_add(buckets: NDArray, priorities: NDArray, idx: int, membership_offs
         buckets[-1] = bucket
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def buckets_pop(buckets: NDArray, membership_offset: int) -> int:
     """
     Removes and returns the head of the lowest-priority non-empty bucket.

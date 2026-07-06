@@ -31,7 +31,7 @@ def get_complexity_value_precede(n: int, parameters: NDArray) -> int:
     return n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_value_precede(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -47,7 +47,7 @@ def get_triggers_value_precede(n: int, variable: int, parameters: NDArray) -> in
     return EVENT_MASK_MIN_MAX  # any bound change may move the first s-candidate
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_value_precede(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements value precedence: whenever some x_i equals t, an earlier x_j equals s. Equivalently, the

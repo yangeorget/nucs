@@ -31,7 +31,7 @@ def get_complexity_diffn(n: int, parameters: NDArray) -> int:
     return n * n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_diffn(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever a coordinate bound changes.
@@ -49,7 +49,7 @@ def get_triggers_diffn(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_diffn(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements the 2D diffn (non-overlapping rectangles) constraint. Rectangle i has its bottom-left corner

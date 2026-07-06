@@ -39,7 +39,7 @@ def get_complexity_linear_eq_c(n: int, parameters: NDArray) -> int:
     return n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_linear_eq_c(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
@@ -53,7 +53,7 @@ def get_triggers_linear_eq_c(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX if parameters[variable] != 0 else EVENT_MASK_NONE
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_linear_eq_c(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements :math:`\\sum_i a_i * x_i = a_{n}`.

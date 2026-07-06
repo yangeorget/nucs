@@ -31,7 +31,7 @@ def get_complexity_inverse(n: int, parameters: NDArray) -> int:
     return n * n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_inverse(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -49,7 +49,7 @@ def get_triggers_inverse(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_inverse(domains: NDArray, parameters: NDArray) -> int:
     """
     Channels two inverse arrays next and prev of equal length: prev[j] = i iff next[i] = j.
@@ -72,7 +72,7 @@ def compute_domains_inverse(domains: NDArray, parameters: NDArray) -> int:
     )
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def filter_domains_inverse(n: int, next: NDArray, prev: NDArray) -> bool:
     # next and prev are inverse: prev[j] = i iff next[i] = j. So prev[j] can take value i only when
     # j belongs to next[i]'s domain; the test (j < next[i, MIN] or j > next[i, MAX]) means prev[j] != i.

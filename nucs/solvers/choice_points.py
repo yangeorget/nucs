@@ -28,7 +28,7 @@ from nucs.constants import (
 from nucs.propagators.propagators import update_propagators
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def cp_init(
     domains_stk: NDArray,
     entailed_propagator_depths: NDArray,
@@ -67,7 +67,7 @@ def cp_init(
     entailment_trail[0] = stks_top[0] = 0
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def cp_put(
     domains_stk: NDArray, entailed_propagator_depths: NDArray, unbound_variable_nb_stk: NDArray, top: int
 ) -> None:
@@ -90,7 +90,7 @@ def cp_put(
     unbound_variable_nb_stk[top + 1] = unbound_variable_nb_stk[top]  # copy the number of unbound variables
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def unwind_entailment_trail(entailed_propagator_depths: NDArray, entailment_trail: NDArray, top: int) -> None:
     """
     Reactivates the propagators that were entailed below the current top.
@@ -112,7 +112,7 @@ def unwind_entailment_trail(entailed_propagator_depths: NDArray, entailment_trai
     entailment_trail[0] = size
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def backtrack(
     statistics: NDArray,
     entailed_propagator_depths: NDArray,
@@ -168,7 +168,7 @@ def backtrack(
     return True
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def fix_choice_points(
     domains_stk: NDArray,
     entailed_propagator_depths: NDArray,
@@ -253,7 +253,7 @@ def fix_choice_points(
     return True
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def fix_choice_point(
     domains_stk: NDArray,
     unbound_variable_nb_stk: NDArray,

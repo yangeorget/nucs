@@ -31,7 +31,7 @@ def get_complexity_strictly_increasing(n: int, parameters: NDArray) -> int:
     return n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_strictly_increasing(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -47,7 +47,7 @@ def get_triggers_strictly_increasing(n: int, variable: int, parameters: NDArray)
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_strictly_increasing(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements :math:`x_i < x_{i+1}` for all i.

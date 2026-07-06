@@ -32,7 +32,7 @@ def get_complexity_nvalue(n: int, parameters: NDArray) -> int:
     return n * n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_nvalue(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -48,7 +48,7 @@ def get_triggers_nvalue(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_nvalue(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements :math:`y = |\\{x_0, ..., x_{n-1}\\}|`, the number of distinct values taken by the x_i.

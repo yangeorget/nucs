@@ -32,7 +32,7 @@ def get_complexity_scc(n: int, parameters: NDArray) -> int:
     return n * n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_scc(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -48,7 +48,7 @@ def get_triggers_scc(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def next_unvisited(parent: NDArray, i: int) -> int:
     """
     Returns the smallest unvisited index greater than or equal to i, using path compression.
@@ -71,7 +71,7 @@ def next_unvisited(parent: NDArray, i: int) -> int:
     return root
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_scc(domains: NDArray, parameters: NDArray) -> int:
     """
     Enforces that the digraph whose arcs are i -> j for j in [domains[i, MIN], domains[i, MAX]] is strongly connected.

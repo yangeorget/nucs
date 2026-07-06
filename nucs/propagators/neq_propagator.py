@@ -31,7 +31,7 @@ def get_complexity_neq(n: int, parameters: NDArray) -> int:
     return 1
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_neq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -49,7 +49,7 @@ def get_triggers_neq(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_GROUND
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_neq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements :math:`x \\neq y`.

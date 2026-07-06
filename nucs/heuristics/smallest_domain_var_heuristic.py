@@ -18,7 +18,7 @@ from numpy.typing import NDArray
 from nucs.constants import MAX, MIN
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def smallest_domain_var_heuristic(decision_variables: NDArray, domains_stk: NDArray, top: int, params: NDArray) -> int:
     """
     Chooses the first variable which is not instantiated with the smallest domain.

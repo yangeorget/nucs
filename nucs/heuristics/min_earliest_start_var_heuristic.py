@@ -18,7 +18,7 @@ from numpy.typing import NDArray
 from nucs.constants import MAX, MIN
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def min_earliest_start_var_heuristic(
     decision_variables: NDArray, domains_stk: NDArray, top: int, params: NDArray
 ) -> int:

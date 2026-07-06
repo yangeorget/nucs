@@ -39,7 +39,7 @@ def get_complexity_linear_neq_c(n: int, parameters: NDArray) -> int:
     return n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_linear_neq_c(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator only filters once a single variable remains unbound, so it is woken on ground events.
@@ -57,7 +57,7 @@ def get_triggers_linear_neq_c(n: int, variable: int, parameters: NDArray) -> int
     return EVENT_MASK_GROUND if parameters[variable] != 0 else EVENT_MASK_NONE
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_linear_neq_c(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements :math:`\\sum_i a_i * x_i \\neq a_{n}`.

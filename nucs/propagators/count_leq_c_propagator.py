@@ -31,7 +31,7 @@ def get_complexity_count_leq_c(n: int, parameters: NDArray) -> int:
     return n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_count_leq_c(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
@@ -45,7 +45,7 @@ def get_triggers_count_leq_c(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_count_leq_c(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements :math:`S\\sum_i (x_i == a) <= c`.

@@ -31,7 +31,7 @@ def get_complexity_element_l_eq_c_alldifferent(n: int, parameters: NDArray) -> i
     return n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_element_l_eq_c_alldifferent(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
@@ -45,7 +45,7 @@ def get_triggers_element_l_eq_c_alldifferent(n: int, variable: int, parameters: 
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_element_l_eq_c_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     """
     Enforces :math:`l_i = c` when the elements of l are all different.

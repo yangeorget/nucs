@@ -31,7 +31,7 @@ def get_complexity_member(n: int, parameters: NDArray) -> int:
     return len(parameters)
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_member(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -49,7 +49,7 @@ def get_triggers_member(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_member(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements :math:`x \\in \\{a_0, ..., a_{n-1}\\}`.

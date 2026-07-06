@@ -47,7 +47,7 @@ def get_triggers_total_cost(n: int, parameters: NDArray) -> NDArray:
     return triggers
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_total_cost(domains: NDArray, parameters: NDArray) -> int:
     """
     :param domains: the domains of the variables

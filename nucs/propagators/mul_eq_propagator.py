@@ -33,7 +33,7 @@ def get_complexity_mul_eq(n: int, parameters: NDArray) -> int:
     return 1
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_mul_eq(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -51,7 +51,7 @@ def get_triggers_mul_eq(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def prod_hull(xl: int, xu: int, yl: int, yu: int) -> Tuple[int, int]:
     """
     Returns the (min, max) hull of x * y over [xl, xu] x [yl, yu] (the bilinear extrema are at the corners).
@@ -66,7 +66,7 @@ def prod_hull(xl: int, xu: int, yl: int, yu: int) -> Tuple[int, int]:
     return min(min(p1, p2), min(p3, p4)), max(max(p1, p2), max(p3, p4))
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def div_lo(num_min: int, num_max: int, den_min: int, den_max: int) -> int:
     """
     Returns ceil(min(num / den)) over the corners of [num_min, num_max] x [den_min, den_max], for a
@@ -81,7 +81,7 @@ def div_lo(num_min: int, num_max: int, den_min: int, den_max: int) -> int:
     )
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def div_hi(num_min: int, num_max: int, den_min: int, den_max: int) -> int:
     """
     Returns floor(max(num / den)) over the corners of [num_min, num_max] x [den_min, den_max], for a
@@ -96,7 +96,7 @@ def div_hi(num_min: int, num_max: int, den_min: int, den_max: int) -> int:
     )
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_mul_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements :math:`x * y = z`.

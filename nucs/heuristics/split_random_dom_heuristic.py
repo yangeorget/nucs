@@ -19,7 +19,7 @@ from nucs.heuristics.split_high_dom_heuristic import split_high_dom_heuristic
 from nucs.heuristics.split_low_dom_heuristic import split_low_dom_heuristic
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def split_random_dom_heuristic(
     domains_stk: NDArray,
     entailed_propagator_depths: NDArray,

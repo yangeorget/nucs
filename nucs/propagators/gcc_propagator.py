@@ -34,7 +34,7 @@ def get_complexity_gcc(n: int, parameters: NDArray) -> int:
     return int(n * math.log(n))
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_gcc(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
@@ -51,7 +51,7 @@ def get_triggers_gcc(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def init_partial_sum(first_value: int, m: int, values: NDArray) -> NDArray:
     """
     Inits the partial_sum data structure:
@@ -86,7 +86,7 @@ def init_partial_sum(first_value: int, m: int, values: NDArray) -> NDArray:
     return partial_sum
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_sum(psum: NDArray, start: int, end: int) -> int:
     fv = psum[0, -1]
     sum = psum[0, :-1]
@@ -100,31 +100,31 @@ def get_sum(psum: NDArray, start: int, end: int) -> int:
         return sum[end - fv - 1] - sum[start - fv]
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_min_value(psum: NDArray) -> int:
     return psum[0, -1] + 3
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_max_value(psum: NDArray) -> int:
     return psum[1, -1] - 2
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def skip_non_null_elements_right(psum: NDArray, value: int) -> int:
     value -= psum[0, -1]
     ps = psum[1, value]
     return (value if ps < value else ps) + psum[0, -1]
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def skip_non_null_elements_left(psum: NDArray, value: int) -> int:
     value -= psum[0, -1]
     ps = psum[1, value]
     return (psum[1, ps] if ps > value else value) + psum[0, -1]
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def update_bounds(
     bounds: NDArray,
     n: int,
@@ -162,7 +162,7 @@ def update_bounds(
     return nb
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def filter_lower_max(
     n: int,
     nb: int,
@@ -205,7 +205,7 @@ def filter_lower_max(
     return True
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def filter_upper_max(
     n: int,
     nb: int,
@@ -248,7 +248,7 @@ def filter_upper_max(
     return True
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def filter_lower_min(
     n: int,
     nb: int,
@@ -338,7 +338,7 @@ def filter_lower_min(
     return True
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def filter_upper_min(
     n: int,
     nb: int,
@@ -405,7 +405,7 @@ def filter_upper_min(
     return True
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     r"""
     This propagator (Global Cardinality Constraint) enforces that

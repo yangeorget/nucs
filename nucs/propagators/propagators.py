@@ -322,7 +322,7 @@ ALG_VALUE_PRECEDE = register_propagator(
 )
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def update_propagators(
     triggered_propagators: NDArray,
     entailed_propagator_depths: NDArray,

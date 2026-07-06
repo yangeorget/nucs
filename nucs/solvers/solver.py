@@ -126,7 +126,7 @@ class Solver:
         ...
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_solution(domains_stk: NDArray, top: int) -> NDArray:
     """
     Returns the solution to the problem.

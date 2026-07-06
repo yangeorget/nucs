@@ -259,7 +259,7 @@ def init_propagator_variables_and_parameters(
         propagator_parameters[param_start:param_end] = propagator[2]
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def count_triggers(
     counts: NDArray,
     propagator_nb: int,
@@ -315,7 +315,7 @@ def count_triggers(
                     counts[variable, event_mask] += 1
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def fill_triggers(
     triggers: NDArray,
     cursors: NDArray,

@@ -36,7 +36,7 @@ def get_complexity_subcircuit(n: int, parameters: NDArray) -> int:
     return n * n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_subcircuit(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
@@ -52,7 +52,7 @@ def get_triggers_subcircuit(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_subcircuit(domains: NDArray, parameters: NDArray) -> int:
     """
     Enforces that the 0-based successor array forms a sub-circuit: the nodes i with x_i != i form a single

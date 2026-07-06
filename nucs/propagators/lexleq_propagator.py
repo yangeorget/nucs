@@ -31,7 +31,7 @@ def get_complexity_lexleq(n: int, parameters: NDArray) -> int:
     return n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_lexleq(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
@@ -45,7 +45,7 @@ def get_triggers_lexleq(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_4(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
     while i < n and x[i, MIN] == y[i, MAX]:
         i += 1
@@ -63,7 +63,7 @@ def compute_domains_4(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
     return PROP_CONSISTENCY
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_3(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
     while i < n and x[i, MAX] == y[i, MIN]:
         i += 1
@@ -81,7 +81,7 @@ def compute_domains_3(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
     return PROP_CONSISTENCY
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_2(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
     while i < n and x[i, MIN] == x[i, MAX] == y[i, MIN] == y[i, MAX]:
         i += 1
@@ -122,7 +122,7 @@ def compute_domains_2(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
     return PROP_CONSISTENCY
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_1(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
     while i < n and x[i, MIN] == y[i, MAX]:
         # enforce xi = yi
@@ -151,7 +151,7 @@ def compute_domains_1(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
     return compute_domains_2(x, y, n, i, q, r, s)
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_lexleq(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements lexicographic leq: :math:`x <_leq y`.

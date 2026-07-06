@@ -32,7 +32,7 @@ def get_complexity_cumulative(n: int, parameters: NDArray) -> int:
     return n * n * n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_cumulative(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever a bound of a start-time variable changes.
@@ -50,7 +50,7 @@ def get_triggers_cumulative(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def _filter_est(est: NDArray, lst: NDArray, p: NDArray, h: NDArray, n: int, capacity: int) -> bool:
     """
     Raises the earliest start times by timetabling on a cumulative resource.
@@ -131,7 +131,7 @@ def _filter_est(est: NDArray, lst: NDArray, p: NDArray, h: NDArray, n: int, capa
     return True
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def _filter_energetic(est: NDArray, lst: NDArray, p: NDArray, h: NDArray, n: int, capacity: int) -> bool:
     """
     Filters both start bounds by energetic reasoning on a cumulative resource.
@@ -242,7 +242,7 @@ def _filter_energetic(est: NDArray, lst: NDArray, p: NDArray, h: NDArray, n: int
     return True
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_cumulative(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements the cumulative constraint: tasks with start times ``domains`` run for constant durations and

@@ -34,7 +34,7 @@ def get_complexity_alldifferent(n: int, parameters: NDArray) -> int:
     return int(n * math.log(n))
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_alldifferent(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
@@ -48,7 +48,7 @@ def get_triggers_alldifferent(n: int, variable: int, parameters: NDArray) -> int
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def path_set(t: NDArray, start: int, end: int, value: int) -> None:
     """
     Sets t[start], t[t[start]], ..., a[idx] to value until a[idx] = end.
@@ -67,7 +67,7 @@ def path_set(t: NDArray, start: int, end: int, value: int) -> None:
         t[p] = value
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def path_min(t: NDArray, i: int) -> int:
     """
     Follows i, t[i], t[t[i], ... until it stops decreasing.
@@ -85,7 +85,7 @@ def path_min(t: NDArray, i: int) -> int:
     return i
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def path_max(t: NDArray, i: int) -> int:
     """
     Follows i, t[i], t[t[i], ... until it stops increasing.
@@ -103,7 +103,7 @@ def path_max(t: NDArray, i: int) -> int:
     return i
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def update_bounds(
     bounds: NDArray,
     n: int,
@@ -139,7 +139,7 @@ def update_bounds(
     return nb
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def filter_lower(
     n: int,
     nb: int,
@@ -180,7 +180,7 @@ def filter_lower(
     return True
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def filter_upper(
     n: int,
     nb: int,
@@ -221,7 +221,7 @@ def filter_upper(
     return True
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     """
     Enforces that :math:`x_i <> x_j when i<>j`.

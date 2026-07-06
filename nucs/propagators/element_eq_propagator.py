@@ -33,7 +33,7 @@ def get_complexity_element_eq(n: int, parameters: NDArray) -> int:
     return n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_element_eq(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
@@ -47,7 +47,7 @@ def get_triggers_element_eq(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_element_eq(domains: NDArray, parameters: NDArray) -> int:
     """
     Enforces :math:`l_i = v`.

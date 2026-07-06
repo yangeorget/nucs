@@ -35,7 +35,7 @@ def get_complexity_disjunctive(n: int, parameters: NDArray) -> int:
     return n * n * n
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def get_triggers_disjunctive(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever a bound of a start-time variable changes.
@@ -53,7 +53,7 @@ def get_triggers_disjunctive(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def _filter_est(est: NDArray, lct: NDArray, p: NDArray, n: int) -> bool:
     """
     Raises the earliest start times by overload checking and edge finding on a unary resource.
@@ -105,7 +105,7 @@ def _filter_est(est: NDArray, lct: NDArray, p: NDArray, n: int) -> bool:
     return True
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def _filter_not_last(est: NDArray, lct: NDArray, p: NDArray, n: int) -> None:
     """
     Lowers the latest completion times by the not-last rule on a unary resource.
@@ -146,7 +146,7 @@ def _filter_not_last(est: NDArray, lct: NDArray, p: NDArray, n: int) -> None:
         lct[t] = new_lct[t]
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def _filter_detectable_precedences(est: NDArray, lct: NDArray, p: NDArray, n: int) -> None:
     """
     Raises the earliest start times by detectable precedences on a unary resource.
@@ -184,7 +184,7 @@ def _filter_detectable_precedences(est: NDArray, lct: NDArray, p: NDArray, n: in
         est[j] = new_est[j]
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True)
 def compute_domains_disjunctive(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements the disjunctive (unary resource) constraint: tasks with start times ``domains`` and constant
