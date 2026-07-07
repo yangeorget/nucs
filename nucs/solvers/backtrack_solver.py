@@ -72,7 +72,7 @@ from nucs.numba_helper import (
     build_function_ptrs,
 )
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, update_propagators
+from nucs.propagators.propagators import ALG_DUMMY, COMPUTE_DOMAINS_FCTS, update_propagators
 from nucs.solvers.bound_consistency_algorithm import get_domain_buffer
 from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_points, fix_choice_point
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
@@ -219,7 +219,11 @@ class BacktrackSolver(Solver, QueueSolver):
             self.var_heuristic_fcts = [VAR_HEURISTIC_FCTS[h] for h in var_heuristics]
             self.dom_heuristic_fcts = [DOM_HEURISTIC_FCTS[h] for h in dom_heuristics]
         else:
-            self.compute_domains_fcts = build_function_ptrs(COMPUTE_DOMAINS_FCTS, SIGN_COMPUTE_DOMAINS)
+            # resolving only the algorithms used by the problem keeps the init cost proportional
+            # to the problem instead of the whole propagator library
+            self.compute_domains_fcts = build_function_ptrs(
+                COMPUTE_DOMAINS_FCTS, SIGN_COMPUTE_DOMAINS, np.unique(self.problem.algorithms), ALG_DUMMY
+            )
             self.consistency_alg_fcts = build_function_ptrs(
                 [CONSISTENCY_ALG_FCTS[consistency_algorithm]], SIGN_CONSISTENCY_ALG
             )

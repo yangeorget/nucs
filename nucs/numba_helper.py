@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Any, Callable, List, Sequence
+from typing import Any, Callable, List, Optional, Sequence
 
 import numpy as np
 from numba import njit, types  # type: ignore
@@ -48,12 +48,37 @@ def function_ptr_from_address(typingctx, func_type_ref: types.FunctionType, addr
     return func_type(func_type_ref, addr), codegen
 
 
-def addresses_from_functions(functions: List[Callable], signature: Any) -> NDArray:
-    return (
-        np.array([0])
-        if NUMBA_DISABLE_JIT
-        else np.array([_get_wrapper_address(function, signature) for function in functions])
-    )
+def addresses_from_functions(
+    functions: List[Callable], signature: Any, used: Optional[NDArray] = None, filler_index: Optional[int] = None
+) -> NDArray:
+    """
+    Returns the compiled-wrapper addresses of the given functions.
+
+    Resolving an address forces Numba to materialize the compiled code, which is costly: when used is provided,
+    only those indices are resolved and the remaining slots share the address of the filler function
+    (which is never called but keeps the table indexable by any function index).
+
+    :param functions: the functions
+    :type functions: List[Callable]
+    :param signature: the Numba signature of the functions
+    :type signature: Any
+    :param used: the indices of the functions to resolve, all of them if None
+    :type used: Optional[NDArray]
+    :param filler_index: the index of the function whose address fills the unresolved slots,
+                         if None all the functions are resolved
+    :type filler_index: Optional[int]
+
+    :return: the addresses
+    :rtype: NDArray
+    """
+    if NUMBA_DISABLE_JIT:
+        return np.array([0])
+    if used is None or filler_index is None:
+        return np.array([_get_wrapper_address(function, signature) for function in functions])
+    addresses = np.full(len(functions), _get_wrapper_address(functions[filler_index], signature), dtype=np.int64)
+    for index in used:
+        addresses[index] = _get_wrapper_address(functions[index], signature)
+    return addresses
 
 
 def build_typed_list(arrays: List[NDArray]) -> Any:
@@ -70,16 +95,19 @@ def build_typed_list(arrays: List[NDArray]) -> Any:
     return typed
 
 
-def build_function_ptrs(functions: List[Callable], signature: Any) -> Any:
+def build_function_ptrs(
+    functions: List[Callable], signature: Any, used: Optional[NDArray] = None, filler_index: Optional[int] = None
+) -> Any:
     """
     Materializes a typed list of function pointers of the given Numba FunctionType.
 
     Resolving a function object to its compiled-wrapper address is an interpreter-side operation, so it is
     done here in plain Python; the jitted :func:`_build_fcts` then rebuilds the first-class function pointers
     from those addresses. Built once at solver init so the inner loops avoid rebuilding it on every call.
+    When used is provided, only those indices are resolved (see :func:`addresses_from_functions`).
     """
     return build_function_ptrs_from_addresses(
-        addresses_from_functions(functions, signature), types.FunctionType(signature)
+        addresses_from_functions(functions, signature, used, filler_index), types.FunctionType(signature)
     )
 
 

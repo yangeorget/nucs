@@ -31,7 +31,7 @@ from nucs.constants import (
     VARIABLE,
 )
 from nucs.numba_helper import addresses_from_functions, function_ptr_from_address
-from nucs.propagators.propagators import GET_TRIGGERS_FCTS, GET_COMPLEXITY_FCTS
+from nucs.propagators.propagators import ALG_DUMMY, GET_TRIGGERS_FCTS, GET_COMPLEXITY_FCTS
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +165,11 @@ class Problem:
         # (domain_nb, EVENT_MASK_NB, propagator_nb) array would be mostly empty (and huge), so it is stored
         # in CSR form: triggers is the flat list of propagators and triggers_offsets delimits, for each
         # (variable, event), its slice -- offsets[variable * EVENT_MASK_NB + event] up to the next offset.
-        get_triggers_addrs = addresses_from_functions(GET_TRIGGERS_FCTS, SIGN_GET_TRIGGERS)
+        # resolving only the algorithms used by the problem keeps the init cost proportional
+        # to the problem instead of the whole propagator library
+        get_triggers_addrs = addresses_from_functions(
+            GET_TRIGGERS_FCTS, SIGN_GET_TRIGGERS, np.unique(self.algorithms), ALG_DUMMY
+        )
         counts = np.zeros((self.domain_nb, EVENT_MASK_NB), dtype=np.int32)
         count_triggers(
             counts,
