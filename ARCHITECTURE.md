@@ -65,3 +65,23 @@ codes), `STATS_IDX_*` (16 counters tracking backtracks, propagator calls, soluti
 - **The pure-Python escape hatch is a hard constraint.** Everything must also run under `NUMBA_DISABLE_JIT=1`
   (debugging, coverage, real tracebacks) — this is why `nucs/numba_helper.py` degrades typed lists to plain Python
   lists. Do not introduce Numba-only constructs without a non-JIT fallback.
+
+## Explored, not adopted
+
+- **A solver-owned scratch buffer for propagator working memory (benchmarked 2026-07, ~4%, shelved).** Some
+  propagators need temporary arrays per call: `alldifferent` and `gcc` each do one `np.empty` inside
+  `compute_domains_*` (already collapsed from several allocations into a single one). The explored alternative
+  threads a second preallocated buffer — alongside `domain_buffer` — through the consistency algorithms and extends
+  the propagator signature to `compute_domains_*(domains, parameters, scratch)`, removing the last allocator traffic
+  from the propagation hot loop. Measured on queens 11–13 `solve_all`: a consistent 3.5–4.5% end-to-end speedup,
+  matching a per-call microbenchmark saving of ~40 ns (the cost of one Numba NRT allocation), which is most visible
+  at small arities where `alldifferent`'s O(n log n) body doesn't yet dominate. Two findings worth keeping:
+  - **The scratch argument must be typed C-contiguous (`int32[::1]`) in `SIGN_COMPUTE_DOMAINS`.** Reusing the
+    existing `parameters` array as scratch space avoids the signature change but is typed `int32[:]` (any layout),
+    so every scratch slice loses compile-time contiguity and the hot loops pay strided indexing — that variant was
+    5% *slower* than baseline despite allocating nothing. A local `np.empty` gives Numba layout knowledge for free;
+    a passed-in buffer only matches it when the signature says `::1`.
+  - **Why shelved:** `compute_domains_*` is a public extension point, so the third argument breaks every external
+    propagator and every test that calls one directly — a 52-propagator, API-breaking change for a capped ~4-5% on
+    alldifferent-heavy problems. With the single-allocation layout, Numba's allocator costs only ~40 ns per call;
+    the current code is near-optimal without the break. Revisit if the signature changes anyway for another reason.
