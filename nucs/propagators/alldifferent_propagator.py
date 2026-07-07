@@ -249,24 +249,13 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     min_sorted_vars = empty_buffer[4 * bounds_nb : 4 * bounds_nb + n]
     max_sorted_vars = empty_buffer[4 * bounds_nb + n : 4 * bounds_nb + 2 * n]
     ranks = empty_buffer[4 * bounds_nb + 2 * n :].reshape(n, 2)
-    # insertion argsorts: the domains barely move between two calls, so the keys are nearly sorted
-    # and insertion sort beats np.argsort (which would also allocate its result)
+    min_sorted_vars[:] = np.argsort(domains[:, MIN])
+    max_sorted_vars[:] = np.argsort(domains[:, MAX])
     ground = True
     for i in range(n):
-        min_key = domains[i, MIN]
-        max_key = domains[i, MAX]
-        if min_key != max_key:
+        if domains[i, MIN] != domains[i, MAX]:
             ground = False
-        j = i - 1
-        while j >= 0 and domains[min_sorted_vars[j], MIN] > min_key:
-            min_sorted_vars[j + 1] = min_sorted_vars[j]
-            j -= 1
-        min_sorted_vars[j + 1] = i
-        j = i - 1
-        while j >= 0 and domains[max_sorted_vars[j], MAX] > max_key:
-            max_sorted_vars[j + 1] = max_sorted_vars[j]
-            j -= 1
-        max_sorted_vars[j + 1] = i
+            break
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars)
     if filter_lower(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars) and filter_upper(
         n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars

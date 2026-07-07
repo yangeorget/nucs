@@ -437,21 +437,8 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     new_mins = zero_buffer[2 * bounds_nb :]
     l = init_partial_sum(parameters[0], m, parameters[1 : 1 + m])
     u = init_partial_sum(parameters[0], m, parameters[1 + m :])
-    # insertion argsorts: the domains barely move between two calls, so the keys are nearly sorted
-    # and insertion sort beats np.argsort (which would also allocate its result)
-    for i in range(n):
-        min_key = domains[i, MIN]
-        max_key = domains[i, MAX]
-        j = i - 1
-        while j >= 0 and domains[min_sorted_vars[j], MIN] > min_key:
-            min_sorted_vars[j + 1] = min_sorted_vars[j]
-            j -= 1
-        min_sorted_vars[j + 1] = i
-        j = i - 1
-        while j >= 0 and domains[max_sorted_vars[j], MAX] > max_key:
-            max_sorted_vars[j + 1] = max_sorted_vars[j]
-            j -= 1
-        max_sorted_vars[j + 1] = i
+    min_sorted_vars[:] = np.argsort(domains[:, MIN])
+    max_sorted_vars[:] = np.argsort(domains[:, MAX])
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
     # assert get_min_value(l) == get_min_value(u)
     # assert get_max_value(l) == get_max_value(u)
