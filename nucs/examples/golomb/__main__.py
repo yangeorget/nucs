@@ -20,11 +20,12 @@ from nucs.solvers.consistency_algorithms import register_consistency_algorithm
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.golomb -n 10 --symmetry_breaking
 if __name__ == "__main__":
+    # registered before the parser is built so that GOLOMB is a valid --consistency-algorithm choice
+    golomb_consistency_algorithm = register_consistency_algorithm(golomb_consistency_algorithm)  # type: ignore[assignment]
     parser = DefaultArgumentParser()
     parser.add_argument("-n", type=int, default=10)
     args = parser.parse_args()
     problem = GolombProblem(args.n, args.symmetry_breaking)
-    golomb_consistency_algorithm = register_consistency_algorithm(golomb_consistency_algorithm)  # type: ignore[assignment]
     kwargs = solver_kwargs_from_args(args, consistency_algorithm=golomb_consistency_algorithm)
     solver = BacktrackSolver(problem, **kwargs)
     solution = solver.minimize(problem.length_idx, mode=args.optimization_mode or OPTIM_RESET)

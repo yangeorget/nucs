@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Callable, List
+from typing import Callable, Dict, List, Optional
 
 from nucs.heuristics.critical_resource_var_heuristic import critical_resource_var_heuristic
 from nucs.heuristics.first_not_instantiated_var_heuristic import first_not_instantiated_var_heuristic
@@ -30,33 +30,45 @@ from nucs.heuristics.split_random_dom_heuristic import split_random_dom_heuristi
 
 VAR_HEURISTIC_FCTS: List[Callable] = []
 DOM_HEURISTIC_FCTS: List[Callable] = []
+VAR_HEURISTICS: Dict[str, int] = {}  # heuristic name to index, for name-based selection (eg from the CLI)
+DOM_HEURISTICS: Dict[str, int] = {}  # heuristic name to index, for name-based selection (eg from the CLI)
 
 
-def register_var_heuristic(var_heuristic_fct: Callable) -> int:
+def register_var_heuristic(var_heuristic_fct: Callable, name: Optional[str] = None) -> int:
     """
     Registers a variable heuristic by adding it function to the corresponding list of functions.
 
     :param var_heuristic_fct: a function that implements the variable heuristic
     :type var_heuristic_fct: Callable
+    :param name: the name of the heuristic, defaults to the function name without its _var_heuristic suffix, uppercased
+    :type name: Optional[str]
 
     :return: the index of the variable heuristic
     :rtype: int
     """
     VAR_HEURISTIC_FCTS.append(var_heuristic_fct)
+    if name is None:
+        name = var_heuristic_fct.__name__.removesuffix("_var_heuristic").upper()
+    VAR_HEURISTICS[name] = len(VAR_HEURISTIC_FCTS) - 1
     return len(VAR_HEURISTIC_FCTS) - 1
 
 
-def register_dom_heuristic(dom_heuristic_fct: Callable) -> int:
+def register_dom_heuristic(dom_heuristic_fct: Callable, name: Optional[str] = None) -> int:
     """
     Registers a domain heuristic by adding it function to the corresponding list of functions.
 
     :param dom_heuristic_fct: a function that implements the domain heuristic
     :type dom_heuristic_fct: Callable
+    :param name: the name of the heuristic, defaults to the function name without its _dom_heuristic suffix, uppercased
+    :type name: Optional[str]
 
     :return: the index of the domain heuristic
     :rtype: int
     """
     DOM_HEURISTIC_FCTS.append(dom_heuristic_fct)
+    if name is None:
+        name = dom_heuristic_fct.__name__.removesuffix("_dom_heuristic").upper()
+    DOM_HEURISTICS[name] = len(DOM_HEURISTIC_FCTS) - 1
     return len(DOM_HEURISTIC_FCTS) - 1
 
 

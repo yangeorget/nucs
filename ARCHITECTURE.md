@@ -85,3 +85,29 @@ codes), `STATS_IDX_*` (16 counters tracking backtracks, propagator calls, soluti
     propagator and every test that calls one directly — a 52-propagator, API-breaking change for a capped ~4-5% on
     alldifferent-heavy problems. With the single-allocation layout, Numba's allocator costs only ~40 ns per call;
     the current code is near-optimal without the break. Revisit if the signature changes anyway for another reason.
+- **Incremental alldifferent via persistent warm permutations (benchmarked 2026-07, ~8% total, shelved with the
+  scratch buffer).** Follow-up to the scratch-buffer experiment, using the same third argument: instead of pure
+  scratch, each propagator gets a persistent per-propagator state row laid out as
+  `[flag, min_sorted_vars[n], max_sorted_vars[n], scratch...]` (zeroed at solver init, `flag == 0` means cold since
+  an all-zeros permutation is invalid). The insertion argsorts then warm-start from the previous call's
+  permutations instead of rebuilding from the identity, costing O(n + inversions *since the previous call*) rather
+  than displacement relative to index order. Findings:
+  - **Hint state needs no backtrack bookkeeping.** A stale permutation is a valid input from any search node —
+    merely a slower one — so nothing is trailed or restored, `problem.split(...)` clones just start cold, and the
+    non-JIT fallback is untouched. Verified by identical solution counts across all configurations (73,712
+    solutions of queens 13, millions of backtracks) and a bit-identical-propagation checksum in the
+    microbenchmark. This is the cheapest sound form of propagator state; anything semantic (cached sums, counts)
+    would instead need a generation stamp bumped on backtrack.
+  - **Measured:** queens 11–13 `solve_all` ~7.5–8% end-to-end vs baseline (vs ~3.5% for scratch-only — warm
+    permutations roughly double the win), langford(3,9) ~5.5%, all_interval(12) 0% (alldifferent is not its hot
+    propagator). Per call, warm equals cold when sort keys correlate with variable index but removes the
+    identity-seeded sort's O(n²) cliff when they don't: 2.4× at n=128, 14× at n=512, 49× at n=2048 (~1 ms/call cold vs
+    21 µs warm). Mid-search, the no-offset alldifferent's keys (the values) decorrelate from index, which is where
+    the end-to-end gain over scratch-only comes from; the diagonal constraints' monotone offsets keep their keys
+    index-correlated, capping the gain on queens.
+  - **Why shelved, and when to revisit:** same API break as the scratch buffer, so the same verdict — but if the
+    `compute_domains_*` signature ever breaks for any reason, adopt this rather than plain scratch: same third
+    argument, ~30 extra lines in `alldifferent` (and the same recipe applies to `gcc`), and it is insurance for
+    FlatZinc-sourced models with large alldifferents over arbitrarily-ordered variables, which currently sit on
+    the O(n²) sort cliff. Large-arity queens could not witness the effect either way: first-solution at n = 128
+    with `VAR_HEURISTIC_SMALLEST_DOMAIN` is search-bound and did not finish under any configuration.

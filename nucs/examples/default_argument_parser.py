@@ -15,16 +15,20 @@ from argparse import Namespace
 from typing import Any, Dict
 
 from nucs.constants import LOG_LEVELS, OPTIM_MODES
+from nucs.heuristics.heuristics import DOM_HEURISTICS, VAR_HEURISTICS
+from nucs.solvers.consistency_algorithms import CONSISTENCY_ALGS
 from nucs.solvers.solver import Solver
 
 
 class DefaultArgumentParser(argparse.ArgumentParser):
     def __init__(self) -> None:
         super().__init__()
+        # the choices below are computed when the parser is built:
+        # custom algorithms/heuristics registered beforehand are also selectable from the CLI
         self.add_argument(
             "--consistency-algorithm",
-            help="set the consistency algorithm (0 is for BC)",
-            type=int,
+            help="set the consistency algorithm",
+            choices=sorted(CONSISTENCY_ALGS),
         )
         self.add_argument(
             "--cp-max-height",
@@ -34,7 +38,7 @@ class DefaultArgumentParser(argparse.ArgumentParser):
         self.add_argument(
             "--dom-heuristic",
             help="set the domain heuristic",
-            type=int,
+            choices=sorted(DOM_HEURISTICS),
         )
         self.add_argument(
             "--display-solutions",
@@ -78,7 +82,7 @@ class DefaultArgumentParser(argparse.ArgumentParser):
         self.add_argument(
             "--var-heuristic",
             help="set the variable heuristic",
-            type=int,
+            choices=sorted(VAR_HEURISTICS),
         )
 
 
@@ -95,10 +99,12 @@ def solver_kwargs_from_args(args: Namespace, **defaults: Any) -> Dict[str, Any]:
     :rtype: Dict[str, Any]
     """
     overrides = {
-        "consistency_algorithm": args.consistency_algorithm,
+        "consistency_algorithm": None
+        if args.consistency_algorithm is None
+        else CONSISTENCY_ALGS[args.consistency_algorithm],
         "stks_max_height": args.cp_max_height,
-        "var_heuristic": args.var_heuristic,
-        "dom_heuristic": args.dom_heuristic,
+        "var_heuristic": None if args.var_heuristic is None else VAR_HEURISTICS[args.var_heuristic],
+        "dom_heuristic": None if args.dom_heuristic is None else DOM_HEURISTICS[args.dom_heuristic],
         "log_level": args.log_level,
     }
     return {**defaults, **{k: v for k, v in overrides.items() if v is not None}}
