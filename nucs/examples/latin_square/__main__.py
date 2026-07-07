@@ -23,5 +23,5 @@ if __name__ == "__main__":
     parser.add_argument("-n", type=int, default=10)
     parser.add_argument("--model-rc", action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
-    problem = LatinSquareRCProblem(args.n) if args.rc else LatinSquareProblem(range(args.n))
+    problem = LatinSquareRCProblem(args.n) if args.model_rc else LatinSquareProblem(range(args.n))
     run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args)), args)
