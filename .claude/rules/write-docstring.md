@@ -1,8 +1,3 @@
----
-name: write-docstring
-description: Skill to write a Python docstring. Use it whenever you add a function.
----
-
 # Write docstring
 
 ## Instructions

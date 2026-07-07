@@ -1,8 +1,3 @@
----
-name: add-header
-description: Skill to add the NuCS header to each Python file. Use it whenever you create a new Python file under `nucs/` or `tests/`.
----
-
 # Add header
 
 Every Python file under `nucs/` and `tests/` starts with the ASCII-art copyright banner in `header.txt`.
