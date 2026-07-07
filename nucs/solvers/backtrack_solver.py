@@ -14,7 +14,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from multiprocessing import Queue
-from typing import Dict, Iterable, Iterator, List, Optional
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -63,12 +63,10 @@ from nucs.heuristics.heuristics import (
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
 )
 from nucs.numba_helper import (
-    NDArrayList,
     ComputeDomainsFunctions,
     ConsistencyAlgorithmFunctions,
     DomainHeuristicFunctions,
     VariableHeuristicFunctions,
-    build_typed_list,
     build_function_ptrs,
 )
 from nucs.problems.problem import Problem
@@ -98,16 +96,37 @@ class Search:
     dom_heuristic_params: List[List[int]] = field(default_factory=lambda: [[]])
 
 
+def flatten_arrays(arrays: List[NDArray]) -> Tuple[NDArray, NDArray]:
+    """
+    Flattens a ragged list of arrays into their concatenation and the CSR offsets delimiting each array.
+
+    :param arrays: the arrays, of identical dtype but possibly different shapes
+    :type arrays: List[NDArray]
+
+    :return: the flat concatenation and the offsets
+    :rtype: Tuple[NDArray, NDArray]
+    """
+    offsets = np.zeros(len(arrays) + 1, dtype=np.int64)
+    np.cumsum([array.size for array in arrays], out=offsets[1:])
+    return np.concatenate([array.reshape(-1) for array in arrays]), offsets
+
+
 class BacktrackSolver(Solver, QueueSolver):
     """
     A solver relying on a backtracking mechanism.
     """
 
-    # the per-search / per-propagator collections threaded into solve_one (Numba typed lists under the JIT,
-    # plain Python lists otherwise)
-    decision_variables: NDArrayList
-    var_heuristic_params: NDArrayList
-    dom_heuristic_params: NDArrayList
+    # the per-search ragged collections threaded into solve_one, stored CSR-style: a flat concatenation
+    # plus the offsets delimiting each search's slice (and, for the 2d parameter arrays, their shapes)
+    decision_variables: NDArray
+    decision_variables_offsets: NDArray
+    var_heuristic_params: NDArray
+    var_heuristic_params_offsets: NDArray
+    var_heuristic_params_shapes: NDArray
+    dom_heuristic_params: NDArray
+    dom_heuristic_params_offsets: NDArray
+    dom_heuristic_params_shapes: NDArray
+    # the function tables threaded into solve_one (Numba typed lists under the JIT, plain Python lists otherwise)
     consistency_alg_fcts: ConsistencyAlgorithmFunctions
     var_heuristic_fcts: VariableHeuristicFunctions
     dom_heuristic_fcts: DomainHeuristicFunctions
@@ -179,11 +198,13 @@ class BacktrackSolver(Solver, QueueSolver):
             var_params.append(np.array(search.var_heuristic_params, dtype=np.int64))
             dom_params.append(np.array(search.dom_heuristic_params, dtype=np.int64))
         logger.info(f"BacktrackSolver uses decision domains {[dv.tolist() for dv in decision_variables_per_search]}")
-        self.decision_variables = build_typed_list(decision_variables_per_search)
+        self.decision_variables, self.decision_variables_offsets = flatten_arrays(decision_variables_per_search)
         logger.info(f"BacktrackSolver uses variable heuristics {var_heuristics}")
-        self.var_heuristic_params = build_typed_list(var_params)
+        self.var_heuristic_params, self.var_heuristic_params_offsets = flatten_arrays(var_params)
+        self.var_heuristic_params_shapes = np.array([params.shape for params in var_params], dtype=np.int64)
         logger.info(f"BacktrackSolver uses domain heuristics {dom_heuristics}")
-        self.dom_heuristic_params = build_typed_list(dom_params)
+        self.dom_heuristic_params, self.dom_heuristic_params_offsets = flatten_arrays(dom_params)
+        self.dom_heuristic_params_shapes = np.array([params.shape for params in dom_params], dtype=np.int64)
         logger.info(f"BacktrackSolver uses consistency algorithm {consistency_algorithm}")
         self.triggered_propagators = buckets_create(problem.propagator_nb)
         self.domain_buffer = get_domain_buffer(problem.bounds)
@@ -391,10 +412,15 @@ class BacktrackSolver(Solver, QueueSolver):
                     self.triggered_propagators,
                     self.consistency_alg_fcts,
                     self.decision_variables,
+                    self.decision_variables_offsets,
                     self.var_heuristic_fcts,
                     self.var_heuristic_params,
+                    self.var_heuristic_params_offsets,
+                    self.var_heuristic_params_shapes,
                     self.dom_heuristic_fcts,
                     self.dom_heuristic_params,
+                    self.dom_heuristic_params_offsets,
+                    self.dom_heuristic_params_shapes,
                     self.compute_domains_fcts,
                     self.domain_buffer,
                 )
@@ -474,10 +500,15 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.triggered_propagators,
                 self.consistency_alg_fcts,
                 self.decision_variables,
+                self.decision_variables_offsets,
                 self.var_heuristic_fcts,
                 self.var_heuristic_params,
+                self.var_heuristic_params_offsets,
+                self.var_heuristic_params_shapes,
                 self.dom_heuristic_fcts,
                 self.dom_heuristic_params,
+                self.dom_heuristic_params_offsets,
+                self.dom_heuristic_params_shapes,
                 self.compute_domains_fcts,
                 self.domain_buffer,
             )
@@ -578,10 +609,15 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.triggered_propagators,
                 self.consistency_alg_fcts,
                 self.decision_variables,
+                self.decision_variables_offsets,
                 self.var_heuristic_fcts,
                 self.var_heuristic_params,
+                self.var_heuristic_params_offsets,
+                self.var_heuristic_params_shapes,
                 self.dom_heuristic_fcts,
                 self.dom_heuristic_params,
+                self.dom_heuristic_params_offsets,
+                self.dom_heuristic_params_shapes,
                 self.compute_domains_fcts,
                 self.domain_buffer,
             )
@@ -664,10 +700,15 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.triggered_propagators,
                 self.consistency_alg_fcts,
                 self.decision_variables,
+                self.decision_variables_offsets,
                 self.var_heuristic_fcts,
                 self.var_heuristic_params,
+                self.var_heuristic_params_offsets,
+                self.var_heuristic_params_shapes,
                 self.dom_heuristic_fcts,
                 self.dom_heuristic_params,
+                self.dom_heuristic_params_offsets,
+                self.dom_heuristic_params_shapes,
                 self.compute_domains_fcts,
                 self.domain_buffer,
             )
@@ -710,11 +751,16 @@ def solve_one(
     stks_top: NDArray,
     triggered_propagators: NDArray,
     consistency_alg_fcts: ConsistencyAlgorithmFunctions,
-    decision_variables: NDArrayList,
+    decision_variables: NDArray,
+    decision_variables_offsets: NDArray,
     var_heuristic_fcts: VariableHeuristicFunctions,
-    var_heuristic_params: NDArrayList,
+    var_heuristic_params: NDArray,
+    var_heuristic_params_offsets: NDArray,
+    var_heuristic_params_shapes: NDArray,
     dom_heuristic_fcts: DomainHeuristicFunctions,
-    dom_heuristic_params: NDArrayList,
+    dom_heuristic_params: NDArray,
+    dom_heuristic_params_offsets: NDArray,
+    dom_heuristic_params_shapes: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
 ) -> Optional[NDArray]:
@@ -758,16 +804,26 @@ def solve_one(
     :type triggered_propagators: NDArray
     :param consistency_alg_fcts: a 1-element list holding the consistency algorithm function
     :type consistency_alg_fcts: ConsistencyAlgFcts
-    :param decision_variables: the per-search list of decision variable arrays
-    :type decision_variables: ArrayList
+    :param decision_variables: the concatenation of the per-search decision variable arrays
+    :type decision_variables: NDArray
+    :param decision_variables_offsets: the CSR offsets delimiting each search's slice of decision_variables
+    :type decision_variables_offsets: NDArray
     :param var_heuristic_fcts: the typed list of variable heuristic functions, one per search
     :type var_heuristic_fcts: VarHeuristicFcts
-    :param var_heuristic_params: the per-search list of variable heuristic parameter arrays
-    :type var_heuristic_params: ArrayList
+    :param var_heuristic_params: the flattened concatenation of the per-search variable heuristic parameter arrays
+    :type var_heuristic_params: NDArray
+    :param var_heuristic_params_offsets: the CSR offsets delimiting each search's slice of var_heuristic_params
+    :type var_heuristic_params_offsets: NDArray
+    :param var_heuristic_params_shapes: the 2d shape of each search's variable heuristic parameter array
+    :type var_heuristic_params_shapes: NDArray
     :param dom_heuristic_fcts: the typed list of domain heuristic functions, one per search
     :type dom_heuristic_fcts: DomHeuristicFcts
-    :param dom_heuristic_params: the per-search list of domain heuristic parameter arrays
-    :type dom_heuristic_params: ArrayList
+    :param dom_heuristic_params: the flattened concatenation of the per-search domain heuristic parameter arrays
+    :type dom_heuristic_params: NDArray
+    :param dom_heuristic_params_offsets: the CSR offsets delimiting each search's slice of dom_heuristic_params
+    :type dom_heuristic_params_offsets: NDArray
+    :param dom_heuristic_params_shapes: the 2d shape of each search's domain heuristic parameter array
+    :type dom_heuristic_params_shapes: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
     :type compute_domains_fcts: ComputeDomainsFcts
     :param domain_buffer: a scratch buffer for prop_domains,
@@ -778,7 +834,7 @@ def solve_one(
     :rtype: Optional[NDArray]
     """
     consistency_alg_fct = consistency_alg_fcts[0]
-    nb_searches = len(decision_variables)
+    nb_searches = len(decision_variables_offsets) - 1
     while True:
         status = consistency_alg_fct(
             propagator_nb,
@@ -808,10 +864,14 @@ def solve_one(
             # decision and branches with its own variable and domain heuristics
             for search_idx in range(nb_searches):
                 variable = var_heuristic_fcts[search_idx](
-                    decision_variables[search_idx],
+                    decision_variables[
+                        decision_variables_offsets[search_idx] : decision_variables_offsets[search_idx + 1]
+                    ],
                     domains_stk,
                     top,
-                    var_heuristic_params[search_idx],
+                    var_heuristic_params[
+                        var_heuristic_params_offsets[search_idx] : var_heuristic_params_offsets[search_idx + 1]
+                    ].reshape(var_heuristic_params_shapes[search_idx, 0], var_heuristic_params_shapes[search_idx, 1]),
                 )
                 if variable != -1:
                     events = dom_heuristic_fcts[search_idx](
@@ -821,7 +881,11 @@ def solve_one(
                         unbound_variable_nb_stk,
                         stks_top,
                         variable,
-                        dom_heuristic_params[search_idx],
+                        dom_heuristic_params[
+                            dom_heuristic_params_offsets[search_idx] : dom_heuristic_params_offsets[search_idx + 1]
+                        ].reshape(
+                            dom_heuristic_params_shapes[search_idx, 0], dom_heuristic_params_shapes[search_idx, 1]
+                        ),
                     )
                     top = stks_top[0]
                     offset = variable * EVENT_MASK_NB + events
