@@ -86,13 +86,44 @@ def build_typed_list(arrays: List[NDArray]) -> Any:
     Builds a per-search list of arrays (the search's decision variables, or its heuristic parameters). Under
     the JIT a Numba typed list is returned (so the jitted search loop can index it by search), otherwise a
     plain Python list. The arrays may have different shapes; only their dtype and rank must match.
+
+    Appending to a typed list from the interpreter compiles a specialization that Numba never caches on disk,
+    which costs hundreds of ms in every fresh process: the arrays are flattened here and the list is rebuilt
+    inside a cached jitted helper instead.
     """
     if NUMBA_DISABLE_JIT:
         return list(arrays)
-    typed = NumbaList()
-    for array in arrays:
-        typed.append(array)
-    return typed
+    offsets = np.zeros(len(arrays) + 1, dtype=np.int64)
+    np.cumsum([array.size for array in arrays], out=offsets[1:])
+    flat = np.concatenate([array.reshape(-1) for array in arrays])
+    if arrays[0].ndim == 1:
+        return build_1d_array_list(flat, offsets)
+    rows = np.array([array.shape[0] for array in arrays], dtype=np.int64)
+    cols = np.array([array.shape[1] for array in arrays], dtype=np.int64)
+    return build_2d_array_list(flat, offsets, rows, cols)
+
+
+@njit(cache=True)
+def build_1d_array_list(flat: NDArray, offsets: NDArray) -> NumbaList:
+    """
+    Rebuilds, in nopython mode, the typed list of 1d arrays from their flattened concatenation.
+    """
+    arrays = NumbaList()
+    for i in range(len(offsets) - 1):
+        arrays.append(np.ascontiguousarray(flat[offsets[i] : offsets[i + 1]]))
+    return arrays
+
+
+@njit(cache=True)
+def build_2d_array_list(flat: NDArray, offsets: NDArray, rows: NDArray, cols: NDArray) -> NumbaList:
+    """
+    Rebuilds, in nopython mode, the typed list of 2d arrays from their flattened concatenation.
+    """
+    arrays = NumbaList()
+    for i in range(len(offsets) - 1):
+        chunk = np.ascontiguousarray(flat[offsets[i] : offsets[i + 1]])
+        arrays.append(chunk.reshape(rows[i], cols[i]))
+    return arrays
 
 
 def build_function_ptrs(
