@@ -408,6 +408,64 @@ class BacktrackSolver(Solver, QueueSolver):
             self.domain_buffer,
         )
 
+    def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
+        """
+        After emitting a local optimum, prepares the solver for the next improving solution: either resets to
+        the initial domains (OPTIM_RESET) or prunes the choice points, then refixes the objective bound.
+
+        :param variable: the variable being optimized
+        :type variable: int
+        :param value: the value of the variable in the local optimum just found
+        :type value: int
+        :param bound: the bound to fix on the variable
+        :type bound: int
+        :param mode: the optimization mode
+        :type mode: str
+
+        :return: whether the search can continue
+        :rtype: bool
+        """
+        if mode == OPTIM_RESET:
+            logger.debug("Resetting solver")
+            cp_init(
+                self.domains_stk,
+                self.entailed_propagator_depths,
+                self.entailment_trail,
+                self.domain_update_stk,
+                self.unbound_variable_nb_stk,
+                self.stks_top,
+                self.initial_domains,
+                self.problem.unbound_variable_nb,
+            )
+            if not fix_choice_point(
+                self.domains_stk,
+                self.unbound_variable_nb_stk,
+                variable,
+                value,
+                bound,
+            ):
+                return False
+            buckets_init(self.triggered_propagators, self.problem.priorities)
+        else:
+            logger.debug("Pruning choice points")
+            if not fix_choice_points(
+                self.domains_stk,
+                self.entailed_propagator_depths,
+                self.entailment_trail,
+                self.unbound_variable_nb_stk,
+                self.stks_top,
+                self.triggered_propagators,
+                self.problem.triggers,
+                self.problem.triggers_offsets,
+                self.problem.priorities,
+                self.problem.propagator_nb,
+                variable,
+                value,
+                bound,
+            ):
+                return False
+        return True
+
     def optimize_solutions(self, variable: int, bound: int, mode: str) -> Iterator[NDArray]:
         """
         Iterates over the successively improving solutions found while optimizing a given variable.
@@ -434,45 +492,8 @@ class BacktrackSolver(Solver, QueueSolver):
             while (solution := self._solve_one()) is not None:
                 logger.info(f"Found a local optimum: {solution[variable]}")
                 yield solution
-                if mode == OPTIM_RESET:
-                    logger.debug("Resetting solver")
-                    cp_init(
-                        self.domains_stk,
-                        self.entailed_propagator_depths,
-                        self.entailment_trail,
-                        self.domain_update_stk,
-                        self.unbound_variable_nb_stk,
-                        self.stks_top,
-                        self.initial_domains,
-                        self.problem.unbound_variable_nb,
-                    )
-                    if not fix_choice_point(
-                        self.domains_stk,
-                        self.unbound_variable_nb_stk,
-                        variable,
-                        solution[variable],
-                        bound,
-                    ):
-                        break
-                    buckets_init(self.triggered_propagators, self.problem.priorities)
-                else:
-                    logger.debug("Pruning choice points")
-                    if not fix_choice_points(
-                        self.domains_stk,
-                        self.entailed_propagator_depths,
-                        self.entailment_trail,
-                        self.unbound_variable_nb_stk,
-                        self.stks_top,
-                        self.triggered_propagators,
-                        self.problem.triggers,
-                        self.problem.triggers_offsets,
-                        self.problem.priorities,
-                        self.problem.propagator_nb,
-                        variable,
-                        solution[variable],
-                        bound,
-                    ):
-                        break
+                if not self._advance_after_optimum(variable, solution[variable], bound, mode):
+                    break
         finally:
             self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
 
@@ -572,45 +593,8 @@ class BacktrackSolver(Solver, QueueSolver):
                 break
             logger.info(f"Found a local optimum: {solution[variable]}")
             solution_queue.put((processor_idx, solution, self.statistics))
-            if mode == OPTIM_RESET:
-                logger.debug("Resetting solver")
-                cp_init(
-                    self.domains_stk,
-                    self.entailed_propagator_depths,
-                    self.entailment_trail,
-                    self.domain_update_stk,
-                    self.unbound_variable_nb_stk,
-                    self.stks_top,
-                    self.initial_domains,
-                    self.problem.unbound_variable_nb,
-                )
-                if not fix_choice_point(
-                    self.domains_stk,
-                    self.unbound_variable_nb_stk,
-                    variable,
-                    solution[variable],
-                    bound,
-                ):
-                    break
-                buckets_init(self.triggered_propagators, self.problem.priorities)
-            else:
-                logger.debug("Pruning choice points")
-                if not fix_choice_points(
-                    self.domains_stk,
-                    self.entailed_propagator_depths,
-                    self.entailment_trail,
-                    self.unbound_variable_nb_stk,
-                    self.stks_top,
-                    self.triggered_propagators,
-                    self.problem.triggers,
-                    self.problem.triggers_offsets,
-                    self.problem.priorities,
-                    self.problem.propagator_nb,
-                    variable,
-                    solution[variable],
-                    bound,
-                ):
-                    break
+            if not self._advance_after_optimum(variable, solution[variable], bound, mode):
+                break
         self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
         solution_queue.put((processor_idx, None, self.statistics))
 
