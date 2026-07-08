@@ -12,7 +12,7 @@
 ###############################################################################
 from typing import Callable, Dict, List, Optional
 
-from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
+from nucs.solvers.bc_algorithm import bc_algorithm
 
 CONSISTENCY_ALG_FCTS: List[Callable] = []
 CONSISTENCY_ALGS: Dict[str, int] = {}  # algorithm name to index, for name-based selection (eg from the CLI)
@@ -38,4 +38,4 @@ def register_consistency_algorithm(consistency_algorithm_fct: Callable, name: Op
     return len(CONSISTENCY_ALG_FCTS) - 1
 
 
-CONSISTENCY_ALG_BC = register_consistency_algorithm(bound_consistency_algorithm, "BC")
+CONSISTENCY_ALG_BC = register_consistency_algorithm(bc_algorithm, "BC")

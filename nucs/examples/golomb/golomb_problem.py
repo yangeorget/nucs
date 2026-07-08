@@ -26,7 +26,7 @@ from nucs.propagators.propagators import (
     ALG_SUM_EQ,
     update_propagators,
 )
-from nucs.solvers.bound_consistency_algorithm import bound_consistency_algorithm
+from nucs.solvers.bc_algorithm import bc_algorithm
 
 GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])
 
@@ -197,7 +197,7 @@ def golomb_consistency_algorithm(
                         complexities,
                         propagator_nb,
                     )
-    return bound_consistency_algorithm(
+    return bc_algorithm(
         propagator_nb,
         statistics,
         algorithms,

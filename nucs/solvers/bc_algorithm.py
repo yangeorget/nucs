@@ -12,7 +12,6 @@
 ###############################################################################
 
 
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -43,30 +42,8 @@ from nucs.constants import (
 from nucs.numba_helper import ComputeDomainsFunctions
 
 
-def get_domain_buffer(bounds: NDArray) -> NDArray:
-    """
-    Allocates a reusable scratch buffer for prop_domains to avoid one allocation per propagator call.
-
-    Sized to the largest propagator arity (which can exceed domain_nb when a propagator
-    references the same variable twice, e.g. count_eq).
-    Allocated once at solver init and threaded through the consistency algorithms.
-
-    :param bounds: the bounds indexed by propagators
-    :type bounds: NDArray
-
-    :return: a scratch buffer sized to the maximal propagator arity
-    :rtype: NDArray
-    """
-    max_arity = np.int64(0)
-    for propagator_idx in range(len(bounds)):
-        arity = np.int64(bounds[propagator_idx, VARIABLE, RANGE_END] - bounds[propagator_idx, VARIABLE, RANGE_START])
-        if arity > max_arity:
-            max_arity = arity
-    return np.empty((max_arity, 2), dtype=np.int32)
-
-
 @njit(cache=True)
-def bound_consistency_algorithm(
+def bc_algorithm(
     propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,

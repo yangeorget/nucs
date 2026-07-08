@@ -17,7 +17,7 @@ from numpy.typing import NDArray
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_CUMULATIVE, ALG_DIFFN
-from nucs.solvers.backtrack_solver import Search
+from nucs.solvers.search import Search
 
 
 class SquarePlacementProblem(Problem):

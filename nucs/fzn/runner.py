@@ -33,7 +33,8 @@ from nucs.heuristics.heuristics import (
     VAR_HEURISTIC_SMALLEST_DOMAIN,
     VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE,
 )
-from nucs.solvers.backtrack_solver import BacktrackSolver, Search
+from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.search import Search
 
 # FlatZinc variable-selection annotations mapped to NuCS variable heuristics; unlisted ones
 # (dom_w_deg, occurrence, most_constrained, ...) fall back to the default.

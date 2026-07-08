@@ -36,8 +36,9 @@ from nucs.propagators.propagators import (
     ALG_NEQ,
     ALG_RELATION,
 )
-from nucs.solvers.backtrack_solver import BacktrackSolver, Search, solve_one
+from nucs.solvers.backtrack_solver import BacktrackSolver, solve_one
 from nucs.solvers.choice_points import backtrack
+from nucs.solvers.search import Search
 
 
 class TestBacktrackSolver:

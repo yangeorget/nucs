@@ -12,9 +12,8 @@
 ###############################################################################
 import logging
 import time
-from dataclasses import dataclass, field
 from multiprocessing import Queue
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import Dict, Iterable, Iterator, List, Optional
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -55,6 +54,9 @@ from nucs.constants import (
     STATS_LBL_SOLVER_CHOICE_NB,
     STATS_LBL_SOLVER_ELAPSED_TIME,
     STATS_MAX,
+    VARIABLE,
+    RANGE_END,
+    RANGE_START,
 )
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_FCTS,
@@ -69,46 +71,16 @@ from nucs.numba_helper import (
     VariableHeuristicFunctions,
     build_function_ptrs,
 )
+from nucs.numpy_helper import flatten_arrays
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_DUMMY, COMPUTE_DOMAINS_FCTS, update_propagators
-from nucs.solvers.bound_consistency_algorithm import get_domain_buffer
 from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_points, fix_choice_point
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.queue_solver import QueueSolver
+from nucs.solvers.search import Search
 from nucs.solvers.solver import Solver, get_solution
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class Search:
-    """
-    One search: the decision variables to branch on, the variable heuristic that picks the next of them, and
-    the domain heuristic that reduces it (each with optional parameters). A :class:`BacktrackSolver` runs a
-    list of these as a sequential search -- the nested searches are explored in order, each search staying
-    active until all of its decision variables are bound.
-    """
-
-    decision_variables: Optional[Iterable[int]] = None
-    var_heuristic: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
-    var_heuristic_params: List[List[int]] = field(default_factory=lambda: [[]])
-    dom_heuristic: int = DOM_HEURISTIC_MIN_VALUE
-    dom_heuristic_params: List[List[int]] = field(default_factory=lambda: [[]])
-
-
-def flatten_arrays(arrays: List[NDArray]) -> Tuple[NDArray, NDArray]:
-    """
-    Flattens a ragged list of arrays into their concatenation and the CSR offsets delimiting each array.
-
-    :param arrays: the arrays, of identical dtype but possibly different shapes
-    :type arrays: List[NDArray]
-
-    :return: the flat concatenation and the offsets
-    :rtype: Tuple[NDArray, NDArray]
-    """
-    offsets = np.zeros(len(arrays) + 1, dtype=np.int64)
-    np.cumsum([array.size for array in arrays], out=offsets[1:])
-    return np.concatenate([array.reshape(-1) for array in arrays]), offsets
 
 
 class BacktrackSolver(Solver, QueueSolver):
@@ -815,3 +787,25 @@ def solve_one(
             propagator_nb,
         ):
             return None
+
+
+def get_domain_buffer(bounds: NDArray) -> NDArray:
+    """
+    Allocates a reusable scratch buffer for prop_domains to avoid one allocation per propagator call.
+
+    Sized to the largest propagator arity (which can exceed domain_nb when a propagator
+    references the same variable twice, e.g. count_eq).
+    Allocated once at solver init and threaded through the consistency algorithms.
+
+    :param bounds: the bounds indexed by propagators
+    :type bounds: NDArray
+
+    :return: a scratch buffer sized to the maximal propagator arity
+    :rtype: NDArray
+    """
+    max_arity = np.int64(0)
+    for propagator_idx in range(len(bounds)):
+        arity = np.int64(bounds[propagator_idx, VARIABLE, RANGE_END] - bounds[propagator_idx, VARIABLE, RANGE_START])
+        if arity > max_arity:
+            max_arity = arity
+    return np.empty((max_arity, 2), dtype=np.int32)
