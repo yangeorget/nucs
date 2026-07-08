@@ -369,6 +369,45 @@ class BacktrackSolver(Solver, QueueSolver):
             pass
         return best_solution
 
+    def _solve_one(self) -> Optional[NDArray]:
+        """
+        Searches for the next solution by forwarding the solver state to the jitted solve_one.
+
+        :return: the next solution if it exists or None
+        :rtype: Optional[NDArray]
+        """
+        return solve_one(
+            self.problem.propagator_nb,
+            self.statistics,
+            self.problem.algorithms,
+            self.problem.priorities,
+            self.problem.bounds,
+            self.problem.propagator_variables,
+            self.problem.propagator_parameters,
+            self.problem.triggers,
+            self.problem.triggers_offsets,
+            self.domains_stk,
+            self.entailed_propagator_depths,
+            self.entailment_trail,
+            self.domain_update_stk,
+            self.unbound_variable_nb_stk,
+            self.stks_top,
+            self.triggered_propagators,
+            self.consistency_alg_fcts,
+            self.decision_variables,
+            self.decision_variables_offsets,
+            self.var_heuristic_fcts,
+            self.var_heuristic_params,
+            self.var_heuristic_params_offsets,
+            self.var_heuristic_params_shapes,
+            self.dom_heuristic_fcts,
+            self.dom_heuristic_params,
+            self.dom_heuristic_params_offsets,
+            self.dom_heuristic_params_shapes,
+            self.compute_domains_fcts,
+            self.domain_buffer,
+        )
+
     def optimize_solutions(self, variable: int, bound: int, mode: str) -> Iterator[NDArray]:
         """
         Iterates over the successively improving solutions found while optimizing a given variable.
@@ -392,39 +431,7 @@ class BacktrackSolver(Solver, QueueSolver):
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         buckets_init(self.triggered_propagators, self.problem.priorities)
         try:
-            while (
-                solution := solve_one(
-                    self.problem.propagator_nb,
-                    self.statistics,
-                    self.problem.algorithms,
-                    self.problem.priorities,
-                    self.problem.bounds,
-                    self.problem.propagator_variables,
-                    self.problem.propagator_parameters,
-                    self.problem.triggers,
-                    self.problem.triggers_offsets,
-                    self.domains_stk,
-                    self.entailed_propagator_depths,
-                    self.entailment_trail,
-                    self.domain_update_stk,
-                    self.unbound_variable_nb_stk,
-                    self.stks_top,
-                    self.triggered_propagators,
-                    self.consistency_alg_fcts,
-                    self.decision_variables,
-                    self.decision_variables_offsets,
-                    self.var_heuristic_fcts,
-                    self.var_heuristic_params,
-                    self.var_heuristic_params_offsets,
-                    self.var_heuristic_params_shapes,
-                    self.dom_heuristic_fcts,
-                    self.dom_heuristic_params,
-                    self.dom_heuristic_params_offsets,
-                    self.dom_heuristic_params_shapes,
-                    self.compute_domains_fcts,
-                    self.domain_buffer,
-                )
-            ) is not None:
+            while (solution := self._solve_one()) is not None:
                 logger.info(f"Found a local optimum: {solution[variable]}")
                 yield solution
                 if mode == OPTIM_RESET:
@@ -481,37 +488,7 @@ class BacktrackSolver(Solver, QueueSolver):
         buckets_init(self.triggered_propagators, self.problem.priorities)
         t0 = time.perf_counter_ns()
         while True:
-            solution = solve_one(
-                self.problem.propagator_nb,
-                self.statistics,
-                self.problem.algorithms,
-                self.problem.priorities,
-                self.problem.bounds,
-                self.problem.propagator_variables,
-                self.problem.propagator_parameters,
-                self.problem.triggers,
-                self.problem.triggers_offsets,
-                self.domains_stk,
-                self.entailed_propagator_depths,
-                self.entailment_trail,
-                self.domain_update_stk,
-                self.unbound_variable_nb_stk,
-                self.stks_top,
-                self.triggered_propagators,
-                self.consistency_alg_fcts,
-                self.decision_variables,
-                self.decision_variables_offsets,
-                self.var_heuristic_fcts,
-                self.var_heuristic_params,
-                self.var_heuristic_params_offsets,
-                self.var_heuristic_params_shapes,
-                self.dom_heuristic_fcts,
-                self.dom_heuristic_params,
-                self.dom_heuristic_params_offsets,
-                self.dom_heuristic_params_shapes,
-                self.compute_domains_fcts,
-                self.domain_buffer,
-            )
+            solution = self._solve_one()
             self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
             if solution is None:
                 break
@@ -590,37 +567,7 @@ class BacktrackSolver(Solver, QueueSolver):
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         buckets_init(self.triggered_propagators, self.problem.priorities)
         while True:
-            solution = solve_one(
-                self.problem.propagator_nb,
-                self.statistics,
-                self.problem.algorithms,
-                self.problem.priorities,
-                self.problem.bounds,
-                self.problem.propagator_variables,
-                self.problem.propagator_parameters,
-                self.problem.triggers,
-                self.problem.triggers_offsets,
-                self.domains_stk,
-                self.entailed_propagator_depths,
-                self.entailment_trail,
-                self.domain_update_stk,
-                self.unbound_variable_nb_stk,
-                self.stks_top,
-                self.triggered_propagators,
-                self.consistency_alg_fcts,
-                self.decision_variables,
-                self.decision_variables_offsets,
-                self.var_heuristic_fcts,
-                self.var_heuristic_params,
-                self.var_heuristic_params_offsets,
-                self.var_heuristic_params_shapes,
-                self.dom_heuristic_fcts,
-                self.dom_heuristic_params,
-                self.dom_heuristic_params_offsets,
-                self.dom_heuristic_params_shapes,
-                self.compute_domains_fcts,
-                self.domain_buffer,
-            )
+            solution = self._solve_one()
             if solution is None:
                 break
             logger.info(f"Found a local optimum: {solution[variable]}")
@@ -681,37 +628,7 @@ class BacktrackSolver(Solver, QueueSolver):
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         buckets_init(self.triggered_propagators, self.problem.priorities)
         while True:
-            solution = solve_one(
-                self.problem.propagator_nb,
-                self.statistics,
-                self.problem.algorithms,
-                self.problem.priorities,
-                self.problem.bounds,
-                self.problem.propagator_variables,
-                self.problem.propagator_parameters,
-                self.problem.triggers,
-                self.problem.triggers_offsets,
-                self.domains_stk,
-                self.entailed_propagator_depths,
-                self.entailment_trail,
-                self.domain_update_stk,
-                self.unbound_variable_nb_stk,
-                self.stks_top,
-                self.triggered_propagators,
-                self.consistency_alg_fcts,
-                self.decision_variables,
-                self.decision_variables_offsets,
-                self.var_heuristic_fcts,
-                self.var_heuristic_params,
-                self.var_heuristic_params_offsets,
-                self.var_heuristic_params_shapes,
-                self.dom_heuristic_fcts,
-                self.dom_heuristic_params,
-                self.dom_heuristic_params_offsets,
-                self.dom_heuristic_params_shapes,
-                self.compute_domains_fcts,
-                self.domain_buffer,
-            )
+            solution = self._solve_one()
             if solution is None:
                 break
             solution_queue.put((processor_idx, solution, self.statistics))
