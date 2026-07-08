@@ -566,7 +566,7 @@ class BacktrackSolver(Solver, QueueSolver):
         :type mode: str
         """
         domain = self.domains_stk[self.stks_top[0], variable]
-        logger.info(f"Minimizing (mode {mode}) variable {variable} (domain {domain})) and queuing solutions")
+        logger.info(f"Maximizing (mode {mode}) variable {variable} (domain {domain})) and queuing solutions")
         self.optimize_and_queue(variable, MIN, processor_idx, solution_queue, mode)
 
     def optimize_and_queue(
