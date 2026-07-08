@@ -586,7 +586,7 @@ def _term_to_par_value(term: Term) -> Union[int, bool, List[int]]:
     if isinstance(term, int):
         return term
     if isinstance(term, list):
-        return [int(e) if not isinstance(e, bool) else int(e) for e in term]
+        return [int(e) for e in term]
     raise FznParseError(f"unsupported parameter value {term!r}")
 
 

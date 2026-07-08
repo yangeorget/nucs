@@ -63,7 +63,7 @@ def compute_domains_eq_c_reif(domains: NDArray, parameters: NDArray) -> int:
     b = domains[0]
     x = domains[1]
     c = int(parameters[0])
-    if b[MIN] == 0 and b[MAX] == 0:
+    if b[MAX] == 0:
         if x[MIN] == c:
             x[MIN] = c + 1
             if x[MIN] > x[MAX]:
@@ -72,7 +72,7 @@ def compute_domains_eq_c_reif(domains: NDArray, parameters: NDArray) -> int:
             x[MAX] = c - 1
             if x[MIN] > x[MAX]:
                 return PROP_INCONSISTENCY
-    elif b[MIN] == 1 and b[MAX] == 1:
+    elif b[MIN] == 1:
         if c < x[MIN] or c > x[MAX]:
             return PROP_INCONSISTENCY
         else:

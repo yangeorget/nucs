@@ -66,7 +66,7 @@ def compute_domains_eq_reif(domains: NDArray, parameters: NDArray) -> int:
     x = domains[1]
     y = domains[2]
     # If b is fixed to 0, then x != y
-    if b[MIN] == 0 and b[MAX] == 0:
+    if b[MAX] == 0:
         # Check if x and y are already different
         if x[MAX] < y[MIN] or y[MAX] < x[MIN]:
             return PROP_ENTAILMENT
@@ -92,7 +92,7 @@ def compute_domains_eq_reif(domains: NDArray, parameters: NDArray) -> int:
                     return PROP_INCONSISTENCY
         return PROP_CONSISTENCY
     # If b is fixed to 1, then x = y
-    if b[MIN] == 1 and b[MAX] == 1:
+    if b[MIN] == 1:
         # Compute intersection
         new_min = max(x[MIN], y[MIN])
         new_max = min(x[MAX], y[MAX])
