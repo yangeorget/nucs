@@ -18,9 +18,9 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.social_golfers
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
-    args = parser.parse_args()
     parser.add_argument("-n", type=int, default=2)
     parser.add_argument("-s", type=int, default=2)
     parser.add_argument("-w", type=int, default=3)
+    args = parser.parse_args()
     problem = SocialGolfersProblem(args.n, args.s, args.w, args.symmetry_breaking)
     run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args)), args)
