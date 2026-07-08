@@ -105,11 +105,11 @@ def _print_solution_json(model: "FznModel", solution: NDArray, out: TextIO, obje
     for item in model.output_items:
         if item[0] == "scalar":
             _, name, is_bool = item
-            entries.append(f'  "{name}" : {_json_fmt(model.value_of(_id(name), solution), is_bool)}')
+            entries.append(f'  "{name}" : {_fmt(model.value_of(_id(name), solution), is_bool)}')
         else:
             _, name, lo, hi, is_bool = item
             values = [model.value_of(e, solution) for e in model.elements_of(_id(name))]
-            body = ", ".join(_json_fmt(v, is_bool) for v in values)
+            body = ", ".join(_fmt(v, is_bool) for v in values)
             entries.append(f'  "{name}" : [{body}]')
     if objective_value is not None:
         entries.append(f'  "{OUTPUT_OBJECTIVE_NAME}" : {objective_value}')
@@ -119,23 +119,6 @@ def _print_solution_json(model: "FznModel", solution: NDArray, out: TextIO, obje
 def _fmt(value: int, is_bool: bool) -> str:
     """
     Formats a value for the FlatZinc solution stream: booleans as ``true``/``false``, integers as digits.
-
-    :param value: the value
-    :type value: int
-    :param is_bool: whether the value belongs to a boolean variable
-    :type is_bool: bool
-
-    :return: the formatted value
-    :rtype: str
-    """
-    if is_bool:
-        return "true" if value else "false"
-    return str(value)
-
-
-def _json_fmt(value: int, is_bool: bool) -> str:
-    """
-    Formats a value for the JSON solution stream: booleans as ``true``/``false``, integers as digits.
 
     :param value: the value
     :type value: int

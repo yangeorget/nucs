@@ -368,13 +368,6 @@ def _bool_eq(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_EQ, [model.var_index_of(args[0]), model.var_index_of(args[1])])
 
 
-def _bool_le(model: "FznModel", args: List[Term]) -> None:
-    """
-    Handles ``bool_le(a, b)`` as a <= b.
-    """
-    model.problem.add_propagator(ALG_LEQ_C, [model.var_index_of(args[0]), model.var_index_of(args[1])], [0])
-
-
 def _int_le(model: "FznModel", args: List[Term]) -> None:
     """
     Handles ``int_le(x, y)`` as x <= y.
@@ -867,7 +860,7 @@ BUILTINS: Dict[str, Handler] = {
     "bool_eq_reif": _int_eq_reif,
     "bool_ge_reif": _ge_reif,
     "bool_gt_reif": _gt_reif,
-    "bool_le": _bool_le,
+    "bool_le": _int_le,
     "bool_le_reif": _le_reif,
     "bool_lin_eq": _bool_lin_eq,
     "bool_lin_le": _int_lin_le,
