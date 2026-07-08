@@ -186,21 +186,6 @@ def sum_stats(stats: List[Any], index: int) -> int:
     return sum(int(s[index]) for s in stats if s is not None)
 
 
-def mean_stats(stats: List[Any], index: int) -> int:
-    """
-    Returns the mean of a statistic across sub-solvers.
-
-    :param stats: the per-sub-solver statistics arrays
-    :type stats: List[Any]
-    :param index: the index of the statistic
-    :type index: int
-
-    :return: the integer mean of the statistic
-    :rtype: int
-    """
-    return sum_stats(stats, index) // len(stats)
-
-
 def max_stats(stats: List[Any], index: int) -> int:
     """
     Returns the maximum of a statistic across sub-solvers.

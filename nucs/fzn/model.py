@@ -17,7 +17,7 @@ It maintains an ordered symbol table mapping FlatZinc identifiers to NuCS variab
 allocates NuCS variables on demand, and dispatches each constraint through the builtin registry.
 """
 
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from nucs.fzn.builtins import BUILTINS
 from nucs.fzn.errors import FznParseError, FznUnsupportedError
@@ -346,7 +346,3 @@ def build_model(statements: List[Statement]) -> FznModel:
     :rtype: FznModel
     """
     return FznModel().build(statements)
-
-
-# Re-exported for callers that resolve the objective term after building.
-Objective = Optional[Term]
