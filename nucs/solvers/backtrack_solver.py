@@ -452,6 +452,7 @@ class BacktrackSolver(Solver, QueueSolver):
                 self.domains_stk,
                 self.entailed_propagator_depths,
                 self.entailment_trail,
+                self.domain_update_stk,
                 self.unbound_variable_nb_stk,
                 self.stks_top,
                 self.triggered_propagators,

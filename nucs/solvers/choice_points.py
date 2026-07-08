@@ -173,6 +173,7 @@ def fix_choice_points(
     domains_stk: NDArray,
     entailed_propagator_depths: NDArray,
     entailment_trail: NDArray,
+    domain_update_stk: NDArray,
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
@@ -188,7 +189,10 @@ def fix_choice_points(
     Fixes the domain of the variable being optimized in the choice points.
 
     Schedules the propagators watching the optimized variable, so that the tightened bound gets
-    propagated by the next consistency run without a full requeue of all the propagators.
+    propagated by the next consistency run without a full requeue of all the propagators. Also schedules,
+    like backtrack does, the pending alternative-branch decision of the resumed choice point: the domain
+    heuristic applies that decision to the domain at branch time but leaves it unpropagated, so on resume
+    it must be scheduled explicitly.
 
     :param domains_stk: the stack of domains
     :type domains_stk: NDArray
@@ -196,6 +200,8 @@ def fix_choice_points(
     :type entailed_propagator_depths: NDArray
     :param entailment_trail: the entailment trail, the first cell holds the trail size
     :type entailment_trail: NDArray
+    :param domain_update_stk: the stack of domain updates
+    :type domain_update_stk: NDArray
     :param unbound_variable_nb_stk: the stack of the unbound variables nb
     :type unbound_variable_nb_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
@@ -238,11 +244,22 @@ def fix_choice_points(
                 unbound_variable_nb_stk[stks_idx] -= 1
     top = stks_top[0]
     unwind_entailment_trail(entailed_propagator_depths, entailment_trail, top)
+    # schedule the tightened objective bound
     events = EVENT_MASK_MIN if bound == MIN else EVENT_MASK_MAX
     domain = domains_stk[top, variable]
     if domain[MIN] == domain[MAX]:
         events |= EVENT_MASK_GROUND
     offset = variable * EVENT_MASK_NB + events
+    update_propagators(
+        triggered_propagators,
+        entailed_propagator_depths,
+        triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]],
+        priorities,
+        propagator_nb,
+    )
+    # schedule the resumed choice point's pending alternative-branch decision (as backtrack does)
+    domain_update = domain_update_stk[top]
+    offset = domain_update[DOM_UPDATE_VARIABLE] * EVENT_MASK_NB + domain_update[DOM_UPDATE_EVENTS]
     update_propagators(
         triggered_propagators,
         entailed_propagator_depths,
