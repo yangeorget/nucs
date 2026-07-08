@@ -12,8 +12,7 @@
 ###############################################################################
 import json
 
-from nucs.constants import OPTIM_RESET
-from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
+from nucs.examples.default_argument_parser import DefaultArgumentParser, run_optimizer, solver_kwargs_from_args
 from nucs.examples.knapsack.knapsack_problem import KnapsackProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -28,8 +27,4 @@ if __name__ == "__main__":
         dataset = json.load(json_file)
         problem = KnapsackProblem(dataset)
         solver = BacktrackSolver(problem, **solver_kwargs_from_args(args, dom_heuristic=DOM_HEURISTIC_MAX_VALUE))
-        solution = solver.maximize(problem.weight, mode=args.optimization_mode or OPTIM_RESET)
-        if args.display_stats:
-            solver.print_statistics()
-        if args.display_solutions:
-            problem.print_solution(solution)
+        run_optimizer(solver, args, problem.weight, maximize=True)

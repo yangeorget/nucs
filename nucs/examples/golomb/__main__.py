@@ -10,9 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from nucs.constants import OPTIM_RESET
-
-from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
+from nucs.examples.default_argument_parser import DefaultArgumentParser, run_optimizer, solver_kwargs_from_args
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import register_consistency_algorithm
@@ -28,8 +26,4 @@ if __name__ == "__main__":
     problem = GolombProblem(args.n, args.symmetry_breaking)
     kwargs = solver_kwargs_from_args(args, consistency_algorithm=golomb_consistency_algorithm)
     solver = BacktrackSolver(problem, **kwargs)
-    solution = solver.minimize(problem.length_idx, mode=args.optimization_mode or OPTIM_RESET)
-    if args.display_stats:
-        solver.print_statistics()
-    if args.display_solutions:
-        problem.print_solution(solution)
+    run_optimizer(solver, args, problem.length_idx)

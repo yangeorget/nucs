@@ -14,7 +14,7 @@ import json
 
 from nucs.constants import OPTIM_PRUNE
 from nucs.examples.bacp.bacp_problem import BACPProblem
-from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
+from nucs.examples.default_argument_parser import DefaultArgumentParser, run_optimizer, solver_kwargs_from_args
 from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
@@ -31,8 +31,4 @@ if __name__ == "__main__":
             args, decision_variables=range(dataset["n_courses"]), var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN
         )
         solver = BacktrackSolver(problem, **kwargs)
-        solution = solver.minimize(problem.max_load, mode=args.optimization_mode or OPTIM_PRUNE)
-        if args.display_stats:
-            solver.print_statistics()
-        if args.display_solutions:
-            problem.print_solution(solution)
+        run_optimizer(solver, args, problem.max_load, default_mode=OPTIM_PRUNE)

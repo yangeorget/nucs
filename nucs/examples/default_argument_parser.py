@@ -12,9 +12,11 @@
 ###############################################################################
 import argparse
 from argparse import Namespace
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
-from nucs.constants import LOG_LEVELS, OPTIM_MODES
+from numpy.typing import NDArray
+
+from nucs.constants import LOG_LEVELS, OPTIM_MODES, OPTIM_RESET
 from nucs.heuristics.heuristics import DOM_HEURISTICS, VAR_HEURISTICS
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALGS
 from nucs.solvers.solver import Solver
@@ -132,3 +134,36 @@ def run_solver(solver: Solver, args: Namespace) -> None:
             solver.print_statistics()
         if args.display_solutions:
             solver.problem.print_solution(solution)
+
+
+def run_optimizer(
+    solver: Solver,
+    args: Namespace,
+    objective: int,
+    maximize: bool = False,
+    default_mode: str = OPTIM_RESET,
+) -> Optional[NDArray]:
+    """
+    Optimizes a variable with the solver according to the CLI arguments and returns the optimal solution.
+
+    :param solver: the solver
+    :type solver: Solver
+    :param args: the CLI arguments
+    :type args: Namespace
+    :param objective: the index of the variable to optimize
+    :type objective: int
+    :param maximize: whether to maximize the objective, minimize it otherwise, defaults to False
+    :type maximize: bool
+    :param default_mode: the optimization mode used when none is set on the command line, defaults to OPTIM_RESET
+    :type default_mode: str
+
+    :return: the optimal solution if it exists or None
+    :rtype: Optional[NDArray]
+    """
+    mode = args.optimization_mode or default_mode
+    solution = (solver.maximize if maximize else solver.minimize)(objective, mode=mode)
+    if args.display_stats:
+        solver.print_statistics()
+    if args.display_solutions:
+        solver.problem.print_solution(solution)
+    return solution
