@@ -1,33 +1,18 @@
 # CLAUDE.md
 
 Guidance for Claude Code working in this repository.
-For repository layout and core concepts: see ARCHITECTURE.md.
+For repository layout and core concepts: see `ARCHITECTURE.md`.
 For style checking (ruff & mypy): see `.claude/rules/check-style.md`.
+For running tests (with and without JIT): see `.claude/rules/run-tests.md`.
 
-## Common commands
+## FlatZinc adapter
+
+Register NuCS as a MiniZinc solver, then solve a `.mzn` model:
 
 ```bash
-# All tests
-NUMBA_CACHE_DIR=.numba/cache pytest
-
-# Single file / single test
-NUMBA_CACHE_DIR=.numba/cache pytest tests/examples/test_queens.py
-NUMBA_CACHE_DIR=.numba/cache pytest tests/examples/test_queens.py::test_queens_4
-
-# Debug or profile with pure Python (no JIT)
-NUMBA_DISABLE_JIT=1 pytest tests/...
-NUMBA_DISABLE_JIT=1 python -m "cProfile" -s time -m pytest tests/examples >> logs/examples.log
-
-# Coverage
-NUMBA_DISABLE_JIT=1 PYTHONPATH=. coverage run --source=nucs,tests -m pytest && coverage html
-
-# FlatZinc adapter: register NuCS as a MiniZinc solver, then solve a .mzn model
 fzn-nucs --register
 minizinc --solver nucs model.mzn
 ```
-
-`NUMBA_CACHE_DIR` is required for tests to share the JIT cache across runs.
-`NUMBA_DISABLE_JIT=1` falls back to interpreted Python — slow, but tracebacks land in real source lines.
 
 ## Example
 
