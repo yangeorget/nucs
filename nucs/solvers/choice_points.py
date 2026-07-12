@@ -68,9 +68,7 @@ def cp_init(
 
 
 @njit(cache=True)
-def cp_put(
-    domains_stk: NDArray, entailed_propagator_depths: NDArray, unbound_variable_nb_stk: NDArray, top: int
-) -> None:
+def cp_put(domains_stk: NDArray, unbound_variable_nb_stk: NDArray, top: int) -> None:
     """
     Adds a choice point to the stack of choice points.
 
@@ -79,8 +77,6 @@ def cp_put(
 
     :param domains_stk: the stack of domains
     :type domains_stk: NDArray
-    :param entailed_propagator_depths: the depth at which each propagator was entailed, unused here
-    :type entailed_propagator_depths: NDArray
     :param unbound_variable_nb_stk: the stack of the unbound variables nb
     :type unbound_variable_nb_stk: NDArray
     :param top: the index of the top of the stacks

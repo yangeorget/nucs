@@ -22,7 +22,6 @@ from nucs.heuristics.split_low_dom_heuristic import split_low_dom_heuristic
 @njit(cache=True)
 def split_random_dom_heuristic(
     domains_stk: NDArray,
-    entailed_propagator_depths: NDArray,
     domain_update_stk: NDArray,
     unbound_variable_nb_stk: NDArray,
     stks_top: NDArray,
@@ -32,7 +31,6 @@ def split_random_dom_heuristic(
     return (
         split_low_dom_heuristic(
             domains_stk,
-            entailed_propagator_depths,
             domain_update_stk,
             unbound_variable_nb_stk,
             stks_top,
@@ -42,7 +40,6 @@ def split_random_dom_heuristic(
         if random.randint(0, 1) == 0
         else split_high_dom_heuristic(
             domains_stk,
-            entailed_propagator_depths,
             domain_update_stk,
             unbound_variable_nb_stk,
             stks_top,

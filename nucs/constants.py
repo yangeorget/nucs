@@ -84,7 +84,6 @@ TYPE_CONSISTENCY_ALG = types.FunctionType(SIGN_CONSISTENCY_ALG)
 
 SIGN_DOM_HEURISTIC = int64(
     int32[:, :, :],  # domains_stk
-    int32[:],  # entailed_propagator_depths
     uint32[:, :],  # domain_update_stk
     uint32[:],  # unbound_variable_nb_stk
     uint32[:],  # stks_top

@@ -750,7 +750,6 @@ def solve_one(
                 if variable != -1:
                     events = dom_heuristic_fcts[search_idx](
                         domains_stk,
-                        entailed_propagator_depths,
                         domain_update_stk,
                         unbound_variable_nb_stk,
                         stks_top,
