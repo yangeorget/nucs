@@ -73,7 +73,7 @@ def cp_put(domains_stk: NDArray, unbound_variable_nb_stk: NDArray, top: int) -> 
     Adds a choice point to the stack of choice points.
 
     Entailment is monotonic within a branch, so descending to a deeper choice point requires no entailment
-    bookkeeping: the depths recorded so far stay valid and entailed_propagator_depths is left untouched.
+    bookkeeping: the depths recorded so far stay valid.
 
     :param domains_stk: the stack of domains
     :type domains_stk: NDArray
