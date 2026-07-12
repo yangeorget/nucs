@@ -28,6 +28,23 @@ def split_random_dom_heuristic(
     variable: int,
     params: NDArray,
 ) -> int:
+    """
+    Chooses at random the first or the second half of the domain.
+
+    :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
+    :param domain_update_stk: the stack of domain updates
+    :type domain_update_stk: NDArray
+    :param stks_top: the index of the top of the stacks as a Numpy array
+    :type stks_top: NDArray
+    :param variable: the variable
+    :type variable: int
+    :param params: a two-dimensional parameter array, unused here
+    :type params: NDArray
+
+    :return: the events
+    :rtype: int
+    """
     return (
         split_low_dom_heuristic(
             domains_stk,
