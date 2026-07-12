@@ -19,13 +19,6 @@ result with `twine check`.
 python -m twine upload --verbose dist/*
 ```
 
-### Fix source file headers
-
-```bash
-addheader nucs -t header.txt
-addheader tests -t header.txt
-```
-
 ### Generate documentation
 
 ```bash
