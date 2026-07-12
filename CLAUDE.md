@@ -2,13 +2,11 @@
 
 Guidance for Claude Code working in this repository.
 For repository layout and core concepts: see ARCHITECTURE.md.
+For style checking (ruff & mypy): see `.claude/rules/check-style.md`.
 
 ## Common commands
 
 ```bash
-# Style (ruff & mypy)
-./scripts/bash/style.sh
-
 # All tests
 NUMBA_CACHE_DIR=.numba/cache pytest
 
