@@ -182,14 +182,14 @@ class BacktrackSolver(Solver, QueueSolver):
         self.domain_buffer = get_domain_buffer(problem.bounds)
         logger.debug("Initializing choice points")
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
+        self.domain_update_stk = np.empty((stks_max_height, 2), dtype=np.uint32)
+        self.unbound_variable_nb_stk = np.empty(stks_max_height, dtype=np.uint32)
+        self.stks_top = np.ones((1,), dtype=np.uint32)
         # entailment is tracked by a trail rather than a per-level array: entailed_propagator_depths[p]
         # holds the depth at which propagator p was entailed (-1 when active), entailment_trail records the
         # entailed propagators in order (its first cell is the trail size) so backtracking can reactivate them
         self.entailed_propagator_depths = np.empty(self.problem.propagator_nb, dtype=np.int32)
         self.entailment_trail = np.empty(self.problem.propagator_nb + 1, dtype=np.int32)
-        self.domain_update_stk = np.empty((stks_max_height, 2), dtype=np.uint32)
-        self.unbound_variable_nb_stk = np.empty(stks_max_height, dtype=np.uint32)
-        self.stks_top = np.ones((1,), dtype=np.uint32)
         logger.info(f"The stacks of the choice points have a maximal height of {stks_max_height}")
         self.initial_domains = np.array(problem.domains)
         cp_init(
