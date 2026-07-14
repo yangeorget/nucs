@@ -17,7 +17,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
-from nucs.propagators.alldifferent_propagator import path_max, path_min, path_set
+from nucs.propagators.alldifferent_propagator import argsort_into, path_max, path_min, path_set
 
 
 def get_complexity_gcc(n: int, parameters: NDArray) -> int:
@@ -437,8 +437,8 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     new_mins = zero_buffer[2 * bounds_nb :]
     l = init_partial_sum(parameters[0], m, parameters[1 : 1 + m])
     u = init_partial_sum(parameters[0], m, parameters[1 + m :])
-    min_sorted_vars[:] = np.argsort(domains[:, MIN])
-    max_sorted_vars[:] = np.argsort(domains[:, MAX])
+    argsort_into(min_sorted_vars, domains, MIN)
+    argsort_into(max_sorted_vars, domains, MAX)
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
     # assert get_min_value(l) == get_min_value(u)
     # assert get_max_value(l) == get_max_value(u)

@@ -18,6 +18,8 @@ from numpy.typing import NDArray
 
 from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 
+SORT_MAX_N = 64  # above this arity, np.argsort amortizes its fixed cost and beats the insertion sort
+
 
 def get_complexity_alldifferent(n: int, parameters: NDArray) -> int:
     """
@@ -221,6 +223,38 @@ def filter_upper(
     return True
 
 
+@njit(cache=True, inline="always")
+def argsort_into(sorted_vars: NDArray, domains: NDArray, bound: int) -> None:
+    """
+    Sorts the variables by their given bound, writing the permutation into sorted_vars.
+
+    Below SORT_MAX_N, an insertion sort on the preallocated int32 output beats np.argsort, whose fixed cost
+    (allocating an int64 result, copying the strided bound column, then narrowing to int32) dominates at small n.
+    Inlined: as a separately cached function it would add a per-process load cost to every solver run.
+
+    :param sorted_vars: the array of variables to sort, modified in place
+    :type sorted_vars: NDArray
+    :param domains: the domains of the variables
+    :type domains: NDArray
+    :param bound: MIN or MAX, the bound to sort on
+    :type bound: int
+    """
+    n = len(sorted_vars)
+    if n > SORT_MAX_N:
+        sorted_vars[:] = np.argsort(domains[:, bound])
+        return
+    for i in range(n):
+        sorted_vars[i] = i
+    for i in range(1, n):
+        var = sorted_vars[i]
+        value = domains[var, bound]
+        j = i - 1
+        while j >= 0 and domains[sorted_vars[j], bound] > value:
+            sorted_vars[j + 1] = sorted_vars[j]
+            j -= 1
+        sorted_vars[j + 1] = var
+
+
 @njit(cache=True)
 def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     """
@@ -249,8 +283,8 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     min_sorted_vars = empty_buffer[4 * bounds_nb : 4 * bounds_nb + n]
     max_sorted_vars = empty_buffer[4 * bounds_nb + n : 4 * bounds_nb + 2 * n]
     ranks = empty_buffer[4 * bounds_nb + 2 * n :].reshape(n, 2)
-    min_sorted_vars[:] = np.argsort(domains[:, MIN])
-    max_sorted_vars[:] = np.argsort(domains[:, MAX])
+    argsort_into(min_sorted_vars, domains, MIN)
+    argsort_into(max_sorted_vars, domains, MAX)
     ground = True
     for i in range(n):
         if domains[i, MIN] != domains[i, MAX]:
