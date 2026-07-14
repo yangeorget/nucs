@@ -36,17 +36,7 @@ class TestAllIntervalSeries:
 
     @pytest.mark.parametrize(
         "size,solution_nb",
-        [
-            (3, 1),
-            (4, 1),
-            (5, 2),
-            (6, 6),
-            (7, 8),
-            (8, 10),
-            (9, 30),
-            (10, 74),
-            (11, 162)
-        ],
+        [(3, 1), (4, 1), (5, 2), (6, 6), (7, 8), (8, 10), (9, 30), (10, 74), (11, 162)],
     )
     def test_solve_all(self, size: int, solution_nb: int) -> None:
         problem = AllIntervalSeriesProblem(size, True)
