@@ -24,7 +24,7 @@ class TestGolomb:
     def test_index(self, mark_nb: int, i: int, j: int, idx: int) -> None:
         assert index(mark_nb, i, j) == idx
 
-    @pytest.mark.parametrize("mark_nb,length", [(4, 6), (5, 11), (6, 17), (7, 25), (8, 34), (9, 44)])
+    @pytest.mark.parametrize("mark_nb,length", [(4, 6), (5, 11), (6, 17), (7, 25), (8, 34), (9, 44), (10, 55)])
     def test_golomb(self, mark_nb: int, length: int) -> None:
         problem = GolombProblem(mark_nb)
         consistency_alg_golomb = register_consistency_algorithm(golomb_consistency_algorithm)

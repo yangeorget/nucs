@@ -14,7 +14,7 @@ import pytest
 
 from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.examples.queens.queens_problem import QueensDualProblem, QueensProblem
-from nucs.heuristics.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, VAR_HEURISTIC_SMALLEST_DOMAIN
+from nucs.heuristics.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
@@ -31,7 +31,8 @@ class TestQueens:
             (False, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 7, 40),
             (False, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 8, 92),
             (False, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 9, 352),
-            (False, VAR_HEURISTIC_SMALLEST_DOMAIN, 8, 92),
+            (False, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 10, 724),
+            (False, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 11, 2680),
             (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 1, 1),
             (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 2, 0),
             (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 3, 0),
@@ -41,7 +42,8 @@ class TestQueens:
             (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 7, 40),
             (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 8, 92),
             (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 9, 352),
-            (True, VAR_HEURISTIC_SMALLEST_DOMAIN, 8, 92),
+            (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 10, 724),
+            (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 11, 2680),
         ],
     )
     def test_queens_solve(self, dual: bool, var_heuristic: int, queen_nb: int, solution_nb: int) -> None:

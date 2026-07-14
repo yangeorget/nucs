@@ -34,13 +34,13 @@ class TestTSP:
     @pytest.mark.parametrize(
         "name, minimum",
         [
-            ("GR17", 2085),
-            #  ("GR21", 2707),
-            #  ("GR24", 1272)
+            ("gr17", 2085),
+            ("gr21", 2707),
+            # ("gr24", 1272)
         ],
     )
     def test_tsp_gr(self, name: str, minimum: int) -> None:
-        with open("datasets/examples/tsp/gr17.json", "r") as json_file:
+        with open(f"datasets/examples/tsp/{name}.json", "r") as json_file:
             costs = json.load(json_file)["costs"]
             n = len(costs)
             problem = TSPProblem(costs)

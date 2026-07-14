@@ -44,6 +44,8 @@ class TestAllIntervalSeries:
             (7, 8),
             (8, 10),
             (9, 30),
+            (10, 74),
+            (11, 162)
         ],
     )
     def test_solve_all(self, size: int, solution_nb: int) -> None:
