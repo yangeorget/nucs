@@ -107,12 +107,12 @@ def path_max(t: NDArray, i: int) -> int:
 
 @njit(cache=True)
 def update_bounds(
-        bounds: NDArray,
-        n: int,
-        domains: NDArray,
-        ranks: NDArray,
-        min_sorted_vars: NDArray,
-        max_sorted_vars: NDArray,
+    bounds: NDArray,
+    n: int,
+    domains: NDArray,
+    ranks: NDArray,
+    min_sorted_vars: NDArray,
+    max_sorted_vars: NDArray,
 ) -> int:
     min_value = domains[min_sorted_vars[0], MIN]
     max_value = domains[max_sorted_vars[0], MAX] + 1
@@ -142,15 +142,15 @@ def update_bounds(
 
 @njit(cache=True)
 def filter_lower(
-        n: int,
-        nb: int,
-        t: NDArray,
-        d: NDArray,
-        h: NDArray,
-        bounds: NDArray,
-        domains: NDArray,
-        ranks: NDArray,
-        max_sorted_vars: NDArray,
+    n: int,
+    nb: int,
+    t: NDArray,
+    d: NDArray,
+    h: NDArray,
+    bounds: NDArray,
+    domains: NDArray,
+    ranks: NDArray,
+    max_sorted_vars: NDArray,
 ) -> bool:
     for i in range(1, nb + 2):
         i1 = i - 1
@@ -183,15 +183,15 @@ def filter_lower(
 
 @njit(cache=True)
 def filter_upper(
-        n: int,
-        nb: int,
-        t: NDArray,
-        d: NDArray,
-        h: NDArray,
-        bounds: NDArray,
-        domains: NDArray,
-        ranks: NDArray,
-        min_sorted_vars: NDArray,
+    n: int,
+    nb: int,
+    t: NDArray,
+    d: NDArray,
+    h: NDArray,
+    bounds: NDArray,
+    domains: NDArray,
+    ranks: NDArray,
+    min_sorted_vars: NDArray,
 ) -> bool:
     for i in range(nb + 1):
         i1 = i + 1
@@ -276,12 +276,12 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     bounds_nb = 2 * (n + 1)
     empty_buffer = np.empty(4 * bounds_nb + 4 * n, dtype=np.int32)  # single allocation for all the scratch arrays
     bounds = empty_buffer[:bounds_nb]
-    t = empty_buffer[bounds_nb: 2 * bounds_nb]  # critical capacity pointers
-    d = empty_buffer[2 * bounds_nb: 3 * bounds_nb]  # differences between critical capacities
-    h = empty_buffer[3 * bounds_nb: 4 * bounds_nb]  # Hall interval pointers
-    min_sorted_vars = empty_buffer[4 * bounds_nb: 4 * bounds_nb + n]
-    max_sorted_vars = empty_buffer[4 * bounds_nb + n: 4 * bounds_nb + 2 * n]
-    ranks = empty_buffer[4 * bounds_nb + 2 * n:].reshape(n, 2)
+    t = empty_buffer[bounds_nb : 2 * bounds_nb]  # critical capacity pointers
+    d = empty_buffer[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
+    h = empty_buffer[3 * bounds_nb : 4 * bounds_nb]  # Hall interval pointers
+    min_sorted_vars = empty_buffer[4 * bounds_nb : 4 * bounds_nb + n]
+    max_sorted_vars = empty_buffer[4 * bounds_nb + n : 4 * bounds_nb + 2 * n]
+    ranks = empty_buffer[4 * bounds_nb + 2 * n :].reshape(n, 2)
     argsort_into(min_sorted_vars, domains, MIN)
     argsort_into(max_sorted_vars, domains, MAX)
     ground = True
@@ -291,7 +291,7 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
             break
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars)
     if filter_lower(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars) and filter_upper(
-            n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars
+        n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars
     ):
         if has_offsets:
             domains -= offsets

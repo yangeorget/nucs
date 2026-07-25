@@ -126,14 +126,14 @@ def skip_non_null_elements_left(psum: NDArray, value: int) -> int:
 
 @njit(cache=True)
 def update_bounds(
-        bounds: NDArray,
-        n: int,
-        domains: NDArray,
-        ranks: NDArray,
-        min_sorted_vars: NDArray,
-        max_sorted_vars: NDArray,
-        l: NDArray,
-        u: NDArray,
+    bounds: NDArray,
+    n: int,
+    domains: NDArray,
+    ranks: NDArray,
+    min_sorted_vars: NDArray,
+    max_sorted_vars: NDArray,
+    l: NDArray,
+    u: NDArray,
 ) -> int:
     min_value = domains[min_sorted_vars[0], MIN]
     max_value = domains[max_sorted_vars[0], MAX] + 1
@@ -163,16 +163,16 @@ def update_bounds(
 
 @njit(cache=True)
 def filter_lower_max(
-        n: int,
-        nb: int,
-        t: NDArray,
-        d: NDArray,
-        h: NDArray,
-        bounds: NDArray,
-        domains: NDArray,
-        ranks: NDArray,
-        max_sorted_vars: NDArray,
-        u: NDArray,
+    n: int,
+    nb: int,
+    t: NDArray,
+    d: NDArray,
+    h: NDArray,
+    bounds: NDArray,
+    domains: NDArray,
+    ranks: NDArray,
+    max_sorted_vars: NDArray,
+    u: NDArray,
 ) -> bool:
     for i in range(1, nb + 2):
         i1 = i - 1
@@ -206,16 +206,16 @@ def filter_lower_max(
 
 @njit(cache=True)
 def filter_upper_max(
-        n: int,
-        nb: int,
-        t: NDArray,
-        d: NDArray,
-        h: NDArray,
-        bounds: NDArray,
-        domains: NDArray,
-        ranks: NDArray,
-        min_sorted_vars: NDArray,
-        u: NDArray,
+    n: int,
+    nb: int,
+    t: NDArray,
+    d: NDArray,
+    h: NDArray,
+    bounds: NDArray,
+    domains: NDArray,
+    ranks: NDArray,
+    min_sorted_vars: NDArray,
+    u: NDArray,
 ) -> bool:
     for i in range(0, nb + 1):
         i1 = i + 1
@@ -249,19 +249,19 @@ def filter_upper_max(
 
 @njit(cache=True)
 def filter_lower_min(
-        n: int,
-        nb: int,
-        tl: NDArray,
-        c: NDArray,
-        sets: NDArray,
-        bounds: NDArray,
-        domains: NDArray,
-        ranks: NDArray,
-        max_sorted_vars: NDArray,
-        l: NDArray,
-        stable_intervals: NDArray,
-        stable_sets: NDArray,
-        new_mins: NDArray,
+    n: int,
+    nb: int,
+    tl: NDArray,
+    c: NDArray,
+    sets: NDArray,
+    bounds: NDArray,
+    domains: NDArray,
+    ranks: NDArray,
+    max_sorted_vars: NDArray,
+    l: NDArray,
+    stable_intervals: NDArray,
+    stable_sets: NDArray,
+    new_mins: NDArray,
 ) -> bool:
     w = nb + 1
     for i in range(nb + 1, 0, -1):
@@ -339,18 +339,18 @@ def filter_lower_min(
 
 @njit(cache=True)
 def filter_upper_min(
-        n: int,
-        nb: int,
-        tl: NDArray,
-        c: NDArray,
-        sets: NDArray,
-        bounds: NDArray,
-        domains: NDArray,
-        ranks: NDArray,
-        min_sorted_vars: NDArray,
-        l: NDArray,
-        stable_intervals: NDArray,
-        new_maxs: NDArray,
+    n: int,
+    nb: int,
+    tl: NDArray,
+    c: NDArray,
+    sets: NDArray,
+    bounds: NDArray,
+    domains: NDArray,
+    ranks: NDArray,
+    min_sorted_vars: NDArray,
+    l: NDArray,
+    stable_intervals: NDArray,
+    new_maxs: NDArray,
 ) -> bool:
     w = 0
     for i in range(nb + 1):
@@ -424,18 +424,18 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     bounds_nb = 2 * (n + 1)
     empty_buffer = np.empty(4 * bounds_nb + 4 * n, dtype=np.int32)  # single allocation for all the scratch arrays
     bounds = empty_buffer[:bounds_nb]
-    t = empty_buffer[bounds_nb: 2 * bounds_nb]  # critical capacity pointers
-    d = empty_buffer[2 * bounds_nb: 3 * bounds_nb]  # differences between critical capacities
-    h = empty_buffer[3 * bounds_nb: 4 * bounds_nb]  # Hall interval pointers
-    min_sorted_vars = empty_buffer[4 * bounds_nb: 4 * bounds_nb + n]
-    max_sorted_vars = empty_buffer[4 * bounds_nb + n: 4 * bounds_nb + 2 * n]
-    ranks = empty_buffer[4 * bounds_nb + 2 * n:].reshape(n, 2)
+    t = empty_buffer[bounds_nb : 2 * bounds_nb]  # critical capacity pointers
+    d = empty_buffer[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
+    h = empty_buffer[3 * bounds_nb : 4 * bounds_nb]  # Hall interval pointers
+    min_sorted_vars = empty_buffer[4 * bounds_nb : 4 * bounds_nb + n]
+    max_sorted_vars = empty_buffer[4 * bounds_nb + n : 4 * bounds_nb + 2 * n]
+    ranks = empty_buffer[4 * bounds_nb + 2 * n :].reshape(n, 2)
     zero_buffer = np.zeros(2 * bounds_nb + n, dtype=np.int32)  # to reduce the number of allocations
     stable_intervals = zero_buffer[:bounds_nb]
-    stable_sets = zero_buffer[bounds_nb: 2 * bounds_nb]
-    new_mins = zero_buffer[2 * bounds_nb:]
-    l = init_partial_sum(parameters[0], m, parameters[1: 1 + m])
-    u = init_partial_sum(parameters[0], m, parameters[1 + m:])
+    stable_sets = zero_buffer[bounds_nb : 2 * bounds_nb]
+    new_mins = zero_buffer[2 * bounds_nb :]
+    l = init_partial_sum(parameters[0], m, parameters[1 : 1 + m])
+    u = init_partial_sum(parameters[0], m, parameters[1 + m :])
     argsort_into(min_sorted_vars, domains, MIN)
     argsort_into(max_sorted_vars, domains, MAX)
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
@@ -450,19 +450,19 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     if not filter_lower_max(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars, u):
         return PROP_INCONSISTENCY
     if not filter_lower_min(
-            n,
-            nb,
-            t,
-            d,
-            h,
-            bounds,
-            domains,
-            ranks,
-            max_sorted_vars,
-            l,
-            stable_intervals,
-            stable_sets,
-            new_mins,
+        n,
+        nb,
+        t,
+        d,
+        h,
+        bounds,
+        domains,
+        ranks,
+        max_sorted_vars,
+        l,
+        stable_intervals,
+        stable_sets,
+        new_mins,
     ):
         return PROP_INCONSISTENCY
     if not filter_upper_max(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, u):
