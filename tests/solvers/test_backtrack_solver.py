@@ -87,6 +87,7 @@ class TestBacktrackSolver:
             solver.advisor_fcts,
             solver.has_advisor,
             solver.advisor_buffer,
+            solver.any_advisor,
         )
         assert solution is not None
         assert solution.tolist() == [0, 0]

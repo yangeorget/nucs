@@ -91,6 +91,7 @@ SIGN_CONSISTENCY_ALG = int64(
     TYPE_ADVISOR_LIST,  # advisor_fcts (compute_domains arguments, bool return)
     uint8[::1],  # has_advisor
     int32[:, ::1],  # advisor_buffer
+    boolean,  # any_advisor
 )
 TYPE_CONSISTENCY_ALG = types.FunctionType(SIGN_CONSISTENCY_ALG)
 

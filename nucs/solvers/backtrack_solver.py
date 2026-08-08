@@ -113,6 +113,7 @@ class BacktrackSolver(Solver, QueueSolver):
     compute_domains_fcts: ComputeDomainsFunctions
     advisor_fcts: AdvisorFunctions
     has_advisor: NDArray
+    any_advisor: bool
 
     def __init__(
         self,
@@ -245,6 +246,9 @@ class BacktrackSolver(Solver, QueueSolver):
         # per propagator so the re-trigger loop stays on the direct path with a single read for advisor-free ones
         alg_has_advisor = [fct is not default_advisor for fct in ADVISOR_FCTS]
         self.has_advisor = np.array([alg_has_advisor[alg] for alg in self.problem.algorithms], dtype=np.uint8)
+        # hoisted flag: when no propagator has an advisor the consistency algorithm uses the advisor-free path,
+        # so advisor-free problems pay nothing for the advisor mechanism in the hot re-trigger loop
+        self.any_advisor = bool(self.has_advisor.any())
         logger.debug("BacktrackSolver initialized")
 
     def get_statistics_as_array(self) -> NDArray:
@@ -400,6 +404,7 @@ class BacktrackSolver(Solver, QueueSolver):
             self.advisor_fcts,
             self.has_advisor,
             self.advisor_buffer,
+            self.any_advisor,
         )
 
     def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
@@ -662,6 +667,7 @@ def solve_one(
     advisor_fcts: AdvisorFunctions,
     has_advisor: NDArray,
     advisor_buffer: NDArray,
+    any_advisor: bool,
 ) -> Optional[NDArray]:
     """
     Find at most one solution.
@@ -756,6 +762,7 @@ def solve_one(
             advisor_fcts,
             has_advisor,
             advisor_buffer,
+            any_advisor,
         )
         top = stks_top[0]
         if status == PROBLEM_BOUND:

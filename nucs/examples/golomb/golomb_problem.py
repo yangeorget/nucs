@@ -144,6 +144,7 @@ def golomb_consistency_algorithm(
     advisor_fcts: AdvisorFunctions,
     has_advisor: NDArray,
     advisor_buffer: NDArray,
+    any_advisor: bool,
 ) -> int:
     """
     Applies a custom consistency algorithm for the Golomb Ruler problem.
@@ -221,4 +222,5 @@ def golomb_consistency_algorithm(
         advisor_fcts,
         has_advisor,
         advisor_buffer,
+        any_advisor,
     )

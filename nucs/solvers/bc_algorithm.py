@@ -64,6 +64,7 @@ def bc_algorithm(
     advisor_fcts: AdvisorFunctions,
     has_advisor: NDArray,
     advisor_buffer: NDArray,
+    any_advisor: bool,
 ) -> int:
     """
     This is the default consistency algorithm used by the solver.
@@ -138,33 +139,112 @@ def bc_algorithm(
                 entailed_propagator_depths[prop_idx] = top
                 entailment_trail[0] += 1
                 entailment_trail[entailment_trail[0]] = prop_idx
-        if update_domains(
-            top,
-            prop_idx,
-            prop_var_start,
-            prop_var_end,
-            membership_offset,
-            prop_domains,
-            propagator_variables,
-            domains,
-            triggered_propagators,
-            entailed_propagator_depths,
-            triggers,
-            triggers_offsets,
-            unbound_variable_nb_stk,
-            priorities,
-            algorithms,
-            bounds,
-            propagator_parameters,
-            advisor_fcts,
-            has_advisor,
-            advisor_buffer,
-        ):
+        # advisor-free problems take the original update_domains (unchanged signature, so it stays inlinable
+        # and pays no per-candidate advisor cost); only problems with an advised propagator take the advised
+        # variant. The any_advisor branch is hoisted out of the hot re-trigger loop.
+        if any_advisor:
+            no_change = update_domains_advised(
+                top,
+                prop_idx,
+                prop_var_start,
+                prop_var_end,
+                membership_offset,
+                prop_domains,
+                propagator_variables,
+                domains,
+                triggered_propagators,
+                entailed_propagator_depths,
+                triggers,
+                triggers_offsets,
+                unbound_variable_nb_stk,
+                priorities,
+                algorithms,
+                bounds,
+                propagator_parameters,
+                advisor_fcts,
+                has_advisor,
+                advisor_buffer,
+            )
+        else:
+            no_change = update_domains(
+                top,
+                prop_idx,
+                prop_var_start,
+                prop_var_end,
+                membership_offset,
+                prop_domains,
+                propagator_variables,
+                domains,
+                triggered_propagators,
+                entailed_propagator_depths,
+                triggers,
+                triggers_offsets,
+                unbound_variable_nb_stk,
+                priorities,
+            )
+        if no_change:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
 
 
 @njit(cache=True)
 def update_domains(
+    top: int,
+    prop_idx: int,
+    prop_var_start: int,
+    prop_var_end: int,
+    membership_offset: int,
+    prop_domains: NDArray,
+    propagator_variables: NDArray,
+    domains: NDArray,
+    triggered_propagators: NDArray,
+    entailed_propagator_depths: NDArray,
+    triggers: NDArray,
+    triggers_offsets: NDArray,
+    unbound_variable_nb_stk: NDArray,
+    priorities: NDArray,
+) -> bool:
+    """
+    Applies a propagator's computed prop_domains and schedules the propagators triggered by the changes.
+    This advisor-free variant is used when no propagator in the problem has an advisor.
+
+    :param prop_domains: the domains computed by the propagator
+    :type prop_domains: NDArray
+
+    :return: true iff no domain was changed
+    :rtype: bool
+    """
+    no_changes = True
+    for var_idx in range(prop_var_end - prop_var_start):
+        variable = propagator_variables[prop_var_start + var_idx]
+        domain = domains[variable]
+        if domain[MIN] != domain[MAX]:
+            events = EVENT_MASK_NONE
+            domain_min = prop_domains[var_idx, MIN]
+            if domain[MIN] != domain_min:
+                domain[MIN] = domain_min
+                events |= EVENT_MASK_MIN
+            domain_max = prop_domains[var_idx, MAX]
+            if domain[MAX] != domain_max:
+                domain[MAX] = domain_max
+                events |= EVENT_MASK_MAX
+            if events:
+                if domain_min == domain_max:
+                    events |= EVENT_MASK_GROUND
+                    unbound_variable_nb_stk[top] -= 1
+                offset = variable * EVENT_MASK_NB + events
+                for other_prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
+                    if not (
+                        triggered_propagators[membership_offset + other_prop_idx]
+                        or other_prop_idx == prop_idx
+                        or entailed_propagator_depths[other_prop_idx] != -1
+                    ):
+                        buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
+                no_changes = False
+    return no_changes
+
+
+@njit(cache=True)
+def update_domains_advised(
     top: int,
     prop_idx: int,
     prop_var_start: int,
