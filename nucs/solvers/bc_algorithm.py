@@ -39,7 +39,7 @@ from nucs.constants import (
     VARIABLE,
     EVENT_MASK_NONE,
 )
-from nucs.numba_helper import ComputeDomainsFunctions
+from nucs.numba_helper import AdvisorFunctions, ComputeDomainsFunctions
 
 
 @njit(cache=True)
@@ -61,6 +61,9 @@ def bc_algorithm(
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
+    advisor_fcts: AdvisorFunctions,
+    has_advisor: NDArray,
+    advisor_buffer: NDArray,
 ) -> int:
     """
     This is the default consistency algorithm used by the solver.
@@ -150,6 +153,12 @@ def bc_algorithm(
             triggers_offsets,
             unbound_variable_nb_stk,
             priorities,
+            algorithms,
+            bounds,
+            propagator_parameters,
+            advisor_fcts,
+            has_advisor,
+            advisor_buffer,
         ):
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
 
@@ -170,6 +179,12 @@ def update_domains(
     triggers_offsets: NDArray,
     unbound_variable_nb_stk: NDArray,
     priorities: NDArray,
+    algorithms: NDArray,
+    bounds: NDArray,
+    propagator_parameters: NDArray,
+    advisor_fcts: AdvisorFunctions,
+    has_advisor: NDArray,
+    advisor_buffer: NDArray,
 ) -> bool:
     """
     Updates the domains with the prop_domains computed by a propagator and schedules other propagators triggered by the changes.
@@ -227,11 +242,31 @@ def update_domains(
                     unbound_variable_nb_stk[top] -= 1
                 offset = variable * EVENT_MASK_NB + events
                 for other_prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
-                    if not (
+                    if (
                         triggered_propagators[membership_offset + other_prop_idx]
                         or other_prop_idx == prop_idx
                         or entailed_propagator_depths[other_prop_idx] != -1
                     ):
-                        buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
+                        continue
+                    # advisor gate: a propagator with an advisor is scheduled only when the advisor -- a cheap,
+                    # sound over-approximation of "can prune" with the same signature as compute_domains -- says
+                    # so. has_advisor is indexed per propagator so advisor-free ones stay on the direct path with
+                    # a single read; only for the few advised ones do we gather prop_domains and call the advisor.
+                    if has_advisor[other_prop_idx]:
+                        other_var_start = bounds[other_prop_idx, VARIABLE, RANGE_START]
+                        other_arity = bounds[other_prop_idx, VARIABLE, RANGE_END] - other_var_start
+                        advisor_domains = advisor_buffer[:other_arity]
+                        for other_var_idx in range(other_arity):
+                            advisor_domains[other_var_idx] = domains[
+                                propagator_variables[other_var_start + other_var_idx]
+                            ]
+                        if not advisor_fcts[algorithms[other_prop_idx]](
+                            advisor_domains,
+                            propagator_parameters[
+                                bounds[other_prop_idx, PARAM, RANGE_START] : bounds[other_prop_idx, PARAM, RANGE_END]
+                            ],
+                        ):
+                            continue
+                    buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
                 no_changes = False
     return no_changes
