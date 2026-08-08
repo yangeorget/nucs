@@ -11,6 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import logging
+import os
 import time
 from multiprocessing import Queue
 from typing import Dict, Iterable, Iterator, List, Optional
@@ -248,7 +249,9 @@ class BacktrackSolver(Solver, QueueSolver):
         self.has_advisor = np.array([alg_has_advisor[alg] for alg in self.problem.algorithms], dtype=np.uint8)
         # hoisted flag: when no propagator has an advisor the consistency algorithm uses the advisor-free path,
         # so advisor-free problems pay nothing for the advisor mechanism in the hot re-trigger loop
-        self.any_advisor = bool(self.has_advisor.any())
+        # NUCS_NO_ADVISOR=1 forces the advisor-free consistency path even when advisors are registered;
+        # used to A/B the advisor mechanism's contribution to solve throughput (see benchmarks).
+        self.any_advisor = bool(self.has_advisor.any()) and os.getenv("NUCS_NO_ADVISOR") != "1"
         logger.debug("BacktrackSolver initialized")
 
     def get_statistics_as_array(self) -> NDArray:
