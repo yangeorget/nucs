@@ -40,12 +40,15 @@ from nucs.propagators.propagators import (
     ALG_ELEMENT_L_EQ,
     ALG_ELEMENT_L_EQ_C,
     ALG_EQ,
+    ALG_EQ_C_IMP,
     ALG_EQ_C_REIF,
+    ALG_EQ_IMP,
     ALG_EQ_REIF,
     ALG_GCC,
     ALG_INCREASING,
     ALG_INVERSE,
     ALG_LEQ_C,
+    ALG_LEQ_C_IMP,
     ALG_LEQ_C_REIF,
     ALG_LEXLEQ,
     ALG_LINEAR_EQ_C,
@@ -60,6 +63,7 @@ from nucs.propagators.propagators import (
     ALG_MUL_C_EQ,
     ALG_MUL_EQ,
     ALG_NEQ,
+    ALG_NEQ_IMP,
     ALG_NEQ_REIF,
     ALG_NO_SUB_CYCLE,
     ALG_NVALUE,
@@ -406,6 +410,43 @@ def _ne_reif(model: "FznModel", args: list[Term]) -> None:
     """
     r = model.var_index_of(args[2])
     model.problem.add_propagator(ALG_NEQ_REIF, [r, model.var_index_of(args[0]), model.var_index_of(args[1])])
+
+
+def _int_eq_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``int_eq_imp(a, b, r)`` as the half-reification r -> (a = b), mapping onto r -> x = c when b is a
+    constant and onto r -> x = y otherwise.
+    """
+    reif = model.var_index_of(args[2])
+    x = model.var_index_of(args[0])
+    if _is_const(model, args[1]):
+        model.problem.add_propagator(ALG_EQ_C_IMP, [reif, x], [model.const_of(args[1])])
+    else:
+        model.problem.add_propagator(ALG_EQ_IMP, [reif, x, model.var_index_of(args[1])])
+
+
+def _int_lin_eq_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``int_lin_eq_imp(a, x, c, r)`` as r -> (sum(a_i * x_i) = c), via an auxiliary sum variable.
+    """
+    s = _aux_lin_sum(model, model.int_list_of(args[0]), model.var_list_of(args[1]))
+    model.problem.add_propagator(ALG_EQ_C_IMP, [model.var_index_of(args[3]), s], [model.const_of(args[2])])
+
+
+def _le_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``int_le_imp(x, y, r)`` / ``bool_le_imp(x, y, r)`` as r -> (x <= y).
+    """
+    r = model.var_index_of(args[2])
+    model.problem.add_propagator(ALG_LEQ_C_IMP, [r, model.var_index_of(args[0]), model.var_index_of(args[1])], [0])
+
+
+def _ne_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``int_ne_imp(x, y, r)`` as r -> (x != y).
+    """
+    r = model.var_index_of(args[2])
+    model.problem.add_propagator(ALG_NEQ_IMP, [r, model.var_index_of(args[0]), model.var_index_of(args[1])])
 
 
 def _int_ge(model: "FznModel", args: list[Term]) -> None:
@@ -918,14 +959,17 @@ BUILTINS: dict[str, Handler] = {
     "int_abs": _int_abs,
     "int_div": _int_div,
     "int_eq": _int_eq,
+    "int_eq_imp": _int_eq_imp,
     "int_eq_reif": _int_eq_reif,
     "int_ge": _int_ge,
     "int_ge_reif": _ge_reif,
     "int_gt": _int_gt,
     "int_gt_reif": _gt_reif,
     "int_le": _int_le,
+    "int_le_imp": _le_imp,
     "int_le_reif": _le_reif,
     "int_lin_eq": _int_lin_eq,
+    "int_lin_eq_imp": _int_lin_eq_imp,
     "int_lin_eq_reif": _int_lin_eq_reif,
     "int_lin_ge": _int_lin_ge,
     "int_lin_ge_reif": _int_lin_ge_reif,
@@ -939,6 +983,7 @@ BUILTINS: dict[str, Handler] = {
     "int_min": _int_min,
     "int_mod": _int_mod,
     "int_ne": _int_ne,
+    "int_ne_imp": _ne_imp,
     "int_ne_reif": _ne_reif,
     "inverse": _inverse,
     "int_plus": _int_plus,

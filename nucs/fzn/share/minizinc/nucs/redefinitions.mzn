@@ -21,3 +21,13 @@ include "fzn_strictly_increasing_int.mzn";
 include "nosets.mzn";
 
 predicate strictly_decreasing(array [$X] of var int: x) = fzn_strictly_increasing_int(reverse(array1d(x)));
+
+% Declaring the half-reified (implied) builtins as natively supported lets MiniZinc emit `r -> C`
+% (implication) instead of the fully-reified `r <-> C` wherever the reified boolean is used monotonically.
+% Half-reification propagates one direction only, so it is strictly cheaper per node -- a large win on
+% reification-heavy flattenings (scheduling/objective encodings). NuCS backs each with a dedicated
+% half-reified propagator (see nucs/fzn/builtins.py: int_eq_imp / int_lin_eq_imp / int_le_imp / int_ne_imp).
+predicate int_eq_imp(var int: a, var int: b, var bool: r);
+predicate int_ne_imp(var int: a, var int: b, var bool: r);
+predicate int_le_imp(var int: a, var int: b, var bool: r);
+predicate int_lin_eq_imp(array [int] of int: as, array [int] of var int: bs, int: c, var bool: r);
