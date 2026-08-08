@@ -18,7 +18,8 @@ Adding coverage for a new builtin is a single entry here (and, if it relies on a
 ``/add-propagator`` flow plus, for kept globals, one body-less predicate file in the globals library).
 """
 
-from typing import TYPE_CHECKING, Callable, Dict, List
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.parser import Id, Term
@@ -34,6 +35,7 @@ from nucs.propagators.propagators import (
     ALG_CUMULATIVE,
     ALG_DIFFN,
     ALG_DISJUNCTIVE,
+    ALG_DIV_C_EQ,
     ALG_ELEMENT_EQ,
     ALG_ELEMENT_L_EQ,
     ALG_ELEMENT_L_EQ_C,
@@ -74,7 +76,7 @@ from nucs.propagators.propagators import (
 if TYPE_CHECKING:
     from nucs.fzn.model import FznModel
 
-Handler = Callable[["FznModel", List[Term]], None]
+Handler = Callable[["FznModel", list[Term]], None]
 
 
 def _is_const(model: "FznModel", term: Term) -> bool:
@@ -96,8 +98,8 @@ def _is_const(model: "FznModel", term: Term) -> bool:
 
 def _post_linear(
     model: "FznModel",
-    coeffs: List[int],
-    variables: List[int],
+    coeffs: list[int],
+    variables: list[int],
     c: int,
     alg_general: int,
     sum_pos: int,
@@ -131,7 +133,7 @@ def _post_linear(
         model.problem.add_propagator(alg_general, variables, coeffs + [c])
 
 
-def _int_lin_eq(model: "FznModel", args: List[Term]) -> None:
+def _int_lin_eq(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_lin_eq(a, x, c)`` as the linear equality sum(a_i * x_i) = c.
     """
@@ -146,7 +148,7 @@ def _int_lin_eq(model: "FznModel", args: List[Term]) -> None:
     )
 
 
-def _bool_lin_eq(model: "FznModel", args: List[Term]) -> None:
+def _bool_lin_eq(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``bool_lin_eq(a, b, c)`` as the linear equality sum(a_i * b_i) = c. Unlike ``int_lin_eq``,
     the result c is a variable (the booleans b_i are 0/1 variables), so it is posted as sum = c.
@@ -161,7 +163,7 @@ def _bool_lin_eq(model: "FznModel", args: List[Term]) -> None:
         model.problem.add_propagator(ALG_LINEAR_EQ_C, variables + [c], coeffs + [-1, 0])
 
 
-def _int_lin_le(model: "FznModel", args: List[Term]) -> None:
+def _int_lin_le(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_lin_le(a, x, c)`` as the linear inequality sum(a_i * x_i) <= c.
     """
@@ -176,7 +178,7 @@ def _int_lin_le(model: "FznModel", args: List[Term]) -> None:
     )
 
 
-def _int_lin_ne(model: "FznModel", args: List[Term]) -> None:
+def _int_lin_ne(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_lin_ne(a, x, c)`` as the linear disequality sum(a_i * x_i) != c.
     """
@@ -185,7 +187,7 @@ def _int_lin_ne(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_LINEAR_NEQ_C, variables, coeffs + [model.const_of(args[2])])
 
 
-def _aux_lin_sum(model: "FznModel", coeffs: List[int], variables: List[int]) -> int:
+def _aux_lin_sum(model: "FznModel", coeffs: list[int], variables: list[int]) -> int:
     """
     Creates an auxiliary variable s bound to sum(a_i * x_i) and returns its index. Used to reduce a
     reified linear constraint to a reification on a single variable.
@@ -208,7 +210,7 @@ def _aux_lin_sum(model: "FznModel", coeffs: List[int], variables: List[int]) -> 
     return s
 
 
-def _int_lin_eq_reif(model: "FznModel", args: List[Term]) -> None:
+def _int_lin_eq_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_lin_eq_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) = c, via an auxiliary sum variable.
     """
@@ -216,7 +218,7 @@ def _int_lin_eq_reif(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_EQ_C_REIF, [model.var_index_of(args[3]), s], [model.const_of(args[2])])
 
 
-def _int_lin_le_reif(model: "FznModel", args: List[Term]) -> None:
+def _int_lin_le_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_lin_le_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) <= c.
 
@@ -237,7 +239,7 @@ def _int_lin_le_reif(model: "FznModel", args: List[Term]) -> None:
         model.problem.add_propagator(ALG_LEQ_C_REIF, [r, s, model.var_index_of(args[2])], [0])
 
 
-def _int_lin_ne_reif(model: "FznModel", args: List[Term]) -> None:
+def _int_lin_ne_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_lin_ne_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) != c, via an auxiliary sum variable.
     """
@@ -245,7 +247,7 @@ def _int_lin_ne_reif(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_NEQ_REIF, [model.var_index_of(args[3]), s, model.var_index_of(args[2])])
 
 
-def _int_lin_ge(model: "FznModel", args: List[Term]) -> None:
+def _int_lin_ge(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_lin_ge(a, x, c)`` as the linear inequality sum(a_i * x_i) >= c.
     """
@@ -260,7 +262,7 @@ def _int_lin_ge(model: "FznModel", args: List[Term]) -> None:
     )
 
 
-def _int_lin_ge_reif(model: "FznModel", args: List[Term]) -> None:
+def _int_lin_ge_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_lin_ge_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) >= c, i.e. r <=> c <= s.
 
@@ -280,7 +282,7 @@ def _int_lin_ge_reif(model: "FznModel", args: List[Term]) -> None:
         model.problem.add_propagator(ALG_LEQ_C_REIF, [r, model.var_index_of(args[2]), s], [0])
 
 
-def _int_eq(model: "FznModel", args: List[Term]) -> None:
+def _int_eq(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_eq(x, y)`` as x - y = 0.
     """
@@ -289,7 +291,7 @@ def _int_eq(model: "FznModel", args: List[Term]) -> None:
     )
 
 
-def _int_eq_reif(model: "FznModel", args: List[Term]) -> None:
+def _int_eq_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_eq_reif(a, b, r)`` as the reification r <=> (a = b), mapping onto b <=> x = c when b is a
     constant and onto b <=> x = y otherwise.
@@ -302,14 +304,14 @@ def _int_eq_reif(model: "FznModel", args: List[Term]) -> None:
         model.problem.add_propagator(ALG_EQ_REIF, [reif, x, model.var_index_of(args[1])])
 
 
-def _bool2int(model: "FznModel", args: List[Term]) -> None:
+def _bool2int(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``bool2int(b, x)`` as x = b; booleans are modelled as 0..1 integer variables.
     """
     model.problem.add_propagator(ALG_EQ, [model.var_index_of(args[1]), model.var_index_of(args[0])])
 
 
-def _array_bool_and(model: "FznModel", args: List[Term]) -> None:
+def _array_bool_and(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``array_bool_and(as, r)`` as the reification r <=> (and of the booleans in as).
     """
@@ -317,7 +319,7 @@ def _array_bool_and(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_AND_EQ, variables)
 
 
-def _array_bool_or(model: "FznModel", args: List[Term]) -> None:
+def _array_bool_or(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``array_bool_or(as, r)`` as r <=> (or of the booleans in as), i.e. r = max(as) over 0..1.
     """
@@ -325,7 +327,7 @@ def _array_bool_or(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_MAX_EQ, variables)
 
 
-def _bool_or(model: "FznModel", args: List[Term]) -> None:
+def _bool_or(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``bool_or(a, b, r)`` as r <=> (a or b), i.e. r = max(a, b) over 0..1.
     """
@@ -334,7 +336,7 @@ def _bool_or(model: "FznModel", args: List[Term]) -> None:
     )
 
 
-def _bool_clause(model: "FznModel", args: List[Term]) -> None:
+def _bool_clause(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``bool_clause(pos, neg)`` as the clause (or of pos) or (or of not neg), modelled as the linear
     inequality sum(pos) - sum(neg) >= 1 - len(neg).
@@ -345,7 +347,7 @@ def _bool_clause(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_LINEAR_GEQ_C, pos + neg, coeffs + [1 - len(neg)])
 
 
-def _bool_and(model: "FznModel", args: List[Term]) -> None:
+def _bool_and(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``bool_and(a, b, r)`` as the reification r <=> (a and b).
     """
@@ -354,35 +356,35 @@ def _bool_and(model: "FznModel", args: List[Term]) -> None:
     )
 
 
-def _bool_not(model: "FznModel", args: List[Term]) -> None:
+def _bool_not(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``bool_not(a, b)`` as a + b = 1, i.e. b is the negation of a; booleans are 0..1 integers.
     """
     model.problem.add_propagator(ALG_LINEAR_EQ_C, [model.var_index_of(args[0]), model.var_index_of(args[1])], [1, 1, 1])
 
 
-def _bool_eq(model: "FznModel", args: List[Term]) -> None:
+def _bool_eq(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``bool_eq(a, b)`` as a = b.
     """
     model.problem.add_propagator(ALG_EQ, [model.var_index_of(args[0]), model.var_index_of(args[1])])
 
 
-def _int_le(model: "FznModel", args: List[Term]) -> None:
+def _int_le(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_le(x, y)`` as x <= y.
     """
     model.problem.add_propagator(ALG_LEQ_C, [model.var_index_of(args[0]), model.var_index_of(args[1])], [0])
 
 
-def _int_lt(model: "FznModel", args: List[Term]) -> None:
+def _int_lt(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_lt(x, y)`` as x <= y - 1.
     """
     model.problem.add_propagator(ALG_LEQ_C, [model.var_index_of(args[0]), model.var_index_of(args[1])], [-1])
 
 
-def _le_reif(model: "FznModel", args: List[Term]) -> None:
+def _le_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_le_reif(x, y, r)`` / ``bool_le_reif(x, y, r)`` as r <=> x <= y.
     """
@@ -390,7 +392,7 @@ def _le_reif(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_LEQ_C_REIF, [r, model.var_index_of(args[0]), model.var_index_of(args[1])], [0])
 
 
-def _lt_reif(model: "FznModel", args: List[Term]) -> None:
+def _lt_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_lt_reif(x, y, r)`` / ``bool_lt_reif(x, y, r)`` as r <=> x <= y - 1.
     """
@@ -398,7 +400,7 @@ def _lt_reif(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_LEQ_C_REIF, [r, model.var_index_of(args[0]), model.var_index_of(args[1])], [-1])
 
 
-def _ne_reif(model: "FznModel", args: List[Term]) -> None:
+def _ne_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_ne_reif(x, y, r)`` / ``bool_xor(x, y, r)`` as r <=> x != y.
     """
@@ -406,21 +408,21 @@ def _ne_reif(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_NEQ_REIF, [r, model.var_index_of(args[0]), model.var_index_of(args[1])])
 
 
-def _int_ge(model: "FznModel", args: List[Term]) -> None:
+def _int_ge(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_ge(x, y)`` as y <= x.
     """
     model.problem.add_propagator(ALG_LEQ_C, [model.var_index_of(args[1]), model.var_index_of(args[0])], [0])
 
 
-def _int_gt(model: "FznModel", args: List[Term]) -> None:
+def _int_gt(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_gt(x, y)`` as y <= x - 1.
     """
     model.problem.add_propagator(ALG_LEQ_C, [model.var_index_of(args[1]), model.var_index_of(args[0])], [-1])
 
 
-def _ge_reif(model: "FznModel", args: List[Term]) -> None:
+def _ge_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_ge_reif(x, y, r)`` / ``bool_ge_reif(x, y, r)`` as r <=> y <= x.
     """
@@ -428,7 +430,7 @@ def _ge_reif(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_LEQ_C_REIF, [r, model.var_index_of(args[1]), model.var_index_of(args[0])], [0])
 
 
-def _gt_reif(model: "FznModel", args: List[Term]) -> None:
+def _gt_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_gt_reif(x, y, r)`` / ``bool_gt_reif(x, y, r)`` as r <=> y <= x - 1.
     """
@@ -436,7 +438,7 @@ def _gt_reif(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_LEQ_C_REIF, [r, model.var_index_of(args[1]), model.var_index_of(args[0])], [-1])
 
 
-def _bool_xor(model: "FznModel", args: List[Term]) -> None:
+def _bool_xor(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``bool_xor(a, b)`` as a != b and ``bool_xor(a, b, r)`` as the reification r <=> (a != b).
     """
@@ -446,14 +448,14 @@ def _bool_xor(model: "FznModel", args: List[Term]) -> None:
         model.problem.add_propagator(ALG_NEQ, [model.var_index_of(args[0]), model.var_index_of(args[1])])
 
 
-def _int_ne(model: "FznModel", args: List[Term]) -> None:
+def _int_ne(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_ne(x, y)`` as x != y.
     """
     model.problem.add_propagator(ALG_NEQ, [model.var_index_of(args[0]), model.var_index_of(args[1])])
 
 
-def _int_plus(model: "FznModel", args: List[Term]) -> None:
+def _int_plus(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_plus(x, y, z)`` as x + y = z.
     """
@@ -461,14 +463,14 @@ def _int_plus(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_SUM_EQ, variables)
 
 
-def _int_abs(model: "FznModel", args: List[Term]) -> None:
+def _int_abs(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_abs(a, b)`` as abs(a) = b.
     """
     model.problem.add_propagator(ALG_ABS_EQ, [model.var_index_of(args[0]), model.var_index_of(args[1])])
 
 
-def _int_times(model: "FznModel", args: List[Term]) -> None:
+def _int_times(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_times(x, y, z)`` as x * y = z, using the constant-factor propagator when x or y is a
     constant and the general var * var propagator otherwise.
@@ -487,7 +489,7 @@ def _int_times(model: "FznModel", args: List[Term]) -> None:
         )
 
 
-def _int_mod(model: "FznModel", args: List[Term]) -> None:
+def _int_mod(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_mod(x, y, z)`` as x mod y = z (truncated division, the remainder takes the sign of x),
     using the bound-consistent constant-modulus propagator when the divisor y is a constant.
@@ -502,7 +504,21 @@ def _int_mod(model: "FznModel", args: List[Term]) -> None:
         )
 
 
-def _int_max(model: "FznModel", args: List[Term]) -> None:
+def _int_div(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``int_div(x, y, z)`` as x div y = z (truncated division, the quotient rounds toward zero), using
+    the bound-consistent constant-divisor propagator when the divisor y is a constant. Division by a variable
+    is not supported.
+    """
+    if _is_const(model, args[1]):
+        model.problem.add_propagator(
+            ALG_DIV_C_EQ, [model.var_index_of(args[0]), model.var_index_of(args[2])], [model.const_of(args[1])]
+        )
+    else:
+        raise FznUnsupportedError("int_div with a variable divisor is not supported")
+
+
+def _int_max(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_max(x, y, z)`` as max(x, y) = z.
     """
@@ -510,7 +526,7 @@ def _int_max(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_MAX_EQ, variables)
 
 
-def _int_min(model: "FznModel", args: List[Term]) -> None:
+def _int_min(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_min(x, y, z)`` as min(x, y) = z.
     """
@@ -518,21 +534,21 @@ def _int_min(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_MIN_EQ, variables)
 
 
-def _array_int_maximum(model: "FznModel", args: List[Term]) -> None:
+def _array_int_maximum(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``array_int_maximum(m, x)`` as m = max(x).
     """
     model.problem.add_propagator(ALG_MAX_EQ, model.var_list_of(args[1]) + [model.var_index_of(args[0])])
 
 
-def _array_int_minimum(model: "FznModel", args: List[Term]) -> None:
+def _array_int_minimum(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``array_int_minimum(m, x)`` as m = min(x).
     """
     model.problem.add_propagator(ALG_MIN_EQ, model.var_list_of(args[1]) + [model.var_index_of(args[0])])
 
 
-def _count_eq(model: "FznModel", args: List[Term]) -> None:
+def _count_eq(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``count_eq(x, y, c)`` as the number of x_i equal to y is c, supported only when y is a constant.
     """
@@ -546,7 +562,7 @@ def _count_eq(model: "FznModel", args: List[Term]) -> None:
         model.problem.add_propagator(ALG_COUNT_EQ, variables, [value])
 
 
-def _count_geq(model: "FznModel", args: List[Term]) -> None:
+def _count_geq(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``count_geq(x, y, c)`` as the number of x_i equal to y is at least c, supported only when y and c
     are constants.
@@ -558,7 +574,7 @@ def _count_geq(model: "FznModel", args: List[Term]) -> None:
     )
 
 
-def _count_leq(model: "FznModel", args: List[Term]) -> None:
+def _count_leq(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``count_leq(x, y, c)`` as the number of x_i equal to y is at most c, supported only when y and c
     are constants.
@@ -570,7 +586,7 @@ def _count_leq(model: "FznModel", args: List[Term]) -> None:
     )
 
 
-def _disjunctive(model: "FznModel", args: List[Term]) -> None:
+def _disjunctive(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``nucs_disjunctive(s, d)``: tasks starting at ``s`` with constant durations ``d`` do not overlap.
     The globals library only emits this predicate when the durations are fixed, so they map directly to the
@@ -579,7 +595,7 @@ def _disjunctive(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_DISJUNCTIVE, model.var_list_of(args[0]), model.int_list_of(args[1]))
 
 
-def _cumulative(model: "FznModel", args: List[Term]) -> None:
+def _cumulative(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``nucs_cumulative(s, d, r, b)``: tasks starting at ``s`` with constant durations ``d`` and constant
     demands ``r`` never exceed the constant capacity ``b`` at any instant. The globals library only emits this
@@ -590,7 +606,7 @@ def _cumulative(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_CUMULATIVE, model.var_list_of(args[0]), parameters)
 
 
-def _diffn(model: "FznModel", args: List[Term]) -> None:
+def _diffn(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``nucs_diffn(x, y, dx, dy)``: rectangles with bottom-left corners ``(x, y)`` and constant sizes
     ``(dx, dy)`` do not overlap. The globals library only emits this predicate when the sizes are fixed, so
@@ -601,7 +617,7 @@ def _diffn(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_DIFFN, variables, parameters)
 
 
-def _nvalue(model: "FznModel", args: List[Term]) -> None:
+def _nvalue(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``nvalue(n, x)`` as n being the number of distinct values taken by the array x.
     """
@@ -609,7 +625,7 @@ def _nvalue(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_NVALUE, variables)
 
 
-def _value_precede(model: "FznModel", args: List[Term]) -> None:
+def _value_precede(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``value_precede_int(s, t, x)``: the value s must first occur before the value t in x.
     """
@@ -618,7 +634,7 @@ def _value_precede(model: "FznModel", args: List[Term]) -> None:
     )
 
 
-def _value_precede_chain(model: "FznModel", args: List[Term]) -> None:
+def _value_precede_chain(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``value_precede_chain_int(c, x)``: the values c[0], c[1], ... must first occur in that order in
     x, which is exactly the conjunction of value_precede(c[i], c[i+1], x) over consecutive values.
@@ -629,35 +645,35 @@ def _value_precede_chain(model: "FznModel", args: List[Term]) -> None:
         model.problem.add_propagator(ALG_VALUE_PRECEDE, variables, [chain[i], chain[i + 1]])
 
 
-def _all_different(model: "FznModel", args: List[Term]) -> None:
+def _all_different(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``all_different_int(x)``.
     """
     model.problem.add_propagator(ALG_ALLDIFFERENT, model.var_list_of(args[0]))
 
 
-def _increasing(model: "FznModel", args: List[Term]) -> None:
+def _increasing(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``increasing_int(x)`` as x_i <= x_{i+1} for all i.
     """
     model.problem.add_propagator(ALG_INCREASING, model.var_list_of(args[0]))
 
 
-def _strictly_increasing(model: "FznModel", args: List[Term]) -> None:
+def _strictly_increasing(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``strictly_increasing_int(x)`` as x_i < x_{i+1} for all i.
     """
     model.problem.add_propagator(ALG_STRICTLY_INCREASING, model.var_list_of(args[0]))
 
 
-def _decreasing(model: "FznModel", args: List[Term]) -> None:
+def _decreasing(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``decreasing_int(x)`` as x_i >= x_{i+1} for all i, i.e. increasing over the reversed list.
     """
     model.problem.add_propagator(ALG_INCREASING, model.var_list_of(args[0])[::-1])
 
 
-def _strictly_decreasing(model: "FznModel", args: List[Term]) -> None:
+def _strictly_decreasing(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``strictly_decreasing_int(x)`` as x_i > x_{i+1} for all i, i.e. strictly increasing over the
     reversed list.
@@ -665,7 +681,7 @@ def _strictly_decreasing(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_STRICTLY_INCREASING, model.var_list_of(args[0])[::-1])
 
 
-def _zero_based(model: "FznModel", variables: List[int], n: int) -> List[int]:
+def _zero_based(model: "FznModel", variables: list[int], n: int) -> list[int]:
     """
     Returns 0-based copies of FlatZinc successor/index variables, for propagators that work on a 0-based
     index/value representation.
@@ -686,7 +702,7 @@ def _zero_based(model: "FznModel", variables: List[int], n: int) -> List[int]:
     return shifted
 
 
-def _circuit(model: "FznModel", args: List[Term]) -> None:
+def _circuit(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``circuit(x)``: the 1-based successor array x forms a single Hamiltonian circuit. NuCS uses a
     0-based successor representation, so each x[i] is shifted by -1 into an auxiliary variable, on which a
@@ -698,7 +714,7 @@ def _circuit(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_NO_SUB_CYCLE, shifted)
 
 
-def _subcircuit(model: "FznModel", args: List[Term]) -> None:
+def _subcircuit(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``subcircuit(x)``: the 1-based successor array x forms a sub-circuit -- the nodes with x[i] != i
     form a single circuit and the rest are self-loops (excluded). Like ``circuit``, NuCS works on a 0-based
@@ -711,7 +727,7 @@ def _subcircuit(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_SUBCIRCUIT, shifted)
 
 
-def _inverse(model: "FznModel", args: List[Term]) -> None:
+def _inverse(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``inverse(x, y)`` as the channeling x[i] = j <=> y[j] = i between two 1-based arrays. The
     channeling propagator works on a 0-based representation, so both arrays are shifted by -1; an
@@ -725,7 +741,7 @@ def _inverse(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_INVERSE, _zero_based(model, x, n) + _zero_based(model, y, n))
 
 
-def _lex_lesseq(model: "FznModel", args: List[Term]) -> None:
+def _lex_lesseq(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``lex_lesseq_int(x, y)`` as x <=_lex y.
     """
@@ -733,7 +749,7 @@ def _lex_lesseq(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_LEXLEQ, variables)
 
 
-def _lex_less(model: "FznModel", args: List[Term]) -> None:
+def _lex_less(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``lex_less_int(x, y)`` as x <_lex y, reduced to a lexleq over sentinel-extended vectors:
     x <_lex y iff (x ++ [1]) <=_lex (y ++ [0]) (equal vectors fall to 1 <= 0, which is false).
@@ -745,7 +761,7 @@ def _lex_less(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_LEXLEQ, variables)
 
 
-def _table_int(model: "FznModel", args: List[Term]) -> None:
+def _table_int(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``table_int(x, t)``: each tuple of x must be a row of the table t (an extensional constraint).
     The 2D table is flattened row-major in FlatZinc, so it lines up with the RELATION tuple layout.
@@ -754,14 +770,14 @@ def _table_int(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_RELATION, variables, model.int_list_of(args[1]))
 
 
-def _set_in(model: "FznModel", args: List[Term]) -> None:
+def _set_in(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``set_in(x, S)`` as x being a member of the set S (a ``{..}`` literal or a ``lo..hi`` range).
     """
     model.problem.add_propagator(ALG_MEMBER, [model.var_index_of(args[0])], model.set_values_of(args[1]))
 
 
-def _set_in_reif(model: "FznModel", args: List[Term]) -> None:
+def _set_in_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``set_in_reif(x, S, b)`` as b <=> (x in S), where S is a constant set (a ``{..}`` literal or a
     ``lo..hi`` range). A contiguous range reifies to lo <= x <= hi; a non-contiguous set to a disjunction of
@@ -792,7 +808,7 @@ def _set_in_reif(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_MAX_EQ, reifs + [b])
 
 
-def _array_int_element(model: "FznModel", args: List[Term]) -> None:
+def _array_int_element(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``array_int_element(i, A, c)`` as A[i] = c, where A is an array of constants and i is 1-based.
     """
@@ -804,7 +820,7 @@ def _array_int_element(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_ELEMENT_EQ, [index0, value], array)
 
 
-def _array_var_int_element(model: "FznModel", args: List[Term]) -> None:
+def _array_var_int_element(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``array_var_int_element(i, X, c)`` as X[i] = c, where X is an array of variables and i is 1-based.
     """
@@ -818,7 +834,7 @@ def _array_var_int_element(model: "FznModel", args: List[Term]) -> None:
         model.problem.add_propagator(ALG_ELEMENT_L_EQ, array + [index0, model.var_index_of(args[2])])
 
 
-def _global_cardinality_low_up(model: "FznModel", args: List[Term]) -> None:
+def _global_cardinality_low_up(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``global_cardinality_low_up(x, cover, lb, ub)``: value ``cover[i]`` occurs in ``x`` between
     ``lb[i]`` and ``ub[i]`` times. Values not in the cover are unconstrained, and the variables may take
@@ -843,7 +859,7 @@ def _global_cardinality_low_up(model: "FznModel", args: List[Term]) -> None:
     model.problem.add_propagator(ALG_GCC, variables, [lo] + full_lb + full_ub)
 
 
-BUILTINS: Dict[str, Handler] = {
+BUILTINS: dict[str, Handler] = {
     "all_different_int": _all_different,
     "array_bool_and": _array_bool_and,
     "array_bool_element": _array_int_element,
@@ -900,6 +916,7 @@ BUILTINS: Dict[str, Handler] = {
     "global_cardinality_low_up": _global_cardinality_low_up,
     "increasing_int": _increasing,
     "int_abs": _int_abs,
+    "int_div": _int_div,
     "int_eq": _int_eq,
     "int_eq_reif": _int_eq_reif,
     "int_ge": _int_ge,

@@ -10,37 +10,17 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Callable, List
+from collections.abc import Callable
 
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import buckets_add, STORAGE_OFFSET
+from nucs.buckets import STORAGE_OFFSET, buckets_add
 from nucs.propagators.abs_eq_propagator import compute_domains_abs_eq, get_complexity_abs_eq, get_triggers_abs_eq
 from nucs.propagators.add_c_eq_propagator import (
     compute_domains_add_c_eq,
     get_complexity_add_c_eq,
     get_triggers_add_c_eq,
-)
-from nucs.propagators.linear_eq_c_propagator import (
-    compute_domains_linear_eq_c,
-    get_complexity_linear_eq_c,
-    get_triggers_linear_eq_c,
-)
-from nucs.propagators.linear_geq_c_propagator import (
-    compute_domains_linear_geq_c,
-    get_complexity_linear_geq_c,
-    get_triggers_linear_geq_c,
-)
-from nucs.propagators.linear_leq_c_propagator import (
-    compute_domains_linear_leq_c,
-    get_complexity_linear_leq_c,
-    get_triggers_linear_leq_c,
-)
-from nucs.propagators.linear_neq_c_propagator import (
-    compute_domains_linear_neq_c,
-    get_complexity_linear_neq_c,
-    get_triggers_linear_neq_c,
 )
 from nucs.propagators.alldifferent_propagator import (
     compute_domains_alldifferent,
@@ -83,6 +63,11 @@ from nucs.propagators.disjunctive_propagator import (
     get_complexity_disjunctive,
     get_triggers_disjunctive,
 )
+from nucs.propagators.div_c_eq_propagator import (
+    compute_domains_div_c_eq,
+    get_complexity_div_c_eq,
+    get_triggers_div_c_eq,
+)
 from nucs.propagators.dummy_propagator import compute_domains_dummy, get_complexity_dummy, get_triggers_dummy
 from nucs.propagators.element_eq_propagator import (
     compute_domains_element_eq,
@@ -109,12 +94,12 @@ from nucs.propagators.element_l_eq_propagator import (
     get_complexity_element_l_eq,
     get_triggers_element_l_eq,
 )
-from nucs.propagators.eq_propagator import compute_domains_eq, get_complexity_eq, get_triggers_eq
 from nucs.propagators.eq_c_reif_propagator import (
     compute_domains_eq_c_reif,
     get_complexity_eq_c_reif,
     get_triggers_eq_c_reif,
 )
+from nucs.propagators.eq_propagator import compute_domains_eq, get_complexity_eq, get_triggers_eq
 from nucs.propagators.eq_reif_propagator import (
     compute_domains_eq_reif,
     get_complexity_eq_reif,
@@ -141,6 +126,26 @@ from nucs.propagators.lexleq_propagator import (
     compute_domains_lexleq,
     get_complexity_lexleq,
     get_triggers_lexleq,
+)
+from nucs.propagators.linear_eq_c_propagator import (
+    compute_domains_linear_eq_c,
+    get_complexity_linear_eq_c,
+    get_triggers_linear_eq_c,
+)
+from nucs.propagators.linear_geq_c_propagator import (
+    compute_domains_linear_geq_c,
+    get_complexity_linear_geq_c,
+    get_triggers_linear_geq_c,
+)
+from nucs.propagators.linear_leq_c_propagator import (
+    compute_domains_linear_leq_c,
+    get_complexity_linear_leq_c,
+    get_triggers_linear_leq_c,
+)
+from nucs.propagators.linear_neq_c_propagator import (
+    compute_domains_linear_neq_c,
+    get_complexity_linear_neq_c,
+    get_triggers_linear_neq_c,
 )
 from nucs.propagators.max_eq_propagator import compute_domains_max_eq, get_complexity_max_eq, get_triggers_max_eq
 from nucs.propagators.max_leq_propagator import compute_domains_max_leq, get_complexity_max_leq, get_triggers_max_leq
@@ -180,7 +185,7 @@ from nucs.propagators.relation_propagator import (
     get_complexity_relation,
     get_triggers_relation,
 )
-from nucs.propagators.scc_propagator import get_complexity_scc, get_triggers_scc, compute_domains_scc
+from nucs.propagators.scc_propagator import compute_domains_scc, get_complexity_scc, get_triggers_scc
 from nucs.propagators.strictly_increasing_propagator import (
     compute_domains_strictly_increasing,
     get_complexity_strictly_increasing,
@@ -213,9 +218,9 @@ from nucs.propagators.value_precede_propagator import (
     get_triggers_value_precede,
 )
 
-GET_TRIGGERS_FCTS: List[Callable] = []
-GET_COMPLEXITY_FCTS: List[Callable] = []
-COMPUTE_DOMAINS_FCTS: List[Callable] = []
+GET_TRIGGERS_FCTS: list[Callable] = []
+GET_COMPLEXITY_FCTS: list[Callable] = []
+COMPUTE_DOMAINS_FCTS: list[Callable] = []
 
 
 def get_algorithm_nb() -> int:
@@ -265,6 +270,7 @@ ALG_COUNT_LEQ_C = register_propagator(get_triggers_count_leq_c, get_complexity_c
 ALG_CUMULATIVE = register_propagator(get_triggers_cumulative, get_complexity_cumulative, compute_domains_cumulative)
 ALG_DIFFN = register_propagator(get_triggers_diffn, get_complexity_diffn, compute_domains_diffn)
 ALG_DISJUNCTIVE = register_propagator(get_triggers_disjunctive, get_complexity_disjunctive, compute_domains_disjunctive)
+ALG_DIV_C_EQ = register_propagator(get_triggers_div_c_eq, get_complexity_div_c_eq, compute_domains_div_c_eq)
 ALG_DUMMY = register_propagator(get_triggers_dummy, get_complexity_dummy, compute_domains_dummy)
 ALG_ELEMENT_EQ = register_propagator(get_triggers_element_eq, get_complexity_element_eq, compute_domains_element_eq)
 ALG_ELEMENT_L_EQ = register_propagator(
