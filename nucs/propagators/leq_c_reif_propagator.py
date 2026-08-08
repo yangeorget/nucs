@@ -50,6 +50,32 @@ def get_triggers_leq_c_reif(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
+def advise_leq_c_reif(domains: NDArray, parameters: NDArray) -> bool:
+    """
+    Advisor for :math:`b \\Leftrightarrow x \\leq y + a_0`: when b is true the inequality can tighten x from y
+    (or y from x); when b is false the negation x > y + a_0 can tighten; when b is free b can be decided only
+    when the relation is already entailed (x <= y + a_0) or disentailed (x > y + a_0).
+
+    :param domains: the domains of the variables, b is the first domain, x the second, y the third
+    :type domains: NDArray
+    :param parameters: the constant a_0 added to y, parameters[0]
+    :type parameters: NDArray
+
+    :return: whether the propagator should be scheduled
+    :rtype: bool
+    """
+    b = domains[0]
+    x = domains[1]
+    y = domains[2]
+    c = parameters[0]
+    if b[MIN] == 1:  # b true: x <= y + c
+        return x[MAX] > y[MAX] + c or x[MIN] - c > y[MIN]
+    if b[MAX] == 0:  # b false: x > y + c
+        return x[MIN] < y[MIN] + c + 1 or y[MAX] > x[MAX] - c - 1
+    return x[MAX] <= y[MIN] + c or x[MIN] > y[MAX] + c  # b free: relation decided
+
+
+@njit(cache=True)
 def compute_domains_leq_c_reif(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements :math:`b <=> x \\leq y + a_0`.
