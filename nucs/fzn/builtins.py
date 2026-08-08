@@ -64,6 +64,7 @@ from nucs.propagators.propagators import (
     ALG_MUL_EQ,
     ALG_NEQ,
     ALG_NEQ_IMP,
+    ALG_NEQ_C_REIF,
     ALG_NEQ_REIF,
     ALG_NO_SUB_CYCLE,
     ALG_NVALUE,
@@ -248,7 +249,7 @@ def _int_lin_ne_reif(model: "FznModel", args: list[Term]) -> None:
     Handles ``int_lin_ne_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) != c, via an auxiliary sum variable.
     """
     s = _aux_lin_sum(model, model.int_list_of(args[0]), model.var_list_of(args[1]))
-    model.problem.add_propagator(ALG_NEQ_REIF, [model.var_index_of(args[3]), s, model.var_index_of(args[2])])
+    model.problem.add_propagator(ALG_NEQ_C_REIF, [model.var_index_of(args[3]), s], [model.const_of(args[2])])
 
 
 def _int_lin_ge(model: "FznModel", args: list[Term]) -> None:
@@ -406,10 +407,16 @@ def _lt_reif(model: "FznModel", args: list[Term]) -> None:
 
 def _ne_reif(model: "FznModel", args: list[Term]) -> None:
     """
-    Handles ``int_ne_reif(x, y, r)`` / ``bool_xor(x, y, r)`` as r <=> x != y.
+    Handles ``int_ne_reif(x, y, r)`` / ``bool_xor(x, y, r)`` as r <=> x != y, using the constant-operand
+    propagator r <=> x != c when one operand is constant and the general var != var propagator otherwise.
     """
     r = model.var_index_of(args[2])
-    model.problem.add_propagator(ALG_NEQ_REIF, [r, model.var_index_of(args[0]), model.var_index_of(args[1])])
+    if _is_const(model, args[1]):
+        model.problem.add_propagator(ALG_NEQ_C_REIF, [r, model.var_index_of(args[0])], [model.const_of(args[1])])
+    elif _is_const(model, args[0]):
+        model.problem.add_propagator(ALG_NEQ_C_REIF, [r, model.var_index_of(args[1])], [model.const_of(args[0])])
+    else:
+        model.problem.add_propagator(ALG_NEQ_REIF, [r, model.var_index_of(args[0]), model.var_index_of(args[1])])
 
 
 def _int_eq_imp(model: "FznModel", args: list[Term]) -> None:
