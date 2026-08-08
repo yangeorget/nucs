@@ -13,7 +13,15 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    EVENT_MASK_MIN,
+    EVENT_MASK_MIN_MAX,
+    MAX,
+    MIN,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_eq_imp(n: int, parameters: NDArray) -> int:
@@ -46,7 +54,9 @@ def get_triggers_eq_imp(n: int, variable: int, parameters: NDArray) -> int:
     :return: an event mask
     :rtype: int
     """
-    return EVENT_MASK_MIN_MAX
+    # b (variable 0) only needs to wake when it becomes true (b_min rises to 1): b becoming false makes the
+    # implication vacuous, so there is nothing to deduce. x and y still need both bounds.
+    return EVENT_MASK_MIN if variable == 0 else EVENT_MASK_MIN_MAX
 
 
 @njit(cache=True)
