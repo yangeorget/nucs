@@ -45,6 +45,7 @@ def get_triggers_name(n: int, variable: int, parameters: NDArray) -> int:
 def compute_domains_name(domains: NDArray, parameters: NDArray) -> int:
     # Mutate domains in place. Return PROP_INCONSISTENCY, PROP_CONSISTENCY, or PROP_ENTAILMENT.
     # Use domains[i][MIN] and domains[i][MAX]; never reassign domains[i] = ....
+    # MUST be idempotent: one call reaches this propagator's fixpoint (loop if a pass can prune more) — see below.
     ...
 ```
 
@@ -56,6 +57,24 @@ Rules for the jitted functions:
   After each tightening, check `if domains[i][MIN] > domains[i][MAX]: return PROP_INCONSISTENCY`.
 - Return `PROP_ENTAILMENT` only when the constraint can never be violated again
   (rare; safe to return `PROP_CONSISTENCY` if unsure).
+- **`compute_domains` MUST be idempotent — a single call must reach the propagator's own fixpoint.**
+  The consistency engine never reschedules a propagator onto itself after it prunes (an optimization in
+  `bc_algorithm.py`), so it will not re-run you to finish the job. If one pass can leave further filtering on the
+  table — e.g. tightening one variable re-opens filtering for another the pass already visited, as in any
+  pairwise or cascading rule — wrap the body in a fixpoint loop and iterate until a full sweep changes no bound:
+
+  ```python
+  changed = True
+  while changed:
+      changed = False
+      ...  # on every bound you actually tighten: set changed = True
+  ```
+
+  This is not just about pruning strength: if your own pruning can *create* an inconsistency that the same
+  pass then fails to detect (it already visited the affected pair), a non-idempotent propagator can let an
+  infeasible assignment through as a solution — a **soundness** bug. Purely functional propagators (each
+  variable filtered once from fixed data) are idempotent already and need no loop. See `cumulative`,
+  `disjunctive`, `diffn`, `linear_eq_c` for the `while has_changed:` pattern.
 
 ## 3. Register in `nucs/propagators/propagators.py`
 
@@ -89,6 +108,15 @@ class TestName(PropagatorTest):
 ```
 
 Cover at minimum: a pruning case, an inconsistency case, and a no-op case where the input is already tight.
+
+Also guard the two invariants above:
+
+- **Idempotence:** feeding a `compute_domains` result back into a second call must change nothing — the
+  expected domains of every pruning case are themselves a fixpoint, so `assert_compute_domains(fct, expected,
+  parameters, PROP_*, expected)` must hold. For any propagator with pairwise or cascading rules, add a
+  brute-force soundness test (see `tests/propagators/test_diffn.py::test_soundness_against_brute_force`): over
+  small enumerated domains, assert the propagator never reports consistent a state that has no feasible ground
+  extension, and never prunes a value that belongs to a solution.
 
 ## 5. Verify
 
