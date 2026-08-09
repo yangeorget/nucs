@@ -8,13 +8,15 @@
 % in builtins.py), so keeping the n-ary global avoids MiniZinc's default decomposition into a chain of
 % binary int_max / int_min constraints with one introduced variable per element.
 %
-% bool_clause_reif and the float maxima/minima keep their standard decomposition bodies: NuCS has no native
-% propagator for them, so they must still flatten through the standard library.
+% bool_clause_reif is reified as the same linear inequality NuCS already uses for the non-reified
+% bool_clause -- b <-> (sum(as) - sum(bs) >= 1 - |bs|) -- which flattens to a single int_lin_ge_reif that
+% NuCS handles natively (one auxiliary sum + a reified comparison), instead of the standard library's
+% expansion into one clause plus a per-literal implication each (a ~5-6x blow-up in bool_clause count).
+% The float maxima/minima keep their standard decomposition bodies: NuCS has no native propagator for them.
 
 predicate bool_clause_reif(array [int] of var bool: as, array [int] of var bool: bs, var bool: b) =
-  clause(as, bs ++ [b]) /\
-    forall (i in index_set(as)) (as[i] -> b) /\
-    forall (i in index_set(bs)) (bs[i] \/ b);
+  b <-> (sum (i in index_set(as)) (bool2int(as[i])) - sum (i in index_set(bs)) (bool2int(bs[i]))
+    >= 1 - length(bs));
 
 predicate array_int_maximum(var int: m, array [int] of var int: x);
 
