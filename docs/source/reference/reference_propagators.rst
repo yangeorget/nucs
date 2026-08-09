@@ -32,6 +32,7 @@ NuCS currently provides the following highly-optimized propagators.
 .. autofunction:: nucs.propagators.eq_c_reif_propagator.compute_domains_eq_c_reif
 .. autofunction:: nucs.propagators.eq_reif_propagator.compute_domains_eq_reif
 .. autofunction:: nucs.propagators.gcc_propagator.compute_domains_gcc
+.. autofunction:: nucs.propagators.if_then_else_propagator.compute_domains_if_then_else
 .. autofunction:: nucs.propagators.increasing_propagator.compute_domains_increasing
 .. autofunction:: nucs.propagators.inverse_propagator.compute_domains_inverse
 .. autofunction:: nucs.propagators.leq_c_propagator.compute_domains_leq_c

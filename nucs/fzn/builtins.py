@@ -45,6 +45,7 @@ from nucs.propagators.propagators import (
     ALG_EQ_IMP,
     ALG_EQ_REIF,
     ALG_GCC,
+    ALG_IF_THEN_ELSE,
     ALG_INCREASING,
     ALG_INVERSE,
     ALG_LEQ_C,
@@ -809,6 +810,17 @@ def _lex_less(model: "FznModel", args: list[Term]) -> None:
     model.problem.add_propagator(ALG_LEXLEQ, variables)
 
 
+def _if_then_else_var_bool(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``if_then_else_var_bool(c, x, y)`` as y = x[k] where k is the smallest index with condition
+    c[k] true (the else branch is a literal-true condition). The conditions then the values then y are passed
+    to the IF_THEN_ELSE propagator in a single array.
+    """
+    conditions = model.var_list_of(args[0])
+    values = model.var_list_of(args[1])
+    model.problem.add_propagator(ALG_IF_THEN_ELSE, conditions + values + [model.var_index_of(args[2])])
+
+
 def _table_int(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``table_int(x, t)``: each tuple of x must be a row of the table t (an extensional constraint).
@@ -940,6 +952,7 @@ BUILTINS: dict[str, Handler] = {
     "decreasing_int": _decreasing,
     "nucs_cumulative": _cumulative,
     "nucs_diffn": _diffn,
+    "nucs_if_then_else_var_bool": _if_then_else_var_bool,
     "nucs_disjunctive": _disjunctive,
     "fzn_all_different_int": _all_different,
     "fzn_circuit": _circuit,

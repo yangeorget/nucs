@@ -132,6 +132,11 @@ from nucs.propagators.eq_reif_propagator import (
     get_triggers_eq_reif,
 )
 from nucs.propagators.gcc_propagator import compute_domains_gcc, get_complexity_gcc, get_triggers_gcc
+from nucs.propagators.if_then_else_propagator import (
+    compute_domains_if_then_else,
+    get_complexity_if_then_else,
+    get_triggers_if_then_else,
+)
 from nucs.propagators.increasing_propagator import (
     compute_domains_increasing,
     get_complexity_increasing,
@@ -359,6 +364,9 @@ ALG_EQ_C_REIF = register_propagator(
 ALG_EQ_IMP = register_propagator(get_triggers_eq_imp, get_complexity_eq_imp, compute_domains_eq_imp, advise_eq_imp)
 ALG_EQ_REIF = register_propagator(get_triggers_eq_reif, get_complexity_eq_reif, compute_domains_eq_reif, advise_eq_reif)
 ALG_GCC = register_propagator(get_triggers_gcc, get_complexity_gcc, compute_domains_gcc)
+ALG_IF_THEN_ELSE = register_propagator(
+    get_triggers_if_then_else, get_complexity_if_then_else, compute_domains_if_then_else
+)
 ALG_INCREASING = register_propagator(get_triggers_increasing, get_complexity_increasing, compute_domains_increasing)
 ALG_INVERSE = register_propagator(get_triggers_inverse, get_complexity_inverse, compute_domains_inverse)
 ALG_LEQ_C = register_propagator(get_triggers_leq_c, get_complexity_leq_c, compute_domains_leq_c)

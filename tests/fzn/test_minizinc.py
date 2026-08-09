@@ -80,6 +80,12 @@ KEPT_GLOBALS = {
         "fzn_global_cardinality_low_up",
         "fzn_global_cardinality_low_up.mzn",
     ),
+    "if_then_else": (
+        "array[1..3] of var bool: c; array[1..3] of var bool: x; var bool: y; "
+        "constraint y = if c[1] then x[1] elseif c[2] then x[2] else x[3] endif;",
+        "nucs_if_then_else_var_bool",
+        "fzn_if_then_else_var_bool.mzn",
+    ),
     "increasing": (
         "array[1..4] of var 0..9: x; constraint increasing(x);",
         "fzn_increasing_int",
