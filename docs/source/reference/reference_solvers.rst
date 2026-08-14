@@ -4,7 +4,6 @@
 Solvers
 *******
 
-NuCS comes with the following solvers.
+NuCS comes with the following solver.
 
 .. autoclass:: nucs.solvers.backtrack_solver.BacktrackSolver
-.. autoclass:: nucs.solvers.multiprocessing_solver.MultiprocessingSolver

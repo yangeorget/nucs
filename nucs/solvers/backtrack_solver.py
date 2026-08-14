@@ -12,7 +12,6 @@
 ###############################################################################
 import logging
 import time
-from multiprocessing import Queue
 from typing import Dict, Iterable, Iterator, List, Optional
 
 import numpy as np
@@ -80,14 +79,13 @@ from nucs.propagators.propagators import (
 )
 from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_points, fix_choice_point
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
-from nucs.solvers.queue_solver import QueueSolver
 from nucs.solvers.search import Search
 from nucs.solvers.solver import Solver, get_solution
 
 logger = logging.getLogger(__name__)
 
 
-class BacktrackSolver(Solver, QueueSolver):
+class BacktrackSolver(Solver):
     """
     A solver relying on a backtracking mechanism.
     """
@@ -509,105 +507,6 @@ class BacktrackSolver(Solver, QueueSolver):
                 break
             self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
             t0 = time.perf_counter_ns()
-
-    def minimize_and_queue(self, variable: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
-        """
-        Enqueues the solution that minimizes a variable.
-
-        :param variable: the variable to minimize
-        :type variable: int
-        :param processor_idx: the index of the processor running the minimizer
-        :type processor_idx: int
-        :param solution_queue: the solution queue
-        :type solution_queue: Queue
-        :param mode: the optimization mode
-        :type mode: str
-        """
-        domain = self.domains_stk[self.stks_top[0], variable]
-        logger.info(f"Minimizing (mode {mode}) variable {variable} (domain {domain})) and queuing solutions")
-        self.optimize_and_queue(variable, MAX, processor_idx, solution_queue, mode)
-
-    def maximize_and_queue(self, variable: int, processor_idx: int, solution_queue: Queue, mode: str) -> None:
-        """
-        Enqueues the solution that maximizes a variable.
-
-        :param variable: the variable to maximize
-        :type variable: int
-        :param processor_idx: the index of the processor running the maximizer
-        :type processor_idx: int
-        :param solution_queue: the solution queue
-        :type solution_queue: Queue
-        :param mode: the optimization mode
-        :type mode: str
-        """
-        domain = self.domains_stk[self.stks_top[0], variable]
-        logger.info(f"Maximizing (mode {mode}) variable {variable} (domain {domain})) and queuing solutions")
-        self.optimize_and_queue(variable, MIN, processor_idx, solution_queue, mode)
-
-    def optimize_and_queue(
-        self, variable: int, bound: int, processor_idx: int, solution_queue: Queue, mode: str
-    ) -> None:
-        """
-        Enqueues the solution that optimizes a variable.
-
-        :param variable: the variable
-        :type variable: int
-        :param bound: the bound to optimize
-        :type bound: int
-        :param processor_idx: the index of the processor
-        :type processor_idx: int
-        :param solution_queue: the solution queue
-        :type solution_queue: Queue
-        :param mode: the optimization mode
-        :type mode: str
-        """
-        t0 = time.perf_counter_ns()
-        buckets_empty(self.triggered_propagators, self.problem.priorities)
-        buckets_init(self.triggered_propagators, self.problem.priorities)
-        while True:
-            solution = self._solve_one()
-            if solution is None:
-                break
-            logger.info(f"Found a local optimum: {solution[variable]}")
-            solution_queue.put((processor_idx, solution, self.statistics))
-            if not self._advance_after_optimum(variable, solution[variable], bound, mode):
-                break
-        self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
-        solution_queue.put((processor_idx, None, self.statistics))
-
-    def solve_and_queue(self, processor_idx: int, solution_queue: Queue) -> None:
-        """
-        Enqueues the solutions.
-
-        :param processor_idx: the index of the processor
-        :type processor_idx: int
-        :param solution_queue: the solution queue
-        :type solution_queue: Queue
-        """
-        logger.info("Solving and queuing solutions found")
-        t0 = time.perf_counter_ns()
-        buckets_empty(self.triggered_propagators, self.problem.priorities)
-        buckets_init(self.triggered_propagators, self.problem.priorities)
-        while True:
-            solution = self._solve_one()
-            if solution is None:
-                break
-            solution_queue.put((processor_idx, solution, self.statistics))
-            if not backtrack(
-                self.statistics,
-                self.entailed_propagator_depths,
-                self.entailment_trail,
-                self.domain_update_stk,
-                self.stks_top,
-                self.triggered_propagators,
-                self.problem.triggers,
-                self.problem.triggers_offsets,
-                self.problem.priorities,
-                self.problem.propagator_nb,
-            ):
-                break
-        self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
-        solution_queue.put((processor_idx, None, self.statistics))
 
 
 @njit(cache=True)

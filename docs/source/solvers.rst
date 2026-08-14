@@ -34,19 +34,3 @@ A backtracking solver accepts the additional following parameters:
 * some parameters for this heuristic (none by default)
 * the maximal height for the choice points stack (256 by default)
 
-
-****************************
-Multiprocessing-based solver
-****************************
-NuCS also provides :mod:`nucs.solvers.multiprocessing_solver` which relies on the Python :code:`multiprocessing` package.
-
-This solver is used by the launcher of the :mod:`nucs.examples.queens.queens_problem`.
-
-.. code-block:: python
-   :linenos:
-
-   problem = QueensProblem(args.n)
-   problems = problem.split(args.processors, 0)  # creates n sub-problems by splitting the domain of the first variable
-   solver = MultiprocessingSolver([BacktrackSolver(problem) for problem in problems])
-   solver.solve_all()
-
