@@ -60,31 +60,6 @@ def get_triggers_neq_imp(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def advise_neq_imp(domains: NDArray, parameters: NDArray) -> bool:
-    """
-    Advisor for :math:`b \\rightarrow x \\neq y`: when b is false the implication is vacuous; when b is true the
-    disequality can act only when x or y is ground (removing that value) or they are disjoint (entailment); when
-    b is free b can be set to false only when x and y are forced equal (both ground at the same value).
-
-    :param domains: the domains of the variables, b is the first domain, x the second, y the third
-    :type domains: NDArray
-    :param parameters: unused
-    :type parameters: NDArray
-
-    :return: whether the propagator should be scheduled
-    :rtype: bool
-    """
-    b = domains[0]
-    x = domains[1]
-    y = domains[2]
-    if b[MAX] == 0:  # b false: vacuous
-        return False
-    if b[MIN] == 1:  # b true: x != y
-        return x[MIN] == x[MAX] or y[MIN] == y[MAX] or x[MAX] < y[MIN] or y[MAX] < x[MIN]
-    return x[MIN] == x[MAX] and y[MIN] == y[MAX] and x[MIN] == y[MIN]  # b free: x = y forced -> b = false
-
-
-@njit(cache=True)
 def compute_domains_neq_imp(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements the half-reified (implied) constraint :math:`b \\rightarrow x \\neq y`.

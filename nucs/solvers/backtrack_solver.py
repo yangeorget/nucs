@@ -11,7 +11,6 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import logging
-import os
 import time
 from multiprocessing import Queue
 from typing import Dict, Iterable, Iterator, List, Optional
@@ -30,7 +29,6 @@ from nucs.constants import (
     OPTIM_RESET,
     PROBLEM_BOUND,
     PROBLEM_UNBOUND,
-    SIGN_ADVISOR,
     SIGN_COMPUTE_DOMAINS,
     SIGN_CONSISTENCY_ALG,
     SIGN_DOM_HEURISTIC,
@@ -67,7 +65,6 @@ from nucs.heuristics.heuristics import (
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
 )
 from nucs.numba_helper import (
-    AdvisorFunctions,
     ComputeDomainsFunctions,
     ConsistencyAlgorithmFunctions,
     DomainHeuristicFunctions,
@@ -77,10 +74,8 @@ from nucs.numba_helper import (
 from nucs.numpy_helper import flatten_arrays
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
-    ADVISOR_FCTS,
     ALG_DUMMY,
     COMPUTE_DOMAINS_FCTS,
-    default_advisor,
     update_propagators,
 )
 from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_points, fix_choice_point
@@ -112,9 +107,6 @@ class BacktrackSolver(Solver, QueueSolver):
     var_heuristic_fcts: VariableHeuristicFunctions
     dom_heuristic_fcts: DomainHeuristicFunctions
     compute_domains_fcts: ComputeDomainsFunctions
-    advisor_fcts: AdvisorFunctions
-    has_advisor: NDArray
-    any_advisor: bool
 
     def __init__(
         self,
@@ -192,7 +184,6 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.info(f"BacktrackSolver uses consistency algorithm {consistency_algorithm}")
         self.triggered_propagators = buckets_create(problem.propagator_nb)
         self.domain_buffer = get_domain_buffer(problem.bounds)
-        self.advisor_buffer = get_domain_buffer(problem.bounds)  # separate scratch for building advisor prop_domains
         logger.debug("Initializing choice points")
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
         self.domain_update_stk = np.empty((stks_max_height, 2), dtype=np.uint32)
@@ -221,7 +212,6 @@ class BacktrackSolver(Solver, QueueSolver):
         logger.debug("Statistics initialized")
         if NUMBA_DISABLE_JIT:
             self.compute_domains_fcts = COMPUTE_DOMAINS_FCTS
-            self.advisor_fcts = ADVISOR_FCTS
             self.consistency_alg_fcts = [CONSISTENCY_ALG_FCTS[consistency_algorithm]]
             self.var_heuristic_fcts = [VAR_HEURISTIC_FCTS[h] for h in var_heuristics]
             self.dom_heuristic_fcts = [DOM_HEURISTIC_FCTS[h] for h in dom_heuristics]
@@ -230,9 +220,6 @@ class BacktrackSolver(Solver, QueueSolver):
             # to the problem instead of the whole propagator library
             self.compute_domains_fcts = build_function_ptrs(
                 COMPUTE_DOMAINS_FCTS, SIGN_COMPUTE_DOMAINS, np.unique(self.problem.algorithms), ALG_DUMMY
-            )
-            self.advisor_fcts = build_function_ptrs(
-                ADVISOR_FCTS, SIGN_ADVISOR, np.unique(self.problem.algorithms), ALG_DUMMY
             )
             self.consistency_alg_fcts = build_function_ptrs(
                 [CONSISTENCY_ALG_FCTS[consistency_algorithm]], SIGN_CONSISTENCY_ALG
@@ -243,15 +230,6 @@ class BacktrackSolver(Solver, QueueSolver):
             self.dom_heuristic_fcts = build_function_ptrs(
                 [DOM_HEURISTIC_FCTS[h] for h in dom_heuristics], SIGN_DOM_HEURISTIC
             )
-        # a propagator is gated by its advisor only when its algorithm registered a non-default one; indexed
-        # per propagator so the re-trigger loop stays on the direct path with a single read for advisor-free ones
-        alg_has_advisor = [fct is not default_advisor for fct in ADVISOR_FCTS]
-        self.has_advisor = np.array([alg_has_advisor[alg] for alg in self.problem.algorithms], dtype=np.uint8)
-        # hoisted flag: when no propagator has an advisor the consistency algorithm uses the advisor-free path,
-        # so advisor-free problems pay nothing for the advisor mechanism in the hot re-trigger loop
-        # NUCS_NO_ADVISOR=1 forces the advisor-free consistency path even when advisors are registered;
-        # used to A/B the advisor mechanism's contribution to solve throughput (see benchmarks).
-        self.any_advisor = bool(self.has_advisor.any()) and os.getenv("NUCS_NO_ADVISOR") != "1"
         logger.debug("BacktrackSolver initialized")
 
     def get_statistics_as_array(self) -> NDArray:
@@ -404,10 +382,6 @@ class BacktrackSolver(Solver, QueueSolver):
             self.dom_heuristic_params_shapes,
             self.compute_domains_fcts,
             self.domain_buffer,
-            self.advisor_fcts,
-            self.has_advisor,
-            self.advisor_buffer,
-            self.any_advisor,
         )
 
     def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
@@ -667,10 +641,6 @@ def solve_one(
     dom_heuristic_params_shapes: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
-    advisor_fcts: AdvisorFunctions,
-    has_advisor: NDArray,
-    advisor_buffer: NDArray,
-    any_advisor: bool,
 ) -> Optional[NDArray]:
     """
     Find at most one solution.
@@ -762,10 +732,6 @@ def solve_one(
             triggered_propagators,
             compute_domains_fcts,
             domain_buffer,
-            advisor_fcts,
-            has_advisor,
-            advisor_buffer,
-            any_advisor,
         )
         top = stks_top[0]
         if status == PROBLEM_BOUND:

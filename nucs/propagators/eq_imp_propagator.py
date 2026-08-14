@@ -60,31 +60,6 @@ def get_triggers_eq_imp(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def advise_eq_imp(domains: NDArray, parameters: NDArray) -> bool:
-    """
-    Advisor for :math:`b \\rightarrow x = y`: when b is false the implication is vacuous; when b is true x = y
-    can tighten unless x and y already share their bounds; when b is free b can be set to false only when x and
-    y are disjoint.
-
-    :param domains: the domains of the variables, b is the first domain, x the second, y the third
-    :type domains: NDArray
-    :param parameters: unused
-    :type parameters: NDArray
-
-    :return: whether the propagator should be scheduled
-    :rtype: bool
-    """
-    b = domains[0]
-    x = domains[1]
-    y = domains[2]
-    if b[MAX] == 0:  # b false: vacuous
-        return False
-    if b[MIN] == 1:  # b true: x = y
-        return x[MIN] != y[MIN] or x[MAX] != y[MAX]
-    return x[MAX] < y[MIN] or y[MAX] < x[MIN]  # b free: x = y disentailed -> b = false
-
-
-@njit(cache=True)
 def compute_domains_eq_imp(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements the half-reified (implied) constraint :math:`b \\rightarrow x = y`.

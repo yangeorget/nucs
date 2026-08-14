@@ -18,7 +18,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MIN, EVENT_MASK_NB, MAX, MIN
-from nucs.numba_helper import AdvisorFunctions, ComputeDomainsFunctions
+from nucs.numba_helper import ComputeDomainsFunctions
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     ALG_ALLDIFFERENT,
@@ -141,10 +141,6 @@ def golomb_consistency_algorithm(
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
-    advisor_fcts: AdvisorFunctions,
-    has_advisor: NDArray,
-    advisor_buffer: NDArray,
-    any_advisor: bool,
 ) -> int:
     """
     Applies a custom consistency algorithm for the Golomb Ruler problem.
@@ -219,8 +215,4 @@ def golomb_consistency_algorithm(
         triggered_propagators,
         compute_domains_fcts,
         domain_buffer,
-        advisor_fcts,
-        has_advisor,
-        advisor_buffer,
-        any_advisor,
     )

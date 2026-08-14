@@ -60,31 +60,6 @@ def get_triggers_eq_c_imp(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def advise_eq_c_imp(domains: NDArray, parameters: NDArray) -> bool:
-    """
-    Advisor for :math:`b \\rightarrow x = c`: schedules only when the propagator can act. When b is false the
-    implication is vacuous; when b is true x = c can tighten unless x is already fixed to c; when b is free
-    only the contrapositive fires, so b can be set to false only when c is outside x.
-
-    :param domains: the domains of the variables, b is the first domain, x the second
-    :type domains: NDArray
-    :param parameters: c is the first parameter
-    :type parameters: NDArray
-
-    :return: whether the propagator should be scheduled
-    :rtype: bool
-    """
-    b = domains[0]
-    x = domains[1]
-    c = int(parameters[0])
-    if b[MAX] == 0:  # b false: vacuous
-        return False
-    if b[MIN] == 1:  # b true: x = c
-        return x[MIN] != c or x[MAX] != c
-    return x[MIN] > c or x[MAX] < c  # b free: x = c disentailed -> b = false
-
-
-@njit(cache=True)
 def compute_domains_eq_c_imp(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements the half-reified (implied) constraint :math:`b \\rightarrow x = c` for a constant c.

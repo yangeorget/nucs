@@ -50,31 +50,6 @@ def get_triggers_eq_reif(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def advise_eq_reif(domains: NDArray, parameters: NDArray) -> bool:
-    """
-    Advisor for :math:`b \\Leftrightarrow x = y`: when b is false (x != y) it can act only when x or y is ground
-    or they are disjoint; when b is true (x = y) the intersection can tighten unless x and y already share their
-    bounds; when b is free b can be decided only when x and y are disjoint or both ground.
-
-    :param domains: the domains of the variables, b is the first domain, x the second, y the third
-    :type domains: NDArray
-    :param parameters: unused
-    :type parameters: NDArray
-
-    :return: whether the propagator should be scheduled
-    :rtype: bool
-    """
-    b = domains[0]
-    x = domains[1]
-    y = domains[2]
-    if b[MAX] == 0:  # b false: x != y
-        return x[MIN] == x[MAX] or y[MIN] == y[MAX] or x[MAX] < y[MIN] or y[MAX] < x[MIN]
-    if b[MIN] == 1:  # b true: x = y
-        return x[MIN] != y[MIN] or x[MAX] != y[MAX]
-    return (x[MAX] < y[MIN] or y[MAX] < x[MIN]) or (x[MIN] == x[MAX] and y[MIN] == y[MAX])  # b free
-
-
-@njit(cache=True)
 def compute_domains_eq_reif(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements :math:`b <=> x = y`.

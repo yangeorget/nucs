@@ -12,7 +12,7 @@
 ###############################################################################
 import os
 
-from numba import boolean, int32, int64, types, uint8, uint32, uint64  # type: ignore
+from numba import int32, int64, types, uint8, uint32, uint64  # type: ignore
 
 # Optimizer modes
 OPTIM_RESET = "RESET"
@@ -64,12 +64,6 @@ TYPE_COMPUTE_DOMAINS_LIST = types.ListType(TYPE_COMPUTE_DOMAINS)
 SIGN_GET_TRIGGERS = int64(uint64, uint64, int32[::1])
 TYPE_GET_TRIGGERS = types.FunctionType(SIGN_GET_TRIGGERS)
 
-# an advisor takes the same arguments as a compute_domains function (prop_domains, parameters) but returns a
-# bool: it reads the candidate propagator's domains and returns whether the propagator should be scheduled
-SIGN_ADVISOR = boolean(int32[:, ::1], int32[::1])
-TYPE_ADVISOR = types.FunctionType(SIGN_ADVISOR)
-TYPE_ADVISOR_LIST = types.ListType(TYPE_ADVISOR)
-
 SIGN_CONSISTENCY_ALG = int64(
     int64,  # propagator_nb
     int64[::1],  # statistics
@@ -88,10 +82,6 @@ SIGN_CONSISTENCY_ALG = int64(
     int32[::1],  # triggered_propagators
     TYPE_COMPUTE_DOMAINS_LIST,  # compute_domains_fcts
     int32[:, ::1],  # domain_buffer
-    TYPE_ADVISOR_LIST,  # advisor_fcts (compute_domains arguments, bool return)
-    uint8[::1],  # has_advisor
-    int32[:, ::1],  # advisor_buffer
-    boolean,  # any_advisor
 )
 TYPE_CONSISTENCY_ALG = types.FunctionType(SIGN_CONSISTENCY_ALG)
 

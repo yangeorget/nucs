@@ -50,32 +50,6 @@ def get_triggers_neq_c_reif(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def advise_neq_c_reif(domains: NDArray, parameters: NDArray) -> bool:
-    """
-    Advisor for :math:`b \\Leftrightarrow x \\neq c`: schedules the propagator only when it could prune or
-    decide, a sound O(1) over-approximation. Since NuCS is bounds-only, when b is true the disequality can drop
-    c only if c sits on a bound of x; when b is free, b can be decided only if c is outside x or x is ground;
-    when b is false (x = c) any tightening around c is relevant. Takes ``compute_domains_neq_c_reif`` arguments.
-
-    :param domains: the domains of the variables, b is the first domain, x the second
-    :type domains: NDArray
-    :param parameters: c is the first parameter
-    :type parameters: NDArray
-
-    :return: whether the propagator should be scheduled
-    :rtype: bool
-    """
-    b = domains[0]
-    x = domains[1]
-    c = int(parameters[0])
-    if b[MAX] == 0:  # b false: x = c enforced
-        return x[MIN] < c or x[MAX] > c
-    if b[MIN] == 1:  # b true: x != c prunes only when c sits on a bound
-        return x[MIN] == c or x[MAX] == c
-    return c < x[MIN] or c > x[MAX] or x[MIN] == x[MAX]  # b free: c outside x or x ground
-
-
-@njit(cache=True)
 def compute_domains_neq_c_reif(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements :math:`b \\Leftrightarrow x \\neq c` for a constant c (the specialization of ``int_ne_reif``

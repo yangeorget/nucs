@@ -84,10 +84,6 @@ class TestBacktrackSolver:
             solver.dom_heuristic_params_shapes,
             solver.compute_domains_fcts,
             solver.domain_buffer,
-            solver.advisor_fcts,
-            solver.has_advisor,
-            solver.advisor_buffer,
-            solver.any_advisor,
         )
         assert solution is not None
         assert solution.tolist() == [0, 0]
