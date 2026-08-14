@@ -21,6 +21,7 @@ NuCS currently provides the following highly-optimized propagators.
 .. autofunction:: nucs.propagators.count_geq_c_propagator.compute_domains_count_geq_c
 .. autofunction:: nucs.propagators.count_leq_c_propagator.compute_domains_count_leq_c
 .. autofunction:: nucs.propagators.cumulative_propagator.compute_domains_cumulative
+.. autofunction:: nucs.propagators.cumulative_propagator.compute_domains_cumulative_var
 .. autofunction:: nucs.propagators.diffn_propagator.compute_domains_diffn
 .. autofunction:: nucs.propagators.disjunctive_propagator.compute_domains_disjunctive
 .. autofunction:: nucs.propagators.div_c_eq_propagator.compute_domains_div_c_eq

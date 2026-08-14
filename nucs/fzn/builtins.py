@@ -34,6 +34,7 @@ from nucs.propagators.propagators import (
     ALG_COUNT_GEQ_C,
     ALG_COUNT_LEQ_C,
     ALG_CUMULATIVE,
+    ALG_CUMULATIVE_VAR,
     ALG_DIFFN,
     ALG_DISJUNCTIVE,
     ALG_DIV_C_EQ,
@@ -677,6 +678,17 @@ def _cumulative(model: "FznModel", args: list[Term]) -> None:
     model.problem.add_propagator(ALG_CUMULATIVE, model.var_list_of(args[0]), parameters)
 
 
+def _cumulative_var(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``nucs_cumulative_var(s, d, r, b)``: tasks starting at ``s`` with variable durations ``d`` and
+    constant demands ``r`` never exceed the constant capacity ``b``. The starts come first, then the durations;
+    the demands then the capacity are the parameters.
+    """
+    variables = model.var_list_of(args[0]) + model.var_list_of(args[1])
+    parameters = model.int_list_of(args[2]) + [model.const_of(args[3])]
+    model.problem.add_propagator(ALG_CUMULATIVE_VAR, variables, parameters)
+
+
 def _diffn(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``nucs_diffn(x, y, dx, dy)``: rectangles with bottom-left corners ``(x, y)`` and constant sizes
@@ -985,6 +997,7 @@ BUILTINS: dict[str, Handler] = {
     "count_leq": _count_leq,
     "decreasing_int": _decreasing,
     "nucs_cumulative": _cumulative,
+    "nucs_cumulative_var": _cumulative_var,
     "nucs_diffn": _diffn,
     "nucs_if_then_else_var_bool": _if_then_else_var_bool,
     "nucs_disjunctive": _disjunctive,

@@ -9,6 +9,15 @@ predicate nucs_cumulative(
   int: b,
 );
 
+% Variable durations, but fixed demands and capacity: NuCS's variable-duration cumulative propagator
+% (compulsory parts use each task's minimum duration).
+predicate nucs_cumulative_var(
+  array [int] of var int: s,
+  array [int] of var int: d,
+  array [int] of int: r,
+  int: b,
+);
+
 predicate fzn_cumulative(
   array [int] of var int: s,
   array [int] of var int: d,
@@ -21,6 +30,13 @@ predicate fzn_cumulative(
     nucs_cumulative(
       s,
       [fix(d[i]) | i in index_set(d)],
+      [fix(r[i]) | i in index_set(r)],
+      fix(b),
+    )
+  elseif forall (i in index_set(r)) (is_fixed(r[i])) /\ is_fixed(b) then
+    nucs_cumulative_var(
+      s,
+      d,
       [fix(r[i]) | i in index_set(r)],
       fix(b),
     )

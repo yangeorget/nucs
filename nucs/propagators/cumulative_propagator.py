@@ -234,18 +234,73 @@ def _filter_energetic(est: NDArray, lst: NDArray, p: NDArray, h: NDArray, n: int
 
 
 @njit(cache=True)
+def _filter_starts(est: NDArray, lst: NDArray, p: NDArray, h: NDArray, n: int, capacity: int) -> bool:
+    """
+    Runs timetabling and energetic reasoning on the start bounds until a full sweep changes nothing.
+
+    Timetabling raises starts so that no task overlaps an instant already saturated by the other tasks'
+    compulsory parts (and lowers latest starts by mirroring time); energetic reasoning then, over a quadratic
+    set of intervals, compares each task's minimum mandatory energy against the capacity. Neither rule is
+    idempotent, so the block is iterated to its own fixpoint; each changing sweep tightens at least one bound by
+    >= 1 so it terminates in at most the total initial domain width.
+
+    :param est: the earliest start times, raised in place
+    :type est: NDArray
+    :param lst: the latest start times, lowered in place
+    :type lst: NDArray
+    :param p: the durations (for a variable-duration task, its minimum, which is sound for the compulsory part)
+    :type p: NDArray
+    :param h: the resource demands (heights)
+    :type h: NDArray
+    :param n: the number of tasks
+    :type n: int
+    :param capacity: the resource capacity
+    :type capacity: int
+
+    :return: False when the resource is overloaded (inconsistent), True otherwise
+    :rtype: bool
+    """
+    mest = np.empty(n, dtype=np.int64)
+    mlst = np.empty(n, dtype=np.int64)
+    prev_est = np.empty(n, dtype=np.int64)
+    prev_lst = np.empty(n, dtype=np.int64)
+    has_changed = True
+    while has_changed:
+        for i in range(n):
+            prev_est[i] = est[i]
+            prev_lst[i] = lst[i]
+        # raise earliest start times
+        if not _filter_est(est, lst, p, h, n, capacity):
+            return False
+        # lower latest start times by mirroring time (a start s maps to -(s + p)) and reusing the filter
+        for i in range(n):
+            mest[i] = -(lst[i] + p[i])
+            mlst[i] = -(est[i] + p[i])
+        if not _filter_est(mest, mlst, p, h, n, capacity):
+            return False
+        for i in range(n):
+            lst[i] = -mest[i] - p[i]
+        # energetic reasoning: stronger interval-based filtering of both bounds
+        if not _filter_energetic(est, lst, p, h, n, capacity):
+            return False
+        has_changed = False
+        for i in range(n):
+            if est[i] > lst[i]:  # the start window has emptied
+                return False
+            if est[i] != prev_est[i] or lst[i] != prev_lst[i]:
+                has_changed = True
+    return True
+
+
+@njit(cache=True)
 def compute_domains_cumulative(domains: NDArray, parameters: NDArray) -> int:
     """
     Implements the cumulative constraint: tasks with start times ``domains`` run for constant durations and
     consume constant amounts of a resource of fixed capacity; at no instant may the total consumption of the
     tasks in progress exceed the capacity.
 
-    Filtering combines timetabling and energetic reasoning: timetabling raises starts so that no task overlaps
-    an instant already saturated by the other tasks' compulsory parts (and lowers latest starts by mirroring
-    time); energetic reasoning then, over a quadratic set of intervals, compares each task's minimum mandatory
-    energy against the capacity to detect overloads and push the bounds further. Neither rule is idempotent, so
-    the whole block is iterated until a full sweep changes no bound, leaving the propagator at its own fixpoint.
-    Both rules are incomplete, so the propagator may stay consistent on an infeasible instance -- that is sound.
+    Filtering combines timetabling and energetic reasoning (see :func:`_filter_starts`). Both rules are
+    incomplete, so the propagator may stay consistent on an infeasible instance -- that is sound.
 
     The parameters pack, in order, the ``n`` durations, then the ``n`` demands (heights), then the capacity:
     ``parameters = [p_0, ..., p_{n-1}, h_0, ..., h_{n-1}, capacity]``.
@@ -273,38 +328,8 @@ def compute_domains_cumulative(domains: NDArray, parameters: NDArray) -> int:
         h[i] = parameters[n + i]
         if h[i] > capacity and p[i] > 0:
             return PROP_INCONSISTENCY  # a single task already exceeds the capacity
-    mest = np.empty(n, dtype=np.int64)
-    mlst = np.empty(n, dtype=np.int64)
-    prev_est = np.empty(n, dtype=np.int64)
-    prev_lst = np.empty(n, dtype=np.int64)
-    # Timetabling is not idempotent (raising a start grows a compulsory part, which can push more tasks), so
-    # iterate the whole block until a full sweep changes no bound. Each changing sweep tightens at least one
-    # bound by >= 1, so the loop terminates in at most the total initial domain width.
-    has_changed = True
-    while has_changed:
-        for i in range(n):
-            prev_est[i] = est[i]
-            prev_lst[i] = lst[i]
-        # raise earliest start times
-        if not _filter_est(est, lst, p, h, n, capacity):
-            return PROP_INCONSISTENCY
-        # lower latest start times by mirroring time (a start s maps to -(s + p)) and reusing the filter
-        for i in range(n):
-            mest[i] = -(lst[i] + p[i])
-            mlst[i] = -(est[i] + p[i])
-        if not _filter_est(mest, mlst, p, h, n, capacity):
-            return PROP_INCONSISTENCY
-        for i in range(n):
-            lst[i] = -mest[i] - p[i]
-        # energetic reasoning: stronger interval-based filtering of both bounds
-        if not _filter_energetic(est, lst, p, h, n, capacity):
-            return PROP_INCONSISTENCY
-        has_changed = False
-        for i in range(n):
-            if est[i] > lst[i]:  # the start window has emptied
-                return PROP_INCONSISTENCY
-            if est[i] != prev_est[i] or lst[i] != prev_lst[i]:
-                has_changed = True
+    if not _filter_starts(est, lst, p, h, n, capacity):
+        return PROP_INCONSISTENCY
     ground_nb = 0
     for i in range(n):
         domains[i, MIN] = max(domains[i, MIN], est[i])
@@ -315,5 +340,91 @@ def compute_domains_cumulative(domains: NDArray, parameters: NDArray) -> int:
             ground_nb += 1
     # When every start time is fixed and the profile fits, the constraint can no longer be violated.
     if ground_nb == n:
+        return PROP_ENTAILMENT
+    return PROP_CONSISTENCY
+
+
+def get_complexity_cumulative_var(n: int, parameters: NDArray) -> int:
+    """
+    Returns the time complexity of the variable-duration propagator as an int.
+
+    :param n: the number of variables (starts and durations)
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: NDArray
+
+    :return: an int
+    :rtype: int
+    """
+    tasks = n // 2
+    return tasks * tasks * tasks
+
+
+@njit(cache=True)
+def get_triggers_cumulative_var(n: int, variable: int, parameters: NDArray) -> int:
+    """
+    Triggered whenever a start bound or a duration bound changes (a rising duration minimum grows a
+    compulsory part).
+
+    :param n: the number of variables
+    :type n: int
+    :param variable: the variable index, unused here
+    :type variable: int
+    :param parameters: the parameters, unused here
+    :type parameters: NDArray
+
+    :return: an event mask
+    :rtype: int
+    """
+    return EVENT_MASK_MIN_MAX
+
+
+@njit(cache=True)
+def compute_domains_cumulative_var(domains: NDArray, parameters: NDArray) -> int:
+    """
+    Implements the cumulative constraint with variable durations and constant demands and capacity.
+
+    The first ``n`` domains are the start-time variables and the next ``n`` are the duration variables;
+    ``parameters = [h_0, ..., h_{n-1}, capacity]``. The compulsory-part and energetic reasoning use each task's
+    minimum duration, which is sound (a task is guaranteed to run at least that long), and only the start bounds
+    are filtered. When every start and every duration is fixed the minimum duration equals the real one, so a
+    ground assignment is checked exactly.
+
+    :param domains: the domains of the start variables then the duration variables
+    :type domains: NDArray
+    :param parameters: the demands then the capacity
+    :type parameters: NDArray
+
+    :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
+    """
+    n = len(domains) // 2
+    if n == 0:
+        return PROP_ENTAILMENT
+    capacity = parameters[n]
+    est = np.empty(n, dtype=np.int64)
+    lst = np.empty(n, dtype=np.int64)
+    p = np.empty(n, dtype=np.int64)
+    h = np.empty(n, dtype=np.int64)
+    for i in range(n):
+        est[i] = domains[i, MIN]
+        lst[i] = domains[i, MAX]
+        p[i] = domains[n + i, MIN]  # the minimum duration: a sound lower bound on the compulsory part
+        h[i] = parameters[i]
+        if h[i] > capacity and p[i] > 0:
+            return PROP_INCONSISTENCY  # a single task already exceeds the capacity
+    if not _filter_starts(est, lst, p, h, n, capacity):
+        return PROP_INCONSISTENCY
+    for i in range(n):
+        domains[i, MIN] = max(domains[i, MIN], est[i])
+        domains[i, MAX] = min(domains[i, MAX], lst[i])
+        if domains[i, MIN] > domains[i, MAX]:
+            return PROP_INCONSISTENCY
+    ground_nb = 0
+    for i in range(2 * n):
+        if domains[i, MIN] == domains[i, MAX]:
+            ground_nb += 1
+    # entail only when every start and every duration is fixed (a free duration can still change the profile)
+    if ground_nb == 2 * n:
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY
