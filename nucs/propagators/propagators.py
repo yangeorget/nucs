@@ -28,6 +28,11 @@ from nucs.propagators.alldifferent_propagator import (
     get_triggers_alldifferent,
 )
 from nucs.propagators.and_eq_propagator import compute_domains_and_eq, get_complexity_and_eq, get_triggers_and_eq
+from nucs.propagators.bin_packing_load_propagator import (
+    compute_domains_bin_packing_load,
+    get_complexity_bin_packing_load,
+    get_triggers_bin_packing_load,
+)
 from nucs.propagators.count_eq_c_propagator import (
     compute_domains_count_eq_c,
     get_complexity_count_eq_c,
@@ -282,6 +287,9 @@ def register_propagator(
 ALG_ABS_EQ = register_propagator(get_triggers_abs_eq, get_complexity_abs_eq, compute_domains_abs_eq)
 ALG_ADD_C_EQ = register_propagator(get_triggers_add_c_eq, get_complexity_add_c_eq, compute_domains_add_c_eq)
 ALG_AND_EQ = register_propagator(get_triggers_and_eq, get_complexity_and_eq, compute_domains_and_eq)
+ALG_BIN_PACKING_LOAD = register_propagator(
+    get_triggers_bin_packing_load, get_complexity_bin_packing_load, compute_domains_bin_packing_load
+)
 ALG_LINEAR_EQ_C = register_propagator(get_triggers_linear_eq_c, get_complexity_linear_eq_c, compute_domains_linear_eq_c)
 ALG_LINEAR_GEQ_C = register_propagator(
     get_triggers_linear_geq_c, get_complexity_linear_geq_c, compute_domains_linear_geq_c

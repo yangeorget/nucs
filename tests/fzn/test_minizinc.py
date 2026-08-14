@@ -38,6 +38,12 @@ KEPT_GLOBALS = {
         "fzn_all_different_int",
         "fzn_all_different_int.mzn",
     ),
+    "bin_packing_load": (
+        "array[1..2] of var 0..9: load; array[1..3] of var 1..2: bin; "
+        + "constraint bin_packing_load(load, bin, [2, 3, 1]);",
+        "fzn_bin_packing_load",
+        "fzn_bin_packing_load.mzn",
+    ),
     "circuit": (
         "array[1..4] of var 1..4: s; constraint circuit(s);",
         "nucs_circuit",
