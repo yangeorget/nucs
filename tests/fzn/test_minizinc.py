@@ -122,6 +122,11 @@ KEPT_GLOBALS = {
         "fzn_nvalue",
         "fzn_nvalue.mzn",
     ),
+    "regular": (
+        "array[1..3] of var 1..2: x; constraint regular(x, 2, 2, [| 1, 2 | 2, 2 |], 1, {2});",
+        "nucs_regular",
+        "fzn_regular.mzn",
+    ),
     "strictly_increasing": (
         "array[1..4] of var 0..9: x; constraint strictly_increasing(x);",
         "fzn_strictly_increasing_int",

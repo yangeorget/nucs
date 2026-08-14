@@ -71,6 +71,7 @@ from nucs.propagators.propagators import (
     ALG_NEQ_REIF,
     ALG_NO_SUB_CYCLE,
     ALG_NVALUE,
+    ALG_REGULAR,
     ALG_RELATION,
     ALG_STRICTLY_INCREASING,
     ALG_SUBCIRCUIT,
@@ -708,6 +709,23 @@ def _nvalue(model: "FznModel", args: list[Term]) -> None:
     model.problem.add_propagator(ALG_NVALUE, variables)
 
 
+def _regular(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``nucs_regular(x, Q, S, d, q0, F)``: the sequence x is accepted by the DFA with Q states, S symbols,
+    row-major transition table d (state q on symbol v goes to d[(q-1)*S + (v-1)], 0 meaning no transition),
+    initial state q0 and accepting states F. The parameters pack Q, S, q0, then d, then one accepting flag per
+    state.
+    """
+    state_nb = model.const_of(args[1])
+    accepting = set(model.set_values_of(args[5]))
+    parameters = (
+        [state_nb, model.const_of(args[2]), model.const_of(args[4])]
+        + model.int_list_of(args[3])
+        + [1 if q in accepting else 0 for q in range(1, state_nb + 1)]
+    )
+    model.problem.add_propagator(ALG_REGULAR, model.var_list_of(args[0]), parameters)
+
+
 def _value_precede(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``value_precede_int(s, t, x)``: the value s must first occur before the value t in x.
@@ -1014,6 +1032,7 @@ BUILTINS: dict[str, Handler] = {
     "fzn_lex_less_int": _lex_less,
     "fzn_lex_lesseq_int": _lex_lesseq,
     "fzn_nvalue": _nvalue,
+    "nucs_regular": _regular,
     "fzn_strictly_decreasing_int": _strictly_decreasing,
     "fzn_strictly_increasing_int": _strictly_increasing,
     "fzn_subcircuit": _subcircuit,
