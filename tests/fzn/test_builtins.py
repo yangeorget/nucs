@@ -594,6 +594,44 @@ class TestBuiltins:
         # x in {2,...,9}; never below 2
         assert "x = 2;" in out and "x = 1;" not in out and "x = 0;" not in out
 
+    def test_int_lin_le_imp(self) -> None:
+        # r -> (x <= 2): r true enforces the inequality
+        out = solve_fzn(
+            "var 0..5: x :: output_var;\nvar bool: r;\n"
+            "constraint int_lin_le_imp([1], [x], 2, r);\nconstraint bool_eq(r, true);\n"
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 3  # x in {0, 1, 2}
+        assert "x = 2;" in out and "x = 3;" not in out
+        # r false: the implication is vacuous so x is unconstrained -- this is what distinguishes imp from
+        # reif (reif would force x in {3, 4, 5})
+        out = solve_fzn(
+            "var 0..5: x :: output_var;\nvar bool: r;\n"
+            "constraint int_lin_le_imp([1], [x], 2, r);\nconstraint bool_eq(r, false);\n"
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 6  # x in {0, ..., 5}, all allowed
+
+    def test_int_lin_le_imp_binary_difference(self) -> None:
+        # the [1,-1]/[-1,1] difference pattern is posted directly as r -> x <= y + c (no aux variable)
+        out = solve_fzn(
+            "var 0..9: x :: output_var;\nvar 0..9: y;\nvar bool: r;\n"
+            "constraint int_eq(y, 3);\nconstraint bool_eq(r, true);\n"
+            "constraint int_lin_le_imp([1, -1], [x, y], 1, r);\n"  # r true: x - y <= 1 -> x <= 4
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        assert "x = 4;" in out and "x = 5;" not in out
+        # contrapositive: x - y <= 1 is impossible (min x - y = 5 - 2 = 3) -> r forced false
+        out = solve_fzn(
+            "var 5..9: x :: output_var;\nvar 0..2: y;\nvar bool: r :: output_var;\n"
+            "constraint int_lin_le_imp([1, -1], [x, y], 1, r);\n"
+            "solve satisfy;"
+        )
+        assert "r = false;" in out
+
     def test_int_lin_ge_reif_binary_difference(self) -> None:
         out = solve_fzn(
             "var 0..9: x :: output_var;\nvar bool: r :: output_var;\n"

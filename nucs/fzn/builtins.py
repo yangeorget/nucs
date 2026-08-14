@@ -441,6 +441,27 @@ def _int_lin_eq_imp(model: "FznModel", args: list[Term]) -> None:
     model.problem.add_propagator(ALG_EQ_C_IMP, [model.var_index_of(args[3]), s], [model.const_of(args[2])])
 
 
+def _int_lin_le_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``int_lin_le_imp(a, x, c, r)`` as the half-reification r -> (sum(a_i * x_i) <= c).
+
+    Mirrors ``int_lin_le_reif`` but posts the one-directional ALG_LEQ_C_IMP instead of ALG_LEQ_C_REIF: the
+    binary difference pattern (coefficients [1, -1] or [-1, 1]) is posted directly as r -> x <= y + c with no
+    auxiliary sum variable; other shapes go through an auxiliary sum variable.
+    """
+    coeffs = model.int_list_of(args[0])
+    variables = model.var_list_of(args[1])
+    c = model.const_of(args[2])
+    r = model.var_index_of(args[3])
+    if coeffs == [1, -1]:  # r -> x - y <= c  ==  r -> x <= y + c
+        model.problem.add_propagator(ALG_LEQ_C_IMP, [r, variables[0], variables[1]], [c])
+    elif coeffs == [-1, 1]:  # r -> y - x <= c  ==  r -> y <= x + c
+        model.problem.add_propagator(ALG_LEQ_C_IMP, [r, variables[1], variables[0]], [c])
+    else:
+        s = _aux_lin_sum(model, coeffs, variables)
+        model.problem.add_propagator(ALG_LEQ_C_IMP, [r, s, model.var_index_of(args[2])], [0])
+
+
 def _le_imp(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_le_imp(x, y, r)`` / ``bool_le_imp(x, y, r)`` as r -> (x <= y).
@@ -994,6 +1015,7 @@ BUILTINS: dict[str, Handler] = {
     "int_lin_ge": _int_lin_ge,
     "int_lin_ge_reif": _int_lin_ge_reif,
     "int_lin_le": _int_lin_le,
+    "int_lin_le_imp": _int_lin_le_imp,
     "int_lin_le_reif": _int_lin_le_reif,
     "int_lin_ne": _int_lin_ne,
     "int_lin_ne_reif": _int_lin_ne_reif,
