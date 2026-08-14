@@ -12,7 +12,7 @@
 ###############################################################################
 import logging
 from abc import abstractmethod
-from typing import Callable, Dict, Iterator, List, Optional
+from collections.abc import Callable, Iterator
 
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -29,7 +29,7 @@ class Solver:
     A solver.
     """
 
-    def __init__(self, problem: Optional[Problem], log_level: str = LOG_LEVEL_INFO):
+    def __init__(self, problem: Problem | None, log_level: str = LOG_LEVEL_INFO):
         """
         Initializes the solver.
 
@@ -46,7 +46,7 @@ class Solver:
             problem.init()
 
     @abstractmethod
-    def get_statistics_as_dictionary(self) -> Dict[str, int]:
+    def get_statistics_as_dictionary(self) -> dict[str, int]:
         """
         Returns the statistics as a dictionary.
 
@@ -71,7 +71,7 @@ class Solver:
         """
         ...
 
-    def solve_all(self, func: Optional[Callable] = None) -> None:
+    def solve_all(self, func: Callable | None = None) -> None:
         """
         Finds all solutions.
 
@@ -83,7 +83,7 @@ class Solver:
             if func is not None:
                 func(solution)
 
-    def find_all(self) -> List[NDArray]:
+    def find_all(self) -> list[NDArray]:
         """
         Finds all solutions.
 
@@ -96,7 +96,7 @@ class Solver:
         return solutions
 
     @abstractmethod
-    def minimize(self, variable_idx: int, mode: str) -> Optional[NDArray]:
+    def minimize(self, variable_idx: int, mode: str) -> NDArray | None:
         """
         Finds, if it exists, the solution to the problem that minimizes a given variable.
 
@@ -111,7 +111,7 @@ class Solver:
         ...
 
     @abstractmethod
-    def maximize(self, variable_idx: int, mode: str) -> Optional[NDArray]:
+    def maximize(self, variable_idx: int, mode: str) -> NDArray | None:
         """
         Finds, if it exists, the solution to the problem that maximizes a given variable.
 

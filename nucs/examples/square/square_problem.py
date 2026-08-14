@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List, Any
+from typing import Any
 
 from numpy.typing import NDArray
 
@@ -34,7 +34,7 @@ class SquarePlacementProblem(Problem):
     CSPLIB problem #9 - https://www.csplib.org/Problems/prob009/
     """
 
-    def __init__(self, width: int, height: int, sizes: List[int]) -> None:
+    def __init__(self, width: int, height: int, sizes: list[int]) -> None:
         """
         Initializes the problem.
 
@@ -66,7 +66,7 @@ class SquarePlacementProblem(Problem):
         # cumulative along y: at every row the widths of the covering squares fit within the width
         self.add_propagator(ALG_CUMULATIVE, ys, self.sizes + self.sizes + [width])
 
-    def recommended_searches(self) -> List[Search]:
+    def recommended_searches(self) -> list[Search]:
         """
         Returns the recommended search for this problem.
 

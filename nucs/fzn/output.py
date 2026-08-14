@@ -14,7 +14,7 @@
 Formats NuCS solutions as the FlatZinc solution stream that MiniZinc's ``solns2out``/``.ozn`` consumes.
 """
 
-from typing import TYPE_CHECKING, Optional, TextIO
+from typing import TYPE_CHECKING, TextIO
 
 from numpy.typing import NDArray
 
@@ -35,7 +35,7 @@ def print_solution(
     solution: NDArray,
     out: TextIO,
     output_mode: str = "item",
-    objective_value: Optional[int] = None,
+    objective_value: int | None = None,
 ) -> None:
     """
     Prints a single solution followed by the solution separator.
@@ -62,7 +62,7 @@ def print_solution(
     out.write(SOLUTION_SEPARATOR + "\n")
 
 
-def _print_solution_dzn(model: "FznModel", solution: NDArray, out: TextIO, objective_value: Optional[int]) -> None:
+def _print_solution_dzn(model: "FznModel", solution: NDArray, out: TextIO, objective_value: int | None) -> None:
     """
     Prints a solution as a FlatZinc assignment stream (the ``item``/``dzn`` output mode).
 
@@ -88,7 +88,7 @@ def _print_solution_dzn(model: "FznModel", solution: NDArray, out: TextIO, objec
         out.write(f"{OUTPUT_OBJECTIVE_NAME} = {objective_value};\n")
 
 
-def _print_solution_json(model: "FznModel", solution: NDArray, out: TextIO, objective_value: Optional[int]) -> None:
+def _print_solution_json(model: "FznModel", solution: NDArray, out: TextIO, objective_value: int | None) -> None:
     """
     Prints a solution as a JSON object (the ``json`` output mode).
 
@@ -107,7 +107,7 @@ def _print_solution_json(model: "FznModel", solution: NDArray, out: TextIO, obje
             _, name, is_bool = item
             entries.append(f'  "{name}" : {_fmt(model.value_of(_id(name), solution), is_bool)}')
         else:
-            _, name, lo, hi, is_bool = item
+            _, name, _lo, _hi, is_bool = item
             values = [model.value_of(e, solution) for e in model.elements_of(_id(name))]
             body = ", ".join(_fmt(v, is_bool) for v in values)
             entries.append(f'  "{name}" : [{body}]')

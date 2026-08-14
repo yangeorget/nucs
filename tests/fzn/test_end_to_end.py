@@ -63,6 +63,7 @@ def _compile_to_fzn(model: str) -> str:
             text=True,
             env=env,
             timeout=120,
+            check=False,
         )
     assert result.returncode == 0, result.stderr
     return result.stdout

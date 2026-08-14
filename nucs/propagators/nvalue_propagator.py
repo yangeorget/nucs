@@ -98,21 +98,17 @@ def compute_domains_nvalue(domains: NDArray, parameters: NDArray) -> int:
         elif x[i, MAX] > cur_hi:
             cur_hi = x[i, MAX]
     union += cur_hi - cur_lo + 1
-    up = n if n < union else union
-    if y[MIN] < low:
-        y[MIN] = low
-    if y[MAX] > up:
-        y[MAX] = up
+    up = min(union, n)
+    y[MIN] = max(y[MIN], low)
+    y[MAX] = min(y[MAX], up)
     if y[MIN] > y[MAX]:
         return PROP_INCONSISTENCY
     if y[MAX] == 1:  # a single distinct value: every x_i must be equal
         lo = x[0, MIN]
         hi = x[0, MAX]
         for i in range(1, n):
-            if x[i, MIN] > lo:
-                lo = x[i, MIN]
-            if x[i, MAX] < hi:
-                hi = x[i, MAX]
+            lo = max(lo, x[i, MIN])
+            hi = min(hi, x[i, MAX])
         if lo > hi:
             return PROP_INCONSISTENCY
         for i in range(n):

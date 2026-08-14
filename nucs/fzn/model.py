@@ -17,8 +17,6 @@ It maintains an ordered symbol table mapping FlatZinc identifiers to NuCS variab
 allocates NuCS variables on demand, and dispatches each constraint through the builtin registry.
 """
 
-from typing import Dict, List, Tuple, Union
-
 from nucs.fzn.builtins import BUILTINS
 from nucs.fzn.errors import FznParseError, FznUnsupportedError
 from nucs.fzn.parser import (
@@ -48,15 +46,15 @@ class FznModel:
         Inits an empty model.
         """
         self.problem = Problem([])
-        self.consts: Dict[str, Union[int, List[int]]] = {}
-        self.vars: Dict[str, int] = {}
-        self.arrays: Dict[str, List[Term]] = {}
-        self.const_var_cache: Dict[int, int] = {}
+        self.consts: dict[str, int | list[int]] = {}
+        self.vars: dict[str, int] = {}
+        self.arrays: dict[str, list[Term]] = {}
+        self.const_var_cache: dict[int, int] = {}
         # output_items: ("scalar", name, is_bool) or ("array", name, lo, hi, is_bool)
-        self.output_items: List[Tuple] = []
+        self.output_items: list[tuple] = []
         self.solve: Solve = Solve("satisfy")
 
-    def build(self, statements: List[Statement]) -> "FznModel":
+    def build(self, statements: list[Statement]) -> "FznModel":
         """
         Builds the model from parsed statements: a declaration pass then a constraint pass.
 
@@ -66,7 +64,7 @@ class FznModel:
         :return: this model
         :rtype: FznModel
         """
-        constraints: List[Constraint] = []
+        constraints: list[Constraint] = []
         for statement in statements:
             if isinstance(statement, ParDecl):
                 self.consts[statement.name] = statement.value  # type: ignore[assignment]
@@ -126,7 +124,7 @@ class FznModel:
             # An array of fresh variables, accessed as name[i]; allocate one NuCS variable per element.
             if decl.size is None or decl.lo is None or decl.hi is None:
                 raise FznUnsupportedError(f"variable array '{decl.name}' without a known size is not supported")
-            elems: List[Term] = []
+            elems: list[Term] = []
             for i in range(decl.size):
                 elem_name = f"{decl.name}[{i + 1}]"
                 index = self.problem.add_variable((decl.lo, decl.hi))
@@ -203,7 +201,7 @@ class FznModel:
             return int(self.consts[term.name])  # type: ignore[arg-type]
         raise FznUnsupportedError(f"expected an integer constant, got {term!r}")
 
-    def var_list_of(self, term: Term) -> List[int]:
+    def var_list_of(self, term: Term) -> list[int]:
         """
         Resolves an array term (an identifier or an inline literal) to a list of NuCS variable indices.
 
@@ -215,7 +213,7 @@ class FznModel:
         """
         return [self.var_index_of(e) for e in self._elements_of(term)]
 
-    def int_list_of(self, term: Term) -> List[int]:
+    def int_list_of(self, term: Term) -> list[int]:
         """
         Resolves an array term to a list of integer constants.
 
@@ -227,7 +225,7 @@ class FznModel:
         """
         return [self.const_of(e) for e in self._elements_of(term)]
 
-    def set_values_of(self, term: Term) -> List[int]:
+    def set_values_of(self, term: Term) -> list[int]:
         """
         Resolves a set term (a ``{..}`` literal or a ``lo..hi`` range) to its sorted list of values.
 
@@ -268,7 +266,7 @@ class FznModel:
                 return int(self.consts[term.name])  # type: ignore[arg-type]
         raise FznParseError(f"cannot resolve value of {term!r}")
 
-    def elements_of(self, term: Term) -> List[Term]:
+    def elements_of(self, term: Term) -> list[Term]:
         """
         Returns the element terms of an array term, public wrapper around the internal resolver.
 
@@ -300,7 +298,7 @@ class FznModel:
             return elems[term.index - 1]
         return term
 
-    def _elements_of(self, term: Term) -> List[Term]:
+    def _elements_of(self, term: Term) -> list[Term]:
         """
         Returns the element terms of an array term (an inline literal or a named array).
 
@@ -317,7 +315,7 @@ class FznModel:
         raise FznUnsupportedError(f"expected an array, got {term!r}")
 
 
-def _index_set_bounds(decl: ArrayDecl, ann) -> Tuple[int, int]:  # type: ignore[no-untyped-def]
+def _index_set_bounds(decl: ArrayDecl, ann) -> tuple[int, int]:  # type: ignore[no-untyped-def]
     """
     Returns the (lo, hi) index-set bounds for an output_array annotation, falling back to ``1..len``.
 
@@ -335,7 +333,7 @@ def _index_set_bounds(decl: ArrayDecl, ann) -> Tuple[int, int]:  # type: ignore[
     return 1, len(decl.elems)
 
 
-def build_model(statements: List[Statement]) -> FznModel:
+def build_model(statements: list[Statement]) -> FznModel:
     """
     Builds a :class:`FznModel` from parsed statements.
 

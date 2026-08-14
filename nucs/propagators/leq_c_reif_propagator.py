@@ -68,10 +68,8 @@ def compute_domains_leq_c_reif(domains: NDArray, parameters: NDArray) -> int:
     c = parameters[0]
     # b is fixed to 1: enforce x <= y + c.
     if b[MIN] == 1:
-        if y[MAX] + c < x[MAX]:
-            x[MAX] = y[MAX] + c
-        if x[MIN] - c > y[MIN]:
-            y[MIN] = x[MIN] - c
+        x[MAX] = min(x[MAX], y[MAX] + c)
+        y[MIN] = max(y[MIN], x[MIN] - c)
         if x[MIN] > x[MAX] or y[MIN] > y[MAX]:
             return PROP_INCONSISTENCY
         # The relation can no longer be violated.
@@ -80,10 +78,8 @@ def compute_domains_leq_c_reif(domains: NDArray, parameters: NDArray) -> int:
         return PROP_CONSISTENCY
     # b is fixed to 0: enforce the negation x >= y + c + 1.
     if b[MAX] == 0:
-        if y[MIN] + c + 1 > x[MIN]:
-            x[MIN] = y[MIN] + c + 1
-        if x[MAX] - c - 1 < y[MAX]:
-            y[MAX] = x[MAX] - c - 1
+        x[MIN] = max(x[MIN], y[MIN] + c + 1)
+        y[MAX] = min(y[MAX], x[MAX] - c - 1)
         if x[MIN] > x[MAX] or y[MIN] > y[MAX]:
             return PROP_INCONSISTENCY
         # The negated relation can no longer be violated.

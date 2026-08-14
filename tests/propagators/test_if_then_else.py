@@ -12,7 +12,6 @@
 ###############################################################################
 import itertools
 import random
-from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
@@ -22,7 +21,7 @@ from nucs.propagators.if_then_else_propagator import compute_domains_if_then_els
 from tests.propagators.propagator_test import PropagatorTest
 
 
-def _feasible(bounds: List[Tuple[int, int]]) -> List[Tuple[int, ...]]:
+def _feasible(bounds: list[tuple[int, int]]) -> list[tuple[int, ...]]:
     """Brute-force every ground assignment of (conditions, values, y) satisfying the if-then-else."""
     b = (len(bounds) - 1) // 2
     ranges = [range(lo, hi + 1) for lo, hi in bounds]
@@ -62,10 +61,10 @@ class TestIfThenElse(PropagatorTest):
     )
     def test_compute_domains(
         self,
-        domains: List[Union[int, Tuple[int, int]]],
-        parameters: List[int],
+        domains: list[int | tuple[int, int]],
+        parameters: list[int],
         consistency_result: int,
-        expected_domains: Optional[List[List[int]]],
+        expected_domains: list[list[int]] | None,
     ) -> None:
         self.assert_compute_domains(
             compute_domains_if_then_else, domains, parameters, consistency_result, expected_domains

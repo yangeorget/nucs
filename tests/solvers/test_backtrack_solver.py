@@ -12,7 +12,7 @@
 ###############################################################################
 import pytest
 
-from nucs.buckets import buckets_empty, STORAGE_OFFSET
+from nucs.buckets import STORAGE_OFFSET, buckets_empty
 from nucs.constants import (
     OPTIM_PRUNE,
     OPTIM_RESET,
@@ -30,9 +30,9 @@ from nucs.heuristics.heuristics import (
 )
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
+    ALG_ALLDIFFERENT,
     ALG_LINEAR_LEQ_C,
     ALG_LINEAR_NEQ_C,
-    ALG_ALLDIFFERENT,
     ALG_NEQ,
     ALG_RELATION,
 )

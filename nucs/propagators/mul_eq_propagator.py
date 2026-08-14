@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Tuple
 
 from numba import int64, njit  # type: ignore
 from numpy.typing import NDArray
@@ -52,7 +51,7 @@ def get_triggers_mul_eq(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def prod_hull(xl: int, xu: int, yl: int, yu: int) -> Tuple[int, int]:
+def prod_hull(xl: int, xu: int, yl: int, yu: int) -> tuple[int, int]:
     """
     Returns the (min, max) hull of x * y over [xl, xu] x [yl, yu] (the bilinear extrema are at the corners).
 
@@ -117,10 +116,8 @@ def compute_domains_mul_eq(domains: NDArray, parameters: NDArray) -> int:
     z_lo, z_hi = prod_hull(int64(x[MIN]), int64(x[MAX]), int64(y[MIN]), int64(y[MAX]))
     if z_lo > z[MAX] or z_hi < z[MIN]:
         return PROP_INCONSISTENCY
-    if z_lo > z[MIN]:
-        z[MIN] = z_lo
-    if z_hi < z[MAX]:
-        z[MAX] = z_hi
+    z[MIN] = max(z[MIN], z_lo)
+    z[MAX] = min(z[MAX], z_hi)
     zl = int64(z[MIN])
     zu = int64(z[MAX])
     # x = z / y, only when 0 is not in [y] (otherwise x is unbounded)
@@ -131,10 +128,8 @@ def compute_domains_mul_eq(domains: NDArray, parameters: NDArray) -> int:
         x_hi = div_hi(zl, zu, yl, yu)
         if x_lo > x[MAX] or x_hi < x[MIN]:
             return PROP_INCONSISTENCY
-        if x_lo > x[MIN]:
-            x[MIN] = x_lo
-        if x_hi < x[MAX]:
-            x[MAX] = x_hi
+        x[MIN] = max(x[MIN], x_lo)
+        x[MAX] = min(x[MAX], x_hi)
     # y = z / x, only when 0 is not in [x]
     xl = int64(x[MIN])
     xu = int64(x[MAX])
@@ -143,18 +138,14 @@ def compute_domains_mul_eq(domains: NDArray, parameters: NDArray) -> int:
         y_hi = div_hi(zl, zu, xl, xu)
         if y_lo > y[MAX] or y_hi < y[MIN]:
             return PROP_INCONSISTENCY
-        if y_lo > y[MIN]:
-            y[MIN] = y_lo
-        if y_hi < y[MAX]:
-            y[MAX] = y_hi
+        y[MIN] = max(y[MIN], y_lo)
+        y[MAX] = min(y[MAX], y_hi)
     # re-tighten z now that x and y may have narrowed, so z is consistent before any entailment claim
     z_lo, z_hi = prod_hull(int64(x[MIN]), int64(x[MAX]), int64(y[MIN]), int64(y[MAX]))
     if z_lo > z[MAX] or z_hi < z[MIN]:
         return PROP_INCONSISTENCY
-    if z_lo > z[MIN]:
-        z[MIN] = z_lo
-    if z_hi < z[MAX]:
-        z[MAX] = z_hi
+    z[MIN] = max(z[MIN], z_lo)
+    z[MAX] = min(z[MAX], z_hi)
     x_ground = x[MIN] == x[MAX]
     y_ground = y[MIN] == y[MAX]
     # entailed once both factors are fixed (z is now their product), or once a factor is fixed to 0 (z is 0)

@@ -88,10 +88,8 @@ def compute_domains_relation(domains: NDArray, parameters: NDArray) -> int:
             else:
                 for col in range(n):
                     value = parameters[offset + col]
-                    if value < bounds[col, MIN]:
-                        bounds[col, MIN] = value
-                    if value > bounds[col, MAX]:
-                        bounds[col, MAX] = value
+                    bounds[col, MIN] = min(bounds[col, MIN], value)
+                    bounds[col, MAX] = max(bounds[col, MAX], value)
             valid_nb += 1
         offset += n
     if valid_nb == 0:

@@ -114,7 +114,7 @@ def get_max_value(psum: NDArray) -> int:
 def skip_non_null_elements_right(psum: NDArray, value: int) -> int:
     value -= psum[0, -1]
     ps = psum[1, value]
-    return (value if ps < value else ps) + psum[0, -1]
+    return (max(ps, value)) + psum[0, -1]
 
 
 @njit(cache=True)
@@ -217,7 +217,7 @@ def filter_upper_max(
     min_sorted_vars: NDArray,
     u: NDArray,
 ) -> bool:
-    for i in range(0, nb + 1):
+    for i in range(nb + 1):
         i1 = i + 1
         t[i] = h[i] = i1
         d[i] = get_sum(u, bounds[i], bounds[i1] - 1)
@@ -313,8 +313,8 @@ def filter_lower_min(
             else:
                 new_mins[i] = x  # do not shrink the variable
             if c[z] == get_sum(l, bounds[y], bounds[z] - 1):  # if an unstable set is discovered
-                if sets[y] > y:  # consider stable and unstable sets beyond y
-                    y = sets[y]  # equivalent to pathmax since the path is fully compressed
+                # consider stable and unstable sets beyond y (pathmax; the path is fully compressed)
+                y = max(y, sets[y])
                 path_set(sets, sets[y], j - 1, y)  # mark the new unstable set
                 sets[y] = j - 1
         path_set(tl, x + 1, z, z)  # path compression
@@ -389,8 +389,7 @@ def filter_upper_min(
             else:
                 new_maxs[i] = x
             if c[z] == get_sum(l, bounds[z], bounds[y] - 1):
-                if sets[y] < y:
-                    y = sets[y]
+                y = min(y, sets[y])
                 path_set(sets, sets[y], j + 1, y)  # loop
                 sets[y] = j + 1
         path_set(tl, x - 1, z, z)

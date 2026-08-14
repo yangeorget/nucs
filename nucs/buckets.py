@@ -91,8 +91,7 @@ def buckets_add(buckets: NDArray, priorities: NDArray, idx: int, membership_offs
         buckets[STORAGE_OFFSET + old_tail] = idx  # link previous tail to new node
     buckets[BUCKET_NB + bucket] = idx
     buckets[membership_idx] = 1
-    if bucket < buckets[-1]:
-        buckets[-1] = bucket
+    buckets[-1] = min(buckets[-1], bucket)
 
 
 @njit(cache=True)

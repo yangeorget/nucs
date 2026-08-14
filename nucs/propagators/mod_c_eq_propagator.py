@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Tuple
 
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -52,7 +51,7 @@ def get_triggers_mod_c_eq(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def _res_minmax(a: int, b: int, lo: int, hi: int, m: int) -> Tuple[bool, int, int]:
+def _res_minmax(a: int, b: int, lo: int, hi: int, m: int) -> tuple[bool, int, int]:
     """
     Returns ``(found, rmin, rmax)``: the smallest and largest remainder achievable as v % m for some v in the
     non-negative range [a, b], restricted to the window [lo, hi] (0 <= lo <= hi < m).
@@ -154,7 +153,7 @@ def compute_domains_mod_c_eq(domains: NDArray, parameters: NDArray) -> int:
         lo = max(z[MIN], 0)
         hi = min(z[MAX], m - 1)
         if lo <= hi:
-            ok, rmin, rmax = _res_minmax(xl if xl > 0 else 0, xu, lo, hi, m)
+            ok, rmin, rmax = _res_minmax(max(0, xl), xu, lo, hi, m)
             if ok:
                 z_lo = rmin
                 z_hi = rmax
@@ -163,7 +162,7 @@ def compute_domains_mod_c_eq(domains: NDArray, parameters: NDArray) -> int:
         lo = max(-z[MAX], 0)
         hi = min(-z[MIN], m - 1)
         if lo <= hi:
-            ok, rmin, rmax = _res_minmax(-(xu if xu < -1 else -1), -xl, lo, hi, m)
+            ok, rmin, rmax = _res_minmax(-(min(-1, xu)), -xl, lo, hi, m)
             if ok:
                 n_lo = -rmax
                 n_hi = -rmin
@@ -186,7 +185,7 @@ def compute_domains_mod_c_eq(domains: NDArray, parameters: NDArray) -> int:
         sl = max(-z[MAX], 0)
         su = min(-z[MIN], m - 1)
         if sl <= su:
-            ap = -(xu if xu < -1 else -1)
+            ap = -(min(-1, xu))
             bp = -xl
             lo_xp = _first_ge(ap, sl, su, m)
             if lo_xp <= bp:
@@ -198,7 +197,7 @@ def compute_domains_mod_c_eq(domains: NDArray, parameters: NDArray) -> int:
         rl = max(z[MIN], 0)
         ru = min(z[MAX], m - 1)
         if rl <= ru:
-            a0 = xl if xl > 0 else 0
+            a0 = max(0, xl)
             lo_x = _first_ge(a0, rl, ru, m)
             if lo_x <= xu:
                 hi_x = _last_le(xu, rl, ru, m)
@@ -211,8 +210,6 @@ def compute_domains_mod_c_eq(domains: NDArray, parameters: NDArray) -> int:
                     feasible = True
     if not feasible:
         return PROP_INCONSISTENCY
-    if x_min > x[MIN]:
-        x[MIN] = x_min
-    if x_max < x[MAX]:
-        x[MAX] = x_max
+    x[MIN] = max(x[MIN], x_min)
+    x[MAX] = min(x[MAX], x_max)
     return PROP_ENTAILMENT if x[MIN] == x[MAX] else PROP_CONSISTENCY

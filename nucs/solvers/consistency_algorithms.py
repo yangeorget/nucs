@@ -10,15 +10,15 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Callable, Dict, List, Optional
+from collections.abc import Callable
 
 from nucs.solvers.bc_algorithm import bc_algorithm
 
-CONSISTENCY_ALG_FCTS: List[Callable] = []
-CONSISTENCY_ALGS: Dict[str, int] = {}  # algorithm name to index, for name-based selection (eg from the CLI)
+CONSISTENCY_ALG_FCTS: list[Callable] = []
+CONSISTENCY_ALGS: dict[str, int] = {}  # algorithm name to index, for name-based selection (eg from the CLI)
 
 
-def register_consistency_algorithm(consistency_algorithm_fct: Callable, name: Optional[str] = None) -> int:
+def register_consistency_algorithm(consistency_algorithm_fct: Callable, name: str | None = None) -> int:
     """
     Register a consistency algorithm by adding its function to the corresponding list of functions.
 

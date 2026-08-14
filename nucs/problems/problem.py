@@ -12,7 +12,8 @@
 ###############################################################################
 import copy
 import logging
-from typing import Any, Iterable, List, Optional, Self, Sequence, Tuple, Union
+from collections.abc import Iterable, Sequence
+from typing import Any, Self
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -31,7 +32,7 @@ from nucs.constants import (
     VARIABLE,
 )
 from nucs.numba_helper import addresses_from_functions, function_ptr_from_address
-from nucs.propagators.propagators import ALG_DUMMY, GET_TRIGGERS_FCTS, GET_COMPLEXITY_FCTS
+from nucs.propagators.propagators import ALG_DUMMY, GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ class Problem:
     A variable is a domain index.
     """
 
-    def __init__(self, domains: Union[Iterable[Tuple[int, int]]]):
+    def __init__(self, domains: Iterable[tuple[int, int]]):
         """
         Initializes the problem.
 
@@ -54,10 +55,10 @@ class Problem:
         self.unbound_variable_nb = 0
         self.domains = [(domain, domain) if isinstance(domain, int) else domain for domain in domains]
         self.domain_nb = len(self.domains)
-        self.propagators: List[Tuple[List[int], int, List[int]]] = []
+        self.propagators: list[tuple[list[int], int, list[int]]] = []
         self.propagator_nb = 0
 
-    def split(self, split_nb: int, var: int) -> List[Self]:
+    def split(self, split_nb: int, var: int) -> list[Self]:
         """
         Splits a problem into several sub-problems by splitting the domain of a variable.
 
@@ -83,7 +84,7 @@ class Problem:
             problems.append(problem)
         return problems
 
-    def add_variable(self, domain: Union[int, Tuple[int, int]]) -> int:
+    def add_variable(self, domain: int | tuple[int, int]) -> int:
         """
         Adds an extra variable to the problem.
 
@@ -98,7 +99,7 @@ class Problem:
         self.domain_nb = var + 1
         return var
 
-    def add_variables(self, domains: Sequence[Union[int, Tuple[int, int]]]) -> int:
+    def add_variables(self, domains: Sequence[int | tuple[int, int]]) -> int:
         """
         Adds extra variables to the problem.
 
@@ -113,9 +114,7 @@ class Problem:
         self.domain_nb = len(self.domains)
         return var
 
-    def add_propagator(
-        self, algorithm: int, variables: Iterable[int], parameters: Optional[Iterable[int]] = None
-    ) -> None:
+    def add_propagator(self, algorithm: int, variables: Iterable[int], parameters: Iterable[int] | None = None) -> None:
         """
         Adds an extra propagator.
 
@@ -210,7 +209,7 @@ class Problem:
         """
         return solution.tolist()
 
-    def print_solution(self, solution: Optional[NDArray]) -> None:
+    def print_solution(self, solution: NDArray | None) -> None:
         """
         Prints a solution.
 
@@ -220,7 +219,7 @@ class Problem:
         print("No solution" if solution is None else self.solution_as_printable(solution))
 
 
-def init_bounds(bounds: NDArray, propagators: List[Tuple[List[int], int, List[int]]]) -> None:
+def init_bounds(bounds: NDArray, propagators: list[tuple[list[int], int, list[int]]]) -> None:
     """
     Initializes the variable and parameter bounds for each propagator.
 
@@ -240,7 +239,7 @@ def init_propagator_variables_and_parameters(
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
     bounds: NDArray,
-    propagators: List[Tuple[List[int], int, List[int]]],
+    propagators: list[tuple[list[int], int, list[int]]],
 ) -> None:
     """
     Initializes the propagator variables and parameters arrays.

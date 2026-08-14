@@ -12,7 +12,6 @@
 ###############################################################################
 import itertools
 import random
-from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
@@ -22,7 +21,7 @@ from nucs.propagators.disjunctive_propagator import compute_domains_disjunctive
 from tests.propagators.propagator_test import PropagatorTest
 
 
-def _feasible_starts(bounds: List[Tuple[int, int]], durations: List[int]) -> List[Tuple[int, ...]]:
+def _feasible_starts(bounds: list[tuple[int, int]], durations: list[int]) -> list[tuple[int, ...]]:
     """Brute-force every assignment of start times within bounds where no two tasks overlap."""
     ranges = [range(lo, hi + 1) for lo, hi in bounds]
     feasible = []
@@ -63,10 +62,10 @@ class TestDisjunctive(PropagatorTest):
     )
     def test_compute_domains(
         self,
-        domains: List[Union[int, Tuple[int, int]]],
-        parameters: List[int],
+        domains: list[int | tuple[int, int]],
+        parameters: list[int],
         consistency_result: int,
-        expected_domains: Optional[List[List[int]]],
+        expected_domains: list[list[int]] | None,
     ) -> None:
         self.assert_compute_domains(
             compute_domains_disjunctive, domains, parameters, consistency_result, expected_domains

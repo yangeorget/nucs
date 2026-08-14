@@ -12,7 +12,7 @@
 ###############################################################################
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_EQ_REIF, ALG_SUM_LEQ_C, ALG_GCC, ALG_LEXLEQ
+from nucs.propagators.propagators import ALG_EQ_REIF, ALG_GCC, ALG_LEXLEQ, ALG_SUM_LEQ_C
 
 
 class SocialGolfersProblem(Problem):

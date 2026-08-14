@@ -91,10 +91,8 @@ def compute_domains_mod_eq(domains: NDArray, parameters: NDArray) -> int:
     z_mag = y_abs_max - 1
     z_lo = 0 if x[MIN] >= 0 else -z_mag  # x cannot be negative -> z cannot be negative
     z_hi = 0 if x[MAX] <= 0 else z_mag  # x cannot be positive -> z cannot be positive
-    if z_lo > z[MIN]:
-        z[MIN] = z_lo
-    if z_hi < z[MAX]:
-        z[MAX] = z_hi
+    z[MIN] = max(z[MIN], z_lo)
+    z[MAX] = min(z[MAX], z_hi)
     if z[MIN] > z[MAX]:
         return PROP_INCONSISTENCY
     # conversely |y| > |z|: when z is bound away from 0 it lower-bounds |y|
@@ -107,11 +105,9 @@ def compute_domains_mod_eq(domains: NDArray, parameters: NDArray) -> int:
     if z_abs_min > 0:
         need = z_abs_min + 1  # |y| >= |z| + 1
         if y[MIN] > 0:  # y is positive
-            if y[MIN] < need:
-                y[MIN] = need
+            y[MIN] = max(y[MIN], need)
         elif y[MAX] < 0:  # y is negative
-            if y[MAX] > -need:
-                y[MAX] = -need
+            y[MAX] = min(y[MAX], -need)
         if y[MIN] > y[MAX]:
             return PROP_INCONSISTENCY
     return PROP_CONSISTENCY

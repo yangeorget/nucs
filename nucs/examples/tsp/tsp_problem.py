@@ -10,16 +10,15 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List
 
 from nucs.problems.circuit_problem import CircuitProblem
 from nucs.propagators.propagators import ALG_ELEMENT_EQ, ALG_SUM_EQ
 
 
 class TSPProblem(CircuitProblem):
-    """ """
+    """The travelling salesman problem."""
 
-    def __init__(self, costs: List[List[int]]) -> None:
+    def __init__(self, costs: list[list[int]]) -> None:
         """
         Initializes the problem.
         :param costs: the costs between vertices as a list of lists of integers

@@ -10,7 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Any, Callable, List, Optional, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
 import numpy as np
 from numba import njit, types  # type: ignore
@@ -48,7 +49,7 @@ def function_ptr_from_address(typingctx, func_type_ref: types.FunctionType, addr
 
 
 def addresses_from_functions(
-    functions: List[Callable], signature: Any, used: Optional[NDArray] = None, filler_index: Optional[int] = None
+    functions: list[Callable], signature: Any, used: NDArray | None = None, filler_index: int | None = None
 ) -> NDArray:
     """
     Returns the compiled-wrapper addresses of the given functions.
@@ -81,7 +82,7 @@ def addresses_from_functions(
 
 
 def build_function_ptrs(
-    functions: List[Callable], signature: Any, used: Optional[NDArray] = None, filler_index: Optional[int] = None
+    functions: list[Callable], signature: Any, used: NDArray | None = None, filler_index: int | None = None
 ) -> Any:
     """
     Materializes a typed list of function pointers of the given Numba FunctionType.

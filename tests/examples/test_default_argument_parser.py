@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Dict, Any
+from typing import Any
 
 import pytest
 
@@ -36,7 +36,7 @@ class TestDefaultArgumentParser:
             (["--var-heuristic", "SMALLEST_DOMAIN"], {"var_heuristic": "SMALLEST_DOMAIN"}),
         ],
     )
-    def test_parse_args(self, args: str, expected_args: Dict[str, Any]) -> None:
+    def test_parse_args(self, args: str, expected_args: dict[str, Any]) -> None:
         parser = DefaultArgumentParser()
         parsed_args = parser.parse_args(args)
         for arg, value in expected_args.items():

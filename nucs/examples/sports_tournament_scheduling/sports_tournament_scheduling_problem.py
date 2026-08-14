@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List
 
 from numpy.typing import NDArray
 
@@ -34,7 +33,7 @@ class SportsTournamentSchedulingProblem(Problem):
     CSPLIB problem #26 - https://www.csplib.org/Problems/prob026/
     """
 
-    def solution_as_printable(self, solution: NDArray) -> List[List[str]]:
+    def solution_as_printable(self, solution: NDArray) -> list[list[str]]:
         """
         Returns the solutions as a matrix of strings.
 
@@ -47,9 +46,9 @@ class SportsTournamentSchedulingProblem(Problem):
         return [
             [
                 f"{solution[self.team_var_index(p, w, 0)]}-{solution[self.team_var_index(p, w, 1)]}"
-                for w in range(0, self.week_nb)
+                for w in range(self.week_nb)
             ]
-            for p in range(0, self.period_nb)
+            for p in range(self.period_nb)
         ]
 
     def team_var_index(self, p: int, w: int, s: int) -> int:
@@ -58,24 +57,24 @@ class SportsTournamentSchedulingProblem(Problem):
     def match_var_index(self, p: int, w: int) -> int:
         return self.team_var_nb + p * self.week_nb + w
 
-    def teams_per_week(self, w: int) -> List[int]:
+    def teams_per_week(self, w: int) -> list[int]:
         return [self.team_var_index(p, w, s) for p in range(self.period_nb) for s in range(self.slot_nb)]
 
-    def teams_per_period(self, p: int) -> List[int]:
+    def teams_per_period(self, p: int) -> list[int]:
         return [self.team_var_index(p, w, s) for w in range(self.week_nb) for s in range(self.slot_nb)]
 
-    def matches(self) -> List[int]:
+    def matches(self) -> list[int]:
         return list(range(self.team_var_nb, self.team_var_nb + self.match_nb))
 
-    def matches_per_week(self, w: int) -> List[int]:
+    def matches_per_week(self, w: int) -> list[int]:
         return [self.match_var_index(p, w) for p in range(self.period_nb)]
 
     def match_ordinal(self, t1: int, t2: int) -> int:
         return self.match_nb - ((self.team_nb - t1) * (self.team_nb - t1 - 1)) // 2 + t2 - t1 - 1
 
-    def plays(self) -> List[int]:
+    def plays(self) -> list[int]:
         plays = []
-        for i in range(0, self.team_nb - 1):
+        for i in range(self.team_nb - 1):
             for j in range(i + 1, self.team_nb):
                 plays.extend([i, j, self.match_ordinal(i, j)])
         return plays
@@ -98,12 +97,12 @@ class SportsTournamentSchedulingProblem(Problem):
         super().__init__([(0, self.team_nb - 1)] * self.team_var_nb + [(0, self.match_nb - 1)] * self.match_nb)
         plays = self.plays()
         self.add_propagator(ALG_ALLDIFFERENT, self.matches())  # matches are different
-        for w in range(0, self.week_nb):
+        for w in range(self.week_nb):
             self.add_propagator(ALG_ALLDIFFERENT, self.teams_per_week(w))
-        for p in range(0, self.period_nb):
+        for p in range(self.period_nb):
             self.add_propagator(ALG_GCC, self.teams_per_period(p), [0] + [1] * n + [2] * n)
-        for p in range(0, self.period_nb):
-            for w in range(0, self.week_nb):
+        for p in range(self.period_nb):
+            for w in range(self.week_nb):
                 self.add_propagator(
                     ALG_RELATION,
                     [self.team_var_index(p, w, 0), self.team_var_index(p, w, 1), self.match_var_index(p, w)],

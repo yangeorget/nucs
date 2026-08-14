@@ -67,11 +67,9 @@ def critical_resource_var_heuristic(
         lo = domains_stk[top, variable, MIN]
         hi = domains_stk[top, variable, MAX]
         duration = params[variable, 1]
-        if lo < est_min[resource]:
-            est_min[resource] = lo
+        est_min[resource] = min(est_min[resource], lo)
         completion = hi + duration
-        if completion > lct_max[resource]:
-            lct_max[resource] = completion
+        lct_max[resource] = max(lct_max[resource], completion)
         load[resource] += duration
         if lo < hi and hi - lo < tightest[resource]:
             tightest[resource] = hi - lo

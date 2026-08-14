@@ -10,7 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from numpy.typing import NDArray
 
@@ -80,8 +81,7 @@ class EmployeeSchedulingProblem(Problem):
             self.add_propagator(ALG_COUNT_EQ, range(n, self.shift_total_nb + self.nurse_nb, self.nurse_nb), [1])
         self.add_propagator(
             ALG_COUNT_EQ,
-            [index for index in range(0, self.shift_total_nb) if shift_requests_dsn[index]]
-            + [self.satisfied_request_nb],
+            [index for index in range(self.shift_total_nb) if shift_requests_dsn[index]] + [self.satisfied_request_nb],
             [1],
         )
 

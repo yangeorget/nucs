@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List
 
 from nucs.problems.latin_square_problem import LatinSquareProblem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT
@@ -21,7 +20,7 @@ class SudokuProblem(LatinSquareProblem):
     A simple model for the sudoku problem.
     """
 
-    def __init__(self, givens: List[List[int]]):
+    def __init__(self, givens: list[list[int]]):
         """
         Initializes the problem.
 

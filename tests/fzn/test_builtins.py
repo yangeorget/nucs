@@ -12,7 +12,6 @@
 ###############################################################################
 import io
 import json
-from typing import Optional
 
 import pytest
 
@@ -59,7 +58,7 @@ from nucs.propagators.propagators import (
 def solve_fzn(
     fzn: str,
     all_solutions: bool = False,
-    num_solutions: Optional[int] = None,
+    num_solutions: int | None = None,
     output_mode: str = "item",
     output_objective: bool = False,
 ) -> str:

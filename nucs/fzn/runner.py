@@ -14,7 +14,7 @@
 Drives a built :class:`FznModel` through a :class:`BacktrackSolver` and streams the solutions.
 """
 
-from typing import List, Optional, TextIO, Tuple
+from typing import TextIO
 
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import FznModel
@@ -56,7 +56,7 @@ _DOM_HEURISTICS = {
 }
 
 
-def search_heuristics(model: FznModel) -> Optional[List[Search]]:
+def search_heuristics(model: FznModel) -> list[Search] | None:
     """
     Translates the first ``int_search``/``bool_search``/``seq_search`` annotation on the solve item into a
     NuCS sequential search: one :class:`Search` per nested search, each keeping its own variable and value
@@ -75,7 +75,7 @@ def search_heuristics(model: FznModel) -> Optional[List[Search]]:
     for annotation in model.solve.annotations:
         nested = _flatten_searches(model, annotation)
         if nested:
-            searches: List[Search] = []
+            searches: list[Search] = []
             seen: set = set()
             for variables, var_heuristic, dom_heuristic in nested:
                 group = [v for v in variables if v not in seen]  # a variable belongs to the first search listing it
@@ -89,7 +89,7 @@ def search_heuristics(model: FznModel) -> Optional[List[Search]]:
     return None
 
 
-def _flatten_searches(model: FznModel, annotation: Ann) -> List[Tuple[List[int], int, int]]:
+def _flatten_searches(model: FznModel, annotation: Ann) -> list[tuple[list[int], int, int]]:
     """
     Flattens a search annotation into an ordered list of (search variables, variable heuristic, domain
     heuristic) triples, recursing into nested ``seq_search`` annotations and dropping unsupported ones.
@@ -103,7 +103,7 @@ def _flatten_searches(model: FznModel, annotation: Ann) -> List[Tuple[List[int],
     :rtype: List[Tuple[List[int], int, int]]
     """
     if annotation.name == "seq_search" and annotation.args and isinstance(annotation.args[0], list):
-        flattened: List[Tuple[List[int], int, int]] = []
+        flattened: list[tuple[list[int], int, int]] = []
         for item in annotation.args[0]:
             if isinstance(item, Ann):
                 flattened.extend(_flatten_searches(model, item))
@@ -112,7 +112,7 @@ def _flatten_searches(model: FznModel, annotation: Ann) -> List[Tuple[List[int],
     return [single] if single is not None else []
 
 
-def _single_search(model: FznModel, annotation: Ann) -> Optional[Tuple[List[int], int, int]]:
+def _single_search(model: FznModel, annotation: Ann) -> tuple[list[int], int, int] | None:
     """
     Translates a single ``int_search``/``bool_search`` annotation into a NuCS search configuration.
 
@@ -168,7 +168,7 @@ def run(
     out: TextIO,
     err: TextIO,
     all_solutions: bool = False,
-    num_solutions: Optional[int] = None,
+    num_solutions: int | None = None,
     statistics: bool = False,
     output_mode: str = "item",
     output_objective: bool = False,
@@ -262,7 +262,7 @@ def _run_satisfy(
     solver: BacktrackSolver,
     out: TextIO,
     all_solutions: bool,
-    num_solutions: Optional[int],
+    num_solutions: int | None,
     output_mode: str = "item",
 ) -> None:
     """
@@ -282,13 +282,11 @@ def _run_satisfy(
     :type output_mode: str
     """
     limit = None if all_solutions else (num_solutions if num_solutions is not None else 1)
-    count = 0
     found = False
     exhausted = True
-    for solution in solver.solve():
+    for count, solution in enumerate(solver.solve(), start=1):
         print_solution(model, solution, out, output_mode)
         found = True
-        count += 1
         if limit is not None and count >= limit:
             exhausted = False
             break
@@ -307,6 +305,5 @@ def _print_statistics(solver: BacktrackSolver, err: TextIO) -> None:
     :param err: the diagnostics stream
     :type err: TextIO
     """
-    for key, value in solver.get_statistics_as_dictionary().items():
-        err.write(f"%%%mzn-stat: {key}={value}\n")
+    err.writelines(f"%%%mzn-stat: {key}={value}\n" for key, value in solver.get_statistics_as_dictionary().items())
     err.write("%%%mzn-stat-end\n")

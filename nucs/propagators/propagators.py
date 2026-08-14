@@ -99,25 +99,15 @@ from nucs.propagators.eq_c_imp_propagator import (
     get_complexity_eq_c_imp,
     get_triggers_eq_c_imp,
 )
-from nucs.propagators.eq_imp_propagator import (
-    compute_domains_eq_imp,
-    get_complexity_eq_imp,
-    get_triggers_eq_imp,
-)
-from nucs.propagators.leq_c_imp_propagator import (
-    compute_domains_leq_c_imp,
-    get_complexity_leq_c_imp,
-    get_triggers_leq_c_imp,
-)
-from nucs.propagators.neq_imp_propagator import (
-    compute_domains_neq_imp,
-    get_complexity_neq_imp,
-    get_triggers_neq_imp,
-)
 from nucs.propagators.eq_c_reif_propagator import (
     compute_domains_eq_c_reif,
     get_complexity_eq_c_reif,
     get_triggers_eq_c_reif,
+)
+from nucs.propagators.eq_imp_propagator import (
+    compute_domains_eq_imp,
+    get_complexity_eq_imp,
+    get_triggers_eq_imp,
 )
 from nucs.propagators.eq_propagator import compute_domains_eq, get_complexity_eq, get_triggers_eq
 from nucs.propagators.eq_reif_propagator import (
@@ -140,6 +130,11 @@ from nucs.propagators.inverse_propagator import (
     compute_domains_inverse,
     get_complexity_inverse,
     get_triggers_inverse,
+)
+from nucs.propagators.leq_c_imp_propagator import (
+    compute_domains_leq_c_imp,
+    get_complexity_leq_c_imp,
+    get_triggers_leq_c_imp,
 )
 from nucs.propagators.leq_c_propagator import compute_domains_leq_c, get_complexity_leq_c, get_triggers_leq_c
 from nucs.propagators.leq_c_reif_propagator import (
@@ -193,6 +188,11 @@ from nucs.propagators.neq_c_reif_propagator import (
     compute_domains_neq_c_reif,
     get_complexity_neq_c_reif,
     get_triggers_neq_c_reif,
+)
+from nucs.propagators.neq_imp_propagator import (
+    compute_domains_neq_imp,
+    get_complexity_neq_imp,
+    get_triggers_neq_imp,
 )
 from nucs.propagators.neq_propagator import compute_domains_neq, get_complexity_neq, get_triggers_neq
 from nucs.propagators.neq_reif_propagator import (

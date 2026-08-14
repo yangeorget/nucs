@@ -12,13 +12,13 @@
 ###############################################################################
 import logging
 import time
-from typing import Dict, Iterable, Iterator, List, Optional
+from collections.abc import Iterable, Iterator
 
 import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import buckets_init, buckets_empty, buckets_create
+from nucs.buckets import buckets_create, buckets_empty, buckets_init
 from nucs.constants import (
     EVENT_MASK_NB,
     LOG_LEVEL_INFO,
@@ -28,6 +28,8 @@ from nucs.constants import (
     OPTIM_RESET,
     PROBLEM_BOUND,
     PROBLEM_UNBOUND,
+    RANGE_END,
+    RANGE_START,
     SIGN_COMPUTE_DOMAINS,
     SIGN_CONSISTENCY_ALG,
     SIGN_DOM_HEURISTIC,
@@ -54,8 +56,6 @@ from nucs.constants import (
     STATS_LBL_SOLVER_ELAPSED_TIME,
     STATS_MAX,
     VARIABLE,
-    RANGE_END,
-    RANGE_START,
 )
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_FCTS,
@@ -77,7 +77,7 @@ from nucs.propagators.propagators import (
     COMPUTE_DOMAINS_FCTS,
     update_propagators,
 )
-from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_points, fix_choice_point
+from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_point, fix_choice_points
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.search import Search
 from nucs.solvers.solver import Solver, get_solution
@@ -110,12 +110,12 @@ class BacktrackSolver(Solver):
         self,
         problem: Problem,
         consistency_algorithm: int = CONSISTENCY_ALG_BC,
-        decision_variables: Optional[Iterable[int]] = None,
+        decision_variables: Iterable[int] | None = None,
         var_heuristic: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
-        var_heuristic_params: List[List[int]] = [[]],
+        var_heuristic_params: list[list[int]] | None = None,
         dom_heuristic: int = DOM_HEURISTIC_MIN_VALUE,
-        dom_heuristic_params: List[List[int]] = [[]],
-        searches: Optional[List[Search]] = None,
+        dom_heuristic_params: list[list[int]] | None = None,
+        searches: list[Search] | None = None,
         stks_max_height: int = 8192,
         log_level: str = LOG_LEVEL_INFO,
     ):
@@ -133,13 +133,13 @@ class BacktrackSolver(Solver):
         :type var_heuristic: int
         :param var_heuristic_params: a list of lists of parameters,
                                      usually parameters are costs and there is a list of value costs per variable
-        :type var_heuristic_params: List[List[int]]
+        :type var_heuristic_params: Optional[List[List[int]]]
         :param dom_heuristic: the heuristic for reducing a domain,
                               defaults to instantiating the domain to its first value
         :type dom_heuristic: int
         :param dom_heuristic_params: a list of lists of parameters,
                                      usually parameters are costs and there is a list of value costs per variable
-        :type dom_heuristic_params: List[List[int]]
+        :type dom_heuristic_params: Optional[List[List[int]]]
         :param searches: an ordered list of searches defining a sequential search; when None a single search
                          is built from the decision_variables / var_heuristic / dom_heuristic arguments above.
                          The union of the searches' decision variables should cover every branchable variable.
@@ -152,16 +152,20 @@ class BacktrackSolver(Solver):
         :type log_level: str
         """
         super().__init__(problem, log_level)
+        if var_heuristic_params is None:
+            var_heuristic_params = [[]]
+        if dom_heuristic_params is None:
+            dom_heuristic_params = [[]]
         if searches is None:
             searches = [
                 Search(decision_variables, var_heuristic, var_heuristic_params, dom_heuristic, dom_heuristic_params)
             ]
         # every search keeps its own array of decision variables, variable/domain heuristic and parameters
-        decision_variables_per_search: List[NDArray] = []
-        var_heuristics: List[int] = []
-        dom_heuristics: List[int] = []
-        var_params: List[NDArray] = []
-        dom_params: List[NDArray] = []
+        decision_variables_per_search: list[NDArray] = []
+        var_heuristics: list[int] = []
+        dom_heuristics: list[int] = []
+        var_params: list[NDArray] = []
+        dom_params: list[NDArray] = []
         for search in searches:
             search_vars = (
                 list(range(problem.domain_nb)) if search.decision_variables is None else list(search.decision_variables)
@@ -239,7 +243,7 @@ class BacktrackSolver(Solver):
         """
         return self.statistics
 
-    def get_statistics_as_dictionary(self) -> Dict[str, int]:
+    def get_statistics_as_dictionary(self) -> dict[str, int]:
         """
         Returns the statistics as a dictionary.
 
@@ -260,7 +264,7 @@ class BacktrackSolver(Solver):
             STATS_LBL_SOLVER_ELAPSED_TIME: int(self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME]) // 1_000_000,
         }
 
-    def minimize(self, variable: int, mode: str = OPTIM_RESET) -> Optional[NDArray]:
+    def minimize(self, variable: int, mode: str = OPTIM_RESET) -> NDArray | None:
         """
         Return the solution that minimizes a variable.
 
@@ -276,7 +280,7 @@ class BacktrackSolver(Solver):
         logger.info(f"Minimizing (mode {mode}) variable {variable} (domain {domain}))")
         return self.optimize(variable, MAX, mode)
 
-    def maximize(self, variable: int, mode: str = OPTIM_RESET) -> Optional[NDArray]:
+    def maximize(self, variable: int, mode: str = OPTIM_RESET) -> NDArray | None:
         """
         Return the solution that maximizes a variable.
 
@@ -324,7 +328,7 @@ class BacktrackSolver(Solver):
         logger.info(f"Maximizing (mode {mode}) variable {variable} (domain {domain}))")
         return self.optimize_solutions(variable, MIN, mode)
 
-    def optimize(self, variable: int, bound: int, mode: str) -> Optional[NDArray]:
+    def optimize(self, variable: int, bound: int, mode: str) -> NDArray | None:
         """
         Finds, if it exists, the solution to the problem that optimizes a given variable.
 
@@ -343,7 +347,7 @@ class BacktrackSolver(Solver):
             pass
         return best_solution
 
-    def _solve_one(self) -> Optional[NDArray]:
+    def _solve_one(self) -> NDArray | None:
         """
         Searches for the next solution by forwarding the solver state to the jitted solve_one.
 
@@ -540,7 +544,7 @@ def solve_one(
     dom_heuristic_params_shapes: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
-) -> Optional[NDArray]:
+) -> NDArray | None:
     """
     Find at most one solution.
 
@@ -673,8 +677,7 @@ def solve_one(
                         propagator_nb,
                     )
                     statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
-                    if top > statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]:
-                        statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = top
+                    statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = max(statistics[STATS_IDX_SOLVER_CHOICE_DEPTH], top)
                     break
         elif not backtrack(
             statistics,
@@ -708,6 +711,5 @@ def get_domain_buffer(bounds: NDArray) -> NDArray:
     max_arity = np.int64(0)
     for propagator_idx in range(len(bounds)):
         arity = np.int64(bounds[propagator_idx, VARIABLE, RANGE_END] - bounds[propagator_idx, VARIABLE, RANGE_START])
-        if arity > max_arity:
-            max_arity = arity
+        max_arity = max(max_arity, arity)
     return np.empty((max_arity, 2), dtype=np.int32)

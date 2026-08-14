@@ -82,10 +82,8 @@ def compute_domains_element_eq(domains: NDArray, parameters: NDArray) -> int:
                 i[MIN] += 1
         else:  # intersection
             non_intersecting_idx = -1
-            if l_idx < l_v_min:
-                l_v_min = l_idx
-            if l_idx > l_v_max:
-                l_v_max = l_idx
+            l_v_min = min(l_v_min, l_idx)
+            l_v_max = max(l_v_max, l_idx)
     if non_intersecting_idx >= 0:
         i[MAX] = non_intersecting_idx - 1
         if i[MAX] < i[MIN]:

@@ -69,10 +69,8 @@ def compute_domains_min_eq(domains: NDArray, parameters: NDArray) -> int:
     min_x_min = x[0, MIN]
     min_x_max = x[0, MAX]
     for i in range(1, n):
-        if x[i, MIN] < min_x_min:
-            min_x_min = x[i, MIN]
-        if x[i, MAX] < min_x_max:
-            min_x_max = x[i, MAX]
+        min_x_min = min(min_x_min, x[i, MIN])
+        min_x_max = min(min_x_max, x[i, MAX])
     y_min = y[MIN]
     y_max = y[MAX]
     if min_x_min > y_min:
@@ -89,8 +87,7 @@ def compute_domains_min_eq(domains: NDArray, parameters: NDArray) -> int:
     candidates_nb = 0
     candidate_idx = -1
     for i in range(n):
-        if x[i, MIN] < y_min:
-            x[i, MIN] = y_min
+        x[i, MIN] = max(x[i, MIN], y_min)
         if x[i, MIN] <= y_max:
             candidate_idx = i
             candidates_nb += 1

@@ -31,7 +31,7 @@ if __name__ == "__main__":
             problem,
             **solver_kwargs_from_args(
                 args,
-                decision_variables=range(0, args.n * args.n),
+                decision_variables=range(args.n * args.n),
                 dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
             ),
         ),

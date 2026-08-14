@@ -10,6 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+import itertools
 import json
 
 import pytest
@@ -27,13 +28,13 @@ def _assert_valid_schedule(problem: JobShopProblem, solution) -> int:  # type: i
         for k, (machine, duration) in enumerate(job):
             s = starts[j][k]
             if k > 0:  # job precedence: operation k starts after operation k-1 completes
-                prev_machine, prev_duration = job[k - 1]
+                _prev_machine, prev_duration = job[k - 1]
                 assert starts[j][k - 1] + prev_duration <= s
             machine_intervals.setdefault(machine, []).append((s, s + duration))
             completion = max(completion, s + duration)
     for intervals in machine_intervals.values():  # machine non-overlap
         intervals.sort()
-        for (_, end), (start, _) in zip(intervals, intervals[1:]):
+        for (_, end), (start, _) in itertools.pairwise(intervals):
             assert end <= start
     return completion
 

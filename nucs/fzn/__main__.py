@@ -17,7 +17,6 @@ streams the solutions on stdout.
 
 import argparse
 import sys
-from typing import List, Optional
 
 from nucs.fzn.errors import FznError
 from nucs.fzn.model import build_model
@@ -62,7 +61,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     """
     Entry point for the ``fzn-nucs`` executable.
 

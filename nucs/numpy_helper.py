@@ -10,13 +10,12 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List, Tuple
 
 import numpy as np
 from numpy._typing import NDArray
 
 
-def flatten_arrays(arrays: List[NDArray]) -> Tuple[NDArray, NDArray]:
+def flatten_arrays(arrays: list[NDArray]) -> tuple[NDArray, NDArray]:
     """
     Flattens a ragged list of arrays into their concatenation and the CSR offsets delimiting each array.
 

@@ -12,7 +12,7 @@
 ###############################################################################
 import json
 
-from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args, run_solver
+from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.examples.square.square_problem import SquarePlacementProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 

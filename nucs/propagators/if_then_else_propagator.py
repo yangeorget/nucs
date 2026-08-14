@@ -83,8 +83,8 @@ def compute_domains_if_then_else(domains: NDArray, parameters: NDArray) -> int:
         x_lo = domains[b + lo]
         if domains[lo, MIN] == 1:
             # the first still-possible condition is true -> branch lo is taken -> y == x[lo]
-            new_min = y[MIN] if y[MIN] > x_lo[MIN] else x_lo[MIN]
-            new_max = y[MAX] if y[MAX] < x_lo[MAX] else x_lo[MAX]
+            new_min = max(x_lo[MIN], y[MIN])
+            new_max = min(x_lo[MAX], y[MAX])
             if new_min > new_max:
                 return PROP_INCONSISTENCY
             y[MIN] = new_min

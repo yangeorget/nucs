@@ -10,7 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Any, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import Any
 
 from numpy.typing import NDArray
 
@@ -27,7 +28,7 @@ class LatinSquareProblem(Problem):
     A simple model for latin squares.
     """
 
-    def __init__(self, colors: Iterable[int], givens: Optional[List[List[int]]] = None):
+    def __init__(self, colors: Iterable[int], givens: list[list[int]] | None = None):
         """
         Initializes the latin square.
 

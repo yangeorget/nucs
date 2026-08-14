@@ -77,16 +77,14 @@ def compute_domains_min_geq(domains: NDArray, parameters: NDArray) -> int:
     y_max = y[MAX]
     min_x_min = x[0, MIN]
     for i in range(1, n):
-        if x[i, MIN] < min_x_min:
-            min_x_min = x[i, MIN]
+        min_x_min = min(min_x_min, x[i, MIN])
     if y_max <= min_x_min:
         return PROP_ENTAILMENT
     # Otherwise a single fused loop raises each x_i[MIN] to y_min (with an inline inconsistency check)
     # while accumulating min_x_max, which then lowers y[MAX]; no second pass over x is needed.
     min_x_max = x[0, MAX]
     for i in range(n):
-        if x[i, MAX] < min_x_max:
-            min_x_max = x[i, MAX]
+        min_x_max = min(min_x_max, x[i, MAX])
         if y_min > x[i, MIN]:
             x[i, MIN] = y_min
             if x[i, MAX] < y_min:

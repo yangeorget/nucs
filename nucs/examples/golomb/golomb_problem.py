@@ -88,7 +88,7 @@ class GolombProblem(Problem):
         self.mark_nb = mark_nb
         dist_nb = sum_first(mark_nb - 1)
         domains = [[0, sum_first(dist_nb) - sum_first(dist_nb - mark_nb)]] * dist_nb
-        for i in range(0, mark_nb - 1):
+        for i in range(mark_nb - 1):
             for j in range(i + 1, mark_nb):
                 domains[index(mark_nb, i, j)][MIN] = (
                     GOLOMB_LENGTHS[j - i + 1] if j - i + 1 < mark_nb else sum_first(j - i)
@@ -174,7 +174,7 @@ def golomb_consistency_algorithm(
                 used_distance[dist] = True
         # let's compute the sum of non-used numbers
         distance = 1
-        for j in range(0, mark_nb - ni_var):
+        for j in range(mark_nb - ni_var):
             while used_distance[distance]:
                 distance += 1
             minimal_sum[j + 1] = minimal_sum[j] + distance

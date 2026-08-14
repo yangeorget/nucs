@@ -12,7 +12,6 @@
 ###############################################################################
 import itertools
 import random
-from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
@@ -23,8 +22,8 @@ from tests.propagators.propagator_test import PropagatorTest
 
 
 def _feasible_starts(
-    bounds: List[Tuple[int, int]], durations: List[int], heights: List[int], capacity: int
-) -> List[Tuple[int, ...]]:
+    bounds: list[tuple[int, int]], durations: list[int], heights: list[int], capacity: int
+) -> list[tuple[int, ...]]:
     """Brute-force every assignment of start times within bounds whose resource profile fits under capacity."""
     ranges = [range(lo, hi + 1) for lo, hi in bounds]
     feasible = []
@@ -70,10 +69,10 @@ class TestCumulative(PropagatorTest):
     )
     def test_compute_domains(
         self,
-        domains: List[Union[int, Tuple[int, int]]],
-        parameters: List[int],
+        domains: list[int | tuple[int, int]],
+        parameters: list[int],
         consistency_result: int,
-        expected_domains: Optional[List[List[int]]],
+        expected_domains: list[list[int]] | None,
     ) -> None:
         self.assert_compute_domains(
             compute_domains_cumulative, domains, parameters, consistency_result, expected_domains

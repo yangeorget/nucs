@@ -46,27 +46,27 @@ class BIBDProblem(Problem):
         additional_var_nb = ((v * (v - 1)) >> 1) * b
         super().__init__([(0, 1)] * (matrix_var_nb + additional_var_nb))
         # rows: counts
-        for object_idx in range(0, v):
+        for object_idx in range(v):
             self.add_propagator(ALG_SUM_EQ_C, range(object_idx * b, (object_idx + 1) * b), [r])
         # columns: counts
-        for block_idx in range(0, b):
+        for block_idx in range(b):
             self.add_propagator(ALG_SUM_EQ_C, range(block_idx, v * b, b), [k])
         # scalar products: conjunctions and counts
         conj_idx = v * b  # index of first redundant variable
-        for i1 in range(0, v - 1):
+        for i1 in range(v - 1):
             for i2 in range(i1 + 1, v):
                 conj_vars = []
-                for block_idx in range(0, b):
+                for block_idx in range(b):
                     self.add_propagator(ALG_AND_EQ, [i1 * b + block_idx, i2 * b + block_idx, conj_idx])
                     conj_vars.append(conj_idx)
                     conj_idx += 1
                 self.add_propagator(ALG_SUM_EQ_C, conj_vars, [l])
         if symmetry_breaking:
             # lexleq on rows
-            for object_idx in range(0, v - 1):
+            for object_idx in range(v - 1):
                 self.add_propagator(ALG_LEXLEQ, range(object_idx * b, (object_idx + 2) * b))
             # lexleq on columns
-            for block_idx in range(0, b - 1):
+            for block_idx in range(b - 1):
                 self.add_propagator(ALG_LEXLEQ, list(range(block_idx, v * b, b)) + list(range(block_idx + 1, v * b, b)))
 
     def solution_as_printable(self, solution: NDArray) -> Any:
@@ -80,4 +80,4 @@ class BIBDProblem(Problem):
         :rtype: Any
         """
         solution_as_list = solution.tolist()
-        return [[solution_as_list[i * self.b + j] for j in range(0, self.b)] for i in range(0, self.v)]
+        return [[solution_as_list[i * self.b + j] for j in range(self.b)] for i in range(self.v)]

@@ -16,12 +16,12 @@ from numpy.typing import NDArray
 from nucs.constants import (
     EVENT_MASK_MAX,
     EVENT_MASK_MIN,
+    EVENT_MASK_NONE,
     MAX,
     MIN,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
-    EVENT_MASK_NONE,
 )
 
 

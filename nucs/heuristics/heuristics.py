@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Callable, Dict, List, Optional
+from collections.abc import Callable
 
 from nucs.heuristics.critical_resource_var_heuristic import critical_resource_var_heuristic
 from nucs.heuristics.first_not_instantiated_var_heuristic import first_not_instantiated_var_heuristic
@@ -18,9 +18,9 @@ from nucs.heuristics.greatest_domain_var_heuristic import greatest_domain_var_he
 from nucs.heuristics.largest_maximal_value_var_heuristic import largest_maximal_value_var_heuristic
 from nucs.heuristics.max_regret_var_heuristic import max_regret_var_heuristic
 from nucs.heuristics.max_value_dom_heuristic import max_value_dom_heuristic
-from nucs.heuristics.min_earliest_start_var_heuristic import min_earliest_start_var_heuristic
 from nucs.heuristics.mid_value_dom_heuristic import mid_value_dom_heuristic
 from nucs.heuristics.min_cost_dom_heuristic import min_cost_dom_heuristic
+from nucs.heuristics.min_earliest_start_var_heuristic import min_earliest_start_var_heuristic
 from nucs.heuristics.min_value_dom_heuristic import min_value_dom_heuristic
 from nucs.heuristics.smallest_domain_var_heuristic import smallest_domain_var_heuristic
 from nucs.heuristics.smallest_minimal_value_var_heuristic import smallest_minimal_value_var_heuristic
@@ -28,13 +28,13 @@ from nucs.heuristics.split_high_dom_heuristic import split_high_dom_heuristic
 from nucs.heuristics.split_low_dom_heuristic import split_low_dom_heuristic
 from nucs.heuristics.split_random_dom_heuristic import split_random_dom_heuristic
 
-VAR_HEURISTIC_FCTS: List[Callable] = []
-DOM_HEURISTIC_FCTS: List[Callable] = []
-VAR_HEURISTICS: Dict[str, int] = {}  # heuristic name to index, for name-based selection (eg from the CLI)
-DOM_HEURISTICS: Dict[str, int] = {}  # heuristic name to index, for name-based selection (eg from the CLI)
+VAR_HEURISTIC_FCTS: list[Callable] = []
+DOM_HEURISTIC_FCTS: list[Callable] = []
+VAR_HEURISTICS: dict[str, int] = {}  # heuristic name to index, for name-based selection (eg from the CLI)
+DOM_HEURISTICS: dict[str, int] = {}  # heuristic name to index, for name-based selection (eg from the CLI)
 
 
-def register_var_heuristic(var_heuristic_fct: Callable, name: Optional[str] = None) -> int:
+def register_var_heuristic(var_heuristic_fct: Callable, name: str | None = None) -> int:
     """
     Registers a variable heuristic by adding it function to the corresponding list of functions.
 
@@ -53,7 +53,7 @@ def register_var_heuristic(var_heuristic_fct: Callable, name: Optional[str] = No
     return len(VAR_HEURISTIC_FCTS) - 1
 
 
-def register_dom_heuristic(dom_heuristic_fct: Callable, name: Optional[str] = None) -> int:
+def register_dom_heuristic(dom_heuristic_fct: Callable, name: str | None = None) -> int:
     """
     Registers a domain heuristic by adding it function to the corresponding list of functions.
 

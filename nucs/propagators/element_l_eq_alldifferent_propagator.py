@@ -88,10 +88,8 @@ def compute_domains_element_l_eq_alldifferent(domains: NDArray, parameters: NDAr
                     i[:] = idx
                     return PROP_ENTAILMENT
                 non_intersecting_idx = -1
-                if l_idx_min < l_v_min:
-                    l_v_min = l_idx_min
-                if l_idx_max > l_v_max:
-                    l_v_max = l_idx_max
+                l_v_min = min(l_v_min, l_idx_min)
+                l_v_max = max(l_v_max, l_idx_max)
     else:
         for idx in range(i[MIN], i[MAX] + 1):
             l_idx_min = l[idx, MIN]
@@ -103,10 +101,8 @@ def compute_domains_element_l_eq_alldifferent(domains: NDArray, parameters: NDAr
                     i[MIN] += 1
             else:  # intersection
                 non_intersecting_idx = -1
-                if l_idx_min < l_v_min:
-                    l_v_min = l_idx_min
-                if l_idx_max > l_v_max:
-                    l_v_max = l_idx_max
+                l_v_min = min(l_v_min, l_idx_min)
+                l_v_max = max(l_v_max, l_idx_max)
     if non_intersecting_idx >= 0:
         i[MAX] = non_intersecting_idx - 1
         if i[MAX] < i[MIN]:

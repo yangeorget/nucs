@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Callable, List, Optional, Tuple, Union
+from collections.abc import Callable
 
 import numpy as np
 
@@ -19,10 +19,10 @@ class PropagatorTest:
     def assert_compute_domains(
         self,
         compute_domains_fct: Callable,
-        domains: List[Union[int, Tuple[int, int]]],
-        parameters: List[int],
+        domains: list[int | tuple[int, int]],
+        parameters: list[int],
         consistency_result: int,
-        expected_domains: Optional[List[List[int]]],
+        expected_domains: list[list[int]] | None,
     ) -> None:
         domains_arr = np.array(
             [(domain, domain) if isinstance(domain, int) else domain for domain in domains], dtype=np.int32

@@ -10,15 +10,15 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Any, Dict, List
+from typing import Any
 
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_LINEAR_EQ_C, ALG_ALLDIFFERENT
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_LINEAR_EQ_C
 
 
-def starts_word(letter: str, words: List[str]) -> bool:
+def starts_word(letter: str, words: list[str]) -> bool:
     for word in words:
         if word.startswith(letter):
             return True
@@ -33,7 +33,7 @@ class CryptarithmeticProblem(Problem):
     e.g. DONALD + GERALD = ROBERT
     """
 
-    def __init__(self, dataset: Dict) -> None:
+    def __init__(self, dataset: dict) -> None:
         self.letters = dataset["letters"]
         n = len(self.letters)
         letter_to_idx = {letter: idx for idx, letter in enumerate(self.letters)}
@@ -43,7 +43,7 @@ class CryptarithmeticProblem(Problem):
             all_words.append(result_word)
         super().__init__([(1, 9) if starts_word(letter, all_words) else (0, 9) for letter in self.letters])
         for words, result_word in dataset.get("additions", []):
-            coefficients: Dict[str, int] = {}
+            coefficients: dict[str, int] = {}
             for word in words:
                 coefficient = 10 ** (len(word) - 1)
                 for character in word:

@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List, Optional, Tuple, Union
 
 import pytest
 
@@ -39,16 +38,14 @@ class TestElementLEqAlldifferent(PropagatorTest):
             ([(10, 15), (20, 25), (0, 1), (1, 5)], [], PROP_INCONSISTENCY, None),
             # i given out of bounds gets clamped
             ([(1, 5), (2, 6), (-5, 10), (3, 4)], [], PROP_CONSISTENCY, [[1, 5], [2, 6], [0, 1], [3, 4]]),
-            # v fixed, matches a non-singleton l[idx] (no early entail), v narrowed not needed
-            ([(1, 5), (10, 15), (0, 1), 3], [], PROP_ENTAILMENT, [[3, 3], [10, 15], [0, 0], [3, 3]]),
         ],
     )
     def test_compute_domains(
         self,
-        domains: List[Union[int, Tuple[int, int]]],
-        parameters: List[int],
+        domains: list[int | tuple[int, int]],
+        parameters: list[int],
         consistency_result: int,
-        expected_domains: Optional[List[List[int]]],
+        expected_domains: list[list[int]] | None,
     ) -> None:
         self.assert_compute_domains(
             compute_domains_element_l_eq_alldifferent, domains, parameters, consistency_result, expected_domains

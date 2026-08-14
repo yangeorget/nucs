@@ -11,7 +11,8 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import itertools
-from typing import Any, Callable, List
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import pytest
@@ -25,19 +26,19 @@ from tests.propagators.propagator_test import PropagatorTest
 
 
 # reference semantics of the half-reified constraint r -> C, C over the operands (after the boolean r)
-def _pred_eq_c(r: int, ops: List[int], params: List[int]) -> bool:
+def _pred_eq_c(r: int, ops: list[int], params: list[int]) -> bool:
     return r == 0 or ops[0] == params[0]
 
 
-def _pred_eq(r: int, ops: List[int], params: List[int]) -> bool:
+def _pred_eq(r: int, ops: list[int], params: list[int]) -> bool:
     return r == 0 or ops[0] == ops[1]
 
 
-def _pred_leq_c(r: int, ops: List[int], params: List[int]) -> bool:
+def _pred_leq_c(r: int, ops: list[int], params: list[int]) -> bool:
     return r == 0 or ops[0] <= ops[1] + params[0]
 
 
-def _pred_neq(r: int, ops: List[int], params: List[int]) -> bool:
+def _pred_neq(r: int, ops: list[int], params: list[int]) -> bool:
     return r == 0 or ops[0] != ops[1]
 
 
@@ -53,7 +54,7 @@ class TestImp(PropagatorTest):
         ],
     )
     def test_bound_consistency_against_brute_force(
-        self, compute_fn: Callable, pred: Callable, n_ops: int, params: List[int]
+        self, compute_fn: Callable, pred: Callable, n_ops: int, params: list[int]
     ) -> None:
         # the half-reified propagator must compute the exact bound-consistent projection of r -> C
         rng = range(-2, 3)
@@ -106,9 +107,9 @@ class TestImp(PropagatorTest):
     def test_compute_domains(
         self,
         compute_fn: Callable,
-        domains: List[Any],
-        parameters: List[int],
+        domains: list[Any],
+        parameters: list[int],
         consistency_result: int,
-        expected_domains: List[Any],
+        expected_domains: list[Any],
     ) -> None:
         self.assert_compute_domains(compute_fn, domains, parameters, consistency_result, expected_domains)

@@ -12,7 +12,7 @@
 ###############################################################################
 import argparse
 from argparse import Namespace
-from typing import Any, Dict, Optional
+from typing import Any
 
 from numpy.typing import NDArray
 
@@ -88,7 +88,7 @@ class DefaultArgumentParser(argparse.ArgumentParser):
         )
 
 
-def solver_kwargs_from_args(args: Namespace, **defaults: Any) -> Dict[str, Any]:
+def solver_kwargs_from_args(args: Namespace, **defaults: Any) -> dict[str, Any]:
     """
     Builds a dict of BacktrackSolver kwargs, with CLI args overriding the given defaults.
 
@@ -142,7 +142,7 @@ def run_optimizer(
     objective: int,
     maximize: bool = False,
     default_mode: str = OPTIM_RESET,
-) -> Optional[NDArray]:
+) -> NDArray | None:
     """
     Optimizes a variable with the solver according to the CLI arguments and returns the optimal solution.
 

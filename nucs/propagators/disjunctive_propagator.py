@@ -87,7 +87,7 @@ def _filter_est(est: NDArray, lct: NDArray, p: NDArray, n: int) -> bool:
         for idx in range(n):
             i = est_order[idx]
             if lct[i] <= bound:
-                ect = (est[i] if est[i] > ect else ect) + p[i]
+                ect = (max(ect, est[i])) + p[i]
         if ect > bound:
             return False  # overload: Theta cannot complete by bound
         for t in range(n):
@@ -97,7 +97,7 @@ def _filter_est(est: NDArray, lct: NDArray, p: NDArray, n: int) -> bool:
                 for idx in range(n):
                     i = est_order[idx]
                     if lct[i] <= bound or i == t:
-                        ect_t = (est[i] if est[i] > ect_t else ect_t) + p[i]
+                        ect_t = (max(ect_t, est[i])) + p[i]
                 if ect_t > bound and ect > new_est[t]:
                     new_est[t] = ect
     for i in range(n):
@@ -136,10 +136,9 @@ def _filter_not_last(est: NDArray, lct: NDArray, p: NDArray, n: int) -> None:
         for idx in range(n):
             i = est_order[idx]
             if i != t and lct[i] <= lct[t]:
-                ect = (est[i] if est[i] > ect else ect) + p[i]
+                ect = (max(ect, est[i])) + p[i]
                 lst_i = lct[i] - p[i]
-                if lst_i > max_lst:
-                    max_lst = lst_i
+                max_lst = max(max_lst, lst_i)
         if ect > lct[t] - p[t] and max_lst < new_lct[t]:  # t cannot be last: it must finish by max_lst
             new_lct[t] = max_lst
     for t in range(n):
@@ -177,9 +176,9 @@ def _filter_detectable_precedences(est: NDArray, lct: NDArray, p: NDArray, n: in
         for idx in range(n):
             i = est_order[idx]
             if i != j and lct[i] - p[i] < ect_j:
-                ect = (est[i] if est[i] > ect else ect) + p[i]
-        if ect > new_est[j]:  # j must start after all its detectable predecessors complete
-            new_est[j] = ect
+                ect = (max(ect, est[i])) + p[i]
+        # j must start after all its detectable predecessors complete
+        new_est[j] = max(new_est[j], ect)
     for j in range(n):
         est[j] = new_est[j]
 
@@ -267,11 +266,9 @@ def compute_domains_disjunctive(domains: NDArray, parameters: NDArray) -> int:
             if est[i] != prev_est[i] or lct[i] != prev_lct[i]:
                 has_changed = True
     for i in range(n):
-        if est[i] > domains[i, MIN]:
-            domains[i, MIN] = est[i]
+        domains[i, MIN] = max(domains[i, MIN], est[i])
         new_max = lct[i] - p[i]
-        if new_max < domains[i, MAX]:
-            domains[i, MAX] = new_max
+        domains[i, MAX] = min(domains[i, MAX], new_max)
         if domains[i, MIN] > domains[i, MAX]:
             return PROP_INCONSISTENCY
     # When every start time is already fixed and consistent, the constraint can no longer be violated.

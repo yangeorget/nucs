@@ -63,12 +63,10 @@ def compute_domains_increasing(domains: NDArray, parameters: NDArray) -> int:
     n = len(domains)
     # forward sweep: each x_i is at least its predecessor's minimum
     for i in range(1, n):
-        if domains[i - 1][MIN] > domains[i][MIN]:
-            domains[i][MIN] = domains[i - 1][MIN]
+        domains[i][MIN] = max(domains[i][MIN], domains[i - 1][MIN])
     # backward sweep: each x_i is at most its successor's maximum
     for i in range(n - 2, -1, -1):
-        if domains[i + 1][MAX] < domains[i][MAX]:
-            domains[i][MAX] = domains[i + 1][MAX]
+        domains[i][MAX] = min(domains[i][MAX], domains[i + 1][MAX])
     # consistency check and entailment detection (entailed when every pair is already ordered)
     entailed = True
     for i in range(n):

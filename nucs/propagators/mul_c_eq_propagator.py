@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY, PROP_ENTAILMENT
+from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 
 
 def get_complexity_mul_c_eq(n: int, parameters: NDArray) -> int:

@@ -75,16 +75,14 @@ def compute_domains_max_leq(domains: NDArray, parameters: NDArray) -> int:
     y_max = y[MAX]
     max_x_max = x[0, MAX]
     for i in range(1, n):
-        if x[i, MAX] > max_x_max:
-            max_x_max = x[i, MAX]
+        max_x_max = max(max_x_max, x[i, MAX])
     if max_x_max <= y_min:
         return PROP_ENTAILMENT
     # Otherwise a single fused loop caps each x_i[MAX] at y_max (with an inline inconsistency check)
     # while accumulating max_x_min, which then raises y[MIN]; no second pass over x is needed.
     max_x_min = x[0, MIN]
     for i in range(n):
-        if x[i, MIN] > max_x_min:
-            max_x_min = x[i, MIN]
+        max_x_min = max(max_x_min, x[i, MIN])
         if y_max < x[i, MAX]:
             x[i, MAX] = y_max
             if y_max < x[i, MIN]:

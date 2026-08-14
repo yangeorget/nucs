@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List, Optional, Tuple, Union
 
 import pytest
 
@@ -30,9 +29,9 @@ class TestSCC(PropagatorTest):
     )
     def test_compute_domains(
         self,
-        domains: List[Union[int, Tuple[int, int]]],
-        parameters: List[int],
+        domains: list[int | tuple[int, int]],
+        parameters: list[int],
         consistency_result: int,
-        expected_domains: Optional[List[List[int]]],
+        expected_domains: list[list[int]] | None,
     ) -> None:
         self.assert_compute_domains(compute_domains_scc, domains, parameters, consistency_result, expected_domains)

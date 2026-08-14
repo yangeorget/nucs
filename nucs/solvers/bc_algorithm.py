@@ -15,12 +15,13 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import buckets_add, buckets_pop, STORAGE_OFFSET
+from nucs.buckets import STORAGE_OFFSET, buckets_add, buckets_pop
 from nucs.constants import (
     EVENT_MASK_GROUND,
     EVENT_MASK_MAX,
     EVENT_MASK_MIN,
     EVENT_MASK_NB,
+    EVENT_MASK_NONE,
     MAX,
     MIN,
     PARAM,
@@ -37,7 +38,6 @@ from nucs.constants import (
     STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
     VARIABLE,
-    EVENT_MASK_NONE,
 )
 from nucs.numba_helper import ComputeDomainsFunctions
 

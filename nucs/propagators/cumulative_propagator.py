@@ -194,14 +194,11 @@ def _filter_energetic(est: NDArray, lst: NDArray, p: NDArray, h: NDArray, n: int
             for j in range(n):
                 if p[j] > 0 and h[j] > 0:
                     work = length
-                    if p[j] < work:
-                        work = p[j]
+                    work = min(work, p[j])
                     left = est[j] + p[j] - t1
-                    if left < work:
-                        work = left
+                    work = min(work, left)
                     right = t2 - lst[j]
-                    if right < work:
-                        work = right
+                    work = min(work, right)
                     if work > 0:
                         energy += h[j] * work
             if energy > cap_energy:
@@ -210,16 +207,12 @@ def _filter_energetic(est: NDArray, lst: NDArray, p: NDArray, h: NDArray, n: int
                 if h[i] == 0 or p[i] == 0:
                     continue
                 work_i = length
-                if p[i] < work_i:
-                    work_i = p[i]
+                work_i = min(work_i, p[i])
                 left = est[i] + p[i] - t1
-                if left < work_i:
-                    work_i = left
+                work_i = min(work_i, left)
                 right = t2 - lst[i]
-                if right < work_i:
-                    work_i = right
-                if work_i < 0:
-                    work_i = 0
+                work_i = min(work_i, right)
+                work_i = max(work_i, 0)
                 avail = cap_energy - (energy - h[i] * work_i)  # energy this interval leaves for task i
                 if avail < 0:
                     continue
@@ -228,14 +221,12 @@ def _filter_energetic(est: NDArray, lst: NDArray, p: NDArray, h: NDArray, n: int
                 left_intersection = min(est[i] + p[i], t2) - max(est[i], t1)
                 if left_intersection > 0 and h[i] * left_intersection > avail:
                     raised = t2 - slack
-                    if raised > new_est[i]:
-                        new_est[i] = raised
+                    new_est[i] = max(new_est[i], raised)
                 # lower the latest start if task i, right-shifted, would not fit
                 right_intersection = min(lst[i] + p[i], t2) - max(lst[i], t1)
                 if right_intersection > 0 and h[i] * right_intersection > avail:
                     lowered = t1 + slack - p[i]
-                    if lowered < new_lst[i]:
-                        new_lst[i] = lowered
+                    new_lst[i] = min(new_lst[i], lowered)
     for i in range(n):
         est[i] = new_est[i]
         lst[i] = new_lst[i]
@@ -316,10 +307,8 @@ def compute_domains_cumulative(domains: NDArray, parameters: NDArray) -> int:
                 has_changed = True
     ground_nb = 0
     for i in range(n):
-        if est[i] > domains[i, MIN]:
-            domains[i, MIN] = est[i]
-        if lst[i] < domains[i, MAX]:
-            domains[i, MAX] = lst[i]
+        domains[i, MIN] = max(domains[i, MIN], est[i])
+        domains[i, MAX] = min(domains[i, MAX], lst[i])
         if domains[i, MIN] > domains[i, MAX]:
             return PROP_INCONSISTENCY
         if domains[i, MIN] == domains[i, MAX]:

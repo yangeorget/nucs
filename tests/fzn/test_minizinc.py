@@ -82,7 +82,7 @@ KEPT_GLOBALS = {
     ),
     "if_then_else": (
         "array[1..3] of var bool: c; array[1..3] of var bool: x; var bool: y; "
-        "constraint y = if c[1] then x[1] elseif c[2] then x[2] else x[3] endif;",
+        + "constraint y = if c[1] then x[1] elseif c[2] then x[2] else x[3] endif;",
         "nucs_if_then_else_var_bool",
         "fzn_if_then_else_var_bool.mzn",
     ),
@@ -151,6 +151,7 @@ def _compile_to_fzn(model: str, tmp_path) -> str:  # type: ignore[no-untyped-def
         text=True,
         env=env,
         timeout=120,
+        check=False,
     )
     assert result.returncode == 0, result.stderr
     return result.stdout
@@ -168,6 +169,7 @@ def _solve(model: str, tmp_path) -> str:  # type: ignore[no-untyped-def]
         text=True,
         env=env,
         timeout=120,
+        check=False,
     )
     assert result.returncode == 0, result.stderr
     return result.stdout

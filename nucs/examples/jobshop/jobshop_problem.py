@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List, Optional
 
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_CRITICAL_RESOURCE
 from nucs.problems.problem import Problem
@@ -37,7 +36,7 @@ class JobShopProblem(Problem):
     :meth:`recommended_searches` returns the search to drive a :class:`BacktrackSolver` with.
     """
 
-    def __init__(self, jobs: List[List[List[int]]], horizon: Optional[int] = None) -> None:
+    def __init__(self, jobs: list[list[list[int]]], horizon: int | None = None) -> None:
         """
         Inits the problem.
 
@@ -96,7 +95,7 @@ class JobShopProblem(Problem):
                         machine_durations.append(durations[j][k])
             self.add_propagator(ALG_DISJUNCTIVE, machine_starts, machine_durations)
 
-    def resource_params(self) -> List[List[int]]:
+    def resource_params(self) -> list[list[int]]:
         """
         Returns the ``(machine, duration)`` of each start-time variable, in variable-index order.
 
@@ -109,7 +108,7 @@ class JobShopProblem(Problem):
         """
         return [[op[0], op[1]] for job in self.jobs for op in job]
 
-    def recommended_searches(self) -> List[Search]:
+    def recommended_searches(self) -> list[Search]:
         """
         Returns the recommended search for this problem.
 

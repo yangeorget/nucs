@@ -15,7 +15,7 @@ from typing import Any
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_ADD_C_EQ
+from nucs.propagators.propagators import ALG_ADD_C_EQ, ALG_ALLDIFFERENT
 
 
 class LangfordProblem(Problem):
@@ -42,7 +42,7 @@ class LangfordProblem(Problem):
         self.n = n
         domains = [(0, k * n - 1)] * k * n  # domain[index(i,j)] is the position of the ith occurence of j
         super().__init__(domains)
-        self.add_propagator(ALG_ALLDIFFERENT, range(0, k * n))
+        self.add_propagator(ALG_ALLDIFFERENT, range(k * n))
         for i in range(k - 1):
             for j in range(n):
                 self.add_propagator(ALG_ADD_C_EQ, [self.index(i, j), self.index(i + 1, j)], [j + 2])

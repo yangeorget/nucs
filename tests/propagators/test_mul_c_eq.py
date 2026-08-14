@@ -10,11 +10,10 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List, Optional, Tuple, Union
 
 import pytest
 
-from nucs.constants import PROP_CONSISTENCY, PROP_INCONSISTENCY, PROP_ENTAILMENT
+from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.mul_c_eq_propagator import compute_domains_mul_c_eq
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -45,9 +44,9 @@ class TestMulCEq(PropagatorTest):
     )
     def test_compute_domains(
         self,
-        domains: List[Union[int, Tuple[int, int]]],
-        parameters: List[int],
+        domains: list[int | tuple[int, int]],
+        parameters: list[int],
         consistency_result: int,
-        expected_domains: Optional[List[List[int]]],
+        expected_domains: list[list[int]] | None,
     ) -> None:
         self.assert_compute_domains(compute_domains_mul_c_eq, domains, parameters, consistency_result, expected_domains)

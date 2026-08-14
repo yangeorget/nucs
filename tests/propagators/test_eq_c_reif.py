@@ -10,12 +10,11 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List, Optional, Tuple, Union
 
 import pytest
-from nucs.propagators.eq_c_reif_propagator import compute_domains_eq_c_reif
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.propagators.eq_c_reif_propagator import compute_domains_eq_c_reif
 from tests.propagators.propagator_test import PropagatorTest
 
 
@@ -39,10 +38,10 @@ class TestEqCReif(PropagatorTest):
     )
     def test_compute_domains(
         self,
-        domains: List[Union[int, Tuple[int, int]]],
-        parameters: List[int],
+        domains: list[int | tuple[int, int]],
+        parameters: list[int],
         consistency_result: int,
-        expected_domains: Optional[List[List[int]]],
+        expected_domains: list[list[int]] | None,
     ) -> None:
         self.assert_compute_domains(
             compute_domains_eq_c_reif, domains, parameters, consistency_result, expected_domains

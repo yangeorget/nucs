@@ -28,7 +28,7 @@ if __name__ == "__main__":
     with open(args.dataset, "r") as json_file:
         costs = json.load(json_file)["costs"]
         n = len(costs)
-        decision_variables = list(range(0, 2 * n))
+        decision_variables = list(range(2 * n))
         problem = TSPProblem(costs)
         costs = costs + costs
         tsp_var_heuristic_idx = register_var_heuristic(tsp_var_heuristic)

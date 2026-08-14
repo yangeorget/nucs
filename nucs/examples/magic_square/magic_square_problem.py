@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Iterable
+from collections.abc import Iterable
 
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_LEQ_C, ALG_SUM_EQ_C

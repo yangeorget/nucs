@@ -67,10 +67,8 @@ def compute_domains_max_eq(domains: NDArray, parameters: NDArray) -> int:
     max_x_min = x[0, MIN]
     max_x_max = x[0, MAX]
     for i in range(1, n):
-        if x[i, MIN] > max_x_min:
-            max_x_min = x[i, MIN]
-        if x[i, MAX] > max_x_max:
-            max_x_max = x[i, MAX]
+        max_x_min = max(max_x_min, x[i, MIN])
+        max_x_max = max(max_x_max, x[i, MAX])
     y_min = y[MIN]
     y_max = y[MAX]
     if max_x_min > y_min:
@@ -87,8 +85,7 @@ def compute_domains_max_eq(domains: NDArray, parameters: NDArray) -> int:
     candidates_nb = 0
     candidate_idx = -1
     for i in range(n):
-        if x[i, MAX] > y_max:
-            x[i, MAX] = y_max
+        x[i, MAX] = min(x[i, MAX], y_max)
         if x[i, MAX] >= y_min:
             candidate_idx = i
             candidates_nb += 1

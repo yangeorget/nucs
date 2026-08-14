@@ -20,7 +20,7 @@ into NuCS variables and constants.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple, Union
+from typing import Union
 
 from nucs.fzn.errors import FznParseError, FznUnsupportedError
 
@@ -64,7 +64,7 @@ class SetLit:
     A set literal ``{v0, v1, ...}`` of integer constants, kept in strictly ascending order.
     """
 
-    values: List[int]
+    values: list[int]
 
 
 # A term is an int, a bool, an identifier, a range, an array access, a set literal, a call ``name(args)``
@@ -79,7 +79,7 @@ class Ann:
     """
 
     name: str
-    args: List[Term] = field(default_factory=list)
+    args: list[Term] = field(default_factory=list)
 
 
 @dataclass
@@ -89,7 +89,7 @@ class ParDecl:
     """
 
     name: str
-    value: Union[int, bool, List[int]]
+    value: int | bool | list[int]
 
 
 @dataclass
@@ -101,10 +101,10 @@ class VarDecl:
     name: str
     lo: int
     hi: int
-    annotations: List[Ann] = field(default_factory=list)
-    rhs: Optional[Term] = None
+    annotations: list[Ann] = field(default_factory=list)
+    rhs: Term | None = None
     is_bool: bool = False
-    values: Optional[List[int]] = None  # explicit allowed values for a non-contiguous domain
+    values: list[int] | None = None  # explicit allowed values for a non-contiguous domain
 
 
 @dataclass
@@ -114,14 +114,14 @@ class ArrayDecl:
     """
 
     name: str
-    elems: List[Term]
-    annotations: List[Ann] = field(default_factory=list)
+    elems: list[Term]
+    annotations: list[Ann] = field(default_factory=list)
     is_var: bool = False
-    lo: Optional[int] = None
-    hi: Optional[int] = None
-    size: Optional[int] = None
+    lo: int | None = None
+    hi: int | None = None
+    size: int | None = None
     is_bool: bool = False
-    values: Optional[List[int]] = None  # explicit allowed values for a non-contiguous element domain
+    values: list[int] | None = None  # explicit allowed values for a non-contiguous element domain
 
 
 @dataclass
@@ -131,8 +131,8 @@ class Constraint:
     """
 
     name: str
-    args: List[Term]
-    annotations: List[Ann] = field(default_factory=list)
+    args: list[Term]
+    annotations: list[Ann] = field(default_factory=list)
 
 
 @dataclass
@@ -142,18 +142,18 @@ class Solve:
     """
 
     kind: str
-    objective: Optional[Term] = None
-    annotations: List[Ann] = field(default_factory=list)
+    objective: Term | None = None
+    annotations: list[Ann] = field(default_factory=list)
 
 
-Statement = Union[ParDecl, VarDecl, ArrayDecl, Constraint, Solve]
+Statement = ParDecl | VarDecl | ArrayDecl | Constraint | Solve
 
 # Multi-character punctuation, longest first so that "::" and ".." are matched before ":" and ".".
 _PUNCT2 = ("::", "..")
 _PUNCT1 = set(":;,()[]{}=")
 
 
-def tokenize(text: str) -> List[Tuple[str, object]]:
+def tokenize(text: str) -> list[tuple[str, object]]:
     """
     Splits FlatZinc text into a list of ``(kind, value)`` tokens.
 
@@ -163,7 +163,7 @@ def tokenize(text: str) -> List[Tuple[str, object]]:
     :return: a list of tokens, each a pair of a kind (INT, IDENT, PUNCT, STRING) and a value
     :rtype: List[Tuple[str, object]]
     """
-    tokens: List[Tuple[str, object]] = []
+    tokens: list[tuple[str, object]] = []
     i = 0
     n = len(text)
     while i < n:
@@ -221,7 +221,7 @@ class Parser:
     A recursive-descent parser over a token list produced by :func:`tokenize`.
     """
 
-    def __init__(self, tokens: List[Tuple[str, object]]) -> None:
+    def __init__(self, tokens: list[tuple[str, object]]) -> None:
         """
         Inits the parser.
 
@@ -231,7 +231,7 @@ class Parser:
         self.tokens = tokens
         self.pos = 0
 
-    def peek(self) -> Optional[Tuple[str, object]]:
+    def peek(self) -> tuple[str, object] | None:
         """
         Returns the current token without consuming it, or None at the end of input.
 
@@ -240,7 +240,7 @@ class Parser:
         """
         return self.tokens[self.pos] if self.pos < len(self.tokens) else None
 
-    def next(self) -> Tuple[str, object]:
+    def next(self) -> tuple[str, object]:
         """
         Consumes and returns the current token.
 
@@ -253,7 +253,7 @@ class Parser:
         self.pos += 1
         return token
 
-    def expect(self, kind: str, value: Optional[object] = None) -> object:
+    def expect(self, kind: str, value: object | None = None) -> object:
         """
         Consumes the current token, asserting its kind and optionally its value.
 
@@ -299,21 +299,21 @@ class Parser:
         assert isinstance(value, int)
         return value
 
-    def parse(self) -> List[Statement]:
+    def parse(self) -> list[Statement]:
         """
         Parses the whole token stream into a list of statements.
 
         :return: the parsed statements
         :rtype: List[Statement]
         """
-        statements: List[Statement] = []
+        statements: list[Statement] = []
         while self.peek() is not None:
             statement = self.parse_statement()
             if statement is not None:
                 statements.append(statement)
         return statements
 
-    def parse_statement(self) -> Optional[Statement]:
+    def parse_statement(self) -> Statement | None:
         """
         Parses a single top-level statement.
 
@@ -337,31 +337,31 @@ class Parser:
             return self.parse_var_decl()
         return self.parse_par_decl()
 
-    def parse_annotations(self) -> List[Ann]:
+    def parse_annotations(self) -> list[Ann]:
         """
         Parses a (possibly empty) sequence of ``:: annotation`` items.
 
         :return: the parsed annotations
         :rtype: List[Ann]
         """
-        annotations: List[Ann] = []
+        annotations: list[Ann] = []
         while self.accept("PUNCT", "::"):
             name = self.expect("IDENT")
-            args: List[Term] = []
+            args: list[Term] = []
             if self.accept("PUNCT", "("):
                 args = self.parse_arg_list()
                 self.expect("PUNCT", ")")
             annotations.append(Ann(str(name), args))
         return annotations
 
-    def parse_arg_list(self) -> List[Term]:
+    def parse_arg_list(self) -> list[Term]:
         """
         Parses a comma-separated list of terms up to (but not consuming) the closing delimiter.
 
         :return: the parsed terms
         :rtype: List[Term]
         """
-        args: List[Term] = []
+        args: list[Term] = []
         if self.peek() == ("PUNCT", ")") or self.peek() == ("PUNCT", "]"):
             return args
         args.append(self.parse_term())
@@ -403,7 +403,7 @@ class Parser:
             self.expect("PUNCT", "]")
             return elems
         if tk == "PUNCT" and tv == "{":
-            values: List[int] = []
+            values: list[int] = []
             if not self.accept("PUNCT", "}"):
                 values.append(self.expect_int())
                 while self.accept("PUNCT", ","):
@@ -447,7 +447,7 @@ class Parser:
             return Solve(kind, objective, annotations=annotations)
         raise FznParseError(f"unexpected solve kind {kind!r}")
 
-    def parse_domain(self) -> Tuple[int, int, Optional[List[int]]]:
+    def parse_domain(self) -> tuple[int, int, list[int] | None]:
         """
         Parses a scalar integer/bool domain after ``var``: ``int``, ``lo..hi``, ``{v,..}`` or ``bool``.
 
@@ -506,7 +506,7 @@ class Parser:
         self.expect("PUNCT", ":")
         name = str(self.expect("IDENT"))
         annotations = self.parse_annotations()
-        rhs: Optional[Term] = None
+        rhs: Term | None = None
         if self.accept("PUNCT", "="):
             rhs = self.parse_term()
         self.expect("PUNCT", ";")
@@ -546,9 +546,9 @@ class Parser:
         size = index_set.hi - index_set.lo + 1 if isinstance(index_set, Range) else None
         self.expect("IDENT", "of")
         is_var = self.accept("IDENT", "var")
-        lo: Optional[int] = None
-        hi: Optional[int] = None
-        values: Optional[List[int]] = None
+        lo: int | None = None
+        hi: int | None = None
+        values: list[int] | None = None
         is_bool = False
         if is_var:
             is_bool = self.peek() == ("IDENT", "bool")
@@ -561,7 +561,7 @@ class Parser:
         self.expect("PUNCT", ":")
         name = str(self.expect("IDENT"))
         annotations = self.parse_annotations()
-        elems: List[Term] = []
+        elems: list[Term] = []
         if self.accept("PUNCT", "="):
             term = self.parse_term()
             if not isinstance(term, list):
@@ -571,7 +571,7 @@ class Parser:
         return ArrayDecl(name, elems, annotations, is_var, lo, hi, size, is_bool, values)
 
 
-def _term_to_par_value(term: Term) -> Union[int, bool, List[int]]:
+def _term_to_par_value(term: Term) -> int | bool | list[int]:
     """
     Converts a parsed term into a parameter value (int, bool or list of ints).
 
@@ -590,7 +590,7 @@ def _term_to_par_value(term: Term) -> Union[int, bool, List[int]]:
     raise FznParseError(f"unsupported parameter value {term!r}")
 
 
-def parse(text: str) -> List[Statement]:
+def parse(text: str) -> list[Statement]:
     """
     Tokenizes and parses FlatZinc text into a list of statements.
 

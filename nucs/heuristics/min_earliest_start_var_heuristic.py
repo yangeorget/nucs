@@ -51,11 +51,12 @@ def min_earliest_start_var_heuristic(
     for variable in decision_variables:
         earliest_start = domains_stk[top, variable, MIN]
         latest_start = domains_stk[top, variable, MAX]
-        if earliest_start < latest_start:  # unbound
-            if earliest_start < best_earliest_start or (
-                earliest_start == best_earliest_start and latest_start < best_latest_start
-            ):
-                best_earliest_start = earliest_start
-                best_latest_start = latest_start
-                best_variable = variable
+        # unbound, and lexicographically better on (earliest_start, latest_start)
+        if earliest_start < latest_start and (
+            earliest_start < best_earliest_start
+            or (earliest_start == best_earliest_start and latest_start < best_latest_start)
+        ):
+            best_earliest_start = earliest_start
+            best_latest_start = latest_start
+            best_variable = variable
     return best_variable

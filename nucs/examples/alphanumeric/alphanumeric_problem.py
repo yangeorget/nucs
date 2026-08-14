@@ -10,12 +10,12 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Any, Dict
+from typing import Any
 
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_LINEAR_EQ_C, ALG_ALLDIFFERENT
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_LINEAR_EQ_C
 
 
 class AlphanumericProblem(Problem):
@@ -26,13 +26,13 @@ class AlphanumericProblem(Problem):
     e.g. ALPHA puzzle: BALLET=45, CELLO=43, ...
     """
 
-    def __init__(self, dataset: Dict) -> None:
+    def __init__(self, dataset: dict) -> None:
         self.letters = dataset["letters"]
         letter_to_idx = {letter: idx for idx, letter in enumerate(self.letters)}
         n = len(self.letters)
         super().__init__([dataset["domain"]] * n)
         for word, word_sum in dataset.get("word_sums", []):
-            word_counts: Dict[str, int] = {}
+            word_counts: dict[str, int] = {}
             for character in word:
                 word_counts[character] = word_counts.get(character, 0) + 1
             word_letters = sorted(word_counts.keys(), key=lambda letter: letter_to_idx[letter])

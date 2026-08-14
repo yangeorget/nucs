@@ -10,7 +10,6 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import List
 
 import pytest
 
@@ -27,7 +26,7 @@ class TestAllIntervalSeries:
             (9, [0, 8, 1, 7, 2, 6, 3, 5, 4]),
         ],
     )
-    def test_solve(self, size: int, values: List[int]) -> None:
+    def test_solve(self, size: int, values: list[int]) -> None:
         problem = AllIntervalSeriesProblem(size, True)
         solver = BacktrackSolver(problem)
         solution = next(solver.solve(), None)

@@ -12,7 +12,6 @@
 ###############################################################################
 import itertools
 import random
-from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
@@ -22,7 +21,7 @@ from nucs.propagators.diffn_propagator import compute_domains_diffn
 from tests.propagators.propagator_test import PropagatorTest
 
 
-def _feasible_placements(bounds: List[Tuple[int, int]], dx: List[int], dy: List[int]) -> List[Tuple[int, ...]]:
+def _feasible_placements(bounds: list[tuple[int, int]], dx: list[int], dy: list[int]) -> list[tuple[int, ...]]:
     """Brute-force every placement of the rectangles (within bounds) with no pairwise overlap."""
     n = len(dx)
     ranges = [range(lo, hi + 1) for lo, hi in bounds]
@@ -60,10 +59,10 @@ class TestDiffn(PropagatorTest):
     )
     def test_compute_domains(
         self,
-        domains: List[Union[int, Tuple[int, int]]],
-        parameters: List[int],
+        domains: list[int | tuple[int, int]],
+        parameters: list[int],
         consistency_result: int,
-        expected_domains: Optional[List[List[int]]],
+        expected_domains: list[list[int]] | None,
     ) -> None:
         self.assert_compute_domains(compute_domains_diffn, domains, parameters, consistency_result, expected_domains)
 

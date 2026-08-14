@@ -77,10 +77,8 @@ def compute_domains_member(domains: NDArray, parameters: NDArray) -> int:
         return PROP_INCONSISTENCY
     new_min = parameters[lo]
     new_max = parameters[hi]
-    if new_min > x[MIN]:
-        x[MIN] = new_min
-    if new_max < x[MAX]:
-        x[MAX] = new_max
+    x[MIN] = max(x[MIN], new_min)
+    x[MAX] = min(x[MAX], new_max)
     # The allowed values in range are consecutive integers covering the whole interval: the constraint
     # can never be violated again.
     if hi - lo == new_max - new_min:

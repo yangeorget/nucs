@@ -83,10 +83,8 @@ def compute_domains_leq_c_imp(domains: NDArray, parameters: NDArray) -> int:
     if b[MAX] == 0:  # b is false: the implication is vacuously satisfied
         return PROP_ENTAILMENT
     if b[MIN] == 1:  # b is true: enforce x <= y + c
-        if y[MAX] + c < x[MAX]:
-            x[MAX] = y[MAX] + c
-        if x[MIN] - c > y[MIN]:
-            y[MIN] = x[MIN] - c
+        x[MAX] = min(x[MAX], y[MAX] + c)
+        y[MIN] = max(y[MIN], x[MIN] - c)
         if x[MIN] > x[MAX] or y[MIN] > y[MAX]:
             return PROP_INCONSISTENCY
         if x[MAX] <= y[MIN] + c:

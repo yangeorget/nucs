@@ -34,7 +34,7 @@ class QueensProblem(Problem):
         """
         super().__init__([(0, n - 1)] * n)
         self.n = n
-        variables = range(0, n)
+        variables = range(n)
         self.add_propagator(ALG_ALLDIFFERENT, variables)
         self.add_propagator(ALG_ALLDIFFERENT, variables, range(n))
         self.add_propagator(ALG_ALLDIFFERENT, variables, range(0, -n, -1))
@@ -59,7 +59,7 @@ class QueensDualProblem(Problem):
         """
         super().__init__([(0, n - 1)] * 2 * n)
         self.n = n
-        column_variables = range(0, n)
+        column_variables = range(n)
         self.add_propagator(ALG_ALLDIFFERENT, column_variables)
         self.add_propagator(ALG_ALLDIFFERENT, column_variables, range(n))
         self.add_propagator(ALG_ALLDIFFERENT, column_variables, range(0, -n, -1))

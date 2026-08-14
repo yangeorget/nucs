@@ -10,17 +10,17 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from typing import Any, Dict, List
+from typing import Any
 
 from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
-    ALG_LINEAR_EQ_C,
     ALG_EQ_C_REIF,
-    ALG_MAX_EQ,
     ALG_GCC,
     ALG_LEQ_C,
+    ALG_LINEAR_EQ_C,
+    ALG_MAX_EQ,
 )
 
 
@@ -36,7 +36,7 @@ class BACPProblem(Problem):
     The objective is to minimize the maximum load over all periods.
     """
 
-    def __init__(self, dataset: Dict) -> None:
+    def __init__(self, dataset: dict) -> None:
         """
         Inits the problem.
 
@@ -49,8 +49,8 @@ class BACPProblem(Problem):
         load_ub: int = dataset["load_per_period_ub"]
         courses_lb: int = dataset["courses_per_period_lb"]
         courses_ub: int = dataset["courses_per_period_ub"]
-        course_load: List[int] = dataset["course_load"]
-        prerequisites: List[List[int]] = dataset.get("prerequisites", [])
+        course_load: list[int] = dataset["course_load"]
+        prerequisites: list[list[int]] = dataset.get("prerequisites", [])
         # period[i]: index of the period to which course i is assigned, in [0, n_periods - 1]
         period_domains = [(0, self.n_periods - 1)] * self.n_courses
         # b[i, j]: boolean equal to 1 iff period[i] == j
@@ -123,7 +123,7 @@ class BACPProblem(Problem):
         :return: a printable representation of the solution
         :rtype: Any
         """
-        periods: Dict[int, Dict[str, Any]] = {
+        periods: dict[int, dict[str, Any]] = {
             j: {"courses": [], "load": int(solution[self.load(j)])} for j in range(self.n_periods)
         }
         for i in range(self.n_courses):
