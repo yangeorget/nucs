@@ -53,7 +53,9 @@ def get_triggers_regular(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def _supported(domains: NDArray, parameters: NDArray, fwd: NDArray, bwd: NDArray, i: int, v: int, q_nb: int, s_nb: int) -> bool:
+def _supported(
+    domains: NDArray, parameters: NDArray, fwd: NDArray, bwd: NDArray, i: int, v: int, q_nb: int, s_nb: int
+) -> bool:
     """
     Returns whether symbol ``v`` at position ``i`` lies on a valid path (a forward-reachable state reads it into
     a state that can still reach acceptance).
