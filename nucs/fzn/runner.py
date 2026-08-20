@@ -16,6 +16,7 @@ Drives a built :class:`FznModel` through a :class:`BacktrackSolver` and streams 
 
 from typing import TextIO
 
+from nucs.constants import OPTIM_PRUNE
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import FznModel
 from nucs.fzn.output import print_search_complete, print_solution, print_unsatisfiable
@@ -228,6 +229,10 @@ def _run_optimize(
     FlatZinc protocol; the search-complete marker is printed once the optimum has been proven, and the
     unsatisfiable marker when no solution exists at all.
 
+    The search runs in ``OPTIM_PRUNE`` mode: the tightened objective bound is applied to the choice points
+    and the search resumes where it was, instead of restarting from the initial domains after every
+    improving solution.
+
     :param model: the built model
     :type model: FznModel
     :param solver: the solver
@@ -242,9 +247,9 @@ def _run_optimize(
     :type output_objective: bool
     """
     if model.solve.kind == "minimize":
-        solutions = solver.minimize_solutions(objective_var)
+        solutions = solver.minimize_solutions(objective_var, mode=OPTIM_PRUNE)
     else:
-        solutions = solver.maximize_solutions(objective_var)
+        solutions = solver.maximize_solutions(objective_var, mode=OPTIM_PRUNE)
     found = False
     for solution in solutions:
         found = True
