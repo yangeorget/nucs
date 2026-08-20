@@ -1,48 +1,48 @@
 name: tests
 on:
-    push:
-        branches: [ "main" ]
-    pull_request:
-        branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 permissions:
-    contents: read
+  contents: read
 jobs:
-    test-nucs:
-        name: Test NUCS
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                python-version: [ "3.11", "3.12", "3.13", "3.14" ]
-        steps:
-            -   uses: actions/checkout@v6
-            -   name: Set up Python ${{ matrix.python-version }}
-                uses: actions/setup-python@v6
-                with:
-                    python-version: ${{ matrix.python-version }}
-            -   name: Install dependencies
-                run: |
-                    python -m pip install --upgrade pip
-                    pip install .
-                    pip install .[dev]
-                    pip install .[test]
-            -   name: Install MiniZinc
-                env:
-                    MZN_VERSION: "2.9.7"
-                run: |
-                    curl -fsSL -o /tmp/minizinc.tgz \
-                        "https://github.com/MiniZinc/MiniZincIDE/releases/download/${MZN_VERSION}/MiniZincIDE-${MZN_VERSION}-bundle-linux-x86_64.tgz"
-                    mkdir -p "$HOME/minizinc"
-                    tar -xzf /tmp/minizinc.tgz -C "$HOME/minizinc" --strip-components=1
-                    echo "$HOME/minizinc/bin" >> "$GITHUB_PATH"
-            -   name: Verify MiniZinc
-                run: minizinc --version
-            -   name: Ruff check
-                run: ruff check --fix nucs tests
-            -   name: Ruff format
-                run: ruff format nucs tests
-            -   name: Check typing with mypy
-                run: mypy nucs tests
-            -   name: Test with pytest (with Numba)
-                run: NUMBA_CACHE_DIR=./numba/cache pytest
-            -   name: Test with pytest (without Numba)
-                run: NUMBA_DISABLE_JIT=1 pytest
+  test-nucs:
+    name: Test NUCS
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ "3.12", "3.13", "3.14" ]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+          pip install .[dev]
+          pip install .[test]
+      - name: Install MiniZinc
+        env:
+          MZN_VERSION: "2.9.7"
+        run: |
+          curl -fsSL -o /tmp/minizinc.tgz \
+              "https://github.com/MiniZinc/MiniZincIDE/releases/download/${MZN_VERSION}/MiniZincIDE-${MZN_VERSION}-bundle-linux-x86_64.tgz"
+          mkdir -p "$HOME/minizinc"
+          tar -xzf /tmp/minizinc.tgz -C "$HOME/minizinc" --strip-components=1
+          echo "$HOME/minizinc/bin" >> "$GITHUB_PATH"
+      - name: Verify MiniZinc
+        run: minizinc --version
+      - name: Ruff check
+        run: ruff check --fix nucs tests
+      - name: Ruff format
+        run: ruff format nucs tests
+      - name: Check typing with mypy
+        run: mypy nucs tests
+      - name: Test with pytest (with Numba)
+        run: NUMBA_CACHE_DIR=./numba/cache pytest
+      - name: Test with pytest (without Numba)
+        run: NUMBA_DISABLE_JIT=1 pytest
