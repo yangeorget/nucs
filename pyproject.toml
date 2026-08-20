@@ -26,8 +26,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dependencies = [
-    "numba==0.66.0",
-    "numpy==2.4.6",
+    "numba==0.67.0",
+    "numpy==2.5.2",
     "rich==15.0.0"
 ]
 [project.optional-dependencies]
