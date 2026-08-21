@@ -36,14 +36,21 @@ from nucs.propagators.propagators import (
     ALG_COUNT_EQ_C,
     ALG_COUNT_GEQ_C,
     ALG_COUNT_LEQ_C,
+    ALG_ELEMENT_EQ,
     ALG_ELEMENT_L_EQ,
     ALG_ELEMENT_L_EQ_C,
+    ALG_EQ,
+    ALG_EQ_C_IMP,
+    ALG_EQ_C_REIF,
     ALG_INCREASING,
     ALG_LEQ_C,
+    ALG_LEQ_C_IMP,
+    ALG_LEQ_C_REIF,
     ALG_LEXLEQ,
     ALG_LINEAR_EQ_C,
     ALG_MOD_C_EQ,
     ALG_MOD_EQ,
+    ALG_NEQ_C_REIF,
     ALG_NO_SUB_CYCLE,
     ALG_NVALUE,
     ALG_STRICTLY_INCREASING,
@@ -119,6 +126,89 @@ class TestBuiltins:
         assert [prop[1] for prop in model.problem.propagators] == [ALG_SUM_EQ_C, ALG_SUM_GEQ_C]
         assert [prop[2] for prop in model.problem.propagators] == [[5], [3]]
 
+    def test_arity_one_reified_linear_needs_no_auxiliary_sum(self) -> None:
+        # a one-term unit-coefficient linear is the variable itself, so the reification is posted directly
+        # against a constant: no auxiliary sum variable and a single propagator each
+        model = build_model(
+            parse(
+                "var 0..9: x;\nvar bool: p;\nvar bool: q;\nvar bool: s;\nvar bool: t;\n"
+                "constraint int_lin_eq_reif([1], [x], 5, p);\n"
+                "constraint int_lin_ne_reif([-1], [x], -5, q);\n"
+                "constraint int_lin_le_reif([-1], [x], -3, s);\n"
+                "constraint int_lin_ge_reif([1], [x], 3, t);\n"
+                "solve satisfy;"
+            )
+        )
+        algorithms = [prop[1] for prop in model.problem.propagators]
+        assert algorithms == [ALG_EQ_C_REIF, ALG_NEQ_C_REIF, ALG_LEQ_C_REIF, ALG_LEQ_C_REIF]
+        # the eq/ne forms carry the rebased constant, negated for the -1 coefficient
+        assert [prop[2] for prop in model.problem.propagators[:2]] == [[5], [5]]
+
+    def test_arity_one_half_reified_linear_needs_no_auxiliary_sum(self) -> None:
+        model = build_model(
+            parse(
+                "var 0..9: x;\nvar bool: p;\nvar bool: q;\n"
+                "constraint int_lin_eq_imp([-1], [x], -5, p);\n"
+                "constraint int_lin_le_imp([1], [x], 4, q);\n"
+                "solve satisfy;"
+            )
+        )
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_EQ_C_IMP, ALG_LEQ_C_IMP]
+        assert model.problem.propagators[0][2] == [5]
+
+    @pytest.mark.parametrize(
+        "constraint,expected",
+        [
+            ("int_lin_le_reif([-1], [x], -3, r)", [3, 4, 5]),  # r <=> -x <= -3  <=>  x >= 3
+            ("int_lin_le_reif([1], [x], 3, r)", [0, 1, 2, 3]),  # r <=> x <= 3
+            ("int_lin_ge_reif([-1], [x], -3, r)", [0, 1, 2, 3]),  # r <=> -x >= -3  <=>  x <= 3
+            ("int_lin_ge_reif([1], [x], 3, r)", [3, 4, 5]),  # r <=> x >= 3
+            ("int_lin_eq_reif([-1], [x], -3, r)", [3]),  # r <=> -x = -3  <=>  x = 3
+            ("int_lin_ne_reif([1], [x], 3, r)", [0, 1, 2, 4, 5]),  # r <=> x != 3
+        ],
+    )
+    def test_arity_one_reified_linear_semantics(self, constraint: str, expected: list) -> None:
+        # the rewritten fast path must select exactly the x values that satisfy the original constraint
+        out = solve_fzn(
+            f"var 0..5: x :: output_var;\nvar bool: r = true;\nconstraint {constraint};\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert sorted(int(line.split("=")[1].strip(" ;")) for line in out.splitlines() if line.startswith("x =")) == (
+            expected
+        )
+
+    def test_int_eq_uses_the_dedicated_equality(self) -> None:
+        # x = y goes to ALG_EQ (a bound intersection), not the general linear propagator
+        model = build_model(parse("var 0..9: x;\nvar 0..9: y;\nconstraint int_eq(x, y);\nsolve satisfy;"))
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_EQ]
+
+    def test_bool_not_uses_the_unit_coefficient_sum(self) -> None:
+        model = build_model(parse("var bool: a;\nvar bool: b;\nconstraint bool_not(a, b);\nsolve satisfy;"))
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_SUM_EQ_C]
+        assert model.problem.propagators[0][2] == [1]  # a + b = 1
+
+    def test_single_polarity_bool_clause_routes_to_sum(self) -> None:
+        # a purely positive clause is sum(pos) >= 1; a purely negative one is sum(neg) <= len(neg) - 1
+        model = build_model(
+            parse(
+                "var bool: a;\nvar bool: b;\nvar bool: c;\n"
+                "constraint bool_clause([a, b], []);\n"
+                "constraint bool_clause([], [b, c]);\n"
+                "solve satisfy;"
+            )
+        )
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_SUM_GEQ_C, ALG_SUM_LEQ_C]
+        assert [prop[2] for prop in model.problem.propagators] == [[1], [1]]
+
+    def test_bool_clause_semantics_are_unchanged(self) -> None:
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\n"
+            "constraint bool_clause([a], [b]);\nsolve satisfy;",  # a or not b
+            all_solutions=True,
+        )
+        assert out.count("----------") == 3  # every assignment except a=false, b=true
+        assert "a = false;\nb = true;" not in out
+
     def test_unit_coefficient_sum_solves_correctly(self) -> None:
         # x + y = 5, x + y <= 7 (redundant), x <= y: same solutions as the general propagator would give
         out = solve_fzn(
@@ -186,6 +276,7 @@ class TestBuiltins:
         assert "v = 9;" in out  # X[3] (1-based) == 9
 
     def test_var_element_variable_value_uses_element_l_eq(self) -> None:
+        # an index that cannot be 0 addresses a padded array directly: no auxiliary 0-based index, no shift
         model = build_model(
             parse(
                 "var 0..9: a;\nvar 0..9: b;\nvar 1..2: i;\nvar 0..9: v;\n"
@@ -193,7 +284,7 @@ class TestBuiltins:
                 "constraint array_var_int_element(i, X, v);\nsolve satisfy;"
             )
         )
-        assert [prop[1] for prop in model.problem.propagators] == [ALG_ADD_C_EQ, ALG_ELEMENT_L_EQ]
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_ELEMENT_L_EQ]
 
     def test_var_element_constant_value_uses_element_l_eq_c(self) -> None:
         # a constant value routes to the specialized element_l_eq_c propagator, no auxiliary value variable
@@ -205,8 +296,29 @@ class TestBuiltins:
             )
         )
         algorithms = [prop[1] for prop in model.problem.propagators]
-        assert algorithms == [ALG_ADD_C_EQ, ALG_ELEMENT_L_EQ_C]
-        assert model.problem.propagators[1][2] == [7]  # params = [value]
+        assert algorithms == [ALG_ELEMENT_L_EQ_C]
+        assert model.problem.propagators[0][2] == [7]  # params = [value]
+
+    def test_element_padded_array_keeps_constants_aligned(self) -> None:
+        # the constant array is padded with an unreachable leading entry so the 1-based index addresses it
+        model = build_model(
+            parse(
+                "array [1..3] of int: A = [7, 8, 9];\nvar 1..3: i;\nvar 0..9: v;\n"
+                "constraint array_int_element(i, A, v);\nsolve satisfy;"
+            )
+        )
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_ELEMENT_EQ]
+        assert model.problem.propagators[0][2] == [7, 7, 8, 9]  # A[0] duplicated into the unreachable slot
+
+    def test_element_index_reaching_zero_falls_back_to_shift(self) -> None:
+        # padding is only sound when the index cannot be 0, so a 0-capable index keeps the shift
+        model = build_model(
+            parse(
+                "array [1..3] of int: A = [7, 8, 9];\nvar 0..3: i;\nvar 0..9: v;\n"
+                "constraint array_int_element(i, A, v);\nsolve satisfy;"
+            )
+        )
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_ADD_C_EQ, ALG_ELEMENT_EQ]
 
     def test_var_element_constant_value_solves(self) -> None:
         # X[i] = 8 with X = [7, 8, 9] selects index 2 (1-based)

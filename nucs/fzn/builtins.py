@@ -219,27 +219,65 @@ def _aux_lin_sum(model: "FznModel", coeffs: list[int], variables: list[int]) -> 
     return s
 
 
+def _unit_rhs(coeffs: list[int], c: int) -> int | None:
+    """
+    Returns the right-hand side of the single-variable constraint x {=, !=} rhs that a unit-coefficient
+    arity-1 linear over ``c`` reduces to, or None when the shape does not reduce.
+
+    A one-term linear sum(a_i * x_i) with a = [1] is x itself and with a = [-1] is -x, so the constraint
+    becomes x against c, resp. -c. Reified builtins on that shape reduce to a constant-operand propagator
+    with no auxiliary sum variable at all.
+
+    :param coeffs: the coefficients
+    :type coeffs: List[int]
+    :param c: the right-hand side constant
+    :type c: int
+
+    :return: the right-hand side for x, or None if the shape is not a unit-coefficient singleton
+    :rtype: Optional[int]
+    """
+    if coeffs == [1]:
+        return c
+    if coeffs == [-1]:
+        return -c
+    return None
+
+
 def _int_lin_eq_reif(model: "FznModel", args: list[Term]) -> None:
     """
-    Handles ``int_lin_eq_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) = c, via an auxiliary sum variable.
+    Handles ``int_lin_eq_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) = c.
+
+    A unit-coefficient singleton is posted directly as r <=> x = c with no auxiliary sum variable; other
+    shapes go through one.
     """
-    s = _aux_lin_sum(model, model.int_list_of(args[0]), model.var_list_of(args[1]))
-    model.problem.add_propagator(ALG_EQ_C_REIF, [model.var_index_of(args[3]), s], [model.const_of(args[2])])
+    coeffs = model.int_list_of(args[0])
+    variables = model.var_list_of(args[1])
+    c = model.const_of(args[2])
+    r = model.var_index_of(args[3])
+    rhs = _unit_rhs(coeffs, c)
+    if rhs is not None:
+        model.problem.add_propagator(ALG_EQ_C_REIF, [r, variables[0]], [rhs])
+    else:
+        model.problem.add_propagator(ALG_EQ_C_REIF, [r, _aux_lin_sum(model, coeffs, variables)], [c])
 
 
 def _int_lin_le_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_lin_le_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) <= c.
 
-    The binary difference pattern (coefficients [1, -1] or [-1, 1]) -- pervasive in scheduling/disjunctive
-    models -- is posted directly as r <=> x <= y + c via ALG_LEQ_C_REIF, with no auxiliary sum variable.
+    The unit-coefficient singleton and the binary difference pattern (coefficients [1, -1] or [-1, 1]) -- both
+    pervasive in flattened models -- are posted directly via ALG_LEQ_C_REIF with no auxiliary sum variable.
     Other shapes go through an auxiliary sum variable.
     """
     coeffs = model.int_list_of(args[0])
     variables = model.var_list_of(args[1])
     c = model.const_of(args[2])
     r = model.var_index_of(args[3])
-    if coeffs == [1, -1]:  # r <=> x - y <= c  ==  r <=> x <= y + c
+    if coeffs == [1]:  # r <=> x <= c
+        model.problem.add_propagator(ALG_LEQ_C_REIF, [r, variables[0], model.var_index_of(0)], [c])
+    elif coeffs == [-1]:  # r <=> -x <= c  ==  r <=> 0 <= x + c
+        model.problem.add_propagator(ALG_LEQ_C_REIF, [r, model.var_index_of(0), variables[0]], [c])
+    elif coeffs == [1, -1]:  # r <=> x - y <= c  ==  r <=> x <= y + c
         model.problem.add_propagator(ALG_LEQ_C_REIF, [r, variables[0], variables[1]], [c])
     elif coeffs == [-1, 1]:  # r <=> y - x <= c  ==  r <=> y <= x + c
         model.problem.add_propagator(ALG_LEQ_C_REIF, [r, variables[1], variables[0]], [c])
@@ -250,10 +288,20 @@ def _int_lin_le_reif(model: "FznModel", args: list[Term]) -> None:
 
 def _int_lin_ne_reif(model: "FznModel", args: list[Term]) -> None:
     """
-    Handles ``int_lin_ne_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) != c, via an auxiliary sum variable.
+    Handles ``int_lin_ne_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) != c.
+
+    A unit-coefficient singleton is posted directly as r <=> x != c with no auxiliary sum variable; other
+    shapes go through one.
     """
-    s = _aux_lin_sum(model, model.int_list_of(args[0]), model.var_list_of(args[1]))
-    model.problem.add_propagator(ALG_NEQ_C_REIF, [model.var_index_of(args[3]), s], [model.const_of(args[2])])
+    coeffs = model.int_list_of(args[0])
+    variables = model.var_list_of(args[1])
+    c = model.const_of(args[2])
+    r = model.var_index_of(args[3])
+    rhs = _unit_rhs(coeffs, c)
+    if rhs is not None:
+        model.problem.add_propagator(ALG_NEQ_C_REIF, [r, variables[0]], [rhs])
+    else:
+        model.problem.add_propagator(ALG_NEQ_C_REIF, [r, _aux_lin_sum(model, coeffs, variables)], [c])
 
 
 def _int_lin_ge(model: "FznModel", args: list[Term]) -> None:
@@ -275,14 +323,18 @@ def _int_lin_ge_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``int_lin_ge_reif(a, x, c, r)`` as r <=> sum(a_i * x_i) >= c, i.e. r <=> c <= s.
 
-    The binary difference pattern (coefficients [1, -1] or [-1, 1]) is posted directly via ALG_LEQ_C_REIF
-    with no auxiliary sum variable; other shapes go through an auxiliary sum variable.
+    The unit-coefficient singleton and the binary difference pattern (coefficients [1, -1] or [-1, 1]) are
+    posted directly via ALG_LEQ_C_REIF with no auxiliary sum variable; other shapes go through one.
     """
     coeffs = model.int_list_of(args[0])
     variables = model.var_list_of(args[1])
     c = model.const_of(args[2])
     r = model.var_index_of(args[3])
-    if coeffs == [1, -1]:  # r <=> x - y >= c  ==  r <=> y <= x - c
+    if coeffs == [1]:  # r <=> x >= c  ==  r <=> 0 <= x - c
+        model.problem.add_propagator(ALG_LEQ_C_REIF, [r, model.var_index_of(0), variables[0]], [-c])
+    elif coeffs == [-1]:  # r <=> -x >= c  ==  r <=> x <= -c
+        model.problem.add_propagator(ALG_LEQ_C_REIF, [r, variables[0], model.var_index_of(0)], [-c])
+    elif coeffs == [1, -1]:  # r <=> x - y >= c  ==  r <=> y <= x - c
         model.problem.add_propagator(ALG_LEQ_C_REIF, [r, variables[1], variables[0]], [-c])
     elif coeffs == [-1, 1]:  # r <=> y - x >= c  ==  r <=> x <= y - c
         model.problem.add_propagator(ALG_LEQ_C_REIF, [r, variables[0], variables[1]], [-c])
@@ -293,11 +345,11 @@ def _int_lin_ge_reif(model: "FznModel", args: list[Term]) -> None:
 
 def _int_eq(model: "FznModel", args: list[Term]) -> None:
     """
-    Handles ``int_eq(x, y)`` as x - y = 0.
+    Handles ``int_eq(x, y)`` as x = y, via the dedicated equality propagator rather than the general linear
+    one: ALG_EQ is a plain bound intersection (complexity 1) where ALG_LINEAR_EQ_C would run its coefficient
+    fixpoint loop (complexity n) for the same constraint.
     """
-    model.problem.add_propagator(
-        ALG_LINEAR_EQ_C, [model.var_index_of(args[0]), model.var_index_of(args[1])], [1, -1, 0]
-    )
+    model.problem.add_propagator(ALG_EQ, [model.var_index_of(args[0]), model.var_index_of(args[1])])
 
 
 def _int_eq_reif(model: "FznModel", args: list[Term]) -> None:
@@ -349,11 +401,14 @@ def _bool_clause(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``bool_clause(pos, neg)`` as the clause (or of pos) or (or of not neg), modelled as the linear
     inequality sum(pos) - sum(neg) >= 1 - len(neg).
+
+    Routed through ``_post_linear`` so that a single-polarity clause -- a purely positive one being by far the
+    most common shape -- drops to the unit-coefficient sum propagator instead of the general linear one.
     """
     pos = model.var_list_of(args[0])
     neg = model.var_list_of(args[1])
     coeffs = [1] * len(pos) + [-1] * len(neg)
-    model.problem.add_propagator(ALG_LINEAR_GEQ_C, pos + neg, coeffs + [1 - len(neg)])
+    _post_linear(model, coeffs, pos + neg, 1 - len(neg), ALG_LINEAR_GEQ_C, ALG_SUM_GEQ_C, ALG_SUM_LEQ_C)
 
 
 def _bool_and(model: "FznModel", args: list[Term]) -> None:
@@ -368,8 +423,12 @@ def _bool_and(model: "FznModel", args: list[Term]) -> None:
 def _bool_not(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``bool_not(a, b)`` as a + b = 1, i.e. b is the negation of a; booleans are 0..1 integers.
+
+    Posted as a unit-coefficient sum rather than a general linear equality: ALG_SUM_EQ_C skips the
+    coefficient arithmetic and reports entailment as soon as one operand is bound, where ALG_LINEAR_EQ_C
+    waits for both.
     """
-    model.problem.add_propagator(ALG_LINEAR_EQ_C, [model.var_index_of(args[0]), model.var_index_of(args[1])], [1, 1, 1])
+    model.problem.add_propagator(ALG_SUM_EQ_C, [model.var_index_of(args[0]), model.var_index_of(args[1])], [1])
 
 
 def _bool_eq(model: "FznModel", args: list[Term]) -> None:
@@ -438,10 +497,20 @@ def _int_eq_imp(model: "FznModel", args: list[Term]) -> None:
 
 def _int_lin_eq_imp(model: "FznModel", args: list[Term]) -> None:
     """
-    Handles ``int_lin_eq_imp(a, x, c, r)`` as r -> (sum(a_i * x_i) = c), via an auxiliary sum variable.
+    Handles ``int_lin_eq_imp(a, x, c, r)`` as r -> (sum(a_i * x_i) = c).
+
+    Mirrors ``int_lin_eq_reif`` but posts the one-directional ALG_EQ_C_IMP: a unit-coefficient singleton is
+    posted directly as r -> x = c with no auxiliary sum variable; other shapes go through one.
     """
-    s = _aux_lin_sum(model, model.int_list_of(args[0]), model.var_list_of(args[1]))
-    model.problem.add_propagator(ALG_EQ_C_IMP, [model.var_index_of(args[3]), s], [model.const_of(args[2])])
+    coeffs = model.int_list_of(args[0])
+    variables = model.var_list_of(args[1])
+    c = model.const_of(args[2])
+    r = model.var_index_of(args[3])
+    rhs = _unit_rhs(coeffs, c)
+    if rhs is not None:
+        model.problem.add_propagator(ALG_EQ_C_IMP, [r, variables[0]], [rhs])
+    else:
+        model.problem.add_propagator(ALG_EQ_C_IMP, [r, _aux_lin_sum(model, coeffs, variables)], [c])
 
 
 def _int_lin_le_imp(model: "FznModel", args: list[Term]) -> None:
@@ -449,14 +518,18 @@ def _int_lin_le_imp(model: "FznModel", args: list[Term]) -> None:
     Handles ``int_lin_le_imp(a, x, c, r)`` as the half-reification r -> (sum(a_i * x_i) <= c).
 
     Mirrors ``int_lin_le_reif`` but posts the one-directional ALG_LEQ_C_IMP instead of ALG_LEQ_C_REIF: the
-    binary difference pattern (coefficients [1, -1] or [-1, 1]) is posted directly as r -> x <= y + c with no
-    auxiliary sum variable; other shapes go through an auxiliary sum variable.
+    unit-coefficient singleton and the binary difference pattern (coefficients [1, -1] or [-1, 1]) are posted
+    directly with no auxiliary sum variable; other shapes go through one.
     """
     coeffs = model.int_list_of(args[0])
     variables = model.var_list_of(args[1])
     c = model.const_of(args[2])
     r = model.var_index_of(args[3])
-    if coeffs == [1, -1]:  # r -> x - y <= c  ==  r -> x <= y + c
+    if coeffs == [1]:  # r -> x <= c
+        model.problem.add_propagator(ALG_LEQ_C_IMP, [r, variables[0], model.var_index_of(0)], [c])
+    elif coeffs == [-1]:  # r -> -x <= c  ==  r -> 0 <= x + c
+        model.problem.add_propagator(ALG_LEQ_C_IMP, [r, model.var_index_of(0), variables[0]], [c])
+    elif coeffs == [1, -1]:  # r -> x - y <= c  ==  r -> x <= y + c
         model.problem.add_propagator(ALG_LEQ_C_IMP, [r, variables[0], variables[1]], [c])
     elif coeffs == [-1, 1]:  # r -> y - x <= c  ==  r -> y <= x + c
         model.problem.add_propagator(ALG_LEQ_C_IMP, [r, variables[1], variables[0]], [c])
@@ -932,13 +1005,39 @@ def _set_in_reif(model: "FznModel", args: list[Term]) -> None:
     model.problem.add_propagator(ALG_MAX_EQ, reifs + [b])
 
 
+def _is_one_based(model: "FznModel", index: int) -> bool:
+    """
+    Returns whether a FlatZinc element index can be used to address a padded array directly.
+
+    The element propagators clamp the index to the bounds of the array they are given, so padding the array
+    with an unreachable entry at position 0 lets the 1-based FlatZinc index address it as is, saving the
+    auxiliary 0-based index and its shift propagator. This is only sound when the index cannot take the value
+    0, which is what the declared domain is checked for.
+
+    :param model: the model
+    :type model: FznModel
+    :param index: the index variable
+    :type index: int
+
+    :return: True if the index is guaranteed to be at least 1
+    :rtype: bool
+    """
+    return bool(model.problem.domains[index][0] >= 1)
+
+
 def _array_int_element(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``array_int_element(i, A, c)`` as A[i] = c, where A is an array of constants and i is 1-based.
+
+    When i cannot be 0, A is padded with an unreachable leading entry so that the 1-based index addresses it
+    directly; otherwise an auxiliary 0-based index is created and shifted.
     """
     index = model.var_index_of(args[0])
     array = model.int_list_of(args[1])
     value = model.var_index_of(args[2])
+    if array and _is_one_based(model, index):
+        model.problem.add_propagator(ALG_ELEMENT_EQ, [index, value], [array[0], *array])
+        return
     index0 = model.problem.add_variable((0, len(array) - 1))
     model.problem.add_propagator(ALG_ADD_C_EQ, [index, index0], [-1])
     model.problem.add_propagator(ALG_ELEMENT_EQ, [index0, value], array)
@@ -947,9 +1046,21 @@ def _array_int_element(model: "FznModel", args: list[Term]) -> None:
 def _array_var_int_element(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``array_var_int_element(i, X, c)`` as X[i] = c, where X is an array of variables and i is 1-based.
+
+    Like ``array_int_element``, an index that cannot be 0 addresses a padded array directly. The padding
+    variable is a constant one rather than a repeat of X[0]: a propagator gathers its domains into a scratch
+    buffer, so the same variable appearing twice in one propagator would have its two copies written back
+    independently.
     """
     index = model.var_index_of(args[0])
     array = model.var_list_of(args[1])
+    if array and _is_one_based(model, index):
+        padded = [model.var_index_of(0), *array]
+        if _is_const(model, args[2]):
+            model.problem.add_propagator(ALG_ELEMENT_L_EQ_C, padded + [index], [model.const_of(args[2])])
+        else:
+            model.problem.add_propagator(ALG_ELEMENT_L_EQ, padded + [index, model.var_index_of(args[2])])
+        return
     index0 = model.problem.add_variable((0, len(array) - 1))
     model.problem.add_propagator(ALG_ADD_C_EQ, [index, index0], [-1])
     if _is_const(model, args[2]):
