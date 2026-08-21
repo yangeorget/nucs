@@ -14,7 +14,8 @@
 The :class:`FznModel` turns a list of parsed FlatZinc statements into a NuCS :class:`Problem`.
 
 It maintains an ordered symbol table mapping FlatZinc identifiers to NuCS variable indices or constants,
-allocates NuCS variables on demand, and dispatches each constraint through the builtin registry.
+allocates one NuCS variable per class of always-equal FlatZinc variables, and dispatches each constraint
+through the builtin registry.
 """
 
 from nucs.fzn.builtins import BUILTINS
@@ -35,6 +36,9 @@ from nucs.fzn.parser import (
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_MEMBER
 
+# The builtins stating that two variables are always equal, which an equality class represents for free.
+_ALIAS_BUILTINS = ("bool2int", "bool_eq", "int_eq")
+
 
 class FznModel:
     """
@@ -50,13 +54,24 @@ class FznModel:
         self.vars: dict[str, int] = {}
         self.arrays: dict[str, list[Term]] = {}
         self.const_var_cache: dict[int, int] = {}
+        # Variable allocation is deferred until the equality classes are known (see build), so declaring a
+        # variable only records it here: the declaration order of pending_names fixes the allocation order.
+        self.pending_names: list[str] = []
+        self.alias_parent: dict[str, str] = {}  # union-find over declared variable names
+        self.alias_domain: dict[str, tuple[int, int, list[int] | None]] = {}  # (lo, hi, values) per class root
         # output_items: ("scalar", name, is_bool) or ("array", name, lo, hi, is_bool)
         self.output_items: list[tuple] = []
         self.solve: Solve = Solve("satisfy")
 
     def build(self, statements: list[Statement]) -> "FznModel":
         """
-        Builds the model from parsed statements: a declaration pass then a constraint pass.
+        Builds the model from parsed statements: a declaration pass, an aliasing pass, the allocation of one
+        NuCS variable per equality class, then a constraint pass.
+
+        The declaration pass only records variables, because ``bool2int``/``bool_eq``/``int_eq`` state that
+        two of them are always equal: a bounds solver represents such a pair as a single variable, so
+        allocating eagerly would waste both a variable and the propagator channelling it. The aliasing pass
+        therefore runs first and collapses those constraints into equality classes.
 
         :param statements: the parsed statements
         :type statements: List[Statement]
@@ -76,13 +91,126 @@ class FznModel:
                 self.solve = statement
             elif isinstance(statement, Constraint):
                 constraints.append(statement)
-        # The constraint pass happens after every declaration so that forward references resolve.
+        # Both passes below happen after every declaration so that forward references resolve.
+        constraints = self._absorb_aliases(constraints)
+        self._allocate_variables()
         for constraint in constraints:
             handler = BUILTINS.get(constraint.name)
             if handler is None:
                 raise FznUnsupportedError(f"constraint '{constraint.name}' is not supported")
             handler(self, constraint.args)
         return self
+
+    def _find(self, name: str) -> str:
+        """
+        Returns the representative of a declared variable's equality class, compressing the path to it.
+
+        :param name: the variable name
+        :type name: str
+
+        :return: the name representing the class
+        :rtype: str
+        """
+        root = name
+        while self.alias_parent[root] != root:
+            root = self.alias_parent[root]
+        while self.alias_parent[name] != root:
+            self.alias_parent[name], name = root, self.alias_parent[name]
+        return root
+
+    def _union(self, name: str, other: str) -> bool:
+        """
+        Merges the equality classes of two declared variables, intersecting their domains.
+
+        :param name: a variable name
+        :type name: str
+        :param other: the name of a variable always equal to it
+        :type other: str
+
+        :return: False when the two domains do not intersect, leaving the classes untouched
+        :rtype: bool
+        """
+        root, other_root = self._find(name), self._find(other)
+        if root == other_root:
+            return True
+        domain, other_domain = self.alias_domain.get(root), self.alias_domain.get(other_root)
+        if domain is None or other_domain is None:  # a bare alias contributes no domain of its own
+            merged = other_domain if domain is None else domain
+        else:
+            intersection = _intersect_domains(domain, other_domain)
+            if intersection is None:
+                return False
+            merged = intersection
+        self.alias_parent[other_root] = root
+        self.alias_domain.pop(other_root, None)
+        if merged is not None:
+            self.alias_domain[root] = merged
+        return True
+
+    def _declare_pending(self, name: str, lo: int, hi: int, values: list[int] | None) -> None:
+        """
+        Records a variable to allocate once its equality class is known.
+
+        :param name: the variable name
+        :type name: str
+        :param lo: the lower bound of its domain
+        :type lo: int
+        :param hi: the upper bound of its domain
+        :type hi: int
+        :param values: the explicit allowed values of a non-contiguous domain, or None
+        :type values: Optional[List[int]]
+        """
+        self.alias_parent[name] = name
+        self.alias_domain[name] = (lo, hi, values)
+        self.pending_names.append(name)
+
+    def _absorb_aliases(self, constraints: list[Constraint]) -> list[Constraint]:
+        """
+        Merges the equality classes of every constraint stating that two declared variables are equal, and
+        returns the constraints that remain to be posted.
+
+        A constraint is only absorbed when both operands are declared variables -- an operand fixed to a
+        constant is left to its regular handler -- and when their domains intersect, so an unsatisfiable
+        equality is reported by propagation rather than silently dropped.
+
+        :param constraints: the parsed constraints
+        :type constraints: List[Constraint]
+
+        :return: the constraints that were not absorbed
+        :rtype: List[Constraint]
+        """
+        kept = []
+        for constraint in constraints:
+            if constraint.name in _ALIAS_BUILTINS and len(constraint.args) == 2:
+                left, right = self._deref(constraint.args[0]), self._deref(constraint.args[1])
+                if (
+                    isinstance(left, Id)
+                    and isinstance(right, Id)
+                    and left.name in self.alias_parent
+                    and right.name in self.alias_parent
+                    and self._union(left.name, right.name)
+                ):
+                    continue
+            kept.append(constraint)
+        return kept
+
+    def _allocate_variables(self) -> None:
+        """
+        Allocates one NuCS variable per equality class, in declaration order, and points every name of a
+        class at it.
+        """
+        allocated: dict[str, int] = {}
+        for name in self.pending_names:
+            root = self._find(name)
+            if root not in allocated:
+                lo, hi, values = self.alias_domain[root]
+                index = self.problem.add_variable((lo, hi))
+                allocated[root] = index
+                if values is not None:
+                    # A non-contiguous domain is stored as its interval plus a member constraint for the holes.
+                    self.problem.add_propagator(ALG_MEMBER, [index], values)
+        for name in self.alias_parent:
+            self.vars[name] = allocated[self._find(name)]
 
     def _declare_var(self, decl: VarDecl) -> None:
         """
@@ -97,18 +225,16 @@ class FznModel:
         elif isinstance(decl.rhs, int):
             self.consts[decl.name] = decl.rhs
         elif isinstance(decl.rhs, Id):
-            if decl.rhs.name in self.vars:
-                self.vars[decl.name] = self.vars[decl.rhs.name]
+            if decl.rhs.name in self.alias_parent:
+                # A bare alias joins the class of its right-hand side and takes its domain, as before.
+                self.alias_parent[decl.name] = decl.name
+                self._union(decl.name, decl.rhs.name)
             elif decl.rhs.name in self.consts:
                 self.consts[decl.name] = self.consts[decl.rhs.name]
             else:
                 raise FznParseError(f"unknown identifier '{decl.rhs.name}'")
         else:
-            index = self.problem.add_variable((decl.lo, decl.hi))
-            self.vars[decl.name] = index
-            if decl.values is not None:
-                # A non-contiguous domain is stored as its interval plus a member constraint for the holes.
-                self.problem.add_propagator(ALG_MEMBER, [index], decl.values)
+            self._declare_pending(decl.name, decl.lo, decl.hi, decl.values)
         for ann in decl.annotations:
             if ann.name == "output_var":
                 self.output_items.append(("scalar", decl.name, decl.is_bool))
@@ -127,11 +253,7 @@ class FznModel:
             elems: list[Term] = []
             for i in range(decl.size):
                 elem_name = f"{decl.name}[{i + 1}]"
-                index = self.problem.add_variable((decl.lo, decl.hi))
-                self.vars[elem_name] = index
-                if decl.values is not None:
-                    # Each element of a non-contiguous element domain gets its own member constraint.
-                    self.problem.add_propagator(ALG_MEMBER, [index], decl.values)
+                self._declare_pending(elem_name, decl.lo, decl.hi, decl.values)
                 elems.append(Id(elem_name))
             self.arrays[decl.name] = elems
         elif decl.is_var:
@@ -313,6 +435,63 @@ class FznModel:
         if isinstance(term, Id) and term.name in self.arrays:
             return self.arrays[term.name]
         raise FznUnsupportedError(f"expected an array, got {term!r}")
+
+
+def _intersect_values(values: list[int] | None, other: list[int] | None, lo: int, hi: int) -> list[int] | None:
+    """
+    Intersects two lists of allowed values, restricted to the interval lo..hi.
+
+    A None list means every value of the interval is allowed. The interval is never materialised, so an
+    unbounded domain (whose interval spans the whole default range) stays cheap.
+
+    :param values: the allowed values, or None
+    :type values: Optional[List[int]]
+    :param other: the other allowed values, or None
+    :type other: Optional[List[int]]
+    :param lo: the lower bound to restrict to
+    :type lo: int
+    :param hi: the upper bound to restrict to
+    :type hi: int
+
+    :return: the allowed values in ascending order, or None when the interval is not restricted
+    :rtype: Optional[List[int]]
+    """
+    if values is None:
+        if other is None:
+            return None
+        return [value for value in other if lo <= value <= hi]
+    if other is None:
+        return [value for value in values if lo <= value <= hi]
+    allowed = set(other)
+    return [value for value in values if lo <= value <= hi and value in allowed]
+
+
+def _intersect_domains(
+    domain: tuple[int, int, list[int] | None], other: tuple[int, int, list[int] | None]
+) -> tuple[int, int, list[int] | None] | None:
+    """
+    Intersects two variable domains, each an interval plus an optional list of allowed values.
+
+    :param domain: a (lo, hi, values) domain
+    :type domain: Tuple[int, int, Optional[List[int]]]
+    :param other: the other (lo, hi, values) domain
+    :type other: Tuple[int, int, Optional[List[int]]]
+
+    :return: the intersected domain, or None when the two do not intersect
+    :rtype: Optional[Tuple[int, int, Optional[List[int]]]]
+    """
+    lo = max(domain[0], other[0])
+    hi = min(domain[1], other[1])
+    if lo > hi:
+        return None
+    values = _intersect_values(domain[2], other[2], lo, hi)
+    if values is None:
+        return lo, hi, None
+    if not values:
+        return None
+    lo, hi = values[0], values[-1]
+    # A contiguous set is exactly its interval, so no member constraint is needed.
+    return lo, hi, None if len(values) == hi - lo + 1 else values
 
 
 def _index_set_bounds(decl: ArrayDecl, ann) -> tuple[int, int]:  # type: ignore[no-untyped-def]
