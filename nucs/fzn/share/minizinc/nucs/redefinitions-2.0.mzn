@@ -12,7 +12,10 @@
 % bool_clause -- b <-> (sum(as) - sum(bs) >= 1 - |bs|) -- which flattens to a single int_lin_ge_reif that
 % NuCS handles natively (one auxiliary sum + a reified comparison), instead of the standard library's
 % expansion into one clause plus a per-literal implication each (a ~5-6x blow-up in bool_clause count).
-% The float maxima/minima keep their standard decomposition bodies: NuCS has no native propagator for them.
+%
+% The standard file's array_float_maximum / array_float_minimum bodies are deliberately not restated here.
+% They are unreachable for NuCS: any model that could trigger them declares var float, which the FlatZinc
+% parser rejects outright (NuCS handles integer variables only), so no float decomposition can ever help.
 
 predicate bool_clause_reif(array [int] of var bool: as, array [int] of var bool: bs, var bool: b) =
   b <-> (sum (i in index_set(as)) (bool2int(as[i])) - sum (i in index_set(bs)) (bool2int(bs[i]))
@@ -21,21 +24,3 @@ predicate bool_clause_reif(array [int] of var bool: as, array [int] of var bool:
 predicate array_int_maximum(var int: m, array [int] of var int: x);
 
 predicate array_int_minimum(var int: m, array [int] of var int: x);
-
-predicate array_float_maximum(var float: m, array [int] of var float: x) =
-  let {
-    int: l = min(index_set(x));
-    int: u = max(index_set(x));
-    float: ly = lb_array(x);
-    float: uy = ub_array(x);
-    array [l..u] of var ly..uy: y;
-  } in y[l] = x[l] /\ m = y[u] /\ forall (i in l + 1..u) (y[i] == max(x[i], y[i - 1]));
-
-predicate array_float_minimum(var float: m, array [int] of var float: x) =
-  let {
-    int: l = min(index_set(x));
-    int: u = max(index_set(x));
-    float: ly = lb_array(x);
-    float: uy = ub_array(x);
-    array [l..u] of var ly..uy: y;
-  } in y[l] = x[l] /\ m = y[u] /\ forall (i in l + 1..u) (y[i] == min(x[i], y[i - 1]));
