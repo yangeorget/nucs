@@ -94,6 +94,27 @@ class TestParser:
         with pytest.raises(FznUnsupportedError):
             parse("var float: x;")
 
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "var 0.0..10.0: x;",  # float domain
+            "constraint float_lt(1.0, x);",  # float literal in a constraint
+            "float: p = -2.5;",  # negative float parameter
+            "var -1e+30..1e+30: x;",  # exponent form, as emitted for unbounded float bounds
+        ],
+    )
+    def test_unsupported_float_literal(self, text: str) -> None:
+        # the whole input is tokenized before parsing, so a float anywhere must be reported as a type
+        # error rather than as an unexpected '.' character
+        with pytest.raises(FznUnsupportedError) as exc:
+            parse(text)
+        assert "float literal" in str(exc.value)
+
+    def test_float_rejection_keeps_range_punctuation(self) -> None:
+        # '.' only starts a float when a digit follows, so 'lo..hi' must still parse
+        statements = parse("array [1..3] of var -10..-1: a;")
+        assert statements[0] == ArrayDecl("a", [], [], True, -10, -1, 3)
+
     def test_unsupported_set_domain_hints_at_variable_bounded_comprehension(self) -> None:
         # a var set typically comes from a comprehension over a variable-bounded range; the error should
         # point at that cause and the reification rewrite

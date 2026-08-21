@@ -153,6 +153,42 @@ _PUNCT2 = ("::", "..")
 _PUNCT1 = set(":;,()[]{}=")
 
 
+def _reject_float(text: str, start: int, end: int) -> None:
+    """
+    Raises if the integer literal ending at ``end`` is in fact the head of a float literal.
+
+    The whole input is tokenized before parsing, so an unsupported float anywhere in the model would
+    otherwise surface as a bare "unexpected character '.'" instead of the type error it really is. A ``.``
+    only starts a float when a digit follows, which leaves the ``lo..hi`` range punctuation intact.
+
+    :param text: the FlatZinc source
+    :type text: str
+    :param start: the offset of the first character of the integer literal
+    :type start: int
+    :param end: the offset just past the last digit of the integer literal
+    :type end: int
+    """
+    n = len(text)
+    stop = end
+    if stop + 1 < n and text[stop] == "." and text[stop + 1].isdigit():
+        stop += 2
+        while stop < n and text[stop].isdigit():
+            stop += 1
+    if stop < n and text[stop] in "eE":
+        j = stop + 1
+        if j < n and text[j] in "+-":
+            j += 1
+        if j < n and text[j].isdigit():
+            stop = j + 1
+            while stop < n and text[stop].isdigit():
+                stop += 1
+    if stop == end:
+        return
+    raise FznUnsupportedError(
+        f"float literal {text[start:stop]!r} at offset {start} is not supported: NuCS handles integer variables only"
+    )
+
+
 def tokenize(text: str) -> list[tuple[str, object]]:
     """
     Splits FlatZinc text into a list of ``(kind, value)`` tokens.
@@ -187,6 +223,7 @@ def tokenize(text: str) -> list[tuple[str, object]]:
             j = i + 1
             while j < n and text[j].isdigit():
                 j += 1
+            _reject_float(text, i, j)
             tokens.append(("INT", int(text[i:j])))
             i = j
             continue
@@ -194,6 +231,7 @@ def tokenize(text: str) -> list[tuple[str, object]]:
             j = i
             while j < n and text[j].isdigit():
                 j += 1
+            _reject_float(text, i, j)
             tokens.append(("INT", int(text[i:j])))
             i = j
             continue
