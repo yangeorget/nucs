@@ -87,6 +87,10 @@ if TYPE_CHECKING:
 
 Handler = Callable[["FznModel", list[Term]], None]
 
+# The widest contiguous value range a global_cardinality is allowed to span: its propagator takes one lower
+# and one upper capacity per value, so the parameter array grows with the range, not with the cover.
+GCC_MAX_VALUE_NB = 1 << 20
+
 
 def _is_const(model: "FznModel", term: Term) -> bool:
     """
@@ -161,13 +165,20 @@ def _bool_lin_eq(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``bool_lin_eq(a, b, c)`` as the linear equality sum(a_i * b_i) = c. Unlike ``int_lin_eq``,
     the result c is a variable (the booleans b_i are 0/1 variables), so it is posted as sum = c.
+
+    Both unit-coefficient shapes avoid the general coefficient propagator: all-1 is the plain sum
+    sum(b_i) = c, and all-(-1) is -sum(b_i) = c, i.e. the b_i together with c summing to zero. The negated
+    shape cannot reuse the all-1 propagator the way ``int_lin_eq`` does, because there the right-hand side is
+    a constant that can simply be negated.
     """
     coeffs = model.int_list_of(args[0])
     variables = model.var_list_of(args[1])
     c = model.var_index_of(args[2])
-    if all(a == 1 for a in coeffs):
+    if coeffs and all(a == 1 for a in coeffs):
         # a plain count of true booleans: the cheaper unit-coefficient propagator (sum(b_i) = c)
         model.problem.add_propagator(ALG_SUM_EQ, variables + [c])
+    elif coeffs and all(a == -1 for a in coeffs):  # -sum(b_i) = c  ==  sum(b_i) + c = 0
+        model.problem.add_propagator(ALG_SUM_EQ_C, variables + [c], [0])
     else:
         model.problem.add_propagator(ALG_LINEAR_EQ_C, variables + [c], coeffs + [-1, 0])
 
@@ -1079,6 +1090,10 @@ def _global_cardinality_low_up(model: "FznModel", args: list[Term]) -> None:
     cover alone is not enough: a value a variable can take but that is outside the cover would be wrongly
     forbidden. We therefore span the cover together with the variable domains into a contiguous range and
     give every uncovered value the unbounded capacity ``[0, n]`` (n = number of variables).
+
+    Because that range follows the variable domains, a variable declared as a plain ``var int`` -- which the
+    parser widens to a very large default interval -- would make the parameter array explode, so an
+    unreasonably wide range is rejected rather than allocated.
     """
     variables = model.var_list_of(args[0])
     cover = model.int_list_of(args[1])
@@ -1089,6 +1104,13 @@ def _global_cardinality_low_up(model: "FznModel", args: list[Term]) -> None:
     domains = model.problem.domains
     lo = min([min(cover)] + [domains[v][0] for v in variables])
     hi = max([max(cover)] + [domains[v][1] for v in variables])
+    if hi - lo + 1 > GCC_MAX_VALUE_NB:
+        raise FznUnsupportedError(
+            f"global_cardinality over the value range {lo}..{hi} is not supported: NuCS's GCC propagator "
+            f"constrains every value of a contiguous range, and this one spans {hi - lo + 1} values "
+            f"(the limit is {GCC_MAX_VALUE_NB}). This usually comes from an unbounded 'var int' among the "
+            "counted variables; give them an explicit domain, e.g. 'var 0..n: x'"
+        )
     full_lb = [capacities[value][0] if value in capacities else 0 for value in range(lo, hi + 1)]
     full_ub = [capacities[value][1] if value in capacities else n for value in range(lo, hi + 1)]
     model.problem.add_propagator(ALG_GCC, variables, [lo] + full_lb + full_ub)

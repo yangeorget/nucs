@@ -42,6 +42,7 @@ from nucs.propagators.propagators import (
     ALG_EQ,
     ALG_EQ_C_IMP,
     ALG_EQ_C_REIF,
+    ALG_GCC,
     ALG_INCREASING,
     ALG_LEQ_C,
     ALG_LEQ_C_IMP,
@@ -312,6 +313,59 @@ class TestBuiltins:
         )
         assert out.count("----------") == 1
         assert "a = false;" in out and "b = true;" in out
+
+    def test_bool_lin_eq_negative_unit_coefficients_route_to_sum(self) -> None:
+        # all-(-1) coefficients are -sum(b_i) = c, i.e. the booleans and c summing to zero
+        model = build_model(
+            parse(
+                "var bool: a;\nvar bool: b;\nvar -2..0: s;\n"
+                "constraint bool_lin_eq([-1, -1], [a, b], s);\nsolve satisfy;"
+            )
+        )
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_SUM_EQ_C]
+        assert model.problem.propagators[0][2] == [0]
+
+    def test_bool_lin_eq_negative_unit_coefficients_solve_correctly(self) -> None:
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\nvar -2..0: s :: output_var;\n"
+            "constraint bool_lin_eq([-1, -1], [a, b], s);\nconstraint int_eq(s, -1);\n"
+            "solve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 2  # exactly one of a, b is true
+        assert "a = true;\nb = false;" in out
+        assert "a = false;\nb = true;" in out
+
+    def test_gcc_over_an_unbounded_domain_is_rejected(self) -> None:
+        # the value range follows the variable domains, so an unbounded 'var int' would blow the parameter
+        # array up; it must be reported rather than allocated
+        with pytest.raises(FznUnsupportedError) as exc:
+            build_model(
+                parse(
+                    "var int: a;\nvar 0..3: b;\n"
+                    "array [1..2] of var int: x = [a, b];\n"
+                    "array [1..1] of int: cover = [1];\n"
+                    "array [1..1] of int: lb = [0];\narray [1..1] of int: ub = [1];\n"
+                    "constraint fzn_global_cardinality_low_up(x, cover, lb, ub);\nsolve satisfy;"
+                )
+            )
+        message = str(exc.value)
+        assert "value range" in message
+        assert "var 0..n" in message  # the message points at the fix
+
+    def test_gcc_over_a_bounded_domain_is_accepted(self) -> None:
+        # the same model with explicit domains stays well within the limit
+        model = build_model(
+            parse(
+                "var 0..3: a;\nvar 0..3: b;\n"
+                "array [1..2] of var int: x = [a, b];\n"
+                "array [1..1] of int: cover = [1];\n"
+                "array [1..1] of int: lb = [0];\narray [1..1] of int: ub = [1];\n"
+                "constraint fzn_global_cardinality_low_up(x, cover, lb, ub);\nsolve satisfy;"
+            )
+        )
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_GCC]
+        assert model.problem.propagators[0][2] == [0, 0, 0, 0, 0, 2, 1, 2, 2]  # lo, 4 lower, 4 upper bounds
 
     def test_all_different_plus_linear_satisfy(self) -> None:
         out = solve_fzn(
