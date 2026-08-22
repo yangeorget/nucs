@@ -14,6 +14,7 @@
 Drives a built :class:`FznModel` through a :class:`BacktrackSolver` and streams the solutions.
 """
 
+import time
 from typing import TextIO
 
 from numpy.typing import NDArray
@@ -21,7 +22,7 @@ from numpy.typing import NDArray
 from nucs.constants import OPTIM_PRUNE
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import FznModel
-from nucs.fzn.output import print_search_complete, print_solution, print_unsatisfiable
+from nucs.fzn.output import print_search_complete, print_solution, print_unknown, print_unsatisfiable
 from nucs.fzn.parser import Ann, Id
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
@@ -175,6 +176,7 @@ def run(
     output_mode: str = "item",
     output_objective: bool = False,
     intermediate_solutions: bool = False,
+    time_limit_ms: int | None = None,
 ) -> None:
     """
     Solves the model and writes the FlatZinc solution stream.
@@ -199,6 +201,8 @@ def run(
     :type output_objective: bool
     :param intermediate_solutions: whether to stream the improving solutions of an optimization problem
     :type intermediate_solutions: bool
+    :param time_limit_ms: the wall-clock budget in milliseconds, or None for an unbounded search
+    :type time_limit_ms: Optional[int]
     """
     # Resolve the objective before constructing the solver, since the solver snapshots the domains on init.
     objective_var = None
@@ -211,12 +215,20 @@ def run(
         solver = BacktrackSolver(model.problem, log_level="ERROR")
     else:
         solver = BacktrackSolver(model.problem, searches=searches, log_level="ERROR")
+    deadline = None if time_limit_ms is None else time.monotonic() + time_limit_ms / 1000
     if model.solve.kind == "satisfy":
-        _run_satisfy(model, solver, out, all_solutions, num_solutions, output_mode)
+        _run_satisfy(model, solver, out, all_solutions, num_solutions, output_mode, deadline)
     else:
         assert objective_var is not None
         _run_optimize(
-            model, solver, objective_var, out, output_mode, output_objective, all_solutions or intermediate_solutions
+            model,
+            solver,
+            objective_var,
+            out,
+            output_mode,
+            output_objective,
+            all_solutions or intermediate_solutions or deadline is not None,
+            deadline,
         )
     if statistics:
         _print_statistics(solver, out)
@@ -230,6 +242,7 @@ def _run_optimize(
     output_mode: str,
     output_objective: bool,
     intermediate_solutions: bool,
+    deadline: float | None,
 ) -> None:
     """
     Prints the optimum of an optimization problem, or the whole sequence of improving solutions.
@@ -238,6 +251,12 @@ def _run_optimize(
     the intermediate ones. When they are given, each improving solution is printed as soon as it is found
     and the last of them is the optimum. The search-complete marker is printed once the optimum has been
     proven, and the unsatisfiable marker when no solution exists at all.
+
+    A time limit also turns streaming on, whatever the flags say. Printing only at the end is safe exactly
+    when the search is allowed to finish; under a deadline it is not, because a descent runs in compiled
+    code that cannot be interrupted, so the deadline is noticed late and an external kill -- which is how
+    MiniZinc enforces its own limit -- would land while the best solution found so far had never been
+    printed. Streaming costs nothing there: MiniZinc keeps the last solution it received.
 
     The search runs in ``OPTIM_PRUNE`` mode: the tightened objective bound is applied to the choice points
     and the search resumes where it was, instead of restarting from the initial domains after every
@@ -257,6 +276,8 @@ def _run_optimize(
     :type output_objective: bool
     :param intermediate_solutions: whether to print every improving solution rather than only the optimum
     :type intermediate_solutions: bool
+    :param deadline: the monotonic time to stop at, or None for an unbounded search
+    :type deadline: Optional[float]
     """
     if model.solve.kind == "minimize":
         solutions = solver.minimize_solutions(objective_var, mode=OPTIM_PRUNE)
@@ -264,6 +285,7 @@ def _run_optimize(
         solutions = solver.maximize_solutions(objective_var, mode=OPTIM_PRUNE)
     best = None
     printed = False
+    proven = True
     for solution in solutions:
         if intermediate_solutions:
             _print_optimization_solution(model, solution, objective_var, out, output_mode, output_objective)
@@ -271,14 +293,38 @@ def _run_optimize(
         else:
             # The solver yields a view on its own domain stack, which the next descent overwrites.
             best = solution.copy()
+        if _expired(deadline):
+            proven = False
+            break
     if best is not None:
         _print_optimization_solution(model, best, objective_var, out, output_mode, output_objective)
         printed = True
     if printed:
-        print_search_complete(out)
-    else:
+        if proven:
+            print_search_complete(out)
+    elif proven:
         print_unsatisfiable(out)
+    else:
+        print_unknown(out)
     out.flush()
+
+
+def _expired(deadline: float | None) -> bool:
+    """
+    Returns whether the wall-clock budget is spent.
+
+    The check can only run where the search returns to Python -- between two solutions -- because a single
+    descent runs in compiled code that nothing in this process can interrupt. It therefore bounds the time
+    spent *between* solutions, not the time spent inside one descent: MiniZinc's own kill remains the
+    backstop for a search that finds nothing for a long time.
+
+    :param deadline: the monotonic time to stop at, or None for an unbounded search
+    :type deadline: Optional[float]
+
+    :return: True when the deadline has passed
+    :rtype: bool
+    """
+    return deadline is not None and time.monotonic() >= deadline
 
 
 def _print_optimization_solution(
@@ -316,7 +362,8 @@ def _run_satisfy(
     out: TextIO,
     all_solutions: bool,
     num_solutions: int | None,
-    output_mode: str = "item",
+    output_mode: str,
+    deadline: float | None,
 ) -> None:
     """
     Iterates satisfy solutions honoring the all/limit flags and prints the appropriate terminators.
@@ -333,20 +380,29 @@ def _run_satisfy(
     :type num_solutions: Optional[int]
     :param output_mode: the solution output format, one of ``item``, ``dzn`` or ``json``
     :type output_mode: str
+    :param deadline: the monotonic time to stop at, or None for an unbounded search
+    :type deadline: Optional[float]
     """
     limit = None if all_solutions else (num_solutions if num_solutions is not None else 1)
     found = False
     exhausted = True
+    expired = False
     for count, solution in enumerate(solver.solve(), start=1):
         print_solution(model, solution, out, output_mode)
         found = True
         if limit is not None and count >= limit:
             exhausted = False
             break
+        if _expired(deadline):
+            exhausted = False
+            expired = True
+            break
     if not found:
-        print_unsatisfiable(out)
+        # Nothing found and the space was not exhausted is precisely what the unknown marker reports.
+        print_unknown(out) if expired else print_unsatisfiable(out)
     elif exhausted:
         print_search_complete(out)
+    out.flush()
 
 
 def _print_statistics(solver: BacktrackSolver, out: TextIO) -> None:

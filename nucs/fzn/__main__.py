@@ -64,10 +64,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="include the objective value (as _objective) in each solution for optimization problems",
     )
+    parser.add_argument(
+        "-t",
+        "--time-limit",
+        type=int,
+        default=None,
+        help="stop after this many milliseconds and report the best solution found so far",
+    )
     # Accepted and ignored for compatibility with the FlatZinc solver interface.
     parser.add_argument("-f", "--free-search", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("-p", "--parallel", type=int, default=None, help=argparse.SUPPRESS)
-    parser.add_argument("-t", "--time-limit", type=int, default=None, help=argparse.SUPPRESS)
     parser.add_argument("-r", "--random-seed", type=int, default=None, help=argparse.SUPPRESS)
     return parser
 
@@ -107,6 +113,7 @@ def main(argv: list[str] | None = None) -> int:
             output_mode=args.output_mode,
             output_objective=args.output_objective,
             intermediate_solutions=args.intermediate_solutions,
+            time_limit_ms=args.time_limit,
         )
     except FznError as e:
         sys.stderr.write(f"fzn-nucs: {e}\n")

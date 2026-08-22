@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 SOLUTION_SEPARATOR = "----------"
 SEARCH_COMPLETE = "=========="
 UNSATISFIABLE = "=====UNSATISFIABLE====="
+UNKNOWN = "=====UNKNOWN====="
 
 OUTPUT_OBJECTIVE_NAME = "_objective"
 
@@ -141,6 +142,16 @@ def print_search_complete(out: TextIO) -> None:
     :type out: TextIO
     """
     out.write(SEARCH_COMPLETE + "\n")
+
+
+def print_unknown(out: TextIO) -> None:
+    """
+    Prints the unknown marker: no solution was found, but the search space was not fully explored.
+
+    :param out: the output stream
+    :type out: TextIO
+    """
+    out.write(UNKNOWN + "\n")
 
 
 def print_unsatisfiable(out: TextIO) -> None:

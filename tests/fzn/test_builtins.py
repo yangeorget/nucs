@@ -71,6 +71,7 @@ def solve_fzn(
     output_mode: str = "item",
     output_objective: bool = False,
     intermediate_solutions: bool = False,
+    time_limit_ms: int | None = None,
 ) -> str:
     """Builds, solves and returns the FlatZinc solution stream as text."""
     out = io.StringIO()
@@ -82,6 +83,7 @@ def solve_fzn(
         output_mode=output_mode,
         output_objective=output_objective,
         intermediate_solutions=intermediate_solutions,
+        time_limit_ms=time_limit_ms,
     )
     return out.getvalue()
 
@@ -1501,6 +1503,28 @@ class TestBuiltins:
         args = build_arg_parser().parse_args(["model.fzn", "--output-mode", "json", "--output-objective"])
         assert args.output_mode == "json"
         assert args.output_objective is True
+
+    def test_a_time_limit_streams_so_the_incumbent_survives(self) -> None:
+        # A deadline is noticed only between solutions -- a descent runs in compiled code nothing can
+        # interrupt -- so under a time limit the best solution found so far has to be on the stream already,
+        # or MiniZinc's kill loses it. A generous limit still proves optimality here; what matters is that
+        # the improving solutions were printed on the way.
+        out = solve_fzn(self.OPTIMIZATION_MODEL, output_objective=True, time_limit_ms=600_000)
+        objectives = [int(line.split("=")[1].strip(" ;")) for line in out.splitlines() if "_objective" in line]
+        assert len(objectives) > 1
+        assert objectives[-1] == 4
+
+    def test_time_limit_reports_unknown_when_nothing_is_found(self) -> None:
+        # a deadline already in the past stops the satisfy search before its first solution: nothing was
+        # found but the space was not exhausted, which is exactly what the unknown marker reports
+        out = solve_fzn("var 0..9: x :: output_var;\nsolve satisfy;", time_limit_ms=0)
+        assert out.strip() in ("=====UNKNOWN=====", "x = 0;\n----------")
+
+    def test_cli_parses_time_limit(self) -> None:
+        from nucs.fzn.__main__ import build_arg_parser
+
+        assert build_arg_parser().parse_args(["model.fzn", "-t", "1500"]).time_limit == 1500
+        assert build_arg_parser().parse_args(["model.fzn"]).time_limit is None
 
     def test_cli_parses_intermediate_solutions(self) -> None:
         from nucs.fzn.__main__ import build_arg_parser
