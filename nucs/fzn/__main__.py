@@ -39,9 +39,20 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="register NuCS as a MiniZinc solver (writes a resolved nucs.msc into the user solvers directory)",
     )
-    parser.add_argument("-a", "--all-solutions", action="store_true", help="print all solutions")
+    parser.add_argument(
+        "-a",
+        "--all-solutions",
+        action="store_true",
+        help="print all solutions (satisfaction) or every improving solution (optimization)",
+    )
+    parser.add_argument(
+        "-i",
+        "--intermediate-solutions",
+        action="store_true",
+        help="print every improving solution of an optimization problem",
+    )
     parser.add_argument("-n", "--num-solutions", type=int, default=None, help="stop after this many solutions")
-    parser.add_argument("-s", "--statistics", action="store_true", help="print statistics to stderr")
+    parser.add_argument("-s", "--statistics", action="store_true", help="print statistics as stdout comments")
     parser.add_argument(
         "--output-mode",
         choices=["item", "dzn", "json"],
@@ -90,12 +101,12 @@ def main(argv: list[str] | None = None) -> int:
         run(
             model,
             sys.stdout,
-            sys.stderr,
             all_solutions=args.all_solutions,
             num_solutions=args.num_solutions,
             statistics=args.statistics,
             output_mode=args.output_mode,
             output_objective=args.output_objective,
+            intermediate_solutions=args.intermediate_solutions,
         )
     except FznError as e:
         sys.stderr.write(f"fzn-nucs: {e}\n")

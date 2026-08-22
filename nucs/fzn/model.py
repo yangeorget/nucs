@@ -59,6 +59,8 @@ class FznModel:
         self.pending_names: list[str] = []
         self.alias_parent: dict[str, str] = {}  # union-find over declared variable names
         self.alias_domain: dict[str, tuple[int, int, list[int] | None]] = {}  # (lo, hi, values) per class root
+        # Equalities from `var ...: b = a;` declarations whose domains turned out to be disjoint.
+        self.deferred_constraints: list[Constraint] = []
         # output_items: ("scalar", name, is_bool) or ("array", name, lo, hi, is_bool)
         self.output_items: list[tuple] = []
         self.solve: Solve = Solve("satisfy")
@@ -92,7 +94,7 @@ class FznModel:
             elif isinstance(statement, Constraint):
                 constraints.append(statement)
         # Both passes below happen after every declaration so that forward references resolve.
-        constraints = self._absorb_aliases(constraints)
+        constraints = self._absorb_aliases(constraints) + self.deferred_constraints
         self._allocate_variables()
         for constraint in constraints:
             handler = BUILTINS.get(constraint.name)
@@ -134,7 +136,7 @@ class FznModel:
         if root == other_root:
             return True
         domain, other_domain = self.alias_domain.get(root), self.alias_domain.get(other_root)
-        if domain is None or other_domain is None:  # a bare alias contributes no domain of its own
+        if domain is None or other_domain is None:  # defensive: every declared name carries a domain
             merged = other_domain if domain is None else domain
         else:
             intersection = _intersect_domains(domain, other_domain)
@@ -226,9 +228,14 @@ class FznModel:
             self.consts[decl.name] = decl.rhs
         elif isinstance(decl.rhs, Id):
             if decl.rhs.name in self.alias_parent:
-                # A bare alias joins the class of its right-hand side and takes its domain, as before.
-                self.alias_parent[decl.name] = decl.name
-                self._union(decl.name, decl.rhs.name)
+                # An alias joins the class of its right-hand side, contributing its own declared domain:
+                # `var 0..2: b = a;` constrains a just as much as it constrains b.
+                self._declare_pending(decl.name, decl.lo, decl.hi, decl.values)
+                if not self._union(decl.name, decl.rhs.name):
+                    # The two declared domains are disjoint, so the class cannot represent both. They are
+                    # left as separate variables and the equality is deferred to a propagator, which refutes
+                    # it -- the model is unsatisfiable, and must be reported as such rather than dropped.
+                    self.deferred_constraints.append(Constraint("int_eq", [Id(decl.name), Id(decl.rhs.name)]))
             elif decl.rhs.name in self.consts:
                 self.consts[decl.name] = self.consts[decl.rhs.name]
             else:

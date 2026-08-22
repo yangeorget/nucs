@@ -70,17 +70,18 @@ def solve_fzn(
     num_solutions: int | None = None,
     output_mode: str = "item",
     output_objective: bool = False,
+    intermediate_solutions: bool = False,
 ) -> str:
     """Builds, solves and returns the FlatZinc solution stream as text."""
     out = io.StringIO()
     run(
         build_model(parse(fzn)),
         out,
-        io.StringIO(),
         all_solutions=all_solutions,
         num_solutions=num_solutions,
         output_mode=output_mode,
         output_objective=output_objective,
+        intermediate_solutions=intermediate_solutions,
     )
     return out.getvalue()
 
@@ -1385,19 +1386,78 @@ class TestBuiltins:
         json_blocks = [block.strip() for block in out.split("----------") if block.strip().startswith("{")]
         assert json.loads(json_blocks[-1]) == {"x": 4, "_objective": 4}
 
-    def test_optimization_streams_improving_solutions(self) -> None:
-        # input_order/indomain_min finds z=0 first, then branch-and-bound improves it up to the optimum 4;
-        # every improving solution is streamed, in non-decreasing objective order, before the search-complete marker
+    OPTIMIZATION_MODEL = (
+        "var 0..9: x :: output_var;\nvar 0..18: z;\n"
+        "constraint int_eq(x, z);\nconstraint int_le(z, 4);\nsolve maximize z;"
+    )
+
+    def test_optimization_prints_only_the_optimum_by_default(self) -> None:
+        # input_order/indomain_min finds z=0 first and branch-and-bound improves it up to the optimum 4, but
+        # the FlatZinc interface asks for the intermediate solutions with -a / -i: without either, only the
+        # optimal solution is printed, followed by the search-complete marker
+        out = solve_fzn(self.OPTIMIZATION_MODEL, output_objective=True)
+        objectives = [int(line.split("=")[1].strip(" ;")) for line in out.splitlines() if "_objective" in line]
+        assert objectives == [4]
+        assert out.rstrip().endswith("==========")  # optimality proven after the solution
+
+    @pytest.mark.parametrize("all_solutions,intermediate", [(True, False), (False, True)])
+    def test_optimization_streams_improving_solutions_on_request(self, all_solutions: bool, intermediate: bool) -> None:
+        # both -a and -i ask for the intermediate solutions: every improving one is streamed, in
+        # non-decreasing objective order, before the search-complete marker
         out = solve_fzn(
-            "var 0..9: x :: output_var;\nvar 0..18: z;\n"
-            "constraint int_eq(x, z);\nconstraint int_le(z, 4);\nsolve maximize z;",
+            self.OPTIMIZATION_MODEL,
+            all_solutions=all_solutions,
             output_objective=True,
+            intermediate_solutions=intermediate,
         )
         objectives = [int(line.split("=")[1].strip(" ;")) for line in out.splitlines() if "_objective" in line]
         assert len(objectives) > 1  # streamed, not just the optimum
         assert objectives == sorted(objectives)  # each solution improves on the previous
         assert objectives[-1] == 4  # the last streamed solution is the optimum
-        assert out.rstrip().endswith("==========")  # optimality proven after the last solution
+        assert out.rstrip().endswith("==========")
+
+    def test_alias_declaration_narrows_its_right_hand_side(self) -> None:
+        # `var 0..2: b = a;` constrains a as much as it constrains b: the equality class takes the
+        # intersection of the two declared domains, so a is 0..2 and not 0..10
+        out = solve_fzn(
+            "var 0..10: a :: output_var;\nvar 0..2: b = a;\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 3
+        assert "a = 3;" not in out
+
+    def test_alias_declaration_does_not_widen_its_right_hand_side(self) -> None:
+        # the intersection cannot widen either: a stays 0..10 under `var 0..100: b = a;`
+        out = solve_fzn(
+            "var 0..10: a :: output_var;\nvar 0..100: b = a;\nconstraint int_le(4, a);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 7  # 4..10
+        assert "a = 11;" not in out
+
+    def test_alias_declaration_with_a_disjoint_domain_is_unsatisfiable(self) -> None:
+        # the class cannot represent both domains, so the two stay separate variables and the equality is
+        # left to a propagator -- which refutes it, rather than the constraint being silently dropped
+        out = solve_fzn("var 0..10: a :: output_var;\nvar 20..30: b = a;\nsolve satisfy;")
+        assert out.strip() == "=====UNSATISFIABLE====="
+
+    def test_alias_declaration_domain_reaches_the_other_constraints(self) -> None:
+        # the reproduction from the review: b = a with b in 0..2 forces a <= 2, contradicting a >= 4
+        out = solve_fzn(
+            "var 0..10: a :: output_var;\nvar 0..2: b = a;\nconstraint int_le(4, a);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.strip() == "=====UNSATISFIABLE====="
+
+    def test_statistics_go_to_the_solution_stream(self) -> None:
+        # the FlatZinc interface puts statistics on standard output as comments: on stderr, `minizinc -s`
+        # never sees them
+        out = io.StringIO()
+        run(build_model(parse("var 0..2: x :: output_var;\nsolve satisfy;")), out, statistics=True)
+        text = out.getvalue()
+        assert "%%%mzn-stat: SOLUTION_NB=1" in text
+        assert text.rstrip().endswith("%%%mzn-stat-end")  # the block concludes the stream
+        assert text.index("----------") < text.index("%%%mzn-stat:")  # after the solutions, not before
 
     def test_cli_parses_output_options(self) -> None:
         from nucs.fzn.__main__ import build_arg_parser
@@ -1405,6 +1465,12 @@ class TestBuiltins:
         args = build_arg_parser().parse_args(["model.fzn", "--output-mode", "json", "--output-objective"])
         assert args.output_mode == "json"
         assert args.output_objective is True
+
+    def test_cli_parses_intermediate_solutions(self) -> None:
+        from nucs.fzn.__main__ import build_arg_parser
+
+        assert build_arg_parser().parse_args(["model.fzn", "-i"]).intermediate_solutions is True
+        assert build_arg_parser().parse_args(["model.fzn"]).intermediate_solutions is False
 
     def test_cli_output_mode_defaults_to_item(self) -> None:
         from nucs.fzn.__main__ import build_arg_parser

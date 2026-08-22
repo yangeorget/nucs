@@ -73,7 +73,7 @@ def _pipeline_solution_count(model: str) -> int:
     """Returns the number of solutions found by the MiniZinc -> FlatZinc -> NuCS pipeline."""
     fzn = _compile_to_fzn(model)
     out = io.StringIO()
-    run(build_model(parse(fzn)), out, io.StringIO(), all_solutions=True)
+    run(build_model(parse(fzn)), out, all_solutions=True)
     return out.getvalue().count("----------")
 
 
@@ -81,7 +81,7 @@ def _pipeline_optimum(model: str) -> int:
     """Returns the objective of the optimal solution found by the pipeline."""
     fzn = _compile_to_fzn(model)
     out = io.StringIO()
-    run(build_model(parse(fzn)), out, io.StringIO(), output_objective=True)
+    run(build_model(parse(fzn)), out, output_objective=True)
     matches = re.findall(r"objective = (-?\d+);", out.getvalue())
     assert matches, f"no objective in solution stream:\n{out.getvalue()}"
     return int(matches[-1])

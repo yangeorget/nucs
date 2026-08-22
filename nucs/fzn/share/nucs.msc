@@ -6,7 +6,7 @@
   "mznlib": "./minizinc/nucs",
   "executable": "fzn-nucs",
   "tags": ["cp", "int"],
-  "stdFlags": ["-a", "-n", "-s"],
+  "stdFlags": ["-a", "-i", "-n", "-s"],
   "supportsMzn": false,
   "supportsFzn": true,
   "needsSolns2Out": true,

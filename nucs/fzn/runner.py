@@ -16,6 +16,8 @@ Drives a built :class:`FznModel` through a :class:`BacktrackSolver` and streams 
 
 from typing import TextIO
 
+from numpy.typing import NDArray
+
 from nucs.constants import OPTIM_PRUNE
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import FznModel
@@ -167,32 +169,36 @@ def _dom_heuristic_of(term: object) -> int:
 def run(
     model: FznModel,
     out: TextIO,
-    err: TextIO,
     all_solutions: bool = False,
     num_solutions: int | None = None,
     statistics: bool = False,
     output_mode: str = "item",
     output_objective: bool = False,
+    intermediate_solutions: bool = False,
 ) -> None:
     """
     Solves the model and writes the FlatZinc solution stream.
+
+    Everything the FlatZinc interface defines -- solutions, the terminators and the statistics comments --
+    goes to ``out``; stderr is left to the caller for genuine diagnostics.
 
     :param model: the built model
     :type model: FznModel
     :param out: the solution output stream
     :type out: TextIO
-    :param err: the diagnostics/statistics stream
-    :type err: TextIO
-    :param all_solutions: whether to enumerate every solution (satisfy only)
+    :param all_solutions: whether to enumerate every solution (satisfy) or stream the improving ones
+        (optimization)
     :type all_solutions: bool
     :param num_solutions: the maximum number of solutions to print (satisfy only), or None for one
     :type num_solutions: Optional[int]
-    :param statistics: whether to print solver statistics to err
+    :param statistics: whether to print solver statistics
     :type statistics: bool
     :param output_mode: the solution output format, one of ``item``, ``dzn`` or ``json``
     :type output_mode: str
     :param output_objective: whether to include the objective value in each solution (optimization only)
     :type output_objective: bool
+    :param intermediate_solutions: whether to stream the improving solutions of an optimization problem
+    :type intermediate_solutions: bool
     """
     # Resolve the objective before constructing the solver, since the solver snapshots the domains on init.
     objective_var = None
@@ -209,9 +215,11 @@ def run(
         _run_satisfy(model, solver, out, all_solutions, num_solutions, output_mode)
     else:
         assert objective_var is not None
-        _run_optimize(model, solver, objective_var, out, output_mode, output_objective)
+        _run_optimize(
+            model, solver, objective_var, out, output_mode, output_objective, all_solutions or intermediate_solutions
+        )
     if statistics:
-        _print_statistics(solver, err)
+        _print_statistics(solver, out)
 
 
 def _run_optimize(
@@ -221,13 +229,15 @@ def _run_optimize(
     out: TextIO,
     output_mode: str,
     output_objective: bool,
+    intermediate_solutions: bool,
 ) -> None:
     """
-    Streams the successively improving solutions of an optimization problem.
+    Prints the optimum of an optimization problem, or the whole sequence of improving solutions.
 
-    Each improving solution is printed (with its solution separator) as soon as it is found, matching the
-    FlatZinc protocol; the search-complete marker is printed once the optimum has been proven, and the
-    unsatisfiable marker when no solution exists at all.
+    The FlatZinc interface prints only the optimal solution by default; ``-a`` and ``-i`` are what ask for
+    the intermediate ones. When they are given, each improving solution is printed as soon as it is found
+    and the last of them is the optimum. The search-complete marker is printed once the optimum has been
+    proven, and the unsatisfiable marker when no solution exists at all.
 
     The search runs in ``OPTIM_PRUNE`` mode: the tightened objective bound is applied to the choice points
     and the search resumes where it was, instead of restarting from the initial domains after every
@@ -245,21 +255,59 @@ def _run_optimize(
     :type output_mode: str
     :param output_objective: whether to include the objective value in each solution
     :type output_objective: bool
+    :param intermediate_solutions: whether to print every improving solution rather than only the optimum
+    :type intermediate_solutions: bool
     """
     if model.solve.kind == "minimize":
         solutions = solver.minimize_solutions(objective_var, mode=OPTIM_PRUNE)
     else:
         solutions = solver.maximize_solutions(objective_var, mode=OPTIM_PRUNE)
-    found = False
+    best = None
+    printed = False
     for solution in solutions:
-        found = True
-        objective_value = int(solution[objective_var]) if output_objective else None
-        print_solution(model, solution, out, output_mode, objective_value)
-        out.flush()
-    if found:
+        if intermediate_solutions:
+            _print_optimization_solution(model, solution, objective_var, out, output_mode, output_objective)
+            printed = True
+        else:
+            # The solver yields a view on its own domain stack, which the next descent overwrites.
+            best = solution.copy()
+    if best is not None:
+        _print_optimization_solution(model, best, objective_var, out, output_mode, output_objective)
+        printed = True
+    if printed:
         print_search_complete(out)
     else:
         print_unsatisfiable(out)
+    out.flush()
+
+
+def _print_optimization_solution(
+    model: FznModel,
+    solution: NDArray,
+    objective_var: int,
+    out: TextIO,
+    output_mode: str,
+    output_objective: bool,
+) -> None:
+    """
+    Prints one solution of an optimization problem, with its objective value when requested.
+
+    :param model: the built model
+    :type model: FznModel
+    :param solution: the solution
+    :type solution: NDArray
+    :param objective_var: the NuCS variable index of the objective
+    :type objective_var: int
+    :param out: the solution output stream
+    :type out: TextIO
+    :param output_mode: the solution output format, one of ``item``, ``dzn`` or ``json``
+    :type output_mode: str
+    :param output_objective: whether to include the objective value
+    :type output_objective: bool
+    """
+    objective_value = int(solution[objective_var]) if output_objective else None
+    print_solution(model, solution, out, output_mode, objective_value)
+    out.flush()
 
 
 def _run_satisfy(
@@ -301,14 +349,19 @@ def _run_satisfy(
         print_search_complete(out)
 
 
-def _print_statistics(solver: BacktrackSolver, err: TextIO) -> None:
+def _print_statistics(solver: BacktrackSolver, out: TextIO) -> None:
     """
-    Prints solver statistics as MiniZinc-style comment lines.
+    Prints solver statistics as MiniZinc-style comment lines on the solution stream.
+
+    The FlatZinc interface puts statistics on standard output as comments, not on stderr: written anywhere
+    else, ``minizinc -s --solver nucs`` never sees them. This single block comes after the search, which the
+    specification allows as concluding output.
 
     :param solver: the solver
     :type solver: BacktrackSolver
-    :param err: the diagnostics stream
-    :type err: TextIO
+    :param out: the solution output stream
+    :type out: TextIO
     """
-    err.writelines(f"%%%mzn-stat: {key}={value}\n" for key, value in solver.get_statistics_as_dictionary().items())
-    err.write("%%%mzn-stat-end\n")
+    out.writelines(f"%%%mzn-stat: {key}={value}\n" for key, value in solver.get_statistics_as_dictionary().items())
+    out.write("%%%mzn-stat-end\n")
+    out.flush()
