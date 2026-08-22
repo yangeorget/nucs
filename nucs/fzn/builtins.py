@@ -879,64 +879,42 @@ def _strictly_decreasing(model: "FznModel", args: list[Term]) -> None:
     model.problem.add_propagator(ALG_STRICTLY_INCREASING, model.var_list_of(args[0])[::-1])
 
 
-def _zero_based(model: "FznModel", variables: list[int], n: int) -> list[int]:
-    """
-    Returns 0-based copies of FlatZinc successor/index variables, for propagators that work on a 0-based
-    index/value representation.
-
-    FlatZinc arrays are always reindexed 1..n, but their *values* keep the model's node numbering, which may
-    be 1-based (values 1..n) or already 0-based (values 0..n-1, e.g. from a 0-based enum or index set). The
-    base is detected as the minimum value across the variables; when it is already 0 the variables are
-    returned unchanged, otherwise auxiliary variables shifted by -base are created.
-    """
-    offset = min(model.problem.domains[v][0] for v in variables)
-    if offset == 0:
-        return list(variables)
-    shifted = []
-    for v in variables:
-        v0 = model.problem.add_variable((0, n - 1))
-        model.problem.add_propagator(ALG_ADD_C_EQ, [v, v0], [-offset])
-        shifted.append(v0)
-    return shifted
-
-
 def _circuit(model: "FznModel", args: list[Term]) -> None:
     """
-    Handles ``circuit(x)``: the 1-based successor array x forms a single Hamiltonian circuit. NuCS uses a
-    0-based successor representation, so each x[i] is shifted by -1 into an auxiliary variable, on which a
-    permutation (alldifferent) plus a no-sub-cycle constraint together enforce the circuit.
+    Handles ``nucs_circuit(x, offset)``: the successor array x, whose values are the node labels
+    ``offset``, ``offset + 1``, ..., forms a single Hamiltonian circuit. A permutation (alldifferent) plus a
+    no-sub-cycle constraint together enforce the circuit; the node numbering is passed straight to the
+    latter, which is why no rebased copy of x is needed.
     """
     succ = model.var_list_of(args[0])
-    shifted = _zero_based(model, succ, len(succ))
-    model.problem.add_propagator(ALG_ALLDIFFERENT, shifted)
-    model.problem.add_propagator(ALG_NO_SUB_CYCLE, shifted)
+    model.problem.add_propagator(ALG_ALLDIFFERENT, succ)
+    model.problem.add_propagator(ALG_NO_SUB_CYCLE, succ, [model.const_of(args[1])])
 
 
 def _subcircuit(model: "FznModel", args: list[Term]) -> None:
     """
-    Handles ``subcircuit(x)``: the 1-based successor array x forms a sub-circuit -- the nodes with x[i] != i
-    form a single circuit and the rest are self-loops (excluded). Like ``circuit``, NuCS works on a 0-based
-    representation, so x is shifted by -1; a permutation (alldifferent) plus a self-loop-aware sub-circuit
-    constraint enforce it.
+    Handles ``nucs_subcircuit(x, offset)``: the successor array x, whose values are the node labels
+    ``offset``, ``offset + 1``, ..., forms a sub-circuit -- the nodes with x[i] != i form a single circuit
+    and the rest are self-loops (excluded). Like ``circuit``, a permutation (alldifferent) plus a
+    self-loop-aware sub-circuit constraint enforce it, the latter taking the node numbering as a parameter.
     """
     succ = model.var_list_of(args[0])
-    shifted = _zero_based(model, succ, len(succ))
-    model.problem.add_propagator(ALG_ALLDIFFERENT, shifted)
-    model.problem.add_propagator(ALG_SUBCIRCUIT, shifted)
+    model.problem.add_propagator(ALG_ALLDIFFERENT, succ)
+    model.problem.add_propagator(ALG_SUBCIRCUIT, succ, [model.const_of(args[1])])
 
 
 def _inverse(model: "FznModel", args: list[Term]) -> None:
     """
-    Handles ``inverse(x, y)`` as the channeling x[i] = j <=> y[j] = i between two 1-based arrays. The
-    channeling propagator works on a 0-based representation, so both arrays are shifted by -1; an
-    alldifferent on each array is added for stronger (Hall) pruning than the channeling alone provides.
+    Handles ``nucs_inverse(f, invf, f_value_offset, invf_value_offset)`` as the channeling f[i] = j <=>
+    invf[j] = i. Each array's values are the node labels of the other array's index set, so the channeling
+    propagator takes the two numberings as parameters rather than requiring rebased copies. An alldifferent
+    on each array is added for stronger (Hall) pruning than the channeling alone provides.
     """
-    x = model.var_list_of(args[0])
-    y = model.var_list_of(args[1])
-    n = len(x)
-    model.problem.add_propagator(ALG_ALLDIFFERENT, x)
-    model.problem.add_propagator(ALG_ALLDIFFERENT, y)
-    model.problem.add_propagator(ALG_INVERSE, _zero_based(model, x, n) + _zero_based(model, y, n))
+    f = model.var_list_of(args[0])
+    invf = model.var_list_of(args[1])
+    model.problem.add_propagator(ALG_ALLDIFFERENT, f)
+    model.problem.add_propagator(ALG_ALLDIFFERENT, invf)
+    model.problem.add_propagator(ALG_INVERSE, f + invf, [model.const_of(args[2]), model.const_of(args[3])])
 
 
 def _lex_lesseq(model: "FznModel", args: list[Term]) -> None:
@@ -1160,7 +1138,6 @@ BUILTINS: dict[str, Handler] = {
     "bool_not": _bool_not,
     "bool_or": _bool_or,
     "bool_xor": _bool_xor,
-    "circuit": _circuit,
     "count_eq": _count_eq,
     "count_geq": _count_geq,
     "count_leq": _count_leq,
@@ -1172,21 +1149,18 @@ BUILTINS: dict[str, Handler] = {
     "nucs_disjunctive": _disjunctive,
     "fzn_all_different_int": _all_different,
     "nucs_bin_packing_load": _bin_packing_load,
-    "fzn_circuit": _circuit,
     "fzn_count_eq": _count_eq,
     "fzn_count_geq": _count_geq,
     "fzn_count_leq": _count_leq,
     "fzn_decreasing_int": _decreasing,
     "fzn_global_cardinality_low_up": _global_cardinality_low_up,
     "fzn_increasing_int": _increasing,
-    "fzn_inverse": _inverse,
     "fzn_lex_less_int": _lex_less,
     "fzn_lex_lesseq_int": _lex_lesseq,
     "fzn_nvalue": _nvalue,
     "nucs_regular": _regular,
     "fzn_strictly_decreasing_int": _strictly_decreasing,
     "fzn_strictly_increasing_int": _strictly_increasing,
-    "fzn_subcircuit": _subcircuit,
     "nucs_circuit": _circuit,
     "nucs_inverse": _inverse,
     "nucs_subcircuit": _subcircuit,
@@ -1224,7 +1198,6 @@ BUILTINS: dict[str, Handler] = {
     "int_ne": _int_ne,
     "int_ne_imp": _ne_imp,
     "int_ne_reif": _ne_reif,
-    "inverse": _inverse,
     "int_plus": _int_plus,
     "int_times": _int_times,
     "lex_less_int": _lex_less,
@@ -1235,7 +1208,6 @@ BUILTINS: dict[str, Handler] = {
     "set_in_reif": _set_in_reif,
     "strictly_decreasing_int": _strictly_decreasing,
     "strictly_increasing_int": _strictly_increasing,
-    "subcircuit": _subcircuit,
     "value_precede_chain_int": _value_precede_chain,
     "value_precede_int": _value_precede,
 }

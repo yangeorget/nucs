@@ -1203,7 +1203,7 @@ class TestBuiltins:
         out = solve_fzn(
             "var 1..3: a :: output_var;\nvar 1..3: b :: output_var;\nvar 1..3: c :: output_var;\n"
             "array [1..3] of var int: x = [a, b, c];\n"
-            "constraint fzn_circuit(x);\n"
+            "constraint nucs_circuit(x, 1);\n"
             "solve satisfy;",
             all_solutions=True,
         )
@@ -1212,12 +1212,12 @@ class TestBuiltins:
         assert "a = 2;\nb = 3;\nc = 1;" in out and "a = 3;\nb = 1;\nc = 2;" in out
 
     def test_circuit_zero_based(self) -> None:
-        # 3 nodes with 0-based successors (values 0..2): the array values share the model's 0-based node
-        # numbering, so _zero_based must NOT shift them. The only Hamiltonian circuits are the two 3-cycles.
+        # 3 nodes with 0-based successors (values 0..2): the node numbering reaches the propagator as the
+        # offset parameter, so the successors are read as they are. The only circuits are the two 3-cycles.
         out = solve_fzn(
             "var 0..2: a :: output_var;\nvar 0..2: b :: output_var;\nvar 0..2: c :: output_var;\n"
             "array [1..3] of var int: x = [a, b, c];\n"
-            "constraint fzn_circuit(x);\n"
+            "constraint nucs_circuit(x, 0);\n"
             "solve satisfy;",
             all_solutions=True,
         )
@@ -1225,10 +1225,16 @@ class TestBuiltins:
         assert out.count("----------") == 2
         assert "a = 1;\nb = 2;\nc = 0;" in out and "a = 2;\nb = 0;\nc = 1;" in out
 
-    def test_circuit_zero_based_uses_variables_directly(self) -> None:
-        # values are already 0-based, so no ADD_C_EQ shift is added: ALLDIFFERENT + NO_SUB_CYCLE on x itself
-        model = build_model(parse("array [1..3] of var 0..2: x;\nconstraint fzn_circuit(x);\nsolve satisfy;"))
-        assert [prop[1] for prop in model.problem.propagators] == [ALG_ALLDIFFERENT, ALG_NO_SUB_CYCLE]
+    def test_circuit_uses_variables_directly(self) -> None:
+        # the node numbering is a propagator parameter, so the successors are used as they are under any
+        # offset: ALLDIFFERENT + NO_SUB_CYCLE and nothing else, no shifted copies
+        for offset, domain in ((0, "0..2"), (1, "1..3"), (-4, "-4..-2")):
+            model = build_model(
+                parse(f"array [1..3] of var {domain}: x;\nconstraint nucs_circuit(x, {offset});\nsolve satisfy;")
+            )
+            assert [prop[1] for prop in model.problem.propagators] == [ALG_ALLDIFFERENT, ALG_NO_SUB_CYCLE]
+            assert len(model.problem.domains) == 3
+            assert model.problem.propagators[1][2] == [offset]
 
     def test_seq_search_annotation(self) -> None:
         # seq_search nests int_search/bool_search calls inside an array: the parser must accept call terms
@@ -1247,16 +1253,17 @@ class TestBuiltins:
         out = solve_fzn(
             "var 1..3: a :: output_var;\nvar 1..3: b :: output_var;\nvar 1..3: c :: output_var;\n"
             "array [1..3] of var int: x = [a, b, c];\n"
-            "constraint fzn_circuit(x);\nconstraint int_eq(a, 1);\n"
+            "constraint nucs_circuit(x, 1);\nconstraint int_eq(a, 1);\n"
             "solve satisfy;"
         )
         assert out.strip() == "=====UNSATISFIABLE====="
 
     def test_subcircuit_maps_to_alldifferent_and_subcircuit(self) -> None:
-        model = build_model(parse("array [1..3] of var 1..3: x;\nconstraint fzn_subcircuit(x);\nsolve satisfy;"))
-        # _zero_based adds an ADD_C_EQ per variable, then ALLDIFFERENT + SUBCIRCUIT on the shifted copies
-        algorithms = [prop[1] for prop in model.problem.propagators]
-        assert algorithms == [ALG_ADD_C_EQ, ALG_ADD_C_EQ, ALG_ADD_C_EQ, ALG_ALLDIFFERENT, ALG_SUBCIRCUIT]
+        model = build_model(parse("array [1..3] of var 1..3: x;\nconstraint nucs_subcircuit(x, 1);\nsolve satisfy;"))
+        # the 1-based numbering is a parameter of the sub-circuit propagator, so x is used as it is
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_ALLDIFFERENT, ALG_SUBCIRCUIT]
+        assert len(model.problem.domains) == 3
+        assert model.problem.propagators[1][2] == [1]
 
     def test_subcircuit_solves_without_duplicates(self) -> None:
         # over 3 nodes the sub-circuits are: all self-loops, the three 2-cycles, and the two 3-cycles = 6,
@@ -1264,7 +1271,7 @@ class TestBuiltins:
         out = solve_fzn(
             "var 1..3: a :: output_var;\nvar 1..3: b :: output_var;\nvar 1..3: c :: output_var;\n"
             "array [1..3] of var int: x = [a, b, c];\n"
-            "constraint fzn_subcircuit(x);\nsolve satisfy;",
+            "constraint nucs_subcircuit(x, 1);\nsolve satisfy;",
             all_solutions=True,
         )
         assert out.count("----------") == 6
@@ -1276,7 +1283,7 @@ class TestBuiltins:
         out = solve_fzn(
             "array [1..4] of var int: x = [a, b, c, d];\n"
             "var 1..4: a;\nvar 1..4: b;\nvar 1..4: c;\nvar 1..4: d;\n"
-            "constraint fzn_subcircuit(x);\n"
+            "constraint nucs_subcircuit(x, 1);\n"
             "constraint int_eq(a, 2);\nconstraint int_eq(b, 1);\n"
             "constraint int_eq(c, 4);\nconstraint int_eq(d, 3);\n"
             "solve satisfy;"
@@ -1287,7 +1294,7 @@ class TestBuiltins:
         # 1-based inverse permutations: y is the inverse of x; fixing x pins y
         out = solve_fzn(
             "array [1..3] of var 1..3: x;\narray [1..3] of var 1..3: y :: output_array([1..3]);\n"
-            "constraint fzn_inverse(x, y);\n"
+            "constraint nucs_inverse(x, y, 1, 1);\n"
             "constraint int_eq(x[1], 2);\nconstraint int_eq(x[2], 3);\nconstraint int_eq(x[3], 1);\n"
             "solve satisfy;"
         )
@@ -1297,7 +1304,7 @@ class TestBuiltins:
     def test_inverse_infers_both_ways(self) -> None:
         out = solve_fzn(
             "array [1..3] of var 1..3: x :: output_array([1..3]);\narray [1..3] of var 1..3: y;\n"
-            "constraint fzn_inverse(x, y);\n"
+            "constraint nucs_inverse(x, y, 1, 1);\n"
             "constraint int_eq(y[1], 2);\nconstraint int_eq(y[2], 3);\nconstraint int_eq(y[3], 1);\n"
             "solve satisfy;"
         )

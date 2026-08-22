@@ -55,30 +55,41 @@ def get_triggers_subcircuit(n: int, variable: int, parameters: NDArray) -> int:
 @njit(cache=True)
 def compute_domains_subcircuit(domains: NDArray, parameters: NDArray) -> int:
     """
-    Enforces that the 0-based successor array forms a sub-circuit: the nodes i with x_i != i form a single
-    circuit while the remaining nodes are self-loops (x_i = i, excluded). The empty sub-circuit (all
-    self-loops) is allowed. This is a self-loop-aware variant of the no-sub-cycle constraint and is meant to
-    run alongside an alldifferent on the same variables.
+    Enforces that the successor array forms a sub-circuit: the nodes i with x_i != i form a single circuit
+    while the remaining nodes are self-loops (x_i = i, excluded). The empty sub-circuit (all self-loops) is
+    allowed. This is a self-loop-aware variant of the no-sub-cycle constraint and is meant to run alongside
+    an alldifferent on the same variables.
 
-    :param domains: the domains of the variables (0-based successors)
+    The i-th variable is the successor of node i and takes the label of a node, which is ``offset + i``: the
+    successors are 0-based by default and the offset makes any other contiguous node numbering (a 1-based
+    MiniZinc array, say) usable without shifting every variable into an auxiliary one. Successors are first
+    trimmed to the node labels, which is what bounds the node indices this propagator derives from them.
+
+    :param domains: the domains of the variables (the successors)
     :type domains: NDArray
-    :param parameters: unused here
+    :param parameters: the node label offset, parameters[0], or no parameter at all for 0-based successors
     :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int
     """
     n = len(domains)
+    offset = int(parameters[0]) if len(parameters) > 0 else 0
+    for i in range(n):
+        domains[i, MIN] = max(domains[i, MIN], offset)
+        domains[i, MAX] = min(domains[i, MAX], offset + n - 1)
+        if domains[i, MIN] > domains[i, MAX]:
+            return PROP_INCONSISTENCY
     # committed[i] is True when node i is necessarily active (part of the single circuit), i.e. it cannot be
     # an excluded self-loop: either i is no longer in its own domain, or a fixed active arc touches it
     # (its source, and -- because x is a permutation -- its target).
     committed = np.zeros(n, dtype=np.bool_)
     for i in range(n):
-        if domains[i, MIN] > i or domains[i, MAX] < i:
+        if domains[i, MIN] > i + offset or domains[i, MAX] < i + offset:
             committed[i] = True
-        if domains[i, MIN] == domains[i, MAX] and domains[i, MIN] != i:
+        if domains[i, MIN] == domains[i, MAX] and domains[i, MIN] != i + offset:
             committed[i] = True
-            committed[domains[i, MIN]] = True
+            committed[domains[i, MIN] - offset] = True
     total_committed = 0
     for i in range(n):
         if committed[i]:
@@ -95,7 +106,7 @@ def compute_domains_subcircuit(domains: NDArray, parameters: NDArray) -> int:
         loop = False
         for i in range(n):
             if domains[i, MIN] == domains[i, MAX]:
-                j = domains[i, MIN]
+                j = domains[i, MIN] - offset
                 if i == j:  # excluded self-loop: not part of any chain
                     continue
                 if paths[i, END] == i:
@@ -106,10 +117,10 @@ def compute_domains_subcircuit(domains: NDArray, parameters: NDArray) -> int:
                     length = paths[i, LENGTH] + 1 + paths[j, LENGTH]
                     paths[i, LENGTH] = paths[j, LENGTH] = paths[start, LENGTH] = paths[end, LENGTH] = length
                     if length + 1 < total_committed:  # a committed node remains outside this chain
-                        if domains[end, MIN] == start:
-                            domains[end, MIN] = start + 1
-                        if domains[end, MAX] == start:
-                            domains[end, MAX] = start - 1
+                        if domains[end, MIN] == start + offset:
+                            domains[end, MIN] = start + offset + 1
+                        if domains[end, MAX] == start + offset:
+                            domains[end, MAX] = start + offset - 1
                         if domains[end, MIN] > domains[end, MAX]:
                             return PROP_INCONSISTENCY
                         if end < i:

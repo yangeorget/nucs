@@ -24,6 +24,9 @@ import subprocess
 import pytest
 
 from nucs.fzn.builtins import BUILTINS
+from nucs.fzn.model import build_model
+from nucs.fzn.parser import parse
+from nucs.propagators.propagators import ALG_ADD_C_EQ
 
 SHARE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "nucs", "fzn", "share")
 GLOBALS_LIB = os.path.join(SHARE_DIR, "minizinc", "nucs")
@@ -355,3 +358,26 @@ def test_diffn_non_one_based_index(tmp_path) -> None:  # type: ignore[no-untyped
     assert "=====UNSATISFIABLE=====" not in out
     assert "x = [0: 0, 1: 0];" in out
     assert "y = [0: 0, 1: 2];" in out
+
+
+@pytest.mark.parametrize(
+    "model,constraint,variable_nb",
+    [
+        ("array[1..5] of var 1..5: s;", "circuit(s)", 5),
+        ("array[0..4] of var 0..4: s;", "circuit(s)", 5),
+        ("array[2..6] of var -100..100: s;", "circuit(s)", 5),
+        ("array[1..5] of var 1..5: s;", "subcircuit(s)", 5),
+        ("array[-2..2] of var -100..100: s;", "subcircuit(s)", 5),
+        ("array[1..4] of var 1..4: f; array[1..4] of var 1..4: g;", "inverse(f, g)", 8),
+        ("array[0..3] of var -9..9: f; array[3..6] of var -9..9: g;", "inverse(f, g)", 8),
+    ],
+)
+def test_graph_global_needs_no_shift_variables(model, constraint, variable_nb, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """circuit, subcircuit and inverse carry their node numbering as a propagator parameter, so the
+    successor arrays reach the propagators as they are -- under any index set, and even when the declared
+    domains are wider than the node set. Rebasing them used to cost one auxiliary variable and one offset
+    propagator per node, which is what this pins down: the model holds exactly the declared variables."""
+    fzn = _compile_to_fzn(model + f" constraint {constraint};", tmp_path)
+    problem = build_model(parse(fzn)).problem
+    assert len(problem.domains) == variable_nb
+    assert not any(prop[1] == ALG_ADD_C_EQ for prop in problem.propagators)

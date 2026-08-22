@@ -57,15 +57,26 @@ def compute_domains_no_sub_cycle(domains: NDArray, parameters: NDArray) -> int:
     """
     Enforces that a permutation does not contain any sub-cycle.
 
+    The i-th variable is the successor of node i and takes the label of a node, which is ``offset + i``: the
+    successors are 0-based by default and the offset makes any other contiguous node numbering (a 1-based
+    MiniZinc array, say) usable without shifting every variable into an auxiliary one. Successors are first
+    trimmed to the node labels, which is what bounds the node indices this propagator derives from them.
+
     :param domains: the domains of the variables
     :type domains: NDArray
-    :param parameters: unused here
+    :param parameters: the node label offset, parameters[0], or no parameter at all for 0-based successors
     :type parameters: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int
     """
     n = len(domains)
+    offset = int(parameters[0]) if len(parameters) > 0 else 0
+    for i in range(n):
+        domains[i, MIN] = max(domains[i, MIN], offset)
+        domains[i, MAX] = min(domains[i, MAX], offset + n - 1)
+        if domains[i, MIN] > domains[i, MAX]:
+            return PROP_INCONSISTENCY
     paths = np.zeros((n, 3), dtype=np.int16)
     for i in range(n):
         paths[i, :PATH_LENGTH] = i
@@ -74,7 +85,7 @@ def compute_domains_no_sub_cycle(domains: NDArray, parameters: NDArray) -> int:
         loop = False
         for i in range(n):
             if domains[i, MIN] == domains[i, MAX]:
-                j = domains[i, MIN]
+                j = domains[i, MIN] - offset
                 if i == j:
                     return PROP_INCONSISTENCY
                 if paths[i, PATH_END] == i:
@@ -87,10 +98,11 @@ def compute_domains_no_sub_cycle(domains: NDArray, parameters: NDArray) -> int:
                         end, PATH_LENGTH
                     ] = length
                     if length < n - 1:
-                        if domains[end, MIN] == start:
-                            domains[end, MIN] = start + 1
-                        if domains[end, MAX] == start:
-                            domains[end, MAX] = start - 1
+                        # closing the chain back onto its start would make a sub-cycle: forbid that label
+                        if domains[end, MIN] == start + offset:
+                            domains[end, MIN] = start + offset + 1
+                        if domains[end, MAX] == start + offset:
+                            domains[end, MAX] = start + offset - 1
                         if domains[end, MIN] > domains[end, MAX]:
                             return PROP_INCONSISTENCY
                         if end < i:
