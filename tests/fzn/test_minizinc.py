@@ -41,7 +41,7 @@ KEPT_GLOBALS = {
     "bin_packing_load": (
         "array[1..2] of var 0..9: load; array[1..3] of var 1..2: bin; "
         + "constraint bin_packing_load(load, bin, [2, 3, 1]);",
-        "fzn_bin_packing_load",
+        "nucs_bin_packing_load",
         "fzn_bin_packing_load.mzn",
     ),
     "circuit": (
@@ -287,3 +287,34 @@ def test_min_reaches_native_array_int_minimum(tmp_path) -> None:  # type: ignore
     fzn = _compile_to_fzn("array[1..4] of var 0..9: x; var int: m = min(x);", tmp_path)
     assert "constraint array_int_minimum(" in fzn
     assert "constraint int_min(" not in fzn
+
+
+def test_bin_packing_load_non_one_based_bins(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """bin_packing_load whose load array is indexed from 0: flattening reindexes load to 1..n but leaves the
+    bin *values* on the model's own labels, so the propagator's bin offset has to come from the globals
+    library. Assuming 1 made every such model unsatisfiable."""
+    out = _solve(
+        "array[0..2] of var 0..9: load;\narray[1..4] of var 0..2: bin;\n"
+        "constraint bin_packing_load(load, bin, [3, 2, 2, 1]);\n"
+        "constraint load[0] = 5;\nconstraint load[1] = 2;\nconstraint load[2] = 1;\n"
+        "solve :: int_search(bin, input_order, indomain_min, complete) satisfy;",
+        tmp_path,
+    )
+    # items 1 and 2 (weights 3 and 2) fill bin 0, item 3 goes to bin 1 and item 4 to bin 2
+    assert "load = [0: 5, 1: 2, 2: 1];" in out
+    assert "bin = [0, 0, 1, 2];" in out
+
+
+def test_diffn_non_one_based_index(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """diffn over an index set that does not start at 1: the fixed-size arrays the library builds are read at
+    that index set, so they must be coerced to it -- an array comprehension is 1-based, and indexing it out of
+    range made the whole constraint undefined, hence false."""
+    out = _solve(
+        "array[0..1] of var 0..3: x;\narray[0..1] of var 0..3: y;\n"
+        "constraint diffn(x, y, array1d(0..1, [2, 2]), array1d(0..1, [2, 2]));\n"
+        "solve :: int_search(x ++ y, input_order, indomain_min, complete) satisfy;",
+        tmp_path,
+    )
+    assert "=====UNSATISFIABLE=====" not in out
+    assert "x = [0: 0, 1: 0];" in out
+    assert "y = [0: 0, 1: 2];" in out

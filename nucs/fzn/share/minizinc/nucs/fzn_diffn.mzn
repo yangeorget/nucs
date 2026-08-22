@@ -18,8 +18,12 @@ predicate fzn_diffn(
 ) =
   if forall (i in index_set(dx)) (is_fixed(dx[i])) /\ forall (i in index_set(dy)) (is_fixed(dy[i])) then
     let {
-      array [int] of int: fdx = [fix(dx[i]) | i in index_set(dx)],
-      array [int] of int: fdy = [fix(dy[i]) | i in index_set(dy)],
+      % The index sets are restated: an array comprehension is always 1-based, but these arrays are read
+      % below at the index set of x and y, which diffn only guarantees to be the same as dx's and dy's --
+      % not to start at 1. Without the coercion a non-1-based diffn indexes them out of range, which makes
+      % the whole constraint undefined (and, in a boolean context, false).
+      array [index_set(dx)] of int: fdx = array1d(index_set(dx), [fix(dx[i]) | i in index_set(dx)]),
+      array [index_set(dy)] of int: fdy = array1d(index_set(dy), [fix(dy[i]) | i in index_set(dy)]),
       % Bounding-box spans: every non-overlapping placement fits inside them, so projecting the rectangles
       % on each axis gives two implied cumulative constraints (heights on one axis, capacity on the other).
       % They add the energetic reasoning that the pairwise diffn cannot derive.

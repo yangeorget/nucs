@@ -837,16 +837,17 @@ def _all_different(model: "FznModel", args: list[Term]) -> None:
     model.problem.add_propagator(ALG_ALLDIFFERENT, model.var_list_of(args[0]))
 
 
-def _fzn_bin_packing_load(model: "FznModel", args: list[Term]) -> None:
+def _bin_packing_load(model: "FznModel", args: list[Term]) -> None:
     """
-    Handles ``fzn_bin_packing_load(load, bin, w)``: load[j] is the sum of the weights w of the items whose bin
-    variable equals j. The load variables come first, then the bin variables; the bin offset (1, since the
-    MiniZinc library normalises bin values to 1..length(load)) leads the weight parameters.
+    Handles ``nucs_bin_packing_load(load, bin, w, offset)``: load[j] is the sum of the weights w of the items
+    whose bin variable equals the j-th bin label. The load variables come first, then the bin variables; the
+    bin offset -- the label of the first load, which the globals library reads off load's index set because
+    flattening reindexes the array but not the bin values -- leads the weight parameters.
     """
     loads = model.var_list_of(args[0])
     bins = model.var_list_of(args[1])
     weights = model.int_list_of(args[2])
-    model.problem.add_propagator(ALG_BIN_PACKING_LOAD, loads + bins, [1, *weights])
+    model.problem.add_propagator(ALG_BIN_PACKING_LOAD, loads + bins, [model.const_of(args[3]), *weights])
 
 
 def _increasing(model: "FznModel", args: list[Term]) -> None:
@@ -1153,7 +1154,7 @@ BUILTINS: dict[str, Handler] = {
     "nucs_if_then_else_var_bool": _if_then_else_var_bool,
     "nucs_disjunctive": _disjunctive,
     "fzn_all_different_int": _all_different,
-    "fzn_bin_packing_load": _fzn_bin_packing_load,
+    "nucs_bin_packing_load": _bin_packing_load,
     "fzn_circuit": _circuit,
     "fzn_count_eq": _count_eq,
     "fzn_count_geq": _count_geq,
