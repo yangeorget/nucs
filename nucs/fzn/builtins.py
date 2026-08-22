@@ -60,6 +60,7 @@ from nucs.propagators.propagators import (
     ALG_LINEAR_NEQ_C,
     ALG_MAX_EQ,
     ALG_MEMBER,
+    ALG_MEMBER_REIF,
     ALG_MIN_EQ,
     ALG_MOD_C_EQ,
     ALG_MOD_EQ,
@@ -971,13 +972,15 @@ def _set_in_reif(model: "FznModel", args: list[Term]) -> None:
 
     S is first restricted to x's declared domain: a value x can never take does not change the truth of
     x in S, and dropping it may turn a sparse set into a range (or empty it, fixing b). What remains reifies
-    to a single equality when it is a singleton, to lo <= x <= hi when it is contiguous, and to a disjunction
-    of equalities otherwise.
+    to a single equality when it is a singleton, to lo <= x <= hi when it is contiguous, and to the reified
+    membership propagator otherwise.
 
     A contiguous range whose bounds fall outside x's domain reifies through one comparison instead of two:
     when x >= lo already holds, b <=> x <= hi -- and symmetrically -- which saves the two auxiliary booleans
     and the conjunction the two-sided encoding needs. MiniZinc emits exactly that shape whenever the range
-    is anchored on one of the variable's bounds (``x in 0..k`` over a ``var 0..n``).
+    is anchored on one of the variable's bounds (``x in 0..k`` over a ``var 0..n``). A range is kept on the
+    comparisons rather than handed to MEMBER_REIF because the propagator's cost grows with the number of
+    allowed values it carries, where two comparisons stay O(1) however wide the range is.
     """
     x = model.var_index_of(args[0])
     b = model.var_index_of(args[2])
@@ -1004,12 +1007,7 @@ def _set_in_reif(model: "FznModel", args: list[Term]) -> None:
             model.problem.add_propagator(ALG_LEQ_C_REIF, [b_le, x, model.var_index_of(hi)], [0])
             model.problem.add_propagator(ALG_AND_EQ, [b_ge, b_le, b])
         return
-    reifs = []  # non-contiguous set: b <=> or_i (x == v_i)
-    for value in values:
-        reif = model.problem.add_variable((0, 1))
-        model.problem.add_propagator(ALG_EQ_C_REIF, [reif, x], [value])
-        reifs.append(reif)
-    model.problem.add_propagator(ALG_MAX_EQ, reifs + [b])
+    model.problem.add_propagator(ALG_MEMBER_REIF, [b, x], values)  # non-contiguous set
 
 
 def _is_one_based(model: "FznModel", index: int) -> bool:

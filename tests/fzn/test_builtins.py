@@ -49,6 +49,7 @@ from nucs.propagators.propagators import (
     ALG_LEQ_C_REIF,
     ALG_LEXLEQ,
     ALG_LINEAR_EQ_C,
+    ALG_MEMBER_REIF,
     ALG_MOD_C_EQ,
     ALG_MOD_EQ,
     ALG_NEQ_C_REIF,
@@ -645,6 +646,27 @@ class TestBuiltins:
         )
         assert out.count("----------") == 2
         assert "x = 1;" in out and "x = 3;" in out
+
+    def test_set_in_reif_non_contiguous_is_a_single_propagator(self) -> None:
+        # a sparse set reifies through MEMBER_REIF: one propagator carrying the values, and no auxiliary
+        # boolean per value feeding a disjunction, which is what the equality decomposition used to cost
+        model = build_model(
+            parse("var 0..9: x;\nvar bool: b;\nconstraint set_in_reif(x, {1, 4, 8}, b);\nsolve satisfy;")
+        )
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_MEMBER_REIF]
+        assert model.problem.propagators[0][2] == [1, 4, 8]
+        assert len(model.problem.domains) == 2  # x and b, nothing else
+
+    def test_set_in_reif_non_contiguous_prunes_both_ways(self) -> None:
+        # b false removes the values sitting on x's bounds (0 and 1 at the bottom, 9 at the top) but not the
+        # interior hole at 5, which an interval domain cannot express
+        out = solve_fzn(
+            "var 0..9: x :: output_var;\nconstraint set_in_reif(x, {0, 1, 5, 9}, false);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        # the bounds are filtered to 2..8, then the search refutes the interior 5: 2, 3, 4, 6, 7, 8
+        assert out.count("----------") == 6
+        assert "x = 0;" not in out and "x = 1;" not in out and "x = 9;" not in out
 
     def test_set_in_reif_derives_reif(self) -> None:
         # x is fixed to 2 which is in 1..3, so b is forced true
