@@ -989,13 +989,23 @@ def _set_in(model: "FznModel", args: list[Term]) -> None:
 def _set_in_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``set_in_reif(x, S, b)`` as b <=> (x in S), where S is a constant set (a ``{..}`` literal or a
-    ``lo..hi`` range). A contiguous range reifies to lo <= x <= hi; a non-contiguous set to a disjunction of
-    equalities.
+    ``lo..hi`` range).
+
+    S is first restricted to x's declared domain: a value x can never take does not change the truth of
+    x in S, and dropping it may turn a sparse set into a range (or empty it, fixing b). What remains reifies
+    to a single equality when it is a singleton, to lo <= x <= hi when it is contiguous, and to a disjunction
+    of equalities otherwise.
+
+    A contiguous range whose bounds fall outside x's domain reifies through one comparison instead of two:
+    when x >= lo already holds, b <=> x <= hi -- and symmetrically -- which saves the two auxiliary booleans
+    and the conjunction the two-sided encoding needs. MiniZinc emits exactly that shape whenever the range
+    is anchored on one of the variable's bounds (``x in 0..k`` over a ``var 0..n``).
     """
     x = model.var_index_of(args[0])
     b = model.var_index_of(args[2])
-    values = model.set_values_of(args[1])
-    if not values:  # x is never in the empty set, so b is false
+    x_min, x_max = model.problem.domains[x]
+    values = [value for value in model.set_values_of(args[1]) if x_min <= value <= x_max]
+    if not values:  # x is never in the set, so b is false
         model.problem.add_propagator(ALG_LEQ_C, [b, model.var_index_of(0)], [0])
         return
     if len(values) == 1:  # b <=> x == v
@@ -1003,11 +1013,18 @@ def _set_in_reif(model: "FznModel", args: list[Term]) -> None:
         return
     lo, hi = values[0], values[-1]
     if hi - lo + 1 == len(values):  # contiguous range: b <=> (lo <= x) and (x <= hi)
-        b_ge = model.problem.add_variable((0, 1))
-        b_le = model.problem.add_variable((0, 1))
-        model.problem.add_propagator(ALG_LEQ_C_REIF, [b_ge, model.var_index_of(lo), x], [0])
-        model.problem.add_propagator(ALG_LEQ_C_REIF, [b_le, x, model.var_index_of(hi)], [0])
-        model.problem.add_propagator(ALG_AND_EQ, [b_ge, b_le, b])
+        if lo <= x_min and x_max <= hi:  # x is always in the range, so b is true
+            model.problem.add_propagator(ALG_EQ, [b, model.var_index_of(1)])
+        elif lo <= x_min:  # lo <= x always holds: b <=> x <= hi
+            model.problem.add_propagator(ALG_LEQ_C_REIF, [b, x, model.var_index_of(hi)], [0])
+        elif x_max <= hi:  # x <= hi always holds: b <=> lo <= x
+            model.problem.add_propagator(ALG_LEQ_C_REIF, [b, model.var_index_of(lo), x], [0])
+        else:
+            b_ge = model.problem.add_variable((0, 1))
+            b_le = model.problem.add_variable((0, 1))
+            model.problem.add_propagator(ALG_LEQ_C_REIF, [b_ge, model.var_index_of(lo), x], [0])
+            model.problem.add_propagator(ALG_LEQ_C_REIF, [b_le, x, model.var_index_of(hi)], [0])
+            model.problem.add_propagator(ALG_AND_EQ, [b_ge, b_le, b])
         return
     reifs = []  # non-contiguous set: b <=> or_i (x == v_i)
     for value in values:

@@ -38,6 +38,26 @@ KEPT_GLOBALS = {
         "fzn_all_different_int",
         "fzn_all_different_int.mzn",
     ),
+    "at_least": (
+        "array[1..4] of var 1..4: x; constraint at_least(2, x, 3);",
+        "fzn_count_geq",
+        "fzn_at_least_int.mzn",
+    ),
+    "at_most": (
+        "array[1..4] of var 1..4: x; constraint at_most(2, x, 3);",
+        "fzn_count_leq",
+        "fzn_at_most_int.mzn",
+    ),
+    "bin_packing": (
+        "array[1..3] of var 1..2: bin; constraint bin_packing(4, bin, [2, 3, 1]);",
+        "nucs_bin_packing_load",
+        "fzn_bin_packing.mzn",
+    ),
+    "bin_packing_capa": (
+        "array[1..3] of var 1..2: bin; constraint bin_packing_capa([4, 4], bin, [2, 3, 1]);",
+        "nucs_bin_packing_load",
+        "fzn_bin_packing_capa.mzn",
+    ),
     "bin_packing_load": (
         "array[1..2] of var 0..9: load; array[1..3] of var 1..2: bin; "
         + "constraint bin_packing_load(load, bin, [2, 3, 1]);",
@@ -83,6 +103,18 @@ KEPT_GLOBALS = {
         "array[1..3] of var 0..9: s; constraint disjunctive(s, [2, 3, 1]);",
         "nucs_disjunctive",
         "fzn_disjunctive_strict.mzn",
+    ),
+    # a zero duration routes disjunctive to the non-strict fzn_disjunctive, which drops the zero-duration
+    # tasks (they may sit anywhere) and keeps the rest on the native propagator
+    "disjunctive_non_strict": (
+        "array[1..3] of var 0..9: s; constraint disjunctive(s, [2, 0, 1]);",
+        "nucs_disjunctive",
+        "fzn_disjunctive.mzn",
+    ),
+    "exactly": (
+        "array[1..4] of var 1..4: x; constraint exactly(2, x, 3);",
+        "fzn_count_eq",
+        "fzn_exactly_int.mzn",
     ),
     # global_cardinality_low_up is deprecated; the modern global_cardinality(x, cover, lb, ub) lowers to
     # the same fzn_global_cardinality_low_up predicate that NuCS keeps native.
@@ -141,6 +173,11 @@ KEPT_GLOBALS = {
         "array[1..2] of var 0..2: t; constraint table(t, [| 0,1 | 1,2 |]);",
         "nucs_table_int",
         "fzn_table_int.mzn",
+    ),
+    "table_bool": (
+        "array[1..2] of var bool: t; constraint table(t, [| true,false | false,true |]);",
+        "nucs_table_int",
+        "fzn_table_bool.mzn",
     ),
     "value_precede": (
         "array[1..4] of var 0..3: x; constraint value_precede(1, 2, x);",
