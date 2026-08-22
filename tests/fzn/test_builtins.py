@@ -1449,6 +1449,42 @@ class TestBuiltins:
         )
         assert out.strip() == "=====UNSATISFIABLE====="
 
+    def test_unit_linear_equality_is_absorbed_as_an_alias(self) -> None:
+        # int_lin_eq([1, -1], [x, y], 0) states x = y, so the two share one variable and no propagator is
+        # posted -- as for int_eq. MiniZinc 2.9.x aliases this shape away itself, so it reaches NuCS only
+        # from hand-written FlatZinc or another flattener.
+        model = build_model(
+            parse(
+                "var 0..9: x;\nvar 0..9: y;\narray [1..2] of var int: v = [x, y];\n"
+                "constraint int_lin_eq([1, -1], v, 0);\nsolve satisfy;"
+            )
+        )
+        assert len(model.problem.domains) == 1
+        assert model.problem.propagators == []
+        assert model.vars["x"] == model.vars["y"]
+
+    def test_offset_linear_equality_is_not_absorbed(self) -> None:
+        # a non-zero right-hand side makes y an offset of x, which an equality class cannot express: the
+        # constraint must stay a propagator over two distinct variables
+        model = build_model(
+            parse(
+                "var 0..9: x;\nvar 0..9: y;\narray [1..2] of var int: v = [x, y];\n"
+                "constraint int_lin_eq([1, -1], v, 3);\nsolve satisfy;"
+            )
+        )
+        assert len(model.problem.domains) == 2
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_LINEAR_EQ_C]
+
+    def test_unit_linear_equality_alias_keeps_the_solution_set(self) -> None:
+        # the absorbed form must constrain exactly as the propagator would: x = y over 0..3 with x >= 2
+        out = solve_fzn(
+            "var 0..3: x :: output_var;\nvar 0..3: y :: output_var;\narray [1..2] of var int: v = [x, y];\n"
+            "constraint int_lin_eq([-1, 1], v, 0);\nconstraint int_le(2, x);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert out.count("----------") == 2
+        assert "x = 2;\ny = 2;" in out and "x = 3;\ny = 3;" in out
+
     def test_statistics_go_to_the_solution_stream(self) -> None:
         # the FlatZinc interface puts statistics on standard output as comments: on stderr, `minizinc -s`
         # never sees them

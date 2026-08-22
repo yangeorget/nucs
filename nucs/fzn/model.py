@@ -36,7 +36,9 @@ from nucs.fzn.parser import (
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_MEMBER
 
-# The builtins stating that two variables are always equal, which an equality class represents for free.
+# The arity-2 builtins stating that two variables are always equal, which an equality class represents
+# for free. int_lin_eq states it too, for the shape MiniZinc emits when it cannot alias at flattening
+# time; see _alias_operands.
 _ALIAS_BUILTINS = ("bool2int", "bool_eq", "int_eq")
 
 
@@ -183,18 +185,54 @@ class FznModel:
         """
         kept = []
         for constraint in constraints:
-            if constraint.name in _ALIAS_BUILTINS and len(constraint.args) == 2:
-                left, right = self._deref(constraint.args[0]), self._deref(constraint.args[1])
-                if (
-                    isinstance(left, Id)
-                    and isinstance(right, Id)
-                    and left.name in self.alias_parent
-                    and right.name in self.alias_parent
-                    and self._union(left.name, right.name)
-                ):
-                    continue
+            operands = self._alias_operands(constraint)
+            if operands is not None and self._union(*operands):
+                continue
             kept.append(constraint)
         return kept
+
+    def _alias_operands(self, constraint: Constraint) -> tuple[str, str] | None:
+        """
+        Returns the two declared variable names a constraint states to be always equal, or None when it
+        states no such thing.
+
+        Besides ``bool2int`` / ``bool_eq`` / ``int_eq``, this recognises ``int_lin_eq([1, -1], [x, y], 0)``
+        (and the negated coefficient order), which is how MiniZinc writes x = y whenever it could not
+        collapse the two variables itself while flattening.
+
+        A non-zero right-hand side is deliberately not absorbed: ``x - y = c`` makes y an *offset* of x,
+        which an equality class cannot express -- representing it would need a view mechanism NuCS does not
+        have. Only operands that are both declared variables qualify; a constant one is left to the regular
+        handler.
+
+        :param constraint: the parsed constraint
+        :type constraint: Constraint
+
+        :return: the pair of variable names, or None
+        :rtype: Optional[Tuple[str, str]]
+        """
+        if constraint.name in _ALIAS_BUILTINS and len(constraint.args) == 2:
+            terms = [self._deref(constraint.args[0]), self._deref(constraint.args[1])]
+        elif constraint.name == "int_lin_eq" and len(constraint.args) == 3:
+            if self.const_of(constraint.args[2]) != 0 or self.int_list_of(constraint.args[0]) not in (
+                [1, -1],
+                [-1, 1],
+            ):
+                return None
+            terms = [self._deref(term) for term in self._elements_of(constraint.args[1])]
+        else:
+            return None
+        if len(terms) != 2:
+            return None
+        left, right = terms
+        if (
+            isinstance(left, Id)
+            and isinstance(right, Id)
+            and left.name in self.alias_parent
+            and right.name in self.alias_parent
+        ):
+            return left.name, right.name
+        return None
 
     def _allocate_variables(self) -> None:
         """
