@@ -16,7 +16,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.alldifferent_propagator import argsort_into, path_max, path_min, path_set
 
 
@@ -420,6 +420,26 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     """
     n = len(domains)
     m = (len(parameters) - 1) >> 1  # number of values
+    # A value that no variable is required to take (lower capacity 0) and that all of them may take
+    # (upper capacity at least n) constrains nothing. When that holds for every value, so does the whole
+    # constraint: every assignment satisfies it, whatever the domains, so it is entailed and never needs to
+    # run again in this subtree. The upper capacities are scanned first because that is what fails fast on a
+    # constraint that does bind. MiniZinc produces these in quantity -- global_cardinality_low_up leaves the
+    # values outside its cover unconstrained, and a cover whose own capacities do not bite makes the lot
+    # vacuous: 5 of gbac's 28 and 25 of nside's 42 are of this kind, and each was being woken on every
+    # bound change to derive nothing.
+    vacuous = True
+    for j in range(m):
+        if parameters[1 + m + j] < n:
+            vacuous = False
+            break
+    if vacuous:
+        for j in range(m):
+            if parameters[1 + j] != 0:
+                vacuous = False
+                break
+    if vacuous:
+        return PROP_ENTAILMENT
     bounds_nb = 2 * (n + 1)
     empty_buffer = np.empty(4 * bounds_nb + 4 * n, dtype=np.int32)  # single allocation for all the scratch arrays
     bounds = empty_buffer[:bounds_nb]

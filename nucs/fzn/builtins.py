@@ -1107,6 +1107,11 @@ def _global_cardinality_low_up(model: "FznModel", args: list[Term]) -> None:
         )
     full_lb = [capacities[value][0] if value in capacities else 0 for value in range(lo, hi + 1)]
     full_ub = [capacities[value][1] if value in capacities else n for value in range(lo, hi + 1)]
+    if all(bound == 0 for bound in full_lb) and all(bound >= n for bound in full_ub):
+        # No value is required and none is capped below the number of variables, so every assignment
+        # satisfies the constraint. Posting it would add a global that can only ever be woken to conclude
+        # nothing -- the shape MiniZinc produces whenever a cover's own capacities do not bite.
+        return
     model.problem.add_propagator(ALG_GCC, variables, [lo] + full_lb + full_ub)
 
 
