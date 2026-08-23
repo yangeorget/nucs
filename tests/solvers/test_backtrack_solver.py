@@ -16,6 +16,8 @@ from nucs.buckets import STORAGE_OFFSET, buckets_empty
 from nucs.constants import (
     OPTIM_PRUNE,
     OPTIM_RESET,
+    STATS_LBL_PROPAGATOR_FILTER_NB,
+    STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_LBL_SOLUTION_NB,
     STATS_LBL_SOLVER_CHOICE_DEPTH,
 )
@@ -42,6 +44,37 @@ from nucs.solvers.search import Search
 
 
 class TestBacktrackSolver:
+    def test_algorithm_statistics_partition_the_global_counters(self) -> None:
+        """The per-algorithm counters are a breakdown of the global ones, so they must sum to them.
+
+        This is what makes them usable for a throughput investigation: a no-change share attributed to one
+        algorithm is a share of the whole, not of some separately-counted subset.
+        """
+        problem = Problem([(0, 5)] * 4)
+        problem.add_propagator(ALG_ALLDIFFERENT, range(4))
+        problem.add_propagator(ALG_LINEAR_LEQ_C, range(4), [1, 1, 1, 1, 12])
+        problem.add_propagator(ALG_NEQ, [0, 3])
+        solver = BacktrackSolver(problem)
+        solver.solve_all()
+        statistics = solver.get_statistics_as_dictionary()
+        per_algorithm = solver.get_algorithm_statistics()
+        assert set(per_algorithm) == {"alldifferent", "linear_leq_c", "neq"}
+        assert sum(calls for calls, _ in per_algorithm.values()) == statistics[STATS_LBL_PROPAGATOR_FILTER_NB]
+        assert (
+            sum(no_change for _, no_change in per_algorithm.values())
+            == statistics[STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB]
+        )
+        # a propagator cannot change nothing more often than it was called
+        assert all(no_change <= calls for calls, no_change in per_algorithm.values())
+
+    def test_algorithm_statistics_omit_algorithms_that_never_ran(self) -> None:
+        """Only the algorithms a problem actually uses appear, so the breakdown stays readable."""
+        problem = Problem([(0, 3)] * 2)
+        problem.add_propagator(ALG_NEQ, [0, 1])
+        solver = BacktrackSolver(problem)
+        solver.solve_all()
+        assert list(solver.get_algorithm_statistics()) == ["neq"]
+
     def test_solve_all(self) -> None:
         problem = Problem([(0, 99), (0, 99)])
         solver = BacktrackSolver(problem)

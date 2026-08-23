@@ -32,11 +32,15 @@ from nucs.constants import (
     PROP_INCONSISTENCY,
     RANGE_END,
     RANGE_START,
+    STATS_ALG_IDX_FILTER_NB,
+    STATS_ALG_IDX_FILTER_NO_CHANGE_NB,
+    STATS_ALG_WIDTH,
     STATS_IDX_ALG_BC_NB,
     STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
     STATS_IDX_PROPAGATOR_FILTER_NB,
     STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_MAX,
     VARIABLE,
 )
 from nucs.numba_helper import ComputeDomainsFunctions
@@ -113,6 +117,10 @@ def bc_algorithm(
         if prop_idx == -1:
             return PROBLEM_BOUND if unbound_variable_nb_stk[top] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
+        # the per-algorithm tail of the statistics array: which algorithms the calls (and, below, the
+        # wasted calls) belong to, which is what makes a throughput investigation targeted
+        algorithm_stats = STATS_MAX + STATS_ALG_WIDTH * algorithms[prop_idx]
+        statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NB] += 1
         prop_var_start = bounds[prop_idx, VARIABLE, RANGE_START]
         prop_var_end = bounds[prop_idx, VARIABLE, RANGE_END]
         prop_arity = prop_var_end - prop_var_start
@@ -153,6 +161,7 @@ def bc_algorithm(
         )
         if no_change:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
+            statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NO_CHANGE_NB] += 1
 
 
 @njit(cache=True)

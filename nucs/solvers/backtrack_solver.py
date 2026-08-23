@@ -34,6 +34,9 @@ from nucs.constants import (
     SIGN_CONSISTENCY_ALG,
     SIGN_DOM_HEURISTIC,
     SIGN_VAR_HEURISTIC,
+    STATS_ALG_IDX_FILTER_NB,
+    STATS_ALG_IDX_FILTER_NO_CHANGE_NB,
+    STATS_ALG_WIDTH,
     STATS_IDX_ALG_BC_NB,
     STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
     STATS_IDX_PROPAGATOR_FILTER_NB,
@@ -75,6 +78,7 @@ from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     ALG_DUMMY,
     COMPUTE_DOMAINS_FCTS,
+    get_algorithm_nb,
     update_propagators,
 )
 from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_point, fix_choice_points
@@ -210,7 +214,7 @@ class BacktrackSolver(Solver):
         )
         logger.debug("Choice points initialized")
         logger.debug("Initializing statistics")
-        self.statistics = np.zeros(STATS_MAX, dtype=np.int64)
+        self.statistics = np.zeros(STATS_MAX + STATS_ALG_WIDTH * get_algorithm_nb(), dtype=np.int64)
         logger.debug("Statistics initialized")
         if NUMBA_DISABLE_JIT:
             self.compute_domains_fcts = COMPUTE_DOMAINS_FCTS
@@ -242,6 +246,27 @@ class BacktrackSolver(Solver):
         :rtype: NDArray
         """
         return self.statistics
+
+    def get_algorithm_statistics(self) -> dict[str, tuple[int, int]]:
+        """
+        Returns, per propagator algorithm that ran at least once, how many times it was called and how many
+        of those calls pruned nothing.
+
+        A call that prunes nothing still costs a bucket pop, a gather of its variables' domains into the
+        scratch buffer, an indirect call and a write-back, so a high no-change share on a given algorithm is
+        where wasted propagation is concentrated.
+
+        :return: a dictionary mapping the algorithm name to (calls, calls that changed nothing)
+        :rtype: Dict[str, Tuple[int, int]]
+        """
+        result = {}
+        for algorithm in range(get_algorithm_nb()):
+            base = STATS_MAX + STATS_ALG_WIDTH * algorithm
+            calls = int(self.statistics[base + STATS_ALG_IDX_FILTER_NB])
+            if calls:
+                name = COMPUTE_DOMAINS_FCTS[algorithm].__name__.replace("compute_domains_", "")
+                result[name] = (calls, int(self.statistics[base + STATS_ALG_IDX_FILTER_NO_CHANGE_NB]))
+        return result
 
     def get_statistics_as_dictionary(self) -> dict[str, int]:
         """

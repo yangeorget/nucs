@@ -127,6 +127,13 @@ STATS_MAX = 10
     STATS_IDX_SOLVER_ELAPSED_TIME,
 ) = tuple(range(STATS_MAX))
 
+# The statistics array carries a per-algorithm tail after the STATS_MAX global counters: two counters per
+# registered algorithm, at STATS_MAX + STATS_ALG_WIDTH * algorithm. It rides along in the same array so the
+# jitted consistency-algorithm signature does not have to grow a parameter for it.
+STATS_ALG_WIDTH = 2
+STATS_ALG_IDX_FILTER_NB = 0  # calls made
+STATS_ALG_IDX_FILTER_NO_CHANGE_NB = 1  # calls that pruned nothing
+
 STATS_LBL_ALG_BC_NB = "ALG_BC_NB"
 STATS_LBL_PROPAGATOR_ENTAILMENT_NB = "PROPAGATOR_ENTAILMENT_NB"
 STATS_LBL_PROPAGATOR_FILTER_NB = "PROPAGATOR_FILTER_NB"
