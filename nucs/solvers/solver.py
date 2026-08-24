@@ -96,27 +96,14 @@ class Solver:
         return solutions
 
     @abstractmethod
-    def minimize(self, variable_idx: int, mode: str) -> NDArray | None:
+    def find_best(self, variable_idx: int, bound: int, mode: str) -> NDArray | None:
         """
-        Finds, if it exists, the solution to the problem that minimizes a given variable.
+        Finds, if it exists, the solution to the problem that optimizes a given variable.
 
         :param variable_idx: the index of the variable
         :type variable_idx: int
-        :param mode: the optimization mode
-        :type mode: str
-
-        :return: the solution if it exists or None
-        :rtype: Optional[NDArray]
-        """
-        ...
-
-    @abstractmethod
-    def maximize(self, variable_idx: int, mode: str) -> NDArray | None:
-        """
-        Finds, if it exists, the solution to the problem that maximizes a given variable.
-
-        :param variable_idx: the index of the variable
-        :type variable_idx: int
+        :param bound: MIN to minimize the variable, MAX to maximize it
+        :type bound: int
         :param mode: the optimization mode
         :type mode: str
 

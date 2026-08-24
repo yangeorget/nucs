@@ -32,7 +32,7 @@ import tempfile
 
 import pytest
 
-from nucs.constants import STATS_IDX_SOLUTION_NB
+from nucs.constants import MIN, STATS_IDX_SOLUTION_NB
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm
 from nucs.examples.langford.langford_problem import LangfordProblem
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
@@ -122,7 +122,7 @@ class TestEndToEnd:
         )
         problem = GolombProblem(mark_nb)
         alg = register_consistency_algorithm(golomb_consistency_algorithm)
-        solution = BacktrackSolver(problem, consistency_algorithm=alg).minimize(problem.length_idx)
+        solution = BacktrackSolver(problem, consistency_algorithm=alg).find_best(problem.length_idx, MIN)
         assert solution is not None
         assert _pipeline_optimum(model) == solution[problem.length_idx]
 

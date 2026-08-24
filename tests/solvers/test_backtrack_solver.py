@@ -14,6 +14,8 @@ import pytest
 
 from nucs.buckets import STORAGE_OFFSET, buckets_empty
 from nucs.constants import (
+    MAX,
+    MIN,
     OPTIM_PRUNE,
     OPTIM_RESET,
     STATS_LBL_PROPAGATOR_FILTER_NB,
@@ -222,7 +224,7 @@ class TestBacktrackSolver:
             ALG_RELATION, [0, 1], [-5, 25, -4, 16, -3, 9, -2, 4, -1, 1, 0, 0, 1, 1, 2, 4, 3, 9, 4, 16, 5, 25]
         )
         solver = BacktrackSolver(problem)
-        solution = solver.minimize(1)
+        solution = solver.find_best(1, bound=MIN)
         assert solution is not None
         assert solution.tolist() == [0, 0]
         statistics = solver.get_statistics_as_dictionary()
@@ -232,7 +234,7 @@ class TestBacktrackSolver:
         problem = Problem([(2, 5), (2, 5), (0, 10)])
         problem.add_propagator(ALG_LINEAR_LEQ_C, [0, 1, 2], [1, 1, -1, 0])
         solver = BacktrackSolver(problem)
-        solution = solver.minimize(2)
+        solution = solver.find_best(2, bound=MIN)
         assert solution is not None
         assert solution.tolist() == [2, 2, 4]
         statistics = solver.get_statistics_as_dictionary()
@@ -254,7 +256,7 @@ class TestBacktrackSolver:
     def test_maximize(self, mode: str, dom_heuristic: int, solution_nb: int) -> None:
         problem = Problem([(1, 5)])
         solver = BacktrackSolver(problem, dom_heuristic=dom_heuristic)
-        solution = solver.maximize(0, mode=mode)
+        solution = solver.find_best(0, bound=MAX, mode=mode)
         assert solution is not None
         assert solution.tolist() == [5]
         statistics = solver.get_statistics_as_dictionary()

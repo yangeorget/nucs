@@ -14,7 +14,7 @@ import json
 
 import pytest
 
-from nucs.constants import OPTIM_PRUNE, STATS_IDX_SOLUTION_NB
+from nucs.constants import MIN, OPTIM_PRUNE, STATS_IDX_SOLUTION_NB
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
@@ -25,7 +25,7 @@ class TestTSP:
     def test_tsp_1(self) -> None:
         problem = TSPProblem([[0, 2, 1, 2], [2, 0, 2, 1], [1, 2, 0, 2], [2, 1, 2, 0]])
         solver = BacktrackSolver(problem, decision_variables=[0, 1, 2, 3])
-        solution = solver.minimize(problem.total_cost)
+        solution = solver.find_best(problem.total_cost, bound=MIN)
         assert solution is not None
         assert solution[:4].tolist() == [1, 3, 0, 2]
         assert solution[problem.total_cost] == 6
@@ -54,6 +54,6 @@ class TestTSP:
                 dom_heuristic=DOM_HEURISTIC_MIN_COST,
                 dom_heuristic_params=costs,
             )
-            solution = solver.minimize(problem.total_cost, mode=OPTIM_PRUNE)
+            solution = solver.find_best(problem.total_cost, bound=MIN, mode=OPTIM_PRUNE)
             assert solution is not None
             assert solution[problem.total_cost] == minimum

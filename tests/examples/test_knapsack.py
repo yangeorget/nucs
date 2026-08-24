@@ -12,6 +12,7 @@
 ###############################################################################
 import json
 
+from nucs.constants import MAX
 from nucs.examples.knapsack.knapsack_problem import KnapsackProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -25,6 +26,6 @@ class TestKnapsack:
             solver = BacktrackSolver(
                 problem, var_heuristic=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, dom_heuristic=DOM_HEURISTIC_MAX_VALUE
             )
-            solution = solver.maximize(problem.weight)
+            solution = solver.find_best(problem.weight, bound=MAX)
             assert solution is not None
             assert solution[problem.weight] == 54

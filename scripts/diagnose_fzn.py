@@ -38,10 +38,11 @@ import os
 import subprocess
 import sys
 import time
-from typing import List, Tuple
 
 import nucs
 from nucs.constants import (
+    MAX,
+    MIN,
     STATS_IDX_PROPAGATOR_FILTER_NB,
     STATS_IDX_SOLVER_BACKTRACK_NB,
 )
@@ -58,12 +59,12 @@ SHARE_DIR = os.path.join(os.path.dirname(nucs.__file__), "fzn", "share")
 _PRIMITIVE_PREFIXES = ("int_", "bool_", "float_", "set_", "array_")
 
 
-def _flatten(mzn: str, data: List[str]) -> Tuple[str, float]:
+def _flatten(mzn: str, data: list[str]) -> tuple[str, float]:
     """Flattens a MiniZinc model with the NuCS solver, returning the FlatZinc text and the elapsed time."""
     env = dict(os.environ, MZN_SOLVER_PATH=SHARE_DIR)
     cmd = ["minizinc", "-c", "--solver", "nucs", mzn, *data, "--output-fzn-to-stdout"]
     start = time.perf_counter()
-    result = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=600)
+    result = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=600, check=False)
     elapsed = time.perf_counter() - start
     if result.returncode != 0:
         sys.exit(f"minizinc flattening failed:\n{result.stderr}")
@@ -100,9 +101,7 @@ def _solve_worker(problem, model, queue) -> None:  # type: ignore[no-untyped-def
     solver = BacktrackSolver(problem, log_level="ERROR")
     if model.solve.kind in ("minimize", "maximize"):
         objective_var = model.var_index_of(model.solve.objective)
-        solution = (
-            solver.minimize(objective_var) if model.solve.kind == "minimize" else solver.maximize(objective_var)
-        )
+        solution = solver.find_best(objective_var, MIN if model.solve.kind == "minimize" else MAX)
         status = "OPTIMAL" if solution is not None else "UNSATISFIABLE"
         objective = int(solution[objective_var]) if solution is not None else None
     else:
@@ -164,9 +163,7 @@ def main() -> None:
         print(f"\n== FLATTEN (mzn -> fzn) ==\n  flatten time: {flatten_time:.3f}s")
 
     constraints = _constraint_histogram(fzn)
-    globals_kept = collections.Counter(
-        {n: c for n, c in constraints.items() if not n.startswith(_PRIMITIVE_PREFIXES)}
-    )
+    globals_kept = collections.Counter({n: c for n, c in constraints.items() if not n.startswith(_PRIMITIVE_PREFIXES)})
     primitives = sum(constraints.values()) - sum(globals_kept.values())
     print(f"\n== FLATZINC EMITTED ({sum(constraints.values())} constraints) ==")
     print(f"  primitive constraints: {primitives}")

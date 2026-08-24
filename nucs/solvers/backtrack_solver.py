@@ -289,77 +289,16 @@ class BacktrackSolver(Solver):
             STATS_LBL_SOLVER_ELAPSED_TIME: int(self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME]) // 1_000_000,
         }
 
-    def minimize(self, variable: int, mode: str = OPTIM_RESET) -> NDArray | None:
-        """
-        Return the solution that minimizes a variable.
-
-        :param variable: the variable to minimize
-        :type variable: int
-        :param mode: the optimization mode (RESET or PRUNE), defaults to RESET
-        :type mode: str
-
-        :return: the optimal solution if it exists or None
-        :rtype: Optional[NDArray]
-        """
-        domain = self.domains_stk[self.stks_top[0], variable]
-        logger.info(f"Minimizing (mode {mode}) variable {variable} (domain {domain}))")
-        return self.optimize(variable, MAX, mode)
-
-    def maximize(self, variable: int, mode: str = OPTIM_RESET) -> NDArray | None:
-        """
-        Return the solution that maximizes a variable.
-
-        :param variable: the variable to maximize
-        :type variable: int
-        :param mode: the optimization mode (RESET or PRUNE), defaults to RESET
-        :type mode: str
-
-        :return: the optimal solution if it exists or None
-        :rtype: Optional[NDArray]
-        """
-        domain = self.domains_stk[self.stks_top[0], variable]
-        logger.info(f"Maximizing (mode {mode}) variable {variable} (domain {domain}))")
-        return self.optimize(variable, MIN, mode)
-
-    def minimize_solutions(self, variable: int, mode: str = OPTIM_RESET) -> Iterator[NDArray]:
-        """
-        Iterates over the successively improving solutions while minimizing a variable.
-
-        :param variable: the variable to minimize
-        :type variable: int
-        :param mode: the optimization mode (RESET or PRUNE), defaults to RESET
-        :type mode: str
-
-        :return: an iterator over the improving solutions, the last one being optimal
-        :rtype: Iterator[NDArray]
-        """
-        domain = self.domains_stk[self.stks_top[0], variable]
-        logger.info(f"Minimizing (mode {mode}) variable {variable} (domain {domain}))")
-        return self.optimize_solutions(variable, MAX, mode)
-
-    def maximize_solutions(self, variable: int, mode: str = OPTIM_RESET) -> Iterator[NDArray]:
-        """
-        Iterates over the successively improving solutions while maximizing a variable.
-
-        :param variable: the variable to maximize
-        :type variable: int
-        :param mode: the optimization mode (RESET or PRUNE), defaults to RESET
-        :type mode: str
-
-        :return: an iterator over the improving solutions, the last one being optimal
-        :rtype: Iterator[NDArray]
-        """
-        domain = self.domains_stk[self.stks_top[0], variable]
-        logger.info(f"Maximizing (mode {mode}) variable {variable} (domain {domain}))")
-        return self.optimize_solutions(variable, MIN, mode)
-
-    def optimize(self, variable: int, bound: int, mode: str) -> NDArray | None:
+    def find_best(self, variable: int, bound: int, mode: str = OPTIM_RESET) -> NDArray | None:
         """
         Finds, if it exists, the solution to the problem that optimizes a given variable.
 
+        Only the optimum is returned; use :meth:`optimize` to iterate over the successively
+        improving solutions.
+
         :param variable: the variable
         :type variable: int
-        :param bound: the bound to optimize
+        :param bound: MIN to minimize the variable, MAX to maximize it
         :type bound: int
         :param mode: the optimization mode
         :type mode: str
@@ -367,10 +306,46 @@ class BacktrackSolver(Solver):
         :return: the solution if it exists or None
         :rtype: Optional[NDArray]
         """
+        domain = self.domains_stk[self.stks_top[0], variable]
+        optimizing = "Minimizing" if bound == MIN else "Maximizing"
+        logger.info(f"{optimizing} (mode {mode}) variable {variable} (domain {domain}))")
         best_solution = None
-        for best_solution in self.optimize_solutions(variable, bound, mode):
+        for best_solution in self.optimize(variable, bound, mode):
             pass
         return best_solution
+
+    def optimize(self, variable: int, bound: int, mode: str) -> Iterator[NDArray]:
+        """
+        Iterates over the successively improving solutions found while optimizing a given variable.
+
+        Each yielded solution improves on the previous one; the last yielded solution is the optimum.
+        Nothing is yielded when the problem is unsatisfiable. Consumers that only need the optimum should
+        use :meth:`find_best`; streaming consumers (e.g. the FlatZinc runner) print each solution as it
+        is produced.
+
+        :param variable: the variable
+        :type variable: int
+        :param bound: MIN to minimize the variable, MAX to maximize it
+        :type bound: int
+        :param mode: the optimization mode
+        :type mode: str
+
+        :return: an iterator over the improving solutions, the last one being optimal
+        :rtype: Iterator[NDArray]
+        """
+        # minimizing a variable means tightening the MAX side of its domain, and vice versa
+        tightened_bound = MAX if bound == MIN else MIN
+        t0 = time.perf_counter_ns()
+        buckets_empty(self.triggered_propagators, self.problem.priorities)
+        buckets_init(self.triggered_propagators, self.problem.priorities)
+        try:
+            while (solution := self._solve_one()) is not None:
+                logger.info(f"Found a local optimum: {solution[variable]}")
+                yield solution
+                if not self._advance_after_optimum(variable, solution[variable], tightened_bound, mode):
+                    break
+        finally:
+            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
 
     def _solve_one(self) -> NDArray | None:
         """
@@ -420,7 +395,7 @@ class BacktrackSolver(Solver):
         :type variable: int
         :param value: the value of the variable in the local optimum just found
         :type value: int
-        :param bound: the bound to fix on the variable
+        :param bound: the side of the variable's domain to tighten (MAX when minimizing, MIN when maximizing)
         :type bound: int
         :param mode: the optimization mode
         :type mode: str
@@ -469,37 +444,6 @@ class BacktrackSolver(Solver):
             ):
                 return False
         return True
-
-    def optimize_solutions(self, variable: int, bound: int, mode: str) -> Iterator[NDArray]:
-        """
-        Iterates over the successively improving solutions found while optimizing a given variable.
-
-        Each yielded solution improves on the previous one; the last yielded solution is the optimum.
-        Nothing is yielded when the problem is unsatisfiable. Consumers that only need the optimum should
-        use :meth:`optimize` (or :meth:`minimize` / :meth:`maximize`); streaming consumers (e.g. the
-        FlatZinc runner) print each solution as it is produced.
-
-        :param variable: the variable
-        :type variable: int
-        :param bound: the bound to optimize
-        :type bound: int
-        :param mode: the optimization mode
-        :type mode: str
-
-        :return: an iterator over the improving solutions, the last one being optimal
-        :rtype: Iterator[NDArray]
-        """
-        t0 = time.perf_counter_ns()
-        buckets_empty(self.triggered_propagators, self.problem.priorities)
-        buckets_init(self.triggered_propagators, self.problem.priorities)
-        try:
-            while (solution := self._solve_one()) is not None:
-                logger.info(f"Found a local optimum: {solution[variable]}")
-                yield solution
-                if not self._advance_after_optimum(variable, solution[variable], bound, mode):
-                    break
-        finally:
-            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
 
     def solve(self) -> Iterator[NDArray]:
         """

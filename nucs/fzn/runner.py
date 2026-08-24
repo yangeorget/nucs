@@ -19,7 +19,7 @@ from typing import TextIO
 
 from numpy.typing import NDArray
 
-from nucs.constants import OPTIM_PRUNE
+from nucs.constants import MAX, MIN, OPTIM_PRUNE
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import FznModel
 from nucs.fzn.output import print_search_complete, print_solution, print_unknown, print_unsatisfiable
@@ -279,10 +279,7 @@ def _run_optimize(
     :param deadline: the monotonic time to stop at, or None for an unbounded search
     :type deadline: Optional[float]
     """
-    if model.solve.kind == "minimize":
-        solutions = solver.minimize_solutions(objective_var, mode=OPTIM_PRUNE)
-    else:
-        solutions = solver.maximize_solutions(objective_var, mode=OPTIM_PRUNE)
+    solutions = solver.optimize(objective_var, bound=MIN if model.solve.kind == "minimize" else MAX, mode=OPTIM_PRUNE)
     best = None
     printed = False
     proven = True

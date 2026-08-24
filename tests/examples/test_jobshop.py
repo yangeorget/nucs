@@ -15,6 +15,7 @@ import json
 
 import pytest
 
+from nucs.constants import MIN
 from nucs.examples.jobshop.jobshop_problem import JobShopProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
@@ -85,6 +86,6 @@ class TestJobShop:
         assert dataset["optimum"] == optimum
         problem = JobShopProblem(dataset["jobs"])
         solver = BacktrackSolver(problem, searches=problem.recommended_searches())
-        solution = solver.minimize(problem.makespan)
+        solution = solver.find_best(problem.makespan, MIN)
         assert solution is not None
         assert solution[problem.makespan] == optimum

@@ -10,6 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from nucs.constants import MAX
 from nucs.examples.employee_scheduling.employee_scheduling_problem import EmployeeSchedulingProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -33,6 +34,6 @@ class TestEmployeeScheduling:
         solver = BacktrackSolver(
             problem, decision_variables=problem.requested_shifts, dom_heuristic=DOM_HEURISTIC_MAX_VALUE
         )
-        solution = solver.maximize(problem.satisfied_request_nb)
+        solution = solver.find_best(problem.satisfied_request_nb, bound=MAX)
         assert solution is not None
         assert solution[problem.satisfied_request_nb] == 13
