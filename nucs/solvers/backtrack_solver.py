@@ -238,103 +238,38 @@ class BacktrackSolver(Solver):
             )
         logger.debug("BacktrackSolver initialized")
 
-    def get_statistics_as_array(self) -> NDArray:
-        """
-        Returns the statistics as a Numpy array.
-
-        :return: the statistics array
-        :rtype: NDArray
-        """
-        return self.statistics
-
-    def get_algorithm_statistics(self) -> dict[str, tuple[int, int]]:
-        """
-        Returns, per propagator algorithm that ran at least once, how many times it was called and how many
-        of those calls pruned nothing.
-
-        A call that prunes nothing still costs a bucket pop, a gather of its variables' domains into the
-        scratch buffer, an indirect call and a write-back, so a high no-change share on a given algorithm is
-        where wasted propagation is concentrated.
-
-        :return: a dictionary mapping the algorithm name to (calls, calls that changed nothing)
-        :rtype: Dict[str, Tuple[int, int]]
-        """
-        result = {}
-        for algorithm in range(get_algorithm_nb()):
-            base = STATS_MAX + STATS_ALG_WIDTH * algorithm
-            calls = int(self.statistics[base + STATS_ALG_IDX_FILTER_NB])
-            if calls:
-                name = COMPUTE_DOMAINS_FCTS[algorithm].__name__.replace("compute_domains_", "")
-                result[name] = (calls, int(self.statistics[base + STATS_ALG_IDX_FILTER_NO_CHANGE_NB]))
-        return result
-
-    def get_statistics_as_dictionary(self) -> dict[str, int]:
-        """
-        Returns the statistics as a dictionary.
-
-        :return: a dictionary mapping statistic labels to values
-        :rtype: Dict[str, int]
-        """
-        return {
-            STATS_LBL_ALG_BC_NB: int(self.statistics[STATS_IDX_ALG_BC_NB]),
-            STATS_LBL_PROPAGATOR_ENTAILMENT_NB: int(self.statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB]),
-            STATS_LBL_PROPAGATOR_FILTER_NB: int(self.statistics[STATS_IDX_PROPAGATOR_FILTER_NB]),
-            STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB: int(self.statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB]),
-            STATS_LBL_PROPAGATOR_INCONSISTENCY_NB: int(self.statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB]),
-            STATS_LBL_SOLVER_BACKTRACK_NB: int(self.statistics[STATS_IDX_SOLVER_BACKTRACK_NB]),
-            STATS_LBL_SOLVER_CHOICE_NB: int(self.statistics[STATS_IDX_SOLVER_CHOICE_NB]),
-            STATS_LBL_SOLVER_CHOICE_DEPTH: int(self.statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]),
-            STATS_LBL_SOLUTION_NB: int(self.statistics[STATS_IDX_SOLUTION_NB]),
-            # the statistics array accumulates nanoseconds, the reported statistic is in milliseconds
-            STATS_LBL_SOLVER_ELAPSED_TIME: int(self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME]) // 1_000_000,
-        }
-
-    def find_best(self, variable: int, bound: int, mode: str = OPTIM_RESET) -> NDArray | None:
-        """
-        Finds, if it exists, the solution to the problem that optimizes a given variable.
-
-        Only the optimum is returned; use :meth:`optimize` to iterate over the successively
-        improving solutions.
-
-        :param variable: the variable
-        :type variable: int
-        :param bound: MIN to minimize the variable, MAX to maximize it
-        :type bound: int
-        :param mode: the optimization mode
-        :type mode: str
-
-        :return: the solution if it exists or None
-        :rtype: Optional[NDArray]
-        """
-        domain = self.domains_stk[self.stks_top[0], variable]
-        optimizing = "Minimizing" if bound == MIN else "Maximizing"
-        logger.info(f"{optimizing} (mode {mode}) variable {variable} (domain {domain}))")
-        best_solution = None
-        for best_solution in self.optimize(variable, bound, mode):
-            pass
-        return best_solution
+    def solve(self) -> Iterator[NDArray]:
+        logger.info("Solving and iterating over the solutions")
+        t0 = time.perf_counter_ns()
+        buckets_empty(self.triggered_propagators, self.problem.priorities)
+        buckets_init(self.triggered_propagators, self.problem.priorities)
+        while True:
+            solution = self._solve_one()
+            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
+            if solution is None:
+                break
+            logger.debug("Found a solution")
+            yield solution
+            t0 = time.perf_counter_ns()
+            if not backtrack(
+                self.statistics,
+                self.entailed_propagator_depths,
+                self.entailment_trail,
+                self.domain_update_stk,
+                self.stks_top,
+                self.triggered_propagators,
+                self.problem.triggers,
+                self.problem.triggers_offsets,
+                self.problem.priorities,
+                self.problem.propagator_nb,
+            ):
+                self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
+                break
+            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
+            t0 = time.perf_counter_ns()
 
     def optimize(self, variable: int, bound: int, mode: str) -> Iterator[NDArray]:
-        """
-        Iterates over the successively improving solutions found while optimizing a given variable.
-
-        Each yielded solution improves on the previous one; the last yielded solution is the optimum.
-        Nothing is yielded when the problem is unsatisfiable. Consumers that only need the optimum should
-        use :meth:`find_best`; streaming consumers (e.g. the FlatZinc runner) print each solution as it
-        is produced.
-
-        :param variable: the variable
-        :type variable: int
-        :param bound: MIN to minimize the variable, MAX to maximize it
-        :type bound: int
-        :param mode: the optimization mode
-        :type mode: str
-
-        :return: an iterator over the improving solutions, the last one being optimal
-        :rtype: Iterator[NDArray]
-        """
-        # minimizing a variable means tightening the MAX side of its domain, and vice versa
-        tightened_bound = MAX if bound == MIN else MIN
+        logger.info("Optimizing and iterating over the solutions")
         t0 = time.perf_counter_ns()
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         buckets_init(self.triggered_propagators, self.problem.priorities)
@@ -342,7 +277,8 @@ class BacktrackSolver(Solver):
             while (solution := self._solve_one()) is not None:
                 logger.info(f"Found a local optimum: {solution[variable]}")
                 yield solution
-                if not self._advance_after_optimum(variable, solution[variable], tightened_bound, mode):
+                # minimizing a variable means tightening the MAX side of its domain, and vice versa
+                if not self.advance_after_optimum(variable, solution[variable], MAX if bound == MIN else MIN, mode):
                     break
         finally:
             self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
@@ -386,7 +322,7 @@ class BacktrackSolver(Solver):
             self.domain_buffer,
         )
 
-    def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
+    def advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
         """
         After emitting a local optimum, prepares the solver for the next improving solution: either resets to
         the initial domains (OPTIM_RESET) or prunes the choice points, then refixes the objective bound.
@@ -445,41 +381,50 @@ class BacktrackSolver(Solver):
                 return False
         return True
 
-    def solve(self) -> Iterator[NDArray]:
+    def get_statistics_as_array(self) -> NDArray:
         """
-        Returns an iterator over the solutions.
+        Returns the statistics as a Numpy array.
 
-        :return: an iterator
-        :rtype: Iterator[NDArray]
+        :return: the statistics array
+        :rtype: NDArray
         """
-        logger.info("Solving and iterating over the solutions")
-        buckets_empty(self.triggered_propagators, self.problem.priorities)
-        buckets_init(self.triggered_propagators, self.problem.priorities)
-        t0 = time.perf_counter_ns()
-        while True:
-            solution = self._solve_one()
-            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
-            if solution is None:
-                break
-            logger.debug("Found a solution")
-            yield solution
-            t0 = time.perf_counter_ns()
-            if not backtrack(
-                self.statistics,
-                self.entailed_propagator_depths,
-                self.entailment_trail,
-                self.domain_update_stk,
-                self.stks_top,
-                self.triggered_propagators,
-                self.problem.triggers,
-                self.problem.triggers_offsets,
-                self.problem.priorities,
-                self.problem.propagator_nb,
-            ):
-                self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
-                break
-            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
-            t0 = time.perf_counter_ns()
+        return self.statistics
+
+    def get_algorithm_statistics(self) -> dict[str, tuple[int, int]]:
+        """
+        Returns, per propagator algorithm that ran at least once, how many times it was called and how many
+        of those calls pruned nothing.
+
+        A call that prunes nothing still costs a bucket pop, a gather of its variables' domains into the
+        scratch buffer, an indirect call and a write-back, so a high no-change share on a given algorithm is
+        where wasted propagation is concentrated.
+
+        :return: a dictionary mapping the algorithm name to (calls, calls that changed nothing)
+        :rtype: Dict[str, Tuple[int, int]]
+        """
+        result = {}
+        for algorithm in range(get_algorithm_nb()):
+            base = STATS_MAX + STATS_ALG_WIDTH * algorithm
+            calls = int(self.statistics[base + STATS_ALG_IDX_FILTER_NB])
+            if calls:
+                name = COMPUTE_DOMAINS_FCTS[algorithm].__name__.replace("compute_domains_", "")
+                result[name] = (calls, int(self.statistics[base + STATS_ALG_IDX_FILTER_NO_CHANGE_NB]))
+        return result
+
+    def get_statistics_as_dictionary(self) -> dict[str, int]:
+        return {
+            STATS_LBL_ALG_BC_NB: int(self.statistics[STATS_IDX_ALG_BC_NB]),
+            STATS_LBL_PROPAGATOR_ENTAILMENT_NB: int(self.statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB]),
+            STATS_LBL_PROPAGATOR_FILTER_NB: int(self.statistics[STATS_IDX_PROPAGATOR_FILTER_NB]),
+            STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB: int(self.statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB]),
+            STATS_LBL_PROPAGATOR_INCONSISTENCY_NB: int(self.statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB]),
+            STATS_LBL_SOLVER_BACKTRACK_NB: int(self.statistics[STATS_IDX_SOLVER_BACKTRACK_NB]),
+            STATS_LBL_SOLVER_CHOICE_NB: int(self.statistics[STATS_IDX_SOLVER_CHOICE_NB]),
+            STATS_LBL_SOLVER_CHOICE_DEPTH: int(self.statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]),
+            STATS_LBL_SOLUTION_NB: int(self.statistics[STATS_IDX_SOLUTION_NB]),
+            # the statistics array accumulates nanoseconds, the reported statistic is in milliseconds
+            STATS_LBL_SOLVER_ELAPSED_TIME: int(self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME]) // 1_000_000,
+        }
 
 
 @njit(cache=True)

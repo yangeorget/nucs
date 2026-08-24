@@ -2,4 +2,4 @@
 
 ruff check --fix nucs tests scripts && \
 ruff format nucs tests scripts && \
-mypy nucs tests
+mypy nucs tests scripts
