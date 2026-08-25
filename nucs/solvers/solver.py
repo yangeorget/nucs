@@ -11,6 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import logging
+import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterator
 
@@ -41,51 +42,61 @@ class Solver(ABC):
         logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, log_level))
         logging.getLogger("numba").setLevel(logging.WARNING)
         logger.info("Initializing Solver")
+        self.timed_out = False
         if problem is not None:
             self.problem = problem
             problem.init()
 
     @abstractmethod
-    def solve(self) -> Iterator[NDArray]:
+    def solve(self, timeout: float | None = None) -> Iterator[NDArray]:
         """
         Returns an iterator over the solutions.
+
+        :param timeout: the search budget in seconds, or None for an unbounded search
+        :type timeout: Optional[float]
 
         :return: an iterator
         :rtype: Iterator[NDArray]
         """
         ...
 
-    def solve_all(self, func: Callable | None = None) -> None:
+    def solve_all(self, func: Callable | None = None, timeout: float | None = None) -> None:
         """
         Finds all solutions.
 
         :param func: a function to handle each solution found
         :type func: Optional[Callable]
+        :param timeout: the search budget in seconds, or None for an unbounded search
+        :type timeout: Optional[float]
         """
         logger.info("Iterating over the solutions")
-        for solution in self.solve():
+        for solution in self.solve(timeout):
             if func is not None:
                 func(solution)
 
-    def find_all(self) -> list[NDArray]:
+    def find_all(self, timeout: float | None = None) -> list[NDArray]:
         """
         Finds all solutions.
+
+        :param timeout: the search budget in seconds, or None for an unbounded search
+        :type timeout: Optional[float]
 
         :return: the list of all solutions
         :rtype: List[NDArray]
         """
         logger.info("Returning all solutions")
         solutions = []
-        self.solve_all(lambda solution: solutions.append(solution))
+        self.solve_all(lambda solution: solutions.append(solution), timeout)
         return solutions
 
     @abstractmethod
-    def optimize(self, variable: int, bound: int, mode: str) -> Iterator[NDArray]:
+    def optimize(self, variable: int, bound: int, mode: str, timeout: float | None = None) -> Iterator[NDArray]:
         """
         Iterates over the successively improving solutions found while optimizing a given variable.
 
         Each yielded solution improves on the previous one; the last yielded solution is the optimum.
-        Nothing is yielded when the problem is unsatisfiable.
+        Nothing is yielded when the problem is unsatisfiable. Under a timeout the last yielded solution
+        is the best one found within the budget, which is not necessarily optimal: check :attr:`timed_out`.
 
         :param variable: the variable
         :type variable: int
@@ -93,13 +104,22 @@ class Solver(ABC):
         :type bound: int
         :param mode: the optimization mode
         :type mode: str
+        :param timeout: the search budget in seconds, or None for an unbounded search
+        :type timeout: Optional[float]
 
         :return: an iterator over the improving solutions, the last one being optimal
         :rtype: Iterator[NDArray]
         """
         ...
 
-    def optimize_all(self, variable: int, bound: int, mode: str = OPTIM_RESET, func: Callable | None = None) -> None:
+    def optimize_all(
+        self,
+        variable: int,
+        bound: int,
+        mode: str = OPTIM_RESET,
+        func: Callable | None = None,
+        timeout: float | None = None,
+    ) -> None:
         """
         Finds all the successively improving solutions while optimizing a given variable.
 
@@ -111,15 +131,22 @@ class Solver(ABC):
         :type mode: str
         :param func: a function to handle each improving solution found
         :type func: Optional[Callable]
+        :param timeout: the search budget in seconds, or None for an unbounded search
+        :type timeout: Optional[float]
         """
         logger.info("Iterating over the solutions")
-        for solution in self.optimize(variable, bound, mode):
+        for solution in self.optimize(variable, bound, mode, timeout):
             if func is not None:
                 func(solution)
 
-    def find_best(self, variable: int, bound: int, mode: str = OPTIM_RESET) -> NDArray | None:
+    def find_best(
+        self, variable: int, bound: int, mode: str = OPTIM_RESET, timeout: float | None = None
+    ) -> NDArray | None:
         """
         Finds, if it exists, the solution to the problem that optimizes a given variable.
+
+        Under a timeout the returned solution is the best one found within the budget, which is not
+        necessarily optimal: check :attr:`timed_out`.
 
         :param variable: the variable
         :type variable: int
@@ -127,15 +154,37 @@ class Solver(ABC):
         :type bound: int
         :param mode: the optimization mode
         :type mode: str
+        :param timeout: the search budget in seconds, or None for an unbounded search
+        :type timeout: Optional[float]
 
         :return: the solution if it exists or None
         :rtype: Optional[NDArray]
         """
         logger.info("Returning the optimal solution")
         best_solution = None
-        for solution in self.optimize(variable, bound, mode):
+        for solution in self.optimize(variable, bound, mode, timeout):
             best_solution = solution
         return best_solution
+
+    def _expired(self, deadline: float | None) -> bool:
+        """
+        Returns whether the search budget is spent, recording the fact in :attr:`timed_out`.
+
+        The check can only run where the search returns to Python -- between two solutions -- because a
+        single descent runs in compiled code that nothing in this process can interrupt. It therefore bounds
+        the time spent *between* solutions, not the time spent inside one descent.
+
+        :param deadline: the monotonic time to stop at, or None for an unbounded search
+        :type deadline: Optional[float]
+
+        :return: True when the deadline has passed
+        :rtype: bool
+        """
+        if deadline is None or time.monotonic() < deadline:
+            return False
+        logger.info("Timeout reached, stopping the search")
+        self.timed_out = True
+        return True
 
     @abstractmethod
     def get_statistics_as_dictionary(self) -> dict[str, int]:

@@ -238,8 +238,10 @@ class BacktrackSolver(Solver):
             )
         logger.debug("BacktrackSolver initialized")
 
-    def solve(self) -> Iterator[NDArray]:
+    def solve(self, timeout: float | None = None) -> Iterator[NDArray]:
         logger.info("Solving and iterating over the solutions")
+        self.timed_out = False
+        deadline = None if timeout is None else time.monotonic() + timeout
         t0 = time.perf_counter_ns()
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         buckets_init(self.triggered_propagators, self.problem.priorities)
@@ -251,6 +253,8 @@ class BacktrackSolver(Solver):
             logger.debug("Found a solution")
             yield solution
             t0 = time.perf_counter_ns()
+            if self._expired(deadline):
+                break
             if not backtrack(
                 self.statistics,
                 self.entailed_propagator_depths,
@@ -266,8 +270,10 @@ class BacktrackSolver(Solver):
                 break
         self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
 
-    def optimize(self, variable: int, bound: int, mode: str) -> Iterator[NDArray]:
+    def optimize(self, variable: int, bound: int, mode: str, timeout: float | None = None) -> Iterator[NDArray]:
         logger.info("Optimizing and iterating over the solutions")
+        self.timed_out = False
+        deadline = None if timeout is None else time.monotonic() + timeout
         t0 = time.perf_counter_ns()
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         buckets_init(self.triggered_propagators, self.problem.priorities)
@@ -276,6 +282,8 @@ class BacktrackSolver(Solver):
             logger.info(f"Found a local optimum: {solution[variable]}")
             yield solution
             t0 = time.perf_counter_ns()
+            if self._expired(deadline):
+                break
             # minimizing a variable means tightening the MAX side of its domain, and vice versa
             if not self.advance_after_optimum(variable, solution[variable], MAX if bound == MIN else MIN, mode):
                 break

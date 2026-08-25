@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+import time
+
 import pytest
 
 from nucs.buckets import STORAGE_OFFSET, buckets_empty
@@ -77,6 +79,32 @@ class TestBacktrackSolver:
         assert [key for key in statistics if key.startswith(f"{STATS_LBL_PROPAGATOR_FILTER_NB}_")] == [
             f"{STATS_LBL_PROPAGATOR_FILTER_NB}_NEQ"
         ]
+
+    def test_solve_stops_at_the_timeout(self) -> None:
+        """A timeout cuts the enumeration short and says so, instead of silently looking exhausted."""
+        problem = Problem([(0, 299), (0, 299)])
+        solver = BacktrackSolver(problem)
+        solutions = sum(1 for _ in solver.solve(timeout=0.05))
+        assert solver.timed_out
+        assert 0 < solutions < 90000
+
+    def test_solve_without_timeout_is_exhaustive(self) -> None:
+        problem = Problem([(0, 99), (0, 99)])
+        solver = BacktrackSolver(problem)
+        assert sum(1 for _ in solver.solve()) == 10000
+        assert not solver.timed_out
+
+    def test_find_best_returns_the_best_found_within_the_timeout(self) -> None:
+        """Under a timeout find_best still returns a solution -- just not a proven optimum."""
+        problem = Problem([(1, 500)])
+        solver = BacktrackSolver(problem)
+        # each improving solution costs the consumer 20 ms, so the budget runs out well before 500
+        best = None
+        for best in solver.optimize(0, MAX, OPTIM_RESET, timeout=0.10):
+            time.sleep(0.02)
+        assert solver.timed_out
+        assert best is not None
+        assert best[0] < 500
 
     def test_solve_all(self) -> None:
         problem = Problem([(0, 99), (0, 99)])
