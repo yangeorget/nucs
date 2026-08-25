@@ -16,7 +16,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import register_consistency_algorithm
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.golomb -n 10 --symmetry_breaking
+# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.golomb -n 10 --symmetry-breaking
 if __name__ == "__main__":
     # registered before the parser is built so that GOLOMB is a valid --consistency-algorithm choice
     golomb_consistency_algorithm = register_consistency_algorithm(golomb_consistency_algorithm)  # type: ignore[assignment]

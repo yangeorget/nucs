@@ -15,7 +15,7 @@ from nucs.examples.magic_square.magic_square_problem import MagicSquareProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.magic_square -n 4 --symmetry_breaking
+# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.magic_square -n 4 --symmetry-breaking
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
     parser.add_argument("-n", type=int, default=4)

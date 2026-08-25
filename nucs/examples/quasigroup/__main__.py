@@ -18,7 +18,7 @@ from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.quasigroup -n 10 --symmetry_breaking
+# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.quasigroup -n 10 --symmetry-breaking
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
     parser.add_argument("-n", type=int, default=10)
