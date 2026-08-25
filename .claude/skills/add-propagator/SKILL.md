@@ -45,7 +45,7 @@ def get_triggers_name(n: int, variable: int, parameters: NDArray) -> int:
 def compute_domains_name(domains: NDArray, parameters: NDArray) -> int:
     # Mutate domains in place. Return PROP_INCONSISTENCY, PROP_CONSISTENCY, or PROP_ENTAILMENT.
     # Use domains[i][MIN] and domains[i][MAX]; never reassign domains[i] = ....
-    # MUST be idempotent: one call reaches this propagator's fixpoint (loop if a pass can prune more) — see below.
+    # If one call cannot reach this propagator's fixpoint, register it with idempotent=False — see below.
     ...
 ```
 
@@ -57,24 +57,31 @@ Rules for the jitted functions:
   After each tightening, check `if domains[i][MIN] > domains[i][MAX]: return PROP_INCONSISTENCY`.
 - Return `PROP_ENTAILMENT` only when the constraint can never be violated again
   (rare; safe to return `PROP_CONSISTENCY` if unsure).
-- **`compute_domains` MUST be idempotent — a single call must reach the propagator's own fixpoint.**
-  The consistency engine never reschedules a propagator onto itself after it prunes (an optimization in
-  `bc_algorithm.py`), so it will not re-run you to finish the job. If one pass can leave further filtering on the
-  table — e.g. tightening one variable re-opens filtering for another the pass already visited, as in any
-  pairwise or cascading rule — wrap the body in a fixpoint loop and iterate until a full sweep changes no bound:
+- **Decide whether `compute_domains` is idempotent, and declare it.** Idempotent means one call reaches the
+  propagator's own fixpoint: a second consecutive call changes nothing. The engine never reschedules a
+  propagator onto its own prunes (the `other_prop_idx == prop_idx` skip in `bc_algorithm.py`), so it will not
+  re-run you to finish the job unless you say it must.
+
+  If one pass can leave filtering on the table — tightening one variable re-opens filtering for another the
+  pass already visited, as in any pairwise or cascading rule — register with `idempotent=False` and the engine
+  puts you back on the propagation queue after any call that changed a domain, until a call changes nothing:
 
   ```python
-  changed = True
-  while changed:
-      changed = False
-      ...  # on every bound you actually tighten: set changed = True
+  ALG_NAME = register_propagator(
+      get_triggers_name, get_complexity_name, compute_domains_name, idempotent=False
+  )
   ```
 
-  This is not just about pruning strength: if your own pruning can *create* an inconsistency that the same
-  pass then fails to detect (it already visited the affected pair), a non-idempotent propagator can let an
-  infeasible assignment through as a solution — a **soundness** bug. Purely functional propagators (each
-  variable filtered once from fixed data) are idempotent already and need no loop. See `cumulative`,
-  `disjunctive`, `diffn`, `linear_eq_c` for the `while has_changed:` pattern.
+  Going back through the queue rather than looping internally lets cheaper propagators — and any inconsistency
+  they expose — run in between. See `cumulative`, `diffn`, `disjunctive`, `linear_eq_c` for propagators that
+  declare it.
+
+  **Getting this wrong in the `True` direction is a soundness bug, not a filtering weakness.** If your own
+  pruning can *create* an inconsistency that the same pass then fails to detect, and nothing re-runs you, an
+  infeasible assignment reaches a leaf and is reported as a solution — this is exactly what `diffn` did. The
+  default is `idempotent=True`, i.e. the dangerous side, so do not leave it implicit: **verify it.** Call
+  `compute_domains` twice on random contract-valid instances and assert the second call changes nothing.
+  Purely functional propagators (each variable filtered once from fixed data) are idempotent by construction.
 
 ## 3. Register in `nucs/propagators/propagators.py`
 

@@ -71,48 +71,43 @@ def compute_domains_linear_eq_c(domains: NDArray, parameters: NDArray) -> int:
     # domain_sum_min / domain_sum_max bracket the value of (sum a_i * x_i - a_n): domain_sum_min is
     # its largest possible value, domain_sum_max its smallest (the swapped naming is shared with the
     # geq/leq propagators). The bounds are recomputed and re-filtered until a fixpoint is reached.
-    has_changed = True
-    while has_changed:
-        has_changed = False
-        domain_sum_min = domain_sum_max = -parameters[-1]
-        unbound_count = 0
-        for i in range(n):
-            factor = factors[i]
-            x_min = domains[i, MIN]
-            x_max = domains[i, MAX]
-            if factor > 0:
-                domain_sum_min += factor * x_max
-                domain_sum_max += factor * x_min
-            else:
-                domain_sum_min += factor * x_min
-                domain_sum_max += factor * x_max
-            if factor != 0 and x_min < x_max:
-                unbound_count += 1
-        # If the sum is forced strictly above or below a_n the equality is unsatisfiable. This single
-        # global test catches every inconsistency, so the per-variable x[MIN] > x[MAX] check that used
-        # to sit inside the filtering loop below is redundant and was dropped.
-        if domain_sum_max > 0 or domain_sum_min < 0:
-            return PROP_INCONSISTENCY
-        if unbound_count == 0:
-            return PROP_ENTAILMENT
-        for i in range(n):
-            factor = factors[i]
-            if factor == 0:
-                continue
-            x_min = domains[i, MIN]
-            x_max = domains[i, MAX]
-            if x_min == x_max:
-                continue
-            if factor > 0:
-                new_min = x_max - (domain_sum_min // factor)
-                new_max = x_min + (-domain_sum_max // factor)
-            else:
-                new_min = x_max - (domain_sum_max // factor)
-                new_max = x_min + (-domain_sum_min // factor)
-            if new_min > x_min:
-                domains[i, MIN] = new_min
-                has_changed = True
-            if new_max < x_max:
-                domains[i, MAX] = new_max
-                has_changed = True
+    domain_sum_min = domain_sum_max = -parameters[-1]
+    unbound_count = 0
+    for i in range(n):
+        factor = factors[i]
+        x_min = domains[i, MIN]
+        x_max = domains[i, MAX]
+        if factor > 0:
+            domain_sum_min += factor * x_max
+            domain_sum_max += factor * x_min
+        else:
+            domain_sum_min += factor * x_min
+            domain_sum_max += factor * x_max
+        if factor != 0 and x_min < x_max:
+            unbound_count += 1
+    # If the sum is forced strictly above or below a_n the equality is unsatisfiable. This single
+    # global test catches every inconsistency, so the per-variable x[MIN] > x[MAX] check that used
+    # to sit inside the filtering loop below is redundant and was dropped.
+    if domain_sum_max > 0 or domain_sum_min < 0:
+        return PROP_INCONSISTENCY
+    if unbound_count == 0:
+        return PROP_ENTAILMENT
+    for i in range(n):
+        factor = factors[i]
+        if factor == 0:
+            continue
+        x_min = domains[i, MIN]
+        x_max = domains[i, MAX]
+        if x_min == x_max:
+            continue
+        if factor > 0:
+            new_min = x_max - (domain_sum_min // factor)
+            new_max = x_min + (-domain_sum_max // factor)
+        else:
+            new_min = x_max - (domain_sum_max // factor)
+            new_max = x_min + (-domain_sum_min // factor)
+        if new_min > x_min:
+            domains[i, MIN] = new_min
+        if new_max < x_max:
+            domains[i, MAX] = new_max
     return PROP_CONSISTENCY

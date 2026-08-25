@@ -243,8 +243,8 @@ def _filter_starts(est: NDArray, lst: NDArray, p: NDArray, h: NDArray, n: int, c
     Timetabling raises starts so that no task overlaps an instant already saturated by the other tasks'
     compulsory parts (and lowers latest starts by mirroring time); energetic reasoning then, over a quadratic
     set of intervals, compares each task's minimum mandatory energy against the capacity. Neither rule is
-    idempotent, so the block is iterated to its own fixpoint; each changing sweep tightens at least one bound by
-    >= 1 so it terminates in at most the total initial domain width.
+    idempotent, so a single sweep is not a fixpoint either; the propagator is registered as non-idempotent and
+    the engine reschedules it after any sweep that changed a bound.
 
     :param est: the earliest start times, raised in place
     :type est: NDArray
@@ -264,33 +264,23 @@ def _filter_starts(est: NDArray, lst: NDArray, p: NDArray, h: NDArray, n: int, c
     """
     mest = np.empty(n, dtype=np.int64)
     mlst = np.empty(n, dtype=np.int64)
-    prev_est = np.empty(n, dtype=np.int64)
-    prev_lst = np.empty(n, dtype=np.int64)
-    has_changed = True
-    while has_changed:
-        for i in range(n):
-            prev_est[i] = est[i]
-            prev_lst[i] = lst[i]
-        # raise earliest start times
-        if not _filter_est(est, lst, p, h, n, capacity):
+    # raise earliest start times
+    if not _filter_est(est, lst, p, h, n, capacity):
+        return False
+    # lower latest start times by mirroring time (a start s maps to -(s + p)) and reusing the filter
+    for i in range(n):
+        mest[i] = -(lst[i] + p[i])
+        mlst[i] = -(est[i] + p[i])
+    if not _filter_est(mest, mlst, p, h, n, capacity):
+        return False
+    for i in range(n):
+        lst[i] = -mest[i] - p[i]
+    # energetic reasoning: stronger interval-based filtering of both bounds
+    if not _filter_energetic(est, lst, p, h, n, capacity):
+        return False
+    for i in range(n):
+        if est[i] > lst[i]:  # the start window has emptied
             return False
-        # lower latest start times by mirroring time (a start s maps to -(s + p)) and reusing the filter
-        for i in range(n):
-            mest[i] = -(lst[i] + p[i])
-            mlst[i] = -(est[i] + p[i])
-        if not _filter_est(mest, mlst, p, h, n, capacity):
-            return False
-        for i in range(n):
-            lst[i] = -mest[i] - p[i]
-        # energetic reasoning: stronger interval-based filtering of both bounds
-        if not _filter_energetic(est, lst, p, h, n, capacity):
-            return False
-        has_changed = False
-        for i in range(n):
-            if est[i] > lst[i]:  # the start window has emptied
-                return False
-            if est[i] != prev_est[i] or lst[i] != prev_lst[i]:
-                has_changed = True
     return True
 
 

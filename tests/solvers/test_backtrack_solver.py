@@ -148,6 +148,7 @@ class TestBacktrackSolver:
             solver.dom_heuristic_params_shapes,
             solver.compute_domains_fcts,
             solver.domain_buffer,
+            problem.idempotent,
         )
         assert solution is not None
         assert solution.tolist() == [0, 0]

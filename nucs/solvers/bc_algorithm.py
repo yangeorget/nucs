@@ -65,6 +65,7 @@ def bc_algorithm(
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
+    idempotent: NDArray,
 ) -> int:
     """
     This is the default consistency algorithm used by the solver.
@@ -104,6 +105,8 @@ def bc_algorithm(
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray
+    :param idempotent: whether each propagator reaches its own fixpoint in a single call
+    :type idempotent: NDArray
 
     :return: a status (consistency, inconsistency or entailment) as an integer
     :rtype: int
@@ -162,6 +165,12 @@ def bc_algorithm(
         if no_change:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
             statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NO_CHANGE_NB] += 1
+        elif not idempotent[prop_idx]:
+            # update_domains never reschedules a propagator on its own changes, which is what makes
+            # idempotence a requirement; a propagator that does not reach its fixpoint in one call gets
+            # that reschedule here instead of iterating internally, so cheaper propagators -- and any
+            # inconsistency they expose -- come first
+            buckets_add(triggered_propagators, priorities, prop_idx, membership_offset)
 
 
 # always inlined: LLVM's cost model declines to inline a function this size, but the caller is the

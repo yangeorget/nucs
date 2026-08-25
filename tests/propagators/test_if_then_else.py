@@ -82,7 +82,14 @@ class TestIfThenElse(PropagatorTest):
                 bounds.append((lo, hi))
             feasible = _feasible(bounds)
             domains = np.array([[lo, hi] for lo, hi in bounds], dtype=np.int32)
-            result = compute_domains_if_then_else(domains, np.empty(0, dtype=np.int32))
+            # if_then_else is not idempotent: iterate as the engine does before judging the outcome
+            parameters = np.empty(0, dtype=np.int32)
+            result = compute_domains_if_then_else(domains, parameters)
+            while result == PROP_CONSISTENCY:
+                previous = domains.copy()
+                result = compute_domains_if_then_else(domains, parameters)
+                if np.array_equal(previous, domains):
+                    break
             if result == PROP_INCONSISTENCY:
                 assert not feasible, f"declared inconsistent but feasible exists: {bounds}"
                 continue

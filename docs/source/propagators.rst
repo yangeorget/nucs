@@ -21,8 +21,13 @@ Each propagator :code:`XXX` defines three functions:
 
 This function takes as its first argument the domains of the variables of the propagator and updates them.
 
-It is expected to implement bound consistency and to be idempotent
-(a second consecutive run should not update the domains).
+It is expected to implement bound consistency.
+
+It should also be idempotent - a second consecutive run should not update the domains - since the
+consistency algorithm never reschedules a propagator onto its own prunes.
+A propagator that cannot reach its fixpoint in a single call must be registered with
+:code:`idempotent=False`, in which case the engine puts it back on the propagation queue after every call
+that changed a domain, until a call changes nothing.
 
 It returns a status:
 

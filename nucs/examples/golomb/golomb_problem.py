@@ -141,6 +141,7 @@ def golomb_consistency_algorithm(
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
+    idempotent: NDArray,
 ) -> int:
     """
     Applies a custom consistency algorithm for the Golomb Ruler problem.
@@ -215,4 +216,5 @@ def golomb_consistency_algorithm(
         triggered_propagators,
         compute_domains_fcts,
         domain_buffer,
+        idempotent,
     )

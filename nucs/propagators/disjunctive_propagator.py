@@ -218,53 +218,42 @@ def compute_domains_disjunctive(domains: NDArray, parameters: NDArray) -> int:
             bound_nb += 1
     mest = np.empty(n, dtype=np.int64)
     mlct = np.empty(n, dtype=np.int64)
-    prev_est = np.empty(n, dtype=np.int64)
-    prev_lct = np.empty(n, dtype=np.int64)
     # The individual rules are not idempotent (a batch pass leaves cascaded pruning on the table), so we
     # iterate the whole filtering block until a full sweep changes no bound: the propagator then returns at
     # its own fixpoint rather than relying on the solver to re-trigger it. Each changing sweep tightens at
     # least one bound by >= 1, so the loop terminates in at most the total initial domain width.
-    has_changed = True
-    while has_changed:
-        for i in range(n):
-            prev_est[i] = est[i]
-            prev_lct[i] = lct[i]
-        # Edge finding: raise earliest start times.
-        if not _filter_est(est, lct, p, n):
+    # Edge finding: raise earliest start times.
+    if not _filter_est(est, lct, p, n):
+        return PROP_INCONSISTENCY
+    # Lower latest completion times by mirroring time (est' = -lct, lct' = -est) and reusing the filter.
+    for i in range(n):
+        mest[i] = -lct[i]
+        mlct[i] = -est[i]
+    if not _filter_est(mest, mlct, p, n):
+        return PROP_INCONSISTENCY
+    for i in range(n):
+        lct[i] = -mest[i]
+    # Not-last: lower latest completion times (complementary to edge finding).
+    _filter_not_last(est, lct, p, n)
+    # Not-first: raise earliest start times by mirroring time and reusing the not-last filter.
+    for i in range(n):
+        mest[i] = -lct[i]
+        mlct[i] = -est[i]
+    _filter_not_last(mest, mlct, p, n)
+    for i in range(n):
+        est[i] = -mlct[i]
+    # Detectable precedences: raise earliest start times, then lower latest completion times by mirroring.
+    _filter_detectable_precedences(est, lct, p, n)
+    for i in range(n):
+        mest[i] = -lct[i]
+        mlct[i] = -est[i]
+    _filter_detectable_precedences(mest, mlct, p, n)
+    for i in range(n):
+        lct[i] = -mest[i]
+    # A task whose earliest start has crossed its latest start cannot be scheduled: inconsistency.
+    for i in range(n):
+        if est[i] + p[i] > lct[i]:
             return PROP_INCONSISTENCY
-        # Lower latest completion times by mirroring time (est' = -lct, lct' = -est) and reusing the filter.
-        for i in range(n):
-            mest[i] = -lct[i]
-            mlct[i] = -est[i]
-        if not _filter_est(mest, mlct, p, n):
-            return PROP_INCONSISTENCY
-        for i in range(n):
-            lct[i] = -mest[i]
-        # Not-last: lower latest completion times (complementary to edge finding).
-        _filter_not_last(est, lct, p, n)
-        # Not-first: raise earliest start times by mirroring time and reusing the not-last filter.
-        for i in range(n):
-            mest[i] = -lct[i]
-            mlct[i] = -est[i]
-        _filter_not_last(mest, mlct, p, n)
-        for i in range(n):
-            est[i] = -mlct[i]
-        # Detectable precedences: raise earliest start times, then lower latest completion times by mirroring.
-        _filter_detectable_precedences(est, lct, p, n)
-        for i in range(n):
-            mest[i] = -lct[i]
-            mlct[i] = -est[i]
-        _filter_detectable_precedences(mest, mlct, p, n)
-        for i in range(n):
-            lct[i] = -mest[i]
-        # A task whose earliest start has crossed its latest start cannot be scheduled: inconsistency. This
-        # also caps the loop when the rules diverge (e.g. mutually detectable precedences push est upward).
-        has_changed = False
-        for i in range(n):
-            if est[i] + p[i] > lct[i]:
-                return PROP_INCONSISTENCY
-            if est[i] != prev_est[i] or lct[i] != prev_lct[i]:
-                has_changed = True
     for i in range(n):
         domains[i, MIN] = max(domains[i, MIN], est[i])
         new_max = lct[i] - p[i]

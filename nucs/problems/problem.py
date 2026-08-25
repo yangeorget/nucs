@@ -32,7 +32,13 @@ from nucs.constants import (
     VARIABLE,
 )
 from nucs.numba_helper import addresses_from_functions, function_ptr_from_address
-from nucs.propagators.propagators import ALG_DUMMY, GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS, IS_VACUOUS_FCTS
+from nucs.propagators.propagators import (
+    ALG_DUMMY,
+    GET_COMPLEXITY_FCTS,
+    GET_TRIGGERS_FCTS,
+    IDEMPOTENT,
+    IS_VACUOUS_FCTS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +152,8 @@ class Problem:
             if domain_min != domain_max:
                 self.unbound_variable_nb += 1
         self.algorithms = np.array([propagator[1] for propagator in self.propagators], dtype=np.uint8)
+        # a propagator that does not reach its own fixpoint in one call is rescheduled by the engine
+        self.idempotent = np.array([IDEMPOTENT[propagator[1]] for propagator in self.propagators], dtype=np.bool_)
         # The propagation queue is a bucketed (priority) queue:
         # Priorities here store the bucket index = floor(log2(complexity)), clamped to [0, NB_BUCKETS-1].
         # Higher-complexitypropagators land in higher buckets and run after cheaper ones at fixpoint computation.

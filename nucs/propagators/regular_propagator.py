@@ -147,50 +147,46 @@ def compute_domains_regular(domains: NDArray, parameters: NDArray) -> int:
         return PROP_ENTAILMENT if parameters[acc_off + (q0 - 1)] else PROP_INCONSISTENCY
     fwd = np.zeros((length + 1, q_nb + 1), dtype=np.uint8)
     bwd = np.zeros((length + 1, q_nb + 1), dtype=np.uint8)
-    change = True
-    while change:
-        change = False
-        # forward reachability
-        fwd[:] = 0
-        fwd[0, q0] = 1
-        for i in range(length):
-            var = domains[i]
-            for q in range(1, q_nb + 1):
-                if fwd[i, q]:
-                    for v in range(max(1, var[MIN]), min(s_nb, var[MAX]) + 1):
-                        nq = parameters[3 + (q - 1) * s_nb + (v - 1)]
-                        if nq != 0:
-                            fwd[i + 1, nq] = 1
-        # backward reachability
-        bwd[:] = 0
+    # forward reachability
+    fwd[:] = 0
+    fwd[0, q0] = 1
+    for i in range(length):
+        var = domains[i]
         for q in range(1, q_nb + 1):
-            if parameters[acc_off + (q - 1)]:
-                bwd[length, q] = 1
-        for i in range(length - 1, -1, -1):
-            var = domains[i]
-            for q in range(1, q_nb + 1):
+            if fwd[i, q]:
                 for v in range(max(1, var[MIN]), min(s_nb, var[MAX]) + 1):
                     nq = parameters[3 + (q - 1) * s_nb + (v - 1)]
-                    if nq != 0 and bwd[i + 1, nq]:
-                        bwd[i, q] = 1
-                        break
-        if not bwd[0, q0]:
-            return PROP_INCONSISTENCY  # the initial state cannot reach acceptance
-        # prune each variable's bounds to the supported symbols
-        for i in range(length):
-            var = domains[i]
-            new_min = var[MIN]
-            while new_min <= var[MAX] and not _supported(domains, parameters, fwd, bwd, i, new_min, q_nb, s_nb):
-                new_min += 1
-            new_max = var[MAX]
-            while new_max >= new_min and not _supported(domains, parameters, fwd, bwd, i, new_max, q_nb, s_nb):
-                new_max -= 1
-            if new_min > new_max:
-                return PROP_INCONSISTENCY
-            if new_min != var[MIN] or new_max != var[MAX]:
-                var[MIN] = new_min
-                var[MAX] = new_max
-                change = True
+                    if nq != 0:
+                        fwd[i + 1, nq] = 1
+    # backward reachability
+    bwd[:] = 0
+    for q in range(1, q_nb + 1):
+        if parameters[acc_off + (q - 1)]:
+            bwd[length, q] = 1
+    for i in range(length - 1, -1, -1):
+        var = domains[i]
+        for q in range(1, q_nb + 1):
+            for v in range(max(1, var[MIN]), min(s_nb, var[MAX]) + 1):
+                nq = parameters[3 + (q - 1) * s_nb + (v - 1)]
+                if nq != 0 and bwd[i + 1, nq]:
+                    bwd[i, q] = 1
+                    break
+    if not bwd[0, q0]:
+        return PROP_INCONSISTENCY  # the initial state cannot reach acceptance
+    # prune each variable's bounds to the supported symbols
+    for i in range(length):
+        var = domains[i]
+        new_min = var[MIN]
+        while new_min <= var[MAX] and not _supported(domains, parameters, fwd, bwd, i, new_min, q_nb, s_nb):
+            new_min += 1
+        new_max = var[MAX]
+        while new_max >= new_min and not _supported(domains, parameters, fwd, bwd, i, new_max, q_nb, s_nb):
+            new_max -= 1
+        if new_min > new_max:
+            return PROP_INCONSISTENCY
+        if new_min != var[MIN] or new_max != var[MAX]:
+            var[MIN] = new_min
+            var[MAX] = new_max
     ground_nb = 0
     for i in range(length):
         if domains[i, MIN] == domains[i, MAX]:

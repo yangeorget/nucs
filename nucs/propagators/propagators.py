@@ -276,6 +276,9 @@ GET_TRIGGERS_FCTS: list[Callable] = []
 GET_COMPLEXITY_FCTS: list[Callable] = []
 COMPUTE_DOMAINS_FCTS: list[Callable] = []
 IS_VACUOUS_FCTS: list[Callable] = []
+# Whether one call of the propagator reaches its own fixpoint. A propagator that does not is rescheduled by
+# the engine after any call that changed a domain, instead of iterating internally.
+IDEMPOTENT: list[bool] = []
 
 
 def is_never_vacuous(n: int, parameters: Sequence[int], domains: Sequence[tuple[int, int]]) -> bool:
@@ -304,6 +307,7 @@ def register_propagator(
     get_complexity_fct: Callable,
     compute_domains_fct: Callable,
     is_vacuous_fct: Callable = is_never_vacuous,
+    idempotent: bool = True,
 ) -> int:
     """
     Registers a propagator by adding its functions to the corresponding lists of functions.
@@ -317,6 +321,9 @@ def register_propagator(
     :param is_vacuous_fct: a function that tells from the parameters and the initial domains whether the
         constraint is vacuous, in which case the propagator is not posted at all
     :type is_vacuous_fct: Callable
+    :param idempotent: whether one call reaches the propagator's own fixpoint; when False the engine
+        reschedules it after any call that changed a domain
+    :type idempotent: bool
 
     :return: the index of the propagator
     :rtype: int
@@ -325,6 +332,7 @@ def register_propagator(
     GET_COMPLEXITY_FCTS.append(get_complexity_fct)
     COMPUTE_DOMAINS_FCTS.append(compute_domains_fct)
     IS_VACUOUS_FCTS.append(is_vacuous_fct)
+    IDEMPOTENT.append(idempotent)
     return get_algorithm_nb() - 1
 
 
@@ -332,9 +340,14 @@ ALG_ABS_EQ = register_propagator(get_triggers_abs_eq, get_complexity_abs_eq, com
 ALG_ADD_C_EQ = register_propagator(get_triggers_add_c_eq, get_complexity_add_c_eq, compute_domains_add_c_eq)
 ALG_AND_EQ = register_propagator(get_triggers_and_eq, get_complexity_and_eq, compute_domains_and_eq)
 ALG_BIN_PACKING_LOAD = register_propagator(
-    get_triggers_bin_packing_load, get_complexity_bin_packing_load, compute_domains_bin_packing_load
+    get_triggers_bin_packing_load,
+    get_complexity_bin_packing_load,
+    compute_domains_bin_packing_load,
+    idempotent=False,
 )
-ALG_LINEAR_EQ_C = register_propagator(get_triggers_linear_eq_c, get_complexity_linear_eq_c, compute_domains_linear_eq_c)
+ALG_LINEAR_EQ_C = register_propagator(
+    get_triggers_linear_eq_c, get_complexity_linear_eq_c, compute_domains_linear_eq_c, idempotent=False
+)
 ALG_LINEAR_GEQ_C = register_propagator(
     get_triggers_linear_geq_c, get_complexity_linear_geq_c, compute_domains_linear_geq_c
 )
@@ -352,16 +365,23 @@ ALG_COUNT_EQ_C = register_propagator(get_triggers_count_eq_c, get_complexity_cou
 ALG_COUNT_GEQ_C = register_propagator(get_triggers_count_geq_c, get_complexity_count_geq_c, compute_domains_count_geq_c)
 ALG_COUNT_LEQ_C = register_propagator(get_triggers_count_leq_c, get_complexity_count_leq_c, compute_domains_count_leq_c)
 ALG_CUMULATIVE = register_propagator(
-    get_triggers_cumulative, get_complexity_cumulative, compute_domains_cumulative, is_vacuous_cumulative
+    get_triggers_cumulative,
+    get_complexity_cumulative,
+    compute_domains_cumulative,
+    is_vacuous_cumulative,
+    idempotent=False,
 )
 ALG_CUMULATIVE_VAR = register_propagator(
     get_triggers_cumulative_var,
     get_complexity_cumulative_var,
     compute_domains_cumulative_var,
     is_vacuous_cumulative_var,
+    idempotent=False,
 )
-ALG_DIFFN = register_propagator(get_triggers_diffn, get_complexity_diffn, compute_domains_diffn)
-ALG_DISJUNCTIVE = register_propagator(get_triggers_disjunctive, get_complexity_disjunctive, compute_domains_disjunctive)
+ALG_DIFFN = register_propagator(get_triggers_diffn, get_complexity_diffn, compute_domains_diffn, idempotent=False)
+ALG_DISJUNCTIVE = register_propagator(
+    get_triggers_disjunctive, get_complexity_disjunctive, compute_domains_disjunctive, idempotent=False
+)
 ALG_DIV_C_EQ = register_propagator(get_triggers_div_c_eq, get_complexity_div_c_eq, compute_domains_div_c_eq)
 ALG_DUMMY = register_propagator(get_triggers_dummy, get_complexity_dummy, compute_domains_dummy)
 ALG_ELEMENT_EQ = register_propagator(get_triggers_element_eq, get_complexity_element_eq, compute_domains_element_eq)
@@ -388,7 +408,10 @@ ALG_EQ_IMP = register_propagator(get_triggers_eq_imp, get_complexity_eq_imp, com
 ALG_EQ_REIF = register_propagator(get_triggers_eq_reif, get_complexity_eq_reif, compute_domains_eq_reif)
 ALG_GCC = register_propagator(get_triggers_gcc, get_complexity_gcc, compute_domains_gcc, is_vacuous_gcc)
 ALG_IF_THEN_ELSE = register_propagator(
-    get_triggers_if_then_else, get_complexity_if_then_else, compute_domains_if_then_else
+    get_triggers_if_then_else,
+    get_complexity_if_then_else,
+    compute_domains_if_then_else,
+    idempotent=False,
 )
 ALG_INCREASING = register_propagator(get_triggers_increasing, get_complexity_increasing, compute_domains_increasing)
 ALG_INVERSE = register_propagator(get_triggers_inverse, get_complexity_inverse, compute_domains_inverse)
@@ -413,7 +436,11 @@ ALG_NO_SUB_CYCLE = register_propagator(
 )
 ALG_NVALUE = register_propagator(get_triggers_nvalue, get_complexity_nvalue, compute_domains_nvalue)
 ALG_REGULAR = register_propagator(
-    get_triggers_regular, get_complexity_regular, compute_domains_regular, is_vacuous_regular
+    get_triggers_regular,
+    get_complexity_regular,
+    compute_domains_regular,
+    is_vacuous_regular,
+    idempotent=False,
 )
 ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relation, compute_domains_relation)
 ALG_SCC = register_propagator(get_triggers_scc, get_complexity_scc, compute_domains_scc)

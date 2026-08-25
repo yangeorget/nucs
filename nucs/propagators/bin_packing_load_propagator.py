@@ -143,129 +143,108 @@ def compute_domains_bin_packing_load(domains: NDArray, parameters: NDArray) -> i
     bin_nb = domains.shape[0] - item_nb
     cand_idx = np.empty(item_nb, dtype=np.int64)
     cand_w = np.empty(item_nb, dtype=np.int64)
-    change = True
-    while change:
-        change = False
-        for j in range(bin_nb):
-            v = bin_low + j
-            required = 0
-            total = 0  # sum of the candidate weights
-            nc = 0
-            for i in range(item_nb):
-                item = domains[bin_nb + i]
-                if item[MIN] <= v <= item[MAX]:
-                    w = parameters[1 + i]
-                    if item[MIN] == item[MAX]:
-                        required += w
-                    else:
-                        cand_idx[nc] = i
-                        cand_w[nc] = w
-                        total += w
-                        nc += 1
-            load = domains[j]
-            # load bounds: required <= load[j] <= required + (all candidates)
-            if load[MIN] < required:
-                load[MIN] = required
-                change = True
-            if load[MAX] > required + total:
-                load[MAX] = required + total
-                change = True
-            if load[MIN] > load[MAX]:
+    for j in range(bin_nb):
+        v = bin_low + j
+        required = 0
+        total = 0  # sum of the candidate weights
+        nc = 0
+        for i in range(item_nb):
+            item = domains[bin_nb + i]
+            if item[MIN] <= v <= item[MAX]:
+                w = parameters[1 + i]
+                if item[MIN] == item[MAX]:
+                    required += w
+                else:
+                    cand_idx[nc] = i
+                    cand_w[nc] = w
+                    total += w
+                    nc += 1
+        load = domains[j]
+        # load bounds: required <= load[j] <= required + (all candidates)
+        load[MIN] = max(load[MIN], required)
+        load[MAX] = min(load[MAX], required + total)
+        if load[MIN] > load[MAX]:
+            return PROP_INCONSISTENCY
+        if nc == 0:
+            continue  # the load is fully determined by the fixed items
+        if total <= SUBSET_SUM_CAP:
+            reach = _reach(cand_w, nc, -1, total)
+            lo = load[MIN] - required
+            hi = load[MAX] - required
+            # tighten the load to the sub-range its candidates can actually sum to
+            min_c = -1
+            for s in range(lo, hi + 1):
+                if reach[s]:
+                    min_c = s
+                    break
+            if min_c < 0:
                 return PROP_INCONSISTENCY
-            if nc == 0:
-                continue  # the load is fully determined by the fixed items
-            if total <= SUBSET_SUM_CAP:
-                reach = _reach(cand_w, nc, -1, total)
-                lo = load[MIN] - required
-                hi = load[MAX] - required
-                # tighten the load to the sub-range its candidates can actually sum to
-                min_c = -1
-                for s in range(lo, hi + 1):
-                    if reach[s]:
-                        min_c = s
-                        break
-                if min_c < 0:
-                    return PROP_INCONSISTENCY
-                max_c = -1
-                for s in range(hi, lo - 1, -1):
-                    if reach[s]:
-                        max_c = s
-                        break
-                if load[MIN] < required + min_c:
-                    load[MIN] = required + min_c
-                    change = True
-                if load[MAX] > required + max_c:
-                    load[MAX] = required + max_c
-                    change = True
-                lo = load[MIN] - required
-                hi = load[MAX] - required
-                if nc <= ITEM_SUBSET_CAP:
-                    for t in range(nc):
-                        item = domains[bin_nb + cand_idx[t]]
-                        if item[MIN] == item[MAX]:
-                            continue  # already committed by an earlier rule this pass
-                        w = cand_w[t]
-                        others = _reach(cand_w, nc, t, total - w)
-                        # can the item still be in bin j? the others must fill [lo - w, hi - w]
-                        if not _any_reachable(others, lo - w, hi - w):
-                            if item[MIN] == v:
-                                item[MIN] += 1
-                                change = True
-                            elif item[MAX] == v:
-                                item[MAX] -= 1
-                                change = True
-                            if item[MIN] > item[MAX]:
-                                return PROP_INCONSISTENCY
-                            continue
-                        # can the item still be out of bin j? the others alone must fill [lo, hi]
-                        if not _any_reachable(others, lo, hi):
-                            item[MIN] = v
-                            item[MAX] = v
-                            change = True
-            else:
-                # large candidate weight: fall back to the cheap sound rules
+            max_c = -1
+            for s in range(hi, lo - 1, -1):
+                if reach[s]:
+                    max_c = s
+                    break
+            load[MIN] = max(load[MIN], required + min_c)
+            load[MAX] = min(load[MAX], required + max_c)
+            lo = load[MIN] - required
+            hi = load[MAX] - required
+            if nc <= ITEM_SUBSET_CAP:
                 for t in range(nc):
                     item = domains[bin_nb + cand_idx[t]]
                     if item[MIN] == item[MAX]:
-                        continue
+                        continue  # already committed by an earlier rule this pass
                     w = cand_w[t]
-                    if required + w > load[MAX]:  # the item cannot fit in bin j
+                    others = _reach(cand_w, nc, t, total - w)
+                    # can the item still be in bin j? the others must fill [lo - w, hi - w]
+                    if not _any_reachable(others, lo - w, hi - w):
                         if item[MIN] == v:
                             item[MIN] += 1
-                            change = True
                         elif item[MAX] == v:
                             item[MAX] -= 1
-                            change = True
                         if item[MIN] > item[MAX]:
                             return PROP_INCONSISTENCY
-                    elif required + total - w < load[MIN]:  # nothing else can fill bin j
+                        continue
+                    # can the item still be out of bin j? the others alone must fill [lo, hi]
+                    if not _any_reachable(others, lo, hi):
                         item[MIN] = v
                         item[MAX] = v
-                        change = True
-        # total-weight channeling: when every item is placed within range, the loads sum to the total weight
-        weight_sum = 0
-        all_in_range = True
-        for i in range(item_nb):
-            weight_sum += parameters[1 + i]
-            item = domains[bin_nb + i]
-            if item[MIN] < bin_low or item[MAX] > bin_low + bin_nb - 1:
-                all_in_range = False
-        if all_in_range:
-            load_min_sum = 0
-            load_max_sum = 0
-            for j in range(bin_nb):
-                load_min_sum += domains[j][MIN]
-                load_max_sum += domains[j][MAX]
-            for j in range(bin_nb):
-                load = domains[j]
-                new_min = weight_sum - (load_max_sum - load[MAX])
-                new_max = weight_sum - (load_min_sum - load[MIN])
-                if load[MIN] < new_min:
-                    load[MIN] = new_min
-                    change = True
-                if load[MAX] > new_max:
-                    load[MAX] = new_max
-                    change = True
-                if load[MIN] > load[MAX]:
-                    return PROP_INCONSISTENCY
+        else:
+            # large candidate weight: fall back to the cheap sound rules
+            for t in range(nc):
+                item = domains[bin_nb + cand_idx[t]]
+                if item[MIN] == item[MAX]:
+                    continue
+                w = cand_w[t]
+                if required + w > load[MAX]:  # the item cannot fit in bin j
+                    if item[MIN] == v:
+                        item[MIN] += 1
+                    elif item[MAX] == v:
+                        item[MAX] -= 1
+                    if item[MIN] > item[MAX]:
+                        return PROP_INCONSISTENCY
+                elif required + total - w < load[MIN]:  # nothing else can fill bin j
+                    item[MIN] = v
+                    item[MAX] = v
+    # total-weight channeling: when every item is placed within range, the loads sum to the total weight
+    weight_sum = 0
+    all_in_range = True
+    for i in range(item_nb):
+        weight_sum += parameters[1 + i]
+        item = domains[bin_nb + i]
+        if item[MIN] < bin_low or item[MAX] > bin_low + bin_nb - 1:
+            all_in_range = False
+    if all_in_range:
+        load_min_sum = 0
+        load_max_sum = 0
+        for j in range(bin_nb):
+            load_min_sum += domains[j][MIN]
+            load_max_sum += domains[j][MAX]
+        for j in range(bin_nb):
+            load = domains[j]
+            new_min = weight_sum - (load_max_sum - load[MAX])
+            new_max = weight_sum - (load_min_sum - load[MIN])
+            load[MIN] = max(load[MIN], new_min)
+            load[MAX] = min(load[MAX], new_max)
+            if load[MIN] > load[MAX]:
+                return PROP_INCONSISTENCY
     return PROP_CONSISTENCY

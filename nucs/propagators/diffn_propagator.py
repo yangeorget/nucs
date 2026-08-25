@@ -71,75 +71,56 @@ def compute_domains_diffn(domains: NDArray, parameters: NDArray) -> int:
     """
     n = len(domains) // 2
     # The pairwise pass is NOT idempotent: separating pair (i, j) can tighten a coordinate that re-opens a
-    # forced separation for an earlier pair (k, j) already visited this pass. The engine's self-skip
-    # (a propagator does not reschedule itself) then leaves diffn short of its fixpoint, which at a leaf
-    # can let an overlap through. So iterate the pass to a fixpoint here.
-    changed = True
-    while changed:
-        changed = False
-        for i in range(n):
-            for j in range(i + 1, n):
-                xi_min = domains[i, MIN]
-                xi_max = domains[i, MAX]
-                xj_min = domains[j, MIN]
-                xj_max = domains[j, MAX]
-                yi_min = domains[n + i, MIN]
-                yi_max = domains[n + i, MAX]
-                yj_min = domains[n + j, MIN]
-                yj_max = domains[n + j, MAX]
-                dxi = parameters[i]
-                dxj = parameters[j]
-                dyi = parameters[n + i]
-                dyj = parameters[n + j]
-                # A: i left of j, B: j left of i, C: i below j, D: j below i -- each is "still feasible?"
-                a = xi_min + dxi <= xj_max
-                b = xj_min + dxj <= xi_max
-                c = yi_min + dyi <= yj_max
-                d = yj_min + dyj <= yi_max
-                x_sep = a or b
-                y_sep = c or d
-                if not x_sep and not y_sep:
-                    return PROP_INCONSISTENCY
-                if not x_sep:
-                    # the rectangles overlap along x, so they must be separated along y
-                    if not c:  # only D remains: enforce y_j + dy_j <= y_i
-                        if yj_min + dyj > domains[n + i, MIN]:
-                            domains[n + i, MIN] = yj_min + dyj
-                            changed = True
-                        if yi_max - dyj < domains[n + j, MAX]:
-                            domains[n + j, MAX] = yi_max - dyj
-                            changed = True
-                        if domains[n + i, MIN] > domains[n + i, MAX] or domains[n + j, MIN] > domains[n + j, MAX]:
-                            return PROP_INCONSISTENCY
-                    elif not d:  # only C remains: enforce y_i + dy_i <= y_j
-                        if yi_min + dyi > domains[n + j, MIN]:
-                            domains[n + j, MIN] = yi_min + dyi
-                            changed = True
-                        if yj_max - dyi < domains[n + i, MAX]:
-                            domains[n + i, MAX] = yj_max - dyi
-                            changed = True
-                        if domains[n + i, MIN] > domains[n + i, MAX] or domains[n + j, MIN] > domains[n + j, MAX]:
-                            return PROP_INCONSISTENCY
-                elif not y_sep:
-                    # the rectangles overlap along y, so they must be separated along x
-                    if not a:  # only B remains: enforce x_j + dx_j <= x_i
-                        if xj_min + dxj > domains[i, MIN]:
-                            domains[i, MIN] = xj_min + dxj
-                            changed = True
-                        if xi_max - dxj < domains[j, MAX]:
-                            domains[j, MAX] = xi_max - dxj
-                            changed = True
-                        if domains[i, MIN] > domains[i, MAX] or domains[j, MIN] > domains[j, MAX]:
-                            return PROP_INCONSISTENCY
-                    elif not b:  # only A remains: enforce x_i + dx_i <= x_j
-                        if xi_min + dxi > domains[j, MIN]:
-                            domains[j, MIN] = xi_min + dxi
-                            changed = True
-                        if xj_max - dxi < domains[i, MAX]:
-                            domains[i, MAX] = xj_max - dxi
-                            changed = True
-                        if domains[i, MIN] > domains[i, MAX] or domains[j, MIN] > domains[j, MAX]:
-                            return PROP_INCONSISTENCY
+    # forced separation for an earlier pair (k, j) already visited this pass. Stopping short of the fixpoint
+    # can let an overlap through at a leaf, so this propagator is registered as non-idempotent and the engine
+    # reschedules it after any pass that changed a domain.
+    for i in range(n):
+        for j in range(i + 1, n):
+            xi_min = domains[i, MIN]
+            xi_max = domains[i, MAX]
+            xj_min = domains[j, MIN]
+            xj_max = domains[j, MAX]
+            yi_min = domains[n + i, MIN]
+            yi_max = domains[n + i, MAX]
+            yj_min = domains[n + j, MIN]
+            yj_max = domains[n + j, MAX]
+            dxi = parameters[i]
+            dxj = parameters[j]
+            dyi = parameters[n + i]
+            dyj = parameters[n + j]
+            # A: i left of j, B: j left of i, C: i below j, D: j below i -- each is "still feasible?"
+            a = xi_min + dxi <= xj_max
+            b = xj_min + dxj <= xi_max
+            c = yi_min + dyi <= yj_max
+            d = yj_min + dyj <= yi_max
+            x_sep = a or b
+            y_sep = c or d
+            if not x_sep and not y_sep:
+                return PROP_INCONSISTENCY
+            if not x_sep:
+                # the rectangles overlap along x, so they must be separated along y
+                if not c:  # only D remains: enforce y_j + dy_j <= y_i
+                    domains[n + i, MIN] = max(domains[n + i, MIN], yj_min + dyj)
+                    domains[n + j, MAX] = min(domains[n + j, MAX], yi_max - dyj)
+                    if domains[n + i, MIN] > domains[n + i, MAX] or domains[n + j, MIN] > domains[n + j, MAX]:
+                        return PROP_INCONSISTENCY
+                elif not d:  # only C remains: enforce y_i + dy_i <= y_j
+                    domains[n + j, MIN] = max(domains[n + j, MIN], yi_min + dyi)
+                    domains[n + i, MAX] = min(domains[n + i, MAX], yj_max - dyi)
+                    if domains[n + i, MIN] > domains[n + i, MAX] or domains[n + j, MIN] > domains[n + j, MAX]:
+                        return PROP_INCONSISTENCY
+            elif not y_sep:
+                # the rectangles overlap along y, so they must be separated along x
+                if not a:  # only B remains: enforce x_j + dx_j <= x_i
+                    domains[i, MIN] = max(domains[i, MIN], xj_min + dxj)
+                    domains[j, MAX] = min(domains[j, MAX], xi_max - dxj)
+                    if domains[i, MIN] > domains[i, MAX] or domains[j, MIN] > domains[j, MAX]:
+                        return PROP_INCONSISTENCY
+                elif not b:  # only A remains: enforce x_i + dx_i <= x_j
+                    domains[j, MIN] = max(domains[j, MIN], xi_min + dxi)
+                    domains[i, MAX] = min(domains[i, MAX], xj_max - dxi)
+                    if domains[i, MIN] > domains[i, MAX] or domains[j, MIN] > domains[j, MAX]:
+                        return PROP_INCONSISTENCY
     # when every coordinate is fixed and no overlap was detected, the constraint can no longer be violated
     bound_nb = 0
     for v in range(2 * n):

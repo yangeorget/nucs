@@ -12,7 +12,7 @@
 ###############################################################################
 import os
 
-from numba import int32, int64, types, uint8, uint32, uint64  # type: ignore
+from numba import boolean, int32, int64, types, uint8, uint32, uint64  # type: ignore
 
 # Optimizer modes
 OPTIM_RESET = "RESET"
@@ -82,6 +82,7 @@ SIGN_CONSISTENCY_ALG = int64(
     int32[::1],  # triggered_propagators
     TYPE_COMPUTE_DOMAINS_LIST,  # compute_domains_fcts
     int32[:, ::1],  # domain_buffer
+    boolean[::1],  # idempotent
 )
 TYPE_CONSISTENCY_ALG = types.FunctionType(SIGN_CONSISTENCY_ALG)
 

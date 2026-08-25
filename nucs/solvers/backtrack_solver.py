@@ -326,6 +326,7 @@ class BacktrackSolver(Solver):
             self.dom_heuristic_params_shapes,
             self.compute_domains_fcts,
             self.domain_buffer,
+            self.problem.idempotent,
         )
 
     def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
@@ -467,6 +468,7 @@ def solve_one(
     dom_heuristic_params_shapes: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
+    idempotent: NDArray,
 ) -> NDArray | None:
     """
     Find at most one solution.
@@ -533,6 +535,8 @@ def solve_one(
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray
+    :param idempotent: whether each propagator reaches its own fixpoint in a single call
+    :type idempotent: NDArray
 
     :return: the solution if it exists or None
     :rtype: Optional[NDArray]
@@ -558,6 +562,7 @@ def solve_one(
             triggered_propagators,
             compute_domains_fcts,
             domain_buffer,
+            idempotent,
         )
         top = stks_top[0]
         if status == PROBLEM_BOUND:

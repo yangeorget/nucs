@@ -70,56 +70,51 @@ def compute_domains_if_then_else(domains: NDArray, parameters: NDArray) -> int:
     """
     b = (len(domains) - 1) // 2
     y = domains[2 * b]
-    changed = True
-    while changed:
-        changed = False
-        # skip the leading branches whose condition is already false: they can never be the first true one
-        lo = 0
-        while lo < b and domains[lo, MAX] == 0:
-            lo += 1
-        if lo == b:
-            # no condition can hold -> no branch is taken -> y is unconstrained and stays so
-            return PROP_ENTAILMENT
-        x_lo = domains[b + lo]
-        if domains[lo, MIN] == 1:
-            # the first still-possible condition is true -> branch lo is taken -> y == x[lo]
-            new_min = max(x_lo[MIN], y[MIN])
-            new_max = min(x_lo[MAX], y[MAX])
-            if new_min > new_max:
+    # skip the leading branches whose condition is already false: they can never be the first true one
+    lo = 0
+    while lo < b and domains[lo, MAX] == 0:
+        lo += 1
+    if lo == b:
+        # no condition can hold -> no branch is taken -> y is unconstrained and stays so
+        return PROP_ENTAILMENT
+    x_lo = domains[b + lo]
+    if domains[lo, MIN] == 1:
+        # the first still-possible condition is true -> branch lo is taken -> y == x[lo]
+        new_min = max(x_lo[MIN], y[MIN])
+        new_max = min(x_lo[MAX], y[MAX])
+        if new_min > new_max:
+            return PROP_INCONSISTENCY
+        y[MIN] = new_min
+        y[MAX] = new_max
+        x_lo[MIN] = new_min
+        x_lo[MAX] = new_max
+        # branch lo is fixed as the taken one; the constraint reduces to the equality y == x[lo],
+        # entailed once both are ground (then it can no longer be violated)
+        return PROP_ENTAILMENT if new_min == new_max else PROP_CONSISTENCY
+    # the first still-possible condition c[lo] is unfixed: the constraint entails c[lo] -> (y == x[lo])
+    if y[MIN] == y[MAX] and x_lo[MIN] == x_lo[MAX] and y[MIN] != x_lo[MIN]:
+        # y and x[lo] are ground and disagree, so branch lo cannot be the taken one -> c[lo] = 0
+        domains[lo, MAX] = 0
+        return PROP_CONSISTENCY
+    # value deduction: if some later condition is already true, one branch in [lo, hi] is definitely
+    # taken; if every candidate value x[lo..hi] is ground to the same v, then y = v whichever is taken
+    hi = lo
+    while hi < b and domains[hi, MIN] == 0:
+        hi += 1
+    if hi < b:
+        v = x_lo[MIN]
+        all_same = x_lo[MIN] == x_lo[MAX]
+        k = lo + 1
+        while all_same and k <= hi:
+            x_k = domains[b + k]
+            if x_k[MIN] != x_k[MAX] or x_k[MIN] != v:
+                all_same = False
+            k += 1
+        if all_same:
+            if y[MIN] > v or y[MAX] < v:
                 return PROP_INCONSISTENCY
-            y[MIN] = new_min
-            y[MAX] = new_max
-            x_lo[MIN] = new_min
-            x_lo[MAX] = new_max
-            # branch lo is fixed as the taken one; the constraint reduces to the equality y == x[lo],
-            # entailed once both are ground (then it can no longer be violated)
-            return PROP_ENTAILMENT if new_min == new_max else PROP_CONSISTENCY
-        # the first still-possible condition c[lo] is unfixed: the constraint entails c[lo] -> (y == x[lo])
-        if y[MIN] == y[MAX] and x_lo[MIN] == x_lo[MAX] and y[MIN] != x_lo[MIN]:
-            # y and x[lo] are ground and disagree, so branch lo cannot be the taken one -> c[lo] = 0
-            domains[lo, MAX] = 0
-            changed = True
-            continue
-        # value deduction: if some later condition is already true, one branch in [lo, hi] is definitely
-        # taken; if every candidate value x[lo..hi] is ground to the same v, then y = v whichever is taken
-        hi = lo
-        while hi < b and domains[hi, MIN] == 0:
-            hi += 1
-        if hi < b:
-            v = x_lo[MIN]
-            all_same = x_lo[MIN] == x_lo[MAX]
-            k = lo + 1
-            while all_same and k <= hi:
-                x_k = domains[b + k]
-                if x_k[MIN] != x_k[MAX] or x_k[MIN] != v:
-                    all_same = False
-                k += 1
-            if all_same:
-                if y[MIN] > v or y[MAX] < v:
-                    return PROP_INCONSISTENCY
-                if y[MIN] != v or y[MAX] != v:
-                    y[MIN] = v
-                    y[MAX] = v
-                    changed = True
-                    continue
+            if y[MIN] != v or y[MAX] != v:
+                y[MIN] = v
+                y[MAX] = v
+                return PROP_CONSISTENCY
     return PROP_CONSISTENCY
