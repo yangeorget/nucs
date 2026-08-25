@@ -59,15 +59,13 @@ class TestBacktrackSolver:
         solver = BacktrackSolver(problem)
         solver.solve_all()
         statistics = solver.get_statistics_as_dictionary()
-        per_algorithm = solver.get_algorithm_statistics()
-        assert set(per_algorithm) == {"alldifferent", "linear_leq_c", "neq"}
-        assert sum(calls for calls, _ in per_algorithm.values()) == statistics[STATS_LBL_PROPAGATOR_FILTER_NB]
-        assert (
-            sum(no_change for _, no_change in per_algorithm.values())
-            == statistics[STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB]
-        )
+        names = {"ALLDIFFERENT", "LINEAR_LEQ_C", "NEQ"}
+        calls = {name: statistics[f"{STATS_LBL_PROPAGATOR_FILTER_NB}_{name}"] for name in names}
+        no_changes = {name: statistics[f"{STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB}_{name}"] for name in names}
+        assert sum(calls.values()) == statistics[STATS_LBL_PROPAGATOR_FILTER_NB]
+        assert sum(no_changes.values()) == statistics[STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB]
         # a propagator cannot change nothing more often than it was called
-        assert all(no_change <= calls for calls, no_change in per_algorithm.values())
+        assert all(no_changes[name] <= calls[name] for name in names)
 
     def test_algorithm_statistics_omit_algorithms_that_never_ran(self) -> None:
         """Only the algorithms a problem actually uses appear, so the breakdown stays readable."""
@@ -75,7 +73,10 @@ class TestBacktrackSolver:
         problem.add_propagator(ALG_NEQ, [0, 1])
         solver = BacktrackSolver(problem)
         solver.solve_all()
-        assert list(solver.get_algorithm_statistics()) == ["neq"]
+        statistics = solver.get_statistics_as_dictionary()
+        assert [key for key in statistics if key.startswith(f"{STATS_LBL_PROPAGATOR_FILTER_NB}_")] == [
+            f"{STATS_LBL_PROPAGATOR_FILTER_NB}_NEQ"
+        ]
 
     def test_solve_all(self) -> None:
         problem = Problem([(0, 99), (0, 99)])

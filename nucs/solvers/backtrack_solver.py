@@ -388,29 +388,22 @@ class BacktrackSolver(Solver):
         """
         return self.statistics
 
-    def get_algorithm_statistics(self) -> dict[str, tuple[int, int]]:
+    def get_statistics_as_dictionary(self) -> dict[str, int]:
         """
-        Returns, per propagator algorithm that ran at least once, how many times it was called and how many
-        of those calls pruned nothing.
+        Returns the statistics as a dictionary.
+
+        Beyond the global counters, the dictionary breaks the two filtering counters down per propagator
+        algorithm, restricted to the algorithms that ran at least once so that the breakdown stays readable.
+        Each entry is suffixed with the algorithm name, so a breakdown sorts next to the total it partitions.
 
         A call that prunes nothing still costs a bucket pop, a gather of its variables' domains into the
         scratch buffer, an indirect call and a write-back, so a high no-change share on a given algorithm is
         where wasted propagation is concentrated.
 
-        :return: a dictionary mapping the algorithm name to (calls, calls that changed nothing)
-        :rtype: Dict[str, Tuple[int, int]]
+        :return: a dictionary mapping statistic labels to values
+        :rtype: Dict[str, int]
         """
-        result = {}
-        for algorithm in range(get_algorithm_nb()):
-            base = STATS_MAX + STATS_ALG_WIDTH * algorithm
-            calls = int(self.statistics[base + STATS_ALG_IDX_FILTER_NB])
-            if calls:
-                name = COMPUTE_DOMAINS_FCTS[algorithm].__name__.replace("compute_domains_", "")
-                result[name] = (calls, int(self.statistics[base + STATS_ALG_IDX_FILTER_NO_CHANGE_NB]))
-        return result
-
-    def get_statistics_as_dictionary(self) -> dict[str, int]:
-        return {
+        statistics = {
             STATS_LBL_ALG_BC_NB: int(self.statistics[STATS_IDX_ALG_BC_NB]),
             STATS_LBL_PROPAGATOR_ENTAILMENT_NB: int(self.statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB]),
             STATS_LBL_PROPAGATOR_FILTER_NB: int(self.statistics[STATS_IDX_PROPAGATOR_FILTER_NB]),
@@ -423,6 +416,16 @@ class BacktrackSolver(Solver):
             # the statistics array accumulates nanoseconds, the reported statistic is in milliseconds
             STATS_LBL_SOLVER_ELAPSED_TIME: int(self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME]) // 1_000_000,
         }
+        for algorithm in range(get_algorithm_nb()):
+            base = STATS_MAX + STATS_ALG_WIDTH * algorithm
+            calls = int(self.statistics[base + STATS_ALG_IDX_FILTER_NB])
+            if calls:
+                name = COMPUTE_DOMAINS_FCTS[algorithm].__name__.replace("compute_domains_", "").upper()
+                statistics[f"{STATS_LBL_PROPAGATOR_FILTER_NB}_{name}"] = calls
+                statistics[f"{STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB}_{name}"] = int(
+                    self.statistics[base + STATS_ALG_IDX_FILTER_NO_CHANGE_NB]
+                )
+        return statistics
 
 
 @njit(cache=True)
