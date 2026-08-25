@@ -14,7 +14,6 @@
 Drives a built :class:`FznModel` through a :class:`BacktrackSolver` and streams the solutions.
 """
 
-import time
 from typing import TextIO
 
 from numpy.typing import NDArray
@@ -215,9 +214,9 @@ def run(
         solver = BacktrackSolver(model.problem, log_level="ERROR")
     else:
         solver = BacktrackSolver(model.problem, searches=searches, log_level="ERROR")
-    deadline = None if time_limit_ms is None else time.monotonic() + time_limit_ms / 1000
+    timeout = None if time_limit_ms is None else time_limit_ms / 1000
     if model.solve.kind == "satisfy":
-        _run_satisfy(model, solver, out, all_solutions, num_solutions, output_mode, deadline)
+        _run_satisfy(model, solver, out, all_solutions, num_solutions, output_mode, timeout)
     else:
         assert objective_var is not None
         _run_optimize(
@@ -227,8 +226,8 @@ def run(
             out,
             output_mode,
             output_objective,
-            all_solutions or intermediate_solutions or deadline is not None,
-            deadline,
+            all_solutions or intermediate_solutions or timeout is not None,
+            timeout,
         )
     if statistics:
         _print_statistics(solver, out)
@@ -242,7 +241,7 @@ def _run_optimize(
     output_mode: str,
     output_objective: bool,
     intermediate_solutions: bool,
-    deadline: float | None,
+    timeout: float | None,
 ) -> None:
     """
     Prints the optimum of an optimization problem, or the whole sequence of improving solutions.
@@ -276,13 +275,14 @@ def _run_optimize(
     :type output_objective: bool
     :param intermediate_solutions: whether to print every improving solution rather than only the optimum
     :type intermediate_solutions: bool
-    :param deadline: the monotonic time to stop at, or None for an unbounded search
-    :type deadline: Optional[float]
+    :param timeout: the wall-clock budget in seconds, or None for an unbounded search
+    :type timeout: Optional[float]
     """
-    solutions = solver.optimize(objective_var, bound=MIN if model.solve.kind == "minimize" else MAX, mode=OPTIM_PRUNE)
+    solutions = solver.optimize(
+        objective_var, bound=MIN if model.solve.kind == "minimize" else MAX, mode=OPTIM_PRUNE, timeout=timeout
+    )
     best = None
     printed = False
-    proven = True
     for solution in solutions:
         if intermediate_solutions:
             _print_optimization_solution(model, solution, objective_var, out, output_mode, output_objective)
@@ -290,9 +290,8 @@ def _run_optimize(
         else:
             # The solver yields a view on its own domain stack, which the next descent overwrites.
             best = solution.copy()
-        if _expired(deadline):
-            proven = False
-            break
+    # the solver stops the iteration itself when the budget runs out, so a proof is what it did not report
+    proven = not solver.timed_out
     if best is not None:
         _print_optimization_solution(model, best, objective_var, out, output_mode, output_objective)
         printed = True
@@ -304,24 +303,6 @@ def _run_optimize(
     else:
         print_unknown(out)
     out.flush()
-
-
-def _expired(deadline: float | None) -> bool:
-    """
-    Returns whether the wall-clock budget is spent.
-
-    The check can only run where the search returns to Python -- between two solutions -- because a single
-    descent runs in compiled code that nothing in this process can interrupt. It therefore bounds the time
-    spent *between* solutions, not the time spent inside one descent: MiniZinc's own kill remains the
-    backstop for a search that finds nothing for a long time.
-
-    :param deadline: the monotonic time to stop at, or None for an unbounded search
-    :type deadline: Optional[float]
-
-    :return: True when the deadline has passed
-    :rtype: bool
-    """
-    return deadline is not None and time.monotonic() >= deadline
 
 
 def _print_optimization_solution(
@@ -360,7 +341,7 @@ def _run_satisfy(
     all_solutions: bool,
     num_solutions: int | None,
     output_mode: str,
-    deadline: float | None,
+    timeout: float | None,
 ) -> None:
     """
     Iterates satisfy solutions honoring the all/limit flags and prints the appropriate terminators.
@@ -377,26 +358,23 @@ def _run_satisfy(
     :type num_solutions: Optional[int]
     :param output_mode: the solution output format, one of ``item``, ``dzn`` or ``json``
     :type output_mode: str
-    :param deadline: the monotonic time to stop at, or None for an unbounded search
-    :type deadline: Optional[float]
+    :param timeout: the wall-clock budget in seconds, or None for an unbounded search
+    :type timeout: Optional[float]
     """
     limit = None if all_solutions else (num_solutions if num_solutions is not None else 1)
     found = False
-    exhausted = True
-    expired = False
-    for count, solution in enumerate(solver.solve(), start=1):
+    exhausted = False
+    for count, solution in enumerate(solver.solve(timeout=timeout), start=1):
         print_solution(model, solution, out, output_mode)
         found = True
         if limit is not None and count >= limit:
-            exhausted = False
             break
-        if _expired(deadline):
-            exhausted = False
-            expired = True
-            break
+    else:
+        # the iteration ran out on its own: the space is exhausted unless the budget stopped it first
+        exhausted = not solver.timed_out
     if not found:
         # Nothing found and the space was not exhausted is precisely what the unknown marker reports.
-        print_unknown(out) if expired else print_unsatisfiable(out)
+        print_unknown(out) if solver.timed_out else print_unsatisfiable(out)
     elif exhausted:
         print_search_complete(out)
     out.flush()
