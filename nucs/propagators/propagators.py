@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -60,6 +60,8 @@ from nucs.propagators.cumulative_propagator import (
     get_complexity_cumulative_var,
     get_triggers_cumulative,
     get_triggers_cumulative_var,
+    is_vacuous_cumulative,
+    is_vacuous_cumulative_var,
 )
 from nucs.propagators.diffn_propagator import (
     compute_domains_diffn,
@@ -123,7 +125,12 @@ from nucs.propagators.eq_reif_propagator import (
     get_complexity_eq_reif,
     get_triggers_eq_reif,
 )
-from nucs.propagators.gcc_propagator import compute_domains_gcc, get_complexity_gcc, get_triggers_gcc
+from nucs.propagators.gcc_propagator import (
+    compute_domains_gcc,
+    get_complexity_gcc,
+    get_triggers_gcc,
+    is_vacuous_gcc,
+)
 from nucs.propagators.if_then_else_propagator import (
     compute_domains_if_then_else,
     get_complexity_if_then_else,
@@ -225,6 +232,7 @@ from nucs.propagators.regular_propagator import (
     compute_domains_regular,
     get_complexity_regular,
     get_triggers_regular,
+    is_vacuous_regular,
 )
 from nucs.propagators.relation_propagator import (
     compute_domains_relation,
@@ -267,6 +275,24 @@ from nucs.propagators.value_precede_propagator import (
 GET_TRIGGERS_FCTS: list[Callable] = []
 GET_COMPLEXITY_FCTS: list[Callable] = []
 COMPUTE_DOMAINS_FCTS: list[Callable] = []
+IS_VACUOUS_FCTS: list[Callable] = []
+
+
+def is_never_vacuous(n: int, parameters: Sequence[int], domains: Sequence[tuple[int, int]]) -> bool:
+    """
+    Returns whether the constraint is vacuous: the default answer, for the propagators this can never settle.
+
+    :param n: the number of variables, unused here
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: Sequence[int]
+    :param domains: the initial domains, unused here
+    :type domains: Sequence[tuple[int, int]]
+
+    :return: False
+    :rtype: bool
+    """
+    return False
 
 
 def get_algorithm_nb() -> int:
@@ -277,6 +303,7 @@ def register_propagator(
     get_triggers_fct: Callable,
     get_complexity_fct: Callable,
     compute_domains_fct: Callable,
+    is_vacuous_fct: Callable = is_never_vacuous,
 ) -> int:
     """
     Registers a propagator by adding its functions to the corresponding lists of functions.
@@ -287,6 +314,9 @@ def register_propagator(
     :type get_complexity_fct: Callable
     :param compute_domains_fct: a function that computes the domains
     :type compute_domains_fct: Callable
+    :param is_vacuous_fct: a function that tells from the parameters and the initial domains whether the
+        constraint is vacuous, in which case the propagator is not posted at all
+    :type is_vacuous_fct: Callable
 
     :return: the index of the propagator
     :rtype: int
@@ -294,6 +324,7 @@ def register_propagator(
     GET_TRIGGERS_FCTS.append(get_triggers_fct)
     GET_COMPLEXITY_FCTS.append(get_complexity_fct)
     COMPUTE_DOMAINS_FCTS.append(compute_domains_fct)
+    IS_VACUOUS_FCTS.append(is_vacuous_fct)
     return get_algorithm_nb() - 1
 
 
@@ -320,9 +351,14 @@ ALG_COUNT_EQ = register_propagator(get_triggers_count_eq, get_complexity_count_e
 ALG_COUNT_EQ_C = register_propagator(get_triggers_count_eq_c, get_complexity_count_eq_c, compute_domains_count_eq_c)
 ALG_COUNT_GEQ_C = register_propagator(get_triggers_count_geq_c, get_complexity_count_geq_c, compute_domains_count_geq_c)
 ALG_COUNT_LEQ_C = register_propagator(get_triggers_count_leq_c, get_complexity_count_leq_c, compute_domains_count_leq_c)
-ALG_CUMULATIVE = register_propagator(get_triggers_cumulative, get_complexity_cumulative, compute_domains_cumulative)
+ALG_CUMULATIVE = register_propagator(
+    get_triggers_cumulative, get_complexity_cumulative, compute_domains_cumulative, is_vacuous_cumulative
+)
 ALG_CUMULATIVE_VAR = register_propagator(
-    get_triggers_cumulative_var, get_complexity_cumulative_var, compute_domains_cumulative_var
+    get_triggers_cumulative_var,
+    get_complexity_cumulative_var,
+    compute_domains_cumulative_var,
+    is_vacuous_cumulative_var,
 )
 ALG_DIFFN = register_propagator(get_triggers_diffn, get_complexity_diffn, compute_domains_diffn)
 ALG_DISJUNCTIVE = register_propagator(get_triggers_disjunctive, get_complexity_disjunctive, compute_domains_disjunctive)
@@ -350,7 +386,7 @@ ALG_EQ_C_IMP = register_propagator(get_triggers_eq_c_imp, get_complexity_eq_c_im
 ALG_EQ_C_REIF = register_propagator(get_triggers_eq_c_reif, get_complexity_eq_c_reif, compute_domains_eq_c_reif)
 ALG_EQ_IMP = register_propagator(get_triggers_eq_imp, get_complexity_eq_imp, compute_domains_eq_imp)
 ALG_EQ_REIF = register_propagator(get_triggers_eq_reif, get_complexity_eq_reif, compute_domains_eq_reif)
-ALG_GCC = register_propagator(get_triggers_gcc, get_complexity_gcc, compute_domains_gcc)
+ALG_GCC = register_propagator(get_triggers_gcc, get_complexity_gcc, compute_domains_gcc, is_vacuous_gcc)
 ALG_IF_THEN_ELSE = register_propagator(
     get_triggers_if_then_else, get_complexity_if_then_else, compute_domains_if_then_else
 )
@@ -376,7 +412,9 @@ ALG_NO_SUB_CYCLE = register_propagator(
     get_triggers_no_sub_cycle, get_complexity_no_sub_cycle, compute_domains_no_sub_cycle
 )
 ALG_NVALUE = register_propagator(get_triggers_nvalue, get_complexity_nvalue, compute_domains_nvalue)
-ALG_REGULAR = register_propagator(get_triggers_regular, get_complexity_regular, compute_domains_regular)
+ALG_REGULAR = register_propagator(
+    get_triggers_regular, get_complexity_regular, compute_domains_regular, is_vacuous_regular
+)
 ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relation, compute_domains_relation)
 ALG_SCC = register_propagator(get_triggers_scc, get_complexity_scc, compute_domains_scc)
 ALG_STRICTLY_INCREASING = register_propagator(

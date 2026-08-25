@@ -17,7 +17,14 @@ import numpy as np
 import pytest
 
 from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
-from nucs.propagators.cumulative_propagator import compute_domains_cumulative
+from nucs.problems.problem import Problem
+from nucs.propagators.cumulative_propagator import (
+    compute_domains_cumulative,
+    is_vacuous_cumulative,
+    is_vacuous_cumulative_var,
+)
+from nucs.propagators.propagators import ALG_CUMULATIVE, ALG_CUMULATIVE_VAR
+from nucs.solvers.backtrack_solver import BacktrackSolver
 from tests.propagators.propagator_test import PropagatorTest
 
 
@@ -114,3 +121,72 @@ class TestCumulative(PropagatorTest):
                 assert domains[i, MAX] >= bc_max, (
                     f"over-pruned MAX of {i}: {bounds} p={durations} h={heights} c={capacity}"
                 )
+
+    @pytest.mark.parametrize(
+        "n,parameters",
+        [
+            (3, [2, 2, 2, 1, 1, 1, 5]),  # demands sum to 3, capacity 5: never exceeded
+            (3, [1, 2, 3, 2, 2, 2, 6]),  # demands sum exactly to the capacity
+            (3, [0, 0, 0, 9, 9, 9, 0]),  # no task ever occupies an instant, and the capacity is non-negative
+        ],
+    )
+    def test_a_vacuous_cumulative_is_not_posted(self, n: int, parameters: list[int]) -> None:
+        """A capacity that already covers the sum of every demand cannot be exceeded, whatever the starts,
+        so the constraint is settled by its parameters alone and never becomes a propagator."""
+        assert is_vacuous_cumulative(n, parameters, [(0, 4)] * n)
+        problem = Problem([(0, 4)] * n)
+        problem.add_propagator(ALG_CUMULATIVE, range(n), parameters)
+        assert problem.propagator_nb == 0
+
+    @pytest.mark.parametrize(
+        "n,parameters",
+        [
+            (3, [2, 2, 2, 3, 3, 3, 5]),  # demands sum to 9 above a capacity of 5: the constraint binds
+            (3, [0, 0, 0, 9, 9, 9, -1]),  # zero durations, but a negative capacity is violated by a usage of 0
+        ],
+    )
+    def test_a_binding_cumulative_is_posted(self, n: int, parameters: list[int]) -> None:
+        assert not is_vacuous_cumulative(n, parameters, [(0, 4)] * n)
+        problem = Problem([(0, 4)] * n)
+        problem.add_propagator(ALG_CUMULATIVE, range(n), parameters)
+        assert problem.propagator_nb == 1
+
+    def test_a_vacuous_cumulative_var_is_not_posted(self) -> None:
+        parameters = [1, 1, 5]  # demands sum to 2, capacity 5
+        assert is_vacuous_cumulative_var(4, parameters, [(0, 3), (0, 3), (0, 2), (0, 2)])
+        problem = Problem([(0, 3), (0, 3), (0, 2), (0, 2)])
+        problem.add_propagator(ALG_CUMULATIVE_VAR, range(4), parameters)
+        assert problem.propagator_nb == 0
+
+    def test_a_binding_cumulative_var_is_posted(self) -> None:
+        parameters = [3, 3, 5]  # demands sum to 6 above a capacity of 5
+        assert not is_vacuous_cumulative_var(4, parameters, [(0, 3), (0, 3), (0, 2), (0, 2)])
+        problem = Problem([(0, 3), (0, 3), (0, 2), (0, 2)])
+        problem.add_propagator(ALG_CUMULATIVE_VAR, range(4), parameters)
+        assert problem.propagator_nb == 1
+
+    @pytest.mark.parametrize(
+        "alg,n,parameters,domains",
+        [
+            (ALG_CUMULATIVE, 3, [2, 2, 2, 1, 1, 1, 5], [(0, 4)] * 3),
+            (ALG_CUMULATIVE, 3, [0, 0, 0, 9, 9, 9, 0], [(0, 3)] * 3),
+            (ALG_CUMULATIVE_VAR, 4, [1, 1, 5], [(0, 3), (0, 3), (0, 2), (0, 2)]),
+        ],
+    )
+    def test_dropping_a_vacuous_propagator_preserves_the_solutions(
+        self, alg: int, n: int, parameters: list[int], domains: list[tuple[int, int]]
+    ) -> None:
+        """Not posting the propagator must leave exactly the solutions that running it would have left.
+
+        This is the property the whole mechanism rests on, and it is what ruled a disjunctive guard out:
+        NuCS's disjunctive is the strict one, where a zero-duration task still may not fall inside another.
+        """
+        dropped = Problem(list(domains))
+        dropped.add_propagator(alg, range(n), parameters)
+        assert dropped.propagator_nb == 0
+        posted = Problem(list(domains))  # bypass the check so the propagator really runs
+        posted.propagators.append((list(range(n)), alg, list(parameters)))
+        posted.propagator_nb += 1
+        assert sorted(tuple(s) for s in BacktrackSolver(dropped, log_level="ERROR").find_all()) == sorted(
+            tuple(s) for s in BacktrackSolver(posted, log_level="ERROR").find_all()
+        )

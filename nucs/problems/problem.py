@@ -32,7 +32,7 @@ from nucs.constants import (
     VARIABLE,
 )
 from nucs.numba_helper import addresses_from_functions, function_ptr_from_address
-from nucs.propagators.propagators import ALG_DUMMY, GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS
+from nucs.propagators.propagators import ALG_DUMMY, GET_COMPLEXITY_FCTS, GET_TRIGGERS_FCTS, IS_VACUOUS_FCTS
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +127,13 @@ class Problem:
         """
         parameters = [] if parameters is None else list(parameters)
         variables = list(variables)
+        # Some constraints are made vacuous by their parameters alone: no assignment can violate them, whatever
+        # the domains. That is a property of the model, not of the search, so it is settled once here rather
+        # than re-derived at every subtree root: the propagator is simply not posted, which costs no call, no
+        # entry in the trigger buckets and no slot in the propagator arrays.
+        if IS_VACUOUS_FCTS[algorithm](len(variables), parameters, [self.domains[variable] for variable in variables]):
+            logger.debug(f"Not posting a vacuous propagator {algorithm}")
+            return
         self.propagators.append((variables, algorithm, parameters))
         self.propagator_nb += 1
 

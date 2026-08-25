@@ -13,8 +13,10 @@
 
 import pytest
 
-from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT
-from nucs.propagators.gcc_propagator import compute_domains_gcc
+from nucs.constants import PROP_CONSISTENCY
+from nucs.problems.problem import Problem
+from nucs.propagators.gcc_propagator import compute_domains_gcc, is_vacuous_gcc
+from nucs.propagators.propagators import ALG_GCC
 from tests.propagators.propagator_test import PropagatorTest
 
 
@@ -56,26 +58,38 @@ class TestGCC(PropagatorTest):
         self.assert_compute_domains(compute_domains_gcc, domains, parameters, consistency_result, expected_domains)
 
     @pytest.mark.parametrize(
-        "domains,parameters,expected_domains",
+        "n,parameters",
         [
             # every value may be taken by all 3 variables and none is required: nothing to enforce
-            ([(0, 2), (0, 2), (0, 2)], [0, 0, 0, 0, 3, 3, 3], [[0, 2], [0, 2], [0, 2]]),
+            (3, [0, 0, 0, 0, 3, 3, 3]),
             # upper capacities beyond the number of variables are just as free
-            ([(0, 1), (0, 1)], [0, 0, 0, 7, 7], [[0, 1], [0, 1]]),
+            (2, [0, 0, 0, 7, 7]),
         ],
     )
-    def test_vacuous_is_entailed_without_filtering(
-        self,
-        domains: list[int | tuple[int, int]],
-        parameters: list[int],
-        expected_domains: list[list[int]],
-    ) -> None:
-        """A gcc that no assignment can violate is entailed on sight and leaves every domain alone.
+    def test_a_vacuous_gcc_is_not_posted(self, n: int, parameters: list[int]) -> None:
+        """A gcc that no assignment can violate is a property of the parameters, so it never becomes a
+        propagator at all.
 
         MiniZinc emits these in quantity: global_cardinality_low_up leaves the values outside its cover
         unconstrained, so a cover whose own capacities do not bite makes the whole constraint vacuous.
         """
-        self.assert_compute_domains(compute_domains_gcc, domains, parameters, PROP_ENTAILMENT, expected_domains)
+        assert is_vacuous_gcc(n, parameters, [(0, n - 1)] * n)
+        problem = Problem([(0, n - 1)] * n)
+        problem.add_propagator(ALG_GCC, range(n), parameters)
+        assert problem.propagator_nb == 0
+
+    @pytest.mark.parametrize(
+        "n,parameters",
+        [
+            (3, [0, 0, 0, 0, 2, 2, 2]),  # an upper capacity below the number of variables still binds
+            (3, [0, 1, 0, 0, 3, 3, 3]),  # a value required at least once still binds
+        ],
+    )
+    def test_a_binding_gcc_is_posted(self, n: int, parameters: list[int]) -> None:
+        assert not is_vacuous_gcc(n, parameters, [(0, n - 1)] * n)
+        problem = Problem([(0, n - 1)] * n)
+        problem.add_propagator(ALG_GCC, range(n), parameters)
+        assert problem.propagator_nb == 1
 
     def test_a_binding_capacity_is_not_treated_as_vacuous(self) -> None:
         """An upper capacity below the number of variables still binds, so the guard must not fire: the

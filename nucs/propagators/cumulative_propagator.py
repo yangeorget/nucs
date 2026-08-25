@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from collections.abc import Sequence
+
 import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -292,6 +294,30 @@ def _filter_starts(est: NDArray, lst: NDArray, p: NDArray, h: NDArray, n: int, c
     return True
 
 
+def is_vacuous_cumulative(n: int, parameters: Sequence[int], domains: Sequence[tuple[int, int]]) -> bool:
+    """
+    Returns whether the parameters make the constraint vacuous, whatever the domains.
+
+    The resource usage at any instant is at most the sum of every demand, so a capacity that already covers
+    that sum can never be exceeded, whatever the starts. Tasks of zero duration never occupy any instant, so
+    a problem made only of those leaves the usage at 0 everywhere, which a non-negative capacity covers.
+
+    :param n: the number of variables, one start per task
+    :type n: int
+    :param parameters: the durations, then the demands, then the capacity
+    :type parameters: Sequence[int]
+    :param domains: the initial domains, unused here
+    :type domains: Sequence[tuple[int, int]]
+
+    :return: True when no assignment can violate the constraint
+    :rtype: bool
+    """
+    capacity = parameters[2 * n]
+    if sum(parameters[n : 2 * n]) <= capacity:
+        return True
+    return capacity >= 0 and all(parameters[i] == 0 for i in range(n))
+
+
 @njit(cache=True)
 def compute_domains_cumulative(domains: NDArray, parameters: NDArray) -> int:
     """
@@ -377,6 +403,27 @@ def get_triggers_cumulative_var(n: int, variable: int, parameters: NDArray) -> i
     :rtype: int
     """
     return EVENT_MASK_MIN_MAX
+
+
+def is_vacuous_cumulative_var(n: int, parameters: Sequence[int], domains: Sequence[tuple[int, int]]) -> bool:
+    """
+    Returns whether the parameters make the variable-duration constraint vacuous, whatever the domains.
+
+    As for the constant-duration variant, a capacity covering the sum of every demand can never be exceeded.
+    The durations are variables here, so the zero-duration case is not a static property and is not tested.
+
+    :param n: the number of variables, one start and one duration per task
+    :type n: int
+    :param parameters: the demands, then the capacity
+    :type parameters: Sequence[int]
+    :param domains: the initial domains, unused here
+    :type domains: Sequence[tuple[int, int]]
+
+    :return: True when no assignment can violate the constraint
+    :rtype: bool
+    """
+    tasks = n // 2
+    return sum(parameters[:tasks]) <= parameters[tasks]
 
 
 @njit(cache=True)

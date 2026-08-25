@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from collections.abc import Sequence
+
 import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -68,6 +70,47 @@ def _supported(
             if nq != 0 and bwd[i + 1, nq]:
                 return True
     return False
+
+
+def is_vacuous_regular(n: int, parameters: Sequence[int], domains: Sequence[tuple[int, int]]) -> bool:
+    """
+    Returns whether the automaton and the initial domains make the constraint vacuous.
+
+    An automaton whose transition function is total and whose every state accepts reads any word over its
+    alphabet into an accepting state, so it rejects nothing. That alone is not enough: the propagator also
+    keeps each variable inside the alphabet, dropping any value outside 1..S, so it still filters when a
+    domain reaches beyond it. The domains are therefore required to lie within the alphabet already -- which
+    holds for the whole search, since domains only shrink.
+
+    Accepting states are required of every state rather than of the reachable ones only, which is sufficient
+    and costs a single pass.
+
+    :param n: the number of variables, unused here
+    :type n: int
+    :param parameters: the DFA description
+    :type parameters: Sequence[int]
+    :param domains: the initial domains of the sequence variables, as (min, max) pairs
+    :type domains: Sequence[tuple[int, int]]
+
+    :return: True when no assignment can violate the constraint
+    :rtype: bool
+    """
+    q_nb = parameters[0]
+    s_nb = parameters[1]
+    q0 = parameters[2]
+    if q0 < 1 or q0 > q_nb:  # an unusable initial state is not something to reason about here
+        return False
+    for domain_min, domain_max in domains:
+        if domain_min < 1 or domain_max > s_nb:
+            return False
+    for transition in range(q_nb * s_nb):
+        if parameters[3 + transition] == 0:  # a missing transition rejects that symbol
+            return False
+    acc_off = 3 + q_nb * s_nb
+    for q in range(q_nb):
+        if not parameters[acc_off + q]:
+            return False
+    return True
 
 
 @njit(cache=True)
