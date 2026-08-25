@@ -245,9 +245,9 @@ class BacktrackSolver(Solver):
         buckets_init(self.triggered_propagators, self.problem.priorities)
         while True:
             solution = self._solve_one()
-            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
             if solution is None:
                 break
+            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
             logger.debug("Found a solution")
             yield solution
             t0 = time.perf_counter_ns()
@@ -263,25 +263,23 @@ class BacktrackSolver(Solver):
                 self.problem.priorities,
                 self.problem.propagator_nb,
             ):
-                self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
                 break
-            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
-            t0 = time.perf_counter_ns()
+        self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
 
     def optimize(self, variable: int, bound: int, mode: str) -> Iterator[NDArray]:
         logger.info("Optimizing and iterating over the solutions")
         t0 = time.perf_counter_ns()
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         buckets_init(self.triggered_propagators, self.problem.priorities)
-        try:
-            while (solution := self._solve_one()) is not None:
-                logger.info(f"Found a local optimum: {solution[variable]}")
-                yield solution
-                # minimizing a variable means tightening the MAX side of its domain, and vice versa
-                if not self.advance_after_optimum(variable, solution[variable], MAX if bound == MIN else MIN, mode):
-                    break
-        finally:
+        while (solution := self._solve_one()) is not None:
             self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
+            logger.info(f"Found a local optimum: {solution[variable]}")
+            yield solution
+            t0 = time.perf_counter_ns()
+            # minimizing a variable means tightening the MAX side of its domain, and vice versa
+            if not self.advance_after_optimum(variable, solution[variable], MAX if bound == MIN else MIN, mode):
+                break
+        self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
 
     def _solve_one(self) -> NDArray | None:
         """

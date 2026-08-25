@@ -85,9 +85,7 @@ class Solver(ABC):
         Iterates over the successively improving solutions found while optimizing a given variable.
 
         Each yielded solution improves on the previous one; the last yielded solution is the optimum.
-        Nothing is yielded when the problem is unsatisfiable. Consumers that only need the optimum should
-        use :meth:`find_best`; streaming consumers (e.g. the FlatZinc runner) print each solution as it
-        is produced.
+        Nothing is yielded when the problem is unsatisfiable.
 
         :param variable: the variable
         :type variable: int
