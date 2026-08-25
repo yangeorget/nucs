@@ -54,7 +54,7 @@ def compute_domains_nvalue(domains: NDArray, parameters: NDArray) -> int:
     Implements :math:`y = |\\{x_0, ..., x_{n-1}\\}|`, the number of distinct values taken by the x_i.
 
     Full domain consistency is NP-hard, so this bounds the count variable y between the maximum number of
-    pairwise-disjoint domains (a guaranteed-distinct lower bound) and min(n, |union of the domains|), and
+    pairwise-disjoint domains (a guaranteed-distinct lower bound) and ``min(n, |union of the domains|)``, and
     handles the all-equal case y = 1 exactly.
 
     :param domains: the domains of the variables, x is the first n-1 domains, y is the last domain

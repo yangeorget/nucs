@@ -9,7 +9,7 @@ Some consistency algorithms are provided, custom consistency algorithms can be d
 ***************************
 Bound consistency algorithm
 ***************************
-NuCS provides :mod:`nucs.solvers.bound_consistency_algorithm` which is the default consistency algorithm.
+NuCS provides :mod:`nucs.solvers.bc_algorithm` which is the default consistency algorithm.
 
 
 *****************************

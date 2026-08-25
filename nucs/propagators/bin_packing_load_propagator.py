@@ -123,6 +123,7 @@ def compute_domains_bin_packing_load(domains: NDArray, parameters: NDArray) -> i
 
     Filtering (weights are non-negative, per the MiniZinc contract), iterated to a fixpoint so a single call is
     idempotent:
+
     - each load[j] is bounded below by its required load (items fixed to j) and above by its possible load;
     - when the candidate weights are small enough, exact subset-sum reasoning (Shaw's no-sum, but complete)
       tightens load[j] to a value its candidates can actually reach, prunes a candidate from a bin when the

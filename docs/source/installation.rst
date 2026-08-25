@@ -30,34 +30,36 @@ Let's find all solutions to the `12-queens problem <https://www.csplib.org/Probl
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.queens -n 12
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.queens -n 12 --find-all --no-display-solutions
 
 Produces the following output:
 
 .. code-block:: bash
 
-   [ 2025-01-27 14:55:53,114 | MainProcess | INFO ] nucs.solvers.solver.__init__ - Initializing Solver
-   [ 2025-01-27 14:55:53,115 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 3 propagators
-   [ 2025-01-27 14:55:53,115 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 12 variables
-   [ 2025-01-27 14:55:53,115 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses decision domains [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-   [ 2025-01-27 14:55:53,115 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses variable heuristic 0
-   [ 2025-01-27 14:55:53,115 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses domain heuristic 3
-   [ 2025-01-27 14:55:53,115 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm 0
-   [ 2025-01-27 14:55:53,115 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stacks of the choice points have a maximal height of 256
-   [ 2025-01-27 14:55:53,196 | MainProcess | INFO ] nucs.solvers.backtrack_solver.solve - Solving and iterating over the solutions
+   [ 2026-08-25 09:10:17,042 | MainProcess | INFO ] nucs.solvers.solver.__init__ - Initializing Solver
+   [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 3 propagators
+   [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 12 variables
+   [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses decision domains [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]]
+   [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses variable heuristics [1]
+   [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses domain heuristics [3]
+   [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm 0
+   [ 2026-08-25 09:10:17,106 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stacks of the choice points have a maximal height of 8192
+   [ 2026-08-25 09:10:17,120 | MainProcess | INFO ] nucs.solvers.solver.find_all - Returning all solutions
+   [ 2026-08-25 09:10:17,120 | MainProcess | INFO ] nucs.solvers.solver.solve_all - Iterating over the solutions
+   [ 2026-08-25 09:10:17,120 | MainProcess | INFO ] nucs.solvers.backtrack_solver.solve - Solving and iterating over the solutions
    {
        'ALG_BC_NB': 262011,
-       'PROPAGATOR_ENTAILMENT_NB': 0,
-       'PROPAGATOR_FILTER_NB': 2269980,
-       'PROPAGATOR_FILTER_NO_CHANGE_NB': 990450,
+       'PROPAGATOR_ENTAILMENT_NB': 39047,
+       'PROPAGATOR_FILTER_NB': 1781373,
+       'PROPAGATOR_FILTER_NO_CHANGE_NB': 563741,
        'PROPAGATOR_INCONSISTENCY_NB': 116806,
        'SOLVER_BACKTRACK_NB': 131005,
        'SOLVER_CHOICE_NB': 131005,
        'SOLVER_CHOICE_DEPTH': 10,
        'SOLUTION_NB': 14200,
-       'SEARCH_SPACE_INITIAL_SZ': 0,
-       'SEARCH_SPACE_REMAINING_SZ': 0,
-       'SEARCH_SPACE_LOG2_SCALE': 0
+       'SOLVER_ELAPSED_TIME_MS': 1246,
+       'PROPAGATOR_FILTER_NB_ALLDIFFERENT': 1781373,
+       'PROPAGATOR_FILTER_NO_CHANGE_NB_ALLDIFFERENT': 563741
    }
 
 
@@ -67,46 +69,51 @@ Let's find the optimal solution to the `Golomb ruler problem <https://www.csplib
 
 .. code-block:: bash
 
-   NUMBA_CACHE_DIR=.numba/cache -m nucs.examples.golomb -n 10
+   NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.golomb -n 10
 
 Produces the following output:
 
 .. code-block:: bash
 
-   [ 2025-01-27 14:58:17,101 | MainProcess | INFO ] nucs.solvers.solver.__init__ - Initializing Solver
-   [ 2025-01-27 14:58:17,101 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 82 propagators
-   [ 2025-01-27 14:58:17,102 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 45 variables
-   [ 2025-01-27 14:58:17,102 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses decision domains [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]
-   [ 2025-01-27 14:58:17,102 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses variable heuristic 0
-   [ 2025-01-27 14:58:17,102 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses domain heuristic 3
-   [ 2025-01-27 14:58:17,102 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm 2
-   [ 2025-01-27 14:58:17,102 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stacks of the choice points have a maximal height of 256
-   [ 2025-01-27 14:58:17,109 | MainProcess | INFO ] nucs.solvers.backtrack_solver.minimize - Minimizing (mode PRUNE) variable 8 (domain [  1 405]))
-   [ 2025-01-27 14:58:17,545 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 80
-   [ 2025-01-27 14:58:17,546 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 75
-   [ 2025-01-27 14:58:17,547 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 73
-   [ 2025-01-27 14:58:17,547 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 72
-   [ 2025-01-27 14:58:17,548 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 70
-   [ 2025-01-27 14:58:17,549 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 68
-   [ 2025-01-27 14:58:17,551 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 66
-   [ 2025-01-27 14:58:17,553 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 62
-   [ 2025-01-27 14:58:17,571 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 60
-   [ 2025-01-27 14:58:17,748 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 55
+   [ 2026-08-25 09:10:18,696 | MainProcess | INFO ] nucs.solvers.solver.__init__ - Initializing Solver
+   [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 82 propagators
+   [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 45 variables
+   [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses decision domains [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]]
+   [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses variable heuristics [1]
+   [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses domain heuristics [3]
+   [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm 1
+   [ 2026-08-25 09:10:18,706 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stacks of the choice points have a maximal height of 8192
+   [ 2026-08-25 09:10:18,723 | MainProcess | INFO ] nucs.solvers.solver.find_best - Returning the optimal solution
+   [ 2026-08-25 09:10:18,723 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Optimizing and iterating over the solutions
+   [ 2026-08-25 09:10:18,727 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 80
+   [ 2026-08-25 09:10:18,728 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 75
+   [ 2026-08-25 09:10:18,728 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 73
+   [ 2026-08-25 09:10:18,729 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 72
+   [ 2026-08-25 09:10:18,729 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 70
+   [ 2026-08-25 09:10:18,730 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 68
+   [ 2026-08-25 09:10:18,731 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 66
+   [ 2026-08-25 09:10:18,733 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 62
+   [ 2026-08-25 09:10:18,738 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 60
+   [ 2026-08-25 09:10:18,805 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 55
    {
-       'ALG_BC_NB': 20780,
-       'PROPAGATOR_ENTAILMENT_NB': 115080,
-       'PROPAGATOR_FILTER_NB': 2829457,
-       'PROPAGATOR_FILTER_NO_CHANGE_NB': 1794797,
-       'PROPAGATOR_INCONSISTENCY_NB': 10377,
-       'SOLVER_BACKTRACK_NB': 10376,
-       'SOLVER_CHOICE_NB': 10393,
+       'ALG_BC_NB': 22230,
+       'PROPAGATOR_ENTAILMENT_NB': 203454,
+       'PROPAGATOR_FILTER_NB': 1400872,
+       'PROPAGATOR_FILTER_NO_CHANGE_NB': 586754,
+       'PROPAGATOR_INCONSISTENCY_NB': 11078,
+       'SOLVER_BACKTRACK_NB': 11077,
+       'SOLVER_CHOICE_NB': 11142,
        'SOLVER_CHOICE_DEPTH': 9,
        'SOLUTION_NB': 10,
-       'SEARCH_SPACE_INITIAL_SZ': 0,
-       'SEARCH_SPACE_REMAINING_SZ': 0,
-       'SEARCH_SPACE_LOG2_SCALE': 0
+       'SOLVER_ELAPSED_TIME_MS': 197,
+       'PROPAGATOR_FILTER_NB_ALLDIFFERENT': 44683,
+       'PROPAGATOR_FILTER_NO_CHANGE_NB_ALLDIFFERENT': 6484,
+       'PROPAGATOR_FILTER_NB_LEQ_C': 360228,
+       'PROPAGATOR_FILTER_NO_CHANGE_NB_LEQ_C': 347920,
+       'PROPAGATOR_FILTER_NB_SUM_EQ': 995961,
+       'PROPAGATOR_FILTER_NO_CHANGE_NB_SUM_EQ': 232350
    }
-   [ 1  6 10 23 26 34 41 53 55]
+   [1, 6, 10, 23, 26, 34, 41, 53, 55, 5]
 
 
 **********************
@@ -132,7 +139,7 @@ The first solution found is:
 
 .. code-block:: bash
 
-   [0, 4, 7, 5, 2, 6, 1, 3]
+   [0 4 7 5 2 6 1 3]
 
 .. note::
    Note that the second run will always be **much faster**

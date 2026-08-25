@@ -285,7 +285,7 @@ class BacktrackSolver(Solver):
             if self._expired(deadline):
                 break
             # minimizing a variable means tightening the MAX side of its domain, and vice versa
-            if not self.advance_after_optimum(variable, solution[variable], MAX if bound == MIN else MIN, mode):
+            if not self._advance_after_optimum(variable, solution[variable], MAX if bound == MIN else MIN, mode):
                 break
         self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
 
@@ -328,7 +328,7 @@ class BacktrackSolver(Solver):
             self.domain_buffer,
         )
 
-    def advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
+    def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
         """
         After emitting a local optimum, prepares the solver for the next improving solution: either resets to
         the initial domains (OPTIM_RESET) or prunes the choice points, then refixes the objective bound.
