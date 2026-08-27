@@ -414,7 +414,9 @@ ALG_IF_THEN_ELSE = register_propagator(
     idempotent=False,
 )
 ALG_INCREASING = register_propagator(get_triggers_increasing, get_complexity_increasing, compute_domains_increasing)
-ALG_INVERSE = register_propagator(get_triggers_inverse, get_complexity_inverse, compute_domains_inverse)
+ALG_INVERSE = register_propagator(
+    get_triggers_inverse, get_complexity_inverse, compute_domains_inverse, idempotent=False
+)
 ALG_LEQ_C = register_propagator(get_triggers_leq_c, get_complexity_leq_c, compute_domains_leq_c)
 ALG_LEQ_C_IMP = register_propagator(get_triggers_leq_c_imp, get_complexity_leq_c_imp, compute_domains_leq_c_imp)
 ALG_LEQ_C_REIF = register_propagator(get_triggers_leq_c_reif, get_complexity_leq_c_reif, compute_domains_leq_c_reif)
@@ -424,15 +426,15 @@ ALG_MEMBER = register_propagator(get_triggers_member, get_complexity_member, com
 ALG_MEMBER_REIF = register_propagator(get_triggers_member_reif, get_complexity_member_reif, compute_domains_member_reif)
 ALG_MIN_EQ = register_propagator(get_triggers_min_eq, get_complexity_min_eq, compute_domains_min_eq)
 ALG_MOD_C_EQ = register_propagator(get_triggers_mod_c_eq, get_complexity_mod_c_eq, compute_domains_mod_c_eq)
-ALG_MOD_EQ = register_propagator(get_triggers_mod_eq, get_complexity_mod_eq, compute_domains_mod_eq)
+ALG_MOD_EQ = register_propagator(get_triggers_mod_eq, get_complexity_mod_eq, compute_domains_mod_eq, idempotent=False)
 ALG_MUL_C_EQ = register_propagator(get_triggers_mul_c_eq, get_complexity_mul_c_eq, compute_domains_mul_c_eq)
-ALG_MUL_EQ = register_propagator(get_triggers_mul_eq, get_complexity_mul_eq, compute_domains_mul_eq)
+ALG_MUL_EQ = register_propagator(get_triggers_mul_eq, get_complexity_mul_eq, compute_domains_mul_eq, idempotent=False)
 ALG_NEQ = register_propagator(get_triggers_neq, get_complexity_neq, compute_domains_neq)
 ALG_NEQ_IMP = register_propagator(get_triggers_neq_imp, get_complexity_neq_imp, compute_domains_neq_imp)
 ALG_NEQ_C_REIF = register_propagator(get_triggers_neq_c_reif, get_complexity_neq_c_reif, compute_domains_neq_c_reif)
 ALG_NEQ_REIF = register_propagator(get_triggers_neq_reif, get_complexity_neq_reif, compute_domains_neq_reif)
 ALG_NO_SUB_CYCLE = register_propagator(
-    get_triggers_no_sub_cycle, get_complexity_no_sub_cycle, compute_domains_no_sub_cycle
+    get_triggers_no_sub_cycle, get_complexity_no_sub_cycle, compute_domains_no_sub_cycle, idempotent=False
 )
 ALG_NVALUE = register_propagator(get_triggers_nvalue, get_complexity_nvalue, compute_domains_nvalue)
 ALG_REGULAR = register_propagator(
