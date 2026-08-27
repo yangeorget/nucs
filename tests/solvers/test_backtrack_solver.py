@@ -123,7 +123,7 @@ class TestBacktrackSolver:
             solver.statistics,
             problem.algorithms,
             problem.priorities,
-            problem.bounds,
+            problem.offsets,
             problem.propagator_variables,
             problem.propagator_parameters,
             problem.triggers,

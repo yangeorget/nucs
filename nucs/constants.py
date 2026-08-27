@@ -20,10 +20,8 @@ OPTIM_PRUNE = "PRUNE"
 OPTIM_MODES = [OPTIM_RESET, OPTIM_PRUNE]
 
 # Bounds
-VARIABLE = 0  # index for a variable
-PARAM = 1  # index for a parameter
-RANGE_START = 0  # index corresponding to the start of a value range
-RANGE_END = 1  # index corresponding to the end of a value range
+VARIABLE = 0  # column of offsets holding the propagator variable offsets
+PARAM = 1  # column of offsets holding the propagator parameter offsets
 
 # Domain bounds
 MIN = 0  # min value of a domain
@@ -69,7 +67,7 @@ SIGN_CONSISTENCY_ALG = int64(
     int64[::1],  # statistics
     uint8[::1],  # algorithms
     uint32[::1],  # complexities
-    uint32[:, :, ::1],  # bounds
+    uint32[:, ::1],  # offsets
     uint32[::1],  # propagator_variables
     int32[::1],  # propagator_parameters
     int32[::1],  # triggers

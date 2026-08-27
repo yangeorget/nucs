@@ -25,8 +25,6 @@ from nucs.constants import (
     EVENT_MASK_NB,
     NUMBA_DISABLE_JIT,
     PARAM,
-    RANGE_END,
-    RANGE_START,
     SIGN_GET_TRIGGERS,
     TYPE_GET_TRIGGERS,
     VARIABLE,
@@ -164,15 +162,16 @@ class Problem:
             ],
             dtype=np.uint32,
         )
-        # We will store propagator specific data in a global arrays, we need to compute variables and parameter bounds.
-        logger.debug("Initializing bounds")
-        self.bounds = np.zeros((max(1, self.propagator_nb), 2, 2), dtype=np.uint32)  # some redundancy here
-        init_bounds(self.bounds, self.propagators)
+        # Propagator specific data lives in global arrays; propagator p owns the slice
+        # offsets[p, col]:offsets[p + 1, col] of each, so one row per propagator plus a closing row.
+        logger.debug("Initializing offsets")
+        self.offsets = np.zeros((self.propagator_nb + 1, 2), dtype=np.uint32)
+        init_offsets(self.offsets, self.propagators)
         logger.debug("Initializing props")
-        self.propagator_variables = np.empty(self.bounds[-1, VARIABLE, RANGE_END], dtype=np.uint32)
-        self.propagator_parameters = np.empty(self.bounds[-1, PARAM, RANGE_END], dtype=np.int32)
+        self.propagator_variables = np.empty(self.offsets[-1, VARIABLE], dtype=np.uint32)
+        self.propagator_parameters = np.empty(self.offsets[-1, PARAM], dtype=np.int32)
         init_propagator_variables_and_parameters(
-            self.propagator_variables, self.propagator_parameters, self.bounds, self.propagators
+            self.propagator_variables, self.propagator_parameters, self.offsets, self.propagators
         )
         logger.debug("Initializing triggers")
         # The triggers map each (variable, event) pair to the propagators to schedule. A dense
@@ -188,7 +187,7 @@ class Problem:
         count_triggers(
             counts,
             self.propagator_nb,
-            self.bounds,
+            self.offsets,
             self.propagator_variables,
             self.propagator_parameters,
             self.algorithms,
@@ -202,7 +201,7 @@ class Problem:
             self.triggers,
             cursors,
             self.propagator_nb,
-            self.bounds,
+            self.offsets,
             self.propagator_variables,
             self.propagator_parameters,
             self.algorithms,
@@ -234,26 +233,27 @@ class Problem:
         print("No solution" if solution is None else self.solution_as_printable(solution))
 
 
-def init_bounds(bounds: NDArray, propagators: list[tuple[list[int], int, list[int]]]) -> None:
+def init_offsets(offsets: NDArray, propagators: list[tuple[list[int], int, list[int]]]) -> None:
     """
-    Initializes the variable and parameter bounds for each propagator.
+    Initializes the CSR offsets delimiting each propagator's variables and parameters.
 
-    :param bounds: the bounds to initialize
-    :type bounds: NDArray
+    The slices are contiguous, so one offset per propagator suffices: propagator p owns
+    offsets[p, col]:offsets[p + 1, col], and the closing row holds the totals.
+
+    :param offsets: the offsets to initialize
+    :type offsets: NDArray
     :param propagators: the propagators
     :type propagators: List[Tuple[List[int], int, List[int]]]
     """
     for propagator_idx, propagator in enumerate(propagators):
-        if propagator_idx > 0:
-            bounds[propagator_idx, :, RANGE_START] = bounds[propagator_idx - 1, :, RANGE_END]
-        bounds[propagator_idx, VARIABLE, RANGE_END] = bounds[propagator_idx, VARIABLE, RANGE_START] + len(propagator[0])
-        bounds[propagator_idx, PARAM, RANGE_END] = bounds[propagator_idx, PARAM, RANGE_START] + len(propagator[2])
+        offsets[propagator_idx + 1, VARIABLE] = offsets[propagator_idx, VARIABLE] + len(propagator[0])
+        offsets[propagator_idx + 1, PARAM] = offsets[propagator_idx, PARAM] + len(propagator[2])
 
 
 def init_propagator_variables_and_parameters(
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
-    bounds: NDArray,
+    offsets: NDArray,
     propagators: list[tuple[list[int], int, list[int]]],
 ) -> None:
     """
@@ -263,25 +263,21 @@ def init_propagator_variables_and_parameters(
     :type propagator_variables: NDArray
     :param propagator_parameters: the propagator parameters array to fill
     :type propagator_parameters: NDArray
-    :param bounds: the bounds
-    :type bounds: NDArray
+    :param offsets: the CSR offsets delimiting each propagator's variables and parameters
+    :type offsets: NDArray
     :param propagators: the propagators
     :type propagators: List[Tuple[List[int], int, List[int]]]
     """
     for propagator_idx, propagator in enumerate(propagators):
-        var_start = bounds[propagator_idx, VARIABLE, RANGE_START]
-        var_end = bounds[propagator_idx, VARIABLE, RANGE_END]
-        propagator_variables[var_start:var_end] = propagator[0]
-        param_start = bounds[propagator_idx, PARAM, RANGE_START]
-        param_end = bounds[propagator_idx, PARAM, RANGE_END]
-        propagator_parameters[param_start:param_end] = propagator[2]
+        propagator_variables[offsets[propagator_idx, VARIABLE] : offsets[propagator_idx + 1, VARIABLE]] = propagator[0]
+        propagator_parameters[offsets[propagator_idx, PARAM] : offsets[propagator_idx + 1, PARAM]] = propagator[2]
 
 
 @njit(cache=True)
 def count_triggers(
     counts: NDArray,
     propagator_nb: int,
-    bounds: NDArray,
+    offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
     algorithms: NDArray,
@@ -294,8 +290,8 @@ def count_triggers(
     :type counts: NDArray
     :param propagator_nb: the number of propagators
     :type propagator_nb: int
-    :param bounds: the bounds
-    :type bounds: NDArray
+    :param offsets: the CSR offsets delimiting each propagator's variables and parameters
+    :type offsets: NDArray
     :param propagator_variables: the propagator variables
     :type propagator_variables: NDArray
     :param propagator_parameters: the propagator parameters
@@ -311,11 +307,9 @@ def count_triggers(
             trigger_fct = GET_TRIGGERS_FCTS[algorithm]
         else:
             trigger_fct = function_ptr_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])  # type: ignore[call-arg, arg-type]
-        parameters = propagator_parameters[
-            bounds[propagator, PARAM, RANGE_START] : bounds[propagator, PARAM, RANGE_END]
-        ]
-        var_start = bounds[propagator, VARIABLE, RANGE_START]
-        var_end = bounds[propagator, VARIABLE, RANGE_END]
+        parameters = propagator_parameters[offsets[propagator, PARAM] : offsets[propagator + 1, PARAM]]
+        var_start = offsets[propagator, VARIABLE]
+        var_end = offsets[propagator + 1, VARIABLE]
         var_nb = var_end - var_start
         for var_idx in range(var_nb):
             variable = propagator_variables[var_start + var_idx]
@@ -338,7 +332,7 @@ def fill_triggers(
     triggers: NDArray,
     cursors: NDArray,
     propagator_nb: int,
-    bounds: NDArray,
+    offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
     algorithms: NDArray,
@@ -354,8 +348,8 @@ def fill_triggers(
     :type cursors: NDArray
     :param propagator_nb: the number of propagators
     :type propagator_nb: int
-    :param bounds: the bounds
-    :type bounds: NDArray
+    :param offsets: the CSR offsets delimiting each propagator's variables and parameters
+    :type offsets: NDArray
     :param propagator_variables: the propagator variables
     :type propagator_variables: NDArray
     :param propagator_parameters: the propagator parameters
@@ -371,11 +365,9 @@ def fill_triggers(
             trigger_fct = GET_TRIGGERS_FCTS[algorithm]
         else:
             trigger_fct = function_ptr_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])  # type: ignore[call-arg, arg-type]
-        parameters = propagator_parameters[
-            bounds[propagator, PARAM, RANGE_START] : bounds[propagator, PARAM, RANGE_END]
-        ]
-        var_start = bounds[propagator, VARIABLE, RANGE_START]
-        var_end = bounds[propagator, VARIABLE, RANGE_END]
+        parameters = propagator_parameters[offsets[propagator, PARAM] : offsets[propagator + 1, PARAM]]
+        var_start = offsets[propagator, VARIABLE]
+        var_end = offsets[propagator + 1, VARIABLE]
         var_nb = var_end - var_start
         for var_idx in range(var_nb):
             variable = propagator_variables[var_start + var_idx]

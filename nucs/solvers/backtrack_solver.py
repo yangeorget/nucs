@@ -28,8 +28,6 @@ from nucs.constants import (
     OPTIM_RESET,
     PROBLEM_BOUND,
     PROBLEM_UNBOUND,
-    RANGE_END,
-    RANGE_START,
     SIGN_COMPUTE_DOMAINS,
     SIGN_CONSISTENCY_ALG,
     SIGN_DOM_HEURISTIC,
@@ -189,7 +187,7 @@ class BacktrackSolver(Solver):
         self.dom_heuristic_params_shapes = np.array([params.shape for params in dom_params], dtype=np.int64)
         logger.info(f"BacktrackSolver uses consistency algorithm {consistency_algorithm}")
         self.triggered_propagators = buckets_create(problem.propagator_nb)
-        self.domain_buffer = get_domain_buffer(problem.bounds)
+        self.domain_buffer = get_domain_buffer(problem.offsets)
         logger.debug("Initializing choice points")
         self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
         self.domain_update_stk = np.empty((stks_max_height, 2), dtype=np.uint32)
@@ -301,7 +299,7 @@ class BacktrackSolver(Solver):
             self.statistics,
             self.problem.algorithms,
             self.problem.priorities,
-            self.problem.bounds,
+            self.problem.offsets,
             self.problem.propagator_variables,
             self.problem.propagator_parameters,
             self.problem.triggers,
@@ -443,7 +441,7 @@ def solve_one(
     statistics: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
-    bounds: NDArray,
+    offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
     triggers: NDArray,
@@ -483,8 +481,9 @@ def solve_one(
     :type algorithms: NDArray
     :param priorities: the propagation queue bucket priorities indexed by propagators
     :type priorities: NDArray
-    :param bounds: the bounds indexed by propagators
-    :type bounds: NDArray
+    :param offsets: the CSR offsets delimiting each propagator's slice of propagator_variables
+                    and propagator_parameters
+    :type offsets: NDArray
     :param propagator_variables: the variables by propagators
     :type propagator_variables: NDArray
     :param propagator_parameters: the parameters by propagators
@@ -549,7 +548,7 @@ def solve_one(
             statistics,
             algorithms,
             priorities,
-            bounds,
+            offsets,
             propagator_variables,
             propagator_parameters,
             triggers,
@@ -622,7 +621,7 @@ def solve_one(
             return None
 
 
-def get_domain_buffer(bounds: NDArray) -> NDArray:
+def get_domain_buffer(offsets: NDArray) -> NDArray:
     """
     Allocates a reusable scratch buffer for prop_domains to avoid one allocation per propagator call.
 
@@ -630,14 +629,14 @@ def get_domain_buffer(bounds: NDArray) -> NDArray:
     references the same variable twice, e.g. count_eq).
     Allocated once at solver init and threaded through the consistency algorithms.
 
-    :param bounds: the bounds indexed by propagators
-    :type bounds: NDArray
+    :param offsets: the CSR offsets delimiting each propagator's slice of propagator_variables
+    :type offsets: NDArray
 
     :return: a scratch buffer sized to the maximal propagator arity
     :rtype: NDArray
     """
     max_arity = np.int64(0)
-    for propagator_idx in range(len(bounds)):
-        arity = np.int64(bounds[propagator_idx, VARIABLE, RANGE_END] - bounds[propagator_idx, VARIABLE, RANGE_START])
+    for propagator_idx in range(len(offsets) - 1):
+        arity = np.int64(offsets[propagator_idx + 1, VARIABLE] - offsets[propagator_idx, VARIABLE])
         max_arity = max(max_arity, arity)
     return np.empty((max_arity, 2), dtype=np.int32)

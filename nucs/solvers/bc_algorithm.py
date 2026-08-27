@@ -30,8 +30,6 @@ from nucs.constants import (
     PROBLEM_UNBOUND,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
-    RANGE_END,
-    RANGE_START,
     STATS_ALG_IDX_FILTER_NB,
     STATS_ALG_IDX_FILTER_NO_CHANGE_NB,
     STATS_ALG_WIDTH,
@@ -52,7 +50,7 @@ def bc_algorithm(
     statistics: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
-    bounds: NDArray,
+    offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
     triggers: NDArray,
@@ -76,8 +74,9 @@ def bc_algorithm(
     :type algorithms: NDArray
     :param priorities: the propagation queue bucket priorities indexed by propagators
     :type priorities: NDArray
-    :param bounds: the bounds indexed by propagators
-    :type bounds: NDArray
+    :param offsets: the CSR offsets delimiting each propagator's slice of propagator_variables
+                    and propagator_parameters
+    :type offsets: NDArray
     :param propagator_variables: the variables by propagators
     :type propagator_variables: NDArray
     :param propagator_parameters: the parameters by propagators
@@ -124,15 +123,15 @@ def bc_algorithm(
         # wasted calls) belong to, which is what makes a throughput investigation targeted
         algorithm_stats = STATS_MAX + STATS_ALG_WIDTH * algorithms[prop_idx]
         statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NB] += 1
-        prop_var_start = bounds[prop_idx, VARIABLE, RANGE_START]
-        prop_var_end = bounds[prop_idx, VARIABLE, RANGE_END]
+        prop_var_start = offsets[prop_idx, VARIABLE]
+        prop_var_end = offsets[prop_idx + 1, VARIABLE]
         prop_arity = prop_var_end - prop_var_start
         prop_domains = domain_buffer[:prop_arity]
         for var_idx in range(prop_arity):
             prop_domains[var_idx] = domains[propagator_variables[prop_var_start + var_idx]]
         status = compute_domains_fcts[algorithms[prop_idx]](
             prop_domains,
-            propagator_parameters[bounds[prop_idx, PARAM, RANGE_START] : bounds[prop_idx, PARAM, RANGE_END]],
+            propagator_parameters[offsets[prop_idx, PARAM] : offsets[prop_idx + 1, PARAM]],
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
