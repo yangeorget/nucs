@@ -161,16 +161,11 @@ def bc_algorithm(
             triggers_offsets,
             unbound_variable_nb_stk,
             priorities,
+            idempotent,
         )
         if no_change:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
             statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NO_CHANGE_NB] += 1
-        elif not idempotent[prop_idx]:
-            # update_domains never reschedules a propagator on its own changes, which is what makes
-            # idempotence a requirement; a propagator that does not reach its fixpoint in one call gets
-            # that reschedule here instead of iterating internally, so cheaper propagators -- and any
-            # inconsistency they expose -- come first
-            buckets_add(triggered_propagators, priorities, prop_idx, membership_offset)
 
 
 # always inlined: LLVM's cost model declines to inline a function this size, but the caller is the
@@ -191,6 +186,7 @@ def update_domains(
     triggers_offsets: NDArray,
     unbound_variable_nb_stk: NDArray,
     priorities: NDArray,
+    idempotent: NDArray,
 ) -> bool:
     """
     Applies a propagator's computed prop_domains and schedules the propagators triggered by the changes.
@@ -220,12 +216,20 @@ def update_domains(
                     events |= EVENT_MASK_GROUND
                     unbound_variable_nb_stk[top] -= 1
                 offset = variable * EVENT_MASK_NB + events
-                for other_prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
-                    if not (
-                        triggered_propagators[membership_offset + other_prop_idx]
-                        or other_prop_idx == prop_idx
-                        or entailed_propagator_depths[other_prop_idx] != -1
-                    ):
-                        buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
+                if idempotent[prop_idx]:
+                    for other_prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
+                        if not (
+                            triggered_propagators[membership_offset + other_prop_idx]
+                            or other_prop_idx == prop_idx
+                            or entailed_propagator_depths[other_prop_idx] != -1
+                        ):
+                            buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
+                else:
+                    for other_prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
+                        if not (
+                            triggered_propagators[membership_offset + other_prop_idx]
+                            or entailed_propagator_depths[other_prop_idx] != -1
+                        ):
+                            buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
                 no_changes = False
     return no_changes
