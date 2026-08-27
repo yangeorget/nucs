@@ -160,7 +160,7 @@ def bc_algorithm(
             triggers_offsets,
             unbound_variable_nb_stk,
             priorities,
-            idempotent,
+            idempotent[prop_idx],
         )
         if no_change:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
@@ -185,13 +185,16 @@ def update_domains(
     triggers_offsets: NDArray,
     unbound_variable_nb_stk: NDArray,
     priorities: NDArray,
-    idempotent: NDArray,
+    is_idempotent: bool,
 ) -> bool:
     """
     Applies a propagator's computed prop_domains and schedules the propagators triggered by the changes.
 
     :param prop_domains: the domains computed by the propagator
     :type prop_domains: NDArray
+    :param is_idempotent: whether this propagator reaches its own fixpoint in a single call; when it does
+                          not, it is left in its own trigger scan so it is rescheduled like any other
+    :type is_idempotent: bool
 
     :return: true iff no domain was changed
     :rtype: bool
@@ -215,7 +218,7 @@ def update_domains(
                     events |= EVENT_MASK_GROUND
                     unbound_variable_nb_stk[top] -= 1
                 offset = variable * EVENT_MASK_NB + events
-                if idempotent[prop_idx]:
+                if is_idempotent:
                     for other_prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
                         if not (
                             triggered_propagators[membership_offset + other_prop_idx]
