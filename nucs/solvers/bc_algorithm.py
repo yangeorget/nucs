@@ -164,7 +164,9 @@ def bc_algorithm(
             statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NO_CHANGE_NB] += 1
 
 
-@njit(cache=True)
+# always inlined: LLVM's cost model declines to inline a function this size, but the caller is the
+# per-propagator-call hot path and inlining it measurably speeds up propagator-cheap models
+@njit(cache=True, inline="always")
 def update_domains(
     top: int,
     prop_idx: int,
