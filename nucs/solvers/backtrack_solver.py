@@ -76,6 +76,7 @@ from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     ALG_DUMMY,
     COMPUTE_DOMAINS_FCTS,
+    IDEMPOTENT,
     get_algorithm_nb,
     update_propagators,
 )
@@ -324,7 +325,7 @@ class BacktrackSolver(Solver):
             self.dom_heuristic_params_shapes,
             self.compute_domains_fcts,
             self.domain_buffer,
-            self.problem.idempotent,
+            IDEMPOTENT,
         )
 
     def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
@@ -534,7 +535,8 @@ def solve_one(
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray
-    :param idempotent: whether each propagator reaches its own fixpoint in a single call
+    :param idempotent: whether each algorithm reaches its own fixpoint in a single call, indexed by
+                       algorithm rather than by propagator
     :type idempotent: NDArray
 
     :return: the solution if it exists or None

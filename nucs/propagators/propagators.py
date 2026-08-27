@@ -12,6 +12,7 @@
 ###############################################################################
 from collections.abc import Callable, Sequence
 
+import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -276,9 +277,11 @@ GET_TRIGGERS_FCTS: list[Callable] = []
 GET_COMPLEXITY_FCTS: list[Callable] = []
 COMPUTE_DOMAINS_FCTS: list[Callable] = []
 IS_VACUOUS_FCTS: list[Callable] = []
-# Whether one call of the propagator reaches its own fixpoint. A propagator that does not is rescheduled by
-# the engine after any call that changed a domain, instead of iterating internally.
-IDEMPOTENT: list[bool] = []
+# Whether one call of the algorithm reaches its own fixpoint, indexed by algorithm. A propagator that does
+# not is rescheduled by the engine after any call that changed a domain, instead of iterating internally.
+# Unlike the function lists above this is already the array the consistency algorithm reads, so it is passed
+# to the jitted code as is rather than being rebuilt per problem or per solver.
+IDEMPOTENT: NDArray = np.empty(0, dtype=np.bool_)
 
 
 def is_never_vacuous(n: int, parameters: Sequence[int], domains: Sequence[tuple[int, int]]) -> bool:
@@ -332,7 +335,8 @@ def register_propagator(
     GET_COMPLEXITY_FCTS.append(get_complexity_fct)
     COMPUTE_DOMAINS_FCTS.append(compute_domains_fct)
     IS_VACUOUS_FCTS.append(is_vacuous_fct)
-    IDEMPOTENT.append(idempotent)
+    global IDEMPOTENT
+    IDEMPOTENT = np.append(IDEMPOTENT, idempotent)
     return get_algorithm_nb() - 1
 
 

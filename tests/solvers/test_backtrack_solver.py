@@ -41,6 +41,7 @@ from nucs.propagators.propagators import (
     ALG_LINEAR_NEQ_C,
     ALG_NEQ,
     ALG_RELATION,
+    IDEMPOTENT,
 )
 from nucs.solvers.backtrack_solver import BacktrackSolver, solve_one
 from nucs.solvers.choice_points import backtrack
@@ -148,7 +149,7 @@ class TestBacktrackSolver:
             solver.dom_heuristic_params_shapes,
             solver.compute_domains_fcts,
             solver.domain_buffer,
-            problem.idempotent,
+            IDEMPOTENT,
         )
         assert solution is not None
         assert solution.tolist() == [0, 0]

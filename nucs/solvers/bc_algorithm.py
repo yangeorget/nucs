@@ -104,7 +104,8 @@ def bc_algorithm(
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray
-    :param idempotent: whether each propagator reaches its own fixpoint in a single call
+    :param idempotent: whether each algorithm reaches its own fixpoint in a single call, indexed by
+                       algorithm rather than by propagator
     :type idempotent: NDArray
 
     :return: a status (consistency, inconsistency or entailment) as an integer
@@ -119,9 +120,10 @@ def bc_algorithm(
         if prop_idx == -1:
             return PROBLEM_BOUND if unbound_variable_nb_stk[top] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
+        algorithm = algorithms[prop_idx]
         # the per-algorithm tail of the statistics array: which algorithms the calls (and, below, the
         # wasted calls) belong to, which is what makes a throughput investigation targeted
-        algorithm_stats = STATS_MAX + STATS_ALG_WIDTH * algorithms[prop_idx]
+        algorithm_stats = STATS_MAX + STATS_ALG_WIDTH * algorithm
         statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NB] += 1
         prop_var_start = offsets[prop_idx, VARIABLE]
         prop_var_end = offsets[prop_idx + 1, VARIABLE]
@@ -129,7 +131,7 @@ def bc_algorithm(
         prop_domains = domain_buffer[:prop_arity]
         for var_idx in range(prop_arity):
             prop_domains[var_idx] = domains[propagator_variables[prop_var_start + var_idx]]
-        status = compute_domains_fcts[algorithms[prop_idx]](
+        status = compute_domains_fcts[algorithm](
             prop_domains,
             propagator_parameters[offsets[prop_idx, PARAM] : offsets[prop_idx + 1, PARAM]],
         )
@@ -160,7 +162,7 @@ def bc_algorithm(
             triggers_offsets,
             unbound_variable_nb_stk,
             priorities,
-            idempotent[prop_idx],
+            idempotent[algorithm],
         )
         if no_change:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
