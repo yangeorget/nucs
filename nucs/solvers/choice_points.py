@@ -82,6 +82,11 @@ def cp_put(domains_stk: NDArray, unbound_variable_nb_stk: NDArray, top: int) -> 
     :param top: the index of the top of the stacks
     :type top: int
     """
+    # the two stacks are pushed in lockstep but stay separate on purpose. Folding the count into
+    # domains_stk as an extra row would save one scalar store out of a whole-domains copy, gain nothing in
+    # locality (top moves by one, so the live entry is always hot), put a non-domain value in an array whose
+    # every other row is a domain, and change SIGN_DOM_HEURISTIC -- which every externally registered domain
+    # heuristic is compiled against.
     domains_stk[top + 1] = domains_stk[top]  # copy the domains
     unbound_variable_nb_stk[top + 1] = unbound_variable_nb_stk[top]  # copy the number of unbound variables
 
