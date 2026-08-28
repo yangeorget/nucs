@@ -131,7 +131,7 @@ class BacktrackSolver(Solver):
         dom_heuristic_params: list[list[int]] | None = None,
         searches: list[Search] | None = None,
         stks_max_height: int = 8192,
-        trail_max_size: int = 1 << 16,
+        trail_max_size: int | None = None,
         log_level: str = LOG_LEVEL_INFO,
     ):
         """
@@ -163,8 +163,8 @@ class BacktrackSolver(Solver):
                                 defaults to 8192
         :type stks_max_height: int
         :param trail_max_size: the initial maximal number of trail entries, grown as needed,
-                               defaults to 1 << 16
-        :type trail_max_size: int
+                               defaults to whichever is larger of 65536 and four steps' worth of headroom
+        :type trail_max_size: Optional[int]
         :param log_level: the log level,
                           defaults to INFO
         :type log_level: str
@@ -217,24 +217,26 @@ class BacktrackSolver(Solver):
         self.state = np.zeros(2 * domain_nb + propagator_nb + 1, dtype=np.int32)
         self.domains = self.state[: 2 * domain_nb].reshape(domain_nb, 2)
         self.entailed = self.state[2 * domain_nb : 2 * domain_nb + propagator_nb]
-        self.trail = np.empty((trail_max_size, 2), dtype=np.int32)
+        # the guard lets a level trail each cell of state at most once -- every domain bound, every
+        # entailment flag and the count -- so a whole step of the search cannot need more than that,
+        # plus the handful of writes branching and backtracking add on top. The solver grows the trail
+        # when this much room is no longer there.
+        self.trail_headroom = 2 * domain_nb + propagator_nb + 9
+        # the default leaves room for several steps, so that a wide model does not spend its first
+        # moments doubling an array that was never going to be big enough
+        self.trail = np.empty((trail_max_size or max(1 << 16, 4 * self.trail_headroom), 2), dtype=np.int32)
         self.trail_top = np.zeros((1,), dtype=np.int32)
         self.pos = np.full(len(self.state), -1, dtype=np.int32)
         self.level_stk = np.zeros((stks_max_height, LEVEL_WIDTH), dtype=np.int32)
         self.stks_top = np.ones((1,), dtype=np.uint32)
         self.status = np.zeros(SOLVER_STATUS_WIDTH, dtype=np.int32)
-        # the guard lets a level trail each cell of state at most once -- every domain bound, every
-        # entailment flag and the count -- so a whole step of the search cannot need more than that,
-        # plus the handful of writes branching and backtracking add on top. The solver grows the trail
-        # when this much room is no longer there.
-        self.trail_headroom = len(self.state) + 8
         # the branch-and-bound bound is solver state, not choice-point state: OBJ_VARIABLE is -1 outside
         # OPTIM_PRUNE, and backtrack re-applies the bound to each level it resumes
         self.objective = np.full(OBJ_WIDTH, -1, dtype=np.int32)
         # scratch for the domain heuristic's split value, allocated once rather than returned as a tuple
         self.decision = np.zeros(DECISION_WIDTH, dtype=np.int32)
         logger.info(f"The stacks of the choice points have a maximal height of {stks_max_height}")
-        logger.info(f"The trail has a maximal size of {trail_max_size} entries, and grows when it runs out")
+        logger.info(f"The trail starts at {len(self.trail)} entries and grows when it runs out")
         self.initial_domains = np.array(problem.domains)
         self._cp_init()
         logger.debug("Choice points initialized")
