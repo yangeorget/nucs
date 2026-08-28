@@ -32,6 +32,14 @@ GROUND = 2
 DOM_UPDATE_VARIABLE = 0  # index for the variable
 DOM_UPDATE_EVENTS = 1  # index for the events
 
+# Objective indices.
+# The branch-and-bound bound is solver state, not choice-point state: it is not backtrackable, so it is
+# re-applied to every level the search resumes rather than written into the levels up front.
+OBJ_VARIABLE = 0  # index for the variable being optimized, -1 when not optimizing
+OBJ_BOUND = 1  # index for the side of the optimized domain to tighten
+OBJ_VALUE = 2  # index for the best value found so far
+OBJ_WIDTH = 3  # the number of cells of the objective array
+
 # Events
 EVENT_NB = 3
 EVENT_MASK_NB = 1 << EVENT_NB

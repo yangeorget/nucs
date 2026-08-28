@@ -14,7 +14,7 @@ import time
 
 import pytest
 
-from nucs.buckets import STORAGE_OFFSET, buckets_empty
+from nucs.buckets import buckets_empty
 from nucs.constants import (
     MAX,
     MIN,
@@ -150,6 +150,7 @@ class TestBacktrackSolver:
             solver.compute_domains_fcts,
             solver.domain_buffer,
             IDEMPOTENT,
+            solver.objective,
         )
         assert solution is not None
         assert solution.tolist() == [0, 0]
@@ -158,18 +159,20 @@ class TestBacktrackSolver:
         assert solver.domains_stk[0, 1].tolist() == [0, 1]
         assert solver.domains_stk[1, 0].tolist() == [0, 0]
         assert solver.domains_stk[1, 1].tolist() == [1, 1]
-        membership_offset = STORAGE_OFFSET + problem.propagator_nb
         assert backtrack(
             solver.statistics,
+            solver.domains_stk,
             solver.entailed_propagator_depths,
             solver.entailment_trail,
             solver.domain_update_stk,
+            solver.unbound_variable_nb_stk,
             solver.stks_top,
             solver.triggered_propagators,
             problem.triggers,
             problem.triggers_offsets,
             problem.priorities,
-            membership_offset,
+            problem.propagator_nb,
+            solver.objective,
         )
         assert solver.stks_top == 1
         assert solver.domains_stk[0, 0].tolist() == [1, 1]
@@ -292,3 +295,45 @@ class TestBacktrackSolver:
         assert solution.tolist() == [5]
         statistics = solver.get_statistics_as_dictionary()
         assert statistics[STATS_LBL_SOLUTION_NB] == solution_nb
+
+    @pytest.mark.parametrize(
+        "dom_heuristic",
+        [
+            DOM_HEURISTIC_MIN_VALUE,
+            DOM_HEURISTIC_MAX_VALUE,
+            DOM_HEURISTIC_MID_VALUE,
+            DOM_HEURISTIC_SPLIT_LOW,
+            DOM_HEURISTIC_SPLIT_HIGH,
+        ],
+    )
+    @pytest.mark.parametrize("bound", [MIN, MAX])
+    def test_prune_and_reset_yield_the_same_optimization_sequence(self, dom_heuristic: int, bound: int) -> None:
+        """OPTIM_PRUNE resumes the search where it was instead of restarting, but the improving solutions
+        it reports must be the ones OPTIM_RESET reports -- pruning is an optimization, not a semantics.
+
+        Regression test for a hang: OPTIM_PRUNE used to rewrite the tightened bound into every stored
+        choice point and drop one level per wipe-out, which assumes the wiped levels are the deepest ones.
+        A three-way split (DOM_HEURISTIC_MID_VALUE, via value_dom_heuristic) makes two levels siblings
+        holding disjoint objective ranges, so minimizing wiped the shallower one and the count-based drop
+        discarded the survivor. The resulting level had an empty domain that no variable heuristic could
+        claim and no propagator noticed, and solve_one span forever on an empty queue.
+        Only maximization was covered before, which wipes the deeper level first and so never hit it.
+        """
+        expected = [
+            solution.tolist()
+            for solution in BacktrackSolver(Problem([(1, 5)]), dom_heuristic=dom_heuristic, log_level="ERROR").optimize(
+                0, bound, OPTIM_RESET
+            )
+        ]
+        actual = [
+            solution.tolist()
+            for solution in BacktrackSolver(Problem([(1, 5)]), dom_heuristic=dom_heuristic, log_level="ERROR").optimize(
+                0, bound, OPTIM_PRUNE
+            )
+        ]
+        assert actual == expected
+
+    def test_prune_terminates_on_a_three_way_split(self) -> None:
+        """The minimal reproduction of the hang above, pinned to its exact expected output."""
+        solver = BacktrackSolver(Problem([(1, 5)]), dom_heuristic=DOM_HEURISTIC_MID_VALUE, log_level="ERROR")
+        assert [solution.tolist() for solution in solver.optimize(0, MIN, OPTIM_PRUNE)] == [[3], [1]]

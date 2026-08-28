@@ -101,8 +101,12 @@ unpropagated — not the decision that led to it.
 Step 4 is why the queue needs no rebuild: the only unpropagated change at this level is the one recorded
 when the level was pushed.
 
+When optimizing, steps 1-4 are a loop rather than a single pass: after step 4 the objective bound is
+re-applied to the resumed level (see *Optimization*), and if it wipes the level out the search pops again.
+
 `solve()` also calls `backtrack` after yielding each solution, which is how iteration resumes: a solution is
-a fully bound level, and forcing a backtrack drops to the next pending alternative.
+a fully bound level, and forcing a backtrack drops to the next pending alternative. `optimize()` does the
+same, having first armed `objective` with the bound the solution establishes.
 
 ## The entailment trail in detail
 
@@ -134,16 +138,22 @@ they do to the choice-point stacks (`BacktrackSolver._advance_after_optimum`):
 | mode | function | effect on the stacks |
 |------|----------|----------------------|
 | `OPTIM_RESET` | `cp_init` + `fix_choice_point` | throws the stacks away, restarts from the initial domains with the objective bound tightened at level 0 |
-| `OPTIM_PRUNE` | `fix_choice_points` | keeps the stacks, rewrites the objective bound into **every** stored level and drops the ones that wipe out |
+| `OPTIM_PRUNE` | arms `objective`, then `backtrack` | keeps the stacks; the bound is re-applied by `backtrack` to each level as it is resumed |
 
-`fix_choice_points` drops the solution's own level, then walks from the new top down to 0 tightening
-`domains_stk[stks_idx, variable][bound]`, decrementing `stks_top[0]` for each level that wipes out and
-`unbound_variable_nb_stk[stks_idx]` for each variable that becomes ground. It then schedules two things: the
-tightened objective bound, and — as `backtrack` does — the resumed level's parked decision from
-`domain_update_stk`.
+`OPTIM_PRUNE` rests on the observation that **the branch-and-bound bound is not backtrackable**. It holds for
+the whole remaining search, so it is solver state rather than choice-point state: `_advance_after_optimum`
+writes it into `objective` (`[OBJ_VARIABLE, OBJ_BOUND, OBJ_VALUE]`, with `OBJ_VARIABLE == -1` when not
+optimizing) and then simply backtracks.
 
-Reading it, note that `range(stks_top[0], -1, -1)` fixes its bound at entry while the body keeps mutating
-`stks_top[0]`.
+`backtrack` is what applies it, through `tighten_objective`, to whichever level it lands on. The tightening
+is monotone and idempotent, so a level that is resumed twice is tightened once in effect, and a level the
+bound wipes out can no longer hold an improving solution — `backtrack` keeps popping. That is why no level
+is ever pruned in advance, and why `backtrack` is a loop rather than a single pop.
+
+Nothing walks the stored levels. An earlier design did: it rewrote the bound into every level and dropped
+one level per wipe-out, which assumes the wiped levels are the deepest ones. Two-way splits guarantee that;
+`value_dom_heuristic`'s three-way split does not, and the mismatch discarded a surviving level and hung the
+solver (`test_prune_terminates_on_a_three_way_split`).
 
 ## Where the counters are maintained
 
@@ -152,4 +162,4 @@ drains and the count is 0 — and it is maintained incrementally from three plac
 
 - `update_domains`, when propagation grounds a variable (`events |= EVENT_MASK_GROUND`);
 - the domain heuristics, for whichever of the two branches it grounds;
-- `fix_choice_point` / `fix_choice_points`, when tightening the objective bound grounds the objective.
+- `fix_choice_point` and `tighten_objective`, when tightening the objective bound grounds the objective.

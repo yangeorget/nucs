@@ -24,6 +24,10 @@ from nucs.constants import (
     MAX,
     MIN,
     NUMBA_DISABLE_JIT,
+    OBJ_BOUND,
+    OBJ_VALUE,
+    OBJ_VARIABLE,
+    OBJ_WIDTH,
     OPTIM_RESET,
     PROBLEM_BOUND,
     PROBLEM_UNBOUND,
@@ -79,7 +83,7 @@ from nucs.propagators.propagators import (
     get_algorithm_nb,
     update_propagators,
 )
-from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_point, fix_choice_points
+from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_point
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.search import Search
 from nucs.solvers.solver import Solver, get_solution
@@ -198,6 +202,9 @@ class BacktrackSolver(Solver):
         # entailed propagators in order (its first cell is the trail size) so backtracking can reactivate them
         self.entailed_propagator_depths = np.empty(self.problem.propagator_nb, dtype=np.int32)
         self.entailment_trail = np.empty(self.problem.propagator_nb + 1, dtype=np.int32)
+        # the branch-and-bound bound is solver state, not choice-point state: OBJ_VARIABLE is -1 outside
+        # OPTIM_PRUNE, and backtrack re-applies the bound to each level it resumes
+        self.objective = np.full(OBJ_WIDTH, -1, dtype=np.int32)
         logger.info(f"The stacks of the choice points have a maximal height of {stks_max_height}")
         self.initial_domains = np.array(problem.domains)
         cp_init(
@@ -243,6 +250,7 @@ class BacktrackSolver(Solver):
         t0 = time.perf_counter_ns()
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         buckets_init(self.triggered_propagators, self.problem.priorities)
+        self.objective[OBJ_VARIABLE] = -1
         while True:
             solution = self._solve_one()
             if solution is None:
@@ -253,18 +261,7 @@ class BacktrackSolver(Solver):
             t0 = time.perf_counter_ns()
             if self._expired(deadline):
                 break
-            if not backtrack(
-                self.statistics,
-                self.entailed_propagator_depths,
-                self.entailment_trail,
-                self.domain_update_stk,
-                self.stks_top,
-                self.triggered_propagators,
-                self.problem.triggers,
-                self.problem.triggers_offsets,
-                self.problem.priorities,
-                self.problem.propagator_nb,
-            ):
+            if not self._backtrack():
                 break
         self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
 
@@ -275,6 +272,8 @@ class BacktrackSolver(Solver):
         t0 = time.perf_counter_ns()
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         buckets_init(self.triggered_propagators, self.problem.priorities)
+        # no incumbent yet, so the first descent runs unbounded; _advance_after_optimum arms the objective
+        self.objective[OBJ_VARIABLE] = -1
         while (solution := self._solve_one()) is not None:
             self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
             logger.info(f"Found a local optimum: {solution[variable]}")
@@ -325,6 +324,7 @@ class BacktrackSolver(Solver):
             self.compute_domains_fcts,
             self.domain_buffer,
             IDEMPOTENT,
+            self.objective,
         )
 
     def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
@@ -367,24 +367,37 @@ class BacktrackSolver(Solver):
             buckets_init(self.triggered_propagators, self.problem.priorities)
         else:
             logger.debug("Pruning choice points")
-            if not fix_choice_points(
-                self.domains_stk,
-                self.entailed_propagator_depths,
-                self.entailment_trail,
-                self.domain_update_stk,
-                self.unbound_variable_nb_stk,
-                self.stks_top,
-                self.triggered_propagators,
-                self.problem.triggers,
-                self.problem.triggers_offsets,
-                self.problem.priorities,
-                self.problem.propagator_nb,
-                variable,
-                value,
-                bound,
-            ):
+            # arm the objective and let backtrack apply it: the bound is re-applied to each level the
+            # search resumes, so the levels it kills are dropped as they are reached rather than up front
+            self.objective[OBJ_VARIABLE] = variable
+            self.objective[OBJ_BOUND] = bound
+            self.objective[OBJ_VALUE] = value
+            if not self._backtrack():
                 return False
         return True
+
+    def _backtrack(self) -> bool:
+        """
+        Backtracks by forwarding the solver state to the jitted backtrack.
+
+        :return: true iff it was possible to backtrack
+        :rtype: bool
+        """
+        return backtrack(
+            self.statistics,
+            self.domains_stk,
+            self.entailed_propagator_depths,
+            self.entailment_trail,
+            self.domain_update_stk,
+            self.unbound_variable_nb_stk,
+            self.stks_top,
+            self.triggered_propagators,
+            self.problem.triggers,
+            self.problem.triggers_offsets,
+            self.problem.priorities,
+            self.problem.propagator_nb,
+            self.objective,
+        )
 
     def get_statistics_as_array(self) -> NDArray:
         """
@@ -467,13 +480,14 @@ def solve_one(
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
     idempotent: NDArray,
+    objective: NDArray,
 ) -> NDArray | None:
     """
     Find at most one solution.
 
     Expects the propagation queue to already hold the propagators that need to run: the callers enqueue
-    all the propagators (buckets_init) before the first call, and rely on backtrack / fix_choice_points to
-    schedule the propagators affected by a refutation or a bound tightening between subsequent calls.
+    all the propagators (buckets_init) before the first call, and rely on backtrack to schedule the
+    propagators affected by a refutation, or by the objective bound it re-applies, between subsequent calls.
 
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
@@ -568,7 +582,8 @@ def solve_one(
         if status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLUTION_NB] += 1
             return get_solution(domains_stk, top)
-        elif status == PROBLEM_UNBOUND:
+        branched = False
+        if status == PROBLEM_UNBOUND:
             # sequential search: the first search that still has an unbound decision variable owns the
             # decision and branches with its own variable and domain heuristics
             for search_idx in range(nb_searches):
@@ -608,18 +623,24 @@ def solve_one(
                     )
                     statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
                     statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = max(statistics[STATS_IDX_SOLVER_CHOICE_DEPTH], top)
+                    branched = True
                     break
-        elif not backtrack(
+        # either the problem is inconsistent, or no search can claim a variable although variables remain
+        # unbound -- a level whose domains admit no assignment. Both are dead ends: backtrack.
+        if not branched and not backtrack(
             statistics,
+            domains_stk,
             entailed_propagator_depths,
             entailment_trail,
             domain_update_stk,
+            unbound_variable_nb_stk,
             stks_top,
             triggered_propagators,
             triggers,
             triggers_offsets,
             priorities,
             propagator_nb,
+            objective,
         ):
             return None
 

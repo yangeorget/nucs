@@ -20,8 +20,12 @@ from nucs.constants import (
     EVENT_MASK_GROUND,
     EVENT_MASK_MAX,
     EVENT_MASK_MIN,
+    EVENT_MASK_NONE,
     MAX,
     MIN,
+    OBJ_BOUND,
+    OBJ_VALUE,
+    OBJ_VARIABLE,
     STATS_IDX_SOLVER_BACKTRACK_NB,
 )
 from nucs.propagators.propagators import update_propagators
@@ -113,65 +117,59 @@ def unwind_entailment_trail(entailed_propagator_depths: NDArray, entailment_trai
 
 
 @njit(cache=True)
-def backtrack(
-    statistics: NDArray,
-    entailed_propagator_depths: NDArray,
-    entailment_trail: NDArray,
-    domain_update_stk: NDArray,
-    stks_top: NDArray,
-    triggered_propagators: NDArray,
-    triggers: NDArray,
-    triggers_offsets: NDArray,
-    priorities: NDArray,
-    propagator_nb: int,
-) -> bool:
+def tighten_objective(
+    domains_stk: NDArray,
+    unbound_variable_nb_stk: NDArray,
+    top: int,
+    objective: NDArray,
+) -> int:
     """
-    Backtracks and updates the problem's domains.
+    Applies the current branch-and-bound bound to a level of the choice points.
 
-    :param statistics: the statistics array
-    :type statistics: NDArray
-    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
-    :type entailed_propagator_depths: NDArray
-    :param entailment_trail: the entailment trail, the first cell holds the trail size
-    :type entailment_trail: NDArray
-    :param domain_update_stk: the stack of domain updates
-    :type domain_update_stk: NDArray
-    :param stks_top: the index of the top of the stacks as a Numpy array
-    :type stks_top: NDArray
-    :param triggered_propagators: the set propagators that are currently triggered as a Numpy array
-    :type triggered_propagators: NDArray
-    :param triggers: a Numpy array of event masks indexed by variables and propagators
-    :type triggers: NDArray
-    :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
-    :type triggers_offsets: NDArray
-    :param priorities: the propagation queue bucket priorities indexed by propagators
-    :type priorities: NDArray
+    The bound is not backtrackable: it holds for the whole remaining search, so it is re-applied to each
+    level as the search resumes it rather than written into every level when it is found. The tightening
+    is monotone and idempotent, so re-applying it to an already-tightened level is a no-op.
 
-    :return: true iff it is possible to backtrack
-    :rtype: bool
+    :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
+    :param unbound_variable_nb_stk: the stack of the unbound variables nb
+    :type unbound_variable_nb_stk: NDArray
+    :param top: the index of the level to tighten
+    :type top: int
+    :param objective: the objective as a Numpy array of variable, bound and value
+    :type objective: NDArray
+
+    :return: the events triggered by the tightening, EVENT_MASK_NONE when it changed nothing,
+             -1 when the level wipes out
+    :rtype: int
     """
-    if stks_top[0] == 0:
-        return False
-    stks_top[0] -= 1
-    top = stks_top[0]
-    statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
-    unwind_entailment_trail(entailed_propagator_depths, entailment_trail, top)
-    domain_update = domain_update_stk[top]
-    update_propagators(
-        triggered_propagators,
-        entailed_propagator_depths,
-        triggers,
-        triggers_offsets,
-        priorities,
-        propagator_nb,
-        domain_update[DOM_UPDATE_VARIABLE],
-        domain_update[DOM_UPDATE_EVENTS],
-    )
-    return True
+    bound = objective[OBJ_BOUND]
+    value = objective[OBJ_VALUE]
+    domain = domains_stk[top, objective[OBJ_VARIABLE]]
+    was_bound = domain[MIN] == domain[MAX]
+    if bound == MIN:
+        new_value = max(value + 1, domain[MIN])
+        if new_value == domain[MIN]:
+            return EVENT_MASK_NONE
+        domain[MIN] = new_value
+        events = EVENT_MASK_MIN
+    else:
+        new_value = min(value - 1, domain[MAX])
+        if new_value == domain[MAX]:
+            return EVENT_MASK_NONE
+        domain[MAX] = new_value
+        events = EVENT_MASK_MAX
+    if domain[MIN] > domain[MAX]:
+        return -1
+    if domain[MIN] == domain[MAX] and not was_bound:
+        unbound_variable_nb_stk[top] -= 1
+        events |= EVENT_MASK_GROUND
+    return events
 
 
 @njit(cache=True)
-def fix_choice_points(
+def backtrack(
+    statistics: NDArray,
     domains_stk: NDArray,
     entailed_propagator_depths: NDArray,
     entailment_trail: NDArray,
@@ -183,19 +181,17 @@ def fix_choice_points(
     triggers_offsets: NDArray,
     priorities: NDArray,
     propagator_nb: int,
-    variable: int,
-    value: int,
-    bound: int,
+    objective: NDArray,
 ) -> bool:
     """
-    Fixes the domain of the variable being optimized in the choice points.
+    Backtracks to the deepest choice point that can still hold a solution.
 
-    Schedules the propagators watching the optimized variable, so that the tightened bound gets
-    propagated by the next consistency run without a full requeue of all the propagators. Also schedules,
-    like backtrack does, the pending alternative-branch decision of the resumed choice point: the domain
-    heuristic applies that decision to the domain at branch time but leaves it unpropagated, so on resume
-    it must be scheduled explicitly.
+    When optimizing, the objective bound is re-applied to the level being resumed; a level it wipes out
+    can no longer hold an improving solution, so the search keeps popping. This is why no level ever has
+    to be pruned in advance.
 
+    :param statistics: the statistics array
+    :type statistics: NDArray
     :param domains_stk: the stack of domains
     :type domains_stk: NDArray
     :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
@@ -208,7 +204,7 @@ def fix_choice_points(
     :type unbound_variable_nb_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
     :type stks_top: NDArray
-    :param triggered_propagators: the Numpy array of triggered propagators
+    :param triggered_propagators: the set propagators that are currently triggered as a Numpy array
     :type triggered_propagators: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :type triggers: NDArray
@@ -218,62 +214,48 @@ def fix_choice_points(
     :type priorities: NDArray
     :param propagator_nb: the number of propagators
     :type propagator_nb: int
-    :param variable: the variable being optimized
-    :type variable: int
-    :param value: the current optimal value for the variable
-    :type value: int
-    :param bound: the bound being optimized
-    :type bound: int
+    :param objective: the objective as a Numpy array of variable, bound and value,
+                      whose variable is -1 when not optimizing
+    :type objective: NDArray
 
-    :return: true iff at least one choice point remains
+    :return: true iff it is possible to backtrack
     :rtype: bool
     """
-    if stks_top[0] == 0:
-        return False
-    stks_top[0] -= 1
-    for stks_idx in range(stks_top[0], -1, -1):
-        domain = domains_stk[stks_idx, variable]
-        was_bound = domain[MAX] == domain[MIN]
-        domain[bound] = max(value + 1, domain[bound]) if bound == MIN else min(value - 1, domain[bound])
-        range_sz = domain[MAX] - domain[MIN]
-        if range_sz < 0:
-            if stks_top[0] == 0:
-                unwind_entailment_trail(entailed_propagator_depths, entailment_trail, stks_top[0])
-                return False
-            stks_top[0] -= 1
-        elif range_sz == 0:
-            if not was_bound:
-                unbound_variable_nb_stk[stks_idx] -= 1
-    top = stks_top[0]
-    unwind_entailment_trail(entailed_propagator_depths, entailment_trail, top)
-    # schedule the tightened objective bound
-    events = EVENT_MASK_MIN if bound == MIN else EVENT_MASK_MAX
-    domain = domains_stk[top, variable]
-    if domain[MIN] == domain[MAX]:
-        events |= EVENT_MASK_GROUND
-    update_propagators(
-        triggered_propagators,
-        entailed_propagator_depths,
-        triggers,
-        triggers_offsets,
-        priorities,
-        propagator_nb,
-        variable,
-        events,
-    )
-    # schedule the resumed choice point's pending alternative-branch decision (as backtrack does)
-    domain_update = domain_update_stk[top]
-    update_propagators(
-        triggered_propagators,
-        entailed_propagator_depths,
-        triggers,
-        triggers_offsets,
-        priorities,
-        propagator_nb,
-        domain_update[DOM_UPDATE_VARIABLE],
-        domain_update[DOM_UPDATE_EVENTS],
-    )
-    return True
+    variable = objective[OBJ_VARIABLE]
+    while stks_top[0] > 0:
+        stks_top[0] -= 1
+        top = stks_top[0]
+        statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
+        unwind_entailment_trail(entailed_propagator_depths, entailment_trail, top)
+        domain_update = domain_update_stk[top]
+        update_propagators(
+            triggered_propagators,
+            entailed_propagator_depths,
+            triggers,
+            triggers_offsets,
+            priorities,
+            propagator_nb,
+            domain_update[DOM_UPDATE_VARIABLE],
+            domain_update[DOM_UPDATE_EVENTS],
+        )
+        if variable < 0:
+            return True
+        events = tighten_objective(domains_stk, unbound_variable_nb_stk, top, objective)
+        if events < 0:  # the level cannot hold an improving solution, keep popping
+            continue
+        if events != EVENT_MASK_NONE:
+            update_propagators(
+                triggered_propagators,
+                entailed_propagator_depths,
+                triggers,
+                triggers_offsets,
+                priorities,
+                propagator_nb,
+                variable,
+                events,
+            )
+        return True
+    return False
 
 
 @njit(cache=True)

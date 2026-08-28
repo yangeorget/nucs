@@ -40,11 +40,11 @@ path runs in Numba nopython mode with no Python objects.
    | status | meaning | action |
    |--------|---------|--------|
    | `PROBLEM_BOUND` | fixpoint reached, all variables bound | emit the solution |
-   | `PROBLEM_INCONSISTENT` | a domain wiped out | `backtrack`: pop a choice point, unwind the entailment trail, reschedule the refuted decision |
+   | `PROBLEM_INCONSISTENT` | a domain wiped out | `backtrack`: pop a choice point, unwind the entailment trail, reschedule the refuted decision. When optimizing, it keeps popping while the objective bound wipes the resumed level out |
    | `PROBLEM_UNBOUND` | fixpoint reached, unbound variables remain | branch: the first search with an unbound decision variable picks one (variable heuristic) and splits its domain (domain heuristic, which `cp_put`s the alternative) |
 
-Between successive `solve_one` calls the queue is *not* refilled from scratch: `backtrack` and `fix_choice_points`
-schedule only the propagators affected by the refutation or the bound tightening.
+Between successive `solve_one` calls the queue is *not* refilled from scratch: `backtrack` schedules only
+the propagators affected by the refutation, or by the objective bound it re-applies to the level it resumes.
 
 ## Constants
 
