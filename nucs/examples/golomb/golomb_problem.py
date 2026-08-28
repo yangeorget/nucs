@@ -17,7 +17,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_NB, MAX, MIN
+from nucs.constants import EVENT_NB, LEVEL_TRAIL_MARK, MAX, MIN
 from nucs.numba_helper import ComputeDomainsFunctions
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
@@ -27,7 +27,7 @@ from nucs.propagators.propagators import (
     update_propagators,
 )
 from nucs.solvers.bc_algorithm import bc_algorithm
-from nucs.solvers.choice_points import tighten
+from nucs.solvers.choice_points import tighten_at
 
 GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])
 
@@ -134,11 +134,15 @@ def golomb_consistency_algorithm(
     propagator_parameters: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    domains_stk: NDArray,
+    state: NDArray,
+    domains: NDArray,
+    trail: NDArray,
+    trail_top: NDArray,
+    pos: NDArray,
+    level_stk: NDArray,
+    stks_top: NDArray,
     entailed_propagator_depths: NDArray,
     entailment_trail: NDArray,
-    unbound_variable_nb_stk: NDArray,
-    stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
@@ -153,14 +157,16 @@ def golomb_consistency_algorithm(
     :return: the status as an int
     :rtype: int
     """
-    top = stks_top[0]
+    mark = level_stk[stks_top[0], LEVEL_TRAIL_MARK]
+    # as in the propagation loop, the trail size stays in a register across the whole pruning
+    trail_size = trail_top[0]
     # first prune the search space
     domain_nb = (len(triggers_offsets) - 1) >> EVENT_NB
     mark_nb = (1 + int(math.sqrt(8 * domain_nb + 1))) >> 1
     # the first unbound variable in index order (the marks are the leading variables), -1 when all are bound
     ni_var = -1
     for var in range(domain_nb):
-        if domains_stk[top, var, MIN] < domains_stk[top, var, MAX]:
+        if domains[var, MIN] < domains[var, MAX]:
             ni_var = var
             break
     if 1 < ni_var < mark_nb - 1:  # otherwise useless
@@ -171,7 +177,7 @@ def golomb_consistency_algorithm(
         # the following will mark at most sum(n-3) numbers as used
         # hence there will be at least n-2 unused numbers greater than 0
         for var in range(index(mark_nb, ni_var - 2, ni_var - 1) + 1):
-            dist = domains_stk[top, var, MIN]  # no offset
+            dist = domains[var, MIN]  # no offset
             if dist < len(used_distance):
                 used_distance[dist] = True
         # let's compute the sum of non-used numbers
@@ -186,13 +192,16 @@ def golomb_consistency_algorithm(
                 var = index(mark_nb, i, j)
                 # every domain write goes through tighten, which owns the groundness test and the
                 # unbound-variable count -- and, once domains are trailed, the write barrier
-                events = tighten(
-                    domains_stk[top],
-                    unbound_variable_nb_stk,
-                    top,
+                flat = var << 1
+                events, trail_size = tighten_at(
+                    state,
+                    trail,
+                    pos,
+                    mark,
+                    trail_size,
                     var,
-                    max(domains_stk[top, var, MIN], minimal_sum[j - i]),  # no offset
-                    domains_stk[top, var, MAX],
+                    max(state[flat], minimal_sum[j - i]),  # no offset
+                    state[flat | 1],
                 )
                 if events:
                     update_propagators(
@@ -205,6 +214,7 @@ def golomb_consistency_algorithm(
                         var,
                         events,
                     )
+    trail_top[0] = trail_size
     return bc_algorithm(
         propagator_nb,
         statistics,
@@ -215,11 +225,15 @@ def golomb_consistency_algorithm(
         propagator_parameters,
         triggers,
         triggers_offsets,
-        domains_stk,
+        state,
+        domains,
+        trail,
+        trail_top,
+        pos,
+        level_stk,
+        stks_top,
         entailed_propagator_depths,
         entailment_trail,
-        unbound_variable_nb_stk,
-        stks_top,
         triggered_propagators,
         compute_domains_fcts,
         domain_buffer,

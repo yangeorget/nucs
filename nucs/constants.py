@@ -28,9 +28,27 @@ MIN = 0  # min value of a domain
 MAX = 1  # max value of a domain
 GROUND = 2
 
-# Domain update stack indices
-DOM_UPDATE_VARIABLE = 0  # index for the variable
-DOM_UPDATE_EVENTS = 1  # index for the events
+# Level metadata columns.
+# One row per choice point, holding what *describes* the level rather than what it changed: the trail
+# position at its decision point, and the single-bound tightening to apply when the search resumes it.
+# None of it is trailed -- trailing the decision would erase the very thing backtrack is about to apply.
+LEVEL_TRAIL_MARK = 0  # the trail size when the level branched, the point trail_undo restores to
+LEVEL_VARIABLE = 1  # the variable of the parked alternative
+LEVEL_BOUND = 2  # the side of its domain the alternative tightens
+LEVEL_VALUE = 3  # the value the alternative tightens that side to
+LEVEL_WIDTH = 4  # the number of columns of a level
+
+# Capacity outcomes of a search step.
+# The trail and the level stack are caller-allocated, so they cannot grow inside @njit. Rather than
+# sizing them for a worst case that never happens -- depth x (2 x domain_nb + 1) entries, which would
+# give back the memory this representation wins -- the search stops and says which one is full, and the
+# solver grows it and resumes. Nothing of the search is lost: the state, the trail marks and the
+# positions all stay valid across the reallocation.
+SOLVER_RUNNING = 0  # the search stopped because it needs more room, not because it is over
+SOLVER_TRAIL_FULL = 1
+SOLVER_LEVELS_FULL = 2
+SOLVER_STATUS = 0  # index for the status in the status array
+SOLVER_STATUS_WIDTH = 1
 
 # Decision kinds returned by a domain heuristic.
 # A domain heuristic chooses where to split a domain; it does not split it. These three kinds cover the
@@ -93,11 +111,15 @@ SIGN_CONSISTENCY_ALG = int64(
     int32[::1],  # propagator_parameters
     int32[::1],  # triggers
     int32[::1],  # triggers_offsets
-    int32[:, :, ::1],  # domains_stk
+    int32[::1],  # state
+    int32[:, ::1],  # domains, a view of the head of state
+    int32[:, ::1],  # trail
+    int32[::1],  # trail_top
+    int32[::1],  # pos
+    int32[:, ::1],  # level_stk
+    uint32[::1],  # stks_top
     int32[::1],  # entailed_propagator_depths
     int32[::1],  # entailment_trail
-    uint32[::1],  # unbound_variable_nb_stk
-    uint32[::1],  # stks_top
     int32[::1],  # triggered_propagators
     TYPE_COMPUTE_DOMAINS_LIST,  # compute_domains_fcts
     int32[:, ::1],  # domain_buffer

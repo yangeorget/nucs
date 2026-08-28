@@ -22,6 +22,7 @@ from nucs.buckets import buckets_create, buckets_empty, buckets_init
 from nucs.constants import (
     DECISION_VALUE,
     DECISION_WIDTH,
+    LEVEL_WIDTH,
     LOG_LEVEL_INFO,
     MAX,
     MIN,
@@ -37,6 +38,11 @@ from nucs.constants import (
     SIGN_CONSISTENCY_ALG,
     SIGN_DOM_HEURISTIC,
     SIGN_VAR_HEURISTIC,
+    SOLVER_LEVELS_FULL,
+    SOLVER_RUNNING,
+    SOLVER_STATUS,
+    SOLVER_STATUS_WIDTH,
+    SOLVER_TRAIL_FULL,
     STATS_ALG_IDX_FILTER_NB,
     STATS_ALG_IDX_FILTER_NO_CHANGE_NB,
     STATS_ALG_WIDTH,
@@ -125,6 +131,7 @@ class BacktrackSolver(Solver):
         dom_heuristic_params: list[list[int]] | None = None,
         searches: list[Search] | None = None,
         stks_max_height: int = 8192,
+        trail_max_size: int = 1 << 16,
         log_level: str = LOG_LEVEL_INFO,
     ):
         """
@@ -152,9 +159,12 @@ class BacktrackSolver(Solver):
                          is built from the decision_variables / var_heuristic / dom_heuristic arguments above.
                          The union of the searches' decision variables should cover every branchable variable.
         :type searches: Optional[List[Search]]
-        :param stks_max_height: the maximal height of the choice point stacks,
-                                defaults to 512
+        :param stks_max_height: the initial maximal height of the choice point stacks, grown as needed,
+                                defaults to 8192
         :type stks_max_height: int
+        :param trail_max_size: the initial maximal number of trail entries, grown as needed,
+                               defaults to 1 << 16
+        :type trail_max_size: int
         :param log_level: the log level,
                           defaults to INFO
         :type log_level: str
@@ -195,10 +205,22 @@ class BacktrackSolver(Solver):
         self.triggered_propagators = buckets_create(problem.propagator_nb)
         self.domain_buffer = get_domain_buffer(problem.offsets)
         logger.debug("Initializing choice points")
-        self.domains_stk = np.empty((stks_max_height, self.problem.domain_nb, 2), dtype=np.int32)
-        self.domain_update_stk = np.empty((stks_max_height, 2), dtype=np.uint32)
-        self.unbound_variable_nb_stk = np.empty(stks_max_height, dtype=np.uint32)
+        # all the backtrackable state in one flat int32 array, so that one undo log and one undo loop
+        # restore every kind of it: [ 2 * domain_nb domain bounds | the unbound-variable count ].
+        # domains is a (domain_nb, 2) view of its head -- the same memory, addressed the way every
+        # reader wants it -- so the flat index of (variable, bound) is (variable << 1) | bound.
+        domain_nb = self.problem.domain_nb
+        self.state = np.zeros(2 * domain_nb + 1, dtype=np.int32)
+        self.domains = self.state[: 2 * domain_nb].reshape(domain_nb, 2)
+        self.trail = np.empty((trail_max_size, 2), dtype=np.int32)
+        self.trail_top = np.zeros((1,), dtype=np.int32)
+        self.pos = np.full(2 * domain_nb + 1, -1, dtype=np.int32)
+        self.level_stk = np.zeros((stks_max_height, LEVEL_WIDTH), dtype=np.int32)
         self.stks_top = np.ones((1,), dtype=np.uint32)
+        self.status = np.zeros(SOLVER_STATUS_WIDTH, dtype=np.int32)
+        # a filtering can trail every cell of a level once and no more, so this much headroom is enough
+        # for any single step of the search; the solver grows the trail when it runs out
+        self.trail_headroom = 2 * domain_nb + 8
         # entailment is tracked by a trail rather than a per-level array: entailed_propagator_depths[p]
         # holds the depth at which propagator p was entailed (-1 when active), entailment_trail records the
         # entailed propagators in order (its first cell is the trail size) so backtracking can reactivate them
@@ -210,17 +232,9 @@ class BacktrackSolver(Solver):
         # scratch for the domain heuristic's split value, allocated once rather than returned as a tuple
         self.decision = np.zeros(DECISION_WIDTH, dtype=np.int32)
         logger.info(f"The stacks of the choice points have a maximal height of {stks_max_height}")
+        logger.info(f"The trail has a maximal size of {trail_max_size} entries, and grows when it runs out")
         self.initial_domains = np.array(problem.domains)
-        cp_init(
-            self.domains_stk,
-            self.entailed_propagator_depths,
-            self.entailment_trail,
-            self.domain_update_stk,
-            self.unbound_variable_nb_stk,
-            self.stks_top,
-            self.initial_domains,
-            problem.unbound_variable_nb,
-        )
+        self._cp_init()
         logger.debug("Choice points initialized")
         logger.debug("Initializing statistics")
         self.statistics = np.zeros(STATS_MAX + STATS_ALG_WIDTH * get_algorithm_nb(), dtype=np.int64)
@@ -297,6 +311,19 @@ class BacktrackSolver(Solver):
         :return: the next solution if it exists or None
         :rtype: Optional[NDArray]
         """
+        while True:
+            solution = self._solve_one_step()
+            if self.status[SOLVER_STATUS] == SOLVER_RUNNING:
+                return solution
+            self._grow()
+
+    def _solve_one_step(self) -> NDArray | None:
+        """
+        Searches for the next solution until it is found, the search is exhausted, or a stack fills up.
+
+        :return: the next solution if it exists or None
+        :rtype: Optional[NDArray]
+        """
         return solve_one(
             self.problem.propagator_nb,
             self.statistics,
@@ -307,12 +334,15 @@ class BacktrackSolver(Solver):
             self.problem.propagator_parameters,
             self.problem.triggers,
             self.problem.triggers_offsets,
-            self.domains_stk,
+            self.state,
+            self.domains,
+            self.trail,
+            self.trail_top,
+            self.pos,
+            self.level_stk,
+            self.stks_top,
             self.entailed_propagator_depths,
             self.entailment_trail,
-            self.domain_update_stk,
-            self.unbound_variable_nb_stk,
-            self.stks_top,
             self.triggered_propagators,
             self.consistency_alg_fcts,
             self.decision_variables,
@@ -330,6 +360,8 @@ class BacktrackSolver(Solver):
             IDEMPOTENT,
             self.objective,
             self.decision,
+            self.status,
+            self.trail_headroom,
         )
 
     def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
@@ -351,23 +383,8 @@ class BacktrackSolver(Solver):
         """
         if mode == OPTIM_RESET:
             logger.debug("Resetting solver")
-            cp_init(
-                self.domains_stk,
-                self.entailed_propagator_depths,
-                self.entailment_trail,
-                self.domain_update_stk,
-                self.unbound_variable_nb_stk,
-                self.stks_top,
-                self.initial_domains,
-                self.problem.unbound_variable_nb,
-            )
-            if not fix_choice_point(
-                self.domains_stk,
-                self.unbound_variable_nb_stk,
-                variable,
-                value,
-                bound,
-            ):
+            self._cp_init()
+            if not fix_choice_point(self.state, self.trail, self.trail_top, self.pos, variable, value, bound):
                 return False
             buckets_init(self.triggered_propagators, self.problem.priorities)
         else:
@@ -381,6 +398,43 @@ class BacktrackSolver(Solver):
                 return False
         return True
 
+    def _cp_init(self) -> None:
+        """
+        Resets the search to the root.
+        """
+        cp_init(
+            self.state,
+            self.trail_top,
+            self.pos,
+            self.level_stk,
+            self.stks_top,
+            self.entailed_propagator_depths,
+            self.entailment_trail,
+            self.initial_domains,
+            self.problem.unbound_variable_nb,
+        )
+
+    def _grow(self) -> None:
+        """
+        Doubles whichever caller-allocated array the search ran out of, and lets it continue.
+
+        Nothing of the search is lost. The trail keeps its contents, so every mark and every position in
+        pos still addresses the same entry; the level stack keeps its rows. Sizing either array for its
+        worst case instead -- depth x (2 x domain_nb + 1) trail entries -- would hand back the memory
+        this representation wins, and a hard failure would end a long optimization run for no reason.
+        """
+        if self.status[SOLVER_STATUS] == SOLVER_TRAIL_FULL:
+            trail = np.empty((2 * len(self.trail), 2), dtype=np.int32)
+            trail[: len(self.trail)] = self.trail
+            self.trail = trail
+            logger.info(f"The trail grew to {len(self.trail)} entries")
+        else:
+            level_stk = np.zeros((2 * len(self.level_stk), LEVEL_WIDTH), dtype=np.int32)
+            level_stk[: len(self.level_stk)] = self.level_stk
+            self.level_stk = level_stk
+            logger.info(f"The stacks of the choice points grew to a maximal height of {len(self.level_stk)}")
+        self.status[SOLVER_STATUS] = SOLVER_RUNNING
+
     def _backtrack(self) -> bool:
         """
         Backtracks by forwarding the solver state to the jitted backtrack.
@@ -390,12 +444,14 @@ class BacktrackSolver(Solver):
         """
         return backtrack(
             self.statistics,
-            self.domains_stk,
+            self.state,
+            self.trail,
+            self.trail_top,
+            self.pos,
+            self.level_stk,
+            self.stks_top,
             self.entailed_propagator_depths,
             self.entailment_trail,
-            self.domain_update_stk,
-            self.unbound_variable_nb_stk,
-            self.stks_top,
             self.triggered_propagators,
             self.problem.triggers,
             self.problem.triggers_offsets,
@@ -464,12 +520,15 @@ def solve_one(
     propagator_parameters: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    domains_stk: NDArray,
+    state: NDArray,
+    domains: NDArray,
+    trail: NDArray,
+    trail_top: NDArray,
+    pos: NDArray,
+    level_stk: NDArray,
+    stks_top: NDArray,
     entailed_propagator_depths: NDArray,
     entailment_trail: NDArray,
-    domain_update_stk: NDArray,
-    unbound_variable_nb_stk: NDArray,
-    stks_top: NDArray,
     triggered_propagators: NDArray,
     consistency_alg_fcts: ConsistencyAlgorithmFunctions,
     decision_variables: NDArray,
@@ -487,6 +546,8 @@ def solve_one(
     idempotent: NDArray,
     objective: NDArray,
     decision: NDArray,
+    status: NDArray,
+    trail_headroom: int,
 ) -> NDArray | None:
     """
     Find at most one solution.
@@ -512,19 +573,24 @@ def solve_one(
     :type triggers: NDArray
     :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
     :type triggers_offsets: NDArray
-    :param domains_stk: a stack of domains,
-                        the first level correspond to the current domains, the rest correspond to the choice points
-    :type domains_stk: NDArray
+    :param state: all the backtrackable state: the domain bounds followed by the unbound-variable count
+    :type state: NDArray
+    :param domains: the current domains, a (domain_nb, 2) view of the head of state
+    :type domains: NDArray
+    :param trail: the undo log of (flat index, old value) pairs
+    :type trail: NDArray
+    :param trail_top: the trail size as a Numpy array
+    :type trail_top: NDArray
+    :param pos: the index of the last trail entry per positionally guarded cell
+    :type pos: NDArray
+    :param level_stk: the per-level metadata
+    :type level_stk: NDArray
+    :param stks_top: the index of the top of the stacks as a Numpy array
+    :type stks_top: NDArray
     :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
     :type entailed_propagator_depths: NDArray
     :param entailment_trail: the entailment trail, the first cell holds the trail size
     :type entailment_trail: NDArray
-    :param domain_update_stk: the stack of domain updates
-    :type domain_update_stk: NDArray
-    :param unbound_variable_nb_stk: the stack of the unbound variables nb
-    :type unbound_variable_nb_stk: NDArray
-    :param stks_top: the index of the top of the stacks as a Numpy array
-    :type stks_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param consistency_alg_fcts: a 1-element list holding the consistency algorithm function
@@ -562,14 +628,27 @@ def solve_one(
     :type objective: NDArray
     :param decision: a scratch array the domain heuristic writes its split value into
     :type decision: NDArray
+    :param status: set to SOLVER_TRAIL_FULL or SOLVER_LEVELS_FULL when the search stops for want of room
+    :type status: NDArray
+    :param trail_headroom: the trail entries any one step of the search can need
+    :type trail_headroom: int
 
     :return: the solution if it exists or None
     :rtype: Optional[NDArray]
     """
     consistency_alg_fct = consistency_alg_fcts[0]
     nb_searches = len(decision_variables_offsets) - 1
+    max_top = len(level_stk) - 3  # a ternary split pushes two levels and marks a third
     while True:
-        status = consistency_alg_fct(
+        # the arrays are caller-allocated, so the search stops for the solver to grow one rather than
+        # overrun it silently -- with boundscheck off, the overrun is what would otherwise happen
+        if trail_top[0] + trail_headroom > len(trail):
+            status[SOLVER_STATUS] = SOLVER_TRAIL_FULL
+            return None
+        if stks_top[0] > max_top:
+            status[SOLVER_STATUS] = SOLVER_LEVELS_FULL
+            return None
+        problem_status = consistency_alg_fct(
             propagator_nb,
             statistics,
             algorithms,
@@ -579,23 +658,26 @@ def solve_one(
             propagator_parameters,
             triggers,
             triggers_offsets,
-            domains_stk,
+            state,
+            domains,
+            trail,
+            trail_top,
+            pos,
+            level_stk,
+            stks_top,
             entailed_propagator_depths,
             entailment_trail,
-            unbound_variable_nb_stk,
-            stks_top,
             triggered_propagators,
             compute_domains_fcts,
             domain_buffer,
             idempotent,
         )
         top = stks_top[0]
-        domains = domains_stk[top]
-        if status == PROBLEM_BOUND:
+        if problem_status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLUTION_NB] += 1
             return get_solution(domains)
         branched = False
-        if status == PROBLEM_UNBOUND:
+        if problem_status == PROBLEM_UNBOUND:
             # sequential search: the first search that still has an unbound decision variable owns the
             # decision and branches with its own variable and domain heuristics
             for search_idx in range(nb_searches):
@@ -621,9 +703,11 @@ def solve_one(
                         decision,
                     )
                     events = branch(
-                        domains_stk,
-                        domain_update_stk,
-                        unbound_variable_nb_stk,
+                        state,
+                        trail,
+                        trail_top,
+                        pos,
+                        level_stk,
                         stks_top,
                         variable,
                         kind,
@@ -648,12 +732,14 @@ def solve_one(
         # unbound -- a level whose domains admit no assignment. Both are dead ends: backtrack.
         if not branched and not backtrack(
             statistics,
-            domains_stk,
+            state,
+            trail,
+            trail_top,
+            pos,
+            level_stk,
+            stks_top,
             entailed_propagator_depths,
             entailment_trail,
-            domain_update_stk,
-            unbound_variable_nb_stk,
-            stks_top,
             triggered_propagators,
             triggers,
             triggers_offsets,

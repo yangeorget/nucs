@@ -16,6 +16,9 @@ import pytest
 
 from nucs.buckets import buckets_empty
 from nucs.constants import (
+    LEVEL_BOUND,
+    LEVEL_VALUE,
+    LEVEL_VARIABLE,
     MAX,
     MIN,
     OPTIM_PRUNE,
@@ -116,8 +119,14 @@ class TestBacktrackSolver:
         assert statistics[STATS_LBL_SOLVER_CHOICE_DEPTH] == 2
 
     def test_solve_one(self) -> None:
+        """The state a solution leaves behind, and what backtracking restores of it.
+
+        This used to assert the opposite property: that every level kept its own snapshot and that
+        backtracking left them all untouched, because the pointer decrement was the whole of the restore.
+        There is one set of domains now, and backtracking restores it by replaying the undo log.
+        """
         problem = Problem([(0, 1), (0, 1)])
-        solver = BacktrackSolver(problem, stks_max_height=3)
+        solver = BacktrackSolver(problem)
         buckets_empty(solver.triggered_propagators, problem.priorities)
         solution = solve_one(
             problem.propagator_nb,
@@ -129,12 +138,15 @@ class TestBacktrackSolver:
             problem.propagator_parameters,
             problem.triggers,
             problem.triggers_offsets,
-            solver.domains_stk,
+            solver.state,
+            solver.domains,
+            solver.trail,
+            solver.trail_top,
+            solver.pos,
+            solver.level_stk,
+            solver.stks_top,
             solver.entailed_propagator_depths,
             solver.entailment_trail,
-            solver.domain_update_stk,
-            solver.unbound_variable_nb_stk,
-            solver.stks_top,
             solver.triggered_propagators,
             solver.consistency_alg_fcts,
             solver.decision_variables,
@@ -152,22 +164,30 @@ class TestBacktrackSolver:
             IDEMPOTENT,
             solver.objective,
             solver.decision,
+            solver.status,
+            solver.trail_headroom,
         )
         assert solution is not None
         assert solution.tolist() == [0, 0]
         assert solver.stks_top == 2
-        assert solver.domains_stk[0, 0].tolist() == [1, 1]
-        assert solver.domains_stk[0, 1].tolist() == [0, 1]
-        assert solver.domains_stk[1, 0].tolist() == [0, 0]
-        assert solver.domains_stk[1, 1].tolist() == [1, 1]
+        # two min_value decisions, so both variables are ground at [0, 0]
+        assert solver.domains[0].tolist() == [0, 0]
+        assert solver.domains[1].tolist() == [0, 0]
+        # each level parked the refutation of its own decision: raise that variable's min to 1
+        assert solver.level_stk[0, LEVEL_VARIABLE] == 0
+        assert (solver.level_stk[0, LEVEL_BOUND], solver.level_stk[0, LEVEL_VALUE]) == (MIN, 1)
+        assert solver.level_stk[1, LEVEL_VARIABLE] == 1
+        assert (solver.level_stk[1, LEVEL_BOUND], solver.level_stk[1, LEVEL_VALUE]) == (MIN, 1)
         assert backtrack(
             solver.statistics,
-            solver.domains_stk,
+            solver.state,
+            solver.trail,
+            solver.trail_top,
+            solver.pos,
+            solver.level_stk,
+            solver.stks_top,
             solver.entailed_propagator_depths,
             solver.entailment_trail,
-            solver.domain_update_stk,
-            solver.unbound_variable_nb_stk,
-            solver.stks_top,
             solver.triggered_propagators,
             problem.triggers,
             problem.triggers_offsets,
@@ -175,11 +195,47 @@ class TestBacktrackSolver:
             problem.propagator_nb,
             solver.objective,
         )
+        # back at level 1, with variable 1's refutation applied: variable 0 stays at its decision
         assert solver.stks_top == 1
-        assert solver.domains_stk[0, 0].tolist() == [1, 1]
-        assert solver.domains_stk[0, 1].tolist() == [0, 1]
-        assert solver.domains_stk[1, 0].tolist() == [0, 0]
-        assert solver.domains_stk[1, 1].tolist() == [1, 1]
+        assert solver.domains[0].tolist() == [0, 0]
+        assert solver.domains[1].tolist() == [1, 1]
+
+    def test_the_trail_holds_only_what_the_live_branch_changed(self) -> None:
+        """The trail is bounded by the changes on the path, not by domain_nb per node.
+
+        That is the whole claim of trailing over copying, and it is checkable: a live trail of a few
+        dozen entries where the copying representation would have written 30 int32 per node.
+        """
+        problem = Problem([(0, 9)] * 3)
+        solver = BacktrackSolver(problem, dom_heuristic=DOM_HEURISTIC_SPLIT_LOW)
+        solutions = solver.find_all()
+        assert len(solutions) == 1000
+        assert solutions[0].tolist() == [0, 0, 0]
+        assert solutions[-1].tolist() == [9, 9, 9]
+        assert solver.stks_top[0] == 0  # exhausted, back at the root
+        # the root's own refutations are never undone -- nothing pops past level 0 -- but everything
+        # deeper is, so what is left is a handful of entries rather than one snapshot per level
+        assert solver.trail_top[0] < 4 * len(solver.pos)
+        assert len(solver.trail) == 1 << 16  # it never had to grow
+
+    def test_the_trail_grows_rather_than_overruns(self) -> None:
+        """A trail too small for the search is grown, not overrun -- and the search is not restarted."""
+        problem = Problem([(0, 7), (0, 7), (0, 7)])
+        problem.add_propagator(ALG_ALLDIFFERENT, range(3))
+        reference = BacktrackSolver(problem).find_all()
+        problem = Problem([(0, 7), (0, 7), (0, 7)])
+        problem.add_propagator(ALG_ALLDIFFERENT, range(3))
+        solver = BacktrackSolver(problem, trail_max_size=8)
+        assert [solution.tolist() for solution in solver.find_all()] == [solution.tolist() for solution in reference]
+        assert len(solver.trail) > 8  # it did have to grow
+
+    def test_the_level_stack_grows_rather_than_overruns(self) -> None:
+        """Likewise for a search deeper than the level stack: grow, do not corrupt memory."""
+        problem = Problem([(0, 5)] * 6)
+        reference = BacktrackSolver(problem).find_all()
+        solver = BacktrackSolver(Problem([(0, 5)] * 6), stks_max_height=4)
+        assert len(solver.find_all()) == len(reference)
+        assert len(solver.level_stk) > 4
 
     def test_find_all(self) -> None:
         problem = Problem([(0, 1), (0, 1)])

@@ -18,6 +18,7 @@ from numpy.typing import NDArray
 from nucs.buckets import STORAGE_OFFSET, buckets_add, buckets_pop
 from nucs.constants import (
     EVENT_NB,
+    LEVEL_TRAIL_MARK,
     MAX,
     MIN,
     PARAM,
@@ -38,7 +39,7 @@ from nucs.constants import (
     VARIABLE,
 )
 from nucs.numba_helper import ComputeDomainsFunctions
-from nucs.solvers.choice_points import tighten
+from nucs.solvers.choice_points import tighten_at, unbound_index
 
 
 @njit(cache=True)
@@ -52,11 +53,15 @@ def bc_algorithm(
     propagator_parameters: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    domains_stk: NDArray,
+    state: NDArray,
+    domains: NDArray,
+    trail: NDArray,
+    trail_top: NDArray,
+    pos: NDArray,
+    level_stk: NDArray,
+    stks_top: NDArray,
     entailed_propagator_depths: NDArray,
     entailment_trail: NDArray,
-    unbound_variable_nb_stk: NDArray,
-    stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
@@ -82,18 +87,26 @@ def bc_algorithm(
     :type triggers: NDArray
     :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
     :type triggers_offsets: NDArray
-    :param domains_stk: a stack of domains, the first level correspond to the current domains,
-                        the rest correspond to the choice points
-    :type domains_stk: NDArray
+    :param state: all the backtrackable state: the domain bounds, the unbound-variable count and,
+                  from there on, whatever else is trailed
+    :type state: NDArray
+    :param domains: the current domains, a (domain_nb, 2) view of the head of state
+    :type domains: NDArray
+    :param trail: the undo log of (flat index, old value) pairs
+    :type trail: NDArray
+    :param trail_top: the trail size as a Numpy array
+    :type trail_top: NDArray
+    :param pos: the index of the last trail entry per positionally guarded cell
+    :type pos: NDArray
+    :param level_stk: the per-level metadata
+    :type level_stk: NDArray
+    :param stks_top: the height of the stacks as a Numpy array
+    :type stks_top: NDArray
     :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
     :type entailed_propagator_depths: NDArray
     :param entailment_trail: the entailment trail, the first cell holds the trail size,
                              the following cells hold the indices of the entailed propagators in entailment order
     :type entailment_trail: NDArray
-    :param unbound_variable_nb_stk: the stack of the unbound variables nb
-    :type unbound_variable_nb_stk: NDArray
-    :param stks_top: the height of the stacks as a Numpy array
-    :type stks_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
@@ -109,13 +122,21 @@ def bc_algorithm(
     :rtype: int
     """
     top = stks_top[0]
-    domains = domains_stk[top]
+    # the level's mark is loaded once: stks_top does not move during a filtering, and neither does the
+    # mark of the level it is filtering
+    mark = level_stk[top, LEVEL_TRAIL_MARK]
+    unbound = unbound_index(state)
+    # the trail size lives in a local for the whole filtering and is published on the way out. Nothing
+    # outside this function reads it before then, and keeping it out of memory takes a load and a store
+    # off every bound the propagation narrows.
+    trail_size = trail_top[0]
     statistics[STATS_IDX_ALG_BC_NB] += 1
     membership_offset = STORAGE_OFFSET + propagator_nb
     while True:
         prop_idx = buckets_pop(triggered_propagators, membership_offset)
         if prop_idx == -1:
-            return PROBLEM_BOUND if unbound_variable_nb_stk[top] == 0 else PROBLEM_UNBOUND
+            trail_top[0] = trail_size
+            return PROBLEM_BOUND if state[unbound] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         algorithm = algorithms[prop_idx]
         # the per-algorithm tail of the statistics array: which algorithms the calls (and, below, the
@@ -134,6 +155,7 @@ def bc_algorithm(
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
+            trail_top[0] = trail_size
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
@@ -144,20 +166,22 @@ def bc_algorithm(
                 entailed_propagator_depths[prop_idx] = top
                 entailment_trail[0] += 1
                 entailment_trail[entailment_trail[0]] = prop_idx
-        no_change = update_domains(
-            top,
+        no_change, trail_size = update_domains(
             prop_idx,
             prop_var_start,
             prop_var_end,
             membership_offset,
             prop_domains,
             propagator_variables,
-            domains,
+            state,
+            trail,
+            pos,
+            mark,
+            trail_size,
             triggered_propagators,
             entailed_propagator_depths,
             triggers,
             triggers_offsets,
-            unbound_variable_nb_stk,
             priorities,
             idempotent[algorithm],
         )
@@ -170,22 +194,24 @@ def bc_algorithm(
 # per-propagator-call hot path and inlining it measurably speeds up propagator-cheap models
 @njit(cache=True, inline="always")
 def update_domains(
-    top: int,
     prop_idx: int,
     prop_var_start: int,
     prop_var_end: int,
     membership_offset: int,
     prop_domains: NDArray,
     propagator_variables: NDArray,
-    domains: NDArray,
+    state: NDArray,
+    trail: NDArray,
+    pos: NDArray,
+    mark: int,
+    trail_size: int,
     triggered_propagators: NDArray,
     entailed_propagator_depths: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    unbound_variable_nb_stk: NDArray,
     priorities: NDArray,
     is_idempotent: bool,
-) -> bool:
+) -> tuple[bool, int]:
     """
     Applies a propagator's computed prop_domains and schedules the propagators triggered by the changes.
 
@@ -195,18 +221,22 @@ def update_domains(
                           not, it is left in its own trigger scan so it is rescheduled like any other
     :type is_idempotent: bool
 
-    :return: true iff no domain was changed
-    :rtype: bool
+    :return: true iff no domain was changed, and the new trail size
+    :rtype: Tuple[bool, int]
     """
     no_changes = True
     for var_idx in range(prop_var_end - prop_var_start):
         variable = propagator_variables[prop_var_start + var_idx]
-        domain = domains[variable]
-        if domain[MIN] != domain[MAX]:
-            events = tighten(
-                domains,
-                unbound_variable_nb_stk,
-                top,
+        # read the bounds out of state rather than out of the domains view of it: they are the same two
+        # int32, but only this way can the compiler see that tighten is about to reload them
+        flat = variable << 1
+        if state[flat] != state[flat | 1]:
+            events, trail_size = tighten_at(
+                state,
+                trail,
+                pos,
+                mark,
+                trail_size,
                 variable,
                 prop_domains[var_idx, MIN],
                 prop_domains[var_idx, MAX],
@@ -229,4 +259,4 @@ def update_domains(
                         ):
                             buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
                 no_changes = False
-    return no_changes
+    return no_changes, trail_size
