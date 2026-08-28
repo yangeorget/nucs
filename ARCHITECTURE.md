@@ -156,6 +156,9 @@ propagator-sized array at every choice point.
 On backtrack to depth `d`, `unwind_entailment_trail` pops every trailed propagator whose recorded depth is `> d` and
 resets it to active — a single depth-ordered scan, no per-level array to restore.
 
+See `CHOICE_POINTS.md` for the mechanism in detail: what `top` means, why branching writes both branches but
+propagates only one, and what the two `OPTIM_*` modes do to the stacks.
+
 ### Propagators are stateless pure functions on a scratch buffer
 
 `compute_domains_*` receives a gathered copy of only its variables' domains (`domain_buffer`, sized once to the maximal
