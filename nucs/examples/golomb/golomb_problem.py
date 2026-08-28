@@ -17,7 +17,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MIN, EVENT_NB, MAX, MIN
+from nucs.constants import EVENT_NB, MAX, MIN
 from nucs.numba_helper import ComputeDomainsFunctions
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
@@ -27,6 +27,7 @@ from nucs.propagators.propagators import (
     update_propagators,
 )
 from nucs.solvers.bc_algorithm import bc_algorithm
+from nucs.solvers.choice_points import tighten
 
 GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])
 
@@ -183,13 +184,17 @@ def golomb_consistency_algorithm(
         for i in range(ni_var - 1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
                 var = index(mark_nb, i, j)
-                old_min = domains_stk[top, var, MIN]
-                domains_stk[top, var, MIN] = max(old_min, minimal_sum[j - i])  # no offset
-                if domains_stk[top, var, MIN] != old_min:
-                    events = EVENT_MASK_MIN
-                    if domains_stk[top, var, MIN] == domains_stk[top, var, MAX]:
-                        events |= EVENT_MASK_GROUND
-                        unbound_variable_nb_stk[top] -= 1
+                # every domain write goes through tighten, which owns the groundness test and the
+                # unbound-variable count -- and, once domains are trailed, the write barrier
+                events = tighten(
+                    domains_stk[top],
+                    unbound_variable_nb_stk,
+                    top,
+                    var,
+                    max(domains_stk[top, var, MIN], minimal_sum[j - i]),  # no offset
+                    domains_stk[top, var, MAX],
+                )
+                if events:
                     update_propagators(
                         triggered_propagators,
                         entailed_propagator_depths,

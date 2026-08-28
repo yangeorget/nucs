@@ -94,6 +94,63 @@ def cp_put(domains_stk: NDArray, unbound_variable_nb_stk: NDArray, top: int) -> 
     unbound_variable_nb_stk[top + 1] = unbound_variable_nb_stk[top]  # copy the number of unbound variables
 
 
+@njit(cache=True, inline="always")
+def tighten(
+    domains: NDArray,
+    unbound_variable_nb_stk: NDArray,
+    top: int,
+    variable: int,
+    new_min: int,
+    new_max: int,
+) -> int:
+    """
+    Writes a variable's domain and returns the events the write triggers.
+
+    This is the only place a backtrackable domain is written. Every other kind of domain write -- a
+    propagator's filtering, a branching decision, the branch-and-bound clamp, a custom consistency
+    algorithm's pruning -- routes through here, so the groundness test and the unbound-variable count
+    stay consistent by construction rather than by convention, and a write barrier has a single place
+    to live.
+
+    Scheduling is deliberately left to the caller. The propagation loop schedules with a self-skip and a
+    membership pre-test that update_propagators does not have, so folding the two loops together would
+    either lose that specialization or drag six more parameters into the hottest function in the solver.
+
+    The caller owns the wipeout test too: it is one comparison on a domain the caller is already holding,
+    and the propagation loop can never wipe out (a propagator reports the inconsistency instead), so
+    charging it for the check would be paying on the hot path for the cold callers.
+
+    :param domains: the domains of the level being written
+    :type domains: NDArray
+    :param unbound_variable_nb_stk: the stack of the unbound variables nb
+    :type unbound_variable_nb_stk: NDArray
+    :param top: the index of the level being written
+    :type top: int
+    :param variable: the variable
+    :type variable: int
+    :param new_min: the new min of the domain
+    :type new_min: int
+    :param new_max: the new max of the domain
+    :type new_max: int
+
+    :return: the events triggered by the write, EVENT_MASK_NONE when it changed nothing
+    :rtype: int
+    """
+    domain = domains[variable]
+    was_bound = domain[MIN] == domain[MAX]
+    events = EVENT_MASK_NONE
+    if domain[MIN] != new_min:
+        domain[MIN] = new_min
+        events = EVENT_MASK_MIN
+    if domain[MAX] != new_max:
+        domain[MAX] = new_max
+        events |= EVENT_MASK_MAX
+    if events != EVENT_MASK_NONE and not was_bound and domain[MIN] == domain[MAX]:
+        events |= EVENT_MASK_GROUND
+        unbound_variable_nb_stk[top] -= 1
+    return events
+
+
 @njit(cache=True)
 def unwind_entailment_trail(entailed_propagator_depths: NDArray, entailment_trail: NDArray, top: int) -> None:
     """
@@ -143,28 +200,15 @@ def tighten_objective(
              -1 when the level wipes out
     :rtype: int
     """
-    bound = objective[OBJ_BOUND]
+    variable = objective[OBJ_VARIABLE]
     value = objective[OBJ_VALUE]
-    domain = domains_stk[top, objective[OBJ_VARIABLE]]
-    was_bound = domain[MIN] == domain[MAX]
-    if bound == MIN:
-        new_value = max(value + 1, domain[MIN])
-        if new_value == domain[MIN]:
-            return EVENT_MASK_NONE
-        domain[MIN] = new_value
-        events = EVENT_MASK_MIN
+    domains = domains_stk[top]
+    domain = domains[variable]
+    if objective[OBJ_BOUND] == MIN:
+        events = tighten(domains, unbound_variable_nb_stk, top, variable, max(value + 1, domain[MIN]), domain[MAX])
     else:
-        new_value = min(value - 1, domain[MAX])
-        if new_value == domain[MAX]:
-            return EVENT_MASK_NONE
-        domain[MAX] = new_value
-        events = EVENT_MASK_MAX
-    if domain[MIN] > domain[MAX]:
-        return -1
-    if domain[MIN] == domain[MAX] and not was_bound:
-        unbound_variable_nb_stk[top] -= 1
-        events |= EVENT_MASK_GROUND
-    return events
+        events = tighten(domains, unbound_variable_nb_stk, top, variable, domain[MIN], min(value - 1, domain[MAX]))
+    return -1 if domain[MIN] > domain[MAX] else events
 
 
 @njit(cache=True)

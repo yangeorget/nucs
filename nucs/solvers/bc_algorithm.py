@@ -17,10 +17,6 @@ from numpy.typing import NDArray
 
 from nucs.buckets import STORAGE_OFFSET, buckets_add, buckets_pop
 from nucs.constants import (
-    EVENT_MASK_GROUND,
-    EVENT_MASK_MAX,
-    EVENT_MASK_MIN,
-    EVENT_MASK_NONE,
     EVENT_NB,
     MAX,
     MIN,
@@ -42,6 +38,7 @@ from nucs.constants import (
     VARIABLE,
 )
 from nucs.numba_helper import ComputeDomainsFunctions
+from nucs.solvers.choice_points import tighten
 
 
 @njit(cache=True)
@@ -206,19 +203,15 @@ def update_domains(
         variable = propagator_variables[prop_var_start + var_idx]
         domain = domains[variable]
         if domain[MIN] != domain[MAX]:
-            events = EVENT_MASK_NONE
-            domain_min = prop_domains[var_idx, MIN]
-            if domain[MIN] != domain_min:
-                domain[MIN] = domain_min
-                events |= EVENT_MASK_MIN
-            domain_max = prop_domains[var_idx, MAX]
-            if domain[MAX] != domain_max:
-                domain[MAX] = domain_max
-                events |= EVENT_MASK_MAX
+            events = tighten(
+                domains,
+                unbound_variable_nb_stk,
+                top,
+                variable,
+                prop_domains[var_idx, MIN],
+                prop_domains[var_idx, MAX],
+            )
             if events:
-                if domain_min == domain_max:
-                    events |= EVENT_MASK_GROUND
-                    unbound_variable_nb_stk[top] -= 1
                 offset = (variable << EVENT_NB) | events
                 if is_idempotent:
                     for other_prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
