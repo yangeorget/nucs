@@ -223,9 +223,11 @@ class BacktrackSolver(Solver):
         self.level_stk = np.zeros((stks_max_height, LEVEL_WIDTH), dtype=np.int32)
         self.stks_top = np.ones((1,), dtype=np.uint32)
         self.status = np.zeros(SOLVER_STATUS_WIDTH, dtype=np.int32)
-        # a filtering can trail every cell of a level once and no more, so this much headroom is enough
-        # for any single step of the search; the solver grows the trail when it runs out
-        self.trail_headroom = 2 * domain_nb + 8
+        # the guard lets a level trail each cell of state at most once -- every domain bound, every
+        # entailment flag and the count -- so a whole step of the search cannot need more than that,
+        # plus the handful of writes branching and backtracking add on top. The solver grows the trail
+        # when this much room is no longer there.
+        self.trail_headroom = len(self.state) + 8
         # the branch-and-bound bound is solver state, not choice-point state: OBJ_VARIABLE is -1 outside
         # OPTIM_PRUNE, and backtrack re-applies the bound to each level it resumes
         self.objective = np.full(OBJ_WIDTH, -1, dtype=np.int32)

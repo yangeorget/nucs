@@ -216,16 +216,24 @@ class TestBacktrackSolver:
         assert solver.trail_top[0] < 4 * len(solver.pos)
         assert len(solver.trail) == 1 << 16  # it never had to grow
 
-    def test_the_trail_grows_rather_than_overruns(self) -> None:
-        """A trail too small for the search is grown, not overrun -- and the search is not restarted."""
-        problem = Problem([(0, 7), (0, 7), (0, 7)])
-        problem.add_propagator(ALG_ALLDIFFERENT, range(3))
-        reference = BacktrackSolver(problem).find_all()
-        problem = Problem([(0, 7), (0, 7), (0, 7)])
-        problem.add_propagator(ALG_ALLDIFFERENT, range(3))
-        solver = BacktrackSolver(problem, trail_max_size=8)
-        assert [solution.tolist() for solution in solver.find_all()] == [solution.tolist() for solution in reference]
-        assert len(solver.trail) > 8  # it did have to grow
+    @pytest.mark.parametrize("trail_max_size", [8, 9, 16, 17, 33])
+    def test_the_trail_grows_rather_than_overruns(self, trail_max_size: int) -> None:
+        """A trail too small for the search is grown, not overrun -- and the search is not restarted.
+
+        Parameterized over sizes below and just above the headroom the solver reserves, so that a
+        headroom too small for one step of the search shows up as a wrong answer rather than as luck.
+        """
+
+        def build() -> Problem:
+            problem = Problem([(0, 7), (0, 7), (0, 7)])
+            problem.add_propagator(ALG_ALLDIFFERENT, range(3))
+            return problem
+
+        reference = [solution.tolist() for solution in BacktrackSolver(build()).find_all()]
+        assert len(reference) == 336
+        solver = BacktrackSolver(build(), trail_max_size=trail_max_size)
+        assert [solution.tolist() for solution in solver.find_all()] == reference
+        assert len(solver.trail) > trail_max_size  # it did have to grow
 
     def test_the_level_stack_grows_rather_than_overruns(self) -> None:
         """Likewise for a search deeper than the level stack: grow, do not corrupt memory."""

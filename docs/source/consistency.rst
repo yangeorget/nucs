@@ -27,3 +27,36 @@ This custom consistency algorithm needs to be registered before it is used.
    consistency_alg_golomb = register_consistency_algorithm(golomb_consistency_algorithm)
    solver = BacktrackSolver(problem, consistency_alg_idx=consistency_alg_golomb)
 
+
+
+Writing a domain
+################
+
+.. warning::
+
+   In NuCS 15 a consistency algorithm receives the current domains rather than a stack of them, and
+   **must** write them through :func:`nucs.solvers.choice_points.tighten` (or
+   :func:`~nucs.solvers.choice_points.tighten_at`, which threads the trail size through a loop). Assigning
+   a domain directly still compiles and still looks right, but the write is not recorded on the trail:
+   it is never undone, and it survives the backtrack into sibling subtrees. That is silent unsoundness,
+   with no error to point at.
+
+:code:`tighten` also owns the groundness test and the unbound-variable count, so routing through it is
+what keeps the solver's "is this problem solved?" test correct. It returns the events the write raises,
+:code:`EVENT_MASK_NONE` when it changed nothing, which is what to pass to
+:func:`~nucs.propagators.propagators.update_propagators`. Scheduling stays with the caller.
+
+.. code-block:: python
+   :linenos:
+
+   events = tighten(state, trail, trail_top, pos, mark, variable, new_min, new_max)
+   if events:
+       update_propagators(triggered_propagators, entailed, triggers, triggers_offsets,
+                          priorities, propagator_nb, variable, events)
+
+where :code:`mark` is :code:`level_stk[stks_top[0], LEVEL_TRAIL_MARK]`, the trail position the current
+level branched at. :mod:`nucs.examples.golomb.golomb_problem` is the in-tree example.
+
+Propagators need no such care and are unchanged: a :code:`compute_domains_*` function receives a gathered
+copy of only its own variables' domains and mutates that copy, and the scatter back through the barrier
+happens in the consistency algorithm.
