@@ -13,42 +13,25 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN
-from nucs.heuristics.value_dom_heuristic import value_dom_heuristic
+from nucs.constants import DECISION_EQ, DECISION_VALUE, MAX, MIN
 
 
 @njit(cache=True)
-def mid_value_dom_heuristic(
-    domains_stk: NDArray,
-    domain_update_stk: NDArray,
-    unbound_variable_nb_stk: NDArray,
-    stks_top: NDArray,
-    variable: int,
-    params: NDArray,
-) -> int:
+def mid_value_dom_heuristic(domains: NDArray, variable: int, params: NDArray, decision: NDArray) -> int:
     """
     Chooses the middle value of the domain.
 
-    :param domains_stk: the stack of domains
-    :type domains_stk: NDArray
-    :param domain_update_stk: the stack of domain updates
-    :type domain_update_stk: NDArray
-    :param stks_top: the index of the top of the stacks as a Numpy array
-    :type stks_top: NDArray
+    :param domains: the domains
+    :type domains: NDArray
     :param variable: the variable
     :type variable: int
     :param params: a two-dimensional parameter array, unused here
     :type params: NDArray
+    :param decision: the decision, written by this function
+    :type decision: NDArray
 
-    :return: the events
+    :return: the kind of the decision
     :rtype: int
     """
-    return value_dom_heuristic(
-        domains_stk,
-        domain_update_stk,
-        unbound_variable_nb_stk,
-        stks_top,
-        variable,
-        (domains_stk[stks_top[0], variable, MIN] + domains_stk[stks_top[0], variable, MAX]) >> 1,
-        params,
-    )
+    decision[DECISION_VALUE] = (domains[variable, MIN] + domains[variable, MAX]) >> 1
+    return DECISION_EQ

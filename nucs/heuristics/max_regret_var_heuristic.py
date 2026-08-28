@@ -19,16 +19,14 @@ from nucs.constants import MAX, MIN
 
 
 @njit(cache=True)
-def max_regret_var_heuristic(decision_variables: NDArray, domains_stk: NDArray, top: int, params: NDArray) -> int:
+def max_regret_var_heuristic(decision_variables: NDArray, domains: NDArray, params: NDArray) -> int:
     """
     Chooses the variable with the maximal regret (difference between the best and second-best value).
 
     :param decision_variables: the decision variables
     :type decision_variables: NDArray
-    :param domains_stk: the stack of domains
-    :type domains_stk: NDArray
-    :param top: the index of the top of the stacks
-    :type top: int
+    :param domains: the domains
+    :type domains: NDArray
     :param params: a two-dimensional (first dimension corresponds to variables, second to values) costs array
     :type params: NDArray
 
@@ -37,7 +35,7 @@ def max_regret_var_heuristic(decision_variables: NDArray, domains_stk: NDArray, 
     """
     best_score = best_variable = -1
     for variable in decision_variables:
-        domain = domains_stk[top, variable]
+        domain = domains[variable]
         if domain[MIN] < domain[MAX]:
             score = regret(domain, params[variable])
             if best_score < score:

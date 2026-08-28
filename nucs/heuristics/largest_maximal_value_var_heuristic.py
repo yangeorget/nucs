@@ -19,18 +19,14 @@ from nucs.constants import MAX, MIN
 
 
 @njit(cache=True)
-def largest_maximal_value_var_heuristic(
-    decision_variables: NDArray, domains_stk: NDArray, top: int, params: NDArray
-) -> int:
+def largest_maximal_value_var_heuristic(decision_variables: NDArray, domains: NDArray, params: NDArray) -> int:
     """
     Chooses the first variable which is not instantiated with the largest maximal value.
 
     :param decision_variables: the decision variables
     :type decision_variables: NDArray
-    :param domains_stk: the stack of domains
-    :type domains_stk: NDArray
-    :param top: the index of the top of the stacks
-    :type top: int
+    :param domains: the domains
+    :type domains: NDArray
     :param params: a two-dimensional parameter array, unused here
     :type params: NDArray
 
@@ -40,7 +36,7 @@ def largest_maximal_value_var_heuristic(
     best_max = -sys.maxsize
     best_variable = -1
     for variable in decision_variables:
-        domain = domains_stk[top, variable]
+        domain = domains[variable]
         if domain[MIN] < domain[MAX] and domain[MAX] > best_max:  # not instantiated
             best_variable = variable
             best_max = domain[MAX]

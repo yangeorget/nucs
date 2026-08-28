@@ -15,6 +15,9 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
+    DECISION_EQ,
+    DECISION_GT,
+    DECISION_LE,
     DOM_UPDATE_EVENTS,
     DOM_UPDATE_VARIABLE,
     EVENT_MASK_GROUND,
@@ -149,6 +152,92 @@ def tighten(
         events |= EVENT_MASK_GROUND
         unbound_variable_nb_stk[top] -= 1
     return events
+
+
+@njit(cache=True)
+def branch(
+    domains_stk: NDArray,
+    domain_update_stk: NDArray,
+    unbound_variable_nb_stk: NDArray,
+    stks_top: NDArray,
+    variable: int,
+    kind: int,
+    value: int,
+) -> int:
+    """
+    Applies a decision: explores one branch and parks the alternatives for the search to resume.
+
+    This is the whole of branching, in one place. The domain heuristics used to do it themselves, each
+    repeating the same MIN/MAX/GROUND bookkeeping over two levels; they now only say where to split, and
+    every kind of split lands here.
+
+    The parked alternatives are written to the levels below the explored one, deepest first, so that
+    backtracking meets them in that order. DECISION_EQ is the ternary case and parks two of them.
+
+    An EQ value outside the domain is clamped into it rather than applied as written. min_cost returns -1
+    when no value in the domain has a positive cost, and today that writes an out-of-domain [-1, -1] into
+    the explored level and *widens* the parked one to [0, max]. Clamping keeps the split a partition of
+    the domain, which is what makes the enumeration complete; failing the node instead would silently
+    drop the assignments whose cost is zero.
+
+    :param domains_stk: the stack of domains
+    :type domains_stk: NDArray
+    :param domain_update_stk: the stack of domain updates
+    :type domain_update_stk: NDArray
+    :param unbound_variable_nb_stk: the stack of the unbound variables nb
+    :type unbound_variable_nb_stk: NDArray
+    :param stks_top: the index of the top of the stacks as a Numpy array
+    :type stks_top: NDArray
+    :param variable: the variable being branched on
+    :type variable: int
+    :param kind: the kind of split, one of DECISION_LE, DECISION_GT and DECISION_EQ
+    :type kind: int
+    :param value: the value the domain is split at
+    :type value: int
+
+    :return: the events triggered in the explored branch
+    :rtype: int
+    """
+    top = stks_top[0]
+    domain = domains_stk[top, variable]
+    domain_min = domain[MIN]
+    domain_max = domain[MAX]
+    if kind == DECISION_EQ:
+        value = min(max(value, domain_min), domain_max)
+        # an EQ at either end of the domain has an empty alternative on that side, so it is a two-way
+        # split: normalizing here is what keeps the ternary case to genuinely ternary splits
+        if value == domain_min:
+            kind = DECISION_LE
+        elif value == domain_max:
+            kind = DECISION_GT
+            value = domain_max - 1
+    if kind == DECISION_LE:
+        cp_put(domains_stk, unbound_variable_nb_stk, top)
+        parked = tighten(domains_stk[top], unbound_variable_nb_stk, top, variable, value + 1, domain_max)
+        explored = tighten(domains_stk[top + 1], unbound_variable_nb_stk, top + 1, variable, domain_min, value)
+        domain_update_stk[top, DOM_UPDATE_VARIABLE] = variable
+        domain_update_stk[top, DOM_UPDATE_EVENTS] = parked
+        stks_top[0] = top + 1
+        return explored
+    if kind == DECISION_GT:
+        cp_put(domains_stk, unbound_variable_nb_stk, top)
+        parked = tighten(domains_stk[top], unbound_variable_nb_stk, top, variable, domain_min, value)
+        explored = tighten(domains_stk[top + 1], unbound_variable_nb_stk, top + 1, variable, value + 1, domain_max)
+        domain_update_stk[top, DOM_UPDATE_VARIABLE] = variable
+        domain_update_stk[top, DOM_UPDATE_EVENTS] = parked
+        stks_top[0] = top + 1
+        return explored
+    cp_put(domains_stk, unbound_variable_nb_stk, top)
+    cp_put(domains_stk, unbound_variable_nb_stk, top + 1)
+    # the shallower alternative is the one resumed last
+    parked_above = tighten(domains_stk[top], unbound_variable_nb_stk, top, variable, value + 1, domain_max)
+    parked_below = tighten(domains_stk[top + 1], unbound_variable_nb_stk, top + 1, variable, domain_min, value - 1)
+    explored = tighten(domains_stk[top + 2], unbound_variable_nb_stk, top + 2, variable, value, value)
+    domain_update_stk[top + 1, DOM_UPDATE_VARIABLE] = domain_update_stk[top, DOM_UPDATE_VARIABLE] = variable
+    domain_update_stk[top + 1, DOM_UPDATE_EVENTS] = parked_below
+    domain_update_stk[top, DOM_UPDATE_EVENTS] = parked_above
+    stks_top[0] = top + 2
+    return explored
 
 
 @njit(cache=True)

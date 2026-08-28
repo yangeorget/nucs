@@ -19,9 +19,7 @@ from nucs.constants import MAX, MIN
 
 
 @njit(cache=True)
-def min_earliest_start_var_heuristic(
-    decision_variables: NDArray, domains_stk: NDArray, top: int, params: NDArray
-) -> int:
+def min_earliest_start_var_heuristic(decision_variables: NDArray, domains: NDArray, params: NDArray) -> int:
     """
     Chooses the unbound task with the smallest earliest start time, the selection rule of the Set Times search.
 
@@ -35,10 +33,8 @@ def min_earliest_start_var_heuristic(
 
     :param decision_variables: the decision variables, the start times of the tasks
     :type decision_variables: NDArray
-    :param domains_stk: the stack of domains
-    :type domains_stk: NDArray
-    :param top: the index of the top of the stacks
-    :type top: int
+    :param domains: the domains
+    :type domains: NDArray
     :param params: a two-dimensional parameter array, unused here
     :type params: NDArray
 
@@ -49,8 +45,8 @@ def min_earliest_start_var_heuristic(
     best_earliest_start = sys.maxsize
     best_latest_start = sys.maxsize
     for variable in decision_variables:
-        earliest_start = domains_stk[top, variable, MIN]
-        latest_start = domains_stk[top, variable, MAX]
+        earliest_start = domains[variable, MIN]
+        latest_start = domains[variable, MAX]
         # unbound, and lexicographically better on (earliest_start, latest_start)
         if earliest_start < latest_start and (
             earliest_start < best_earliest_start

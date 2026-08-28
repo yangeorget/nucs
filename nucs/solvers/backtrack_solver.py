@@ -20,6 +20,8 @@ from numpy.typing import NDArray
 
 from nucs.buckets import buckets_create, buckets_empty, buckets_init
 from nucs.constants import (
+    DECISION_VALUE,
+    DECISION_WIDTH,
     LOG_LEVEL_INFO,
     MAX,
     MIN,
@@ -83,7 +85,7 @@ from nucs.propagators.propagators import (
     get_algorithm_nb,
     update_propagators,
 )
-from nucs.solvers.choice_points import backtrack, cp_init, fix_choice_point
+from nucs.solvers.choice_points import backtrack, branch, cp_init, fix_choice_point
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.search import Search
 from nucs.solvers.solver import Solver, get_solution
@@ -205,6 +207,8 @@ class BacktrackSolver(Solver):
         # the branch-and-bound bound is solver state, not choice-point state: OBJ_VARIABLE is -1 outside
         # OPTIM_PRUNE, and backtrack re-applies the bound to each level it resumes
         self.objective = np.full(OBJ_WIDTH, -1, dtype=np.int32)
+        # scratch for the domain heuristic's split value, allocated once rather than returned as a tuple
+        self.decision = np.zeros(DECISION_WIDTH, dtype=np.int32)
         logger.info(f"The stacks of the choice points have a maximal height of {stks_max_height}")
         self.initial_domains = np.array(problem.domains)
         cp_init(
@@ -325,6 +329,7 @@ class BacktrackSolver(Solver):
             self.domain_buffer,
             IDEMPOTENT,
             self.objective,
+            self.decision,
         )
 
     def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
@@ -481,6 +486,7 @@ def solve_one(
     domain_buffer: NDArray,
     idempotent: NDArray,
     objective: NDArray,
+    decision: NDArray,
 ) -> NDArray | None:
     """
     Find at most one solution.
@@ -551,6 +557,11 @@ def solve_one(
     :param idempotent: whether each algorithm reaches its own fixpoint in a single call, indexed by
                        algorithm rather than by propagator
     :type idempotent: NDArray
+    :param objective: the objective as a Numpy array of variable, bound and value,
+                      whose variable is -1 when not optimizing
+    :type objective: NDArray
+    :param decision: a scratch array the domain heuristic writes its split value into
+    :type decision: NDArray
 
     :return: the solution if it exists or None
     :rtype: Optional[NDArray]
@@ -579,9 +590,10 @@ def solve_one(
             idempotent,
         )
         top = stks_top[0]
+        domains = domains_stk[top]
         if status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLUTION_NB] += 1
-            return get_solution(domains_stk, top)
+            return get_solution(domains)
         branched = False
         if status == PROBLEM_UNBOUND:
             # sequential search: the first search that still has an unbound decision variable owns the
@@ -591,24 +603,31 @@ def solve_one(
                     decision_variables[
                         decision_variables_offsets[search_idx] : decision_variables_offsets[search_idx + 1]
                     ],
-                    domains_stk,
-                    top,
+                    domains,
                     var_heuristic_params[
                         var_heuristic_params_offsets[search_idx] : var_heuristic_params_offsets[search_idx + 1]
                     ].reshape(var_heuristic_params_shapes[search_idx, 0], var_heuristic_params_shapes[search_idx, 1]),
                 )
                 if variable != -1:
-                    events = dom_heuristic_fcts[search_idx](
-                        domains_stk,
-                        domain_update_stk,
-                        unbound_variable_nb_stk,
-                        stks_top,
+                    # the heuristic only says where to split; branch owns the two levels it takes to do so
+                    kind = dom_heuristic_fcts[search_idx](
+                        domains,
                         variable,
                         dom_heuristic_params[
                             dom_heuristic_params_offsets[search_idx] : dom_heuristic_params_offsets[search_idx + 1]
                         ].reshape(
                             dom_heuristic_params_shapes[search_idx, 0], dom_heuristic_params_shapes[search_idx, 1]
                         ),
+                        decision,
+                    )
+                    events = branch(
+                        domains_stk,
+                        domain_update_stk,
+                        unbound_variable_nb_stk,
+                        stks_top,
+                        variable,
+                        kind,
+                        decision[DECISION_VALUE],
                     )
                     top = stks_top[0]
                     update_propagators(

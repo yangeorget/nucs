@@ -28,8 +28,8 @@ from nucs.constants import NUMBA_DISABLE_JIT
 # read-only sequences. The Callable element signatures mirror the matching SIGN_* in nucs.constants
 # (under the JIT the element is actually a Numba FunctionType, which has no Python type).
 ComputeDomainsFunctions = Sequence[Callable[[NDArray, NDArray], int]]
-VariableHeuristicFunctions = Sequence[Callable[[NDArray, NDArray, int, NDArray], int]]
-DomainHeuristicFunctions = Sequence[Callable[[NDArray, NDArray, NDArray, NDArray, int, NDArray], int]]
+VariableHeuristicFunctions = Sequence[Callable[[NDArray, NDArray, NDArray], int]]
+DomainHeuristicFunctions = Sequence[Callable[[NDArray, int, NDArray, NDArray], int]]
 ConsistencyAlgorithmFunctions = Sequence[Callable[..., int]]
 
 

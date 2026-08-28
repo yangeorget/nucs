@@ -32,6 +32,19 @@ GROUND = 2
 DOM_UPDATE_VARIABLE = 0  # index for the variable
 DOM_UPDATE_EVENTS = 1  # index for the events
 
+# Decision kinds returned by a domain heuristic.
+# A domain heuristic chooses where to split a domain; it does not split it. These three kinds cover the
+# eight in-tree heuristics exactly, and it is the solver that turns one into an explored branch and one or
+# two parked alternatives -- so the MIN/MAX/GROUND bookkeeping lives in one place instead of in every
+# heuristic. The parked alternatives are listed deepest first: that order is what an enumeration sees.
+DECISION_LE = 0  # explore [min, value], park [value + 1, max]
+DECISION_GT = 1  # explore [value + 1, max], park [min, value]
+DECISION_EQ = 2  # explore [value, value], park [min, value - 1] then [value + 1, max]
+
+# Decision array indices
+DECISION_VALUE = 0  # index for the value the domain is split at
+DECISION_WIDTH = 1  # the number of cells of the decision array
+
 # Objective indices.
 # The branch-and-bound bound is solver state, not choice-point state: it is not backtrackable, so it is
 # re-applied to every level the search resumes rather than written into the levels up front.
@@ -92,20 +105,19 @@ SIGN_CONSISTENCY_ALG = int64(
 )
 TYPE_CONSISTENCY_ALG = types.FunctionType(SIGN_CONSISTENCY_ALG)
 
+# A domain heuristic is a pure decision function: it reads the current domains and writes the split value
+# into decision, returning the kind of split. It mutates no search state -- the solver applies the decision.
 SIGN_DOM_HEURISTIC = int64(
-    int32[:, :, :],  # domains_stk
-    uint32[:, :],  # domain_update_stk
-    uint32[:],  # unbound_variable_nb_stk
-    uint32[:],  # stks_top
+    int32[:, ::1],  # domains
     int64,  # variable
     int64[:, :],  # dom_heuristic_params
+    int32[::1],  # decision, written by the heuristic
 )
 TYPE_DOM_HEURISTIC = types.FunctionType(SIGN_DOM_HEURISTIC)
 
 SIGN_VAR_HEURISTIC = int64(
-    uint32[:],  # decision_variables
-    int32[:, :, :],  # domains_stk
-    int64,  # top
+    uint32[::1],  # decision_variables
+    int32[:, ::1],  # domains
     int64[:, :],  # var_heuristic_params
 )
 TYPE_VAR_HEURISTIC = types.FunctionType(SIGN_VAR_HEURISTIC)

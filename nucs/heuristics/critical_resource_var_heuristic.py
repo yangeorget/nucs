@@ -20,9 +20,7 @@ from nucs.constants import MAX, MIN
 
 
 @njit(cache=True)
-def critical_resource_var_heuristic(
-    decision_variables: NDArray, domains_stk: NDArray, top: int, params: NDArray
-) -> int:
+def critical_resource_var_heuristic(decision_variables: NDArray, domains: NDArray, params: NDArray) -> int:
     """
     Chooses a task to branch on for disjunctive (unary resource) scheduling problems such as the job-shop.
 
@@ -38,10 +36,8 @@ def critical_resource_var_heuristic(
 
     :param decision_variables: the decision variables, the start times of the tasks
     :type decision_variables: NDArray
-    :param domains_stk: the stack of domains
-    :type domains_stk: NDArray
-    :param top: the index of the top of the stacks
-    :type top: int
+    :param domains: the domains
+    :type domains: NDArray
     :param params: a two-dimensional array, ``params[v]`` is ``(resource, duration)`` of task ``v``
     :type params: NDArray
 
@@ -64,8 +60,8 @@ def critical_resource_var_heuristic(
         resource = params[variable, 0]
         if resource < 0:
             continue
-        lo = domains_stk[top, variable, MIN]
-        hi = domains_stk[top, variable, MAX]
+        lo = domains[variable, MIN]
+        hi = domains[variable, MAX]
         duration = params[variable, 1]
         est_min[resource] = min(est_min[resource], lo)
         completion = hi + duration
@@ -93,8 +89,8 @@ def critical_resource_var_heuristic(
     for variable in decision_variables:
         if params[variable, 0] != critical:
             continue
-        lo = domains_stk[top, variable, MIN]
-        hi = domains_stk[top, variable, MAX]
+        lo = domains[variable, MIN]
+        hi = domains[variable, MAX]
         if lo < hi:
             width = hi - lo
             if width < best_width or (width == best_width and lo < best_est):

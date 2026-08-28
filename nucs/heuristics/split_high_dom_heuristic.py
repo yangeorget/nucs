@@ -13,60 +13,25 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import (
-    DOM_UPDATE_EVENTS,
-    DOM_UPDATE_VARIABLE,
-    EVENT_MASK_MAX,
-    EVENT_MASK_MAX_GROUND,
-    EVENT_MASK_MIN,
-    EVENT_MASK_MIN_GROUND,
-    MAX,
-    MIN,
-)
-from nucs.solvers.choice_points import cp_put
+from nucs.constants import DECISION_GT, DECISION_VALUE, MAX, MIN
 
 
 @njit(cache=True)
-def split_high_dom_heuristic(
-    domains_stk: NDArray,
-    domain_update_stk: NDArray,
-    unbound_variable_nb_stk: NDArray,
-    stks_top: NDArray,
-    variable: int,
-    params: NDArray,
-) -> int:
+def split_high_dom_heuristic(domains: NDArray, variable: int, params: NDArray, decision: NDArray) -> int:
     """
     Chooses the second half of the domain.
 
-    :param domains_stk: the stack of domains
-    :type domains_stk: NDArray
-    :param domain_update_stk: the stack of domain updates
-    :type domain_update_stk: NDArray
-    :param stks_top: the index of the top of the stacks as a Numpy array
-    :type stks_top: NDArray
+    :param domains: the domains
+    :type domains: NDArray
     :param variable: the variable
     :type variable: int
     :param params: a two-dimensional parameter array, unused here
     :type params: NDArray
+    :param decision: the decision, written by this function
+    :type decision: NDArray
 
-    :return: the events
+    :return: the kind of the decision
     :rtype: int
     """
-    top = stks_top[0]
-    cp_put(domains_stk, unbound_variable_nb_stk, top)
-    value = (domains_stk[top, variable, MIN] + domains_stk[top, variable, MAX]) >> 1
-    domains_stk[top + 1, variable, MIN] = value + 1
-    domains_stk[top, variable, MAX] = value
-    if domains_stk[top + 1, variable, MIN] == domains_stk[top + 1, variable, MAX]:
-        unbound_variable_nb_stk[top + 1] -= 1
-        events = EVENT_MASK_MIN_GROUND
-    else:
-        events = EVENT_MASK_MIN
-    domain_update_stk[top, DOM_UPDATE_VARIABLE] = variable
-    if domains_stk[top, variable, MIN] == domains_stk[top, variable, MAX]:
-        domain_update_stk[top, DOM_UPDATE_EVENTS] = EVENT_MASK_MAX_GROUND
-        unbound_variable_nb_stk[top] -= 1
-    else:
-        domain_update_stk[top, DOM_UPDATE_EVENTS] = EVENT_MASK_MAX
-    stks_top[0] = top + 1
-    return events
+    decision[DECISION_VALUE] = (domains[variable, MIN] + domains[variable, MAX]) >> 1
+    return DECISION_GT

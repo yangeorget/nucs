@@ -151,6 +151,7 @@ class TestBacktrackSolver:
             solver.domain_buffer,
             IDEMPOTENT,
             solver.objective,
+            solver.decision,
         )
         assert solution is not None
         assert solution.tolist() == [0, 0]
@@ -313,7 +314,7 @@ class TestBacktrackSolver:
 
         Regression test for a hang: OPTIM_PRUNE used to rewrite the tightened bound into every stored
         choice point and drop one level per wipe-out, which assumes the wiped levels are the deepest ones.
-        A three-way split (DOM_HEURISTIC_MID_VALUE, via value_dom_heuristic) makes two levels siblings
+        A three-way split (DOM_HEURISTIC_MID_VALUE, a DECISION_EQ) makes two levels siblings
         holding disjoint objective ranges, so minimizing wiped the shallower one and the count-based drop
         discarded the survivor. The resulting level had an empty domain that no variable heuristic could
         claim and no propagator noticed, and solve_one span forever on an empty queue.
