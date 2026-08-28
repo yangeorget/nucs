@@ -206,26 +206,26 @@ class BacktrackSolver(Solver):
         self.domain_buffer = get_domain_buffer(problem.offsets)
         logger.debug("Initializing choice points")
         # all the backtrackable state in one flat int32 array, so that one undo log and one undo loop
-        # restore every kind of it: [ 2 * domain_nb domain bounds | the unbound-variable count ].
-        # domains is a (domain_nb, 2) view of its head -- the same memory, addressed the way every
-        # reader wants it -- so the flat index of (variable, bound) is (variable << 1) | bound.
+        # restore every kind of it:
+        #     [ 2 * domain_nb domain bounds | propagator_nb entailment flags | the unbound count ]
+        # domains is a (domain_nb, 2) view of its head and entailed a view of the middle -- the same
+        # memory, addressed the way each reader wants it -- so the flat index of (variable, bound) is
+        # (variable << 1) | bound, and that of propagator p is 2 * domain_nb + p. Restoring a domain
+        # bound and reactivating an entailed propagator are then the same instruction.
         domain_nb = self.problem.domain_nb
-        self.state = np.zeros(2 * domain_nb + 1, dtype=np.int32)
+        propagator_nb = self.problem.propagator_nb
+        self.state = np.zeros(2 * domain_nb + propagator_nb + 1, dtype=np.int32)
         self.domains = self.state[: 2 * domain_nb].reshape(domain_nb, 2)
+        self.entailed = self.state[2 * domain_nb : 2 * domain_nb + propagator_nb]
         self.trail = np.empty((trail_max_size, 2), dtype=np.int32)
         self.trail_top = np.zeros((1,), dtype=np.int32)
-        self.pos = np.full(2 * domain_nb + 1, -1, dtype=np.int32)
+        self.pos = np.full(len(self.state), -1, dtype=np.int32)
         self.level_stk = np.zeros((stks_max_height, LEVEL_WIDTH), dtype=np.int32)
         self.stks_top = np.ones((1,), dtype=np.uint32)
         self.status = np.zeros(SOLVER_STATUS_WIDTH, dtype=np.int32)
         # a filtering can trail every cell of a level once and no more, so this much headroom is enough
         # for any single step of the search; the solver grows the trail when it runs out
         self.trail_headroom = 2 * domain_nb + 8
-        # entailment is tracked by a trail rather than a per-level array: entailed_propagator_depths[p]
-        # holds the depth at which propagator p was entailed (-1 when active), entailment_trail records the
-        # entailed propagators in order (its first cell is the trail size) so backtracking can reactivate them
-        self.entailed_propagator_depths = np.empty(self.problem.propagator_nb, dtype=np.int32)
-        self.entailment_trail = np.empty(self.problem.propagator_nb + 1, dtype=np.int32)
         # the branch-and-bound bound is solver state, not choice-point state: OBJ_VARIABLE is -1 outside
         # OPTIM_PRUNE, and backtrack re-applies the bound to each level it resumes
         self.objective = np.full(OBJ_WIDTH, -1, dtype=np.int32)
@@ -336,13 +336,12 @@ class BacktrackSolver(Solver):
             self.problem.triggers_offsets,
             self.state,
             self.domains,
+            self.entailed,
             self.trail,
             self.trail_top,
             self.pos,
             self.level_stk,
             self.stks_top,
-            self.entailed_propagator_depths,
-            self.entailment_trail,
             self.triggered_propagators,
             self.consistency_alg_fcts,
             self.decision_variables,
@@ -404,12 +403,11 @@ class BacktrackSolver(Solver):
         """
         cp_init(
             self.state,
+            self.entailed,
             self.trail_top,
             self.pos,
             self.level_stk,
             self.stks_top,
-            self.entailed_propagator_depths,
-            self.entailment_trail,
             self.initial_domains,
             self.problem.unbound_variable_nb,
         )
@@ -450,8 +448,7 @@ class BacktrackSolver(Solver):
             self.pos,
             self.level_stk,
             self.stks_top,
-            self.entailed_propagator_depths,
-            self.entailment_trail,
+            self.entailed,
             self.triggered_propagators,
             self.problem.triggers,
             self.problem.triggers_offsets,
@@ -522,13 +519,12 @@ def solve_one(
     triggers_offsets: NDArray,
     state: NDArray,
     domains: NDArray,
+    entailed: NDArray,
     trail: NDArray,
     trail_top: NDArray,
     pos: NDArray,
     level_stk: NDArray,
     stks_top: NDArray,
-    entailed_propagator_depths: NDArray,
-    entailment_trail: NDArray,
     triggered_propagators: NDArray,
     consistency_alg_fcts: ConsistencyAlgorithmFunctions,
     decision_variables: NDArray,
@@ -577,6 +573,8 @@ def solve_one(
     :type state: NDArray
     :param domains: the current domains, a (domain_nb, 2) view of the head of state
     :type domains: NDArray
+    :param entailed: whether each propagator is entailed, a view of state
+    :type entailed: NDArray
     :param trail: the undo log of (flat index, old value) pairs
     :type trail: NDArray
     :param trail_top: the trail size as a Numpy array
@@ -587,10 +585,6 @@ def solve_one(
     :type level_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
     :type stks_top: NDArray
-    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
-    :type entailed_propagator_depths: NDArray
-    :param entailment_trail: the entailment trail, the first cell holds the trail size
-    :type entailment_trail: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param consistency_alg_fcts: a 1-element list holding the consistency algorithm function
@@ -660,13 +654,12 @@ def solve_one(
             triggers_offsets,
             state,
             domains,
+            entailed,
             trail,
             trail_top,
             pos,
             level_stk,
             stks_top,
-            entailed_propagator_depths,
-            entailment_trail,
             triggered_propagators,
             compute_domains_fcts,
             domain_buffer,
@@ -716,7 +709,7 @@ def solve_one(
                     top = stks_top[0]
                     update_propagators(
                         triggered_propagators,
-                        entailed_propagator_depths,
+                        entailed,
                         triggers,
                         triggers_offsets,
                         priorities,
@@ -738,8 +731,7 @@ def solve_one(
             pos,
             level_stk,
             stks_top,
-            entailed_propagator_depths,
-            entailment_trail,
+            entailed,
             triggered_propagators,
             triggers,
             triggers_offsets,

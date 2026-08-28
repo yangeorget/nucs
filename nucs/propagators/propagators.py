@@ -467,7 +467,7 @@ ALG_VALUE_PRECEDE = register_propagator(
 @njit(cache=True)
 def update_propagators(
     triggered_propagators: NDArray,
-    entailed_propagator_depths: NDArray,
+    entailed: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
     priorities: NDArray,
@@ -478,5 +478,5 @@ def update_propagators(
     offset = (variable << EVENT_NB) | events
     membership_offset = STORAGE_OFFSET + propagator_nb
     for prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
-        if entailed_propagator_depths[prop_idx] == -1:
+        if not entailed[prop_idx]:
             buckets_add(triggered_propagators, priorities, prop_idx, membership_offset)

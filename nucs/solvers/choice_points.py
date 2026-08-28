@@ -41,8 +41,8 @@ def unbound_index(state: NDArray) -> int:
     """
     Returns the flat index of the unbound-variable count, which is the last cell of the state.
 
-    It sits at the end rather than between the domains and whatever else is trailed so that its index
-    does not depend on how much of that there is.
+    It sits at the end, after the entailment flags, rather than between them and the domains, so that
+    its index does not depend on the number of propagators.
 
     :param state: all the backtrackable state
     :type state: NDArray
@@ -51,6 +51,35 @@ def unbound_index(state: NDArray) -> int:
     :rtype: int
     """
     return len(state) - 1
+
+
+@njit(cache=True, inline="always")
+def trail_push(trail: NDArray, pos: NDArray, top: int, flat: int, old: int) -> int:
+    """
+    Records a cell's old value unconditionally, for state that guards itself.
+
+    An entailment flag only ever goes from active to entailed, and only where the caller has just tested
+    that it was active, so it cannot be written twice in a level and needs no positional guard. The
+    position is still recorded, so that trail_undo can clear it like any other.
+
+    :param trail: the undo log of (flat index, old value) pairs
+    :type trail: NDArray
+    :param pos: the index of the last trail entry per cell
+    :type pos: NDArray
+    :param top: the trail size
+    :type top: int
+    :param flat: the index of the cell in state
+    :type flat: int
+    :param old: the value currently in that cell
+    :type old: int
+
+    :return: the new trail size
+    :rtype: int
+    """
+    trail[top, 0] = flat
+    trail[top, 1] = old
+    pos[flat] = top
+    return top + 1
 
 
 @njit(cache=True, inline="always")
@@ -146,12 +175,11 @@ def trail_undo(state: NDArray, trail: NDArray, pos: NDArray, trail_top: NDArray,
 @njit(cache=True)
 def cp_init(
     state: NDArray,
+    entailed: NDArray,
     trail_top: NDArray,
     pos: NDArray,
     level_stk: NDArray,
     stks_top: NDArray,
-    entailed_propagator_depths: NDArray,
-    entailment_trail: NDArray,
     domains_arr: NDArray,
     unbound_variable_nb: int,
 ) -> None:
@@ -164,19 +192,16 @@ def cp_init(
 
     :param state: all the backtrackable state
     :type state: NDArray
+    :param entailed: whether each propagator is entailed, a view of state
+    :type entailed: NDArray
     :param trail_top: the trail size as a Numpy array
     :type trail_top: NDArray
-    :param pos: the index of the last trail entry per positionally guarded cell
+    :param pos: the index of the last trail entry per cell
     :type pos: NDArray
     :param level_stk: the per-level metadata
     :type level_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
     :type stks_top: NDArray
-    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
-    :type entailed_propagator_depths: NDArray
-    :param entailment_trail: the entailment trail, the first cell holds the trail size,
-                             the following cells hold the indices of the entailed propagators in entailment order
-    :type entailment_trail: NDArray
     :param domains_arr: the domains
     :type domains_arr: NDArray
     :param unbound_variable_nb: the number of unbound variables
@@ -186,10 +211,10 @@ def cp_init(
         state[variable << 1] = domains_arr[variable, MIN]
         state[(variable << 1) | 1] = domains_arr[variable, MAX]
     state[unbound_index(state)] = unbound_variable_nb
-    entailed_propagator_depths.fill(-1)
+    entailed.fill(0)
     pos.fill(-1)
     level_stk[0, LEVEL_TRAIL_MARK] = 0
-    entailment_trail[0] = trail_top[0] = stks_top[0] = 0
+    trail_top[0] = stks_top[0] = 0
 
 
 @njit(cache=True, inline="always")
@@ -416,28 +441,6 @@ def branch(
     return tighten(state, trail, trail_top, pos, mark, variable, value, value)
 
 
-@njit(cache=True)
-def unwind_entailment_trail(entailed_propagator_depths: NDArray, entailment_trail: NDArray, top: int) -> None:
-    """
-    Reactivates the propagators that were entailed below the current top.
-
-    The trail is ordered by non-decreasing entailment depth, so it suffices to pop, from the top of the trail,
-    every propagator whose entailment depth is strictly greater than the current top and reset it to active.
-
-    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
-    :type entailed_propagator_depths: NDArray
-    :param entailment_trail: the entailment trail, the first cell holds the trail size
-    :type entailment_trail: NDArray
-    :param top: the index of the top of the stacks
-    :type top: int
-    """
-    size = entailment_trail[0]
-    while size > 0 and entailed_propagator_depths[entailment_trail[size]] > top:
-        entailed_propagator_depths[entailment_trail[size]] = -1
-        size -= 1
-    entailment_trail[0] = size
-
-
 @njit(cache=True, inline="always")
 def tighten_objective(
     state: NDArray,
@@ -494,8 +497,7 @@ def backtrack(
     pos: NDArray,
     level_stk: NDArray,
     stks_top: NDArray,
-    entailed_propagator_depths: NDArray,
-    entailment_trail: NDArray,
+    entailed: NDArray,
     triggered_propagators: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
@@ -509,6 +511,9 @@ def backtrack(
     Popping a level is replaying the undo log back to the level's mark, then applying the alternative the
     level parked -- through the same write barrier as any other write, so that the refutation is itself
     undone when the search later backtracks past this level.
+
+    The undo reactivates the propagators entailed below this level as it goes: an entailment flag is a
+    cell of the same state array as a domain bound, so there is nothing separate left to unwind.
 
     When optimizing, the objective bound is re-applied to the level being resumed; a level it wipes out
     can no longer hold an improving solution, so the search keeps popping. This is why no level ever has
@@ -528,10 +533,8 @@ def backtrack(
     :type level_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
     :type stks_top: NDArray
-    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
-    :type entailed_propagator_depths: NDArray
-    :param entailment_trail: the entailment trail, the first cell holds the trail size
-    :type entailment_trail: NDArray
+    :param entailed: whether each propagator is entailed, a view of state
+    :type entailed: NDArray
     :param triggered_propagators: the set propagators that are currently triggered as a Numpy array
     :type triggered_propagators: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
@@ -554,7 +557,6 @@ def backtrack(
         stks_top[0] -= 1
         top = stks_top[0]
         statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
-        unwind_entailment_trail(entailed_propagator_depths, entailment_trail, top)
         mark = level_stk[top, LEVEL_TRAIL_MARK]
         trail_undo(state, trail, pos, trail_top, mark)
         variable = level_stk[top, LEVEL_VARIABLE]
@@ -569,7 +571,7 @@ def backtrack(
         if events != EVENT_MASK_NONE:
             update_propagators(
                 triggered_propagators,
-                entailed_propagator_depths,
+                entailed,
                 triggers,
                 triggers_offsets,
                 priorities,
@@ -585,7 +587,7 @@ def backtrack(
         if events != EVENT_MASK_NONE:
             update_propagators(
                 triggered_propagators,
-                entailed_propagator_depths,
+                entailed,
                 triggers,
                 triggers_offsets,
                 priorities,

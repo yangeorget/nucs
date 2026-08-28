@@ -113,13 +113,12 @@ SIGN_CONSISTENCY_ALG = int64(
     int32[::1],  # triggers_offsets
     int32[::1],  # state
     int32[:, ::1],  # domains, a view of the head of state
+    int32[::1],  # entailed, a view of the tail of state
     int32[:, ::1],  # trail
     int32[::1],  # trail_top
     int32[::1],  # pos
     int32[:, ::1],  # level_stk
     uint32[::1],  # stks_top
-    int32[::1],  # entailed_propagator_depths
-    int32[::1],  # entailment_trail
     int32[::1],  # triggered_propagators
     TYPE_COMPUTE_DOMAINS_LIST,  # compute_domains_fcts
     int32[:, ::1],  # domain_buffer

@@ -39,7 +39,7 @@ from nucs.constants import (
     VARIABLE,
 )
 from nucs.numba_helper import ComputeDomainsFunctions
-from nucs.solvers.choice_points import tighten_at, unbound_index
+from nucs.solvers.choice_points import tighten_at, trail_push, unbound_index
 
 
 @njit(cache=True)
@@ -55,13 +55,12 @@ def bc_algorithm(
     triggers_offsets: NDArray,
     state: NDArray,
     domains: NDArray,
+    entailed: NDArray,
     trail: NDArray,
     trail_top: NDArray,
     pos: NDArray,
     level_stk: NDArray,
     stks_top: NDArray,
-    entailed_propagator_depths: NDArray,
-    entailment_trail: NDArray,
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
@@ -92,6 +91,8 @@ def bc_algorithm(
     :type state: NDArray
     :param domains: the current domains, a (domain_nb, 2) view of the head of state
     :type domains: NDArray
+    :param entailed: whether each propagator is entailed, a view of state
+    :type entailed: NDArray
     :param trail: the undo log of (flat index, old value) pairs
     :type trail: NDArray
     :param trail_top: the trail size as a Numpy array
@@ -102,11 +103,6 @@ def bc_algorithm(
     :type level_stk: NDArray
     :param stks_top: the height of the stacks as a Numpy array
     :type stks_top: NDArray
-    :param entailed_propagator_depths: the depth at which each propagator was entailed, -1 when active
-    :type entailed_propagator_depths: NDArray
-    :param entailment_trail: the entailment trail, the first cell holds the trail size,
-                             the following cells hold the indices of the entailed propagators in entailment order
-    :type entailment_trail: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
@@ -130,6 +126,7 @@ def bc_algorithm(
     # outside this function reads it before then, and keeping it out of memory takes a load and a store
     # off every bound the propagation narrows.
     trail_size = trail_top[0]
+    entailed_index = len(domains) << 1  # the entailment flags follow the domain bounds in state
     statistics[STATS_IDX_ALG_BC_NB] += 1
     membership_offset = STORAGE_OFFSET + propagator_nb
     while True:
@@ -159,13 +156,11 @@ def bc_algorithm(
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
-            if entailed_propagator_depths[prop_idx] == -1:
-                # entailment is monotonic within a branch: record the shallowest depth at which the
-                # propagator became entailed and push it onto the trail, so a single comparison
-                # (depth != -1) detects it and a backtrack above that depth can reactivate it
-                entailed_propagator_depths[prop_idx] = top
-                entailment_trail[0] += 1
-                entailment_trail[entailment_trail[0]] = prop_idx
+            if not entailed[prop_idx]:
+                # entailment needs no positional guard: it is monotonic within a branch and this test
+                # has just established the flag is still clear, so it cannot be trailed twice in a level
+                trail_size = trail_push(trail, pos, trail_size, entailed_index + prop_idx, 0)
+                entailed[prop_idx] = 1
         no_change, trail_size = update_domains(
             prop_idx,
             prop_var_start,
@@ -179,7 +174,7 @@ def bc_algorithm(
             mark,
             trail_size,
             triggered_propagators,
-            entailed_propagator_depths,
+            entailed,
             triggers,
             triggers_offsets,
             priorities,
@@ -206,7 +201,7 @@ def update_domains(
     mark: int,
     trail_size: int,
     triggered_propagators: NDArray,
-    entailed_propagator_depths: NDArray,
+    entailed: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
     priorities: NDArray,
@@ -248,15 +243,12 @@ def update_domains(
                         if not (
                             triggered_propagators[membership_offset + other_prop_idx]
                             or other_prop_idx == prop_idx
-                            or entailed_propagator_depths[other_prop_idx] != -1
+                            or entailed[other_prop_idx]
                         ):
                             buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
                 else:
                     for other_prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
-                        if not (
-                            triggered_propagators[membership_offset + other_prop_idx]
-                            or entailed_propagator_depths[other_prop_idx] != -1
-                        ):
+                        if not (triggered_propagators[membership_offset + other_prop_idx] or entailed[other_prop_idx]):
                             buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
                 no_changes = False
     return no_changes, trail_size
