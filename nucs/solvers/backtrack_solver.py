@@ -20,7 +20,6 @@ from numpy.typing import NDArray
 
 from nucs.buckets import buckets_create, buckets_empty, buckets_init
 from nucs.constants import (
-    EVENT_MASK_NB,
     LOG_LEVEL_INFO,
     MAX,
     MIN,
@@ -597,13 +596,15 @@ def solve_one(
                         ),
                     )
                     top = stks_top[0]
-                    offset = variable * EVENT_MASK_NB + events
                     update_propagators(
                         triggered_propagators,
                         entailed_propagator_depths,
-                        triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]],
+                        triggers,
+                        triggers_offsets,
                         priorities,
                         propagator_nb,
+                        variable,
+                        events,
                     )
                     statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
                     statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = max(statistics[STATS_IDX_SOLVER_CHOICE_DEPTH], top)

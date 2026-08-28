@@ -20,7 +20,6 @@ from nucs.constants import (
     EVENT_MASK_GROUND,
     EVENT_MASK_MAX,
     EVENT_MASK_MIN,
-    EVENT_MASK_NB,
     MAX,
     MIN,
     STATS_IDX_SOLVER_BACKTRACK_NB,
@@ -123,7 +122,7 @@ def backtrack(
     triggered_propagators: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    complexities: NDArray,
+    priorities: NDArray,
     propagator_nb: int,
 ) -> bool:
     """
@@ -145,8 +144,8 @@ def backtrack(
     :type triggers: NDArray
     :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
     :type triggers_offsets: NDArray
-    :param complexities: the propagation queue bucket priorities indexed by propagators
-    :type complexities: NDArray
+    :param priorities: the propagation queue bucket priorities indexed by propagators
+    :type priorities: NDArray
 
     :return: true iff it is possible to backtrack
     :rtype: bool
@@ -158,13 +157,15 @@ def backtrack(
     statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
     unwind_entailment_trail(entailed_propagator_depths, entailment_trail, top)
     domain_update = domain_update_stk[top]
-    offset = domain_update[DOM_UPDATE_VARIABLE] * EVENT_MASK_NB + domain_update[DOM_UPDATE_EVENTS]
     update_propagators(
         triggered_propagators,
         entailed_propagator_depths,
-        triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]],
-        complexities,
+        triggers,
+        triggers_offsets,
+        priorities,
         propagator_nb,
+        domain_update[DOM_UPDATE_VARIABLE],
+        domain_update[DOM_UPDATE_EVENTS],
     )
     return True
 
@@ -250,23 +251,27 @@ def fix_choice_points(
     domain = domains_stk[top, variable]
     if domain[MIN] == domain[MAX]:
         events |= EVENT_MASK_GROUND
-    offset = variable * EVENT_MASK_NB + events
     update_propagators(
         triggered_propagators,
         entailed_propagator_depths,
-        triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]],
+        triggers,
+        triggers_offsets,
         priorities,
         propagator_nb,
+        variable,
+        events,
     )
     # schedule the resumed choice point's pending alternative-branch decision (as backtrack does)
     domain_update = domain_update_stk[top]
-    offset = domain_update[DOM_UPDATE_VARIABLE] * EVENT_MASK_NB + domain_update[DOM_UPDATE_EVENTS]
     update_propagators(
         triggered_propagators,
         entailed_propagator_depths,
-        triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]],
+        triggers,
+        triggers_offsets,
         priorities,
         propagator_nb,
+        domain_update[DOM_UPDATE_VARIABLE],
+        domain_update[DOM_UPDATE_EVENTS],
     )
     return True
 

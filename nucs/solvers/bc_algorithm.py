@@ -20,8 +20,8 @@ from nucs.constants import (
     EVENT_MASK_GROUND,
     EVENT_MASK_MAX,
     EVENT_MASK_MIN,
-    EVENT_MASK_NB,
     EVENT_MASK_NONE,
+    EVENT_NB,
     MAX,
     MIN,
     PARAM,
@@ -219,7 +219,7 @@ def update_domains(
                 if domain_min == domain_max:
                     events |= EVENT_MASK_GROUND
                     unbound_variable_nb_stk[top] -= 1
-                offset = variable * EVENT_MASK_NB + events
+                offset = (variable << EVENT_NB) | events
                 if is_idempotent:
                     for other_prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
                         if not (

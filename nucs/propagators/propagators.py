@@ -17,6 +17,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.buckets import STORAGE_OFFSET, buckets_add
+from nucs.constants import EVENT_NB
 from nucs.propagators.abs_eq_propagator import compute_domains_abs_eq, get_complexity_abs_eq, get_triggers_abs_eq
 from nucs.propagators.add_c_eq_propagator import (
     compute_domains_add_c_eq,
@@ -467,11 +468,15 @@ ALG_VALUE_PRECEDE = register_propagator(
 def update_propagators(
     triggered_propagators: NDArray,
     entailed_propagator_depths: NDArray,
-    propagators: NDArray,
+    triggers: NDArray,
+    triggers_offsets: NDArray,
     priorities: NDArray,
     propagator_nb: int,
+    variable: int,
+    events: int,
 ) -> None:
+    offset = (variable << EVENT_NB) | events
     membership_offset = STORAGE_OFFSET + propagator_nb
-    for prop_idx in propagators:
+    for prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
         if entailed_propagator_depths[prop_idx] == -1:
             buckets_add(triggered_propagators, priorities, prop_idx, membership_offset)

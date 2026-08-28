@@ -17,7 +17,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MIN, EVENT_MASK_NB, MAX, MIN
+from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MIN, EVENT_NB, MAX, MIN
 from nucs.numba_helper import ComputeDomainsFunctions
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
@@ -127,7 +127,7 @@ def golomb_consistency_algorithm(
     propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
-    complexities: NDArray,
+    priorities: NDArray,
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -154,7 +154,7 @@ def golomb_consistency_algorithm(
     """
     top = stks_top[0]
     # first prune the search space
-    domain_nb = (len(triggers_offsets) - 1) // EVENT_MASK_NB
+    domain_nb = (len(triggers_offsets) - 1) >> EVENT_NB
     mark_nb = (1 + int(math.sqrt(8 * domain_nb + 1))) >> 1
     # the first unbound variable in index order (the marks are the leading variables), -1 when all are bound
     ni_var = -1
@@ -190,19 +190,21 @@ def golomb_consistency_algorithm(
                     if domains_stk[top, var, MIN] == domains_stk[top, var, MAX]:
                         events |= EVENT_MASK_GROUND
                         unbound_variable_nb_stk[top] -= 1
-                    offset = var * EVENT_MASK_NB + events
                     update_propagators(
                         triggered_propagators,
                         entailed_propagator_depths,
-                        triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]],
-                        complexities,
+                        triggers,
+                        triggers_offsets,
+                        priorities,
                         propagator_nb,
+                        var,
+                        events,
                     )
     return bc_algorithm(
         propagator_nb,
         statistics,
         algorithms,
-        complexities,
+        priorities,
         offsets,
         propagator_variables,
         propagator_parameters,

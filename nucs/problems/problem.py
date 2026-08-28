@@ -23,6 +23,7 @@ from rich import print
 from nucs.buckets import compute_priority
 from nucs.constants import (
     EVENT_MASK_NB,
+    EVENT_NB,
     NUMBA_DISABLE_JIT,
     PARAM,
     SIGN_GET_TRIGGERS,
@@ -190,7 +191,7 @@ class Problem:
             self.algorithms,
             get_triggers_addrs,
         )
-        self.triggers_offsets = np.zeros(self.domain_nb * EVENT_MASK_NB + 1, dtype=np.int32)
+        self.triggers_offsets = np.zeros((self.domain_nb << EVENT_NB) + 1, dtype=np.int32)
         np.cumsum(counts.reshape(-1), out=self.triggers_offsets[1:])
         self.triggers = np.empty(int(self.triggers_offsets[-1]), dtype=np.int32)
         cursors = self.triggers_offsets[:-1].copy()
@@ -378,6 +379,6 @@ def fill_triggers(
             trigger = trigger_fct(var_nb, var_idx, parameters)
             for event_mask in range(1, EVENT_MASK_NB):
                 if trigger & event_mask:
-                    position = cursors[variable * EVENT_MASK_NB + event_mask]
+                    position = cursors[(variable << EVENT_NB) | event_mask]
                     triggers[position] = propagator
-                    cursors[variable * EVENT_MASK_NB + event_mask] = position + 1
+                    cursors[(variable << EVENT_NB) | event_mask] = position + 1
