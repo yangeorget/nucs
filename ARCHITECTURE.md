@@ -131,33 +131,46 @@ CSR-style: a `bounds` array delimits, for each propagator, its slice of the flat
 `P` = `propagator_nb`. A dense `(domain_nb, 8, propagator_nb)` trigger table would be mostly empty, so the propagators
 watching `(variable, event)` are the slice `triggers[triggers_offsets[variable·8 + event] : … + 1]`.
 
-### Choice points copy the whole domains array instead of trailing
+### Backtrackable state is trailed, not copied
 
-`cp_put` copies the top of `domains_stk`; backtracking is a stack-pointer decrement. O(variables) memcpy per choice
-point beats O(changes) trail bookkeeping because the copy is a contiguous `int32` memcpy and restore becomes free. The
-choice-point state is a set of parallel stacks of height `H = stks_max_height` (8192 by default), all sharing one top:
+Every backtrackable value lives in one flat `int32` array, and one undo log restores all of it:
 
-| array | shape | dtype | per-level meaning |
-|-------|-------|-------|-------------------|
-| `domains_stk` | `(H, domain_nb, 2)` | int32 | the domains snapshot at that level (level `top` is the live one) |
-| `domain_update_stk` | `(H, 2)` | uint32 | the pending branch decision `[DOM_UPDATE_VARIABLE, DOM_UPDATE_EVENTS]` |
-| `unbound_variable_nb_stk` | `(H,)` | uint32 | number of still-unbound variables |
-| `stks_top` | `(1,)` | uint32 | current top index, shared by all three stacks |
+```
+              0                     2n                2n+P      2n+P+1
+state (int32) [ ----- domains ----- | --- entailed --- | unbound ]     n = domain_nb, P = propagator_nb
+```
 
-The one exception is **entailment**, which *is* trailed: it is indexed by propagator, not variable, and entailment is
-monotonic within a branch, so a depth per propagator plus a depth-ordered trail to unwind is cheaper than copying a
-propagator-sized array at every choice point.
+`domains` is an `int32[:, ::1]` view of the head and `entailed` a view of the middle — the same memory, addressed the
+way each reader wants it — so the flat index of `(variable, bound)` is `(variable << 1) | bound` and that of
+propagator `p` is `2n + p`. A trail entry is `(flat index, old value)` with no discriminator, so restoring a domain
+bound, reactivating an entailed propagator and rolling back the unbound-variable count are the same instruction.
 
-| array | shape | dtype | meaning |
-|-------|-------|-------|---------|
-| `entailed_propagator_depths` | `(P,)` | int32 | depth at which each propagator was entailed, `-1` = active |
-| `entailment_trail` | `(P + 1,)` | int32 | `[0]` = trail size; `[1:]` = entailed propagator ids in entailment (depth) order |
+| array | shape | dtype | role |
+|-------|-------|-------|------|
+| `state` | `(2·domain_nb + P + 1,)` | int32 | all the backtrackable state |
+| `trail` | `(T, 2)` | int32 | the undo log |
+| `trail_top` | `(1,)` | int32 | the trail size |
+| `pos` | `(len(state),)` | int32 | index of the last trail entry per cell, `-1` when none |
+| `level_stk` | `(H, 4)` | int32 | per level: `[LEVEL_TRAIL_MARK, LEVEL_VARIABLE, LEVEL_BOUND, LEVEL_VALUE]` |
+| `stks_top` | `(1,)` | uint32 | the search depth |
 
-On backtrack to depth `d`, `unwind_entailment_trail` pops every trailed propagator whose recorded depth is `> d` and
-resets it to active — a single depth-ordered scan, no per-level array to restore.
+A push copies nothing: it records the trail position and the single-bound tightening to apply on return, and writes
+only the branch it explores. The alternatives are not materialised until the search reaches them.
 
-See `CHOICE_POINTS.md` for the mechanism in detail: what `top` means, why branching writes both branches but
-propagates only one, and what the two `OPTIM_*` modes do to the stacks.
+**This trades time for the memory ceiling, deliberately.** `domains_stk` was `(H, domain_nb, 2)` int32 preallocated
+before solving started — 64 KB per variable whatever the search did, so `bibd(10,15,6,4,2)` reserved 51.7 MB and a
+10k-variable FlatZinc model would have wanted 655 MB. That is now 0.6 MB, and the ceiling on model size is gone. The
+cost is 5-15% of throughput: measured on `golomb(9)`, 27 of the 72 domain cells are trailed per node, at 3 scattered
+cells per push plus the undo, against one contiguous 72-cell memcpy — copying wins in that regime, and NuCS's models
+are in it. `H` and `T` are starting sizes rather than ceilings; `solve_one` stops when either fills and the solver
+doubles it, losing nothing of the search.
+
+The write barrier lives in one place, `tighten`, which is the only site that writes a domain — propagation, branching,
+the objective clamp, a custom consistency algorithm. Entailment is the exception: it has a semantic guard (a flag is
+only written where it has just been read as clear) so it skips the positional one.
+
+See `CHOICE_POINTS.md` for the mechanism in detail: the exact rule the barrier implements and why each part of it is
+load-bearing, what the three decision kinds are, and what the two `OPTIM_*` modes do.
 
 ### Propagators are stateless pure functions on a scratch buffer
 

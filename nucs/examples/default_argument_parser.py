@@ -34,7 +34,7 @@ class DefaultArgumentParser(argparse.ArgumentParser):
         )
         self.add_argument(
             "--cp-max-height",
-            help="set the maximal height of the choice points stack",
+            help="set the initial maximal height of the choice points stack, which grows as needed",
             type=int,
         )
         self.add_argument(
