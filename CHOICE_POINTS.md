@@ -51,9 +51,9 @@ be *wrong*, not merely slower, because undoing to the level's own mark would era
 | array | shape | dtype | role |
 |-------|-------|-------|------|
 | `state` | `(2·domain_nb + propagator_nb + 1,)` | int32 | all the backtrackable state; `domains` and `entailed` are views into it |
-| `trail` | `(T, 2)` | int32 | the undo log: `[flat index, old value]` |
+| `trail_log` | `(T, 2)` | int32 | the undo log: `[flat index, old value]` |
 | `trail_top` | `(1,)` | int32 | the trail size |
-| `pos` | `(len(state),)` | int32 | index of the last trail entry per cell, `-1` when none |
+| `trail_idx` | `(len(state),)` | int32 | index of the last trail entry per cell, `-1` when none |
 
 ### Per-level
 
@@ -81,11 +81,11 @@ Every backtrackable write goes through `trail_set`, and the rule it implements i
 > index `>= level_stk[stks_top[0], LEVEL_TRAIL_MARK]`.
 
 ```python
-entry = pos[flat]
+entry = trail_idx[flat]
 if not mark <= entry < top:
-    trail[top, 0] = flat
-    trail[top, 1] = old
-    pos[flat] = top
+    trail_log[top, 0] = flat
+    trail_log[top, 1] = old
+    trail_idx[flat] = top
     top += 1
 state[flat] = value
 ```
@@ -94,7 +94,8 @@ Redundant entries are always safe — undo is LIFO, so an extra entry restores a
 the one after it — but a missing entry corrupts.
 
 **"For `flat`" is load-bearing, and a position inside the live range does not establish it.** Popping the
-trail and letting it regrow leaves `pos[flat]` pointing at an index another cell has since claimed. So
+trail and letting it regrow leaves `trail_idx[flat]` pointing at an index another cell has since
+claimed. So
 `trail_undo` clears the position of every entry it pops, and a position is stale only by being `-1`. The
 cost lands on the pop, once per trailed write, rather than on the skip, which happens as often as a
 fixpoint re-narrows a bound.
@@ -205,7 +206,7 @@ that; a three-way split does not, and the mismatch discarded a surviving level a
 
 ## Growing
 
-`trail` and `level_stk` are caller-allocated, so they cannot grow inside `@njit`. Sizing them for their
+`trail_log` and `level_stk` are caller-allocated, so they cannot grow inside `@njit`. Sizing them for their
 worst case — depth × (2·`domain_nb` + 1) trail entries — would hand back the memory this representation
 wins, and a hard failure would end a long optimization run for nothing. So `solve_one` checks for room
 before each step, stops with `SOLVER_TRAIL_FULL` or `SOLVER_LEVELS_FULL`, and `BacktrackSolver._grow`

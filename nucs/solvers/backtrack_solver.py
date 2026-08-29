@@ -224,9 +224,9 @@ class BacktrackSolver(Solver):
         self.trail_headroom = 2 * domain_nb + propagator_nb + 9
         # the default leaves room for several steps, so that a wide model does not spend its first
         # moments doubling an array that was never going to be big enough
-        self.trail = np.empty((trail_max_size or max(1 << 16, 4 * self.trail_headroom), 2), dtype=np.int32)
+        self.trail_log = np.empty((trail_max_size or max(1 << 16, 4 * self.trail_headroom), 2), dtype=np.int32)
         self.trail_top = np.zeros((1,), dtype=np.int32)
-        self.pos = np.full(len(self.state), -1, dtype=np.int32)
+        self.trail_idx = np.full(len(self.state), -1, dtype=np.int32)
         self.level_stk = np.zeros((stks_max_height, LEVEL_WIDTH), dtype=np.int32)
         self.stks_top = np.ones((1,), dtype=np.uint32)
         self.status = np.zeros(SOLVER_STATUS_WIDTH, dtype=np.int32)
@@ -236,7 +236,7 @@ class BacktrackSolver(Solver):
         # scratch for the domain heuristic's split value, allocated once rather than returned as a tuple
         self.decision = np.zeros(DECISION_WIDTH, dtype=np.int32)
         logger.info(f"The stacks of the choice points have a maximal height of {stks_max_height}")
-        logger.info(f"The trail starts at {len(self.trail)} entries and grows when it runs out")
+        logger.info(f"The trail starts at {len(self.trail_log)} entries and grows when it runs out")
         self.initial_domains = np.array(problem.domains)
         self._cp_init()
         logger.debug("Choice points initialized")
@@ -341,9 +341,9 @@ class BacktrackSolver(Solver):
             self.state,
             self.domains,
             self.entailed,
-            self.trail,
+            self.trail_log,
             self.trail_top,
-            self.pos,
+            self.trail_idx,
             self.level_stk,
             self.stks_top,
             self.triggered_propagators,
@@ -387,7 +387,7 @@ class BacktrackSolver(Solver):
         if mode == OPTIM_RESET:
             logger.debug("Resetting solver")
             self._cp_init()
-            if not fix_choice_point(self.state, self.trail, self.trail_top, self.pos, variable, value, bound):
+            if not fix_choice_point(self.state, self.trail_log, self.trail_top, self.trail_idx, variable, value, bound):
                 return False
             buckets_init(self.triggered_propagators, self.problem.priorities)
         else:
@@ -409,7 +409,7 @@ class BacktrackSolver(Solver):
             self.state,
             self.entailed,
             self.trail_top,
-            self.pos,
+            self.trail_idx,
             self.level_stk,
             self.stks_top,
             self.initial_domains,
@@ -426,10 +426,10 @@ class BacktrackSolver(Solver):
         this representation wins, and a hard failure would end a long optimization run for no reason.
         """
         if self.status[SOLVER_STATUS] == SOLVER_TRAIL_FULL:
-            trail = np.empty((2 * len(self.trail), 2), dtype=np.int32)
-            trail[: len(self.trail)] = self.trail
-            self.trail = trail
-            logger.info(f"The trail grew to {len(self.trail)} entries")
+            trail = np.empty((2 * len(self.trail_log), 2), dtype=np.int32)
+            trail[: len(self.trail_log)] = self.trail_log
+            self.trail_log = trail
+            logger.info(f"The trail grew to {len(self.trail_log)} entries")
         else:
             level_stk = np.zeros((2 * len(self.level_stk), LEVEL_WIDTH), dtype=np.int32)
             level_stk[: len(self.level_stk)] = self.level_stk
@@ -447,9 +447,9 @@ class BacktrackSolver(Solver):
         return backtrack(
             self.statistics,
             self.state,
-            self.trail,
+            self.trail_log,
             self.trail_top,
-            self.pos,
+            self.trail_idx,
             self.level_stk,
             self.stks_top,
             self.entailed,

@@ -141,9 +141,9 @@ class TestBacktrackSolver:
             solver.state,
             solver.domains,
             solver.entailed,
-            solver.trail,
+            solver.trail_log,
             solver.trail_top,
-            solver.pos,
+            solver.trail_idx,
             solver.level_stk,
             solver.stks_top,
             solver.triggered_propagators,
@@ -180,9 +180,9 @@ class TestBacktrackSolver:
         assert backtrack(
             solver.statistics,
             solver.state,
-            solver.trail,
+            solver.trail_log,
             solver.trail_top,
-            solver.pos,
+            solver.trail_idx,
             solver.level_stk,
             solver.stks_top,
             solver.entailed,
@@ -213,8 +213,8 @@ class TestBacktrackSolver:
         assert solver.stks_top[0] == 0  # exhausted, back at the root
         # the root's own refutations are never undone -- nothing pops past level 0 -- but everything
         # deeper is, so what is left is a handful of entries rather than one snapshot per level
-        assert solver.trail_top[0] < 4 * len(solver.pos)
-        assert len(solver.trail) == 1 << 16  # it never had to grow
+        assert solver.trail_top[0] < 4 * len(solver.trail_idx)
+        assert len(solver.trail_log) == 1 << 16  # it never had to grow
 
     @pytest.mark.parametrize("trail_max_size", [8, 9, 16, 17, 33])
     def test_the_trail_grows_rather_than_overruns(self, trail_max_size: int) -> None:
@@ -233,7 +233,7 @@ class TestBacktrackSolver:
         assert len(reference) == 336
         solver = BacktrackSolver(build(), trail_max_size=trail_max_size)
         assert [solution.tolist() for solution in solver.find_all()] == reference
-        assert len(solver.trail) > trail_max_size  # it did have to grow
+        assert len(solver.trail_log) > trail_max_size  # it did have to grow
 
     def test_the_level_stack_grows_rather_than_overruns(self) -> None:
         """Likewise for a search deeper than the level stack: grow, do not corrupt memory."""

@@ -56,9 +56,9 @@ def bc_algorithm(
     state: NDArray,
     domains: NDArray,
     entailed: NDArray,
-    trail: NDArray,
+    trail_log: NDArray,
     trail_top: NDArray,
-    pos: NDArray,
+    trail_idx: NDArray,
     level_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
@@ -93,12 +93,12 @@ def bc_algorithm(
     :type domains: NDArray
     :param entailed: whether each propagator is entailed, a view of state
     :type entailed: NDArray
-    :param trail: the undo log of (flat index, old value) pairs
-    :type trail: NDArray
+    :param trail_log: the undo log of (flat index, old value) pairs
+    :type trail_log: NDArray
     :param trail_top: the trail size as a Numpy array
     :type trail_top: NDArray
-    :param pos: the index of the last trail entry per positionally guarded cell
-    :type pos: NDArray
+    :param trail_idx: the index of the last trail entry per positionally guarded cell
+    :type trail_idx: NDArray
     :param level_stk: the per-level metadata
     :type level_stk: NDArray
     :param stks_top: the height of the stacks as a Numpy array
@@ -159,7 +159,7 @@ def bc_algorithm(
             if not entailed[prop_idx]:
                 # entailment needs no positional guard: it is monotonic within a branch and this test
                 # has just established the flag is still clear, so it cannot be trailed twice in a level
-                trail_size = trail_push(trail, pos, trail_size, entailed_index + prop_idx, 0)
+                trail_size = trail_push(trail_log, trail_idx, trail_size, entailed_index + prop_idx, 0)
                 entailed[prop_idx] = 1
         no_change, trail_size = update_domains(
             prop_idx,
@@ -169,8 +169,8 @@ def bc_algorithm(
             prop_domains,
             propagator_variables,
             state,
-            trail,
-            pos,
+            trail_log,
+            trail_idx,
             mark,
             trail_size,
             triggered_propagators,
@@ -196,8 +196,8 @@ def update_domains(
     prop_domains: NDArray,
     propagator_variables: NDArray,
     state: NDArray,
-    trail: NDArray,
-    pos: NDArray,
+    trail_log: NDArray,
+    trail_idx: NDArray,
     mark: int,
     trail_size: int,
     triggered_propagators: NDArray,
@@ -228,8 +228,8 @@ def update_domains(
         if state[flat] != state[flat | 1]:
             events, trail_size = tighten_at(
                 state,
-                trail,
-                pos,
+                trail_log,
+                trail_idx,
                 mark,
                 trail_size,
                 variable,

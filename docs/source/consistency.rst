@@ -49,7 +49,7 @@ what keeps the solver's "is this problem solved?" test correct. It returns the e
 .. code-block:: python
    :linenos:
 
-   events = tighten(state, trail, trail_top, pos, mark, variable, new_min, new_max)
+   events = tighten(state, trail_log, trail_top, trail_idx, mark, variable, new_min, new_max)
    if events:
        update_propagators(triggered_propagators, entailed, triggers, triggers_offsets,
                           priorities, propagator_nb, variable, events)
