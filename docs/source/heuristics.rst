@@ -42,8 +42,8 @@ A variable heuristic chooses the variable to branch on, and returns :code:`-1` w
 Domain heuristics
 #################
 
-A domain heuristic says **where** to split the chosen variable's domain; it does not split it. It writes
-the split value into :code:`decision` and returns the kind of split:
+A domain heuristic says **where** to split the chosen variable's domain; it does not split it. It returns
+the kind of split and the value to split at:
 
 ============================ ======================= ==========================================
 kind                         explored branch         parked alternatives (resumed in this order)
@@ -57,12 +57,12 @@ kind                         explored branch         parked alternatives (resume
    :linenos:
 
    @njit(cache=True)
-   def my_dom_heuristic(domains: NDArray, variable: int, params: NDArray, decision: NDArray) -> int:
-       decision[DECISION_VALUE] = (domains[variable, MIN] + domains[variable, MAX]) >> 1
-       return DECISION_LE
+   def my_dom_heuristic(domains: NDArray, variable: int, params: NDArray) -> tuple[int, int]:
+       return DECISION_LE, (domains[variable, MIN] + domains[variable, MAX]) >> 1
 
 The heuristic mutates nothing: the solver applies the decision, maintains the unbound-variable count and
-schedules the propagators the split wakes. A :code:`DECISION_EQ` value outside the domain is clamped into
+schedules the propagators the split wakes. The pair is :code:`int32`; return values in the domain's range
+and no cast is needed. A :code:`DECISION_EQ` value outside the domain is clamped into
 it, so a split is always a partition of the domain and the enumeration stays complete.
 
 .. warning::

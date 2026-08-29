@@ -13,11 +13,11 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import DECISION_GT, DECISION_VALUE, MAX, MIN
+from nucs.constants import DECISION_GT, MAX, MIN
 
 
 @njit(cache=True)
-def split_high_dom_heuristic(domains: NDArray, variable: int, params: NDArray, decision: NDArray) -> int:
+def split_high_dom_heuristic(domains: NDArray, variable: int, params: NDArray) -> tuple[int, int]:
     """
     Chooses the second half of the domain.
 
@@ -27,11 +27,8 @@ def split_high_dom_heuristic(domains: NDArray, variable: int, params: NDArray, d
     :type variable: int
     :param params: a two-dimensional parameter array, unused here
     :type params: NDArray
-    :param decision: the decision, written by this function
-    :type decision: NDArray
 
-    :return: the kind of the decision
-    :rtype: int
+    :return: the kind of the decision and the value the domain is split at
+    :rtype: Tuple[int, int]
     """
-    decision[DECISION_VALUE] = (domains[variable, MIN] + domains[variable, MAX]) >> 1
-    return DECISION_GT
+    return DECISION_GT, (domains[variable, MIN] + domains[variable, MAX]) >> 1

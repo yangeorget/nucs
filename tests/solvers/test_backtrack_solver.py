@@ -162,7 +162,6 @@ class TestBacktrackSolver:
             solver.domain_buffer,
             IDEMPOTENT,
             solver.objective,
-            solver.decision,
             solver.status,
             solver.trail_headroom,
         )

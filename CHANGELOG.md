@@ -21,7 +21,8 @@ not, which is why it is worth reading.
 
 A domain heuristic used to perform the branching itself: push a choice point, write the explored branch
 into one stack level and the parked alternative into another, and maintain the unbound-variable count
-for both. It now only says *where* to split, and the solver does the rest.
+for both. It now only says *where* to split -- returning a kind and a value, mutating nothing -- and the solver
+does the rest.
 
 ```python
 # 14.x
@@ -29,9 +30,8 @@ def my_dom_heuristic(domains_stk, domain_update_stk, unbound_variable_nb_stk, st
     ...  # mutate the stacks, return the events of the branch explored now
 
 # 15.0
-def my_dom_heuristic(domains: NDArray, variable: int, params: NDArray, decision: NDArray) -> int:
-    decision[DECISION_VALUE] = (domains[variable, MIN] + domains[variable, MAX]) >> 1
-    return DECISION_LE
+def my_dom_heuristic(domains: NDArray, variable: int, params: NDArray) -> tuple[int, int]:
+    return DECISION_LE, (domains[variable, MIN] + domains[variable, MAX]) >> 1
 ```
 
 Return one of three kinds; the solver turns it into an explored branch and one or two parked

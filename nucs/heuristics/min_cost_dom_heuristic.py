@@ -15,11 +15,11 @@ import sys
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import DECISION_EQ, DECISION_VALUE, MAX, MIN
+from nucs.constants import DECISION_EQ, MAX, MIN
 
 
 @njit(cache=True)
-def min_cost_dom_heuristic(domains: NDArray, variable: int, params: NDArray, decision: NDArray) -> int:
+def min_cost_dom_heuristic(domains: NDArray, variable: int, params: NDArray) -> tuple[int, int]:
     """
     Chooses the value that minimizes the cost.
 
@@ -33,11 +33,9 @@ def min_cost_dom_heuristic(domains: NDArray, variable: int, params: NDArray, dec
     :type variable: int
     :param params: a two-dimensional (first dimension corresponds to variables, second to values) cost array
     :type params: NDArray
-    :param decision: the decision, written by this function
-    :type decision: NDArray
 
-    :return: the kind of the decision
-    :rtype: int
+    :return: the kind of the decision and the value the domain is split at
+    :rtype: Tuple[int, int]
     """
     best_cost = sys.maxsize
     domain = domains[variable]
@@ -47,5 +45,4 @@ def min_cost_dom_heuristic(domains: NDArray, variable: int, params: NDArray, dec
         if 0 < cost < best_cost:
             best_cost = cost
             best_value = value
-    decision[DECISION_VALUE] = best_value
-    return DECISION_EQ
+    return DECISION_EQ, best_value

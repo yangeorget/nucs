@@ -59,10 +59,6 @@ DECISION_LE = 0  # explore [min, value], park [value + 1, max]
 DECISION_GT = 1  # explore [value + 1, max], park [min, value]
 DECISION_EQ = 2  # explore [value, value], park [min, value - 1] then [value + 1, max]
 
-# Decision array indices
-DECISION_VALUE = 0  # index for the value the domain is split at
-DECISION_WIDTH = 1  # the number of cells of the decision array
-
 # Objective indices.
 # The branch-and-bound bound is solver state, not choice-point state: it is not backtrackable, so it is
 # re-applied to each choice point as the search resumes it rather than written into them all up front.
@@ -126,23 +122,20 @@ SIGN_CONSISTENCY_ALG = int64(
 )
 TYPE_CONSISTENCY_ALG = types.FunctionType(SIGN_CONSISTENCY_ALG)
 
-# A domain heuristic is a pure decision function: it reads the current domains and writes the split value
-# into decision, returning the kind of split. It mutates no search state -- the solver applies the decision.
+# A domain heuristic is a pure decision function: it reads the current domains and returns where to split
+# them, as (kind, value). It mutates nothing -- the solver applies the decision.
 #
-# The split value goes through an out-parameter rather than being returned alongside the kind as a tuple,
-# and that is not a style choice. A heuristic is declared @njit(cache=True) with no signature and compiled
-# for this one later, by _get_wrapper_address. Numba then infers the return of `return DECISION_LE,
-# domains[variable, MIN]` as the heterogeneous Tuple(int64, int32), and the wrapper for a UniTuple(int64, 2)
-# *zero-extends* it: a split value of -5 arrives as 4294967291. It compiles, and it is correct on every
-# non-negative domain, so tests miss it unless they use a negative one (test_minimize_relation does).
-# An explicit int64() cast in the heuristic avoids it, but this is a documented extension point: correct
-# and silently-wrong code would look identical, and the failure would be wrong answers rather than errors.
-# Writing into a caller-owned int32 array crosses no ABI boundary and has no such trap.
-SIGN_DOM_HEURISTIC = int64(
+# The pair is int32, and that matters. A heuristic is declared @njit(cache=True) with no signature and
+# compiled for this one later, by _get_wrapper_address, so how the pair crosses back is an ABI question.
+# Declared as a UniTuple(int64, 2) it is silently wrong: Numba infers `return DECISION_LE,
+# domains[variable, MIN]` as the heterogeneous Tuple(int64, int32), and the wrapper *zero-extends* the
+# int32, so a split value of -5 arrives as 4294967291. Nothing widens at an int32 pair -- the kind
+# narrows from a 0/1/2 constant, losslessly, and the value is already int32 -- so the natural expression
+# is correct without the author casting anything. Verified down to INT32_MIN.
+SIGN_DOM_HEURISTIC = types.UniTuple(int32, 2)(
     int32[:, ::1],  # domains
     int64,  # variable
     int64[:, :],  # dom_heuristic_params
-    int32[::1],  # decision, written by the heuristic
 )
 TYPE_DOM_HEURISTIC = types.FunctionType(SIGN_DOM_HEURISTIC)
 

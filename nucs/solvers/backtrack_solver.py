@@ -21,8 +21,6 @@ from numpy.typing import NDArray
 from nucs.buckets import buckets_create, buckets_empty, buckets_init
 from nucs.constants import (
     CHOICE_POINT_WIDTH,
-    DECISION_VALUE,
-    DECISION_WIDTH,
     LOG_LEVEL_INFO,
     MAX,
     MIN,
@@ -233,8 +231,6 @@ class BacktrackSolver(Solver):
         # the branch-and-bound bound is solver state, not choice-point state: OBJ_VARIABLE is -1 outside
         # OPTIM_PRUNE, and backtrack re-applies the bound to each choice point it resumes
         self.objective = np.full(OBJ_WIDTH, -1, dtype=np.int32)
-        # scratch for the domain heuristic's split value, allocated once rather than returned as a tuple
-        self.decision = np.zeros(DECISION_WIDTH, dtype=np.int32)
         logger.info(f"The stack of choice points has a maximal height of {choice_point_max_height}")
         logger.info(f"The trail starts at {len(self.trail_log)} entries and grows when it runs out")
         self.initial_domains = np.array(problem.domains)
@@ -362,7 +358,6 @@ class BacktrackSolver(Solver):
             self.domain_buffer,
             IDEMPOTENT,
             self.objective,
-            self.decision,
             self.status,
             self.trail_headroom,
         )
@@ -547,7 +542,6 @@ def solve_one(
     domain_buffer: NDArray,
     idempotent: NDArray,
     objective: NDArray,
-    decision: NDArray,
     status: NDArray,
     trail_headroom: int,
 ) -> NDArray | None:
@@ -626,8 +620,6 @@ def solve_one(
     :param objective: the objective as a Numpy array of variable, bound and value,
                       whose variable is -1 when not optimizing
     :type objective: NDArray
-    :param decision: a scratch array the domain heuristic writes its split value into
-    :type decision: NDArray
     :param status: set to SOLVER_TRAIL_FULL or SOLVER_CHOICE_POINTS_FULL when the search stops for want of room
     :type status: NDArray
     :param trail_headroom: the trail entries any one step of the search can need
@@ -691,7 +683,7 @@ def solve_one(
                 )
                 if variable != -1:
                     # the heuristic only says where to split; branch owns the two choice points it takes to do so
-                    kind = dom_heuristic_fcts[search_idx](
+                    kind, value = dom_heuristic_fcts[search_idx](
                         domains,
                         variable,
                         dom_heuristic_params[
@@ -699,7 +691,6 @@ def solve_one(
                         ].reshape(
                             dom_heuristic_params_shapes[search_idx, 0], dom_heuristic_params_shapes[search_idx, 1]
                         ),
-                        decision,
                     )
                     events = branch(
                         state,
@@ -710,7 +701,7 @@ def solve_one(
                         choice_point_top,
                         variable,
                         kind,
-                        decision[DECISION_VALUE],
+                        value,
                     )
                     choice_point = choice_point_top[0]
                     update_propagators(
