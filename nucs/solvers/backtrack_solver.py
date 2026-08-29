@@ -226,7 +226,7 @@ class BacktrackSolver(Solver):
         # moments doubling an array that was never going to be big enough
         self.trail_log = np.empty((trail_max_size or max(1 << 16, 4 * self.trail_headroom), 2), dtype=np.int32)
         self.trail_top = np.zeros((1,), dtype=np.int32)
-        self.trail_idx = np.full(len(self.state), -1, dtype=np.int32)
+        self.trail_indices = np.full(len(self.state), -1, dtype=np.int32)
         self.choice_point_stk = np.zeros((choice_point_max_height, CHOICE_POINT_WIDTH), dtype=np.int32)
         self.choice_point_top = np.ones((1,), dtype=np.uint32)
         self.status = np.zeros(SOLVER_STATUS_WIDTH, dtype=np.int32)
@@ -343,7 +343,7 @@ class BacktrackSolver(Solver):
             self.entailed,
             self.trail_log,
             self.trail_top,
-            self.trail_idx,
+            self.trail_indices,
             self.choice_point_stk,
             self.choice_point_top,
             self.triggered_propagators,
@@ -387,7 +387,9 @@ class BacktrackSolver(Solver):
         if mode == OPTIM_RESET:
             logger.debug("Resetting solver")
             self._cp_init()
-            if not fix_choice_point(self.state, self.trail_log, self.trail_top, self.trail_idx, variable, value, bound):
+            if not fix_choice_point(
+                self.state, self.trail_log, self.trail_top, self.trail_indices, variable, value, bound
+            ):
                 return False
             buckets_init(self.triggered_propagators, self.problem.priorities)
         else:
@@ -409,7 +411,7 @@ class BacktrackSolver(Solver):
             self.state,
             self.entailed,
             self.trail_top,
-            self.trail_idx,
+            self.trail_indices,
             self.choice_point_stk,
             self.choice_point_top,
             self.initial_domains,
@@ -449,7 +451,7 @@ class BacktrackSolver(Solver):
             self.state,
             self.trail_log,
             self.trail_top,
-            self.trail_idx,
+            self.trail_indices,
             self.choice_point_stk,
             self.choice_point_top,
             self.entailed,

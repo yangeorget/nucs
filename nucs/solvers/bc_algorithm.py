@@ -58,7 +58,7 @@ def bc_algorithm(
     entailed: NDArray,
     trail_log: NDArray,
     trail_top: NDArray,
-    trail_idx: NDArray,
+    trail_indices: NDArray,
     choice_point_stk: NDArray,
     choice_point_top: NDArray,
     triggered_propagators: NDArray,
@@ -97,8 +97,8 @@ def bc_algorithm(
     :type trail_log: NDArray
     :param trail_top: the trail size as a Numpy array
     :type trail_top: NDArray
-    :param trail_idx: the index of the last trail entry per positionally guarded cell
-    :type trail_idx: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
     :param choice_point_top: the index of the top of the choice points as a Numpy array
@@ -159,7 +159,7 @@ def bc_algorithm(
             if not entailed[prop_idx]:
                 # entailment needs no positional guard: it is monotonic within a branch and this test
                 # has just established the flag is still clear, so it cannot be trailed twice in a choice point
-                trail_size = trail_push(trail_log, trail_idx, trail_size, entailed_index + prop_idx, 0)
+                trail_size = trail_push(trail_log, trail_indices, trail_size, entailed_index + prop_idx, 0)
                 entailed[prop_idx] = 1
         no_change, trail_size = update_domains(
             prop_idx,
@@ -170,7 +170,7 @@ def bc_algorithm(
             propagator_variables,
             state,
             trail_log,
-            trail_idx,
+            trail_indices,
             mark,
             trail_size,
             triggered_propagators,
@@ -197,7 +197,7 @@ def update_domains(
     propagator_variables: NDArray,
     state: NDArray,
     trail_log: NDArray,
-    trail_idx: NDArray,
+    trail_indices: NDArray,
     mark: int,
     trail_size: int,
     triggered_propagators: NDArray,
@@ -229,7 +229,7 @@ def update_domains(
             events, trail_size = tighten_at(
                 state,
                 trail_log,
-                trail_idx,
+                trail_indices,
                 mark,
                 trail_size,
                 variable,

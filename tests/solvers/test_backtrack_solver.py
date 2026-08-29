@@ -143,7 +143,7 @@ class TestBacktrackSolver:
             solver.entailed,
             solver.trail_log,
             solver.trail_top,
-            solver.trail_idx,
+            solver.trail_indices,
             solver.choice_point_stk,
             solver.choice_point_top,
             solver.triggered_propagators,
@@ -184,7 +184,7 @@ class TestBacktrackSolver:
             solver.state,
             solver.trail_log,
             solver.trail_top,
-            solver.trail_idx,
+            solver.trail_indices,
             solver.choice_point_stk,
             solver.choice_point_top,
             solver.entailed,
@@ -215,7 +215,7 @@ class TestBacktrackSolver:
         assert solver.choice_point_top[0] == 0  # exhausted, back at the root
         # the root's own refutations are never undone -- nothing pops past choice point 0 -- but everything
         # deeper is, so what is left is a handful of entries rather than one snapshot per choice point
-        assert solver.trail_top[0] < 4 * len(solver.trail_idx)
+        assert solver.trail_top[0] < 4 * len(solver.trail_indices)
         assert len(solver.trail_log) == 1 << 16  # it never had to grow
 
     @pytest.mark.parametrize("trail_max_size", [8, 9, 16, 17, 33])

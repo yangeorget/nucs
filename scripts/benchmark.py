@@ -90,7 +90,7 @@ CHOICE_POINT_ARRAYS = (
     "entailed_propagator_depths",
     "state",
     "trail_log",
-    "trail_idx",
+    "trail_indices",
     "choice_point_stk",
     "entailed",
 )

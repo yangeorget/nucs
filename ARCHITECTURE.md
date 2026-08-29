@@ -150,7 +150,7 @@ bound, reactivating an entailed propagator and rolling back the unbound-variable
 | `state` | `(2·domain_nb + P + 1,)` | int32 | all the backtrackable state |
 | `trail_log` | `(T, 2)` | int32 | the undo log |
 | `trail_top` | `(1,)` | int32 | the trail size |
-| `trail_idx` | `(len(state),)` | int32 | index of the last trail entry per cell, `-1` when none |
+| `trail_indices` | `(len(state),)` | int32 | index of the last trail entry per cell, `-1` when none |
 | `choice_point_stk` | `(H, 4)` | int32 | per choice point: `[CHOICE_POINT_TRAIL_MARK, CHOICE_POINT_VARIABLE, CHOICE_POINT_BOUND, CHOICE_POINT_VALUE]` |
 | `choice_point_top` | `(1,)` | uint32 | the search depth |
 

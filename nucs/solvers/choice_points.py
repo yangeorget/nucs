@@ -54,7 +54,7 @@ def unbound_index(state: NDArray) -> int:
 
 
 @njit(cache=True, inline="always")
-def trail_push(trail_log: NDArray, trail_idx: NDArray, trail_size: int, flat: int, old: int) -> int:
+def trail_push(trail_log: NDArray, trail_indices: NDArray, trail_size: int, flat: int, old: int) -> int:
     """
     Records a cell's old value unconditionally, for state that guards itself.
 
@@ -64,8 +64,8 @@ def trail_push(trail_log: NDArray, trail_idx: NDArray, trail_size: int, flat: in
 
     :param trail_log: the undo log of (flat index, old value) pairs
     :type trail_log: NDArray
-    :param trail_idx: the index of the last trail entry per cell
-    :type trail_idx: NDArray
+    :param trail_indices: the index of the last trail entry per cell
+    :type trail_indices: NDArray
     :param trail_size: the number of entries currently on the trail
     :type trail_size: int
     :param flat: the index of the cell in state
@@ -78,13 +78,20 @@ def trail_push(trail_log: NDArray, trail_idx: NDArray, trail_size: int, flat: in
     """
     trail_log[trail_size, 0] = flat
     trail_log[trail_size, 1] = old
-    trail_idx[flat] = trail_size
+    trail_indices[flat] = trail_size
     return trail_size + 1
 
 
 @njit(cache=True, inline="always")
 def trail_set(
-    state: NDArray, trail_log: NDArray, trail_idx: NDArray, mark: int, trail_size: int, flat: int, old: int, value: int
+    state: NDArray,
+    trail_log: NDArray,
+    trail_indices: NDArray,
+    mark: int,
+    trail_size: int,
+    flat: int,
+    old: int,
+    value: int,
 ) -> int:
     """
     Writes a cell of the backtrackable state, recording its old value if this choice point has not already.
@@ -95,7 +102,7 @@ def trail_set(
     but a missing entry corrupts.
 
     "Live" has to mean live *for this cell*, and a position inside the live range is not by itself
-    evidence of that: popping the trail and letting it regrow leaves trail_idx[flat] pointing at an index
+    evidence of that: popping the trail and letting it regrow leaves trail_indices[flat] pointing at an index
     some other cell has since claimed. Rather than pay to re-read the entry and check whose it is -- a random
     load on exactly the path that was about to be cheap -- trail_undo clears the position of every entry
     it pops, so a position is stale only by being -1. That moves the cost to the pop, which happens once
@@ -113,8 +120,8 @@ def trail_set(
 
     :param trail_log: the undo log of (flat index, old value) pairs
     :type trail_log: NDArray
-    :param trail_idx: the index of the last trail entry per positionally guarded cell
-    :type trail_idx: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
     :param mark: the trail size when the current choice point branched
     :type mark: int
     :param trail_size: the number of entries currently on the trail
@@ -129,18 +136,18 @@ def trail_set(
     :return: the new trail size
     :rtype: int
     """
-    entry = trail_idx[flat]
+    entry = trail_indices[flat]
     if not mark <= entry < trail_size:  # no live entry for this cell at this choice point
         trail_log[trail_size, 0] = flat
         trail_log[trail_size, 1] = old
-        trail_idx[flat] = trail_size
+        trail_indices[flat] = trail_size
         trail_size += 1
     state[flat] = value
     return trail_size
 
 
 @njit(cache=True)
-def trail_undo(state: NDArray, trail_log: NDArray, trail_idx: NDArray, trail_top: NDArray, mark: int) -> None:
+def trail_undo(state: NDArray, trail_log: NDArray, trail_indices: NDArray, trail_top: NDArray, mark: int) -> None:
     """
     Restores every cell the trail recorded since a mark, and forgets where those entries were.
 
@@ -156,8 +163,8 @@ def trail_undo(state: NDArray, trail_log: NDArray, trail_idx: NDArray, trail_top
     :type state: NDArray
     :param trail_log: the undo log of (flat index, old value) pairs
     :type trail_log: NDArray
-    :param trail_idx: the index of the last trail entry per cell
-    :type trail_idx: NDArray
+    :param trail_indices: the index of the last trail entry per cell
+    :type trail_indices: NDArray
     :param trail_top: the trail size as a Numpy array
     :type trail_top: NDArray
     :param mark: the trail size to restore to
@@ -168,7 +175,7 @@ def trail_undo(state: NDArray, trail_log: NDArray, trail_idx: NDArray, trail_top
         idx -= 1
         flat = trail_log[idx, 0]
         state[flat] = trail_log[idx, 1]
-        trail_idx[flat] = -1
+        trail_indices[flat] = -1
     trail_top[0] = mark
 
 
@@ -177,7 +184,7 @@ def cp_init(
     state: NDArray,
     entailed: NDArray,
     trail_top: NDArray,
-    trail_idx: NDArray,
+    trail_indices: NDArray,
     choice_point_stk: NDArray,
     choice_point_top: NDArray,
     domains_arr: NDArray,
@@ -186,7 +193,7 @@ def cp_init(
     """
     Initializes the choice points.
 
-    trail_idx has to be cleared rather than left to invalidate itself: the guard reads trail_idx[flat] as
+    trail_indices has to be cleared rather than left to invalidate itself: the guard reads trail_indices[flat] as
     a trail index, and a position left over from a previous search can fall inside the new live range and
     suppress a write that needed trailing.
 
@@ -196,8 +203,8 @@ def cp_init(
     :type entailed: NDArray
     :param trail_top: the trail size as a Numpy array
     :type trail_top: NDArray
-    :param trail_idx: the index of the last trail entry per cell
-    :type trail_idx: NDArray
+    :param trail_indices: the index of the last trail entry per cell
+    :type trail_indices: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
     :param choice_point_top: the index of the top of the choice points as a Numpy array
@@ -212,7 +219,7 @@ def cp_init(
         state[(variable << 1) | 1] = domains_arr[variable, MAX]
     state[unbound_index(state)] = unbound_variable_nb
     entailed.fill(0)
-    trail_idx.fill(-1)
+    trail_indices.fill(-1)
     choice_point_stk[0, CHOICE_POINT_TRAIL_MARK] = 0
     trail_top[0] = choice_point_top[0] = 0
 
@@ -222,7 +229,7 @@ def tighten(
     state: NDArray,
     trail_log: NDArray,
     trail_top: NDArray,
-    trail_idx: NDArray,
+    trail_indices: NDArray,
     mark: int,
     variable: int,
     new_min: int,
@@ -254,8 +261,8 @@ def tighten(
     :type trail_log: NDArray
     :param trail_top: the trail size as a Numpy array
     :type trail_top: NDArray
-    :param trail_idx: the index of the last trail entry per positionally guarded cell
-    :type trail_idx: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
     :param mark: the trail size when the current choice point branched
     :type mark: int
     :param variable: the variable
@@ -268,7 +275,7 @@ def tighten(
     :return: the events triggered by the write, EVENT_MASK_NONE when it changed nothing
     :rtype: int
     """
-    events, trail_size = tighten_at(state, trail_log, trail_idx, mark, trail_top[0], variable, new_min, new_max)
+    events, trail_size = tighten_at(state, trail_log, trail_indices, mark, trail_top[0], variable, new_min, new_max)
     trail_top[0] = trail_size
     return events
 
@@ -277,7 +284,7 @@ def tighten(
 def tighten_at(
     state: NDArray,
     trail_log: NDArray,
-    trail_idx: NDArray,
+    trail_indices: NDArray,
     mark: int,
     trail_size: int,
     variable: int,
@@ -296,8 +303,8 @@ def tighten_at(
     :type state: NDArray
     :param trail_log: the undo log of (flat index, old value) pairs
     :type trail_log: NDArray
-    :param trail_idx: the index of the last trail entry per positionally guarded cell
-    :type trail_idx: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
     :param mark: the trail size when the current choice point branched
     :type mark: int
     :param trail_size: the number of entries currently on the trail
@@ -319,16 +326,16 @@ def tighten_at(
     old_max = state[flat | 1]
     events = EVENT_MASK_NONE
     if old_min != new_min:
-        trail_size = trail_set(state, trail_log, trail_idx, mark, trail_size, flat, old_min, new_min)
+        trail_size = trail_set(state, trail_log, trail_indices, mark, trail_size, flat, old_min, new_min)
         events = EVENT_MASK_MIN
     if old_max != new_max:
-        trail_size = trail_set(state, trail_log, trail_idx, mark, trail_size, flat | 1, old_max, new_max)
+        trail_size = trail_set(state, trail_log, trail_indices, mark, trail_size, flat | 1, old_max, new_max)
         events |= EVENT_MASK_MAX
     if events != EVENT_MASK_NONE and old_min != old_max and new_min == new_max:
         events |= EVENT_MASK_GROUND
         unbound = unbound_index(state)
         old_unbound = state[unbound]
-        trail_size = trail_set(state, trail_log, trail_idx, mark, trail_size, unbound, old_unbound, old_unbound - 1)
+        trail_size = trail_set(state, trail_log, trail_indices, mark, trail_size, unbound, old_unbound, old_unbound - 1)
     return events, trail_size
 
 
@@ -361,7 +368,7 @@ def branch(
     state: NDArray,
     trail_log: NDArray,
     trail_top: NDArray,
-    trail_idx: NDArray,
+    trail_indices: NDArray,
     choice_point_stk: NDArray,
     choice_point_top: NDArray,
     variable: int,
@@ -394,8 +401,8 @@ def branch(
     :type trail_log: NDArray
     :param trail_top: the trail size as a Numpy array
     :type trail_top: NDArray
-    :param trail_idx: the index of the last trail entry per positionally guarded cell
-    :type trail_idx: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
     :param choice_point_top: the index of the top of the choice points as a Numpy array
@@ -428,17 +435,17 @@ def branch(
         park(choice_point_stk, choice_point, mark, variable, MIN, value + 1)
         choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark
         choice_point_top[0] = choice_point + 1
-        return tighten(state, trail_log, trail_top, trail_idx, mark, variable, domain_min, value)
+        return tighten(state, trail_log, trail_top, trail_indices, mark, variable, domain_min, value)
     if kind == DECISION_GT:
         park(choice_point_stk, choice_point, mark, variable, MAX, value)
         choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark
         choice_point_top[0] = choice_point + 1
-        return tighten(state, trail_log, trail_top, trail_idx, mark, variable, value + 1, domain_max)
+        return tighten(state, trail_log, trail_top, trail_indices, mark, variable, value + 1, domain_max)
     park(choice_point_stk, choice_point, mark, variable, MIN, value + 1)  # the shallower alternative is resumed last
     park(choice_point_stk, choice_point + 1, mark, variable, MAX, value - 1)
     choice_point_stk[choice_point + 2, CHOICE_POINT_TRAIL_MARK] = mark
     choice_point_top[0] = choice_point + 2
-    return tighten(state, trail_log, trail_top, trail_idx, mark, variable, value, value)
+    return tighten(state, trail_log, trail_top, trail_indices, mark, variable, value, value)
 
 
 @njit(cache=True, inline="always")
@@ -446,7 +453,7 @@ def tighten_objective(
     state: NDArray,
     trail_log: NDArray,
     trail_top: NDArray,
-    trail_idx: NDArray,
+    trail_indices: NDArray,
     mark: int,
     objective: NDArray,
 ) -> int:
@@ -463,8 +470,8 @@ def tighten_objective(
     :type trail_log: NDArray
     :param trail_top: the trail size as a Numpy array
     :type trail_top: NDArray
-    :param trail_idx: the index of the last trail entry per positionally guarded cell
-    :type trail_idx: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
     :param mark: the trail size when the resumed choice point branched
     :type mark: int
     :param objective: the objective as a Numpy array of variable, bound and value
@@ -485,7 +492,7 @@ def tighten_objective(
         new_max = min(value - 1, state[flat | 1])
     if new_min > new_max:
         return -1
-    return tighten(state, trail_log, trail_top, trail_idx, mark, variable, new_min, new_max)
+    return tighten(state, trail_log, trail_top, trail_indices, mark, variable, new_min, new_max)
 
 
 @njit(cache=True)
@@ -494,7 +501,7 @@ def backtrack(
     state: NDArray,
     trail_log: NDArray,
     trail_top: NDArray,
-    trail_idx: NDArray,
+    trail_indices: NDArray,
     choice_point_stk: NDArray,
     choice_point_top: NDArray,
     entailed: NDArray,
@@ -527,8 +534,8 @@ def backtrack(
     :type trail_log: NDArray
     :param trail_top: the trail size as a Numpy array
     :type trail_top: NDArray
-    :param trail_idx: the index of the last trail entry per positionally guarded cell
-    :type trail_idx: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
     :param choice_point_top: the index of the top of the choice points as a Numpy array
@@ -558,7 +565,7 @@ def backtrack(
         choice_point = choice_point_top[0]
         statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
         mark = choice_point_stk[choice_point, CHOICE_POINT_TRAIL_MARK]
-        trail_undo(state, trail_log, trail_idx, trail_top, mark)
+        trail_undo(state, trail_log, trail_indices, trail_top, mark)
         variable = choice_point_stk[choice_point, CHOICE_POINT_VARIABLE]
         flat = variable << 1
         if choice_point_stk[choice_point, CHOICE_POINT_BOUND] == MIN:
@@ -567,7 +574,7 @@ def backtrack(
         else:
             new_min = state[flat]
             new_max = min(choice_point_stk[choice_point, CHOICE_POINT_VALUE], state[flat | 1])
-        events = tighten(state, trail_log, trail_top, trail_idx, mark, variable, new_min, new_max)
+        events = tighten(state, trail_log, trail_top, trail_indices, mark, variable, new_min, new_max)
         if events != EVENT_MASK_NONE:
             update_propagators(
                 triggered_propagators,
@@ -581,7 +588,7 @@ def backtrack(
             )
         if optimized_variable < 0:
             return True
-        events = tighten_objective(state, trail_log, trail_top, trail_idx, mark, objective)
+        events = tighten_objective(state, trail_log, trail_top, trail_indices, mark, objective)
         if events < 0:  # the choice point cannot hold an improving solution, keep popping
             continue
         if events != EVENT_MASK_NONE:
@@ -604,7 +611,7 @@ def fix_choice_point(
     state: NDArray,
     trail_log: NDArray,
     trail_top: NDArray,
-    trail_idx: NDArray,
+    trail_indices: NDArray,
     variable: int,
     value: int,
     bound: int,
@@ -618,8 +625,8 @@ def fix_choice_point(
     :type trail_log: NDArray
     :param trail_top: the trail size as a Numpy array
     :type trail_top: NDArray
-    :param trail_idx: the index of the last trail entry per positionally guarded cell
-    :type trail_idx: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
     :param variable:  the variable being optimized
     :type variable: int
     :param value: the current optimal value for the variable
@@ -639,5 +646,5 @@ def fix_choice_point(
         new_max = value - 1
     if new_min > new_max:
         return False
-    tighten(state, trail_log, trail_top, trail_idx, 0, variable, new_min, new_max)
+    tighten(state, trail_log, trail_top, trail_indices, 0, variable, new_min, new_max)
     return True
