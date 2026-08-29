@@ -104,7 +104,7 @@ def solver_kwargs_from_args(args: Namespace, **defaults: Any) -> dict[str, Any]:
         "consistency_algorithm": None
         if args.consistency_algorithm is None
         else CONSISTENCY_ALGS[args.consistency_algorithm],
-        "stks_max_height": args.cp_max_height,
+        "choice_point_max_height": args.cp_max_height,
         "var_heuristic": None if args.var_heuristic is None else VAR_HEURISTICS[args.var_heuristic],
         "dom_heuristic": None if args.dom_heuristic is None else DOM_HEURISTICS[args.dom_heuristic],
         "log_level": args.log_level,

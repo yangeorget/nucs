@@ -130,7 +130,7 @@ class BacktrackSolver(Solver):
         dom_heuristic: int = DOM_HEURISTIC_MIN_VALUE,
         dom_heuristic_params: list[list[int]] | None = None,
         searches: list[Search] | None = None,
-        stks_max_height: int = 8192,
+        choice_point_max_height: int = 8192,
         trail_max_size: int | None = None,
         log_level: str = LOG_LEVEL_INFO,
     ):
@@ -159,9 +159,9 @@ class BacktrackSolver(Solver):
                          is built from the decision_variables / var_heuristic / dom_heuristic arguments above.
                          The union of the searches' decision variables should cover every branchable variable.
         :type searches: Optional[List[Search]]
-        :param stks_max_height: the initial maximal height of the choice point stack, grown as needed,
+        :param choice_point_max_height: the initial maximal height of the choice point stack, grown as needed,
                                 defaults to 8192
-        :type stks_max_height: int
+        :type choice_point_max_height: int
         :param trail_max_size: the initial maximal number of trail entries, grown as needed,
                                defaults to whichever is larger of 65536 and four steps' worth of headroom
         :type trail_max_size: Optional[int]
@@ -227,7 +227,7 @@ class BacktrackSolver(Solver):
         self.trail_log = np.empty((trail_max_size or max(1 << 16, 4 * self.trail_headroom), 2), dtype=np.int32)
         self.trail_top = np.zeros((1,), dtype=np.int32)
         self.trail_idx = np.full(len(self.state), -1, dtype=np.int32)
-        self.choice_point_stk = np.zeros((stks_max_height, CHOICE_POINT_WIDTH), dtype=np.int32)
+        self.choice_point_stk = np.zeros((choice_point_max_height, CHOICE_POINT_WIDTH), dtype=np.int32)
         self.choice_point_top = np.ones((1,), dtype=np.uint32)
         self.status = np.zeros(SOLVER_STATUS_WIDTH, dtype=np.int32)
         # the branch-and-bound bound is solver state, not choice-point state: OBJ_VARIABLE is -1 outside
@@ -235,7 +235,7 @@ class BacktrackSolver(Solver):
         self.objective = np.full(OBJ_WIDTH, -1, dtype=np.int32)
         # scratch for the domain heuristic's split value, allocated once rather than returned as a tuple
         self.decision = np.zeros(DECISION_WIDTH, dtype=np.int32)
-        logger.info(f"The stack of choice points has a maximal height of {stks_max_height}")
+        logger.info(f"The stack of choice points has a maximal height of {choice_point_max_height}")
         logger.info(f"The trail starts at {len(self.trail_log)} entries and grows when it runs out")
         self.initial_domains = np.array(problem.domains)
         self._cp_init()

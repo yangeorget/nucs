@@ -9,7 +9,7 @@ NUCS comes with several examples.
 Most of these examples can be run from the command line and support the following options:
 
 * :code:`--consistency`: set the consistency algorithm (0 is for BC), defaults to BC
-* :code:`--cp-max-height`: set the initial maximal height of the choice points stack, grown as needed, defaults to 8192
+* :code:`--cp-max-height`: set the initial maximal height of the stack of choice points, grown as needed, defaults to 8192
 * :code:`--dataset`: the dataset to use
 * :code:`--display-solutions`: display the solution(s), defaults to true
 * :code:`--display-stats`: display the statistics, defaults to true

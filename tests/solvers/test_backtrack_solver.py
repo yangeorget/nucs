@@ -241,7 +241,7 @@ class TestBacktrackSolver:
         """Likewise for a search deeper than the choice point stack: grow, do not corrupt memory."""
         problem = Problem([(0, 5)] * 6)
         reference = BacktrackSolver(problem).find_all()
-        solver = BacktrackSolver(Problem([(0, 5)] * 6), stks_max_height=4)
+        solver = BacktrackSolver(Problem([(0, 5)] * 6), choice_point_max_height=4)
         assert len(solver.find_all()) == len(reference)
         assert len(solver.choice_point_stk) > 4
 
