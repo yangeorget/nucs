@@ -607,7 +607,7 @@ def backtrack(
 
 
 @njit(cache=True)
-def fix_choice_point(
+def tighten_objective_at_root(
     state: NDArray,
     trail_log: NDArray,
     trail_top: NDArray,
@@ -617,7 +617,10 @@ def fix_choice_point(
     bound: int,
 ) -> bool:
     """
-    Fixes the domain of the variable being optimized at the root, after a reset.
+    Applies the branch-and-bound bound to the root, after a reset.
+
+    The OPTIM_RESET half of what tighten_objective does for OPTIM_PRUNE. It needs no clamp against the
+    domain it writes: the domains are the initial ones, so the bound is a tightening by construction.
 
     :param state: all the backtrackable state
     :type state: NDArray

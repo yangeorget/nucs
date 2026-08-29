@@ -186,7 +186,7 @@ what they do to the choice points (`BacktrackSolver._advance_after_optimum`):
 
 | mode | function | effect |
 |------|----------|--------|
-| `OPTIM_RESET` | `choice_point_init` + `fix_choice_point` | throws the choice points away, restarts from the initial domains with the objective bound tightened at the root |
+| `OPTIM_RESET` | `choice_point_init` + `tighten_objective_at_root` | throws the choice points away, restarts from the initial domains with the objective bound tightened at the root |
 | `OPTIM_PRUNE` | arms `objective`, then `backtrack` | keeps the choice points; the bound is re-applied by `backtrack` to each one as it is resumed |
 
 `OPTIM_PRUNE` rests on the observation that **the branch-and-bound bound is not backtrackable**. It holds

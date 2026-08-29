@@ -91,7 +91,7 @@ from nucs.propagators.propagators import (
     get_algorithm_nb,
     update_propagators,
 )
-from nucs.solvers.choice_points import backtrack, branch, choice_point_init, fix_choice_point
+from nucs.solvers.choice_points import backtrack, branch, choice_point_init, tighten_objective_at_root
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.search import Search
 from nucs.solvers.solver import Solver, get_solution
@@ -387,7 +387,7 @@ class BacktrackSolver(Solver):
         if mode == OPTIM_RESET:
             logger.debug("Resetting solver")
             self._choice_point_init()
-            if not fix_choice_point(
+            if not tighten_objective_at_root(
                 self.state, self.trail_log, self.trail_top, self.trail_indices, variable, value, bound
             ):
                 return False
