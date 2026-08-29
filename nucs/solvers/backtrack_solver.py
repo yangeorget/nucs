@@ -159,7 +159,7 @@ class BacktrackSolver(Solver):
                          is built from the decision_variables / var_heuristic / dom_heuristic arguments above.
                          The union of the searches' decision variables should cover every branchable variable.
         :type searches: Optional[List[Search]]
-        :param stks_max_height: the initial maximal height of the choice point stacks, grown as needed,
+        :param stks_max_height: the initial maximal height of the choice point stack, grown as needed,
                                 defaults to 8192
         :type stks_max_height: int
         :param trail_max_size: the initial maximal number of trail entries, grown as needed,
@@ -228,14 +228,14 @@ class BacktrackSolver(Solver):
         self.trail_top = np.zeros((1,), dtype=np.int32)
         self.trail_idx = np.full(len(self.state), -1, dtype=np.int32)
         self.choice_point_stk = np.zeros((stks_max_height, CHOICE_POINT_WIDTH), dtype=np.int32)
-        self.stks_top = np.ones((1,), dtype=np.uint32)
+        self.choice_point_top = np.ones((1,), dtype=np.uint32)
         self.status = np.zeros(SOLVER_STATUS_WIDTH, dtype=np.int32)
         # the branch-and-bound bound is solver state, not choice-point state: OBJ_VARIABLE is -1 outside
         # OPTIM_PRUNE, and backtrack re-applies the bound to each choice point it resumes
         self.objective = np.full(OBJ_WIDTH, -1, dtype=np.int32)
         # scratch for the domain heuristic's split value, allocated once rather than returned as a tuple
         self.decision = np.zeros(DECISION_WIDTH, dtype=np.int32)
-        logger.info(f"The stacks of the choice points have a maximal height of {stks_max_height}")
+        logger.info(f"The stack of choice points has a maximal height of {stks_max_height}")
         logger.info(f"The trail starts at {len(self.trail_log)} entries and grows when it runs out")
         self.initial_domains = np.array(problem.domains)
         self._cp_init()
@@ -345,7 +345,7 @@ class BacktrackSolver(Solver):
             self.trail_top,
             self.trail_idx,
             self.choice_point_stk,
-            self.stks_top,
+            self.choice_point_top,
             self.triggered_propagators,
             self.consistency_alg_fcts,
             self.decision_variables,
@@ -411,7 +411,7 @@ class BacktrackSolver(Solver):
             self.trail_top,
             self.trail_idx,
             self.choice_point_stk,
-            self.stks_top,
+            self.choice_point_top,
             self.initial_domains,
             self.problem.unbound_variable_nb,
         )
@@ -434,7 +434,7 @@ class BacktrackSolver(Solver):
             choice_point_stk = np.zeros((2 * len(self.choice_point_stk), CHOICE_POINT_WIDTH), dtype=np.int32)
             choice_point_stk[: len(self.choice_point_stk)] = self.choice_point_stk
             self.choice_point_stk = choice_point_stk
-            logger.info(f"The stacks of the choice points grew to a maximal height of {len(self.choice_point_stk)}")
+            logger.info(f"The stack of choice points grew to a maximal height of {len(self.choice_point_stk)}")
         self.status[SOLVER_STATUS] = SOLVER_RUNNING
 
     def _backtrack(self) -> bool:
@@ -451,7 +451,7 @@ class BacktrackSolver(Solver):
             self.trail_top,
             self.trail_idx,
             self.choice_point_stk,
-            self.stks_top,
+            self.choice_point_top,
             self.entailed,
             self.triggered_propagators,
             self.problem.triggers,
@@ -528,7 +528,7 @@ def solve_one(
     trail_top: NDArray,
     pos: NDArray,
     choice_point_stk: NDArray,
-    stks_top: NDArray,
+    choice_point_top: NDArray,
     triggered_propagators: NDArray,
     consistency_alg_fcts: ConsistencyAlgorithmFunctions,
     decision_variables: NDArray,
@@ -587,8 +587,8 @@ def solve_one(
     :type pos: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
-    :param stks_top: the index of the top of the stacks as a Numpy array
-    :type stks_top: NDArray
+    :param choice_point_top: the index of the top of the choice points as a Numpy array
+    :type choice_point_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param consistency_alg_fcts: a 1-element list holding the consistency algorithm function
@@ -636,14 +636,14 @@ def solve_one(
     """
     consistency_alg_fct = consistency_alg_fcts[0]
     nb_searches = len(decision_variables_offsets) - 1
-    max_top = len(choice_point_stk) - 3  # a ternary split pushes two choice points and marks a third
+    max_choice_point = len(choice_point_stk) - 3  # a ternary split pushes two choice points and marks a third
     while True:
         # the arrays are caller-allocated, so the search stops for the solver to grow one rather than
         # overrun it silently -- with boundscheck off, the overrun is what would otherwise happen
         if trail_top[0] + trail_headroom > len(trail):
             status[SOLVER_STATUS] = SOLVER_TRAIL_FULL
             return None
-        if stks_top[0] > max_top:
+        if choice_point_top[0] > max_choice_point:
             status[SOLVER_STATUS] = SOLVER_CHOICE_POINTS_FULL
             return None
         problem_status = consistency_alg_fct(
@@ -663,13 +663,13 @@ def solve_one(
             trail_top,
             pos,
             choice_point_stk,
-            stks_top,
+            choice_point_top,
             triggered_propagators,
             compute_domains_fcts,
             domain_buffer,
             idempotent,
         )
-        top = stks_top[0]
+        choice_point = choice_point_top[0]
         if problem_status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLUTION_NB] += 1
             return get_solution(domains)
@@ -705,12 +705,12 @@ def solve_one(
                         trail_top,
                         pos,
                         choice_point_stk,
-                        stks_top,
+                        choice_point_top,
                         variable,
                         kind,
                         decision[DECISION_VALUE],
                     )
-                    top = stks_top[0]
+                    choice_point = choice_point_top[0]
                     update_propagators(
                         triggered_propagators,
                         entailed,
@@ -722,7 +722,9 @@ def solve_one(
                         events,
                     )
                     statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
-                    statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = max(statistics[STATS_IDX_SOLVER_CHOICE_DEPTH], top)
+                    statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = max(
+                        statistics[STATS_IDX_SOLVER_CHOICE_DEPTH], choice_point
+                    )
                     branched = True
                     break
         # either the problem is inconsistent, or no search can claim a variable although variables remain
@@ -734,7 +736,7 @@ def solve_one(
             trail_top,
             pos,
             choice_point_stk,
-            stks_top,
+            choice_point_top,
             entailed,
             triggered_propagators,
             triggers,

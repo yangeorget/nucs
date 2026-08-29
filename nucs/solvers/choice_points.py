@@ -54,7 +54,7 @@ def unbound_index(state: NDArray) -> int:
 
 
 @njit(cache=True, inline="always")
-def trail_push(trail_log: NDArray, trail_idx: NDArray, top: int, flat: int, old: int) -> int:
+def trail_push(trail_log: NDArray, trail_idx: NDArray, trail_size: int, flat: int, old: int) -> int:
     """
     Records a cell's old value unconditionally, for state that guards itself.
 
@@ -66,8 +66,8 @@ def trail_push(trail_log: NDArray, trail_idx: NDArray, top: int, flat: int, old:
     :type trail_log: NDArray
     :param trail_idx: the index of the last trail entry per cell
     :type trail_idx: NDArray
-    :param top: the trail size
-    :type top: int
+    :param trail_size: the number of entries currently on the trail
+    :type trail_size: int
     :param flat: the index of the cell in state
     :type flat: int
     :param old: the value currently in that cell
@@ -76,15 +76,15 @@ def trail_push(trail_log: NDArray, trail_idx: NDArray, top: int, flat: int, old:
     :return: the new trail size
     :rtype: int
     """
-    trail_log[top, 0] = flat
-    trail_log[top, 1] = old
-    trail_idx[flat] = top
-    return top + 1
+    trail_log[trail_size, 0] = flat
+    trail_log[trail_size, 1] = old
+    trail_idx[flat] = trail_size
+    return trail_size + 1
 
 
 @njit(cache=True, inline="always")
 def trail_set(
-    state: NDArray, trail_log: NDArray, trail_idx: NDArray, mark: int, top: int, flat: int, old: int, value: int
+    state: NDArray, trail_log: NDArray, trail_idx: NDArray, mark: int, trail_size: int, flat: int, old: int, value: int
 ) -> int:
     """
     Writes a cell of the backtrackable state, recording its old value if this choice point has not already.
@@ -117,8 +117,8 @@ def trail_set(
     :type trail_idx: NDArray
     :param mark: the trail size when the current choice point branched
     :type mark: int
-    :param top: the trail size
-    :type top: int
+    :param trail_size: the number of entries currently on the trail
+    :type trail_size: int
     :param flat: the index of the cell in state
     :type flat: int
     :param old: the value currently in that cell, which every caller has already had to read
@@ -130,13 +130,13 @@ def trail_set(
     :rtype: int
     """
     entry = trail_idx[flat]
-    if not mark <= entry < top:  # no live entry for this cell at this choice point
-        trail_log[top, 0] = flat
-        trail_log[top, 1] = old
-        trail_idx[flat] = top
-        top += 1
+    if not mark <= entry < trail_size:  # no live entry for this cell at this choice point
+        trail_log[trail_size, 0] = flat
+        trail_log[trail_size, 1] = old
+        trail_idx[flat] = trail_size
+        trail_size += 1
     state[flat] = value
-    return top
+    return trail_size
 
 
 @njit(cache=True)
@@ -179,7 +179,7 @@ def cp_init(
     trail_top: NDArray,
     trail_idx: NDArray,
     choice_point_stk: NDArray,
-    stks_top: NDArray,
+    choice_point_top: NDArray,
     domains_arr: NDArray,
     unbound_variable_nb: int,
 ) -> None:
@@ -200,8 +200,8 @@ def cp_init(
     :type trail_idx: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
-    :param stks_top: the index of the top of the stacks as a Numpy array
-    :type stks_top: NDArray
+    :param choice_point_top: the index of the top of the choice points as a Numpy array
+    :type choice_point_top: NDArray
     :param domains_arr: the domains
     :type domains_arr: NDArray
     :param unbound_variable_nb: the number of unbound variables
@@ -214,7 +214,7 @@ def cp_init(
     entailed.fill(0)
     trail_idx.fill(-1)
     choice_point_stk[0, CHOICE_POINT_TRAIL_MARK] = 0
-    trail_top[0] = stks_top[0] = 0
+    trail_top[0] = choice_point_top[0] = 0
 
 
 @njit(cache=True, inline="always")
@@ -268,8 +268,8 @@ def tighten(
     :return: the events triggered by the write, EVENT_MASK_NONE when it changed nothing
     :rtype: int
     """
-    events, top = tighten_at(state, trail_log, trail_idx, mark, trail_top[0], variable, new_min, new_max)
-    trail_top[0] = top
+    events, trail_size = tighten_at(state, trail_log, trail_idx, mark, trail_top[0], variable, new_min, new_max)
+    trail_top[0] = trail_size
     return events
 
 
@@ -279,7 +279,7 @@ def tighten_at(
     trail_log: NDArray,
     trail_idx: NDArray,
     mark: int,
-    top: int,
+    trail_size: int,
     variable: int,
     new_min: int,
     new_max: int,
@@ -300,8 +300,8 @@ def tighten_at(
     :type trail_idx: NDArray
     :param mark: the trail size when the current choice point branched
     :type mark: int
-    :param top: the trail size
-    :type top: int
+    :param trail_size: the number of entries currently on the trail
+    :type trail_size: int
     :param variable: the variable
     :type variable: int
     :param new_min: the new min of the domain
@@ -319,28 +319,28 @@ def tighten_at(
     old_max = state[flat | 1]
     events = EVENT_MASK_NONE
     if old_min != new_min:
-        top = trail_set(state, trail_log, trail_idx, mark, top, flat, old_min, new_min)
+        trail_size = trail_set(state, trail_log, trail_idx, mark, trail_size, flat, old_min, new_min)
         events = EVENT_MASK_MIN
     if old_max != new_max:
-        top = trail_set(state, trail_log, trail_idx, mark, top, flat | 1, old_max, new_max)
+        trail_size = trail_set(state, trail_log, trail_idx, mark, trail_size, flat | 1, old_max, new_max)
         events |= EVENT_MASK_MAX
     if events != EVENT_MASK_NONE and old_min != old_max and new_min == new_max:
         events |= EVENT_MASK_GROUND
         unbound = unbound_index(state)
         old_unbound = state[unbound]
-        top = trail_set(state, trail_log, trail_idx, mark, top, unbound, old_unbound, old_unbound - 1)
-    return events, top
+        trail_size = trail_set(state, trail_log, trail_idx, mark, trail_size, unbound, old_unbound, old_unbound - 1)
+    return events, trail_size
 
 
 @njit(cache=True, inline="always")
-def park(choice_point_stk: NDArray, top: int, mark: int, variable: int, bound: int, value: int) -> None:
+def park(choice_point_stk: NDArray, choice_point: int, mark: int, variable: int, bound: int, value: int) -> None:
     """
     Records on a choice point the alternative to apply when the search resumes it.
 
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
-    :param top: the choice point
-    :type top: int
+    :param choice_point: the choice point
+    :type choice_point: int
     :param mark: the trail size when the choice point branched
     :type mark: int
     :param variable: the variable of the alternative
@@ -350,10 +350,10 @@ def park(choice_point_stk: NDArray, top: int, mark: int, variable: int, bound: i
     :param value: the value the alternative tightens that side to
     :type value: int
     """
-    choice_point_stk[top, CHOICE_POINT_TRAIL_MARK] = mark
-    choice_point_stk[top, CHOICE_POINT_VARIABLE] = variable
-    choice_point_stk[top, CHOICE_POINT_BOUND] = bound
-    choice_point_stk[top, CHOICE_POINT_VALUE] = value
+    choice_point_stk[choice_point, CHOICE_POINT_TRAIL_MARK] = mark
+    choice_point_stk[choice_point, CHOICE_POINT_VARIABLE] = variable
+    choice_point_stk[choice_point, CHOICE_POINT_BOUND] = bound
+    choice_point_stk[choice_point, CHOICE_POINT_VALUE] = value
 
 
 @njit(cache=True)
@@ -363,7 +363,7 @@ def branch(
     trail_top: NDArray,
     trail_idx: NDArray,
     choice_point_stk: NDArray,
-    stks_top: NDArray,
+    choice_point_top: NDArray,
     variable: int,
     kind: int,
     value: int,
@@ -398,8 +398,8 @@ def branch(
     :type trail_idx: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
-    :param stks_top: the index of the top of the stacks as a Numpy array
-    :type stks_top: NDArray
+    :param choice_point_top: the index of the top of the choice points as a Numpy array
+    :type choice_point_top: NDArray
     :param variable: the variable being branched on
     :type variable: int
     :param kind: the kind of split, one of DECISION_LE, DECISION_GT and DECISION_EQ
@@ -410,7 +410,7 @@ def branch(
     :return: the events triggered in the explored branch
     :rtype: int
     """
-    top = stks_top[0]
+    choice_point = choice_point_top[0]
     flat = variable << 1
     domain_min = state[flat]
     domain_max = state[flat | 1]
@@ -425,19 +425,19 @@ def branch(
             kind = DECISION_GT
             value = domain_max - 1
     if kind == DECISION_LE:
-        park(choice_point_stk, top, mark, variable, MIN, value + 1)
-        choice_point_stk[top + 1, CHOICE_POINT_TRAIL_MARK] = mark
-        stks_top[0] = top + 1
+        park(choice_point_stk, choice_point, mark, variable, MIN, value + 1)
+        choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark
+        choice_point_top[0] = choice_point + 1
         return tighten(state, trail_log, trail_top, trail_idx, mark, variable, domain_min, value)
     if kind == DECISION_GT:
-        park(choice_point_stk, top, mark, variable, MAX, value)
-        choice_point_stk[top + 1, CHOICE_POINT_TRAIL_MARK] = mark
-        stks_top[0] = top + 1
+        park(choice_point_stk, choice_point, mark, variable, MAX, value)
+        choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark
+        choice_point_top[0] = choice_point + 1
         return tighten(state, trail_log, trail_top, trail_idx, mark, variable, value + 1, domain_max)
-    park(choice_point_stk, top, mark, variable, MIN, value + 1)  # the shallower alternative is resumed last
-    park(choice_point_stk, top + 1, mark, variable, MAX, value - 1)
-    choice_point_stk[top + 2, CHOICE_POINT_TRAIL_MARK] = mark
-    stks_top[0] = top + 2
+    park(choice_point_stk, choice_point, mark, variable, MIN, value + 1)  # the shallower alternative is resumed last
+    park(choice_point_stk, choice_point + 1, mark, variable, MAX, value - 1)
+    choice_point_stk[choice_point + 2, CHOICE_POINT_TRAIL_MARK] = mark
+    choice_point_top[0] = choice_point + 2
     return tighten(state, trail_log, trail_top, trail_idx, mark, variable, value, value)
 
 
@@ -496,7 +496,7 @@ def backtrack(
     trail_top: NDArray,
     trail_idx: NDArray,
     choice_point_stk: NDArray,
-    stks_top: NDArray,
+    choice_point_top: NDArray,
     entailed: NDArray,
     triggered_propagators: NDArray,
     triggers: NDArray,
@@ -531,8 +531,8 @@ def backtrack(
     :type trail_idx: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
-    :param stks_top: the index of the top of the stacks as a Numpy array
-    :type stks_top: NDArray
+    :param choice_point_top: the index of the top of the choice points as a Numpy array
+    :type choice_point_top: NDArray
     :param entailed: whether each propagator is entailed, a view of state
     :type entailed: NDArray
     :param triggered_propagators: the set propagators that are currently triggered as a Numpy array
@@ -553,20 +553,20 @@ def backtrack(
     :rtype: bool
     """
     optimized_variable = objective[OBJ_VARIABLE]
-    while stks_top[0] > 0:
-        stks_top[0] -= 1
-        top = stks_top[0]
+    while choice_point_top[0] > 0:
+        choice_point_top[0] -= 1
+        choice_point = choice_point_top[0]
         statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
-        mark = choice_point_stk[top, CHOICE_POINT_TRAIL_MARK]
+        mark = choice_point_stk[choice_point, CHOICE_POINT_TRAIL_MARK]
         trail_undo(state, trail_log, trail_idx, trail_top, mark)
-        variable = choice_point_stk[top, CHOICE_POINT_VARIABLE]
+        variable = choice_point_stk[choice_point, CHOICE_POINT_VARIABLE]
         flat = variable << 1
-        if choice_point_stk[top, CHOICE_POINT_BOUND] == MIN:
-            new_min = max(choice_point_stk[top, CHOICE_POINT_VALUE], state[flat])
+        if choice_point_stk[choice_point, CHOICE_POINT_BOUND] == MIN:
+            new_min = max(choice_point_stk[choice_point, CHOICE_POINT_VALUE], state[flat])
             new_max = state[flat | 1]
         else:
             new_min = state[flat]
-            new_max = min(choice_point_stk[top, CHOICE_POINT_VALUE], state[flat | 1])
+            new_max = min(choice_point_stk[choice_point, CHOICE_POINT_VALUE], state[flat | 1])
         events = tighten(state, trail_log, trail_top, trail_idx, mark, variable, new_min, new_max)
         if events != EVENT_MASK_NONE:
             update_propagators(

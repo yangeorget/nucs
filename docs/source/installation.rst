@@ -43,7 +43,7 @@ Produces the following output:
    [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses variable heuristics [1]
    [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses domain heuristics [3]
    [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm 0
-   [ 2026-08-25 09:10:17,106 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stacks of the choice points have a maximal height of 8192
+   [ 2026-08-25 09:10:17,106 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stack of choice points has a maximal height of 8192
    [ 2026-08-25 09:10:17,120 | MainProcess | INFO ] nucs.solvers.solver.find_all - Returning all solutions
    [ 2026-08-25 09:10:17,120 | MainProcess | INFO ] nucs.solvers.solver.solve_all - Iterating over the solutions
    [ 2026-08-25 09:10:17,120 | MainProcess | INFO ] nucs.solvers.backtrack_solver.solve - Solving and iterating over the solutions
@@ -82,7 +82,7 @@ Produces the following output:
    [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses variable heuristics [1]
    [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses domain heuristics [3]
    [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm 1
-   [ 2026-08-25 09:10:18,706 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stacks of the choice points have a maximal height of 8192
+   [ 2026-08-25 09:10:18,706 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stack of choice points has a maximal height of 8192
    [ 2026-08-25 09:10:18,723 | MainProcess | INFO ] nucs.solvers.solver.find_best - Returning the optimal solution
    [ 2026-08-25 09:10:18,723 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Optimizing and iterating over the solutions
    [ 2026-08-25 09:10:18,727 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 80

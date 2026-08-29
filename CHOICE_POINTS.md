@@ -38,7 +38,7 @@ The line is not "O(changes) versus O(1)". It is:
 - **Backtrackable state** — a value that existed before the choice point and must come back afterwards. Trail it.
   Domain bounds, entailment flags, the unbound count.
 - **Per-choice-point metadata** — a value that *describes* the choice point and has no meaning outside it. Index it by
-  `stks_top` and let the pointer decrement restore it.
+  `choice_point_top` and let the pointer decrement restore it.
 
 The decision columns of `choice_point_stk` prove the line is real rather than a preference: trailing them would
 be *wrong*, not merely slower, because undoing to the choice point's own mark would erase the very decision
@@ -60,7 +60,7 @@ be *wrong*, not merely slower, because undoing to the choice point's own mark wo
 | array | shape | dtype | role |
 |-------|-------|-------|------|
 | `choice_point_stk` | `(H, 4)` | int32 | `[CHOICE_POINT_TRAIL_MARK, CHOICE_POINT_VARIABLE, CHOICE_POINT_BOUND, CHOICE_POINT_VALUE]` |
-| `stks_top` | `(1,)` | uint32 | the index of the top |
+| `choice_point_top` | `(1,)` | uint32 | the index of the top |
 
 `choice_point_stk[d]` holds the trail position at which choice point `d` branched, and the alternative to apply when the
 search comes back to it. The four columns share an index *and* a schedule — branching writes all four,
@@ -68,7 +68,7 @@ search comes back to it. The four columns share an index *and* a schedule — br
 unit. (Contrast the per-propagator arrays, which share an index but are read at wildly different
 frequencies; merging *those* measured worse, and `ARCHITECTURE.md` records it.)
 
-`stks_top` and `trail_top` are one-element arrays rather than `int`s because they are mutable state shared
+`choice_point_top` and `trail_top` are one-element arrays rather than `int`s because they are mutable state shared
 across separately jitted functions, and Numba has no way to pass a scalar by reference.
 
 `H` and `T` are starting sizes, not ceilings: see *Growing* below.
@@ -78,7 +78,7 @@ across separately jitted functions, and Numba has no way to pass a scalar by ref
 Every backtrackable write goes through `trail_set`, and the rule it implements is exactly:
 
 > a write to `flat` may skip the trail **iff** the trail already holds a live entry *for `flat`* at an
-> index `>= choice_point_stk[stks_top[0], CHOICE_POINT_TRAIL_MARK]`.
+> index `>= choice_point_stk[choice_point_top[0], CHOICE_POINT_TRAIL_MARK]`.
 
 ```python
 entry = trail_idx[flat]
@@ -120,14 +120,14 @@ propagation loop schedules with a self-skip and a membership pre-test that `upda
 have. The propagation loop calls `tighten_at`, which takes and returns the trail size rather than reading
 it out of memory, so a filtering keeps it in a register across every bound it narrows.
 
-## What `top` means
+## What `choice_point_top` means
 
-`stks_top[0]` is the search depth. `state` always holds the domains of the choice point the search is *at*; the
+`choice_point_top[0]` is the search depth. `state` always holds the domains of the choice point the search is *at*; the
 choice points below it hold, in `choice_point_stk`, the trail position to rewind to and the alternative to apply.
-`stks_top[0] == 0` with no alternative left is exhaustion.
+`choice_point_top[0] == 0` with no alternative left is exhaustion.
 
 `cp_init` resets the whole thing: the initial domains, every propagator active, the trail empty, every
-position `-1`, and `top` back to 0.
+position `-1`, and `choice_point_top` back to 0.
 
 ## Branching: only the explored branch is written
 
@@ -136,10 +136,10 @@ does the rest:
 
 ```python
 mark = trail_top[0]
-park(choice_point_stk, top, mark, variable, MIN, value + 1)   # the alternative, for later
-choice_point_stk[top + 1, CHOICE_POINT_TRAIL_MARK] = mark            # the choice point about to be worked at
-stks_top[0] = top + 1
-return tighten(..., mark, variable, domain_min, value)  # the branch explored now
+park(choice_point_stk, choice_point, mark, variable, MIN, value + 1)      # the alternative, for later
+choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark       # the one about to be worked at
+choice_point_top[0] = choice_point + 1
+return tighten(..., mark, variable, domain_min, value)                   # the branch explored now
 ```
 
 A push copies nothing. The alternatives are not materialised anywhere until the search reaches them —
@@ -163,7 +163,7 @@ stay complete.
 ## Backtracking
 
 1. return `False` if `top == 0` — the search is exhausted;
-2. `stks_top[0] -= 1`;
+2. `choice_point_top[0] -= 1`;
 3. `trail_undo(...)` back to `choice_point_stk[top, CHOICE_POINT_TRAIL_MARK]` — this restores the domains *and*
    reactivates the propagators entailed below this choice point, in one loop;
 4. apply `choice_point_stk[top]`'s alternative through `tighten` — so the refutation is itself undone when the

@@ -145,7 +145,7 @@ class TestBacktrackSolver:
             solver.trail_top,
             solver.trail_idx,
             solver.choice_point_stk,
-            solver.stks_top,
+            solver.choice_point_top,
             solver.triggered_propagators,
             solver.consistency_alg_fcts,
             solver.decision_variables,
@@ -168,7 +168,7 @@ class TestBacktrackSolver:
         )
         assert solution is not None
         assert solution.tolist() == [0, 0]
-        assert solver.stks_top == 2
+        assert solver.choice_point_top == 2
         # two min_value decisions, so both variables are ground at [0, 0]
         assert solver.domains[0].tolist() == [0, 0]
         assert solver.domains[1].tolist() == [0, 0]
@@ -186,7 +186,7 @@ class TestBacktrackSolver:
             solver.trail_top,
             solver.trail_idx,
             solver.choice_point_stk,
-            solver.stks_top,
+            solver.choice_point_top,
             solver.entailed,
             solver.triggered_propagators,
             problem.triggers,
@@ -196,7 +196,7 @@ class TestBacktrackSolver:
             solver.objective,
         )
         # back at choice point 1, with variable 1's refutation applied: variable 0 stays at its decision
-        assert solver.stks_top == 1
+        assert solver.choice_point_top == 1
         assert solver.domains[0].tolist() == [0, 0]
         assert solver.domains[1].tolist() == [1, 1]
 
@@ -212,7 +212,7 @@ class TestBacktrackSolver:
         assert len(solutions) == 1000
         assert solutions[0].tolist() == [0, 0, 0]
         assert solutions[-1].tolist() == [9, 9, 9]
-        assert solver.stks_top[0] == 0  # exhausted, back at the root
+        assert solver.choice_point_top[0] == 0  # exhausted, back at the root
         # the root's own refutations are never undone -- nothing pops past choice point 0 -- but everything
         # deeper is, so what is left is a handful of entries rather than one snapshot per choice point
         assert solver.trail_top[0] < 4 * len(solver.trail_idx)

@@ -141,7 +141,7 @@ def golomb_consistency_algorithm(
     trail_top: NDArray,
     trail_idx: NDArray,
     choice_point_stk: NDArray,
-    stks_top: NDArray,
+    choice_point_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
@@ -156,7 +156,7 @@ def golomb_consistency_algorithm(
     :return: the status as an int
     :rtype: int
     """
-    mark = choice_point_stk[stks_top[0], CHOICE_POINT_TRAIL_MARK]
+    mark = choice_point_stk[choice_point_top[0], CHOICE_POINT_TRAIL_MARK]
     # as in the propagation loop, the trail size stays in a register across the whole pruning
     trail_size = trail_top[0]
     # first prune the search space
@@ -231,7 +231,7 @@ def golomb_consistency_algorithm(
         trail_top,
         trail_idx,
         choice_point_stk,
-        stks_top,
+        choice_point_top,
         triggered_propagators,
         compute_domains_fcts,
         domain_buffer,

@@ -60,7 +60,7 @@ def bc_algorithm(
     trail_top: NDArray,
     trail_idx: NDArray,
     choice_point_stk: NDArray,
-    stks_top: NDArray,
+    choice_point_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
@@ -101,8 +101,8 @@ def bc_algorithm(
     :type trail_idx: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
-    :param stks_top: the height of the stacks as a Numpy array
-    :type stks_top: NDArray
+    :param choice_point_top: the index of the top of the choice points as a Numpy array
+    :type choice_point_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
@@ -117,10 +117,10 @@ def bc_algorithm(
     :return: a status (consistency, inconsistency or entailment) as an integer
     :rtype: int
     """
-    top = stks_top[0]
-    # the choice point's mark is loaded once: stks_top does not move during a filtering, and neither does the
+    choice_point = choice_point_top[0]
+    # the choice point's mark is loaded once: choice_point_top does not move during a filtering, and neither does the
     # mark of the choice point it is filtering
-    mark = choice_point_stk[top, CHOICE_POINT_TRAIL_MARK]
+    mark = choice_point_stk[choice_point, CHOICE_POINT_TRAIL_MARK]
     unbound = unbound_index(state)
     # the trail size lives in a local for the whole filtering and is published on the way out. Nothing
     # outside this function reads it before then, and keeping it out of memory takes a load and a store

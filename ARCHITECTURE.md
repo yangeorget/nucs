@@ -152,7 +152,7 @@ bound, reactivating an entailed propagator and rolling back the unbound-variable
 | `trail_top` | `(1,)` | int32 | the trail size |
 | `trail_idx` | `(len(state),)` | int32 | index of the last trail entry per cell, `-1` when none |
 | `choice_point_stk` | `(H, 4)` | int32 | per choice point: `[CHOICE_POINT_TRAIL_MARK, CHOICE_POINT_VARIABLE, CHOICE_POINT_BOUND, CHOICE_POINT_VALUE]` |
-| `stks_top` | `(1,)` | uint32 | the search depth |
+| `choice_point_top` | `(1,)` | uint32 | the search depth |
 
 A push copies nothing: it records the trail position and the single-bound tightening to apply on return, and writes
 only the branch it explores. The alternatives are not materialised until the search reaches them.

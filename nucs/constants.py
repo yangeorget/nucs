@@ -118,7 +118,7 @@ SIGN_CONSISTENCY_ALG = int64(
     int32[::1],  # trail_top
     int32[::1],  # pos
     int32[:, ::1],  # choice_point_stk
-    uint32[::1],  # stks_top
+    uint32[::1],  # choice_point_top
     int32[::1],  # triggered_propagators
     TYPE_COMPUTE_DOMAINS_LIST,  # compute_domains_fcts
     int32[:, ::1],  # domain_buffer

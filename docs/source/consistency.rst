@@ -54,7 +54,7 @@ what keeps the solver's "is this problem solved?" test correct. It returns the e
        update_propagators(triggered_propagators, entailed, triggers, triggers_offsets,
                           priorities, propagator_nb, variable, events)
 
-where :code:`mark` is :code:`choice_point_stk[stks_top[0], CHOICE_POINT_TRAIL_MARK]`, the trail position the current
+where :code:`mark` is :code:`choice_point_stk[choice_point_top[0], CHOICE_POINT_TRAIL_MARK]`, the trail position the current
 choice point branched at. :mod:`nucs.examples.golomb.golomb_problem` is the in-tree example.
 
 Propagators need no such care and are unchanged: a :code:`compute_domains_*` function receives a gathered
