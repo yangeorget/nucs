@@ -104,7 +104,7 @@ fixpoint re-narrows a bound.
 so a guard indexed by variable would suppress the second write and never restore `MAX`.
 
 Two things follow from stating the rule positionally rather than with a generation counter stamped per
-cell. There is no counter to bump, so no site — `cp_init`, which runs at *solve* time on every
+cell. There is no counter to bump, so no site — `choice_point_init`, which runs at *solve* time on every
 `OPTIM_RESET`, `backtrack`, or any future stack mutation — can forget to bump one. And there is no
 overflow: a monotonic world id would wrap `int32` after ~1e9 nodes, which NuCS reaches.
 
@@ -126,7 +126,7 @@ it out of memory, so a filtering keeps it in a register across every bound it na
 choice points below it hold, in `choice_point_stk`, the trail position to rewind to and the alternative to apply.
 `choice_point_top[0] == 0` with no alternative left is exhaustion.
 
-`cp_init` resets the whole thing: the initial domains, every propagator active, the trail empty, every
+`choice_point_init` resets the whole thing: the initial domains, every propagator active, the trail empty, every
 position `-1`, and `choice_point_top` back to 0.
 
 ## Branching: only the explored branch is written
@@ -186,7 +186,7 @@ what they do to the choice points (`BacktrackSolver._advance_after_optimum`):
 
 | mode | function | effect |
 |------|----------|--------|
-| `OPTIM_RESET` | `cp_init` + `fix_choice_point` | throws the choice points away, restarts from the initial domains with the objective bound tightened at the root |
+| `OPTIM_RESET` | `choice_point_init` + `fix_choice_point` | throws the choice points away, restarts from the initial domains with the objective bound tightened at the root |
 | `OPTIM_PRUNE` | arms `objective`, then `backtrack` | keeps the choice points; the bound is re-applied by `backtrack` to each one as it is resumed |
 
 `OPTIM_PRUNE` rests on the observation that **the branch-and-bound bound is not backtrackable**. It holds

@@ -91,7 +91,7 @@ from nucs.propagators.propagators import (
     get_algorithm_nb,
     update_propagators,
 )
-from nucs.solvers.choice_points import backtrack, branch, cp_init, fix_choice_point
+from nucs.solvers.choice_points import backtrack, branch, choice_point_init, fix_choice_point
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
 from nucs.solvers.search import Search
 from nucs.solvers.solver import Solver, get_solution
@@ -238,7 +238,7 @@ class BacktrackSolver(Solver):
         logger.info(f"The stack of choice points has a maximal height of {choice_point_max_height}")
         logger.info(f"The trail starts at {len(self.trail_log)} entries and grows when it runs out")
         self.initial_domains = np.array(problem.domains)
-        self._cp_init()
+        self._choice_point_init()
         logger.debug("Choice points initialized")
         logger.debug("Initializing statistics")
         self.statistics = np.zeros(STATS_MAX + STATS_ALG_WIDTH * get_algorithm_nb(), dtype=np.int64)
@@ -386,7 +386,7 @@ class BacktrackSolver(Solver):
         """
         if mode == OPTIM_RESET:
             logger.debug("Resetting solver")
-            self._cp_init()
+            self._choice_point_init()
             if not fix_choice_point(
                 self.state, self.trail_log, self.trail_top, self.trail_indices, variable, value, bound
             ):
@@ -403,11 +403,11 @@ class BacktrackSolver(Solver):
                 return False
         return True
 
-    def _cp_init(self) -> None:
+    def _choice_point_init(self) -> None:
         """
         Resets the search to the root.
         """
-        cp_init(
+        choice_point_init(
             self.state,
             self.entailed,
             self.trail_top,

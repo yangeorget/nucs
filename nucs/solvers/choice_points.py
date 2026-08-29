@@ -109,7 +109,7 @@ def trail_set(
     per trailed write, and off the skip, which happens as often as a fixpoint re-narrows a bound.
 
     Stating the rule positionally, rather than approximating it with a generation counter stamped per
-    cell, means there is no counter to bump -- and therefore no site that can forget to bump one. cp_init
+    cell, means there is no counter to bump -- and therefore no site that can forget to bump one. choice_point_init
     runs at solve time on every OPTIM_RESET, and every stack mutation is covered for free.
 
     :param state: all the backtrackable state
@@ -180,7 +180,7 @@ def trail_undo(state: NDArray, trail_log: NDArray, trail_indices: NDArray, trail
 
 
 @njit(cache=True)
-def cp_init(
+def choice_point_init(
     state: NDArray,
     entailed: NDArray,
     trail_top: NDArray,
