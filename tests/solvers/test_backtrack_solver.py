@@ -16,9 +16,9 @@ import pytest
 
 from nucs.buckets import buckets_empty
 from nucs.constants import (
-    LEVEL_BOUND,
-    LEVEL_VALUE,
-    LEVEL_VARIABLE,
+    CHOICE_POINT_BOUND,
+    CHOICE_POINT_VALUE,
+    CHOICE_POINT_VARIABLE,
     MAX,
     MIN,
     OPTIM_PRUNE,
@@ -121,7 +121,7 @@ class TestBacktrackSolver:
     def test_solve_one(self) -> None:
         """The state a solution leaves behind, and what backtracking restores of it.
 
-        This used to assert the opposite property: that every level kept its own snapshot and that
+        This used to assert the opposite property: that every choice point kept its own snapshot and that
         backtracking left them all untouched, because the pointer decrement was the whole of the restore.
         There is one set of domains now, and backtracking restores it by replaying the undo log.
         """
@@ -144,7 +144,7 @@ class TestBacktrackSolver:
             solver.trail_log,
             solver.trail_top,
             solver.trail_idx,
-            solver.level_stk,
+            solver.choice_point_stk,
             solver.stks_top,
             solver.triggered_propagators,
             solver.consistency_alg_fcts,
@@ -172,18 +172,20 @@ class TestBacktrackSolver:
         # two min_value decisions, so both variables are ground at [0, 0]
         assert solver.domains[0].tolist() == [0, 0]
         assert solver.domains[1].tolist() == [0, 0]
-        # each level parked the refutation of its own decision: raise that variable's min to 1
-        assert solver.level_stk[0, LEVEL_VARIABLE] == 0
-        assert (solver.level_stk[0, LEVEL_BOUND], solver.level_stk[0, LEVEL_VALUE]) == (MIN, 1)
-        assert solver.level_stk[1, LEVEL_VARIABLE] == 1
-        assert (solver.level_stk[1, LEVEL_BOUND], solver.level_stk[1, LEVEL_VALUE]) == (MIN, 1)
+        # each choice point parked the refutation of its own decision: raise that variable's min to 1
+        assert solver.choice_point_stk[0, CHOICE_POINT_VARIABLE] == 0
+        assert solver.choice_point_stk[0, CHOICE_POINT_BOUND] == MIN
+        assert solver.choice_point_stk[0, CHOICE_POINT_VALUE] == 1
+        assert solver.choice_point_stk[1, CHOICE_POINT_VARIABLE] == 1
+        assert solver.choice_point_stk[1, CHOICE_POINT_BOUND] == MIN
+        assert solver.choice_point_stk[1, CHOICE_POINT_VALUE] == 1
         assert backtrack(
             solver.statistics,
             solver.state,
             solver.trail_log,
             solver.trail_top,
             solver.trail_idx,
-            solver.level_stk,
+            solver.choice_point_stk,
             solver.stks_top,
             solver.entailed,
             solver.triggered_propagators,
@@ -193,7 +195,7 @@ class TestBacktrackSolver:
             problem.propagator_nb,
             solver.objective,
         )
-        # back at level 1, with variable 1's refutation applied: variable 0 stays at its decision
+        # back at choice point 1, with variable 1's refutation applied: variable 0 stays at its decision
         assert solver.stks_top == 1
         assert solver.domains[0].tolist() == [0, 0]
         assert solver.domains[1].tolist() == [1, 1]
@@ -211,8 +213,8 @@ class TestBacktrackSolver:
         assert solutions[0].tolist() == [0, 0, 0]
         assert solutions[-1].tolist() == [9, 9, 9]
         assert solver.stks_top[0] == 0  # exhausted, back at the root
-        # the root's own refutations are never undone -- nothing pops past level 0 -- but everything
-        # deeper is, so what is left is a handful of entries rather than one snapshot per level
+        # the root's own refutations are never undone -- nothing pops past choice point 0 -- but everything
+        # deeper is, so what is left is a handful of entries rather than one snapshot per choice point
         assert solver.trail_top[0] < 4 * len(solver.trail_idx)
         assert len(solver.trail_log) == 1 << 16  # it never had to grow
 
@@ -236,12 +238,12 @@ class TestBacktrackSolver:
         assert len(solver.trail_log) > trail_max_size  # it did have to grow
 
     def test_the_level_stack_grows_rather_than_overruns(self) -> None:
-        """Likewise for a search deeper than the level stack: grow, do not corrupt memory."""
+        """Likewise for a search deeper than the choice point stack: grow, do not corrupt memory."""
         problem = Problem([(0, 5)] * 6)
         reference = BacktrackSolver(problem).find_all()
         solver = BacktrackSolver(Problem([(0, 5)] * 6), stks_max_height=4)
         assert len(solver.find_all()) == len(reference)
-        assert len(solver.level_stk) > 4
+        assert len(solver.choice_point_stk) > 4
 
     def test_find_all(self) -> None:
         problem = Problem([(0, 1), (0, 1)])
@@ -375,12 +377,12 @@ class TestBacktrackSolver:
         it reports must be the ones OPTIM_RESET reports -- pruning is an optimization, not a semantics.
 
         Regression test for a hang: OPTIM_PRUNE used to rewrite the tightened bound into every stored
-        choice point and drop one level per wipe-out, which assumes the wiped levels are the deepest ones.
-        A three-way split (DOM_HEURISTIC_MID_VALUE, a DECISION_EQ) makes two levels siblings
+        choice point and drop one per wipe-out, which assumes the wiped ones are the deepest.
+        A three-way split (DOM_HEURISTIC_MID_VALUE, a DECISION_EQ) makes two choice points siblings
         holding disjoint objective ranges, so minimizing wiped the shallower one and the count-based drop
-        discarded the survivor. The resulting level had an empty domain that no variable heuristic could
+        discarded the survivor. The resulting choice point had an empty domain that no variable heuristic could
         claim and no propagator noticed, and solve_one span forever on an empty queue.
-        Only maximization was covered before, which wipes the deeper level first and so never hit it.
+        Only maximization was covered before, which wipes the deeper choice point first and so never hit it.
         """
         expected = [
             solution.tolist()

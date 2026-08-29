@@ -20,9 +20,9 @@ from numpy.typing import NDArray
 
 from nucs.buckets import buckets_create, buckets_empty, buckets_init
 from nucs.constants import (
+    CHOICE_POINT_WIDTH,
     DECISION_VALUE,
     DECISION_WIDTH,
-    LEVEL_WIDTH,
     LOG_LEVEL_INFO,
     MAX,
     MIN,
@@ -38,7 +38,7 @@ from nucs.constants import (
     SIGN_CONSISTENCY_ALG,
     SIGN_DOM_HEURISTIC,
     SIGN_VAR_HEURISTIC,
-    SOLVER_LEVELS_FULL,
+    SOLVER_CHOICE_POINTS_FULL,
     SOLVER_RUNNING,
     SOLVER_STATUS,
     SOLVER_STATUS_WIDTH,
@@ -217,7 +217,7 @@ class BacktrackSolver(Solver):
         self.state = np.zeros(2 * domain_nb + propagator_nb + 1, dtype=np.int32)
         self.domains = self.state[: 2 * domain_nb].reshape(domain_nb, 2)
         self.entailed = self.state[2 * domain_nb : 2 * domain_nb + propagator_nb]
-        # the guard lets a level trail each cell of state at most once -- every domain bound, every
+        # the guard lets a choice point trail each cell of state at most once -- every domain bound, every
         # entailment flag and the count -- so a whole step of the search cannot need more than that,
         # plus the handful of writes branching and backtracking add on top. The solver grows the trail
         # when this much room is no longer there.
@@ -227,11 +227,11 @@ class BacktrackSolver(Solver):
         self.trail_log = np.empty((trail_max_size or max(1 << 16, 4 * self.trail_headroom), 2), dtype=np.int32)
         self.trail_top = np.zeros((1,), dtype=np.int32)
         self.trail_idx = np.full(len(self.state), -1, dtype=np.int32)
-        self.level_stk = np.zeros((stks_max_height, LEVEL_WIDTH), dtype=np.int32)
+        self.choice_point_stk = np.zeros((stks_max_height, CHOICE_POINT_WIDTH), dtype=np.int32)
         self.stks_top = np.ones((1,), dtype=np.uint32)
         self.status = np.zeros(SOLVER_STATUS_WIDTH, dtype=np.int32)
         # the branch-and-bound bound is solver state, not choice-point state: OBJ_VARIABLE is -1 outside
-        # OPTIM_PRUNE, and backtrack re-applies the bound to each level it resumes
+        # OPTIM_PRUNE, and backtrack re-applies the bound to each choice point it resumes
         self.objective = np.full(OBJ_WIDTH, -1, dtype=np.int32)
         # scratch for the domain heuristic's split value, allocated once rather than returned as a tuple
         self.decision = np.zeros(DECISION_WIDTH, dtype=np.int32)
@@ -344,7 +344,7 @@ class BacktrackSolver(Solver):
             self.trail_log,
             self.trail_top,
             self.trail_idx,
-            self.level_stk,
+            self.choice_point_stk,
             self.stks_top,
             self.triggered_propagators,
             self.consistency_alg_fcts,
@@ -392,8 +392,8 @@ class BacktrackSolver(Solver):
             buckets_init(self.triggered_propagators, self.problem.priorities)
         else:
             logger.debug("Pruning choice points")
-            # arm the objective and let backtrack apply it: the bound is re-applied to each level the
-            # search resumes, so the levels it kills are dropped as they are reached rather than up front
+            # arm the objective and let backtrack apply it: the bound is re-applied to each choice point the
+            # search resumes, so the choice points it kills are dropped as they are reached rather than up front
             self.objective[OBJ_VARIABLE] = variable
             self.objective[OBJ_BOUND] = bound
             self.objective[OBJ_VALUE] = value
@@ -410,7 +410,7 @@ class BacktrackSolver(Solver):
             self.entailed,
             self.trail_top,
             self.trail_idx,
-            self.level_stk,
+            self.choice_point_stk,
             self.stks_top,
             self.initial_domains,
             self.problem.unbound_variable_nb,
@@ -421,7 +421,7 @@ class BacktrackSolver(Solver):
         Doubles whichever caller-allocated array the search ran out of, and lets it continue.
 
         Nothing of the search is lost. The trail keeps its contents, so every mark and every position in
-        pos still addresses the same entry; the level stack keeps its rows. Sizing either array for its
+        pos still addresses the same entry; the choice point stack keeps its rows. Sizing either array for its
         worst case instead -- depth x (2 x domain_nb + 1) trail entries -- would hand back the memory
         this representation wins, and a hard failure would end a long optimization run for no reason.
         """
@@ -431,10 +431,10 @@ class BacktrackSolver(Solver):
             self.trail_log = trail
             logger.info(f"The trail grew to {len(self.trail_log)} entries")
         else:
-            level_stk = np.zeros((2 * len(self.level_stk), LEVEL_WIDTH), dtype=np.int32)
-            level_stk[: len(self.level_stk)] = self.level_stk
-            self.level_stk = level_stk
-            logger.info(f"The stacks of the choice points grew to a maximal height of {len(self.level_stk)}")
+            choice_point_stk = np.zeros((2 * len(self.choice_point_stk), CHOICE_POINT_WIDTH), dtype=np.int32)
+            choice_point_stk[: len(self.choice_point_stk)] = self.choice_point_stk
+            self.choice_point_stk = choice_point_stk
+            logger.info(f"The stacks of the choice points grew to a maximal height of {len(self.choice_point_stk)}")
         self.status[SOLVER_STATUS] = SOLVER_RUNNING
 
     def _backtrack(self) -> bool:
@@ -450,7 +450,7 @@ class BacktrackSolver(Solver):
             self.trail_log,
             self.trail_top,
             self.trail_idx,
-            self.level_stk,
+            self.choice_point_stk,
             self.stks_top,
             self.entailed,
             self.triggered_propagators,
@@ -527,7 +527,7 @@ def solve_one(
     trail: NDArray,
     trail_top: NDArray,
     pos: NDArray,
-    level_stk: NDArray,
+    choice_point_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
     consistency_alg_fcts: ConsistencyAlgorithmFunctions,
@@ -585,8 +585,8 @@ def solve_one(
     :type trail_top: NDArray
     :param pos: the index of the last trail entry per positionally guarded cell
     :type pos: NDArray
-    :param level_stk: the per-level metadata
-    :type level_stk: NDArray
+    :param choice_point_stk: the per-choice-point metadata
+    :type choice_point_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
     :type stks_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
@@ -626,7 +626,7 @@ def solve_one(
     :type objective: NDArray
     :param decision: a scratch array the domain heuristic writes its split value into
     :type decision: NDArray
-    :param status: set to SOLVER_TRAIL_FULL or SOLVER_LEVELS_FULL when the search stops for want of room
+    :param status: set to SOLVER_TRAIL_FULL or SOLVER_CHOICE_POINTS_FULL when the search stops for want of room
     :type status: NDArray
     :param trail_headroom: the trail entries any one step of the search can need
     :type trail_headroom: int
@@ -636,7 +636,7 @@ def solve_one(
     """
     consistency_alg_fct = consistency_alg_fcts[0]
     nb_searches = len(decision_variables_offsets) - 1
-    max_top = len(level_stk) - 3  # a ternary split pushes two levels and marks a third
+    max_top = len(choice_point_stk) - 3  # a ternary split pushes two choice points and marks a third
     while True:
         # the arrays are caller-allocated, so the search stops for the solver to grow one rather than
         # overrun it silently -- with boundscheck off, the overrun is what would otherwise happen
@@ -644,7 +644,7 @@ def solve_one(
             status[SOLVER_STATUS] = SOLVER_TRAIL_FULL
             return None
         if stks_top[0] > max_top:
-            status[SOLVER_STATUS] = SOLVER_LEVELS_FULL
+            status[SOLVER_STATUS] = SOLVER_CHOICE_POINTS_FULL
             return None
         problem_status = consistency_alg_fct(
             propagator_nb,
@@ -662,7 +662,7 @@ def solve_one(
             trail,
             trail_top,
             pos,
-            level_stk,
+            choice_point_stk,
             stks_top,
             triggered_propagators,
             compute_domains_fcts,
@@ -688,7 +688,7 @@ def solve_one(
                     ].reshape(var_heuristic_params_shapes[search_idx, 0], var_heuristic_params_shapes[search_idx, 1]),
                 )
                 if variable != -1:
-                    # the heuristic only says where to split; branch owns the two levels it takes to do so
+                    # the heuristic only says where to split; branch owns the two choice points it takes to do so
                     kind = dom_heuristic_fcts[search_idx](
                         domains,
                         variable,
@@ -704,7 +704,7 @@ def solve_one(
                         trail,
                         trail_top,
                         pos,
-                        level_stk,
+                        choice_point_stk,
                         stks_top,
                         variable,
                         kind,
@@ -726,14 +726,14 @@ def solve_one(
                     branched = True
                     break
         # either the problem is inconsistent, or no search can claim a variable although variables remain
-        # unbound -- a level whose domains admit no assignment. Both are dead ends: backtrack.
+        # unbound -- a choice point whose domains admit no assignment. Both are dead ends: backtrack.
         if not branched and not backtrack(
             statistics,
             state,
             trail,
             trail_top,
             pos,
-            level_stk,
+            choice_point_stk,
             stks_top,
             entailed,
             triggered_propagators,

@@ -17,8 +17,8 @@ from numpy.typing import NDArray
 
 from nucs.buckets import STORAGE_OFFSET, buckets_add, buckets_pop
 from nucs.constants import (
+    CHOICE_POINT_TRAIL_MARK,
     EVENT_NB,
-    LEVEL_TRAIL_MARK,
     MAX,
     MIN,
     PARAM,
@@ -59,7 +59,7 @@ def bc_algorithm(
     trail_log: NDArray,
     trail_top: NDArray,
     trail_idx: NDArray,
-    level_stk: NDArray,
+    choice_point_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
@@ -99,8 +99,8 @@ def bc_algorithm(
     :type trail_top: NDArray
     :param trail_idx: the index of the last trail entry per positionally guarded cell
     :type trail_idx: NDArray
-    :param level_stk: the per-level metadata
-    :type level_stk: NDArray
+    :param choice_point_stk: the per-choice-point metadata
+    :type choice_point_stk: NDArray
     :param stks_top: the height of the stacks as a Numpy array
     :type stks_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
@@ -118,9 +118,9 @@ def bc_algorithm(
     :rtype: int
     """
     top = stks_top[0]
-    # the level's mark is loaded once: stks_top does not move during a filtering, and neither does the
-    # mark of the level it is filtering
-    mark = level_stk[top, LEVEL_TRAIL_MARK]
+    # the choice point's mark is loaded once: stks_top does not move during a filtering, and neither does the
+    # mark of the choice point it is filtering
+    mark = choice_point_stk[top, CHOICE_POINT_TRAIL_MARK]
     unbound = unbound_index(state)
     # the trail size lives in a local for the whole filtering and is published on the way out. Nothing
     # outside this function reads it before then, and keeping it out of memory takes a load and a store
@@ -158,7 +158,7 @@ def bc_algorithm(
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
             if not entailed[prop_idx]:
                 # entailment needs no positional guard: it is monotonic within a branch and this test
-                # has just established the flag is still clear, so it cannot be trailed twice in a level
+                # has just established the flag is still clear, so it cannot be trailed twice in a choice point
                 trail_size = trail_push(trail_log, trail_idx, trail_size, entailed_index + prop_idx, 0)
                 entailed[prop_idx] = 1
         no_change, trail_size = update_domains(

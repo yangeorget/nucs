@@ -31,17 +31,17 @@ number of propagators.
 Nothing else is saved. The propagation queue is *not* restored on backtrack: `backtrack` reschedules only
 the propagators the refuted decision affects, which is the point of recording that decision (below).
 
-### Trailed, versus per-level
+### Trailed, versus per-choice-point
 
 The line is not "O(changes) versus O(1)". It is:
 
-- **Backtrackable state** — a value that existed before the level and must come back afterwards. Trail it.
+- **Backtrackable state** — a value that existed before the choice point and must come back afterwards. Trail it.
   Domain bounds, entailment flags, the unbound count.
-- **Per-level metadata** — a value that *describes* the level and has no meaning outside it. Index it by
+- **Per-choice-point metadata** — a value that *describes* the choice point and has no meaning outside it. Index it by
   `stks_top` and let the pointer decrement restore it.
 
-The decision columns of `level_stk` prove the line is real rather than a preference: trailing them would
-be *wrong*, not merely slower, because undoing to the level's own mark would erase the very decision
+The decision columns of `choice_point_stk` prove the line is real rather than a preference: trailing them would
+be *wrong*, not merely slower, because undoing to the choice point's own mark would erase the very decision
 `backtrack` is about to apply.
 
 ## Data structures
@@ -55,16 +55,16 @@ be *wrong*, not merely slower, because undoing to the level's own mark would era
 | `trail_top` | `(1,)` | int32 | the trail size |
 | `trail_idx` | `(len(state),)` | int32 | index of the last trail entry per cell, `-1` when none |
 
-### Per-level
+### Per-choice point
 
 | array | shape | dtype | role |
 |-------|-------|-------|------|
-| `level_stk` | `(H, 4)` | int32 | `[LEVEL_TRAIL_MARK, LEVEL_VARIABLE, LEVEL_BOUND, LEVEL_VALUE]` |
+| `choice_point_stk` | `(H, 4)` | int32 | `[CHOICE_POINT_TRAIL_MARK, CHOICE_POINT_VARIABLE, CHOICE_POINT_BOUND, CHOICE_POINT_VALUE]` |
 | `stks_top` | `(1,)` | uint32 | the index of the top |
 
-`level_stk[d]` holds the trail position at which level `d` branched, and the alternative to apply when the
+`choice_point_stk[d]` holds the trail position at which choice point `d` branched, and the alternative to apply when the
 search comes back to it. The four columns share an index *and* a schedule — branching writes all four,
-`backtrack` reads all four — so at 16 bytes a level's whole metadata is one aligned chunk, touched as a
+`backtrack` reads all four — so at 16 bytes a choice point's whole metadata is one aligned chunk, touched as a
 unit. (Contrast the per-propagator arrays, which share an index but are read at wildly different
 frequencies; merging *those* measured worse, and `ARCHITECTURE.md` records it.)
 
@@ -78,7 +78,7 @@ across separately jitted functions, and Numba has no way to pass a scalar by ref
 Every backtrackable write goes through `trail_set`, and the rule it implements is exactly:
 
 > a write to `flat` may skip the trail **iff** the trail already holds a live entry *for `flat`* at an
-> index `>= level_stk[stks_top[0], LEVEL_TRAIL_MARK]`.
+> index `>= choice_point_stk[stks_top[0], CHOICE_POINT_TRAIL_MARK]`.
 
 ```python
 entry = trail_idx[flat]
@@ -100,7 +100,7 @@ claimed. So
 cost lands on the pop, once per trailed write, rather than on the skip, which happens as often as a
 fixpoint re-narrows a bound.
 
-**The barrier is per bound, not per variable.** `update_domains` writes `MIN` and `MAX` in the same level,
+**The barrier is per bound, not per variable.** `update_domains` writes `MIN` and `MAX` in the same choice point,
 so a guard indexed by variable would suppress the second write and never restore `MAX`.
 
 Two things follow from stating the rule positionally rather than with a generation counter stamped per
@@ -110,7 +110,7 @@ overflow: a monotonic world id would wrap `int32` after ~1e9 nodes, which NuCS r
 
 Entailment is the one exception, and takes `trail_push` instead: a flag only ever goes from active to
 entailed, and it is only written where the caller has just read it as clear, so it cannot be written twice
-in a level and needs no positional guard. Its position is still recorded, so `trail_undo` can clear it like
+in a choice point and needs no positional guard. Its position is still recorded, so `trail_undo` can clear it like
 any other.
 
 `tighten` is the only place a domain is written — a propagator's filtering, a branching decision, the
@@ -122,8 +122,8 @@ it out of memory, so a filtering keeps it in a register across every bound it na
 
 ## What `top` means
 
-`stks_top[0]` is the search depth. `state` always holds the domains of the level the search is *at*; the
-levels below it hold, in `level_stk`, the trail position to rewind to and the alternative to apply.
+`stks_top[0]` is the search depth. `state` always holds the domains of the choice point the search is *at*; the
+choice points below it hold, in `choice_point_stk`, the trail position to rewind to and the alternative to apply.
 `stks_top[0] == 0` with no alternative left is exhaustion.
 
 `cp_init` resets the whole thing: the initial domains, every propagator active, the trail empty, every
@@ -136,8 +136,8 @@ does the rest:
 
 ```python
 mark = trail_top[0]
-park(level_stk, top, mark, variable, MIN, value + 1)   # the alternative, for later
-level_stk[top + 1, LEVEL_TRAIL_MARK] = mark            # the level about to be worked at
+park(choice_point_stk, top, mark, variable, MIN, value + 1)   # the alternative, for later
+choice_point_stk[top + 1, CHOICE_POINT_TRAIL_MARK] = mark            # the choice point about to be worked at
 stks_top[0] = top + 1
 return tighten(..., mark, variable, domain_min, value)  # the branch explored now
 ```
@@ -154,7 +154,7 @@ Three kinds cover all eight in-tree heuristics:
 | `GT` at `v` | `[v+1, max]` | `[min, v]` | `split_high` (`v` = mid), `max_value` (`v` = max-1) |
 | `EQ` at `v` | `[v, v]` | `[min, v-1]` then `[v+1, max]` | `mid_value`, `min_cost` |
 
-`EQ` is the ternary case and parks two levels. The parked order is what an enumeration sees
+`EQ` is the ternary case and parks two choice points. The parked order is what an enumeration sees
 (`tests/heuristics/test_mid_value_dom_heuristic.py` pins it). `branch` normalizes an `EQ` at either end of
 the domain to a two-way split, and clamps an `EQ` value outside the domain into it — `min_cost` returns
 `-1` when no value has a positive cost, and a split has to partition the domain for the enumeration to
@@ -164,19 +164,19 @@ stay complete.
 
 1. return `False` if `top == 0` — the search is exhausted;
 2. `stks_top[0] -= 1`;
-3. `trail_undo(...)` back to `level_stk[top, LEVEL_TRAIL_MARK]` — this restores the domains *and*
-   reactivates the propagators entailed below this level, in one loop;
-4. apply `level_stk[top]`'s alternative through `tighten` — so the refutation is itself undone when the
-   search later backtracks past this level — and `update_propagators` for the events it raises.
+3. `trail_undo(...)` back to `choice_point_stk[top, CHOICE_POINT_TRAIL_MARK]` — this restores the domains *and*
+   reactivates the propagators entailed below this choice point, in one loop;
+4. apply `choice_point_stk[top]`'s alternative through `tighten` — so the refutation is itself undone when the
+   search later backtracks past this choice point — and `update_propagators` for the events it raises.
 
-Step 4 is why the queue needs no rebuild: the only unpropagated change at this level is the one just
+Step 4 is why the queue needs no rebuild: the only unpropagated change at this choice point is the one just
 applied.
 
 When optimizing, steps 1-4 are a loop: after step 4 the objective bound is re-applied to the resumed
-level (see *Optimization*), and if it wipes the level out the search pops again.
+choice point (see *Optimization*), and if that wipes it out the search pops again.
 
 `solve()` also calls `backtrack` after yielding each solution, which is how iteration resumes: a solution
-is a fully bound level, and forcing a backtrack drops to the next pending alternative. `optimize()` does
+is a fully bound choice point, and forcing a backtrack drops to the next pending alternative. `optimize()` does
 the same, having first armed `objective` with the bound the solution establishes.
 
 ## Optimization
@@ -186,30 +186,30 @@ what they do to the choice points (`BacktrackSolver._advance_after_optimum`):
 
 | mode | function | effect |
 |------|----------|--------|
-| `OPTIM_RESET` | `cp_init` + `fix_choice_point` | throws the levels away, restarts from the initial domains with the objective bound tightened at the root |
-| `OPTIM_PRUNE` | arms `objective`, then `backtrack` | keeps the levels; the bound is re-applied by `backtrack` to each one as it is resumed |
+| `OPTIM_RESET` | `cp_init` + `fix_choice_point` | throws the choice points away, restarts from the initial domains with the objective bound tightened at the root |
+| `OPTIM_PRUNE` | arms `objective`, then `backtrack` | keeps the choice points; the bound is re-applied by `backtrack` to each one as it is resumed |
 
 `OPTIM_PRUNE` rests on the observation that **the branch-and-bound bound is not backtrackable**. It holds
 for the whole remaining search, so it is solver state rather than choice-point state:
 `_advance_after_optimum` writes it into `objective` (`[OBJ_VARIABLE, OBJ_BOUND, OBJ_VALUE]`, with
 `OBJ_VARIABLE == -1` when not optimizing) and then simply backtracks.
 
-`backtrack` is what applies it, through `tighten_objective`, to whichever level it lands on. The tightening
-is monotone and idempotent, so a level that is resumed twice is tightened once in effect, and a level the
-bound wipes out can no longer hold an improving solution — `backtrack` keeps popping. That is why no level
+`backtrack` is what applies it, through `tighten_objective`, to whichever choice point it lands on. The tightening
+is monotone and idempotent, so a choice point resumed twice is tightened once in effect, and one the
+bound wipes out can no longer hold an improving solution — `backtrack` keeps popping. That is why no choice point
 is ever pruned in advance, and why `backtrack` is a loop rather than a single pop.
 
-Nothing walks the stored levels. An earlier design did: it rewrote the bound into every level and dropped
-one level per wipe-out, which assumes the wiped levels are the deepest ones. Two-way splits guarantee
-that; a three-way split does not, and the mismatch discarded a surviving level and hung the solver
+Nothing walks the stored choice points. An earlier design did: it rewrote the bound into every one and dropped
+one per wipe-out, which assumes the wiped ones are the deepest. Two-way splits guarantee
+that; a three-way split does not, and the mismatch discarded a surviving choice point and hung the solver
 (`test_prune_terminates_on_a_three_way_split`).
 
 ## Growing
 
-`trail_log` and `level_stk` are caller-allocated, so they cannot grow inside `@njit`. Sizing them for their
+`trail_log` and `choice_point_stk` are caller-allocated, so they cannot grow inside `@njit`. Sizing them for their
 worst case — depth × (2·`domain_nb` + 1) trail entries — would hand back the memory this representation
 wins, and a hard failure would end a long optimization run for nothing. So `solve_one` checks for room
-before each step, stops with `SOLVER_TRAIL_FULL` or `SOLVER_LEVELS_FULL`, and `BacktrackSolver._grow`
+before each step, stops with `SOLVER_TRAIL_FULL` or `SOLVER_CHOICE_POINTS_FULL`, and `BacktrackSolver._grow`
 doubles the array and resumes.
 
 Nothing of the search is lost across the reallocation: `state`, the marks and the positions all still

@@ -17,7 +17,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_NB, LEVEL_TRAIL_MARK, MAX, MIN
+from nucs.constants import CHOICE_POINT_TRAIL_MARK, EVENT_NB, MAX, MIN
 from nucs.numba_helper import ComputeDomainsFunctions
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
@@ -140,7 +140,7 @@ def golomb_consistency_algorithm(
     trail_log: NDArray,
     trail_top: NDArray,
     trail_idx: NDArray,
-    level_stk: NDArray,
+    choice_point_stk: NDArray,
     stks_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
@@ -156,7 +156,7 @@ def golomb_consistency_algorithm(
     :return: the status as an int
     :rtype: int
     """
-    mark = level_stk[stks_top[0], LEVEL_TRAIL_MARK]
+    mark = choice_point_stk[stks_top[0], CHOICE_POINT_TRAIL_MARK]
     # as in the propagation loop, the trail size stays in a register across the whole pruning
     trail_size = trail_top[0]
     # first prune the search space
@@ -230,7 +230,7 @@ def golomb_consistency_algorithm(
         trail_log,
         trail_top,
         trail_idx,
-        level_stk,
+        choice_point_stk,
         stks_top,
         triggered_propagators,
         compute_domains_fcts,

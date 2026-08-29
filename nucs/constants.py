@@ -28,25 +28,25 @@ MIN = 0  # min value of a domain
 MAX = 1  # max value of a domain
 GROUND = 2
 
-# Level metadata columns.
-# One row per choice point, holding what *describes* the level rather than what it changed: the trail
+# Choice point metadata columns.
+# One row per choice point, holding what *describes* it rather than what it changed: the trail
 # position at its decision point, and the single-bound tightening to apply when the search resumes it.
 # None of it is trailed -- trailing the decision would erase the very thing backtrack is about to apply.
-LEVEL_TRAIL_MARK = 0  # the trail size when the level branched, the point trail_undo restores to
-LEVEL_VARIABLE = 1  # the variable of the parked alternative
-LEVEL_BOUND = 2  # the side of its domain the alternative tightens
-LEVEL_VALUE = 3  # the value the alternative tightens that side to
-LEVEL_WIDTH = 4  # the number of columns of a level
+CHOICE_POINT_TRAIL_MARK = 0  # the trail size when the choice point branched, the point trail_undo restores to
+CHOICE_POINT_VARIABLE = 1  # the variable of the parked alternative
+CHOICE_POINT_BOUND = 2  # the side of its domain the alternative tightens
+CHOICE_POINT_VALUE = 3  # the value the alternative tightens that side to
+CHOICE_POINT_WIDTH = 4  # the number of columns of a choice point
 
 # Capacity outcomes of a search step.
-# The trail and the level stack are caller-allocated, so they cannot grow inside @njit. Rather than
+# The trail and the choice point stack are caller-allocated, so they cannot grow inside @njit. Rather than
 # sizing them for a worst case that never happens -- depth x (2 x domain_nb + 1) entries, which would
 # give back the memory this representation wins -- the search stops and says which one is full, and the
 # solver grows it and resumes. Nothing of the search is lost: the state, the trail marks and the
 # positions all stay valid across the reallocation.
 SOLVER_RUNNING = 0  # the search stopped because it needs more room, not because it is over
 SOLVER_TRAIL_FULL = 1
-SOLVER_LEVELS_FULL = 2
+SOLVER_CHOICE_POINTS_FULL = 2
 SOLVER_STATUS = 0  # index for the status in the status array
 SOLVER_STATUS_WIDTH = 1
 
@@ -65,7 +65,7 @@ DECISION_WIDTH = 1  # the number of cells of the decision array
 
 # Objective indices.
 # The branch-and-bound bound is solver state, not choice-point state: it is not backtrackable, so it is
-# re-applied to every level the search resumes rather than written into the levels up front.
+# re-applied to each choice point as the search resumes it rather than written into them all up front.
 OBJ_VARIABLE = 0  # index for the variable being optimized, -1 when not optimizing
 OBJ_BOUND = 1  # index for the side of the optimized domain to tighten
 OBJ_VALUE = 2  # index for the best value found so far
@@ -117,7 +117,7 @@ SIGN_CONSISTENCY_ALG = int64(
     int32[:, ::1],  # trail
     int32[::1],  # trail_top
     int32[::1],  # pos
-    int32[:, ::1],  # level_stk
+    int32[:, ::1],  # choice_point_stk
     uint32[::1],  # stks_top
     int32[::1],  # triggered_propagators
     TYPE_COMPUTE_DOMAINS_LIST,  # compute_domains_fcts

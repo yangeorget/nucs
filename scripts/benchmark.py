@@ -91,7 +91,7 @@ CHOICE_POINT_ARRAYS = (
     "state",
     "trail_log",
     "trail_idx",
-    "level_stk",
+    "choice_point_stk",
     "entailed",
 )
 

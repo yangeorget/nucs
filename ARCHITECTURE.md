@@ -40,11 +40,11 @@ path runs in Numba nopython mode with no Python objects.
    | status | meaning | action |
    |--------|---------|--------|
    | `PROBLEM_BOUND` | fixpoint reached, all variables bound | emit the solution |
-   | `PROBLEM_INCONSISTENT` | a domain wiped out | `backtrack`: pop a choice point, replay the undo log back to its mark, reschedule the refuted decision. When optimizing, it keeps popping while the objective bound wipes the resumed level out |
+   | `PROBLEM_INCONSISTENT` | a domain wiped out | `backtrack`: pop a choice point, replay the undo log back to its mark, reschedule the refuted decision. When optimizing, it keeps popping while the objective bound wipes the resumed one out |
    | `PROBLEM_UNBOUND` | fixpoint reached, unbound variables remain | branch: the first search with an unbound decision variable picks one (variable heuristic) and splits its domain (domain heuristic, which `cp_put`s the alternative) |
 
 Between successive `solve_one` calls the queue is *not* refilled from scratch: `backtrack` schedules only
-the propagators affected by the refutation, or by the objective bound it re-applies to the level it resumes.
+the propagators affected by the refutation, or by the objective bound it re-applies to the choice point it resumes.
 
 ## Constants
 
@@ -151,7 +151,7 @@ bound, reactivating an entailed propagator and rolling back the unbound-variable
 | `trail_log` | `(T, 2)` | int32 | the undo log |
 | `trail_top` | `(1,)` | int32 | the trail size |
 | `trail_idx` | `(len(state),)` | int32 | index of the last trail entry per cell, `-1` when none |
-| `level_stk` | `(H, 4)` | int32 | per level: `[LEVEL_TRAIL_MARK, LEVEL_VARIABLE, LEVEL_BOUND, LEVEL_VALUE]` |
+| `choice_point_stk` | `(H, 4)` | int32 | per choice point: `[CHOICE_POINT_TRAIL_MARK, CHOICE_POINT_VARIABLE, CHOICE_POINT_BOUND, CHOICE_POINT_VALUE]` |
 | `stks_top` | `(1,)` | uint32 | the search depth |
 
 A push copies nothing: it records the trail position and the single-bound tightening to apply on return, and writes

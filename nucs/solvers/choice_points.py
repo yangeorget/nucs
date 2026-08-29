@@ -15,6 +15,10 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
+    CHOICE_POINT_BOUND,
+    CHOICE_POINT_TRAIL_MARK,
+    CHOICE_POINT_VALUE,
+    CHOICE_POINT_VARIABLE,
     DECISION_EQ,
     DECISION_GT,
     DECISION_LE,
@@ -22,10 +26,6 @@ from nucs.constants import (
     EVENT_MASK_MAX,
     EVENT_MASK_MIN,
     EVENT_MASK_NONE,
-    LEVEL_BOUND,
-    LEVEL_TRAIL_MARK,
-    LEVEL_VALUE,
-    LEVEL_VARIABLE,
     MAX,
     MIN,
     OBJ_BOUND,
@@ -59,7 +59,7 @@ def trail_push(trail_log: NDArray, trail_idx: NDArray, top: int, flat: int, old:
     Records a cell's old value unconditionally, for state that guards itself.
 
     An entailment flag only ever goes from active to entailed, and only where the caller has just tested
-    that it was active, so it cannot be written twice in a level and needs no positional guard. The
+    that it was active, so it cannot be written twice in a choice point and needs no positional guard. The
     position is still recorded, so that trail_undo can clear it like any other.
 
     :param trail_log: the undo log of (flat index, old value) pairs
@@ -87,10 +87,10 @@ def trail_set(
     state: NDArray, trail_log: NDArray, trail_idx: NDArray, mark: int, top: int, flat: int, old: int, value: int
 ) -> int:
     """
-    Writes a cell of the backtrackable state, recording its old value if this level has not already.
+    Writes a cell of the backtrackable state, recording its old value if this choice point has not already.
 
     The rule a write barrier has to implement is exactly: a write to flat may skip the trail iff the trail
-    already holds a live entry *for flat* at an index >= the current level's mark. Redundant entries are
+    already holds a live entry *for flat* at an index >= the current choice point's mark. Redundant entries are
     always safe -- undo is LIFO, so an extra entry restores a value at least as old as the one after it --
     but a missing entry corrupts.
 
@@ -115,7 +115,7 @@ def trail_set(
     :type trail_log: NDArray
     :param trail_idx: the index of the last trail entry per positionally guarded cell
     :type trail_idx: NDArray
-    :param mark: the trail size when the current level branched
+    :param mark: the trail size when the current choice point branched
     :type mark: int
     :param top: the trail size
     :type top: int
@@ -130,7 +130,7 @@ def trail_set(
     :rtype: int
     """
     entry = trail_idx[flat]
-    if not mark <= entry < top:  # no live entry for this cell at this level
+    if not mark <= entry < top:  # no live entry for this cell at this choice point
         trail_log[top, 0] = flat
         trail_log[top, 1] = old
         trail_idx[flat] = top
@@ -178,7 +178,7 @@ def cp_init(
     entailed: NDArray,
     trail_top: NDArray,
     trail_idx: NDArray,
-    level_stk: NDArray,
+    choice_point_stk: NDArray,
     stks_top: NDArray,
     domains_arr: NDArray,
     unbound_variable_nb: int,
@@ -198,8 +198,8 @@ def cp_init(
     :type trail_top: NDArray
     :param trail_idx: the index of the last trail entry per cell
     :type trail_idx: NDArray
-    :param level_stk: the per-level metadata
-    :type level_stk: NDArray
+    :param choice_point_stk: the per-choice-point metadata
+    :type choice_point_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
     :type stks_top: NDArray
     :param domains_arr: the domains
@@ -213,7 +213,7 @@ def cp_init(
     state[unbound_index(state)] = unbound_variable_nb
     entailed.fill(0)
     trail_idx.fill(-1)
-    level_stk[0, LEVEL_TRAIL_MARK] = 0
+    choice_point_stk[0, CHOICE_POINT_TRAIL_MARK] = 0
     trail_top[0] = stks_top[0] = 0
 
 
@@ -256,7 +256,7 @@ def tighten(
     :type trail_top: NDArray
     :param trail_idx: the index of the last trail entry per positionally guarded cell
     :type trail_idx: NDArray
-    :param mark: the trail size when the current level branched
+    :param mark: the trail size when the current choice point branched
     :type mark: int
     :param variable: the variable
     :type variable: int
@@ -298,7 +298,7 @@ def tighten_at(
     :type trail_log: NDArray
     :param trail_idx: the index of the last trail entry per positionally guarded cell
     :type trail_idx: NDArray
-    :param mark: the trail size when the current level branched
+    :param mark: the trail size when the current choice point branched
     :type mark: int
     :param top: the trail size
     :type top: int
@@ -312,7 +312,7 @@ def tighten_at(
     :return: the events triggered by the write and the new trail size
     :rtype: Tuple[int, int]
     """
-    # the barrier is per bound, not per variable: a filtering writes both MIN and MAX within one level,
+    # the barrier is per bound, not per variable: a filtering writes both MIN and MAX within one choice point,
     # so a guard indexed by variable would suppress the second write and never restore MAX
     flat = variable << 1
     old_min = state[flat]
@@ -333,15 +333,15 @@ def tighten_at(
 
 
 @njit(cache=True, inline="always")
-def park(level_stk: NDArray, top: int, mark: int, variable: int, bound: int, value: int) -> None:
+def park(choice_point_stk: NDArray, top: int, mark: int, variable: int, bound: int, value: int) -> None:
     """
-    Records on a level the alternative to apply when the search resumes it.
+    Records on a choice point the alternative to apply when the search resumes it.
 
-    :param level_stk: the per-level metadata
-    :type level_stk: NDArray
-    :param top: the level
+    :param choice_point_stk: the per-choice-point metadata
+    :type choice_point_stk: NDArray
+    :param top: the choice point
     :type top: int
-    :param mark: the trail size when the level branched
+    :param mark: the trail size when the choice point branched
     :type mark: int
     :param variable: the variable of the alternative
     :type variable: int
@@ -350,10 +350,10 @@ def park(level_stk: NDArray, top: int, mark: int, variable: int, bound: int, val
     :param value: the value the alternative tightens that side to
     :type value: int
     """
-    level_stk[top, LEVEL_TRAIL_MARK] = mark
-    level_stk[top, LEVEL_VARIABLE] = variable
-    level_stk[top, LEVEL_BOUND] = bound
-    level_stk[top, LEVEL_VALUE] = value
+    choice_point_stk[top, CHOICE_POINT_TRAIL_MARK] = mark
+    choice_point_stk[top, CHOICE_POINT_VARIABLE] = variable
+    choice_point_stk[top, CHOICE_POINT_BOUND] = bound
+    choice_point_stk[top, CHOICE_POINT_VALUE] = value
 
 
 @njit(cache=True)
@@ -362,7 +362,7 @@ def branch(
     trail_log: NDArray,
     trail_top: NDArray,
     trail_idx: NDArray,
-    level_stk: NDArray,
+    choice_point_stk: NDArray,
     stks_top: NDArray,
     variable: int,
     kind: int,
@@ -371,18 +371,18 @@ def branch(
     """
     Applies a decision: explores one branch and parks the alternatives for the search to resume.
 
-    A push copies nothing. It records the trail position -- so that returning to this level is a matter of
+    A push copies nothing. It records the trail position -- so that returning to this choice point is a matter of
     replaying the undo log back to it -- and the alternative to apply on arrival, which is always a
     single-bound tightening, hence monotone and idempotent, hence safe to re-apply.
 
     Only the explored branch is written. The alternatives stay parked, which is the point: the domains of
     a branch the search has not taken yet do not exist anywhere.
 
-    The parked alternatives are recorded on the levels below the explored one, deepest first, so that
+    The parked alternatives are recorded on the choice points below the explored one, deepest first, so that
     backtracking meets them in that order. DECISION_EQ is the ternary case and parks two of them.
 
-    The level above the deepest parked one gets the same mark, because it is the level the search is about
-    to work at and every write it makes has to be undone back to here.
+    The one above the deepest parked alternative gets the same mark, because it is where the search is about
+    to work and every write it makes has to be undone back to here.
 
     An EQ value outside the domain is clamped into it rather than applied as written. min_cost returns -1
     when no value in the domain has a positive cost; clamping keeps the split a partition of the domain,
@@ -396,8 +396,8 @@ def branch(
     :type trail_top: NDArray
     :param trail_idx: the index of the last trail entry per positionally guarded cell
     :type trail_idx: NDArray
-    :param level_stk: the per-level metadata
-    :type level_stk: NDArray
+    :param choice_point_stk: the per-choice-point metadata
+    :type choice_point_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
     :type stks_top: NDArray
     :param variable: the variable being branched on
@@ -425,18 +425,18 @@ def branch(
             kind = DECISION_GT
             value = domain_max - 1
     if kind == DECISION_LE:
-        park(level_stk, top, mark, variable, MIN, value + 1)
-        level_stk[top + 1, LEVEL_TRAIL_MARK] = mark
+        park(choice_point_stk, top, mark, variable, MIN, value + 1)
+        choice_point_stk[top + 1, CHOICE_POINT_TRAIL_MARK] = mark
         stks_top[0] = top + 1
         return tighten(state, trail_log, trail_top, trail_idx, mark, variable, domain_min, value)
     if kind == DECISION_GT:
-        park(level_stk, top, mark, variable, MAX, value)
-        level_stk[top + 1, LEVEL_TRAIL_MARK] = mark
+        park(choice_point_stk, top, mark, variable, MAX, value)
+        choice_point_stk[top + 1, CHOICE_POINT_TRAIL_MARK] = mark
         stks_top[0] = top + 1
         return tighten(state, trail_log, trail_top, trail_idx, mark, variable, value + 1, domain_max)
-    park(level_stk, top, mark, variable, MIN, value + 1)  # the shallower alternative is resumed last
-    park(level_stk, top + 1, mark, variable, MAX, value - 1)
-    level_stk[top + 2, LEVEL_TRAIL_MARK] = mark
+    park(choice_point_stk, top, mark, variable, MIN, value + 1)  # the shallower alternative is resumed last
+    park(choice_point_stk, top + 1, mark, variable, MAX, value - 1)
+    choice_point_stk[top + 2, CHOICE_POINT_TRAIL_MARK] = mark
     stks_top[0] = top + 2
     return tighten(state, trail_log, trail_top, trail_idx, mark, variable, value, value)
 
@@ -451,11 +451,11 @@ def tighten_objective(
     objective: NDArray,
 ) -> int:
     """
-    Applies the current branch-and-bound bound to the level the search has just resumed.
+    Applies the current branch-and-bound bound to the choice point the search has just resumed.
 
     The bound is not backtrackable: it holds for the whole remaining search, so it is re-applied to each
-    level as the search resumes it rather than written into every level when it is found. The tightening
-    is monotone and idempotent, so re-applying it to an already-tightened level is a no-op.
+    choice point as the search resumes it rather than written into them all when it is found. The tightening
+    is monotone and idempotent, so re-applying it to an already-tightened choice point is a no-op.
 
     :param state: all the backtrackable state
     :type state: NDArray
@@ -465,13 +465,13 @@ def tighten_objective(
     :type trail_top: NDArray
     :param trail_idx: the index of the last trail entry per positionally guarded cell
     :type trail_idx: NDArray
-    :param mark: the trail size when the resumed level branched
+    :param mark: the trail size when the resumed choice point branched
     :type mark: int
     :param objective: the objective as a Numpy array of variable, bound and value
     :type objective: NDArray
 
     :return: the events triggered by the tightening, EVENT_MASK_NONE when it changed nothing,
-             -1 when the level wipes out
+             -1 when the choice point wipes out
     :rtype: int
     """
     variable = objective[OBJ_VARIABLE]
@@ -495,7 +495,7 @@ def backtrack(
     trail_log: NDArray,
     trail_top: NDArray,
     trail_idx: NDArray,
-    level_stk: NDArray,
+    choice_point_stk: NDArray,
     stks_top: NDArray,
     entailed: NDArray,
     triggered_propagators: NDArray,
@@ -508,15 +508,15 @@ def backtrack(
     """
     Backtracks to the deepest choice point that can still hold a solution.
 
-    Popping a level is replaying the undo log back to the level's mark, then applying the alternative the
-    level parked -- through the same write barrier as any other write, so that the refutation is itself
-    undone when the search later backtracks past this level.
+    Popping a choice point is replaying the undo log back to its mark, then applying the alternative it
+    parked -- through the same write barrier as any other write, so that the refutation is itself
+    undone when the search later backtracks past this choice point.
 
-    The undo reactivates the propagators entailed below this level as it goes: an entailment flag is a
+    The undo reactivates the propagators entailed below this choice point as it goes: an entailment flag is a
     cell of the same state array as a domain bound, so there is nothing separate left to unwind.
 
-    When optimizing, the objective bound is re-applied to the level being resumed; a level it wipes out
-    can no longer hold an improving solution, so the search keeps popping. This is why no level ever has
+    When optimizing, the objective bound is re-applied to the choice point being resumed; one it wipes out
+    can no longer hold an improving solution, so the search keeps popping. This is why none of them ever has
     to be pruned in advance.
 
     :param statistics: the statistics array
@@ -529,8 +529,8 @@ def backtrack(
     :type trail_top: NDArray
     :param trail_idx: the index of the last trail entry per positionally guarded cell
     :type trail_idx: NDArray
-    :param level_stk: the per-level metadata
-    :type level_stk: NDArray
+    :param choice_point_stk: the per-choice-point metadata
+    :type choice_point_stk: NDArray
     :param stks_top: the index of the top of the stacks as a Numpy array
     :type stks_top: NDArray
     :param entailed: whether each propagator is entailed, a view of state
@@ -557,16 +557,16 @@ def backtrack(
         stks_top[0] -= 1
         top = stks_top[0]
         statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
-        mark = level_stk[top, LEVEL_TRAIL_MARK]
+        mark = choice_point_stk[top, CHOICE_POINT_TRAIL_MARK]
         trail_undo(state, trail_log, trail_idx, trail_top, mark)
-        variable = level_stk[top, LEVEL_VARIABLE]
+        variable = choice_point_stk[top, CHOICE_POINT_VARIABLE]
         flat = variable << 1
-        if level_stk[top, LEVEL_BOUND] == MIN:
-            new_min = max(level_stk[top, LEVEL_VALUE], state[flat])
+        if choice_point_stk[top, CHOICE_POINT_BOUND] == MIN:
+            new_min = max(choice_point_stk[top, CHOICE_POINT_VALUE], state[flat])
             new_max = state[flat | 1]
         else:
             new_min = state[flat]
-            new_max = min(level_stk[top, LEVEL_VALUE], state[flat | 1])
+            new_max = min(choice_point_stk[top, CHOICE_POINT_VALUE], state[flat | 1])
         events = tighten(state, trail_log, trail_top, trail_idx, mark, variable, new_min, new_max)
         if events != EVENT_MASK_NONE:
             update_propagators(
@@ -582,7 +582,7 @@ def backtrack(
         if optimized_variable < 0:
             return True
         events = tighten_objective(state, trail_log, trail_top, trail_idx, mark, objective)
-        if events < 0:  # the level cannot hold an improving solution, keep popping
+        if events < 0:  # the choice point cannot hold an improving solution, keep popping
             continue
         if events != EVENT_MASK_NONE:
             update_propagators(
