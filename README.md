@@ -30,6 +30,8 @@ pip install nucs
 
 Check out [NuCS documentation](https://nucs.readthedocs.io/).
 
+See [CHANGELOG.md](CHANGELOG.md) for what changed between releases, including the 15.0.0 migration note.
+
 ## With NuCS, in a few seconds you can ...
 
 ### Find all 14200 solutions to the [12-queens problem](https://www.csplib.org/Problems/prob054/)
