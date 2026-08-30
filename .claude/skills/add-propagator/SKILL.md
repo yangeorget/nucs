@@ -8,7 +8,7 @@ description: Skill to add a propagator to NuCS.
 A propagator is a constraint enforced by domain filtering.
 Adding one means:
 
-- writing a module with three Numba-jitted functions
+- writing a module with three Numba-jitted functions, plus an optional fourth that is not jitted
 - registering it with an `ALG_*` id
 - adding a parameterized test
 
@@ -23,7 +23,7 @@ Adding one means:
 
 ## 2. Create `nucs/propagators/name_propagator.py`
 
-The file must contain three functions and the standard copyright header (use the skill add-header).
+The file must contain three functions, optionally a fourth, and the standard copyright header (use the skill add-header).
 
 Reference: `nucs/propagators/abs_eq_propagator.py` is the minimal template.
 
@@ -83,6 +83,40 @@ Rules for the jitted functions:
   `compute_domains` twice on random contract-valid instances and assert the second call changes nothing.
   Purely functional propagators (each variable filtered once from fixed data) are idempotent by construction.
 
+### Optional: say when the constraint is vacuous
+
+Some constraints are settled by their parameters, or by their parameters and the initial domains together:
+no assignment those domains allow can violate them. A propagator for one of those is pure overhead. If that
+case is reachable for your constraint — and it is common for anything a FlatZinc model generates, where the
+same global is emitted with whatever capacities the model happens to give it — add a fourth function:
+
+```python
+def is_vacuous_name(n: int, parameters: Sequence[int], domains: Sequence[tuple[int, int]]) -> bool:
+    # NOT jitted, and not on any hot path: it runs once per add_propagator, in plain Python, so
+    # sum/all/comprehensions over `parameters` and `domains` are all fine.
+    # Return True only when no assignment allowed by `domains` can violate the constraint.
+    ...
+```
+
+`Problem.add_propagator` calls it before posting, and simply does not post when it returns True: no call at
+every fixpoint, no entry in the trigger buckets, no slot in the propagator arrays, and `problem.propagator_nb`
+does not count it. The default, `is_never_vacuous`, returns False for every propagator that does not supply one.
+
+- **Returning True wrongly silently drops a constraint**, so extra solutions come out and nothing reports an
+  error. Prove the claim in the docstring rather than pattern-matching a special case.
+- **The domains are the ones held at post time**, and domains only shrink during the search, so a property
+  that holds of them holds for the whole search. That is what makes it safe to look at them and not only at
+  the parameters — `is_vacuous_regular` needs them, since an all-accepting automaton still filters values
+  outside its alphabet, so it is vacuous only once every domain already sits inside that alphabet.
+- **Vacuity is about the constraint, not about the filtering.** "This call happens to prune nothing" is not
+  it; the question is whether every assignment the domains allow satisfies the constraint. `PROP_ENTAILMENT`
+  is the run-time counterpart and is decided per call — this one is decided once, at post time.
+- Order the cheap discriminating tests first: `is_vacuous_gcc` scans the upper capacities before the lower
+  ones because that is what fails fast on a constraint that does bind.
+
+See `is_vacuous_cumulative` (parameters only), `is_vacuous_gcc` (parameters only) and `is_vacuous_regular`
+(parameters and domains).
+
 ## 3. Register in `nucs/propagators/propagators.py`
 
 Add the import alongside the others, then append a registration line.
@@ -95,7 +129,19 @@ from nucs.propagators.name_propagator import compute_domains_name, get_complexit
 ALG_NAME = register_propagator(get_triggers_name, get_complexity_name, compute_domains_name)
 ```
 
-The returned id is the propagator's index; never hardcode it.
+The two declarations above are the fourth and fifth parameters, and both default to the answer that asks
+nothing of you: `is_never_vacuous`, which always posts, and `idempotent=True`. Only the first of those two
+defaults is on the safe side, which is why the idempotence one has to be verified rather than left implicit.
+
+```python
+ALG_NAME = register_propagator(
+    get_triggers_name, get_complexity_name, compute_domains_name, is_vacuous_name, idempotent=False
+)
+```
+
+The returned id is the propagator's index; never hardcode it. It indexes `IS_VACUOUS_FCTS` and `IDEMPOTENT`
+just as it does the three function lists, so a registration that omits a declaration is what puts the default
+in that slot.
 
 ## 4. Add `tests/propagators/test_name.py`
 
@@ -116,7 +162,7 @@ class TestName(PropagatorTest):
 
 Cover at minimum: a pruning case, an inconsistency case, and a no-op case where the input is already tight.
 
-Also guard the two invariants above:
+Also guard the invariants above:
 
 - **Idempotence:** feeding a `compute_domains` result back into a second call must change nothing — the
   expected domains of every pruning case are themselves a fixpoint, so `assert_compute_domains(fct, expected,
@@ -124,6 +170,22 @@ Also guard the two invariants above:
   brute-force soundness test (see `tests/propagators/test_diffn.py::test_soundness_against_brute_force`): over
   small enumerated domains, assert the propagator never reports consistent a state that has no feasible ground
   extension, and never prunes a value that belongs to a solution.
+
+- **Vacuity**, if you declared it. Three tests, of which the third is the one that would catch a wrong claim
+  (see `tests/propagators/test_cumulative.py` and `tests/propagators/test_regular.py`):
+
+  1. a vacuous case is not posted — `is_vacuous_name(...)` is True and `problem.propagator_nb == 0` after
+     `add_propagator`, including the boundary where the constraint only just stops binding;
+  2. a binding case *is* posted — one parameter away from the vacuous case, so the test pins the boundary
+     rather than the direction;
+  3. dropping it preserves the solutions. Build the same problem twice, once through `add_propagator` (which
+     drops it) and once by appending to `problem.propagators` directly to bypass the check, and assert both
+     enumerate exactly the same solutions:
+
+     ```python
+     posted.propagators.append((list(variables), ALG_NAME, list(parameters)))
+     posted.propagator_nb += 1
+     ```
 
 ## 5. Verify
 
