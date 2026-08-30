@@ -45,13 +45,13 @@ Domain heuristics
 A domain heuristic says **where** to split the chosen variable's domain; it does not split it. It returns
 the kind of split and the value to split at:
 
-============================ ======================= ==========================================
-kind                         explored branch         parked alternatives (resumed in this order)
-============================ ======================= ==========================================
-:code:`DECISION_LE`          :code:`[min, value]`    :code:`[value + 1, max]`
+============================ ======================== ==========================================
+kind                         explored branch          parked alternatives (resumed in this order)
+============================ ======================== ==========================================
+:code:`DECISION_LE`          :code:`[min, value]`     :code:`[value + 1, max]`
 :code:`DECISION_GT`          :code:`[value + 1, max]` :code:`[min, value]`
-:code:`DECISION_EQ`          :code:`[value, value]`  :code:`[min, value - 1]` then :code:`[value + 1, max]`
-============================ ======================= ==========================================
+:code:`DECISION_EQ`          :code:`[value, value]`   :code:`[min, value - 1]` then :code:`[value + 1, max]`
+============================ ======================== ==========================================
 
 .. code-block:: python
    :linenos:
