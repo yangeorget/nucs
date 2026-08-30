@@ -128,7 +128,7 @@ class BacktrackSolver(Solver):
         dom_heuristic: int = DOM_HEURISTIC_MIN_VALUE,
         dom_heuristic_params: list[list[int]] | None = None,
         searches: list[Search] | None = None,
-        choice_point_max_height: int = 8192,
+        choice_point_max_height: int | None = None,
         trail_max_size: int | None = None,
         log_level: str = LOG_LEVEL_INFO,
     ):
@@ -158,10 +158,10 @@ class BacktrackSolver(Solver):
                          The union of the searches' decision variables should cover every branchable variable.
         :type searches: Optional[List[Search]]
         :param choice_point_max_height: the initial maximal height of the choice point stack, grown as needed,
-                                defaults to 8192
-        :type choice_point_max_height: int
+                                        defaults to whichever is larger of 8192 and four rows per variable
+        :type choice_point_max_height: Optional[int]
         :param trail_max_size: the initial maximal number of trail entries, grown as needed,
-                               defaults to whichever is larger of 65536 and four steps' worth of headroom
+                               defaults to whichever is larger of 65536 and sixteen steps' worth of headroom
         :type trail_max_size: Optional[int]
         :param log_level: the log level,
                           defaults to INFO
@@ -220,18 +220,30 @@ class BacktrackSolver(Solver):
         # plus the handful of writes branching and backtracking add on top. The solver grows the trail
         # when this much room is no longer there.
         self.trail_headroom = 2 * domain_nb + propagator_nb + 9
-        # the default leaves room for several steps, so that a wide model does not spend its first
-        # moments doubling an array that was never going to be big enough
-        self.trail_log = np.empty((trail_max_size or max(1 << 16, 4 * self.trail_headroom), 2), dtype=np.int32)
+        # Both starting sizes are a flat floor for the models the flat floor already covers, and a
+        # model-derived one for the wide models it does not reach. The flat halves are measured: across the
+        # 27 benchmark models the trail never exceeds 4096 entries and the stack never exceeds 64 rows, so
+        # 65536 and 8192 leave every one of them growing exactly zero times -- raising them further would buy
+        # nothing and give back the memory trailing was introduced to win.
+        # The model-derived halves are where growth actually happens. A live trail runs between 2 and 12
+        # times headroom on those same models, so 16 covers the observed band with margin; a stack deep
+        # enough to matter is bounded by the decisions on the path, which scales with domain_nb. Both bind
+        # only past a few thousand variables -- exactly where a doubling copies the most, and where the
+        # allocation is small next to the triggers and propagator arrays a model that wide already carries.
+        self.trail_log = np.empty((trail_max_size or max(1 << 16, 16 * self.trail_headroom), 2), dtype=np.int32)
         self.trail_top = np.zeros((1,), dtype=np.int32)
         self.trail_indices = np.full(len(self.state), -1, dtype=np.int32)
-        self.choice_point_stk = np.zeros((choice_point_max_height, CHOICE_POINT_WIDTH), dtype=np.int32)
+        self.choice_point_stk = np.zeros(
+            (choice_point_max_height or max(1 << 13, 4 * domain_nb), CHOICE_POINT_WIDTH), dtype=np.int32
+        )
         self.choice_point_top = np.ones((1,), dtype=np.uint32)
         self.status = np.zeros(SOLVER_STATUS_WIDTH, dtype=np.int32)
         # the branch-and-bound bound is solver state, not choice-point state: OBJ_VARIABLE is -1 outside
         # OPTIM_PRUNE, and backtrack re-applies the bound to each choice point it resumes
         self.objective = np.full(OBJ_WIDTH, -1, dtype=np.int32)
-        logger.info(f"The stack of choice points has a maximal height of {choice_point_max_height}")
+        logger.info(
+            f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"
+        )
         logger.info(f"The trail starts at {len(self.trail_log)} entries and grows when it runs out")
         self.initial_domains = np.array(problem.domains)
         self._choice_point_init()

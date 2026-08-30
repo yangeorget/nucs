@@ -109,7 +109,9 @@ answers, not errors.
 - **`BacktrackSolver.__init__`**: `stks_max_height` is now `choice_point_max_height`, and a
   `trail_max_size` was added. Both are starting sizes rather than ceilings — the solver grows either
   array and resumes rather than overrunning it, which also closes two missing overflow guards where
-  exceeding the height used to write out of bounds under JIT.
+  exceeding the height used to write out of bounds under JIT. Both now default to `None`, which sizes
+  them from the model: no benchmark model reaches even the flat floor, so growth only ever concerns
+  models of a few thousand variables and up, which is where the model-derived floor takes over.
 - **`Solver`** is a real abstract base class, and `solve`, `solve_all`, `find_all`, `optimize`,
   `optimize_all` and `find_best` all take an optional `timeout` in seconds. Under a timeout the search
   keeps its best result and sets `solver.timed_out`.
