@@ -22,8 +22,11 @@ python -m twine upload --verbose dist/*
 ### Generate documentation
 
 ```bash
-sphinx-build -M html docs/source docs/output
+sphinx-build -M html docs/source docs/output -W --keep-going
 ```
+
+`-W` turns warnings into errors, which is how CI builds it. Without it, a malformed table or a broken
+reference still produces a page — just not the one that was written.
 
 ### Minizinc Docker image
 
