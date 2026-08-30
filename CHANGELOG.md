@@ -100,6 +100,10 @@ answers, not errors.
 - `BacktrackSolver.minimize` and `.maximize` — use `find_best(variable, MIN, mode)` / `find_best(variable, MAX, mode)`,
   or iterate `optimize(...)`.
 - `MultiprocessingSolver` and `QueueSolver`.
+- The `--processors` and `--cp-max-height` options of the examples' command line. `--processors` had
+  nothing left to drive once the multiprocessing solvers went; `--cp-max-height` set a ceiling that is now
+  a starting size the solver grows on its own, so raising it only reserved rows nothing ever touched.
+  `BacktrackSolver(choice_point_max_height=...)` is unchanged for the rare caller who wants it.
 - The `ALG_MAX_LEQ` and `ALG_MIN_GEQ` propagators.
 - `value_dom_heuristic` (see above).
 - Python 3.11: 3.12 or later is required.

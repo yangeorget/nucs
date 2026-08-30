@@ -9,7 +9,6 @@ NUCS comes with several examples.
 Most of these examples can be run from the command line and support the following options:
 
 * :code:`--consistency`: set the consistency algorithm (0 is for BC), defaults to BC
-* :code:`--cp-max-height`: set the initial maximal height of the stack of choice points, grown as needed, defaults to 8192
 * :code:`--dataset`: the dataset to use
 * :code:`--display-solutions`: display the solution(s), defaults to true
 * :code:`--display-stats`: display the statistics, defaults to true
@@ -18,7 +17,6 @@ Most of these examples can be run from the command line and support the followin
 * :code:`--log-level`: set the log level, can take the values :code:`DEBUG`, :code:`INFO`, :code:`WARNING`, :code:`ERROR`, :code:`CRITICAL`, defaults to :code:`INFO`
 * :code:`--n`: define the size of the problem
 * :code:`--optimization-mode`: set the optimizer mode (:code:`RESET` or :code:`PRUNE`), defaults to :code:`RESET`
-* :code:`--processors`: define the number of processors to use
 * :code:`--symmetry-breaking/--no-symmetry-breaking`: leverage symmetries in the problem, defaults to true
 
 
