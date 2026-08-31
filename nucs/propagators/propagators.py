@@ -471,12 +471,11 @@ def update_propagators(
     triggers: NDArray,
     triggers_offsets: NDArray,
     priorities: NDArray,
-    propagator_nb: int,
     variable: int,
     events: int,
 ) -> None:
     offset = (variable << EVENT_NB) | events
-    membership_offset = STORAGE_OFFSET + propagator_nb
+    membership_offset = STORAGE_OFFSET + len(priorities)
     for prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
         if not entailed[prop_idx]:
             buckets_add(triggered_propagators, priorities, prop_idx, membership_offset)

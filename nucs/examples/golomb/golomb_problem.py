@@ -125,7 +125,6 @@ class GolombProblem(Problem):
 
 @njit(cache=True)
 def golomb_consistency_algorithm(
-    propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
@@ -209,13 +208,11 @@ def golomb_consistency_algorithm(
                         triggers,
                         triggers_offsets,
                         priorities,
-                        propagator_nb,
                         var,
                         events,
                     )
     trail_top[0] = trail_size
     return bc_algorithm(
-        propagator_nb,
         statistics,
         algorithms,
         priorities,

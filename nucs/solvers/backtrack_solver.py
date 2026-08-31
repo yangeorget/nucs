@@ -337,7 +337,6 @@ class BacktrackSolver(Solver):
         :rtype: Optional[NDArray]
         """
         return solve_one(
-            self.problem.propagator_nb,
             self.statistics,
             self.problem.algorithms,
             self.problem.priorities,
@@ -466,7 +465,6 @@ class BacktrackSolver(Solver):
             self.problem.triggers,
             self.problem.triggers_offsets,
             self.problem.priorities,
-            self.problem.propagator_nb,
             self.objective,
         )
 
@@ -521,7 +519,6 @@ class BacktrackSolver(Solver):
 
 @njit(cache=True)
 def solve_one(
-    propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
@@ -653,7 +650,6 @@ def solve_one(
             status[SOLVER_STATUS] = SOLVER_CHOICE_POINTS_FULL
             return None
         problem_status = consistency_alg_fct(
-            propagator_nb,
             statistics,
             algorithms,
             priorities,
@@ -722,7 +718,6 @@ def solve_one(
                         triggers,
                         triggers_offsets,
                         priorities,
-                        propagator_nb,
                         variable,
                         events,
                     )
@@ -747,7 +742,6 @@ def solve_one(
             triggers,
             triggers_offsets,
             priorities,
-            propagator_nb,
             objective,
         ):
             return None

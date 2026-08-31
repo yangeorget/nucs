@@ -509,7 +509,6 @@ def backtrack(
     triggers: NDArray,
     triggers_offsets: NDArray,
     priorities: NDArray,
-    propagator_nb: int,
     objective: NDArray,
 ) -> bool:
     """
@@ -550,8 +549,6 @@ def backtrack(
     :type triggers_offsets: NDArray
     :param priorities: the propagation queue bucket priorities indexed by propagators
     :type priorities: NDArray
-    :param propagator_nb: the number of propagators
-    :type propagator_nb: int
     :param objective: the objective as a Numpy array of variable, bound and value,
                       whose variable is -1 when not optimizing
     :type objective: NDArray
@@ -582,7 +579,6 @@ def backtrack(
                 triggers,
                 triggers_offsets,
                 priorities,
-                propagator_nb,
                 variable,
                 events,
             )
@@ -598,7 +594,6 @@ def backtrack(
                 triggers,
                 triggers_offsets,
                 priorities,
-                propagator_nb,
                 optimized_variable,
                 events,
             )

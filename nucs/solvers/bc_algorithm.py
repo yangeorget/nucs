@@ -44,7 +44,6 @@ from nucs.solvers.choice_points import tighten_at, trail_push, unbound_index
 
 @njit(cache=True)
 def bc_algorithm(
-    propagator_nb: int,
     statistics: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
@@ -128,7 +127,7 @@ def bc_algorithm(
     trail_size = trail_top[0]
     entailed_index = len(domains) << 1  # the entailment flags follow the domain bounds in state
     statistics[STATS_IDX_ALG_BC_NB] += 1
-    membership_offset = STORAGE_OFFSET + propagator_nb
+    membership_offset = STORAGE_OFFSET + len(priorities)
     while True:
         prop_idx = buckets_pop(triggered_propagators, membership_offset)
         if prop_idx == -1:

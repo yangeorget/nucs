@@ -10,10 +10,9 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-import copy
 import logging
 from collections.abc import Iterable, Sequence
-from typing import Any, Self
+from typing import Any
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -61,32 +60,6 @@ class Problem:
         self.domain_nb = len(self.domains)
         self.propagators: list[tuple[list[int], int, list[int]]] = []
         self.propagator_nb = 0
-
-    def split(self, split_nb: int, var: int) -> list[Self]:
-        """
-        Splits a problem into several sub-problems by splitting the domain of a variable.
-
-        :param split_nb: the number of sub-problems
-        :type split_nb: int
-        :param var: the index of the variable
-        :type var: int
-
-        :return: a list of sub-problems
-        :rtype: List[Self]
-        """
-        logger.debug(f"Splitting in {split_nb} problems with variable {var}")
-        domain = self.domains[var]
-        domain_min, domain_max = domain
-        domain_size = domain_max - domain_min + 1
-        problems = []
-        min_idx = domain_min
-        for split_idx in range(split_nb):
-            problem = copy.deepcopy(self)
-            max_idx = min_idx + domain_size // split_nb - (0 if split_idx < domain_size % split_nb else 1)
-            problem.domains[var] = (min_idx, max_idx)
-            min_idx = max_idx + 1
-            problems.append(problem)
-        return problems
 
     def add_variable(self, domain: int | tuple[int, int]) -> int:
         """
@@ -184,7 +157,6 @@ class Problem:
         counts = np.zeros((self.domain_nb, EVENT_MASK_NB), dtype=np.int32)
         count_triggers(
             counts,
-            self.propagator_nb,
             self.offsets,
             self.propagator_variables,
             self.propagator_parameters,
@@ -198,7 +170,6 @@ class Problem:
         fill_triggers(
             self.triggers,
             cursors,
-            self.propagator_nb,
             self.offsets,
             self.propagator_variables,
             self.propagator_parameters,
@@ -274,7 +245,6 @@ def init_propagator_variables_and_parameters(
 @njit(cache=True)
 def count_triggers(
     counts: NDArray,
-    propagator_nb: int,
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -286,8 +256,6 @@ def count_triggers(
 
     :param counts: the (domain_nb, EVENT_MASK_NB) array of counts to fill
     :type counts: NDArray
-    :param propagator_nb: the number of propagators
-    :type propagator_nb: int
     :param offsets: the CSR offsets delimiting each propagator's variables and parameters
     :type offsets: NDArray
     :param propagator_variables: the propagator variables
@@ -299,7 +267,7 @@ def count_triggers(
     :param get_triggers_addrs: the addresses of the get_triggers functions
     :type get_triggers_addrs: NDArray
     """
-    for propagator in range(propagator_nb):
+    for propagator in range(len(algorithms)):
         algorithm = algorithms[propagator]
         if NUMBA_DISABLE_JIT:
             trigger_fct = GET_TRIGGERS_FCTS[algorithm]
@@ -329,7 +297,6 @@ def count_triggers(
 def fill_triggers(
     triggers: NDArray,
     cursors: NDArray,
-    propagator_nb: int,
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -344,8 +311,6 @@ def fill_triggers(
     :type triggers: NDArray
     :param cursors: the per (variable, event) write cursors, indexed variable * EVENT_MASK_NB + event
     :type cursors: NDArray
-    :param propagator_nb: the number of propagators
-    :type propagator_nb: int
     :param offsets: the CSR offsets delimiting each propagator's variables and parameters
     :type offsets: NDArray
     :param propagator_variables: the propagator variables
@@ -357,7 +322,7 @@ def fill_triggers(
     :param get_triggers_addrs: the addresses of the get_triggers functions
     :type get_triggers_addrs: NDArray
     """
-    for propagator in range(propagator_nb):
+    for propagator in range(len(algorithms)):
         algorithm = algorithms[propagator]
         if NUMBA_DISABLE_JIT:
             trigger_fct = GET_TRIGGERS_FCTS[algorithm]

@@ -129,7 +129,6 @@ class TestBacktrackSolver:
         solver = BacktrackSolver(problem)
         buckets_empty(solver.triggered_propagators, problem.priorities)
         solution = solve_one(
-            problem.propagator_nb,
             solver.statistics,
             problem.algorithms,
             problem.priorities,
@@ -191,7 +190,6 @@ class TestBacktrackSolver:
             problem.triggers,
             problem.triggers_offsets,
             problem.priorities,
-            problem.propagator_nb,
             solver.objective,
         )
         # back at choice point 1, with variable 1's refutation applied: variable 0 stays at its decision
