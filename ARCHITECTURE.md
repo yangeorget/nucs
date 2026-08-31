@@ -13,10 +13,10 @@ path runs in Numba nopython mode with no Python objects.
   Each propagator is three functions: `compute_domains_*` (filtering, returns `PROP_INCONSISTENCY` /
   `PROP_CONSISTENCY` / `PROP_ENTAILMENT`), `get_triggers_*` (when to re-wake), `get_complexity_*` (queue ordering). See
   `nucs/propagators/abs_eq_propagator.py` for the minimal template.
-- **`nucs/solvers/`** — `BacktrackSolver` (backtracking + propagation) and `MultiprocessingSolver` (wraps several
-  `BacktrackSolver`s over `problem.split(...)`). The propagation fixpoint is `bc_algorithm` (`bc_algorithm.py`),
-  registered as `CONSISTENCY_ALG_BC`; the search driver is `solve_one` and the choice-point primitives live in
-  `choice_points.py`. Iterate solutions with `solver.solve()`, or call `solver.minimize(var)` / `solver.maximize(var)`.
+- **`nucs/solvers/`** — `BacktrackSolver` (backtracking + propagation). The propagation fixpoint is `bc_algorithm`
+  (`bc_algorithm.py`), registered as `CONSISTENCY_ALG_BC`; the search driver is `solve_one` and the choice-point
+  primitives live in `choice_points.py`. Iterate solutions with `solver.solve()`, or optimize with
+  `solver.find_best(var, MIN)` / `solver.find_best(var, MAX)`.
 - **`nucs/heuristics/`** — variable heuristics pick the next unbound decision variable, domain heuristics pick how to
   split its domain. Both are Numba-jitted against the fixed signatures `SIGN_VAR_HEURISTIC` / `SIGN_DOM_HEURISTIC` in
   `nucs/constants.py` and dispatched by id.
@@ -203,12 +203,6 @@ semantics (`BUCKET_NB = 8`, so `STORAGE_OFFSET = 2 · BUCKET_NB = 16`):
 | `[16+C : 16+2C]` | `C` | membership flag per element (`0`/`1`) |
 | `[-1]` | 1 | cached lowest non-empty bucket index (search hint for `buckets_pop`) |
 
-### Parallelism is search-space splitting, not shared memory
-
-`MultiprocessingSolver` wraps N independent `BacktrackSolver`s over `problem.split(...)`, communicating only solutions
-through a queue. The GIL rules out shared-memory threading, and flat-array state makes cloning a subproblem cheap. There
-are no locks anywhere by construction.
-
 ### The pure-Python escape hatch is a hard constraint
 
 Everything must also run under `NUMBA_DISABLE_JIT=1` (debugging, coverage, real tracebacks) — this is why
@@ -247,8 +241,7 @@ of rebuilding from the identity, costing O(n + inversions *since the previous ca
 to index order. Findings:
 
 - **Hint state needs no backtrack bookkeeping.** A stale permutation is a valid input from any search node — merely a
-  slower one — so nothing is trailed or restored, `problem.split(...)` clones just start cold, and the non-JIT fallback
-  is untouched. Verified by identical solution counts across all configurations (73,712 solutions of queens 13, millions
+  slower one — so nothing is trailed or restored and the non-JIT fallback is untouched. Verified by identical solution counts across all configurations (73,712 solutions of queens 13, millions
   of backtracks) and a bit-identical-propagation checksum in the microbenchmark. This is the cheapest sound form of
   propagator state; anything semantic (cached sums, counts) would instead need a generation stamp bumped on backtrack.
 - **Measured:** queens 11–13 `solve_all` ~7.5–8% end-to-end vs baseline (vs ~3.5% for scratch-only — warm permutations
