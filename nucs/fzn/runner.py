@@ -14,6 +14,7 @@
 Drives a built :class:`FznModel` through a :class:`BacktrackSolver` and streams the solutions.
 """
 
+import logging
 from typing import TextIO
 
 from numpy.typing import NDArray
@@ -27,6 +28,7 @@ from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
     DOM_HEURISTIC_MID_VALUE,
     DOM_HEURISTIC_MIN_VALUE,
+    DOM_HEURISTIC_RANDOM_VALUE,
     DOM_HEURISTIC_SPLIT_HIGH,
     DOM_HEURISTIC_SPLIT_LOW,
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
@@ -39,8 +41,11 @@ from nucs.heuristics.heuristics import (
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.search import Search
 
+logger = logging.getLogger(__name__)
+
 # FlatZinc variable-selection annotations mapped to NuCS variable heuristics; unlisted ones
-# (dom_w_deg, occurrence, most_constrained, ...) fall back to the default.
+# (dom_w_deg, occurrence, most_constrained, ...) fall back to the default, with a warning -- silently
+# solving a different search than the model asked for reads as slowness rather than as a missing feature.
 _VAR_HEURISTICS = {
     "input_order": VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
     "first_fail": VAR_HEURISTIC_SMALLEST_DOMAIN,
@@ -49,11 +54,13 @@ _VAR_HEURISTICS = {
     "smallest": VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE,
     "largest": VAR_HEURISTIC_LARGEST_MAXIMAL_VALUE,
 }
-# FlatZinc value-selection annotations mapped to NuCS domain heuristics.
+# FlatZinc value-selection annotations mapped to NuCS domain heuristics; likewise for the unlisted ones
+# (indomain_interval, outdomain_min, ...).
 _DOM_HEURISTICS = {
     "indomain_min": DOM_HEURISTIC_MIN_VALUE,
     "indomain_max": DOM_HEURISTIC_MAX_VALUE,
     "indomain_median": DOM_HEURISTIC_MID_VALUE,
+    "indomain_random": DOM_HEURISTIC_RANDOM_VALUE,
     "indomain_split": DOM_HEURISTIC_SPLIT_LOW,
     "indomain_reverse_split": DOM_HEURISTIC_SPLIT_HIGH,
 }
@@ -67,7 +74,8 @@ def search_heuristics(model: FznModel) -> list[Search] | None:
     MiniZinc nests a ``seq_search`` when decomposing e.g. ``set_search``); a single ``int_search`` /
     ``bool_search`` becomes a one-element list. Each variable is assigned to the first search that lists it,
     and a trailing catch-all search over the remaining variables (NuCS defaults) makes the search ground the
-    whole problem. Unknown variable/value selectors fall back to the NuCS defaults.
+    whole problem. Unknown variable/value selectors fall back to the NuCS defaults, and each one is
+    logged as a warning.
 
     :param model: the built model
     :type model: FznModel
@@ -147,6 +155,8 @@ def _var_heuristic_of(term: object) -> int:
     :rtype: int
     """
     if isinstance(term, Id):
+        if term.name not in _VAR_HEURISTICS:
+            logger.warning(f"Unsupported variable selector {term.name}, branching as input_order instead")
         return _VAR_HEURISTICS.get(term.name, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED)
     return VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 
@@ -162,6 +172,8 @@ def _dom_heuristic_of(term: object) -> int:
     :rtype: int
     """
     if isinstance(term, Id):
+        if term.name not in _DOM_HEURISTICS:
+            logger.warning(f"Unsupported value selector {term.name}, branching as indomain_min instead")
         return _DOM_HEURISTICS.get(term.name, DOM_HEURISTIC_MIN_VALUE)
     return DOM_HEURISTIC_MIN_VALUE
 

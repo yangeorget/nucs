@@ -105,6 +105,9 @@ answers, not errors.
   a starting size the solver grows on its own, so raising it only reserved rows nothing ever touched.
   `BacktrackSolver(choice_point_max_height=...)` is unchanged for the rare caller who wants it.
 - The `ALG_MAX_LEQ` and `ALG_MIN_GEQ` propagators.
+- `split_random_dom_heuristic` and `DOM_HEURISTIC_SPLIT_RANDOM` — replaced by `random_value_dom_heuristic`
+  / `DOM_HEURISTIC_RANDOM_VALUE`, which draws a value rather than a half and so is FlatZinc's
+  `indomain_random`. The old one answered no annotation and was reachable from nothing.
 - `value_dom_heuristic` (see above).
 - Python 3.11: 3.12 or later is required.
 
@@ -135,6 +138,10 @@ answers, not errors.
   `ALG_CUMULATIVE_VAR` (cumulative with variable durations), `ALG_IF_THEN_ELSE`, `ALG_DIV_C_EQ`,
   `ALG_NEQ_C_REIF`, `ALG_MEMBER_REIF`, and the half-reified `ALG_EQ_IMP`, `ALG_EQ_C_IMP`,
   `ALG_LEQ_C_IMP` and `ALG_NEQ_IMP`.
+- FlatZinc: `indomain_random` is translated (to the new `random_value_dom_heuristic`), and a variable or
+  value selector NuCS does not implement — `dom_w_deg`, `occurrence`, `outdomain_min`, … — now logs a
+  warning naming what it was replaced with, instead of being silently solved as `input_order` /
+  `indomain_min`.
 - FlatZinc: those globals stay native instead of falling back to a decomposition — variable-duration
   `cumulative` alone replaced 249 decomposed constraints on one model. Also `int_lin_le_imp`, cheaper
   propagators for common shapes, always-equal variables collapsed to a single NuCS variable, and the

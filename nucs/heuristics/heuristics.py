@@ -22,11 +22,11 @@ from nucs.heuristics.mid_value_dom_heuristic import mid_value_dom_heuristic
 from nucs.heuristics.min_cost_dom_heuristic import min_cost_dom_heuristic
 from nucs.heuristics.min_earliest_start_var_heuristic import min_earliest_start_var_heuristic
 from nucs.heuristics.min_value_dom_heuristic import min_value_dom_heuristic
+from nucs.heuristics.random_value_dom_heuristic import random_value_dom_heuristic
 from nucs.heuristics.smallest_domain_var_heuristic import smallest_domain_var_heuristic
 from nucs.heuristics.smallest_minimal_value_var_heuristic import smallest_minimal_value_var_heuristic
 from nucs.heuristics.split_high_dom_heuristic import split_high_dom_heuristic
 from nucs.heuristics.split_low_dom_heuristic import split_low_dom_heuristic
-from nucs.heuristics.split_random_dom_heuristic import split_random_dom_heuristic
 
 VAR_HEURISTIC_FCTS: list[Callable] = []
 DOM_HEURISTIC_FCTS: list[Callable] = []
@@ -85,6 +85,6 @@ DOM_HEURISTIC_MAX_VALUE = register_dom_heuristic(max_value_dom_heuristic)
 DOM_HEURISTIC_MID_VALUE = register_dom_heuristic(mid_value_dom_heuristic)
 DOM_HEURISTIC_MIN_COST = register_dom_heuristic(min_cost_dom_heuristic)
 DOM_HEURISTIC_MIN_VALUE = register_dom_heuristic(min_value_dom_heuristic)
+DOM_HEURISTIC_RANDOM_VALUE = register_dom_heuristic(random_value_dom_heuristic)
 DOM_HEURISTIC_SPLIT_HIGH = register_dom_heuristic(split_high_dom_heuristic)
 DOM_HEURISTIC_SPLIT_LOW = register_dom_heuristic(split_low_dom_heuristic)
-DOM_HEURISTIC_SPLIT_RANDOM = register_dom_heuristic(split_random_dom_heuristic)

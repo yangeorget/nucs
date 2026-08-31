@@ -15,14 +15,19 @@ import random
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.heuristics.split_high_dom_heuristic import split_high_dom_heuristic
-from nucs.heuristics.split_low_dom_heuristic import split_low_dom_heuristic
+from nucs.constants import DECISION_EQ, MAX, MIN
 
 
 @njit(cache=True)
-def split_random_dom_heuristic(domains: NDArray, variable: int, params: NDArray) -> tuple[int, int]:
+def random_value_dom_heuristic(domains: NDArray, variable: int, params: NDArray) -> tuple[int, int]:
     """
-    Chooses at random the first or the second half of the domain.
+    Chooses a value uniformly at random in the domain.
+
+    This is FlatZinc's indomain_random. Domains are intervals here, so every value between the two bounds
+    is in the domain and drawing uniformly between them needs no rejection.
+
+    The draw is a decision, not a restriction: DECISION_EQ parks the values below and above the one it
+    picks, so the enumeration stays exhaustive and only the order in which it is explored is random.
 
     :param domains: the domains
     :type domains: NDArray
@@ -34,6 +39,4 @@ def split_random_dom_heuristic(domains: NDArray, variable: int, params: NDArray)
     :return: the kind of the decision and the value the domain is split at
     :rtype: Tuple[int, int]
     """
-    if random.randint(0, 1) == 0:
-        return split_low_dom_heuristic(domains, variable, params)
-    return split_high_dom_heuristic(domains, variable, params)
+    return DECISION_EQ, random.randint(domains[variable, MIN], domains[variable, MAX])

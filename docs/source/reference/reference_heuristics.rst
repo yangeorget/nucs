@@ -30,6 +30,7 @@ NUCS provides the following functions for reducing a domain.
 .. autofunction:: nucs.heuristics.mid_value_dom_heuristic.mid_value_dom_heuristic
 .. autofunction:: nucs.heuristics.min_cost_dom_heuristic.min_cost_dom_heuristic
 .. autofunction:: nucs.heuristics.min_value_dom_heuristic.min_value_dom_heuristic
+.. autofunction:: nucs.heuristics.random_value_dom_heuristic.random_value_dom_heuristic
 .. autofunction:: nucs.heuristics.split_low_dom_heuristic.split_low_dom_heuristic
 .. autofunction:: nucs.heuristics.split_high_dom_heuristic.split_high_dom_heuristic
 

@@ -12,6 +12,7 @@
 ###############################################################################
 import io
 import json
+import logging
 
 import pytest
 
@@ -23,6 +24,7 @@ from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
     DOM_HEURISTIC_MID_VALUE,
     DOM_HEURISTIC_MIN_VALUE,
+    DOM_HEURISTIC_RANDOM_VALUE,
     DOM_HEURISTIC_SPLIT_HIGH,
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
     VAR_HEURISTIC_LARGEST_MAXIMAL_VALUE,
@@ -1559,14 +1561,41 @@ class TestBuiltins:
         model = build_model(parse("var 0..3: x;\nsolve satisfy;"))
         assert search_heuristics(model) is None
 
-    def test_search_heuristics_unknown_selectors_fall_back(self) -> None:
+    def test_search_heuristics_unknown_selectors_fall_back(self, caplog: pytest.LogCaptureFixture) -> None:
+        """A selector NuCS does not implement is replaced, and says so.
+
+        The substitution is invisible in the solution stream -- a model annotated dom_w_deg solved as
+        input_order looks like NuCS being slow rather than NuCS solving a different search -- so the
+        warning is the only thing standing between that and a wrong benchmark conclusion.
+        """
         model = build_model(
-            parse("var 0..3: x;\nsolve :: int_search([x], dom_w_deg, indomain_median, complete) satisfy;")
+            parse("var 0..3: x;\nsolve :: int_search([x], dom_w_deg, outdomain_min, complete) satisfy;")
+        )
+        with caplog.at_level(logging.WARNING, logger="nucs.fzn.runner"):
+            result = search_heuristics(model)
+        assert result
+        assert result[0].var_heuristic == VAR_HEURISTIC_FIRST_NOT_INSTANTIATED  # 'dom_w_deg' has no NuCS equivalent
+        assert result[0].dom_heuristic == DOM_HEURISTIC_MIN_VALUE
+        assert "dom_w_deg" in caplog.text and "input_order" in caplog.text
+        assert "outdomain_min" in caplog.text and "indomain_min" in caplog.text
+
+    def test_search_heuristics_does_not_warn_about_a_supported_selector(self, caplog: pytest.LogCaptureFixture) -> None:
+        model = build_model(
+            parse("var 0..3: x;\nsolve :: int_search([x], first_fail, indomain_median, complete) satisfy;")
+        )
+        with caplog.at_level(logging.WARNING, logger="nucs.fzn.runner"):
+            result = search_heuristics(model)
+        assert result
+        assert result[0].dom_heuristic == DOM_HEURISTIC_MID_VALUE
+        assert caplog.text == ""
+
+    def test_search_heuristics_maps_indomain_random(self) -> None:
+        model = build_model(
+            parse("var 0..3: x;\nsolve :: int_search([x], input_order, indomain_random, complete) satisfy;")
         )
         result = search_heuristics(model)
         assert result
-        assert result[0].var_heuristic == VAR_HEURISTIC_FIRST_NOT_INSTANTIATED  # 'dom_w_deg' has no NuCS equivalent
-        assert result[0].dom_heuristic == DOM_HEURISTIC_MID_VALUE
+        assert result[0].dom_heuristic == DOM_HEURISTIC_RANDOM_VALUE
 
     def test_search_heuristics_maps_smallest_and_largest(self) -> None:
         smallest = build_model(
