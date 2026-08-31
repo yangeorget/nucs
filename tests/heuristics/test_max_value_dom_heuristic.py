@@ -27,9 +27,9 @@ class TestMaxValueDomHeuristic:
         """A split value below zero has to survive the trip to the solver.
 
         A domain heuristic is compiled for SIGN_DOM_HEURISTIC and reached through a function pointer, so
-        how it hands its value back is an ABI question: a value returned in a heterogeneous tuple is
-        zero-extended, and -5 arrives as 4294967291. The out-parameter avoids that, and this pins it --
-        without a negative domain, the whole suite passes either way.
+        how it hands its value back is an ABI question: returned in a heterogeneous tuple, the int32 half
+        is zero-extended and -5 arrives as 4294967291. An int32 pair widens nothing and so avoids that,
+        and this pins it -- without a negative domain, the whole suite passes either way.
         """
         problem = Problem([(-5, -1)])
         solver = BacktrackSolver(problem, dom_heuristic=DOM_HEURISTIC_MAX_VALUE)
