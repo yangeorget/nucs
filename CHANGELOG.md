@@ -6,6 +6,40 @@ Notable changes to NuCS. This file starts at 15.0.0; for earlier releases see th
 NuCS follows [semantic versioning](https://semver.org/): a major bump means the extension points
 documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
+## 16.0.0
+
+### Removed
+
+- **`Problem.split`.** It partitioned a variable's domain into sub-problems for `MultiprocessingSolver`,
+  which 15.0.0 removed; nothing has called it since, and splitting a problem is only useful when something
+  then solves the parts independently.
+
+### Changed
+
+- **A consistency algorithm no longer takes `propagator_nb`**, and neither does `update_propagators`. The
+  number was redundant with four of the arrays passed beside it — `len(priorities)`, `len(entailed)`,
+  `len(algorithms)` and `len(offsets) - 1` — and `buckets_init` / `buckets_empty` already derived it
+  rather than taking it. It is now derived from `priorities` at the one place that needs it, the
+  `membership_offset` each queue operation is given.
+
+  Migrating a custom consistency algorithm is deleting the first parameter, and a call to
+  `update_propagators` is deleting the sixth argument:
+
+  ```python
+  # 15.0
+  def my_consistency_algorithm(propagator_nb, statistics, algorithms, priorities, ...):
+      update_propagators(triggered_propagators, entailed, triggers, triggers_offsets,
+                         priorities, propagator_nb, variable, events)
+
+  # now
+  def my_consistency_algorithm(statistics, algorithms, priorities, ...):
+      update_propagators(triggered_propagators, entailed, triggers, triggers_offsets,
+                         priorities, variable, events)
+  ```
+
+  `Problem.propagator_nb` is unaffected: the attribute stays, it is only the threading of it through the
+  jitted call chain that goes.
+
 ## 15.0.0
 
 The headline is that backtrackable state is now **trailed rather than copied**, which removes the hard

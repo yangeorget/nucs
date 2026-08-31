@@ -30,7 +30,7 @@ pip install nucs
 
 Check out [NuCS documentation](https://nucs.readthedocs.io/).
 
-See [CHANGELOG.md](CHANGELOG.md) for what changed between releases, including the 15.0.0 migration note.
+See [CHANGELOG.md](CHANGELOG.md) for what changed between releases, including the 15.0.0 and 16.0.0 migration notes.
 
 ## With NuCS, in a few seconds you can ...
 
