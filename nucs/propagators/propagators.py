@@ -12,7 +12,6 @@
 ###############################################################################
 from collections.abc import Callable, Sequence
 
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -280,9 +279,11 @@ COMPUTE_DOMAINS_FCTS: list[Callable] = []
 IS_VACUOUS_FCTS: list[Callable] = []
 # Whether one call of the algorithm reaches its own fixpoint, indexed by algorithm. A propagator that does
 # not is rescheduled by the engine after any call that changed a domain, instead of iterating internally.
-# Unlike the function lists above this is already the array the consistency algorithm reads, so it is passed
-# to the jitted code as is rather than being rebuilt per problem or per solver.
-IDEMPOTENT: NDArray = np.empty(0, dtype=np.bool_)
+# A list, appended to like the four above, rather than the boolean array the consistency algorithm wants:
+# np.append returns a new array, so growing one would rebind this name, and any module that had imported
+# it by value would keep an array one entry short of every algorithm registered since -- indexing past it
+# for the new one. Problem.init makes the array, beside the algorithms that index it.
+IDEMPOTENCIES: list[bool] = []
 
 
 def is_never_vacuous(n: int, parameters: Sequence[int], domains: Sequence[tuple[int, int]]) -> bool:
@@ -336,8 +337,7 @@ def register_propagator(
     GET_COMPLEXITY_FCTS.append(get_complexity_fct)
     COMPUTE_DOMAINS_FCTS.append(compute_domains_fct)
     IS_VACUOUS_FCTS.append(is_vacuous_fct)
-    global IDEMPOTENT
-    IDEMPOTENT = np.append(IDEMPOTENT, idempotent)
+    IDEMPOTENCIES.append(idempotent)
     return get_algorithm_nb() - 1
 
 

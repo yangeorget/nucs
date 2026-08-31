@@ -45,6 +45,7 @@ from nucs.solvers.choice_points import tighten_at, trail_push, unbound_index
 @njit(cache=True)
 def bc_algorithm(
     statistics: NDArray,
+    idempotencies: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
     offsets: NDArray,
@@ -63,13 +64,15 @@ def bc_algorithm(
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
-    idempotent: NDArray,
 ) -> int:
     """
     This is the default consistency algorithm used by the solver.
 
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
+    :param idempotencies: whether each algorithm reaches its own fixpoint in a single call, indexed by
+                          algorithm rather than by propagator
+    :type idempotencies: NDArray
     :param algorithms: the algorithms indexed by propagators
     :type algorithms: NDArray
     :param priorities: the propagation queue bucket priorities indexed by propagators
@@ -109,9 +112,6 @@ def bc_algorithm(
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray
-    :param idempotent: whether each algorithm reaches its own fixpoint in a single call, indexed by
-                       algorithm rather than by propagator
-    :type idempotent: NDArray
 
     :return: a status (consistency, inconsistency or entailment) as an integer
     :rtype: int
@@ -177,7 +177,7 @@ def bc_algorithm(
             triggers,
             triggers_offsets,
             priorities,
-            idempotent[algorithm],
+            idempotencies[algorithm],
         )
         if no_change:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1

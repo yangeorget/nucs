@@ -126,6 +126,7 @@ class GolombProblem(Problem):
 @njit(cache=True)
 def golomb_consistency_algorithm(
     statistics: NDArray,
+    idempotencies: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
     offsets: NDArray,
@@ -144,13 +145,15 @@ def golomb_consistency_algorithm(
     triggered_propagators: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
-    idempotent: NDArray,
 ) -> int:
     """
     Applies a custom consistency algorithm for the Golomb Ruler problem.
 
     :param statistics: the statistics array
     :type statistics: NDArray
+    :param idempotencies: whether each algorithm reaches its own fixpoint in a single call, indexed by
+                          algorithm rather than by propagator
+    :type idempotencies: NDArray
 
     :return: the status as an int
     :rtype: int
@@ -214,6 +217,7 @@ def golomb_consistency_algorithm(
     trail_top[0] = trail_size
     return bc_algorithm(
         statistics,
+        idempotencies,
         algorithms,
         priorities,
         offsets,
@@ -232,5 +236,4 @@ def golomb_consistency_algorithm(
         triggered_propagators,
         compute_domains_fcts,
         domain_buffer,
-        idempotent,
     )

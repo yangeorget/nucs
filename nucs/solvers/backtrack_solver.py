@@ -85,7 +85,6 @@ from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     ALG_DUMMY,
     COMPUTE_DOMAINS_FCTS,
-    IDEMPOTENT,
     get_algorithm_nb,
     update_propagators,
 )
@@ -367,7 +366,7 @@ class BacktrackSolver(Solver):
             self.dom_heuristic_params_shapes,
             self.compute_domains_fcts,
             self.domain_buffer,
-            IDEMPOTENT,
+            self.problem.idempotencies,
             self.objective,
             self.status,
             self.trail_headroom,
@@ -549,7 +548,7 @@ def solve_one(
     dom_heuristic_params_shapes: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
-    idempotent: NDArray,
+    idempotencies: NDArray,
     objective: NDArray,
     status: NDArray,
     trail_headroom: int,
@@ -623,9 +622,9 @@ def solve_one(
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray
-    :param idempotent: whether each algorithm reaches its own fixpoint in a single call, indexed by
-                       algorithm rather than by propagator
-    :type idempotent: NDArray
+    :param idempotencies: whether each algorithm reaches its own fixpoint in a single call, indexed by
+                          algorithm rather than by propagator
+    :type idempotencies: NDArray
     :param objective: the objective as a Numpy array of variable, bound and value,
                       whose variable is -1 when not optimizing
     :type objective: NDArray
@@ -651,6 +650,7 @@ def solve_one(
             return None
         problem_status = consistency_alg_fct(
             statistics,
+            idempotencies,
             algorithms,
             priorities,
             offsets,
@@ -669,7 +669,6 @@ def solve_one(
             triggered_propagators,
             compute_domains_fcts,
             domain_buffer,
-            idempotent,
         )
         choice_point = choice_point_top[0]
         if problem_status == PROBLEM_BOUND:

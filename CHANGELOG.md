@@ -8,6 +8,17 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## 16.0.0
 
+### Fixed
+
+- **A propagator registered after import could not be solved with.** `IDEMPOTENCIES` was a Numpy array
+  and `register_propagator` grew it with `np.append`, which returns a new array — so registering rebound
+  the name, and the solver, which had imported it by value at module load, kept an array one entry short of
+  every algorithm registered since. The new algorithm's id indexed past its end: an `IndexError` under
+  `NUMBA_DISABLE_JIT=1`, and under the JIT a read past the array with `boundscheck` off, deciding
+  idempotence from whatever followed it — whose wrong answer is the unsound one, leaving a non-idempotent
+  propagator unrescheduled. `IDEMPOTENCIES` is now a `list[bool]` appended to in place, like the four
+  registries beside it, and `Problem.init` builds the boolean array the consistency algorithm needs.
+
 ### Removed
 
 - **`Problem.split`.** It partitioned a variable's domain into sub-problems for `MultiprocessingSolver`,
@@ -16,6 +27,10 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Changed
 
+- **A consistency algorithm's `idempotent` parameter is now `idempotencies`, and moves to second place**,
+  right after `statistics`. The plural matches what it is — one flag per algorithm, indexed by algorithm
+  rather than by propagator. The module-level `IDEMPOTENT` is `IDEMPOTENCIES` to match, and is read through
+  `get_idempotencies()`.
 - **A consistency algorithm no longer takes `propagator_nb`**, and neither does `update_propagators`. The
   number was redundant with four of the arrays passed beside it — `len(priorities)`, `len(entailed)`,
   `len(algorithms)` and `len(offsets) - 1` — and `buckets_init` / `buckets_empty` already derived it

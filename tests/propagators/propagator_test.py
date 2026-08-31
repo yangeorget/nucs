@@ -15,7 +15,7 @@ from collections.abc import Callable
 import numpy as np
 
 from nucs.constants import PROP_CONSISTENCY
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, IDEMPOTENT
+from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, IDEMPOTENCIES
 
 
 class PropagatorTest:
@@ -53,5 +53,5 @@ def _is_idempotent(compute_domains_fct: Callable) -> bool:
     """
     for algorithm, fct in enumerate(COMPUTE_DOMAINS_FCTS):
         if fct is compute_domains_fct:
-            return IDEMPOTENT[algorithm]
+            return IDEMPOTENCIES[algorithm]
     return True

@@ -99,6 +99,7 @@ TYPE_GET_TRIGGERS = types.FunctionType(SIGN_GET_TRIGGERS)
 
 SIGN_CONSISTENCY_ALG = int64(
     int64[::1],  # statistics
+    boolean[::1],  # idempotencies
     uint8[::1],  # algorithms
     uint32[::1],  # priorities
     uint32[:, ::1],  # offsets
@@ -117,7 +118,6 @@ SIGN_CONSISTENCY_ALG = int64(
     int32[::1],  # triggered_propagators
     TYPE_COMPUTE_DOMAINS_LIST,  # compute_domains_fcts
     int32[:, ::1],  # domain_buffer
-    boolean[::1],  # idempotent
 )
 TYPE_CONSISTENCY_ALG = types.FunctionType(SIGN_CONSISTENCY_ALG)
 

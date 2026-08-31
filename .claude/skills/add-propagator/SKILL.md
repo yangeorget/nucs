@@ -139,9 +139,10 @@ ALG_NAME = register_propagator(
 )
 ```
 
-The returned id is the propagator's index; never hardcode it. It indexes `IS_VACUOUS_FCTS` and `IDEMPOTENT`
-just as it does the three function lists, so a registration that omits a declaration is what puts the default
-in that slot.
+The returned id is the propagator's index; never hardcode it. It indexes `IS_VACUOUS_FCTS` and
+`IDEMPOTENCIES` just as it does the three function lists, so a registration that omits a declaration is
+what puts the default in that slot. All five are plain lists appended to in place — deliberately, so that
+a propagator registered after import is visible to everything that already imported them.
 
 ## 4. Add `tests/propagators/test_name.py`
 
