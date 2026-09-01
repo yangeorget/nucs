@@ -67,8 +67,9 @@ def buckets_create(capacity: int) -> NDArray:
 
 @njit(cache=True)
 def buckets_init(buckets: NDArray, priorities: NDArray) -> None:
-    membership_offset = STORAGE_OFFSET + len(priorities)
-    for prop_idx in range(len(priorities)):
+    propagator_nb = len(priorities)
+    membership_offset = STORAGE_OFFSET + propagator_nb
+    for prop_idx in range(propagator_nb):
         buckets_add(buckets, priorities, prop_idx, membership_offset)
 
 
@@ -77,9 +78,9 @@ def buckets_empty(buckets: NDArray, priorities: NDArray) -> None:
     """
     Empty the bucket FIFO queue.
     """
-    nb = len(priorities)
-    buckets[: 2 * BUCKET_NB + nb] = -1
-    buckets[2 * BUCKET_NB + nb : 2 * BUCKET_NB + 2 * nb] = 0
+    propagator_nb = len(priorities)
+    buckets[: 2 * BUCKET_NB + propagator_nb] = -1
+    buckets[2 * BUCKET_NB + propagator_nb : 2 * BUCKET_NB + 2 * propagator_nb] = 0
     buckets[-1] = BUCKET_NB
 
 
