@@ -12,7 +12,7 @@
 ###############################################################################
 import logging
 import time
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -288,44 +288,56 @@ class BacktrackSolver(Solver):
 
     def solve(self, timeout: float | None = None) -> Iterator[NDArray]:
         logger.info("Solving and iterating over the solutions")
-        self.timed_out = False
-        deadline = None if timeout is None else time.monotonic() + timeout
-        t0 = time.perf_counter_ns()
-        buckets_empty(self.triggered_propagators, self.problem.priorities)
-        buckets_init(self.triggered_propagators, self.problem.priorities)
-        self.objective[OBJ_VARIABLE] = -1
-        while True:
-            solution = self._solve_one()
-            if solution is None:
-                break
-            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
+        for solution in self._iterate_solutions(lambda _: self._backtrack(), timeout):
             logger.debug("Found a solution")
             yield solution
-            t0 = time.perf_counter_ns()
-            if self._expired(deadline):
-                break
-            if not self._backtrack():
-                break
-        self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
 
     def optimize(self, variable: int, bound: int, mode: str, timeout: float | None = None) -> Iterator[NDArray]:
         logger.info("Optimizing and iterating over the solutions")
+        # minimizing a variable means tightening the MAX side of its domain, and vice versa
+        objective_bound = MAX if bound == MIN else MIN
+        for solution in self._iterate_solutions(
+            lambda found: self._advance_after_optimum(variable, found[variable], objective_bound, mode),
+            timeout,
+        ):
+            logger.info(f"Found a local optimum: {solution[variable]}")
+            yield solution
+
+    def _iterate_solutions(self, advance: Callable[[NDArray], bool], timeout: float | None) -> Iterator[NDArray]:
+        """
+        Iterates over the solutions, leaving it to the caller to say how the search moves on from each one.
+
+        That is the only thing enumerating and optimizing do differently: one backtracks to the deepest
+        choice point that can still hold a solution, the other tightens the objective and either prunes the
+        choice points or restarts from the root. Everything around it is the same search, and getting it
+        the same twice is what this avoids -- in particular the elapsed time, which is accounted by
+        stopping the clock at each solution and starting it again once the consumer hands control back, so
+        that what the consumer does with a solution is not charged to the solver.
+
+        :param advance: called with each solution once the consumer is done with it, returning whether the
+                        search can continue
+        :type advance: Callable[[NDArray], bool]
+        :param timeout: the search budget in seconds, or None for an unbounded search
+        :type timeout: Optional[float]
+
+        :return: an iterator over the solutions
+        :rtype: Iterator[NDArray]
+        """
         self.timed_out = False
         deadline = None if timeout is None else time.monotonic() + timeout
         t0 = time.perf_counter_ns()
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         buckets_init(self.triggered_propagators, self.problem.priorities)
-        # no incumbent yet, so the first descent runs unbounded; _advance_after_optimum arms the objective
+        # no incumbent yet, so the first descent runs unbounded; _advance_after_optimum arms the objective.
+        # An enumeration disarms it here too: the solver may have been optimized with before.
         self.objective[OBJ_VARIABLE] = -1
         while (solution := self._solve_one()) is not None:
             self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
-            logger.info(f"Found a local optimum: {solution[variable]}")
             yield solution
             t0 = time.perf_counter_ns()
             if self._expired(deadline):
                 break
-            # minimizing a variable means tightening the MAX side of its domain, and vice versa
-            if not self._advance_after_optimum(variable, solution[variable], MAX if bound == MIN else MIN, mode):
+            if not advance(solution):
                 break
         self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
 
