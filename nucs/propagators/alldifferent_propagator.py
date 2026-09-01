@@ -242,7 +242,7 @@ def argsort_into(sorted_vars: NDArray, domains: NDArray, bound: int) -> None:
     :type sorted_vars: NDArray
     :param domains: the domains of the variables
     :type domains: NDArray
-    :param bound: MIN or MAX, the bound to sort on
+    :param bound: DOMAIN_MIN or DOMAIN_MAX, the bound to sort on
     :type bound: int
     """
     n = len(sorted_vars)

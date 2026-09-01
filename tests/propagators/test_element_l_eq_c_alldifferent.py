@@ -26,9 +26,9 @@ class TestElementLEqCAlldifferent(PropagatorTest):
             ([5, 3, 7, (0, 2)], [3], PROP_ENTAILMENT, [[5, 5], [3, 3], [7, 7], [1, 1]]),
             # all l[idx] disjoint from c -> i becomes empty, inconsistency
             ([5, 6, 7, (0, 2)], [3], PROP_INCONSISTENCY, None),
-            # disjoint l[idx] at the end -> i[MAX] tightened then l[i] = c, entailment
+            # disjoint l[idx] at the end -> i[DOMAIN_MAX] tightened then l[i] = c, entailment
             ([(1, 5), (10, 15), (0, 1), (0, 2)], [3], PROP_ENTAILMENT, [[3, 3], [10, 15], [0, 1], [0, 0]]),
-            # disjoint l[idx] at the start -> i[MIN] increased then l[i] = c, entailment
+            # disjoint l[idx] at the start -> i[DOMAIN_MIN] increased then l[i] = c, entailment
             ([(10, 15), (1, 5), (0, 1), (0, 2)], [3], PROP_ENTAILMENT, [[10, 15], [3, 3], [0, 1], [1, 1]]),
             # multiple l[idx] intersect c, no entailment
             ([(1, 5), (2, 6), (0, 1)], [3], PROP_CONSISTENCY, [[1, 5], [2, 6], [0, 1]]),

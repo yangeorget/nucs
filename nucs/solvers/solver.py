@@ -100,7 +100,7 @@ class Solver(ABC):
 
         :param variable: the variable
         :type variable: int
-        :param bound: MIN to minimize the variable, MAX to maximize it
+        :param bound: DOMAIN_MIN to minimize the variable, DOMAIN_MAX to maximize it
         :type bound: int
         :param mode: the optimization mode
         :type mode: str
@@ -125,7 +125,7 @@ class Solver(ABC):
 
         :param variable: the variable
         :type variable: int
-        :param bound: MIN to minimize the variable, MAX to maximize it
+        :param bound: DOMAIN_MIN to minimize the variable, DOMAIN_MAX to maximize it
         :type bound: int
         :param mode: the optimization mode
         :type mode: str
@@ -150,7 +150,7 @@ class Solver(ABC):
 
         :param variable: the variable
         :type variable: int
-        :param bound: MIN to minimize the variable, MAX to maximize it
+        :param bound: DOMAIN_MIN to minimize the variable, DOMAIN_MAX to maximize it
         :type bound: int
         :param mode: the optimization mode
         :type mode: str

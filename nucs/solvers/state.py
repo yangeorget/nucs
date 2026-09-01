@@ -254,8 +254,8 @@ def tighten_at(
     :return: the events triggered by the write and the new trail size
     :rtype: Tuple[int, int]
     """
-    # the barrier is per bound, not per variable: a filtering writes both MIN and MAX within one choice point,
-    # so a guard indexed by variable would suppress the second write and never restore MAX
+    # the barrier is per bound, not per variable: a filtering writes both DOMAIN_MIN and DOMAIN_MAX within one choice point,
+    # so a guard indexed by variable would suppress the second write and never restore DOMAIN_MAX
     cell_idx = variable << 1
     old_min = state[cell_idx]
     old_max = state[cell_idx | 1]

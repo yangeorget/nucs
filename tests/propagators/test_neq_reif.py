@@ -22,9 +22,9 @@ class TestNeqReif(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
-            # b is 1, so x != y: x fixed at y[MIN] -> y[MIN] tightened
+            # b is 1, so x != y: x fixed at y[DOMAIN_MIN] -> y[DOMAIN_MIN] tightened
             ([(1, 1), (4, 4), (4, 6)], [], PROP_CONSISTENCY, [[1, 1], [4, 4], [5, 6]]),
-            # b is 1, so x != y: y fixed at x[MAX] -> x[MAX] tightened
+            # b is 1, so x != y: y fixed at x[DOMAIN_MAX] -> x[DOMAIN_MAX] tightened
             ([(1, 1), (2, 4), (4, 4)], [], PROP_CONSISTENCY, [[1, 1], [2, 3], [4, 4]]),
             # b is 1, x and y already different -> entailment
             ([(1, 1), (3, 4), (5, 6)], [], PROP_ENTAILMENT, [[1, 1], [3, 4], [5, 6]]),

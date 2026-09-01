@@ -26,9 +26,9 @@ class TestElementLEqAlldifferent(PropagatorTest):
             ([5, 3, 7, (0, 2), 3], [], PROP_ENTAILMENT, [[5, 5], [3, 3], [7, 7], [1, 1], [3, 3]]),
             # v is fixed, all l[idx] disjoint from v -> i becomes empty, inconsistency
             ([5, 6, 7, (0, 2), 3], [], PROP_INCONSISTENCY, None),
-            # v is fixed, some l[idx] disjoint at the end -> i[MAX] tightened
+            # v is fixed, some l[idx] disjoint at the end -> i[DOMAIN_MAX] tightened
             ([(1, 5), (10, 15), (0, 1), 3], [], PROP_ENTAILMENT, [[3, 3], [10, 15], [0, 0], [3, 3]]),
-            # v is fixed, some l[idx] disjoint at the start -> i[MIN] increased
+            # v is fixed, some l[idx] disjoint at the start -> i[DOMAIN_MIN] increased
             ([(10, 15), (1, 5), (0, 1), 3], [], PROP_ENTAILMENT, [[10, 15], [3, 3], [1, 1], [3, 3]]),
             # v not fixed, multiple intersecting l[idx] -> v narrowed by l_v_min / l_v_max
             ([5, (4, 6), (0, 1), (3, 8)], [], PROP_CONSISTENCY, [[5, 5], [4, 6], [0, 1], [4, 6]]),

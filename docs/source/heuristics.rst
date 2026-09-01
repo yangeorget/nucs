@@ -31,12 +31,12 @@ A variable heuristic chooses the variable to branch on, and returns :code:`-1` w
    @njit(cache=True)
    def my_var_heuristic(decision_variables: NDArray, domains: NDArray, params: NDArray) -> int:
        for variable in decision_variables:
-           if domains[variable, MIN] < domains[variable, MAX]:
+           if domains[variable, DOMAIN_MIN] < domains[variable, DOMAIN_MAX]:
                return variable
        return -1
 
 :code:`domains` is the current domains as a :code:`(domain_nb, 2)` array indexed by variable then by
-:code:`MIN` / :code:`MAX`.
+:code:`DOMAIN_MIN` / :code:`DOMAIN_MAX`.
 
 
 Domain heuristics
@@ -58,7 +58,7 @@ kind                         explored branch          parked alternatives (resum
 
    @njit(cache=True)
    def my_dom_heuristic(domains: NDArray, variable: int, params: NDArray) -> tuple[int, int]:
-       return DECISION_LE, (domains[variable, MIN] + domains[variable, MAX]) >> 1
+       return DECISION_LE, (domains[variable, DOMAIN_MIN] + domains[variable, DOMAIN_MAX]) >> 1
 
 The heuristic mutates nothing: the solver applies the decision, maintains the unbound-variable count and
 schedules the propagators the split wakes. The pair is :code:`int32`; return values in the domain's range

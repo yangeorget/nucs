@@ -50,14 +50,14 @@ class TestLexleq(PropagatorTest):
                 PROP_CONSISTENCY,
                 [[0, 2], [5, 5], [0, 2], [0, 2], [5, 5], [0, 2]],
             ),
-            # n=3, routes to compute_domains_2's x[i,MIN] > y[i,MAX] branch (forces xq < yq)
+            # n=3, routes to compute_domains_2's x[i,DOMAIN_MIN] > y[i,DOMAIN_MAX] branch (forces xq < yq)
             (
                 [(0, 2), (3, 5), 0, (0, 2), (0, 2), 5],
                 [],
                 PROP_CONSISTENCY,
                 [[0, 1], [3, 5], [0, 0], [1, 2], [0, 2], [5, 5]],
             ),
-            # n=3, routes to compute_domains_3 via x[i,MAX] == y[i,MIN] branch
+            # n=3, routes to compute_domains_3 via x[i,DOMAIN_MAX] == y[i,DOMAIN_MIN] branch
             (
                 [(0, 2), (0, 2), 0, (0, 2), (2, 5), 5],
                 [],

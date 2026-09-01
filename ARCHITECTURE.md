@@ -17,7 +17,7 @@ path runs in Numba nopython mode with no Python objects.
   (`bc_algorithm.py`), registered as `CONSISTENCY_ALG_BC`; the search driver is `solve_one_step`. The backtrackable
   state and its trail live in `state.py` — `tighten`/`tighten_at` are the only sanctioned way to write a domain — and
   the choice-point stack built on them lives in `choice_points.py`. Iterate solutions with `solver.solve()`, or
-  optimize with `solver.find_best(var, MIN)` / `solver.find_best(var, MAX)`.
+  optimize with `solver.find_best(var, DOMAIN_MIN)` / `solver.find_best(var, DOMAIN_MAX)`.
 - **`nucs/heuristics/`** — variable heuristics pick the next unbound decision variable, domain heuristics pick how to
   split its domain. Both are Numba-jitted against the fixed signatures `SIGN_VAR_HEURISTIC` / `SIGN_DOM_HEURISTIC` in
   `nucs/constants.py` and dispatched by id.
@@ -59,11 +59,11 @@ A domain is a single `(min, max)` `int32` pair; a variable is its domain's index
 
 | index | constant | meaning |
 |-------|----------|---------|
-| 0 | `MIN` | lower bound |
-| 1 | `MAX` | upper bound |
+| 0 | `DOMAIN_MIN` | lower bound |
+| 1 | `DOMAIN_MAX` | upper bound |
 
-A variable is **bound** when `MIN == MAX`. (`GROUND = 2` is not a domain column — it is the third event bit, which
-happens to reuse the value `2`.)
+A variable is **bound** when its two columns hold the same value. (`DOMAIN_GROUND = 2` is not a domain column — it
+is the third event bit, which happens to reuse the value `2`.)
 
 ### Events
 
@@ -116,14 +116,14 @@ below work.
 
 No Python objects in the hot path: everything is allocated once at solver init, and jitted functions take many
 positional array arguments instead of a solver object — that is deliberate. Per-propagator metadata is laid out
-CSR-style: a `bounds` array delimits, for each propagator, its slice of the flat `propagator_variables` and
+CSR-style: an `offsets` array delimits, for each propagator, its slice of the flat `propagator_variables` and
 `propagator_parameters` arrays; the trigger map is stored the same way.
 
 | array | shape | indexed by | holds |
 |-------|-------|-----------|-------|
 | `algorithms` | `(P,)` uint8 | propagator | its `ALG_*` id |
 | `priorities` | `(P,)` uint32 | propagator | its queue bucket index |
-| `bounds` | `(P, 2, 2)` uint32 | propagator | `[VARIABLE/PARAM, RANGE_START/RANGE_END]` — slices into the two arrays below |
+| `offsets` | `(P+1, 2)` uint32 | propagator | `[OFFSETS_VARIABLE, OFFSETS_PARAM]` — where each propagator's slice of the two arrays below starts; it ends where the next propagator's begins |
 | `propagator_variables` | `(Σ arity,)` uint32 | flat (CSR) | every propagator's variables, concatenated |
 | `propagator_parameters` | `(Σ params,)` int32 | flat (CSR) | every propagator's parameters, concatenated |
 | `triggers` | `(Σ triggers,)` int32 | flat (CSR) | propagators to wake, grouped by `(variable, event)` |

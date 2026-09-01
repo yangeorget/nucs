@@ -371,7 +371,7 @@ class TestBacktrackSolver:
         assert solution.tolist() == [0, 0, 9]  # variable 2 grounded to 9 first, then 0 and 1 to their min
 
     def test_split_grounding_wakes_ground_triggered_propagator(self) -> None:
-        # A split heuristic that grounds a variable in its current branch must report a GROUND event,
+        # A split heuristic that grounds a variable in its current branch must report a ground event,
         # otherwise a propagator woken only on ground events (here linear_neq_c) never fires and an
         # inconsistent solution slips through. Regression for indomain_reverse_split + anti_first_fail.
         for dom_heuristic in (DOM_HEURISTIC_SPLIT_HIGH, DOM_HEURISTIC_SPLIT_LOW):

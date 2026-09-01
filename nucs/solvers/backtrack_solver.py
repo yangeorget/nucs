@@ -294,7 +294,7 @@ class BacktrackSolver(Solver):
 
     def optimize(self, variable: int, bound: int, mode: str, timeout: float | None = None) -> Iterator[NDArray]:
         logger.info("Optimizing and iterating over the solutions")
-        # minimizing a variable means tightening the MAX side of its domain, and vice versa
+        # minimizing a variable means tightening the DOMAIN_MAX side of its domain, and vice versa
         objective_bound = DOMAIN_MAX if bound == DOMAIN_MIN else DOMAIN_MIN
         for solution in self._iterate_solutions(
             lambda found: self._advance_after_optimum(variable, found[variable], objective_bound, mode),
@@ -407,7 +407,7 @@ class BacktrackSolver(Solver):
         :type variable: int
         :param value: the value of the variable in the local optimum just found
         :type value: int
-        :param bound: the side of the variable's domain to tighten (MAX when minimizing, MIN when maximizing)
+        :param bound: the side of the variable's domain to tighten (DOMAIN_MAX when minimizing, DOMAIN_MIN when maximizing)
         :type bound: int
         :param mode: the optimization mode
         :type mode: str

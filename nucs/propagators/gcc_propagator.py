@@ -472,8 +472,8 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
     # assert get_min_value(l) == get_min_value(u)
     # assert get_max_value(l) == get_max_value(u)
-    # assert get_min_value(l) <= domains[min_sorted_vars[0], MIN]
-    # assert domains[max_sorted_vars[n - 1], MAX] <= get_max_value(u)
+    # assert get_min_value(l) <= domains[min_sorted_vars[0], DOMAIN_MIN]
+    # assert domains[max_sorted_vars[n - 1], DOMAIN_MAX] <= get_max_value(u)
     if get_sum(l, get_min_value(l), domains[min_sorted_vars[0], DOMAIN_MIN] - 1) > 0:
         return PROP_INCONSISTENCY
     if get_sum(l, domains[max_sorted_vars[n - 1], DOMAIN_MAX] + 1, get_max_value(l)) > 0:

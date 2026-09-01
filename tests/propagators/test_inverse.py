@@ -32,7 +32,7 @@ class TestInverse(PropagatorTest):
             ([0, 0, (0, 1), (0, 1)], [], PROP_INCONSISTENCY, None),
             # partial filtering: next[0]=0 forces prev[0]=0 and prev[1]=1
             ([0, (0, 1), (0, 1), (0, 1)], [], PROP_CONSISTENCY, [[0, 0], [1, 1], [0, 0], [1, 1]]),
-            # disjoint prefix raises prev[j,MIN]; disjoint suffix lowers prev[j,MAX]
+            # disjoint prefix raises prev[j,DOMAIN_MIN]; disjoint suffix lowers prev[j,DOMAIN_MAX]
             (
                 [2, 1, 0, (0, 2), (0, 2), (0, 2)],
                 [],

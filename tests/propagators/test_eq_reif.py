@@ -42,13 +42,13 @@ class TestEqReif(PropagatorTest):
             ([(0, 0), (4, 4), (4, 4)], [], PROP_INCONSISTENCY, None),
             # b is 1, x and y both fixed different (inconsistent)
             ([(1, 1), (4, 4), (5, 5)], [], PROP_INCONSISTENCY, None),
-            # b is 0, x fixed at y[MAX] -> y[MAX] tightened
+            # b is 0, x fixed at y[DOMAIN_MAX] -> y[DOMAIN_MAX] tightened
             ([(0, 0), (5, 5), (3, 5)], [], PROP_CONSISTENCY, [[0, 0], [5, 5], [3, 4]]),
-            # b is 0, x fixed at y[MIN] -> y[MIN] tightened
+            # b is 0, x fixed at y[DOMAIN_MIN] -> y[DOMAIN_MIN] tightened
             ([(0, 0), (3, 3), (3, 5)], [], PROP_CONSISTENCY, [[0, 0], [3, 3], [4, 5]]),
-            # b is 0, y fixed at x[MIN] -> x[MIN] tightened
+            # b is 0, y fixed at x[DOMAIN_MIN] -> x[DOMAIN_MIN] tightened
             ([(0, 0), (4, 6), (4, 4)], [], PROP_CONSISTENCY, [[0, 0], [5, 6], [4, 4]]),
-            # b is 0, y fixed at x[MAX] -> x[MAX] tightened
+            # b is 0, y fixed at x[DOMAIN_MAX] -> x[DOMAIN_MAX] tightened
             ([(0, 0), (2, 4), (4, 4)], [], PROP_CONSISTENCY, [[0, 0], [2, 3], [4, 4]]),
         ],
     )

@@ -27,19 +27,19 @@ class TestAbsEq(PropagatorTest):
             ([(-4, 4), (-5, 0)], [], PROP_ENTAILMENT, [[0, 0], [0, 0]]),
             ([(2, 4), (-5, 5)], [], PROP_CONSISTENCY, [[2, 4], [2, 4]]),
             ([(-4, -2), (-5, 5)], [], PROP_CONSISTENCY, [[-4, -2], [2, 4]]),
-            # y[MIN] > 0 branch, y narrowed by x
+            # y[DOMAIN_MIN] > 0 branch, y narrowed by x
             ([(2, 10), (4, 6)], [], PROP_CONSISTENCY, [[4, 6], [4, 6]]),
-            # y[MIN] > 0 branch, x narrowed empty -> inconsistency
+            # y[DOMAIN_MIN] > 0 branch, x narrowed empty -> inconsistency
             ([(5, 6), (1, 3)], [], PROP_INCONSISTENCY, None),
-            # y[MAX] < 0 branch, y narrowed by x
+            # y[DOMAIN_MAX] < 0 branch, y narrowed by x
             ([(-10, -2), (4, 6)], [], PROP_CONSISTENCY, [[-6, -4], [4, 6]]),
-            # y[MAX] < 0 branch, x narrowed empty -> inconsistency
+            # y[DOMAIN_MAX] < 0 branch, x narrowed empty -> inconsistency
             ([(-6, -5), (1, 3)], [], PROP_INCONSISTENCY, None),
-            # y[MAX] < 0 branch, narrowed both, consistent
+            # y[DOMAIN_MAX] < 0 branch, narrowed both, consistent
             ([(-7, -3), (0, 5)], [], PROP_CONSISTENCY, [[-5, -3], [3, 5]]),
-            # straddle 0, x[MIN] < 0 gets clamped to 0
+            # straddle 0, x[DOMAIN_MIN] < 0 gets clamped to 0
             ([(-3, 3), (-2, 2)], [], PROP_CONSISTENCY, [[-2, 2], [0, 2]]),
-            # straddle 0, x[MIN] > max_y -> x empty, inconsistency
+            # straddle 0, x[DOMAIN_MIN] > max_y -> x empty, inconsistency
             ([(-2, 2), (5, 10)], [], PROP_INCONSISTENCY, None),
         ],
     )

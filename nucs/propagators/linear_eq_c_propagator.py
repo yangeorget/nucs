@@ -86,7 +86,7 @@ def compute_domains_linear_eq_c(domains: NDArray, parameters: NDArray) -> int:
         if factor != 0 and x_min < x_max:
             unbound_count += 1
     # If the sum is forced strictly above or below a_n the equality is unsatisfiable. This single
-    # global test catches every inconsistency, so the per-variable x[MIN] > x[MAX] check that used
+    # global test catches every inconsistency, so the per-variable x[DOMAIN_MIN] > x[DOMAIN_MAX] check that used
     # to sit inside the filtering loop below is redundant and was dropped.
     if domain_sum_max > 0 or domain_sum_min < 0:
         return PROP_INCONSISTENCY

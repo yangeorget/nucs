@@ -74,7 +74,7 @@ def next_unvisited(parent: NDArray, i: int) -> int:
 @njit(cache=True)
 def compute_domains_scc(domains: NDArray, parameters: NDArray) -> int:
     """
-    Enforces that the digraph whose arcs are i -> j for j in [domains[i, MIN], domains[i, MAX]] is strongly connected.
+    Enforces that the digraph whose arcs are i -> j for j in [domains[i, DOMAIN_MIN], domains[i, DOMAIN_MAX]] is strongly connected.
 
     A digraph is strongly connected iff, from any single root (node 0), every node is reachable
     (forward DFS) and the root is reachable from every node (backward DFS). Both searches are

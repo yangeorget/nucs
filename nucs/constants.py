@@ -19,7 +19,10 @@ OPTIM_RESET = "RESET"
 OPTIM_PRUNE = "PRUNE"
 OPTIM_MODES = [OPTIM_RESET, OPTIM_PRUNE]
 
-# Bounds
+# Column indices are prefixed with the array they index -- OFFSETS_, DOMAIN_, CHOICE_POINT_, OBJECTIVE_,
+# STATS_IDX_ -- so that a bare index constant never has to be traced back to find out what it indexes.
+
+# Offsets columns
 OFFSETS_VARIABLE = 0  # column of offsets holding the propagator variable offsets
 OFFSETS_PARAM = 1  # column of offsets holding the propagator parameter offsets
 
@@ -63,7 +66,7 @@ STEP_TIGHTENING_NB = 2  # a refutation then the objective bound, the longer of t
 # Decision kinds returned by a domain heuristic.
 # A domain heuristic chooses where to split a domain; it does not split it. These three kinds cover the
 # eight in-tree heuristics exactly, and it is the solver that turns one into an explored branch and one or
-# two parked alternatives -- so the MIN/MAX/GROUND bookkeeping lives in one place instead of in every
+# two parked alternatives -- so the min/max/ground bookkeeping lives in one place instead of in every
 # heuristic. The parked alternatives are listed deepest first: that order is what an enumeration sees.
 DECISION_LE = 0  # explore [min, value], park [value + 1, max]
 DECISION_GT = 1  # explore [value + 1, max], park [min, value]
@@ -137,7 +140,7 @@ TYPE_CONSISTENCY_ALG = types.FunctionType(SIGN_CONSISTENCY_ALG)
 # The pair is int32, and that matters. A heuristic is declared @njit(cache=True) with no signature and
 # compiled for this one later, by _get_wrapper_address, so how the pair crosses back is an ABI question.
 # Declared as a UniTuple(int64, 2) it is silently wrong: Numba infers `return DECISION_LE,
-# domains[variable, MIN]` as the heterogeneous Tuple(int64, int32), and the wrapper *zero-extends* the
+# domains[variable, DOMAIN_MIN]` as the heterogeneous Tuple(int64, int32), and the wrapper *zero-extends* the
 # int32, so a split value of -5 arrives as 4294967291. Nothing widens at an int32 pair -- the kind
 # narrows from a 0/1/2 constant, losslessly, and the value is already int32 -- so the natural expression
 # is correct without the author casting anything. Verified down to INT32_MIN.

@@ -59,15 +59,15 @@ A solver exposes two searches, satisfaction and optimization, each in three form
      - :code:`find_best`
      - the list of all solutions / the best solution
 
-The optimization methods take the variable to optimize and a bound: :code:`MIN` to minimize it,
-:code:`MAX` to maximize it.
+The optimization methods take the variable to optimize and a bound: :code:`DOMAIN_MIN` to minimize it,
+:code:`DOMAIN_MAX` to maximize it.
 
 .. code-block:: python
    :linenos:
 
-   from nucs.constants import MIN
+   from nucs.constants import DOMAIN_MIN
 
-   solution = solver.find_best(problem.total_cost, MIN)
+   solution = solver.find_best(problem.total_cost, DOMAIN_MIN)
 
 
 *******
@@ -81,7 +81,7 @@ which is what distinguishes an exhausted search from a truncated one:
 .. code-block:: python
    :linenos:
 
-   solution = solver.find_best(problem.total_cost, MIN, timeout=60)
+   solution = solver.find_best(problem.total_cost, DOMAIN_MIN, timeout=60)
    if solver.timed_out:
        print("best solution found within the budget, not proven optimal")
 

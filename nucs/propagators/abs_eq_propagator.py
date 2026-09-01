@@ -101,7 +101,7 @@ def compute_domains_abs_eq(domains: NDArray, parameters: NDArray) -> int:
         if x[DOMAIN_MIN] == x[DOMAIN_MAX]:
             return PROP_ENTAILMENT
     else:
-        # 0 lies in y's range: x ranges in [0, max(-y[MIN], y[MAX])] and y in [-x[MAX], x[MAX]].
+        # 0 lies in y's range: x ranges in [0, max(-y[DOMAIN_MIN], y[DOMAIN_MAX])] and y in [-x[DOMAIN_MAX], x[DOMAIN_MAX]].
         # Here y drives the result, so entailment is reported once y is bound.
         x[DOMAIN_MIN] = max(x[DOMAIN_MIN], 0)
         max_y = max(-y[DOMAIN_MIN], y[DOMAIN_MAX])

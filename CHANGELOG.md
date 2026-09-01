@@ -10,6 +10,33 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Changed
 
+- **Every index constant is now prefixed with the array it indexes.** `MIN` / `MAX` / `GROUND` are
+  `DOMAIN_MIN` / `DOMAIN_MAX` / `DOMAIN_GROUND`, `VARIABLE` / `PARAM` are `OFFSETS_VARIABLE` /
+  `OFFSETS_PARAM`, and `OBJ_VARIABLE` / `OBJ_BOUND` / `OBJ_VALUE` / `OBJ_WIDTH` are `OBJECTIVE_*`. A bare
+  `MIN` is a module-level name general enough to collide with anything, imported into propagator files that
+  are nothing but bounds arithmetic, and `VARIABLE` named one column of one array in a solver where a
+  variable is a domain index. The prefix says which array the number indexes, so a reader never has to trace
+  a constant back to find out.
+
+  Two of these are extension points the docs cover — the bound `find_best` takes, and the column a custom
+  heuristic or propagator reads a domain with — so this is a breaking change:
+
+  ```python
+  # 16.0
+  from nucs.constants import MIN, MAX
+
+  solver.find_best(problem.total_cost, MIN)
+  if domains[variable, MIN] < domains[variable, MAX]:
+
+  # now
+  from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
+
+  solver.find_best(problem.total_cost, DOMAIN_MIN)
+  if domains[variable, DOMAIN_MIN] < domains[variable, DOMAIN_MAX]:
+  ```
+
+  `OFFSETS_*` and `OBJECTIVE_*` name internal layouts, so they only matter to a custom consistency
+  algorithm that slices `offsets` itself.
 - **`solve_one` is now `solve_one_step`.** The jitted search returns `None` both when the search is over
   and when the trail or the choice point stack runs out of room — both are caller-allocated and neither can
   grow inside `@njit`, so it stops, says which one filled up, and `BacktrackSolver` grows that array and
