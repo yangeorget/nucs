@@ -128,10 +128,23 @@ class Problem:
         # flags cover every algorithm this problem can name -- including one registered after import. The
         # consistency algorithm needs a boolean array rather than the registry's list; converting some sixty
         # bools once per problem is nothing next to the rest of this method.
-        self.idempotencies = np.array(IDEMPOTENCIES, dtype=np.bool_)
-        # The propagation queue is a bucketed (priority) queue:
-        # Priorities here store the bucket index = floor(log2(complexity)), clamped to [0, NB_BUCKETS-1].
-        # Higher-complexitypropagators land in higher buckets and run after cheaper ones at fixpoint computation.
+        self.idempotencies = np.array(IDEMPOTENCIES, dtype=np.bool)
+        self.init_priorities()
+        self.init_propagator_arrays()
+        self.init_triggers()
+        logger.debug("Problem initialized")
+        logger.info(f"Problem has {self.propagator_nb} propagators")
+        logger.info(f"Problem has {self.domain_nb} variables")
+
+    def init_priorities(self) -> None:
+        """
+        Initializes the priorities of the propagators.
+
+        The propagation queue is a bucketed (priority) queue: priorities here store the bucket index =
+        floor(log2(complexity)), clamped to [0, NB_BUCKETS-1]. Higher-complexity propagators land in higher
+        buckets and run after cheaper ones at fixpoint computation.
+        """
+        logger.debug("Initializing priorities")
         self.priorities = np.array(
             [
                 compute_priority(GET_COMPLEXITY_FCTS[propagator[1]](len(propagator[0]), propagator[2]))
@@ -139,22 +152,40 @@ class Problem:
             ],
             dtype=np.uint32,
         )
-        # Propagator specific data lives in global arrays; propagator p owns the slice
-        # offsets[p, col]:offsets[p + 1, col] of each, so one row per propagator plus a closing row.
+
+    def init_propagator_arrays(self) -> None:
+        """
+        Initializes the offsets and the propagator variables and parameters.
+
+        Propagator specific data lives in global arrays; propagator p owns the slice
+        offsets[p, col]:offsets[p + 1, col] of each. The slices are contiguous, so one offset per propagator
+        suffices: one row per propagator plus a closing row holding the totals.
+        """
         logger.debug("Initializing offsets")
         self.offsets = np.zeros((self.propagator_nb + 1, 2), dtype=np.uint32)
-        init_offsets(self.offsets, self.propagators)
+        for propagator_idx, propagator in enumerate(self.propagators):
+            self.offsets[propagator_idx + 1, VARIABLE] = self.offsets[propagator_idx, VARIABLE] + len(propagator[0])
+            self.offsets[propagator_idx + 1, PARAM] = self.offsets[propagator_idx, PARAM] + len(propagator[2])
         logger.debug("Initializing props")
         self.propagator_variables = np.empty(self.offsets[-1, VARIABLE], dtype=np.uint32)
         self.propagator_parameters = np.empty(self.offsets[-1, PARAM], dtype=np.int32)
-        init_propagator_variables_and_parameters(
-            self.propagator_variables, self.propagator_parameters, self.offsets, self.propagators
-        )
+        for propagator_idx, propagator in enumerate(self.propagators):
+            var_start, var_end = self.offsets[propagator_idx, VARIABLE], self.offsets[propagator_idx + 1, VARIABLE]
+            param_start, param_end = self.offsets[propagator_idx, PARAM], self.offsets[propagator_idx + 1, PARAM]
+            self.propagator_variables[var_start:var_end] = propagator[0]
+            self.propagator_parameters[param_start:param_end] = propagator[2]
+
+    def init_triggers(self) -> None:
+        """
+        Initializes the triggers, mapping each (variable, event) pair to the propagators to schedule.
+
+        A dense (domain_nb, EVENT_MASK_NB, propagator_nb) array would be mostly empty (and huge), so the map
+        is stored in CSR form: triggers is the flat list of propagators and triggers_offsets delimits, for
+        each (variable, event), its slice -- offsets[variable * EVENT_MASK_NB + event] up to the next offset.
+
+        Requires the algorithms, the offsets and the propagator variables and parameters to be initialized.
+        """
         logger.debug("Initializing triggers")
-        # The triggers map each (variable, event) pair to the propagators to schedule. A dense
-        # (domain_nb, EVENT_MASK_NB, propagator_nb) array would be mostly empty (and huge), so it is stored
-        # in CSR form: triggers is the flat list of propagators and triggers_offsets delimits, for each
-        # (variable, event), its slice -- offsets[variable * EVENT_MASK_NB + event] up to the next offset.
         # resolving only the algorithms used by the problem keeps the init cost proportional
         # to the problem instead of the whole propagator library
         get_triggers_addrs = addresses_from_functions(
@@ -182,9 +213,6 @@ class Problem:
             self.algorithms,
             get_triggers_addrs,
         )
-        logger.debug("Problem initialized")
-        logger.info(f"Problem has {self.propagator_nb} propagators")
-        logger.info(f"Problem has {self.domain_nb} variables")
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         """
@@ -206,46 +234,6 @@ class Problem:
         :type solution: Optional[NDArray]
         """
         print("No solution" if solution is None else self.solution_as_printable(solution))
-
-
-def init_offsets(offsets: NDArray, propagators: list[tuple[list[int], int, list[int]]]) -> None:
-    """
-    Initializes the CSR offsets delimiting each propagator's variables and parameters.
-
-    The slices are contiguous, so one offset per propagator suffices: propagator p owns
-    offsets[p, col]:offsets[p + 1, col], and the closing row holds the totals.
-
-    :param offsets: the offsets to initialize
-    :type offsets: NDArray
-    :param propagators: the propagators
-    :type propagators: List[Tuple[List[int], int, List[int]]]
-    """
-    for propagator_idx, propagator in enumerate(propagators):
-        offsets[propagator_idx + 1, VARIABLE] = offsets[propagator_idx, VARIABLE] + len(propagator[0])
-        offsets[propagator_idx + 1, PARAM] = offsets[propagator_idx, PARAM] + len(propagator[2])
-
-
-def init_propagator_variables_and_parameters(
-    propagator_variables: NDArray,
-    propagator_parameters: NDArray,
-    offsets: NDArray,
-    propagators: list[tuple[list[int], int, list[int]]],
-) -> None:
-    """
-    Initializes the propagator variables and parameters arrays.
-
-    :param propagator_variables: the propagator variables array to fill
-    :type propagator_variables: NDArray
-    :param propagator_parameters: the propagator parameters array to fill
-    :type propagator_parameters: NDArray
-    :param offsets: the CSR offsets delimiting each propagator's variables and parameters
-    :type offsets: NDArray
-    :param propagators: the propagators
-    :type propagators: List[Tuple[List[int], int, List[int]]]
-    """
-    for propagator_idx, propagator in enumerate(propagators):
-        propagator_variables[offsets[propagator_idx, VARIABLE] : offsets[propagator_idx + 1, VARIABLE]] = propagator[0]
-        propagator_parameters[offsets[propagator_idx, PARAM] : offsets[propagator_idx + 1, PARAM]] = propagator[2]
 
 
 @njit(cache=True)
