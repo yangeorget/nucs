@@ -45,7 +45,8 @@ path runs in Numba nopython mode with no Python objects.
    | `PROBLEM_UNBOUND` | fixpoint reached, unbound variables remain | `branch`: the first search with an unbound decision variable picks one (variable heuristic) and says where to split its domain (domain heuristic); the explored branch is written, the alternatives are parked on the choice points below it |
 
 Between successive `solve_one_step` calls the queue is *not* refilled from scratch: `backtrack` schedules only
-the propagators affected by the refutation, or by the objective bound it re-applies to the choice point it resumes.
+the propagators affected by the parked alternative, or by the objective bound it re-applies to the choice point it
+resumes.
 
 ## Constants
 

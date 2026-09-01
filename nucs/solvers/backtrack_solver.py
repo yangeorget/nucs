@@ -588,7 +588,8 @@ def solve_one_step(
 
     Expects the propagation queue to already hold the propagators that need to run: the callers enqueue
     all the propagators (buckets_init) before the first call, and rely on backtrack to schedule the
-    propagators affected by a refutation, or by the objective bound it re-applies, between subsequent calls.
+    propagators affected by a parked alternative, or by the objective bound it re-applies, between subsequent
+    calls.
 
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray

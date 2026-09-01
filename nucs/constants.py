@@ -59,9 +59,9 @@ SOLVER_STATUS_WIDTH = 1
 # covered by that budget: each writes at a mark the trail holds nothing for yet, so every one of their
 # writes is trailed. A tightening writes a domain's two bounds and, when it grounds the variable, the
 # unbound count; a step applies at most two of them -- branch's decision is one, while backtracking a
-# choice point applies its parked refutation and then the branch-and-bound objective bound.
+# choice point applies its parked alternative and then the branch-and-bound objective bound.
 TIGHTENING_TRAIL_ENTRY_NB = 3  # the two bounds of a domain and the unbound count
-STEP_TIGHTENING_NB = 2  # a refutation then the objective bound, the longer of the two ways out of a step
+STEP_TIGHTENING_NB = 2  # an alternative then the objective bound, the longer of the two ways out of a step
 
 # Decision kinds returned by a domain heuristic.
 # A domain heuristic chooses where to split a domain; it does not split it. These three kinds cover the

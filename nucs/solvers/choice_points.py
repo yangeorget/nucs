@@ -80,7 +80,9 @@ def choice_point_init(
 
 
 @njit(cache=True, inline="always")
-def park(choice_point_stk: NDArray, choice_point: int, mark: int, variable: int, bound: int, value: int) -> None:
+def park_alternative(
+    choice_point_stk: NDArray, choice_point: int, mark: int, variable: int, bound: int, value: int
+) -> None:
     """
     Records on a choice point the alternative to apply when the search resumes it.
 
@@ -172,19 +174,18 @@ def branch(
             kind = DECISION_GT
             value = domain_max - 1
     if kind == DECISION_LE:
-        park(choice_point_stk, choice_point, mark, variable, DOMAIN_MIN, value + 1)
+        park_alternative(choice_point_stk, choice_point, mark, variable, DOMAIN_MIN, value + 1)
         choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark
         choice_point_top[0] = choice_point + 1
         return tighten(state, trail_log, trail_top, trail_indices, mark, variable, domain_min, value)
     if kind == DECISION_GT:
-        park(choice_point_stk, choice_point, mark, variable, DOMAIN_MAX, value)
+        park_alternative(choice_point_stk, choice_point, mark, variable, DOMAIN_MAX, value)
         choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark
         choice_point_top[0] = choice_point + 1
         return tighten(state, trail_log, trail_top, trail_indices, mark, variable, value + 1, domain_max)
-    park(
-        choice_point_stk, choice_point, mark, variable, DOMAIN_MIN, value + 1
-    )  # the shallower alternative is resumed last
-    park(choice_point_stk, choice_point + 1, mark, variable, DOMAIN_MAX, value - 1)
+    # the shallower alternative is resumed last
+    park_alternative(choice_point_stk, choice_point, mark, variable, DOMAIN_MIN, value + 1)
+    park_alternative(choice_point_stk, choice_point + 1, mark, variable, DOMAIN_MAX, value - 1)
     choice_point_stk[choice_point + 2, CHOICE_POINT_TRAIL_MARK] = mark
     choice_point_top[0] = choice_point + 2
     return tighten(state, trail_log, trail_top, trail_indices, mark, variable, value, value)
@@ -257,7 +258,7 @@ def backtrack(
     Backtracks to the deepest choice point that can still hold a solution.
 
     Popping a choice point is replaying the undo log back to its mark, then applying the alternative it
-    parked -- through the same write barrier as any other write, so that the refutation is itself
+    parked -- through the same write barrier as any other write, so that the alternative is itself
     undone when the search later backtracks past this choice point.
 
     The undo reactivates the propagators entailed below this choice point as it goes: an entailment flag is a

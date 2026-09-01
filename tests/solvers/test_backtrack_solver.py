@@ -176,7 +176,7 @@ class TestBacktrackSolver:
         # two min_value decisions, so both variables are ground at [0, 0]
         assert solver.domains[0].tolist() == [0, 0]
         assert solver.domains[1].tolist() == [0, 0]
-        # each choice point parked the refutation of its own decision: raise that variable's min to 1
+        # each choice point parked the alternative to its own decision: raise that variable's min to 1
         assert solver.choice_point_stk[0, CHOICE_POINT_VARIABLE] == 0
         assert solver.choice_point_stk[0, CHOICE_POINT_BOUND] == DOMAIN_MIN
         assert solver.choice_point_stk[0, CHOICE_POINT_VALUE] == 1
@@ -198,7 +198,7 @@ class TestBacktrackSolver:
             problem.priorities,
             solver.objective,
         )
-        # back at choice point 1, with variable 1's refutation applied: variable 0 stays at its decision
+        # back at choice point 1, with variable 1's alternative applied: variable 0 stays at its decision
         assert solver.choice_point_top == 1
         assert solver.domains[0].tolist() == [0, 0]
         assert solver.domains[1].tolist() == [1, 1]
@@ -259,7 +259,7 @@ class TestBacktrackSolver:
         tighten(solver.state, solver.trail_log, solver.trail_top, solver.trail_indices, mark, 0, 5, 5)
         assert int(solver.trail_top[0]) - mark == TIGHTENING_TRAIL_ENTRY_NB
 
-        # a step that ends in a backtrack applies two tightenings -- the choice point's refutation, then
+        # a step that ends in a backtrack applies two tightenings -- the choice point's alternative, then
         # the objective bound -- at a mark the trail holds nothing for, so each trails every cell it
         # writes. Both ground their variable here, which is the most either can write.
         solver = BacktrackSolver(Problem([(0, 9), (0, 9)]))
