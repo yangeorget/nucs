@@ -103,7 +103,7 @@ class BacktrackSolver(Solver):
     A solver relying on a backtracking mechanism.
     """
 
-    # the per-search ragged collections threaded into solve_one, stored CSR-style: a flat concatenation
+    # the per-search ragged collections threaded into solve_one_step, stored CSR-style: a flat concatenation
     # plus the offsets delimiting each search's slice (and, for the 2d parameter arrays, their shapes)
     decision_variables: NDArray
     decision_variables_offsets: NDArray
@@ -113,7 +113,7 @@ class BacktrackSolver(Solver):
     dom_heuristic_params: NDArray
     dom_heuristic_params_offsets: NDArray
     dom_heuristic_params_shapes: NDArray
-    # the function tables threaded into solve_one (Numba typed lists under the JIT, plain Python lists otherwise)
+    # the function tables threaded into solve_one_step (Numba typed lists under the JIT, plain Python lists otherwise)
     consistency_alg_fcts: ConsistencyAlgorithmFunctions
     var_heuristic_fcts: VariableHeuristicFunctions
     dom_heuristic_fcts: DomainHeuristicFunctions
@@ -343,7 +343,7 @@ class BacktrackSolver(Solver):
 
     def _solve_one(self) -> NDArray | None:
         """
-        Searches for the next solution by forwarding the solver state to the jitted solve_one.
+        Searches for the next solution, growing whichever caller-allocated array runs out and resuming.
 
         :return: the next solution if it exists or None
         :rtype: Optional[NDArray]
@@ -356,12 +356,12 @@ class BacktrackSolver(Solver):
 
     def _solve_one_step(self) -> NDArray | None:
         """
-        Searches for the next solution until it is found, the search is exhausted, or a stack fills up.
+        Runs one step of the search by forwarding the solver state to the jitted solve_one_step.
 
-        :return: the next solution if it exists or None
+        :return: the solution if this step found one, None when the search is over or an array filled up
         :rtype: Optional[NDArray]
         """
-        return solve_one(
+        return solve_one_step(
             self.statistics,
             self.problem.algorithms,
             self.problem.priorities,
@@ -543,7 +543,7 @@ class BacktrackSolver(Solver):
 
 
 @njit(cache=True)
-def solve_one(
+def solve_one_step(
     statistics: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
@@ -580,7 +580,11 @@ def solve_one(
     trail_headroom: int,
 ) -> NDArray | None:
     """
-    Find at most one solution.
+    Searches for one solution, stopping early when an array it cannot grow runs out of room.
+
+    It is a step rather than the whole search because the trail and the choice point stack belong to the
+    caller: when either fills up, status names it and the search returns None having found nothing, for
+    _solve_one to grow that array and call again. Nothing of the search is lost in between.
 
     Expects the propagation queue to already hold the propagators that need to run: the callers enqueue
     all the propagators (buckets_init) before the first call, and rely on backtrack to schedule the

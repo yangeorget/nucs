@@ -6,6 +6,21 @@ Notable changes to NuCS. This file starts at 15.0.0; for earlier releases see th
 NuCS follows [semantic versioning](https://semver.org/): a major bump means the extension points
 documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
+## Unreleased
+
+### Changed
+
+- **`solve_one` is now `solve_one_step`.** The jitted search returns `None` both when the search is over
+  and when the trail or the choice point stack runs out of room — both are caller-allocated and neither can
+  grow inside `@njit`, so it stops, says which one filled up, and `BacktrackSolver` grows that array and
+  calls it again. One step is what it does; the old name promised an outcome it cannot always deliver, and
+  hid the reason the loop around it exists. It is not one of the extension points the docs cover, so the
+  rename is not a major on its own, but the symbol is importable, so an import of it by name now fails:
+
+  ```python
+  from nucs.solvers.backtrack_solver import solve_one_step  # was solve_one
+  ```
+
 ## 16.0.0
 
 ### Fixed

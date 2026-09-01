@@ -14,7 +14,7 @@ path runs in Numba nopython mode with no Python objects.
   `PROP_CONSISTENCY` / `PROP_ENTAILMENT`), `get_triggers_*` (when to re-wake), `get_complexity_*` (queue ordering). See
   `nucs/propagators/abs_eq_propagator.py` for the minimal template.
 - **`nucs/solvers/`** — `BacktrackSolver` (backtracking + propagation). The propagation fixpoint is `bc_algorithm`
-  (`bc_algorithm.py`), registered as `CONSISTENCY_ALG_BC`; the search driver is `solve_one` and the choice-point
+  (`bc_algorithm.py`), registered as `CONSISTENCY_ALG_BC`; the search driver is `solve_one_step` and the choice-point
   primitives live in `choice_points.py`. Iterate solutions with `solver.solve()`, or optimize with
   `solver.find_best(var, MIN)` / `solver.find_best(var, MAX)`.
 - **`nucs/heuristics/`** — variable heuristics pick the next unbound decision variable, domain heuristics pick how to
@@ -30,7 +30,7 @@ path runs in Numba nopython mode with no Python objects.
 
 ### The solve loop
 
-`solve_one` drives the search for one solution, looping over two phases:
+`solve_one_step` drives the search for one solution, looping over two phases:
 
 1. **Propagate to a fixpoint** (`bc_algorithm`): pop the cheapest triggered propagator from the queue, gather its
    variables' domains into `domain_buffer`, call its `compute_domains_*`, write back any tightened bounds, and enqueue
@@ -43,7 +43,7 @@ path runs in Numba nopython mode with no Python objects.
    | `PROBLEM_INCONSISTENT` | a domain wiped out | `backtrack`: pop a choice point, replay the undo log back to its mark, reschedule the refuted decision. When optimizing, it keeps popping while the objective bound wipes the resumed one out |
    | `PROBLEM_UNBOUND` | fixpoint reached, unbound variables remain | `branch`: the first search with an unbound decision variable picks one (variable heuristic) and says where to split its domain (domain heuristic); the explored branch is written, the alternatives are parked on the choice points below it |
 
-Between successive `solve_one` calls the queue is *not* refilled from scratch: `backtrack` schedules only
+Between successive `solve_one_step` calls the queue is *not* refilled from scratch: `backtrack` schedules only
 the propagators affected by the refutation, or by the objective bound it re-applies to the choice point it resumes.
 
 ## Constants
@@ -162,7 +162,7 @@ before solving started — 64 KB per variable whatever the search did, so `bibd(
 10k-variable FlatZinc model would have wanted 655 MB. That is now 0.6 MB, and the ceiling on model size is gone. The
 cost is 5-15% of throughput: measured on `golomb(9)`, 27 of the 72 domain cells are trailed per node, at 3 scattered
 cells per push plus the undo, against one contiguous 72-cell memcpy — copying wins in that regime, and NuCS's models
-are in it. `H` and `T` are starting sizes rather than ceilings; `solve_one` stops when either fills and the solver
+are in it. `H` and `T` are starting sizes rather than ceilings; `solve_one_step` stops when either fills and the solver
 doubles it, losing nothing of the search.
 
 The write barrier lives in one place, `tighten`, which is the only site that writes a domain — propagation, branching,

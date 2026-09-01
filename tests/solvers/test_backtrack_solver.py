@@ -51,7 +51,7 @@ from nucs.propagators.propagators import (
     ALG_NEQ,
     ALG_RELATION,
 )
-from nucs.solvers.backtrack_solver import BacktrackSolver, solve_one
+from nucs.solvers.backtrack_solver import BacktrackSolver, solve_one_step
 from nucs.solvers.choice_points import backtrack, branch, tighten
 from nucs.solvers.search import Search
 
@@ -123,7 +123,7 @@ class TestBacktrackSolver:
         assert statistics[STATS_LBL_SOLUTION_NB] == 10000
         assert statistics[STATS_LBL_SOLVER_CHOICE_DEPTH] == 2
 
-    def test_solve_one(self) -> None:
+    def test_solve_one_step(self) -> None:
         """The state a solution leaves behind, and what backtracking restores of it.
 
         This used to assert the opposite property: that every choice point kept its own snapshot and that
@@ -133,7 +133,7 @@ class TestBacktrackSolver:
         problem = Problem([(0, 1), (0, 1)])
         solver = BacktrackSolver(problem)
         buckets_empty(solver.triggered_propagators, problem.priorities)
-        solution = solve_one(
+        solution = solve_one_step(
             solver.statistics,
             problem.algorithms,
             problem.priorities,
@@ -445,7 +445,7 @@ class TestBacktrackSolver:
         A three-way split (DOM_HEURISTIC_MID_VALUE, a DECISION_EQ) makes two choice points siblings
         holding disjoint objective ranges, so minimizing wiped the shallower one and the count-based drop
         discarded the survivor. The resulting choice point had an empty domain that no variable heuristic could
-        claim and no propagator noticed, and solve_one span forever on an empty queue.
+        claim and no propagator noticed, and solve_one_step span forever on an empty queue.
         Only maximization was covered before, which wipes the deeper choice point first and so never hit it.
         """
         expected = [
