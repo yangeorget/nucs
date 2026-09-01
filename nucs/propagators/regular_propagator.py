@@ -16,7 +16,14 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_regular(n: int, parameters: NDArray) -> int:
@@ -154,7 +161,7 @@ def compute_domains_regular(domains: NDArray, parameters: NDArray) -> int:
         var = domains[i]
         for q in range(1, q_nb + 1):
             if fwd[i, q]:
-                for v in range(max(1, var[MIN]), min(s_nb, var[MAX]) + 1):
+                for v in range(max(1, var[DOMAIN_MIN]), min(s_nb, var[DOMAIN_MAX]) + 1):
                     nq = parameters[3 + (q - 1) * s_nb + (v - 1)]
                     if nq != 0:
                         fwd[i + 1, nq] = 1
@@ -166,7 +173,7 @@ def compute_domains_regular(domains: NDArray, parameters: NDArray) -> int:
     for i in range(length - 1, -1, -1):
         var = domains[i]
         for q in range(1, q_nb + 1):
-            for v in range(max(1, var[MIN]), min(s_nb, var[MAX]) + 1):
+            for v in range(max(1, var[DOMAIN_MIN]), min(s_nb, var[DOMAIN_MAX]) + 1):
                 nq = parameters[3 + (q - 1) * s_nb + (v - 1)]
                 if nq != 0 and bwd[i + 1, nq]:
                     bwd[i, q] = 1
@@ -176,20 +183,20 @@ def compute_domains_regular(domains: NDArray, parameters: NDArray) -> int:
     # prune each variable's bounds to the supported symbols
     for i in range(length):
         var = domains[i]
-        new_min = var[MIN]
-        while new_min <= var[MAX] and not _supported(domains, parameters, fwd, bwd, i, new_min, q_nb, s_nb):
+        new_min = var[DOMAIN_MIN]
+        while new_min <= var[DOMAIN_MAX] and not _supported(domains, parameters, fwd, bwd, i, new_min, q_nb, s_nb):
             new_min += 1
-        new_max = var[MAX]
+        new_max = var[DOMAIN_MAX]
         while new_max >= new_min and not _supported(domains, parameters, fwd, bwd, i, new_max, q_nb, s_nb):
             new_max -= 1
         if new_min > new_max:
             return PROP_INCONSISTENCY
-        if new_min != var[MIN] or new_max != var[MAX]:
-            var[MIN] = new_min
-            var[MAX] = new_max
+        if new_min != var[DOMAIN_MIN] or new_max != var[DOMAIN_MAX]:
+            var[DOMAIN_MIN] = new_min
+            var[DOMAIN_MAX] = new_max
     ground_nb = 0
     for i in range(length):
-        if domains[i, MIN] == domains[i, MAX]:
+        if domains[i, DOMAIN_MIN] == domains[i, DOMAIN_MAX]:
             ground_nb += 1
     if ground_nb == length:
         return PROP_ENTAILMENT  # a single accepted word remains

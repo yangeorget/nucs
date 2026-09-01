@@ -20,11 +20,11 @@ from nucs.constants import (
     CHOICE_POINT_VALUE,
     CHOICE_POINT_VARIABLE,
     DECISION_EQ,
-    MAX,
-    MIN,
-    OBJ_BOUND,
-    OBJ_VALUE,
-    OBJ_VARIABLE,
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    OBJECTIVE_BOUND,
+    OBJECTIVE_VALUE,
+    OBJECTIVE_VARIABLE,
     OPTIM_PRUNE,
     OPTIM_RESET,
     STATS_LBL_PROPAGATOR_FILTER_NB,
@@ -110,7 +110,7 @@ class TestBacktrackSolver:
         solver = BacktrackSolver(problem)
         # each improving solution costs the consumer 20 ms, so the budget runs out well before 500
         best = None
-        for best in solver.optimize(0, MAX, OPTIM_RESET, timeout=0.10):
+        for best in solver.optimize(0, DOMAIN_MAX, OPTIM_RESET, timeout=0.10):
             time.sleep(0.02)
         assert solver.timed_out
         assert best is not None
@@ -178,10 +178,10 @@ class TestBacktrackSolver:
         assert solver.domains[1].tolist() == [0, 0]
         # each choice point parked the refutation of its own decision: raise that variable's min to 1
         assert solver.choice_point_stk[0, CHOICE_POINT_VARIABLE] == 0
-        assert solver.choice_point_stk[0, CHOICE_POINT_BOUND] == MIN
+        assert solver.choice_point_stk[0, CHOICE_POINT_BOUND] == DOMAIN_MIN
         assert solver.choice_point_stk[0, CHOICE_POINT_VALUE] == 1
         assert solver.choice_point_stk[1, CHOICE_POINT_VARIABLE] == 1
-        assert solver.choice_point_stk[1, CHOICE_POINT_BOUND] == MIN
+        assert solver.choice_point_stk[1, CHOICE_POINT_BOUND] == DOMAIN_MIN
         assert solver.choice_point_stk[1, CHOICE_POINT_VALUE] == 1
         assert backtrack(
             solver.statistics,
@@ -275,9 +275,9 @@ class TestBacktrackSolver:
             DECISION_EQ,
             1,
         )
-        solver.objective[OBJ_VARIABLE] = 1
-        solver.objective[OBJ_BOUND] = MAX
-        solver.objective[OBJ_VALUE] = 1
+        solver.objective[OBJECTIVE_VARIABLE] = 1
+        solver.objective[OBJECTIVE_BOUND] = DOMAIN_MAX
+        solver.objective[OBJECTIVE_VALUE] = 1
         assert self._backtrack(solver)
         assert solver.domains.tolist() == [[0, 0], [0, 0]]  # both refuted down to their min
         # the reserve is an upper bound, not a tight one: a tightening moving one bound writes less than
@@ -388,7 +388,7 @@ class TestBacktrackSolver:
             ALG_RELATION, [0, 1], [-5, 25, -4, 16, -3, 9, -2, 4, -1, 1, 0, 0, 1, 1, 2, 4, 3, 9, 4, 16, 5, 25]
         )
         solver = BacktrackSolver(problem)
-        solution = solver.find_best(1, bound=MIN)
+        solution = solver.find_best(1, bound=DOMAIN_MIN)
         assert solution is not None
         assert solution.tolist() == [0, 0]
         statistics = solver.get_statistics_as_dictionary()
@@ -398,7 +398,7 @@ class TestBacktrackSolver:
         problem = Problem([(2, 5), (2, 5), (0, 10)])
         problem.add_propagator(ALG_LINEAR_LEQ_C, [0, 1, 2], [1, 1, -1, 0])
         solver = BacktrackSolver(problem)
-        solution = solver.find_best(2, bound=MIN)
+        solution = solver.find_best(2, bound=DOMAIN_MIN)
         assert solution is not None
         assert solution.tolist() == [2, 2, 4]
         statistics = solver.get_statistics_as_dictionary()
@@ -420,7 +420,7 @@ class TestBacktrackSolver:
     def test_maximize(self, mode: str, dom_heuristic: int, solution_nb: int) -> None:
         problem = Problem([(1, 5)])
         solver = BacktrackSolver(problem, dom_heuristic=dom_heuristic)
-        solution = solver.find_best(0, bound=MAX, mode=mode)
+        solution = solver.find_best(0, bound=DOMAIN_MAX, mode=mode)
         assert solution is not None
         assert solution.tolist() == [5]
         statistics = solver.get_statistics_as_dictionary()
@@ -436,7 +436,7 @@ class TestBacktrackSolver:
             DOM_HEURISTIC_SPLIT_HIGH,
         ],
     )
-    @pytest.mark.parametrize("bound", [MIN, MAX])
+    @pytest.mark.parametrize("bound", [DOMAIN_MIN, DOMAIN_MAX])
     def test_prune_and_reset_yield_the_same_optimization_sequence(self, dom_heuristic: int, bound: int) -> None:
         """OPTIM_PRUNE resumes the search where it was instead of restarting, but the improving solutions
         it reports must be the ones OPTIM_RESET reports -- pruning is an optimization, not a semantics.
@@ -466,4 +466,4 @@ class TestBacktrackSolver:
     def test_prune_terminates_on_a_three_way_split(self) -> None:
         """The minimal reproduction of the hang above, pinned to its exact expected output."""
         solver = BacktrackSolver(Problem([(1, 5)]), dom_heuristic=DOM_HEURISTIC_MID_VALUE, log_level="ERROR")
-        assert [solution.tolist() for solution in solver.optimize(0, MIN, OPTIM_PRUNE)] == [[3], [1]]
+        assert [solution.tolist() for solution in solver.optimize(0, DOMAIN_MIN, OPTIM_PRUNE)] == [[3], [1]]

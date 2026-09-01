@@ -17,7 +17,7 @@ from typing import Any
 import numpy as np
 import pytest
 
-from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.eq_c_imp_propagator import compute_domains_eq_c_imp
 from nucs.propagators.eq_imp_propagator import compute_domains_eq_imp
 from nucs.propagators.leq_c_imp_propagator import compute_domains_leq_c_imp
@@ -75,7 +75,7 @@ class TestImp(PropagatorTest):
                 assert status in (PROP_CONSISTENCY, PROP_ENTAILMENT)
                 for i in range(n_ops + 1):
                     vals = [t[i] for t in feasible]
-                    assert domains[i, MIN] == min(vals) and domains[i, MAX] == max(vals), (
+                    assert domains[i, DOMAIN_MIN] == min(vals) and domains[i, DOMAIN_MAX] == max(vals), (
                         f"var {i} for b={b_dom} ops={op_dom} p={params}: got {list(domains[i])} exp [{min(vals)},{max(vals)}]"
                     )
 

@@ -16,7 +16,7 @@ import random
 import numpy as np
 import pytest
 
-from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.problems.problem import Problem
 from nucs.propagators.cumulative_propagator import (
     compute_domains_cumulative,
@@ -115,10 +115,10 @@ class TestCumulative(PropagatorTest):
                 bc_min = min(s[i] for s in feasible)
                 bc_max = max(s[i] for s in feasible)
                 # soundness: the filtered interval must keep every feasible value
-                assert domains[i, MIN] <= bc_min, (
+                assert domains[i, DOMAIN_MIN] <= bc_min, (
                     f"over-pruned MIN of {i}: {bounds} p={durations} h={heights} c={capacity}"
                 )
-                assert domains[i, MAX] >= bc_max, (
+                assert domains[i, DOMAIN_MAX] >= bc_max, (
                     f"over-pruned MAX of {i}: {bounds} p={durations} h={heights} c={capacity}"
                 )
 

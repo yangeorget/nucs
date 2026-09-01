@@ -14,7 +14,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_mod_c_eq(n: int, parameters: NDArray) -> int:
@@ -137,21 +144,21 @@ def compute_domains_mod_c_eq(domains: NDArray, parameters: NDArray) -> int:
     z = domains[1]
     m = abs(parameters[0])  # the remainder is the same for m and -m
     if m == 1:  # x mod 1 is always 0
-        if z[MIN] > 0 or z[MAX] < 0:
+        if z[DOMAIN_MIN] > 0 or z[DOMAIN_MAX] < 0:
             return PROP_INCONSISTENCY
-        z[MIN] = 0
-        z[MAX] = 0
-        return PROP_ENTAILMENT if x[MIN] == x[MAX] else PROP_CONSISTENCY
-    xl = x[MIN]
-    xu = x[MAX]
+        z[DOMAIN_MIN] = 0
+        z[DOMAIN_MAX] = 0
+        return PROP_ENTAILMENT if x[DOMAIN_MIN] == x[DOMAIN_MAX] else PROP_CONSISTENCY
+    xl = x[DOMAIN_MIN]
+    xu = x[DOMAIN_MAX]
     # tighten z to the achievable remainders of (x mod m) over [xl, xu] that fall inside z, handling the
     # non-negative and negative parts of x separately (the remainder mirrors the sign of x)
     found = False
     z_lo = 0
     z_hi = 0
     if xu >= 0:  # non-negative part [max(xl, 0), xu], remainder in [0, m - 1]
-        lo = max(z[MIN], 0)
-        hi = min(z[MAX], m - 1)
+        lo = max(z[DOMAIN_MIN], 0)
+        hi = min(z[DOMAIN_MAX], m - 1)
         if lo <= hi:
             ok, rmin, rmax = _res_minmax(max(0, xl), xu, lo, hi, m)
             if ok:
@@ -159,8 +166,8 @@ def compute_domains_mod_c_eq(domains: NDArray, parameters: NDArray) -> int:
                 z_hi = rmax
                 found = True
     if xl < 0:  # negative part: z = -(x' mod m) for x' = -x in [-min(xu, -1), -xl]
-        lo = max(-z[MAX], 0)
-        hi = min(-z[MIN], m - 1)
+        lo = max(-z[DOMAIN_MAX], 0)
+        hi = min(-z[DOMAIN_MIN], m - 1)
         if lo <= hi:
             ok, rmin, rmax = _res_minmax(-(min(-1, xu)), -xl, lo, hi, m)
             if ok:
@@ -175,15 +182,15 @@ def compute_domains_mod_c_eq(domains: NDArray, parameters: NDArray) -> int:
                     found = True
     if not found:
         return PROP_INCONSISTENCY
-    z[MIN] = z_lo
-    z[MAX] = z_hi
+    z[DOMAIN_MIN] = z_lo
+    z[DOMAIN_MAX] = z_hi
     # prune x to the values whose remainder lands in the tightened z, again by part
     x_min = 0
     x_max = 0
     feasible = False
     if xl < 0:  # negative part
-        sl = max(-z[MAX], 0)
-        su = min(-z[MIN], m - 1)
+        sl = max(-z[DOMAIN_MAX], 0)
+        su = min(-z[DOMAIN_MIN], m - 1)
         if sl <= su:
             ap = -(min(-1, xu))
             bp = -xl
@@ -194,8 +201,8 @@ def compute_domains_mod_c_eq(domains: NDArray, parameters: NDArray) -> int:
                 x_max = -lo_xp
                 feasible = True
     if xu >= 0:  # non-negative part
-        rl = max(z[MIN], 0)
-        ru = min(z[MAX], m - 1)
+        rl = max(z[DOMAIN_MIN], 0)
+        ru = min(z[DOMAIN_MAX], m - 1)
         if rl <= ru:
             a0 = max(0, xl)
             lo_x = _first_ge(a0, rl, ru, m)
@@ -210,6 +217,6 @@ def compute_domains_mod_c_eq(domains: NDArray, parameters: NDArray) -> int:
                     feasible = True
     if not feasible:
         return PROP_INCONSISTENCY
-    x[MIN] = max(x[MIN], x_min)
-    x[MAX] = min(x[MAX], x_max)
-    return PROP_ENTAILMENT if x[MIN] == x[MAX] else PROP_CONSISTENCY
+    x[DOMAIN_MIN] = max(x[DOMAIN_MIN], x_min)
+    x[DOMAIN_MAX] = min(x[DOMAIN_MAX], x_max)
+    return PROP_ENTAILMENT if x[DOMAIN_MIN] == x[DOMAIN_MAX] else PROP_CONSISTENCY

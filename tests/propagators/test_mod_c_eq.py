@@ -14,7 +14,7 @@
 import numpy as np
 import pytest
 
-from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.mod_c_eq_propagator import compute_domains_mod_c_eq
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -72,5 +72,9 @@ class TestModCEq(PropagatorTest):
                         assert status in (PROP_CONSISTENCY, PROP_ENTAILMENT)
                         xs = [p[0] for p in feasible]
                         zs = [p[1] for p in feasible]
-                        assert domains[0, MIN] == min(xs) and domains[0, MAX] == max(xs), f"x for {xl}..{xu} m={m}"
-                        assert domains[1, MIN] == min(zs) and domains[1, MAX] == max(zs), f"z for {xl}..{xu} m={m}"
+                        assert domains[0, DOMAIN_MIN] == min(xs) and domains[0, DOMAIN_MAX] == max(xs), (
+                            f"x for {xl}..{xu} m={m}"
+                        )
+                        assert domains[1, DOMAIN_MIN] == min(zs) and domains[1, DOMAIN_MAX] == max(zs), (
+                            f"z for {xl}..{xu} m={m}"
+                        )

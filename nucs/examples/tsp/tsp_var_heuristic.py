@@ -15,7 +15,7 @@ import sys
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 from nucs.heuristics.max_regret_var_heuristic import regret
 
 
@@ -35,7 +35,7 @@ def tsp_var_heuristic(decision_variables: NDArray, domains: NDArray, params: NDA
     best_variable = -1
     for variable in decision_variables:
         domain = domains[variable]
-        if 0 < domain[MAX] - domain[MIN]:
+        if 0 < domain[DOMAIN_MAX] - domain[DOMAIN_MIN]:
             score = compute_score(domain, variable, params)
             if best_score < score:
                 best_variable = variable
@@ -48,5 +48,5 @@ def compute_score(domain: NDArray, variable: int, params: NDArray) -> int:
     """
     Minimize [min(12, size(X)), -regret(X)] for lexicographic order.
     """
-    size = min(12, domain[MAX] - domain[MIN] + 1)
+    size = min(12, domain[DOMAIN_MAX] - domain[DOMAIN_MIN] + 1)
     return -size * 1024 + regret(domain, params[variable])

@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_if_then_else(n: int, parameters: NDArray) -> int:
@@ -72,49 +79,49 @@ def compute_domains_if_then_else(domains: NDArray, parameters: NDArray) -> int:
     y = domains[2 * b]
     # skip the leading branches whose condition is already false: they can never be the first true one
     lo = 0
-    while lo < b and domains[lo, MAX] == 0:
+    while lo < b and domains[lo, DOMAIN_MAX] == 0:
         lo += 1
     if lo == b:
         # no condition can hold -> no branch is taken -> y is unconstrained and stays so
         return PROP_ENTAILMENT
     x_lo = domains[b + lo]
-    if domains[lo, MIN] == 1:
+    if domains[lo, DOMAIN_MIN] == 1:
         # the first still-possible condition is true -> branch lo is taken -> y == x[lo]
-        new_min = max(x_lo[MIN], y[MIN])
-        new_max = min(x_lo[MAX], y[MAX])
+        new_min = max(x_lo[DOMAIN_MIN], y[DOMAIN_MIN])
+        new_max = min(x_lo[DOMAIN_MAX], y[DOMAIN_MAX])
         if new_min > new_max:
             return PROP_INCONSISTENCY
-        y[MIN] = new_min
-        y[MAX] = new_max
-        x_lo[MIN] = new_min
-        x_lo[MAX] = new_max
+        y[DOMAIN_MIN] = new_min
+        y[DOMAIN_MAX] = new_max
+        x_lo[DOMAIN_MIN] = new_min
+        x_lo[DOMAIN_MAX] = new_max
         # branch lo is fixed as the taken one; the constraint reduces to the equality y == x[lo],
         # entailed once both are ground (then it can no longer be violated)
         return PROP_ENTAILMENT if new_min == new_max else PROP_CONSISTENCY
     # the first still-possible condition c[lo] is unfixed: the constraint entails c[lo] -> (y == x[lo])
-    if y[MIN] == y[MAX] and x_lo[MIN] == x_lo[MAX] and y[MIN] != x_lo[MIN]:
+    if y[DOMAIN_MIN] == y[DOMAIN_MAX] and x_lo[DOMAIN_MIN] == x_lo[DOMAIN_MAX] and y[DOMAIN_MIN] != x_lo[DOMAIN_MIN]:
         # y and x[lo] are ground and disagree, so branch lo cannot be the taken one -> c[lo] = 0
-        domains[lo, MAX] = 0
+        domains[lo, DOMAIN_MAX] = 0
         return PROP_CONSISTENCY
     # value deduction: if some later condition is already true, one branch in [lo, hi] is definitely
     # taken; if every candidate value x[lo..hi] is ground to the same v, then y = v whichever is taken
     hi = lo
-    while hi < b and domains[hi, MIN] == 0:
+    while hi < b and domains[hi, DOMAIN_MIN] == 0:
         hi += 1
     if hi < b:
-        v = x_lo[MIN]
-        all_same = x_lo[MIN] == x_lo[MAX]
+        v = x_lo[DOMAIN_MIN]
+        all_same = x_lo[DOMAIN_MIN] == x_lo[DOMAIN_MAX]
         k = lo + 1
         while all_same and k <= hi:
             x_k = domains[b + k]
-            if x_k[MIN] != x_k[MAX] or x_k[MIN] != v:
+            if x_k[DOMAIN_MIN] != x_k[DOMAIN_MAX] or x_k[DOMAIN_MIN] != v:
                 all_same = False
             k += 1
         if all_same:
-            if y[MIN] > v or y[MAX] < v:
+            if y[DOMAIN_MIN] > v or y[DOMAIN_MAX] < v:
                 return PROP_INCONSISTENCY
-            if y[MIN] != v or y[MAX] != v:
-                y[MIN] = v
-                y[MAX] = v
+            if y[DOMAIN_MIN] != v or y[DOMAIN_MAX] != v:
+                y[DOMAIN_MIN] = v
+                y[DOMAIN_MAX] = v
                 return PROP_CONSISTENCY
     return PROP_CONSISTENCY

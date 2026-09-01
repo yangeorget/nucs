@@ -17,7 +17,7 @@ import random
 import numpy as np
 import pytest
 
-from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 from nucs.propagators.cumulative_propagator import compute_domains_cumulative_var
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -99,4 +99,10 @@ class TestCumulativeVar(PropagatorTest):
                 for var in range(2 * n):
                     lo = min(sol[var] for sol in solutions)
                     hi = max(sol[var] for sol in solutions)
-                    assert arr[var][MIN] <= lo and arr[var][MAX] >= hi, (start_doms, dur_doms, heights, capacity, var)
+                    assert arr[var][DOMAIN_MIN] <= lo and arr[var][DOMAIN_MAX] >= hi, (
+                        start_doms,
+                        dur_doms,
+                        heights,
+                        capacity,
+                        var,
+                    )

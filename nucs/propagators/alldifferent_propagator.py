@@ -16,7 +16,14 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 SORT_MAX_N = 64  # above this arity, np.argsort amortizes its fixed cost and beats the insertion sort
 
@@ -114,8 +121,8 @@ def update_bounds(
     min_sorted_vars: NDArray,
     max_sorted_vars: NDArray,
 ) -> int:
-    min_value = domains[min_sorted_vars[0], MIN]
-    max_value = domains[max_sorted_vars[0], MAX] + 1
+    min_value = domains[min_sorted_vars[0], DOMAIN_MIN]
+    max_value = domains[max_sorted_vars[0], DOMAIN_MAX] + 1
     bounds[0] = last = min_value - 2
     i = j = nb = 0
     while True:
@@ -123,19 +130,19 @@ def update_bounds(
             if min_value != last:
                 nb += 1
                 bounds[nb] = last = min_value
-            ranks[min_sorted_vars[i], MIN] = nb
+            ranks[min_sorted_vars[i], DOMAIN_MIN] = nb
             i += 1
             if i < n:
-                min_value = domains[min_sorted_vars[i], MIN]
+                min_value = domains[min_sorted_vars[i], DOMAIN_MIN]
         else:
             if max_value != last:
                 nb += 1
                 bounds[nb] = last = max_value
-            ranks[max_sorted_vars[j], MAX] = nb
+            ranks[max_sorted_vars[j], DOMAIN_MAX] = nb
             j += 1
             if j == n:
                 break
-            max_value = domains[max_sorted_vars[j], MAX] + 1
+            max_value = domains[max_sorted_vars[j], DOMAIN_MAX] + 1
     bounds[nb + 1] = bounds[nb] + 2
     return nb
 
@@ -157,8 +164,8 @@ def filter_lower(
         t[i] = h[i] = i1
         d[i] = bounds[i] - bounds[i1]
     for i in range(n):
-        x = ranks[max_sorted_vars[i], MIN]
-        y = ranks[max_sorted_vars[i], MAX]
+        x = ranks[max_sorted_vars[i], DOMAIN_MIN]
+        y = ranks[max_sorted_vars[i], DOMAIN_MAX]
         z = path_max(t, x + 1)
         j = t[z]
         d[z] -= 1
@@ -172,7 +179,7 @@ def filter_lower(
         path_set(t, x + 1, z, z)  # path compression
         if h[x] > x:
             w = path_max(h, h[x])
-            domains[max_sorted_vars[i], MIN] = bounds[w]
+            domains[max_sorted_vars[i], DOMAIN_MIN] = bounds[w]
             path_set(h, x, w, w)  # path compression
         if delta == 0:
             j1 = j - 1
@@ -198,8 +205,8 @@ def filter_upper(
         t[i] = h[i] = i1
         d[i] = bounds[i1] - bounds[i]
     for i in range(n - 1, -1, -1):
-        x = ranks[min_sorted_vars[i], MAX]
-        y = ranks[min_sorted_vars[i], MIN]
+        x = ranks[min_sorted_vars[i], DOMAIN_MAX]
+        y = ranks[min_sorted_vars[i], DOMAIN_MIN]
         z = path_min(t, x - 1)
         j = t[z]
         d[z] -= 1
@@ -213,7 +220,7 @@ def filter_upper(
         path_set(t, x - 1, z, z)  # path compression
         if h[x] < x:
             w = path_min(h, h[x])
-            domains[min_sorted_vars[i], MAX] = bounds[w] - 1
+            domains[min_sorted_vars[i], DOMAIN_MAX] = bounds[w] - 1
             path_set(h, x, w, w)  # path compression
         if delta == 0:
             j1 = j + 1
@@ -282,11 +289,11 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     min_sorted_vars = empty_buffer[4 * bounds_nb : 4 * bounds_nb + n]
     max_sorted_vars = empty_buffer[4 * bounds_nb + n : 4 * bounds_nb + 2 * n]
     ranks = empty_buffer[4 * bounds_nb + 2 * n :].reshape(n, 2)
-    argsort_into(min_sorted_vars, domains, MIN)
-    argsort_into(max_sorted_vars, domains, MAX)
+    argsort_into(min_sorted_vars, domains, DOMAIN_MIN)
+    argsort_into(max_sorted_vars, domains, DOMAIN_MAX)
     ground = True
     for i in range(n):
-        if domains[i, MIN] != domains[i, MAX]:
+        if domains[i, DOMAIN_MIN] != domains[i, DOMAIN_MAX]:
             ground = False
             break
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars)

@@ -14,9 +14,9 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
     EVENT_MASK_MAX,
-    MAX,
-    MIN,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
@@ -69,8 +69,8 @@ def compute_domains_sum_geq_c(domains: NDArray, parameters: NDArray) -> int:
     domain_sum_min = domain_sum_max = -int(parameters[0])
     unbound_count = 0
     for i in range(n):
-        x_min = domains[i, MIN]
-        x_max = domains[i, MAX]
+        x_min = domains[i, DOMAIN_MIN]
+        x_max = domains[i, DOMAIN_MAX]
         domain_sum_max += x_min
         domain_sum_min += x_max
         if x_min < x_max:
@@ -80,13 +80,13 @@ def compute_domains_sum_geq_c(domains: NDArray, parameters: NDArray) -> int:
     if unbound_count == 0:
         return PROP_INCONSISTENCY
     for i in range(n):
-        x_min = domains[i, MIN]
-        x_max = domains[i, MAX]
+        x_min = domains[i, DOMAIN_MIN]
+        x_max = domains[i, DOMAIN_MAX]
         if x_min == x_max:
             continue
         new_min = x_max - domain_sum_min
         if new_min > x_min:
-            domains[i, MIN] = new_min
-        if domains[i, MIN] > domains[i, MAX]:
+            domains[i, DOMAIN_MIN] = new_min
+        if domains[i, DOMAIN_MIN] > domains[i, DOMAIN_MAX]:
             return PROP_INCONSISTENCY
     return PROP_ENTAILMENT if unbound_count == 1 else PROP_CONSISTENCY

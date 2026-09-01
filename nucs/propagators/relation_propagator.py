@@ -14,7 +14,14 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_relation(n: int, parameters: NDArray) -> int:
@@ -76,27 +83,27 @@ def compute_domains_relation(domains: NDArray, parameters: NDArray) -> int:
         valid = True
         for col in range(n):
             value = parameters[offset + col]
-            if value < domains[col, MIN] or value > domains[col, MAX]:
+            if value < domains[col, DOMAIN_MIN] or value > domains[col, DOMAIN_MAX]:
                 valid = False
                 break
         if valid:
             if valid_nb == 0:
                 for col in range(n):
                     value = parameters[offset + col]
-                    bounds[col, MIN] = value
-                    bounds[col, MAX] = value
+                    bounds[col, DOMAIN_MIN] = value
+                    bounds[col, DOMAIN_MAX] = value
             else:
                 for col in range(n):
                     value = parameters[offset + col]
-                    bounds[col, MIN] = min(bounds[col, MIN], value)
-                    bounds[col, MAX] = max(bounds[col, MAX], value)
+                    bounds[col, DOMAIN_MIN] = min(bounds[col, DOMAIN_MIN], value)
+                    bounds[col, DOMAIN_MAX] = max(bounds[col, DOMAIN_MAX], value)
             valid_nb += 1
         offset += n
     if valid_nb == 0:
         return PROP_INCONSISTENCY
     for col in range(n):
-        domains[col, MIN] = bounds[col, MIN]
-        domains[col, MAX] = bounds[col, MAX]
+        domains[col, DOMAIN_MIN] = bounds[col, DOMAIN_MIN]
+        domains[col, DOMAIN_MAX] = bounds[col, DOMAIN_MAX]
     if valid_nb == 1:
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY

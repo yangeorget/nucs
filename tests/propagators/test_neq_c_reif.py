@@ -14,7 +14,7 @@
 import numpy as np
 import pytest
 
-from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.neq_c_reif_propagator import compute_domains_neq_c_reif
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -40,8 +40,12 @@ class TestNeqCReif(PropagatorTest):
                     assert status in (PROP_CONSISTENCY, PROP_ENTAILMENT)
                     bs = [t[0] for t in feasible]
                     xs = [t[1] for t in feasible]
-                    assert domains[0, MIN] == min(bs) and domains[0, MAX] == max(bs), f"b for {xl}..{xu} c={c}"
-                    assert domains[1, MIN] == min(xs) and domains[1, MAX] == max(xs), f"x for {xl}..{xu} c={c}"
+                    assert domains[0, DOMAIN_MIN] == min(bs) and domains[0, DOMAIN_MAX] == max(bs), (
+                        f"b for {xl}..{xu} c={c}"
+                    )
+                    assert domains[1, DOMAIN_MIN] == min(xs) and domains[1, DOMAIN_MAX] == max(xs), (
+                        f"x for {xl}..{xu} c={c}"
+                    )
 
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",

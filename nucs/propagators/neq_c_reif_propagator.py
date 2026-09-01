@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_neq_c_reif(n: int, parameters: NDArray) -> int:
@@ -66,24 +73,24 @@ def compute_domains_neq_c_reif(domains: NDArray, parameters: NDArray) -> int:
     b = domains[0]
     x = domains[1]
     c = int(parameters[0])
-    if b[MAX] == 0:  # b is false: x = c
-        if c < x[MIN] or c > x[MAX]:
+    if b[DOMAIN_MAX] == 0:  # b is false: x = c
+        if c < x[DOMAIN_MIN] or c > x[DOMAIN_MAX]:
             return PROP_INCONSISTENCY
         x[:] = c
         return PROP_ENTAILMENT
-    elif b[MIN] == 1:  # b is true: x != c (bounds can only drop c when it sits on a bound)
-        if x[MIN] == c:
-            x[MIN] = c + 1
-            if x[MIN] > x[MAX]:
+    elif b[DOMAIN_MIN] == 1:  # b is true: x != c (bounds can only drop c when it sits on a bound)
+        if x[DOMAIN_MIN] == c:
+            x[DOMAIN_MIN] = c + 1
+            if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
                 return PROP_INCONSISTENCY
-        if x[MAX] == c:
-            x[MAX] = c - 1
-            if x[MIN] > x[MAX]:
+        if x[DOMAIN_MAX] == c:
+            x[DOMAIN_MAX] = c - 1
+            if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
                 return PROP_INCONSISTENCY
-    if x[MIN] > c or x[MAX] < c:  # x != c is entailed -> b = 1
+    if x[DOMAIN_MIN] > c or x[DOMAIN_MAX] < c:  # x != c is entailed -> b = 1
         b[:] = 1
         return PROP_ENTAILMENT
-    elif x[MIN] == c and x[MAX] == c:  # x = c is entailed -> b = 0
+    elif x[DOMAIN_MIN] == c and x[DOMAIN_MAX] == c:  # x = c is entailed -> b = 0
         b[:] = 0
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY

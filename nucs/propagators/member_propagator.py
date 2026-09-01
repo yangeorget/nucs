@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_member(n: int, parameters: NDArray) -> int:
@@ -68,17 +75,17 @@ def compute_domains_member(domains: NDArray, parameters: NDArray) -> int:
     # allowed value that is still in range, lower the upper bound to the largest one. Holes between
     # allowed values cannot be represented and are therefore left in place.
     lo = 0
-    while lo < n and parameters[lo] < x[MIN]:
+    while lo < n and parameters[lo] < x[DOMAIN_MIN]:
         lo += 1
     hi = n - 1
-    while hi >= 0 and parameters[hi] > x[MAX]:
+    while hi >= 0 and parameters[hi] > x[DOMAIN_MAX]:
         hi -= 1
     if lo > hi:
         return PROP_INCONSISTENCY
     new_min = parameters[lo]
     new_max = parameters[hi]
-    x[MIN] = max(x[MIN], new_min)
-    x[MAX] = min(x[MAX], new_max)
+    x[DOMAIN_MIN] = max(x[DOMAIN_MIN], new_min)
+    x[DOMAIN_MAX] = min(x[DOMAIN_MAX], new_max)
     # The allowed values in range are consecutive integers covering the whole interval: the constraint
     # can never be violated again.
     if hi - lo == new_max - new_min:

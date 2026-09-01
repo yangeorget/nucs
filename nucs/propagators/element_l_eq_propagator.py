@@ -15,7 +15,14 @@ import sys
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_element_l_eq(n: int, parameters: NDArray) -> int:
@@ -67,33 +74,33 @@ def compute_domains_element_l_eq(domains: NDArray, parameters: NDArray) -> int:
     i = domains[-2]
     v = domains[-1]
     # i could be updated only once
-    i[MIN] = max(i[MIN], 0)
-    i[MAX] = min(i[MAX], len(l) - 1)
+    i[DOMAIN_MIN] = max(i[DOMAIN_MIN], 0)
+    i[DOMAIN_MAX] = min(i[DOMAIN_MAX], len(l) - 1)
     l_v_min = sys.maxsize
     l_v_max = -sys.maxsize
-    old_v_min = v[MIN]
-    old_v_max = v[MAX]
+    old_v_min = v[DOMAIN_MIN]
+    old_v_max = v[DOMAIN_MAX]
     non_intersecting_idx = -1
-    for idx in range(i[MIN], i[MAX] + 1):
-        if old_v_max < l[idx, MIN] or old_v_min > l[idx, MAX]:  # no intersection
+    for idx in range(i[DOMAIN_MIN], i[DOMAIN_MAX] + 1):
+        if old_v_max < l[idx, DOMAIN_MIN] or old_v_min > l[idx, DOMAIN_MAX]:  # no intersection
             if non_intersecting_idx == -1:
                 non_intersecting_idx = idx
-            if idx == i[MIN]:
-                i[MIN] += 1
+            if idx == i[DOMAIN_MIN]:
+                i[DOMAIN_MIN] += 1
         else:  # intersection
             non_intersecting_idx = -1
-            l_v_min = min(l_v_min, l[idx, MIN])
-            l_v_max = max(l_v_max, l[idx, MAX])
+            l_v_min = min(l_v_min, l[idx, DOMAIN_MIN])
+            l_v_max = max(l_v_max, l[idx, DOMAIN_MAX])
     if non_intersecting_idx >= 0:
-        i[MAX] = non_intersecting_idx - 1
-        if i[MAX] < i[MIN]:
+        i[DOMAIN_MAX] = non_intersecting_idx - 1
+        if i[DOMAIN_MAX] < i[DOMAIN_MIN]:
             return PROP_INCONSISTENCY
     if l_v_min > old_v_min:
-        v[MIN] = l_v_min
+        v[DOMAIN_MIN] = l_v_min
     if l_v_max < old_v_max:
-        v[MAX] = l_v_max
-    if i[MIN] == i[MAX]:
-        l[i[MIN]] = v
-        if v[MIN] == v[MAX]:
+        v[DOMAIN_MAX] = l_v_max
+    if i[DOMAIN_MIN] == i[DOMAIN_MAX]:
+        l[i[DOMAIN_MIN]] = v
+        if v[DOMAIN_MIN] == v[DOMAIN_MAX]:
             return PROP_ENTAILMENT
     return PROP_CONSISTENCY

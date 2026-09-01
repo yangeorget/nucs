@@ -16,7 +16,14 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_cumulative(n: int, parameters: NDArray) -> int:
@@ -338,8 +345,8 @@ def compute_domains_cumulative(domains: NDArray, parameters: NDArray) -> int:
     p = np.empty(n, dtype=np.int64)
     h = np.empty(n, dtype=np.int64)
     for i in range(n):
-        est[i] = domains[i, MIN]
-        lst[i] = domains[i, MAX]
+        est[i] = domains[i, DOMAIN_MIN]
+        lst[i] = domains[i, DOMAIN_MAX]
         p[i] = parameters[i]
         h[i] = parameters[n + i]
         if h[i] > capacity and p[i] > 0:
@@ -348,11 +355,11 @@ def compute_domains_cumulative(domains: NDArray, parameters: NDArray) -> int:
         return PROP_INCONSISTENCY
     ground_nb = 0
     for i in range(n):
-        domains[i, MIN] = max(domains[i, MIN], est[i])
-        domains[i, MAX] = min(domains[i, MAX], lst[i])
-        if domains[i, MIN] > domains[i, MAX]:
+        domains[i, DOMAIN_MIN] = max(domains[i, DOMAIN_MIN], est[i])
+        domains[i, DOMAIN_MAX] = min(domains[i, DOMAIN_MAX], lst[i])
+        if domains[i, DOMAIN_MIN] > domains[i, DOMAIN_MAX]:
             return PROP_INCONSISTENCY
-        if domains[i, MIN] == domains[i, MAX]:
+        if domains[i, DOMAIN_MIN] == domains[i, DOMAIN_MAX]:
             ground_nb += 1
     # When every start time is fixed and the profile fits, the constraint can no longer be violated.
     if ground_nb == n:
@@ -444,22 +451,22 @@ def compute_domains_cumulative_var(domains: NDArray, parameters: NDArray) -> int
     p = np.empty(n, dtype=np.int64)
     h = np.empty(n, dtype=np.int64)
     for i in range(n):
-        est[i] = domains[i, MIN]
-        lst[i] = domains[i, MAX]
-        p[i] = domains[n + i, MIN]  # the minimum duration: a sound lower bound on the compulsory part
+        est[i] = domains[i, DOMAIN_MIN]
+        lst[i] = domains[i, DOMAIN_MAX]
+        p[i] = domains[n + i, DOMAIN_MIN]  # the minimum duration: a sound lower bound on the compulsory part
         h[i] = parameters[i]
         if h[i] > capacity and p[i] > 0:
             return PROP_INCONSISTENCY  # a single task already exceeds the capacity
     if not _filter_starts(est, lst, p, h, n, capacity):
         return PROP_INCONSISTENCY
     for i in range(n):
-        domains[i, MIN] = max(domains[i, MIN], est[i])
-        domains[i, MAX] = min(domains[i, MAX], lst[i])
-        if domains[i, MIN] > domains[i, MAX]:
+        domains[i, DOMAIN_MIN] = max(domains[i, DOMAIN_MIN], est[i])
+        domains[i, DOMAIN_MAX] = min(domains[i, DOMAIN_MAX], lst[i])
+        if domains[i, DOMAIN_MIN] > domains[i, DOMAIN_MAX]:
             return PROP_INCONSISTENCY
     ground_nb = 0
     for i in range(2 * n):
-        if domains[i, MIN] == domains[i, MAX]:
+        if domains[i, DOMAIN_MIN] == domains[i, DOMAIN_MAX]:
             ground_nb += 1
     # entail only when every start and every duration is fixed (a free duration can still change the profile)
     if ground_nb == 2 * n:

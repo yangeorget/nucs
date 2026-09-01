@@ -14,7 +14,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_MIN_MAX, PROP_CONSISTENCY, PROP_INCONSISTENCY
 
 
 def get_complexity_nvalue(n: int, parameters: NDArray) -> int:
@@ -69,49 +69,49 @@ def compute_domains_nvalue(domains: NDArray, parameters: NDArray) -> int:
     x = domains[:n]
     y = domains[n]
     if n == 0:  # no variables: zero distinct values
-        if y[MIN] > 0 or y[MAX] < 0:
+        if y[DOMAIN_MIN] > 0 or y[DOMAIN_MAX] < 0:
             return PROP_INCONSISTENCY
-        y[MIN] = 0
-        y[MAX] = 0
+        y[DOMAIN_MIN] = 0
+        y[DOMAIN_MAX] = 0
         return PROP_CONSISTENCY
     # lower bound: the maximum number of pairwise-disjoint domains must take distinct values
     # (interval-scheduling greedy over domains sorted by their upper bound)
-    order_max = np.argsort(x[:, MAX])
+    order_max = np.argsort(x[:, DOMAIN_MAX])
     low = 0
     last_end = 0
     for k in range(n):
         i = order_max[k]
-        if low == 0 or x[i, MIN] > last_end:
+        if low == 0 or x[i, DOMAIN_MIN] > last_end:
             low += 1
-            last_end = x[i, MAX]
+            last_end = x[i, DOMAIN_MAX]
     # upper bound: at most min(n, number of integers in the union of the domains) distinct values exist
-    order_min = np.argsort(x[:, MIN])
+    order_min = np.argsort(x[:, DOMAIN_MIN])
     union = 0
-    cur_lo = x[order_min[0], MIN]
-    cur_hi = x[order_min[0], MAX]
+    cur_lo = x[order_min[0], DOMAIN_MIN]
+    cur_hi = x[order_min[0], DOMAIN_MAX]
     for k in range(1, n):
         i = order_min[k]
-        if x[i, MIN] > cur_hi + 1:  # gap -> close the current merged block
+        if x[i, DOMAIN_MIN] > cur_hi + 1:  # gap -> close the current merged block
             union += cur_hi - cur_lo + 1
-            cur_lo = x[i, MIN]
-            cur_hi = x[i, MAX]
-        elif x[i, MAX] > cur_hi:
-            cur_hi = x[i, MAX]
+            cur_lo = x[i, DOMAIN_MIN]
+            cur_hi = x[i, DOMAIN_MAX]
+        elif x[i, DOMAIN_MAX] > cur_hi:
+            cur_hi = x[i, DOMAIN_MAX]
     union += cur_hi - cur_lo + 1
     up = min(union, n)
-    y[MIN] = max(y[MIN], low)
-    y[MAX] = min(y[MAX], up)
-    if y[MIN] > y[MAX]:
+    y[DOMAIN_MIN] = max(y[DOMAIN_MIN], low)
+    y[DOMAIN_MAX] = min(y[DOMAIN_MAX], up)
+    if y[DOMAIN_MIN] > y[DOMAIN_MAX]:
         return PROP_INCONSISTENCY
-    if y[MAX] == 1:  # a single distinct value: every x_i must be equal
-        lo = x[0, MIN]
-        hi = x[0, MAX]
+    if y[DOMAIN_MAX] == 1:  # a single distinct value: every x_i must be equal
+        lo = x[0, DOMAIN_MIN]
+        hi = x[0, DOMAIN_MAX]
         for i in range(1, n):
-            lo = max(lo, x[i, MIN])
-            hi = min(hi, x[i, MAX])
+            lo = max(lo, x[i, DOMAIN_MIN])
+            hi = min(hi, x[i, DOMAIN_MAX])
         if lo > hi:
             return PROP_INCONSISTENCY
         for i in range(n):
-            x[i, MIN] = lo
-            x[i, MAX] = hi
+            x[i, DOMAIN_MIN] = lo
+            x[i, DOMAIN_MAX] = hi
     return PROP_CONSISTENCY

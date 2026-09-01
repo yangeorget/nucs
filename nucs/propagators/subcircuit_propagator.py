@@ -14,7 +14,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_MIN_MAX, PROP_CONSISTENCY, PROP_INCONSISTENCY
 
 START = 0
 END = 1
@@ -76,20 +76,20 @@ def compute_domains_subcircuit(domains: NDArray, parameters: NDArray) -> int:
     n = len(domains)
     offset = int(parameters[0]) if len(parameters) > 0 else 0
     for i in range(n):
-        domains[i, MIN] = max(domains[i, MIN], offset)
-        domains[i, MAX] = min(domains[i, MAX], offset + n - 1)
-        if domains[i, MIN] > domains[i, MAX]:
+        domains[i, DOMAIN_MIN] = max(domains[i, DOMAIN_MIN], offset)
+        domains[i, DOMAIN_MAX] = min(domains[i, DOMAIN_MAX], offset + n - 1)
+        if domains[i, DOMAIN_MIN] > domains[i, DOMAIN_MAX]:
             return PROP_INCONSISTENCY
     # committed[i] is True when node i is necessarily active (part of the single circuit), i.e. it cannot be
     # an excluded self-loop: either i is no longer in its own domain, or a fixed active arc touches it
     # (its source, and -- because x is a permutation -- its target).
     committed = np.zeros(n, dtype=np.bool_)
     for i in range(n):
-        if domains[i, MIN] > i + offset or domains[i, MAX] < i + offset:
+        if domains[i, DOMAIN_MIN] > i + offset or domains[i, DOMAIN_MAX] < i + offset:
             committed[i] = True
-        if domains[i, MIN] == domains[i, MAX] and domains[i, MIN] != i + offset:
+        if domains[i, DOMAIN_MIN] == domains[i, DOMAIN_MAX] and domains[i, DOMAIN_MIN] != i + offset:
             committed[i] = True
-            committed[domains[i, MIN] - offset] = True
+            committed[domains[i, DOMAIN_MIN] - offset] = True
     total_committed = 0
     for i in range(n):
         if committed[i]:
@@ -105,8 +105,8 @@ def compute_domains_subcircuit(domains: NDArray, parameters: NDArray) -> int:
     while loop:
         loop = False
         for i in range(n):
-            if domains[i, MIN] == domains[i, MAX]:
-                j = domains[i, MIN] - offset
+            if domains[i, DOMAIN_MIN] == domains[i, DOMAIN_MAX]:
+                j = domains[i, DOMAIN_MIN] - offset
                 if i == j:  # excluded self-loop: not part of any chain
                     continue
                 if paths[i, END] == i:
@@ -117,11 +117,11 @@ def compute_domains_subcircuit(domains: NDArray, parameters: NDArray) -> int:
                     length = paths[i, LENGTH] + 1 + paths[j, LENGTH]
                     paths[i, LENGTH] = paths[j, LENGTH] = paths[start, LENGTH] = paths[end, LENGTH] = length
                     if length + 1 < total_committed:  # a committed node remains outside this chain
-                        if domains[end, MIN] == start + offset:
-                            domains[end, MIN] = start + offset + 1
-                        if domains[end, MAX] == start + offset:
-                            domains[end, MAX] = start + offset - 1
-                        if domains[end, MIN] > domains[end, MAX]:
+                        if domains[end, DOMAIN_MIN] == start + offset:
+                            domains[end, DOMAIN_MIN] += 1
+                        if domains[end, DOMAIN_MAX] == start + offset:
+                            domains[end, DOMAIN_MAX] -= 1
+                        if domains[end, DOMAIN_MIN] > domains[end, DOMAIN_MAX]:
                             return PROP_INCONSISTENCY
                         if end < i:
                             loop = True

@@ -14,10 +14,10 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
     EVENT_MASK_MIN,
     EVENT_MASK_MIN_MAX,
-    MAX,
-    MIN,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
@@ -79,30 +79,34 @@ def compute_domains_neq_imp(domains: NDArray, parameters: NDArray) -> int:
     b = domains[0]
     x = domains[1]
     y = domains[2]
-    if b[MAX] == 0:  # b is false: the implication is vacuously satisfied
+    if b[DOMAIN_MAX] == 0:  # b is false: the implication is vacuously satisfied
         return PROP_ENTAILMENT
-    if b[MIN] == 1:  # b is true: enforce x != y (only prunes when one side is fixed)
-        if x[MIN] == x[MAX]:
-            if y[MIN] == x[MIN]:
-                y[MIN] += 1
-            if y[MAX] == x[MAX]:
-                y[MAX] -= 1
-            if y[MIN] > y[MAX]:
+    if b[DOMAIN_MIN] == 1:  # b is true: enforce x != y (only prunes when one side is fixed)
+        if x[DOMAIN_MIN] == x[DOMAIN_MAX]:
+            if y[DOMAIN_MIN] == x[DOMAIN_MIN]:
+                y[DOMAIN_MIN] += 1
+            if y[DOMAIN_MAX] == x[DOMAIN_MAX]:
+                y[DOMAIN_MAX] -= 1
+            if y[DOMAIN_MIN] > y[DOMAIN_MAX]:
                 return PROP_INCONSISTENCY
-        if y[MIN] == y[MAX]:
-            if x[MIN] == y[MIN]:
-                x[MIN] += 1
-            if x[MAX] == y[MAX]:
-                x[MAX] -= 1
-            if x[MIN] > x[MAX]:
+        if y[DOMAIN_MIN] == y[DOMAIN_MAX]:
+            if x[DOMAIN_MIN] == y[DOMAIN_MIN]:
+                x[DOMAIN_MIN] += 1
+            if x[DOMAIN_MAX] == y[DOMAIN_MAX]:
+                x[DOMAIN_MAX] -= 1
+            if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
                 return PROP_INCONSISTENCY
-        if x[MAX] < y[MIN] or y[MAX] < x[MIN]:
+        if x[DOMAIN_MAX] < y[DOMAIN_MIN] or y[DOMAIN_MAX] < x[DOMAIN_MIN]:
             return PROP_ENTAILMENT
         return PROP_CONSISTENCY
     # b is free: only the contrapositive can fire
-    if x[MAX] < y[MIN] or y[MAX] < x[MIN]:  # x != y is entailed -> the implication holds for any b
+    if (
+        x[DOMAIN_MAX] < y[DOMAIN_MIN] or y[DOMAIN_MAX] < x[DOMAIN_MIN]
+    ):  # x != y is entailed -> the implication holds for any b
         return PROP_ENTAILMENT
-    if x[MIN] == x[MAX] and y[MIN] == y[MAX] and x[MIN] == y[MIN]:  # x = y forced -> b must be false
+    if (
+        x[DOMAIN_MIN] == x[DOMAIN_MAX] and y[DOMAIN_MIN] == y[DOMAIN_MAX] and x[DOMAIN_MIN] == y[DOMAIN_MIN]
+    ):  # x = y forced -> b must be false
         b[:] = 0
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY

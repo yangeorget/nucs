@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_add_c_eq(n: int, parameters: NDArray) -> int:
@@ -66,15 +73,15 @@ def compute_domains_add_c_eq(domains: NDArray, parameters: NDArray) -> int:
     y = domains[1]
     c = int(parameters[0])
     # Tighten y against x + c first.
-    y[MIN] = max(y[MIN], x[MIN] + c)
-    y[MAX] = min(y[MAX], x[MAX] + c)
-    if y[MIN] > y[MAX]:
+    y[DOMAIN_MIN] = max(y[DOMAIN_MIN], x[DOMAIN_MIN] + c)
+    y[DOMAIN_MAX] = min(y[DOMAIN_MAX], x[DOMAIN_MAX] + c)
+    if y[DOMAIN_MIN] > y[DOMAIN_MAX]:
         return PROP_INCONSISTENCY
     # y is now contained in [x[MIN] + c, x[MAX] + c], so y - c lies inside x's current bounds:
     # we can assign x directly instead of intersecting (no max/min) and skip its inconsistency
     # check since y[MIN] <= y[MAX] already guarantees x[MIN] <= x[MAX].
-    x[MIN] = y[MIN] - c
-    x[MAX] = y[MAX] - c
-    if x[MIN] == x[MAX]:
+    x[DOMAIN_MIN] = y[DOMAIN_MIN] - c
+    x[DOMAIN_MAX] = y[DOMAIN_MAX] - c
+    if x[DOMAIN_MIN] == x[DOMAIN_MAX]:
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY

@@ -24,10 +24,10 @@ from nucs.constants import (
     EVENT_MASK_NB,
     EVENT_NB,
     NUMBA_DISABLE_JIT,
-    PARAM,
+    OFFSETS_PARAM,
+    OFFSETS_VARIABLE,
     SIGN_GET_TRIGGERS,
     TYPE_GET_TRIGGERS,
-    VARIABLE,
 )
 from nucs.numba_helper import addresses_from_functions, function_ptr_from_address
 from nucs.propagators.propagators import (
@@ -164,14 +164,24 @@ class Problem:
         logger.debug("Initializing offsets")
         self.offsets = np.zeros((self.propagator_nb + 1, 2), dtype=np.uint32)
         for propagator_idx, propagator in enumerate(self.propagators):
-            self.offsets[propagator_idx + 1, VARIABLE] = self.offsets[propagator_idx, VARIABLE] + len(propagator[0])
-            self.offsets[propagator_idx + 1, PARAM] = self.offsets[propagator_idx, PARAM] + len(propagator[2])
+            self.offsets[propagator_idx + 1, OFFSETS_VARIABLE] = self.offsets[propagator_idx, OFFSETS_VARIABLE] + len(
+                propagator[0]
+            )
+            self.offsets[propagator_idx + 1, OFFSETS_PARAM] = self.offsets[propagator_idx, OFFSETS_PARAM] + len(
+                propagator[2]
+            )
         logger.debug("Initializing props")
-        self.propagator_variables = np.empty(self.offsets[-1, VARIABLE], dtype=np.uint32)
-        self.propagator_parameters = np.empty(self.offsets[-1, PARAM], dtype=np.int32)
+        self.propagator_variables = np.empty(self.offsets[-1, OFFSETS_VARIABLE], dtype=np.uint32)
+        self.propagator_parameters = np.empty(self.offsets[-1, OFFSETS_PARAM], dtype=np.int32)
         for propagator_idx, propagator in enumerate(self.propagators):
-            var_start, var_end = self.offsets[propagator_idx, VARIABLE], self.offsets[propagator_idx + 1, VARIABLE]
-            param_start, param_end = self.offsets[propagator_idx, PARAM], self.offsets[propagator_idx + 1, PARAM]
+            var_start, var_end = (
+                self.offsets[propagator_idx, OFFSETS_VARIABLE],
+                self.offsets[propagator_idx + 1, OFFSETS_VARIABLE],
+            )
+            param_start, param_end = (
+                self.offsets[propagator_idx, OFFSETS_PARAM],
+                self.offsets[propagator_idx + 1, OFFSETS_PARAM],
+            )
             self.propagator_variables[var_start:var_end] = propagator[0]
             self.propagator_parameters[param_start:param_end] = propagator[2]
 
@@ -267,9 +277,9 @@ def count_triggers(
             trigger_fct = GET_TRIGGERS_FCTS[algorithm]
         else:
             trigger_fct = function_ptr_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])  # type: ignore[call-arg, arg-type]
-        parameters = propagator_parameters[offsets[propagator, PARAM] : offsets[propagator + 1, PARAM]]
-        var_start = offsets[propagator, VARIABLE]
-        var_end = offsets[propagator + 1, VARIABLE]
+        parameters = propagator_parameters[offsets[propagator, OFFSETS_PARAM] : offsets[propagator + 1, OFFSETS_PARAM]]
+        var_start = offsets[propagator, OFFSETS_VARIABLE]
+        var_end = offsets[propagator + 1, OFFSETS_VARIABLE]
         var_nb = var_end - var_start
         for var_idx in range(var_nb):
             variable = propagator_variables[var_start + var_idx]
@@ -322,9 +332,9 @@ def fill_triggers(
             trigger_fct = GET_TRIGGERS_FCTS[algorithm]
         else:
             trigger_fct = function_ptr_from_address(TYPE_GET_TRIGGERS, get_triggers_addrs[algorithm])  # type: ignore[call-arg, arg-type]
-        parameters = propagator_parameters[offsets[propagator, PARAM] : offsets[propagator + 1, PARAM]]
-        var_start = offsets[propagator, VARIABLE]
-        var_end = offsets[propagator + 1, VARIABLE]
+        parameters = propagator_parameters[offsets[propagator, OFFSETS_PARAM] : offsets[propagator + 1, OFFSETS_PARAM]]
+        var_start = offsets[propagator, OFFSETS_VARIABLE]
+        var_end = offsets[propagator + 1, OFFSETS_VARIABLE]
         var_nb = var_end - var_start
         for var_idx in range(var_nb):
             variable = propagator_variables[var_start + var_idx]

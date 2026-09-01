@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_eq(n: int, parameters: NDArray) -> int:
@@ -66,16 +73,16 @@ def compute_domains_eq(domains: NDArray, parameters: NDArray) -> int:
     y = domains[1]
     # Intersect the two domains: after this x and y share identical bounds, so testing x alone
     # suffices for inconsistency and entailment.
-    if y[MIN] > x[MIN]:
-        x[MIN] = y[MIN]
-    elif x[MIN] > y[MIN]:
-        y[MIN] = x[MIN]
-    if y[MAX] < x[MAX]:
-        x[MAX] = y[MAX]
-    elif x[MAX] < y[MAX]:
-        y[MAX] = x[MAX]
-    if x[MIN] > x[MAX]:
+    if y[DOMAIN_MIN] > x[DOMAIN_MIN]:
+        x[DOMAIN_MIN] = y[DOMAIN_MIN]
+    elif x[DOMAIN_MIN] > y[DOMAIN_MIN]:
+        y[DOMAIN_MIN] = x[DOMAIN_MIN]
+    if y[DOMAIN_MAX] < x[DOMAIN_MAX]:
+        x[DOMAIN_MAX] = y[DOMAIN_MAX]
+    elif x[DOMAIN_MAX] < y[DOMAIN_MAX]:
+        y[DOMAIN_MAX] = x[DOMAIN_MAX]
+    if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
         return PROP_INCONSISTENCY
-    if x[MIN] == x[MAX]:
+    if x[DOMAIN_MIN] == x[DOMAIN_MAX]:
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY

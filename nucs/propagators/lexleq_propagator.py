@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_lexleq(n: int, parameters: NDArray) -> int:
@@ -47,71 +54,71 @@ def get_triggers_lexleq(n: int, variable: int, parameters: NDArray) -> int:
 
 @njit(cache=True)
 def compute_domains_4(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
-    while i < n and x[i, MIN] == y[i, MAX]:
+    while i < n and x[i, DOMAIN_MIN] == y[i, DOMAIN_MAX]:
         i += 1
         # s = i
-    if i < n and x[i, MIN] > y[i, MAX]:
+    if i < n and x[i, DOMAIN_MIN] > y[i, DOMAIN_MAX]:
         # xq < yq
-        x[q, MAX] = min(x[q, MAX], y[q, MAX] - 1)
-        if x[q, MAX] < x[q, MIN]:
+        x[q, DOMAIN_MAX] = min(x[q, DOMAIN_MAX], y[q, DOMAIN_MAX] - 1)
+        if x[q, DOMAIN_MAX] < x[q, DOMAIN_MIN]:
             return PROP_INCONSISTENCY
-        y[q, MIN] = max(y[q, MIN], x[q, MIN] + 1)
-        if y[q, MAX] < y[q, MIN]:
+        y[q, DOMAIN_MIN] = max(y[q, DOMAIN_MIN], x[q, DOMAIN_MIN] + 1)
+        if y[q, DOMAIN_MAX] < y[q, DOMAIN_MIN]:
             return PROP_INCONSISTENCY
-        return PROP_ENTAILMENT if x[q, MAX] < y[q, MIN] else PROP_CONSISTENCY
+        return PROP_ENTAILMENT if x[q, DOMAIN_MAX] < y[q, DOMAIN_MIN] else PROP_CONSISTENCY
     # u = 4
     return PROP_CONSISTENCY
 
 
 @njit(cache=True)
 def compute_domains_3(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
-    while i < n and x[i, MAX] == y[i, MIN]:
+    while i < n and x[i, DOMAIN_MAX] == y[i, DOMAIN_MIN]:
         i += 1
         # s = i
-    if i == n or x[i, MAX] < y[i, MIN]:
+    if i == n or x[i, DOMAIN_MAX] < y[i, DOMAIN_MIN]:
         # xq <= yq
-        x[q, MAX] = min(x[q, MAX], y[q, MAX])
-        if x[q, MAX] < x[q, MIN]:
+        x[q, DOMAIN_MAX] = min(x[q, DOMAIN_MAX], y[q, DOMAIN_MAX])
+        if x[q, DOMAIN_MAX] < x[q, DOMAIN_MIN]:
             return PROP_INCONSISTENCY
-        y[q, MIN] = max(y[q, MIN], x[q, MIN])
-        if y[q, MAX] < y[q, MIN]:
+        y[q, DOMAIN_MIN] = max(y[q, DOMAIN_MIN], x[q, DOMAIN_MIN])
+        if y[q, DOMAIN_MAX] < y[q, DOMAIN_MIN]:
             return PROP_INCONSISTENCY
-        return PROP_ENTAILMENT if x[q, MAX] <= y[q, MIN] else PROP_CONSISTENCY
+        return PROP_ENTAILMENT if x[q, DOMAIN_MAX] <= y[q, DOMAIN_MIN] else PROP_CONSISTENCY
     # u = 3
     return PROP_CONSISTENCY
 
 
 @njit(cache=True)
 def compute_domains_2(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
-    while i < n and x[i, MIN] == x[i, MAX] == y[i, MIN] == y[i, MAX]:
+    while i < n and x[i, DOMAIN_MIN] == x[i, DOMAIN_MAX] == y[i, DOMAIN_MIN] == y[i, DOMAIN_MAX]:
         i += 1
         r = i
-    if i == n or x[i, MAX] < y[i, MIN]:
+    if i == n or x[i, DOMAIN_MAX] < y[i, DOMAIN_MIN]:
         # xq <= yq
-        x[q, MAX] = min(x[q, MAX], y[q, MAX])
-        if x[q, MAX] < x[q, MIN]:
+        x[q, DOMAIN_MAX] = min(x[q, DOMAIN_MAX], y[q, DOMAIN_MAX])
+        if x[q, DOMAIN_MAX] < x[q, DOMAIN_MIN]:
             return PROP_INCONSISTENCY
-        y[q, MIN] = max(y[q, MIN], x[q, MIN])
-        if y[q, MAX] < y[q, MIN]:
+        y[q, DOMAIN_MIN] = max(y[q, DOMAIN_MIN], x[q, DOMAIN_MIN])
+        if y[q, DOMAIN_MAX] < y[q, DOMAIN_MIN]:
             return PROP_INCONSISTENCY
-        return PROP_ENTAILMENT if x[q, MAX] <= y[q, MIN] else PROP_CONSISTENCY
-    if x[i, MIN] > y[i, MAX]:
+        return PROP_ENTAILMENT if x[q, DOMAIN_MAX] <= y[q, DOMAIN_MIN] else PROP_CONSISTENCY
+    if x[i, DOMAIN_MIN] > y[i, DOMAIN_MAX]:
         # xq < yq
-        x[q, MAX] = min(x[q, MAX], y[q, MAX] - 1)
-        if x[q, MAX] < x[q, MIN]:
+        x[q, DOMAIN_MAX] = min(x[q, DOMAIN_MAX], y[q, DOMAIN_MAX] - 1)
+        if x[q, DOMAIN_MAX] < x[q, DOMAIN_MIN]:
             return PROP_INCONSISTENCY
-        y[q, MIN] = max(y[q, MIN], x[q, MIN] + 1)
-        if y[q, MAX] < y[q, MIN]:
+        y[q, DOMAIN_MIN] = max(y[q, DOMAIN_MIN], x[q, DOMAIN_MIN] + 1)
+        if y[q, DOMAIN_MAX] < y[q, DOMAIN_MIN]:
             return PROP_INCONSISTENCY
-        return PROP_ENTAILMENT if x[q, MAX] < y[q, MIN] else PROP_CONSISTENCY
-    if x[i, MAX] == y[i, MIN] and x[i, MIN] < y[i, MAX]:
+        return PROP_ENTAILMENT if x[q, DOMAIN_MAX] < y[q, DOMAIN_MIN] else PROP_CONSISTENCY
+    if x[i, DOMAIN_MAX] == y[i, DOMAIN_MIN] and x[i, DOMAIN_MIN] < y[i, DOMAIN_MAX]:
         if s > i + 1:
             i = s
         else:
             i += 1
             s = i
         return compute_domains_3(x, y, n, i, q, r, s)
-    if x[i, MIN] == y[i, MAX] and x[i, MAX] > y[i, MIN]:
+    if x[i, DOMAIN_MIN] == y[i, DOMAIN_MAX] and x[i, DOMAIN_MAX] > y[i, DOMAIN_MIN]:
         if s > i + 1:
             i = s
         else:
@@ -124,24 +131,24 @@ def compute_domains_2(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
 
 @njit(cache=True)
 def compute_domains_1(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int) -> int:
-    while i < n and x[i, MIN] == y[i, MAX]:
+    while i < n and x[i, DOMAIN_MIN] == y[i, DOMAIN_MAX]:
         # enforce xi = yi
-        x[i, MAX] = min(x[i, MAX], y[i, MAX])
-        if x[i, MAX] < x[i, MIN]:
+        x[i, DOMAIN_MAX] = min(x[i, DOMAIN_MAX], y[i, DOMAIN_MAX])
+        if x[i, DOMAIN_MAX] < x[i, DOMAIN_MIN]:
             return PROP_INCONSISTENCY
-        y[i, MIN] = max(y[i, MIN], x[i, MIN])
-        if y[i, MAX] < y[i, MIN]:
+        y[i, DOMAIN_MIN] = max(y[i, DOMAIN_MIN], x[i, DOMAIN_MIN])
+        if y[i, DOMAIN_MAX] < y[i, DOMAIN_MIN]:
             return PROP_INCONSISTENCY
         i += 1
         q = i
-    if i == n or x[i, MAX] < y[i, MIN]:
+    if i == n or x[i, DOMAIN_MAX] < y[i, DOMAIN_MIN]:
         return PROP_ENTAILMENT
     # enforce xq <= yq
-    x[i, MAX] = min(x[i, MAX], y[i, MAX])
-    if x[i, MAX] < x[i, MIN]:
+    x[i, DOMAIN_MAX] = min(x[i, DOMAIN_MAX], y[i, DOMAIN_MAX])
+    if x[i, DOMAIN_MAX] < x[i, DOMAIN_MIN]:
         return PROP_INCONSISTENCY
-    y[i, MIN] = max(y[i, MIN], x[i, MIN])
-    if y[i, MAX] < y[i, MIN]:
+    y[i, DOMAIN_MIN] = max(y[i, DOMAIN_MIN], x[i, DOMAIN_MIN])
+    if y[i, DOMAIN_MAX] < y[i, DOMAIN_MIN]:
         return PROP_INCONSISTENCY
     if r > i + 1:
         i = r

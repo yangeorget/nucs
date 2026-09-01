@@ -12,15 +12,15 @@
 ###############################################################################
 import numpy as np
 
-from nucs.constants import MAX, MIN
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 from nucs.heuristics.smallest_minimal_value_var_heuristic import smallest_minimal_value_var_heuristic
 
 
 def _domains(domains):  # type: ignore[no-untyped-def]
     array = np.zeros((len(domains), 2), dtype=np.int32)
     for i, (lo, hi) in enumerate(domains):
-        array[i, MIN] = lo
-        array[i, MAX] = hi
+        array[i, DOMAIN_MIN] = lo
+        array[i, DOMAIN_MAX] = hi
     return array
 
 

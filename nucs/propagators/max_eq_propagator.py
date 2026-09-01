@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_MIN_MAX, PROP_CONSISTENCY, PROP_INCONSISTENCY
 
 
 def get_complexity_max_eq(n: int, parameters: NDArray) -> int:
@@ -64,19 +64,19 @@ def compute_domains_max_eq(domains: NDArray, parameters: NDArray) -> int:
     # y = max_i x_i, so y is bounded by [max of the x mins, max of the x maxes]. A single manual
     # loop computes both reductions at once (replacing two np.max passes) and y's bounds are kept in
     # locals to avoid repeated array indexing.
-    max_x_min = x[0, MIN]
-    max_x_max = x[0, MAX]
+    max_x_min = x[0, DOMAIN_MIN]
+    max_x_max = x[0, DOMAIN_MAX]
     for i in range(1, n):
-        max_x_min = max(max_x_min, x[i, MIN])
-        max_x_max = max(max_x_max, x[i, MAX])
-    y_min = y[MIN]
-    y_max = y[MAX]
+        max_x_min = max(max_x_min, x[i, DOMAIN_MIN])
+        max_x_max = max(max_x_max, x[i, DOMAIN_MAX])
+    y_min = y[DOMAIN_MIN]
+    y_max = y[DOMAIN_MAX]
     if max_x_min > y_min:
         y_min = max_x_min
-        y[MIN] = y_min
+        y[DOMAIN_MIN] = y_min
     if max_x_max < y_max:
         y_max = max_x_max
-        y[MAX] = y_max
+        y[DOMAIN_MAX] = y_max
     if y_min > y_max:
         return PROP_INCONSISTENCY
     # No x_i may exceed y, so cap every x_i[MAX] at y_max. The maximum y can take any value in
@@ -85,10 +85,10 @@ def compute_domains_max_eq(domains: NDArray, parameters: NDArray) -> int:
     candidates_nb = 0
     candidate_idx = -1
     for i in range(n):
-        x[i, MAX] = min(x[i, MAX], y_max)
-        if x[i, MAX] >= y_min:
+        x[i, DOMAIN_MAX] = min(x[i, DOMAIN_MAX], y_max)
+        if x[i, DOMAIN_MAX] >= y_min:
             candidate_idx = i
             candidates_nb += 1
     if candidates_nb == 1:
-        x[candidate_idx, MIN] = y_min
+        x[candidate_idx, DOMAIN_MIN] = y_min
     return PROP_CONSISTENCY

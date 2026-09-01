@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_div_c_eq(n: int, parameters: NDArray) -> int:
@@ -92,31 +99,31 @@ def compute_domains_div_c_eq(domains: NDArray, parameters: NDArray) -> int:
         return PROP_INCONSISTENCY
     m = abs(c)  # x div c = -(x div m); work with the positive magnitude and flip the sign for c < 0
     # tighten y to the image of x's bounds; _tdiv is monotonic non-decreasing in x
-    q_xmin = _tdiv(x[MIN], m)
-    q_xmax = _tdiv(x[MAX], m)
+    q_xmin = _tdiv(x[DOMAIN_MIN], m)
+    q_xmax = _tdiv(x[DOMAIN_MAX], m)
     if c > 0:
         new_y_min = q_xmin
         new_y_max = q_xmax
     else:
         new_y_min = -q_xmax
         new_y_max = -q_xmin
-    y[MIN] = max(y[MIN], new_y_min)
-    y[MAX] = min(y[MAX], new_y_max)
-    if y[MIN] > y[MAX]:
+    y[DOMAIN_MIN] = max(y[DOMAIN_MIN], new_y_min)
+    y[DOMAIN_MAX] = min(y[DOMAIN_MAX], new_y_max)
+    if y[DOMAIN_MIN] > y[DOMAIN_MAX]:
         return PROP_INCONSISTENCY
     # prune x to the preimage of y's bounds, mapping y back to the quotient q = x div m
     if c > 0:
-        ql = y[MIN]
-        qu = y[MAX]
+        ql = y[DOMAIN_MIN]
+        qu = y[DOMAIN_MAX]
     else:
-        ql = -y[MAX]
-        qu = -y[MIN]
+        ql = -y[DOMAIN_MAX]
+        qu = -y[DOMAIN_MIN]
     # smallest x with (x div m) >= ql is the lower edge of the ql block; largest x with (x div m) <= qu is
     # the upper edge of the qu block
     new_x_min = ql * m if ql > 0 else ql * m - m + 1
     new_x_max = qu * m + m - 1 if qu >= 0 else qu * m
-    x[MIN] = max(x[MIN], new_x_min)
-    x[MAX] = min(x[MAX], new_x_max)
-    if x[MIN] > x[MAX]:
+    x[DOMAIN_MIN] = max(x[DOMAIN_MIN], new_x_min)
+    x[DOMAIN_MAX] = min(x[DOMAIN_MAX], new_x_max)
+    if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
         return PROP_INCONSISTENCY
-    return PROP_ENTAILMENT if x[MIN] == x[MAX] else PROP_CONSISTENCY
+    return PROP_ENTAILMENT if x[DOMAIN_MIN] == x[DOMAIN_MAX] else PROP_CONSISTENCY

@@ -15,7 +15,7 @@ import sys
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 
 
 @njit(cache=True)
@@ -37,7 +37,7 @@ def smallest_domain_var_heuristic(decision_variables: NDArray, domains: NDArray,
     best_variable = -1
     for variable in decision_variables:
         domain = domains[variable]
-        score = domain[MIN] - domain[MAX]
+        score = domain[DOMAIN_MIN] - domain[DOMAIN_MAX]
         if best_score < score < 0:
             best_variable = variable
             best_score = score

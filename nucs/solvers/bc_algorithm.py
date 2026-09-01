@@ -18,10 +18,11 @@ from numpy.typing import NDArray
 from nucs.buckets import STORAGE_OFFSET, buckets_add, buckets_pop
 from nucs.constants import (
     CHOICE_POINT_TRAIL_MARK,
+    DOMAIN_MAX,
+    DOMAIN_MIN,
     EVENT_NB,
-    MAX,
-    MIN,
-    PARAM,
+    OFFSETS_PARAM,
+    OFFSETS_VARIABLE,
     PROBLEM_BOUND,
     PROBLEM_INCONSISTENT,
     PROBLEM_UNBOUND,
@@ -36,7 +37,6 @@ from nucs.constants import (
     STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
     STATS_MAX,
-    VARIABLE,
 )
 from nucs.numba_helper import ComputeDomainsFunctions
 from nucs.solvers.state import tighten_at, trail_push, unbound_index
@@ -139,15 +139,15 @@ def bc_algorithm(
         # wasted calls) belong to, which is what makes a throughput investigation targeted
         algorithm_stats = STATS_MAX + STATS_ALG_WIDTH * algorithm
         statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NB] += 1
-        prop_var_start = offsets[prop_idx, VARIABLE]
-        prop_var_end = offsets[prop_idx + 1, VARIABLE]
+        prop_var_start = offsets[prop_idx, OFFSETS_VARIABLE]
+        prop_var_end = offsets[prop_idx + 1, OFFSETS_VARIABLE]
         prop_arity = prop_var_end - prop_var_start
         prop_domains = domain_buffer[:prop_arity]
         for var_idx in range(prop_arity):
             prop_domains[var_idx] = domains[propagator_variables[prop_var_start + var_idx]]
         status = compute_domains_fcts[algorithm](
             prop_domains,
-            propagator_parameters[offsets[prop_idx, PARAM] : offsets[prop_idx + 1, PARAM]],
+            propagator_parameters[offsets[prop_idx, OFFSETS_PARAM] : offsets[prop_idx + 1, OFFSETS_PARAM]],
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
@@ -232,8 +232,8 @@ def update_domains(
                 mark,
                 trail_size,
                 variable,
-                prop_domains[var_idx, MIN],
-                prop_domains[var_idx, MAX],
+                prop_domains[var_idx, DOMAIN_MIN],
+                prop_domains[var_idx, DOMAIN_MAX],
             )
             if events:
                 offset = (variable << EVENT_NB) | events

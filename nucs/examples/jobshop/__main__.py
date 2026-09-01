@@ -12,7 +12,7 @@
 ###############################################################################
 import json
 
-from nucs.constants import MIN, OPTIM_PRUNE
+from nucs.constants import DOMAIN_MIN, OPTIM_PRUNE
 from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
 from nucs.examples.jobshop.jobshop_problem import JobShopProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -28,7 +28,7 @@ if __name__ == "__main__":
         problem = JobShopProblem(dataset["jobs"])
         kwargs = solver_kwargs_from_args(args, searches=problem.recommended_searches())
         solver = BacktrackSolver(problem, **kwargs)
-        solution = solver.find_best(problem.makespan, MIN, mode=args.optimization_mode or OPTIM_PRUNE)
+        solution = solver.find_best(problem.makespan, DOMAIN_MIN, mode=args.optimization_mode or OPTIM_PRUNE)
         if args.display_stats:
             solver.print_statistics()
         if args.display_solutions and solution is not None:

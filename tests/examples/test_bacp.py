@@ -14,7 +14,7 @@ import json
 
 import pytest
 
-from nucs.constants import MIN
+from nucs.constants import DOMAIN_MIN
 from nucs.examples.bacp.bacp_problem import BACPProblem
 from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -34,7 +34,7 @@ class TestBACP:
         }
         problem = BACPProblem(dataset)
         solver = BacktrackSolver(problem)
-        solution = solver.find_best(problem.max_load, bound=MIN)
+        solution = solver.find_best(problem.max_load, bound=DOMAIN_MIN)
         assert solution is not None
         assert solution[problem.max_load] == 3
         loads = [int(solution[problem.load(j)]) for j in range(problem.n_periods)]
@@ -54,7 +54,7 @@ class TestBACP:
         }
         problem = BACPProblem(dataset)
         solver = BacktrackSolver(problem)
-        assert solver.find_best(problem.max_load, bound=MIN) is None
+        assert solver.find_best(problem.max_load, bound=DOMAIN_MIN) is None
 
     @pytest.mark.parametrize(
         "path, max_load",
@@ -77,6 +77,6 @@ class TestBACP:
         solver = BacktrackSolver(
             problem, decision_variables=range(dataset["n_courses"]), var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN
         )
-        solution = solver.find_best(problem.max_load, bound=MIN)
+        solution = solver.find_best(problem.max_load, bound=DOMAIN_MIN)
         assert solution is not None
         assert solution[problem.max_load] == max_load

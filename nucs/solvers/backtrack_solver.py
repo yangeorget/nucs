@@ -21,14 +21,15 @@ from numpy.typing import NDArray
 from nucs.buckets import buckets_create, buckets_empty, buckets_init
 from nucs.constants import (
     CHOICE_POINT_WIDTH,
+    DOMAIN_MAX,
+    DOMAIN_MIN,
     LOG_LEVEL_INFO,
-    MAX,
-    MIN,
     NUMBA_DISABLE_JIT,
-    OBJ_BOUND,
-    OBJ_VALUE,
-    OBJ_VARIABLE,
-    OBJ_WIDTH,
+    OBJECTIVE_BOUND,
+    OBJECTIVE_VALUE,
+    OBJECTIVE_VARIABLE,
+    OBJECTIVE_WIDTH,
+    OFFSETS_VARIABLE,
     OPTIM_RESET,
     PROBLEM_BOUND,
     PROBLEM_UNBOUND,
@@ -67,7 +68,6 @@ from nucs.constants import (
     STATS_MAX,
     STEP_TIGHTENING_NB,
     TIGHTENING_TRAIL_ENTRY_NB,
-    VARIABLE,
 )
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_FCTS,
@@ -253,7 +253,7 @@ class BacktrackSolver(Solver):
         # re-applies it to each choice point it resumes rather than it being written into them all when it
         # is found, and nothing about it is trailed. OBJ_VARIABLE stays -1 outside OPTIM_PRUNE, which is
         # how backtrack knows there is no bound to apply: OPTIM_RESET tightens at the root instead.
-        self.objective = np.full(OBJ_WIDTH, -1, dtype=np.int32)
+        self.objective = np.full(OBJECTIVE_WIDTH, -1, dtype=np.int32)
         logger.info(
             f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"
         )
@@ -295,7 +295,7 @@ class BacktrackSolver(Solver):
     def optimize(self, variable: int, bound: int, mode: str, timeout: float | None = None) -> Iterator[NDArray]:
         logger.info("Optimizing and iterating over the solutions")
         # minimizing a variable means tightening the MAX side of its domain, and vice versa
-        objective_bound = MAX if bound == MIN else MIN
+        objective_bound = DOMAIN_MAX if bound == DOMAIN_MIN else DOMAIN_MIN
         for solution in self._iterate_solutions(
             lambda found: self._advance_after_optimum(variable, found[variable], objective_bound, mode),
             timeout,
@@ -330,7 +330,7 @@ class BacktrackSolver(Solver):
         buckets_init(self.triggered_propagators, self.problem.priorities)
         # no incumbent yet, so the first descent runs unbounded; _advance_after_optimum arms the objective.
         # An enumeration disarms it here too: the solver may have been optimized with before.
-        self.objective[OBJ_VARIABLE] = -1
+        self.objective[OBJECTIVE_VARIABLE] = -1
         while (solution := self._solve_one()) is not None:
             self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
             yield solution
@@ -427,9 +427,9 @@ class BacktrackSolver(Solver):
             logger.debug("Pruning choice points")
             # arm the objective and let backtrack apply it: the bound is re-applied to each choice point the
             # search resumes, so the choice points it kills are dropped as they are reached rather than up front
-            self.objective[OBJ_VARIABLE] = variable
-            self.objective[OBJ_BOUND] = bound
-            self.objective[OBJ_VALUE] = value
+            self.objective[OBJECTIVE_VARIABLE] = variable
+            self.objective[OBJECTIVE_BOUND] = bound
+            self.objective[OBJECTIVE_VALUE] = value
             if not self._backtrack():
                 return False
         return True
@@ -792,6 +792,6 @@ def get_domain_buffer(offsets: NDArray) -> NDArray:
     """
     max_arity = np.int64(0)
     for propagator_idx in range(len(offsets) - 1):
-        arity = np.int64(offsets[propagator_idx + 1, VARIABLE] - offsets[propagator_idx, VARIABLE])
+        arity = np.int64(offsets[propagator_idx + 1, OFFSETS_VARIABLE] - offsets[propagator_idx, OFFSETS_VARIABLE])
         max_arity = max(max_arity, arity)
     return np.empty((max_arity, 2), dtype=np.int32)

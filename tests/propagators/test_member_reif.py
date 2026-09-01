@@ -15,7 +15,7 @@ import itertools
 import numpy as np
 import pytest
 
-from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.member_reif_propagator import compute_domains_member_reif
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -115,18 +115,18 @@ class TestMemberReif(PropagatorTest):
                 assert status != PROP_INCONSISTENCY, f"{values} {b_min}..{b_max} {x_min}..{x_max}"
                 # every solution of the original state survives the filtering
                 for b, x in solutions:
-                    assert domains[0, MIN] <= b <= domains[0, MAX]
-                    assert domains[1, MIN] <= x <= domains[1, MAX]
+                    assert domains[0, DOMAIN_MIN] <= b <= domains[0, DOMAIN_MAX]
+                    assert domains[1, DOMAIN_MIN] <= x <= domains[1, DOMAIN_MAX]
                 # the bounds it kept are the tightest an interval domain can express
-                assert domains[0, MIN] == min(b for b, _ in solutions)
-                assert domains[0, MAX] == max(b for b, _ in solutions)
-                assert domains[1, MIN] == min(x for _, x in solutions)
-                assert domains[1, MAX] == max(x for _, x in solutions)
+                assert domains[0, DOMAIN_MIN] == min(b for b, _ in solutions)
+                assert domains[0, DOMAIN_MAX] == max(b for b, _ in solutions)
+                assert domains[1, DOMAIN_MIN] == min(x for _, x in solutions)
+                assert domains[1, DOMAIN_MAX] == max(x for _, x in solutions)
                 if status == PROP_ENTAILMENT:
                     # entailed means no assignment left in the filtered box can violate the constraint
                     box = [
                         (b, x)
-                        for b in range(domains[0, MIN], domains[0, MAX] + 1)
-                        for x in range(domains[1, MIN], domains[1, MAX] + 1)
+                        for b in range(domains[0, DOMAIN_MIN], domains[0, DOMAIN_MAX] + 1)
+                        for x in range(domains[1, DOMAIN_MIN], domains[1, DOMAIN_MAX] + 1)
                     ]
                     assert all(b == (1 if x in values else 0) for b, x in box)

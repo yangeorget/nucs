@@ -14,11 +14,11 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
     EVENT_MASK_MAX,
     EVENT_MASK_MIN,
     EVENT_MASK_NONE,
-    MAX,
-    MIN,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
@@ -77,8 +77,8 @@ def compute_domains_linear_leq_c(domains: NDArray, parameters: NDArray) -> int:
     domain_sum_min = domain_sum_max = -parameters[-1]
     for i in range(n):
         factor = factors[i]
-        x_min = domains[i, MIN]
-        x_max = domains[i, MAX]
+        x_min = domains[i, DOMAIN_MIN]
+        x_max = domains[i, DOMAIN_MAX]
         if factor > 0:
             domain_sum_min += factor * x_max
             domain_sum_max += factor * x_min
@@ -96,19 +96,19 @@ def compute_domains_linear_leq_c(domains: NDArray, parameters: NDArray) -> int:
         factor = factors[i]
         if factor == 0:
             continue
-        x_min = domains[i, MIN]
-        x_max = domains[i, MAX]
+        x_min = domains[i, DOMAIN_MIN]
+        x_max = domains[i, DOMAIN_MAX]
         if x_min == x_max:
             continue
         if factor > 0:
             new_max = x_min + (-domain_sum_max // factor)
             if new_max < x_max:
-                domains[i, MAX] = new_max
+                domains[i, DOMAIN_MAX] = new_max
                 domain_sum_min += factor * (new_max - x_max)
         else:
             new_min = x_max - (domain_sum_max // factor)
             if new_min > x_min:
-                domains[i, MIN] = new_min
+                domains[i, DOMAIN_MIN] = new_min
                 domain_sum_min += factor * (new_min - x_min)
     if domain_sum_min <= 0:
         return PROP_ENTAILMENT

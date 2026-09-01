@@ -20,13 +20,13 @@ OPTIM_PRUNE = "PRUNE"
 OPTIM_MODES = [OPTIM_RESET, OPTIM_PRUNE]
 
 # Bounds
-VARIABLE = 0  # column of offsets holding the propagator variable offsets
-PARAM = 1  # column of offsets holding the propagator parameter offsets
+OFFSETS_VARIABLE = 0  # column of offsets holding the propagator variable offsets
+OFFSETS_PARAM = 1  # column of offsets holding the propagator parameter offsets
 
 # Domain bounds
-MIN = 0  # min value of a domain
-MAX = 1  # max value of a domain
-GROUND = 2
+DOMAIN_MIN = 0  # min value of a domain
+DOMAIN_MAX = 1  # max value of a domain
+DOMAIN_GROUND = 2
 
 # Choice point metadata columns.
 # One row per choice point, holding what *describes* it rather than what it changed: the trail
@@ -72,18 +72,18 @@ DECISION_EQ = 2  # explore [value, value], park [min, value - 1] then [value + 1
 # Objective indices.
 # The branch-and-bound bound is solver state, not choice-point state: it is not backtrackable, so it is
 # re-applied to each choice point as the search resumes it rather than written into them all up front.
-OBJ_VARIABLE = 0  # index for the variable being optimized, -1 when not optimizing
-OBJ_BOUND = 1  # index for the side of the optimized domain to tighten
-OBJ_VALUE = 2  # index for the best value found so far
-OBJ_WIDTH = 3  # the number of cells of the objective array
+OBJECTIVE_VARIABLE = 0  # index for the variable being optimized, -1 when not optimizing
+OBJECTIVE_BOUND = 1  # index for the side of the optimized domain to tighten
+OBJECTIVE_VALUE = 2  # index for the best value found so far
+OBJECTIVE_WIDTH = 3  # the number of cells of the objective array
 
 # Events
 EVENT_NB = 3
 EVENT_MASK_NB = 1 << EVENT_NB
 EVENT_MASK_NONE = 0
-EVENT_MASK_MIN = 1 << MIN
-EVENT_MASK_MAX = 1 << MAX
-EVENT_MASK_GROUND = 1 << GROUND
+EVENT_MASK_MIN = 1 << DOMAIN_MIN
+EVENT_MASK_MAX = 1 << DOMAIN_MAX
+EVENT_MASK_GROUND = 1 << DOMAIN_GROUND
 EVENT_MASK_MIN_MAX = EVENT_MASK_MIN | EVENT_MASK_MAX
 EVENT_MASK_MIN_GROUND = EVENT_MASK_MIN | EVENT_MASK_GROUND
 EVENT_MASK_MAX_GROUND = EVENT_MASK_MAX | EVENT_MASK_GROUND

@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_count_leq_c(n: int, parameters: NDArray) -> int:
@@ -63,8 +70,8 @@ def compute_domains_count_leq_c(domains: NDArray, parameters: NDArray) -> int:
     count_max = len(domains)
     count_min = 0
     for domain in domains:
-        domain_min = domain[MIN]
-        domain_max = domain[MAX]
+        domain_min = domain[DOMAIN_MIN]
+        domain_max = domain[DOMAIN_MAX]
         if domain_min > a or domain_max < a:
             count_max -= 1
             if count_max <= c:
@@ -76,14 +83,14 @@ def compute_domains_count_leq_c(domains: NDArray, parameters: NDArray) -> int:
     if count_min == c:  # we cannot have more domains equal to a
         all_different = True
         for domain in domains:
-            domain_min = domain[MIN]
-            domain_max = domain[MAX]
+            domain_min = domain[DOMAIN_MIN]
+            domain_max = domain[DOMAIN_MAX]
             if domain_min == a:
                 if domain_max > a:
-                    domain[MIN] = a + 1
+                    domain[DOMAIN_MIN] = a + 1
             elif domain_min < a:
                 if domain_max == a:
-                    domain[MAX] = a - 1
+                    domain[DOMAIN_MAX] = a - 1
                 elif domain_max > a:
                     all_different = False
         if all_different:

@@ -13,7 +13,14 @@
 from numba import int64, njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_mod_eq(n: int, parameters: NDArray) -> int:
@@ -67,47 +74,47 @@ def compute_domains_mod_eq(domains: NDArray, parameters: NDArray) -> int:
     y = domains[1]
     z = domains[2]
     # y must be non-zero (division by zero is undefined): trim a zero bound
-    if y[MIN] == 0:
-        y[MIN] = 1
-    if y[MAX] == 0:
-        y[MAX] = -1
-    if y[MIN] > y[MAX]:
+    if y[DOMAIN_MIN] == 0:
+        y[DOMAIN_MIN] = 1
+    if y[DOMAIN_MAX] == 0:
+        y[DOMAIN_MAX] = -1
+    if y[DOMAIN_MIN] > y[DOMAIN_MAX]:
         return PROP_INCONSISTENCY
     # both operands fixed: the remainder is determined
-    if x[MIN] == x[MAX] and y[MIN] == y[MAX]:
-        xi = int64(x[MIN])
-        yi = int64(y[MIN])
+    if x[DOMAIN_MIN] == x[DOMAIN_MAX] and y[DOMAIN_MIN] == y[DOMAIN_MAX]:
+        xi = int64(x[DOMAIN_MIN])
+        yi = int64(y[DOMAIN_MIN])
         q = abs(xi) // abs(yi)
         if (xi < 0) != (yi < 0):
             q = -q
         r = xi - q * yi
-        if r < z[MIN] or r > z[MAX]:
+        if r < z[DOMAIN_MIN] or r > z[DOMAIN_MAX]:
             return PROP_INCONSISTENCY
-        z[MIN] = r
-        z[MAX] = r
+        z[DOMAIN_MIN] = r
+        z[DOMAIN_MAX] = r
         return PROP_ENTAILMENT
     # |z| < |y| <= y_abs_max, and the remainder takes the sign of the dividend x
-    y_abs_max = max(abs(int64(y[MIN])), abs(int64(y[MAX])))
+    y_abs_max = max(abs(int64(y[DOMAIN_MIN])), abs(int64(y[DOMAIN_MAX])))
     z_mag = y_abs_max - 1
-    z_lo = 0 if x[MIN] >= 0 else -z_mag  # x cannot be negative -> z cannot be negative
-    z_hi = 0 if x[MAX] <= 0 else z_mag  # x cannot be positive -> z cannot be positive
-    z[MIN] = max(z[MIN], z_lo)
-    z[MAX] = min(z[MAX], z_hi)
-    if z[MIN] > z[MAX]:
+    z_lo = 0 if x[DOMAIN_MIN] >= 0 else -z_mag  # x cannot be negative -> z cannot be negative
+    z_hi = 0 if x[DOMAIN_MAX] <= 0 else z_mag  # x cannot be positive -> z cannot be positive
+    z[DOMAIN_MIN] = max(z[DOMAIN_MIN], z_lo)
+    z[DOMAIN_MAX] = min(z[DOMAIN_MAX], z_hi)
+    if z[DOMAIN_MIN] > z[DOMAIN_MAX]:
         return PROP_INCONSISTENCY
     # conversely |y| > |z|: when z is bound away from 0 it lower-bounds |y|
-    if z[MIN] > 0:
-        z_abs_min = z[MIN]
-    elif z[MAX] < 0:
-        z_abs_min = -z[MAX]
+    if z[DOMAIN_MIN] > 0:
+        z_abs_min = z[DOMAIN_MIN]
+    elif z[DOMAIN_MAX] < 0:
+        z_abs_min = -z[DOMAIN_MAX]
     else:
         z_abs_min = 0
     if z_abs_min > 0:
         need = z_abs_min + 1  # |y| >= |z| + 1
-        if y[MIN] > 0:  # y is positive
-            y[MIN] = max(y[MIN], need)
-        elif y[MAX] < 0:  # y is negative
-            y[MAX] = min(y[MAX], -need)
-        if y[MIN] > y[MAX]:
+        if y[DOMAIN_MIN] > 0:  # y is positive
+            y[DOMAIN_MIN] = max(y[DOMAIN_MIN], need)
+        elif y[DOMAIN_MAX] < 0:  # y is negative
+            y[DOMAIN_MAX] = min(y[DOMAIN_MAX], -need)
+        if y[DOMAIN_MIN] > y[DOMAIN_MAX]:
             return PROP_INCONSISTENCY
     return PROP_CONSISTENCY

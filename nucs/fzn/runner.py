@@ -19,7 +19,7 @@ from typing import TextIO
 
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN, OPTIM_PRUNE
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, OPTIM_PRUNE
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import FznModel
 from nucs.fzn.output import print_search_complete, print_solution, print_unknown, print_unsatisfiable
@@ -291,7 +291,10 @@ def _run_optimize(
     :type timeout: Optional[float]
     """
     solutions = solver.optimize(
-        objective_var, bound=MIN if model.solve.kind == "minimize" else MAX, mode=OPTIM_PRUNE, timeout=timeout
+        objective_var,
+        bound=DOMAIN_MIN if model.solve.kind == "minimize" else DOMAIN_MAX,
+        mode=OPTIM_PRUNE,
+        timeout=timeout,
     )
     best = None
     printed = False

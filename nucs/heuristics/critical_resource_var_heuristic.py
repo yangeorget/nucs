@@ -16,7 +16,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 
 
 @njit(cache=True)
@@ -60,8 +60,8 @@ def critical_resource_var_heuristic(decision_variables: NDArray, domains: NDArra
         resource = params[variable, 0]
         if resource < 0:
             continue
-        lo = domains[variable, MIN]
-        hi = domains[variable, MAX]
+        lo = domains[variable, DOMAIN_MIN]
+        hi = domains[variable, DOMAIN_MAX]
         duration = params[variable, 1]
         est_min[resource] = min(est_min[resource], lo)
         completion = hi + duration
@@ -89,8 +89,8 @@ def critical_resource_var_heuristic(decision_variables: NDArray, domains: NDArra
     for variable in decision_variables:
         if params[variable, 0] != critical:
             continue
-        lo = domains[variable, MIN]
-        hi = domains[variable, MAX]
+        lo = domains[variable, DOMAIN_MIN]
+        hi = domains[variable, DOMAIN_MAX]
         if lo < hi:
             width = hi - lo
             if width < best_width or (width == best_width and lo < best_est):

@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_member_reif(n: int, parameters: NDArray) -> int:
@@ -72,37 +79,37 @@ def compute_domains_member_reif(domains: NDArray, parameters: NDArray) -> int:
     n = len(parameters)
     # The allowed values still in x's range are parameters[lo..hi]; the window is empty when lo > hi.
     lo = 0
-    while lo < n and parameters[lo] < x[MIN]:
+    while lo < n and parameters[lo] < x[DOMAIN_MIN]:
         lo += 1
     hi = n - 1
-    while hi >= 0 and parameters[hi] > x[MAX]:
+    while hi >= 0 and parameters[hi] > x[DOMAIN_MAX]:
         hi -= 1
     if lo > hi:  # no allowed value is left in range, so x is never in the set
-        if b[MIN] == 1:
+        if b[DOMAIN_MIN] == 1:
             return PROP_INCONSISTENCY
         b[:] = 0
         return PROP_ENTAILMENT
-    if hi - lo == x[MAX] - x[MIN]:  # as many allowed values as x has values: x is always in the set
-        if b[MAX] == 0:
+    if hi - lo == x[DOMAIN_MAX] - x[DOMAIN_MIN]:  # as many allowed values as x has values: x is always in the set
+        if b[DOMAIN_MAX] == 0:
             return PROP_INCONSISTENCY
         b[:] = 1
         return PROP_ENTAILMENT
     # From x's interval alone both outcomes remain possible, so an unfixed b filters nothing.
-    if b[MIN] == 1:  # x is in the set: snap the bounds onto the window's ends
-        x[MIN] = parameters[lo]
-        x[MAX] = parameters[hi]
+    if b[DOMAIN_MIN] == 1:  # x is in the set: snap the bounds onto the window's ends
+        x[DOMAIN_MIN] = parameters[lo]
+        x[DOMAIN_MAX] = parameters[hi]
         # The window is a run of consecutive integers covering the new interval: never violated again.
         if hi - lo == parameters[hi] - parameters[lo]:
             return PROP_ENTAILMENT
         return PROP_CONSISTENCY
-    if b[MAX] == 0:  # x is not in the set: step each bound past the allowed values it sits on
-        while lo <= hi and parameters[lo] == x[MIN]:
-            x[MIN] += 1
+    if b[DOMAIN_MAX] == 0:  # x is not in the set: step each bound past the allowed values it sits on
+        while lo <= hi and parameters[lo] == x[DOMAIN_MIN]:
+            x[DOMAIN_MIN] += 1
             lo += 1
-        while hi >= lo and parameters[hi] == x[MAX]:
-            x[MAX] -= 1
+        while hi >= lo and parameters[hi] == x[DOMAIN_MAX]:
+            x[DOMAIN_MAX] -= 1
             hi -= 1
-        if x[MIN] > x[MAX]:
+        if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
             return PROP_INCONSISTENCY
         if lo > hi:  # no allowed value is left in range: never violated again
             return PROP_ENTAILMENT

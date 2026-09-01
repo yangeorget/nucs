@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 
 
 @njit(cache=True)
@@ -32,6 +32,6 @@ def first_not_instantiated_var_heuristic(decision_variables: NDArray, domains: N
     :rtype: int
     """
     for variable in decision_variables:
-        if domains[variable, MIN] < domains[variable, MAX]:
+        if domains[variable, DOMAIN_MIN] < domains[variable, DOMAIN_MAX]:
             return variable
     return -1  # cannot happen

@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_GROUND, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_GROUND,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_neq(n: int, parameters: NDArray) -> int:
@@ -65,28 +72,28 @@ def compute_domains_neq(domains: NDArray, parameters: NDArray) -> int:
     x = domains[0]
     y = domains[1]
     # Disjoint domains: x != y can never be violated.
-    if x[MAX] < y[MIN] or y[MAX] < x[MIN]:
+    if x[DOMAIN_MAX] < y[DOMAIN_MIN] or y[DOMAIN_MAX] < x[DOMAIN_MIN]:
         return PROP_ENTAILMENT
     # Bound consistency can only filter when a variable is bound: the forbidden value is then
     # removed from the other domain, but solely when it sits on one of its bounds (no holes).
-    if x[MIN] == x[MAX]:
-        if y[MIN] == x[MIN]:
-            y[MIN] += 1
-        elif y[MAX] == x[MIN]:
-            y[MAX] -= 1
+    if x[DOMAIN_MIN] == x[DOMAIN_MAX]:
+        if y[DOMAIN_MIN] == x[DOMAIN_MIN]:
+            y[DOMAIN_MIN] += 1
+        elif y[DOMAIN_MAX] == x[DOMAIN_MIN]:
+            y[DOMAIN_MAX] -= 1
         else:
             return PROP_CONSISTENCY
-        if y[MIN] > y[MAX]:
+        if y[DOMAIN_MIN] > y[DOMAIN_MAX]:
             return PROP_INCONSISTENCY
         return PROP_ENTAILMENT
-    if y[MIN] == y[MAX]:
-        if x[MIN] == y[MIN]:
-            x[MIN] += 1
-        elif x[MAX] == y[MIN]:
-            x[MAX] -= 1
+    if y[DOMAIN_MIN] == y[DOMAIN_MAX]:
+        if x[DOMAIN_MIN] == y[DOMAIN_MIN]:
+            x[DOMAIN_MIN] += 1
+        elif x[DOMAIN_MAX] == y[DOMAIN_MIN]:
+            x[DOMAIN_MAX] -= 1
         else:
             return PROP_CONSISTENCY
-        if x[MIN] > x[MAX]:
+        if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
             return PROP_INCONSISTENCY
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY

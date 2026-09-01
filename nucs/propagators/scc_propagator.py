@@ -14,7 +14,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_MIN_MAX, PROP_CONSISTENCY, PROP_INCONSISTENCY
 
 
 def get_complexity_scc(n: int, parameters: NDArray) -> int:
@@ -103,8 +103,8 @@ def compute_domains_scc(domains: NDArray, parameters: NDArray) -> int:
     while sp > 0:
         sp -= 1
         i = stack[sp]
-        hi = domains[i, MAX]
-        j = next_unvisited(parent, domains[i, MIN])
+        hi = domains[i, DOMAIN_MAX]
+        j = next_unvisited(parent, domains[i, DOMAIN_MIN])
         while j <= hi:
             parent[j] = j + 1
             count += 1
@@ -123,7 +123,7 @@ def compute_domains_scc(domains: NDArray, parameters: NDArray) -> int:
         sp -= 1
         c = stack[sp]
         for i in range(n):
-            if not visited[i] and domains[i, MIN] <= c <= domains[i, MAX]:
+            if not visited[i] and domains[i, DOMAIN_MIN] <= c <= domains[i, DOMAIN_MAX]:
                 visited[i] = True
                 count += 1
                 stack[sp] = i

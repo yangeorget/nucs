@@ -19,7 +19,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 from rich import print
 
-from nucs.constants import LOG_FORMAT, LOG_LEVEL_INFO, MIN, OPTIM_RESET
+from nucs.constants import DOMAIN_MIN, LOG_FORMAT, LOG_LEVEL_INFO, OPTIM_RESET
 from nucs.problems.problem import Problem
 
 logger = logging.getLogger(__name__)
@@ -214,4 +214,4 @@ def get_solution(domains: NDArray) -> NDArray:
     :return: a Numpy array
     :rtype: NDArray
     """
-    return domains[:, MIN].copy()
+    return domains[:, DOMAIN_MIN].copy()

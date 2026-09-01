@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_MIN_MAX, PROP_CONSISTENCY, PROP_INCONSISTENCY
 
 
 def get_complexity_inverse(n: int, parameters: NDArray) -> int:
@@ -89,9 +89,9 @@ def compute_domains_inverse(domains: NDArray, parameters: NDArray) -> int:
 def trim_domains_inverse(n: int, variables: NDArray, offset: int) -> bool:
     # An inverse array only ever takes the n node labels offset..offset + n - 1.
     for i in range(n):
-        variables[i, MIN] = max(variables[i, MIN], offset)
-        variables[i, MAX] = min(variables[i, MAX], offset + n - 1)
-        if variables[i, MIN] > variables[i, MAX]:
+        variables[i, DOMAIN_MIN] = max(variables[i, DOMAIN_MIN], offset)
+        variables[i, DOMAIN_MAX] = min(variables[i, DOMAIN_MAX], offset + n - 1)
+        if variables[i, DOMAIN_MIN] > variables[i, DOMAIN_MAX]:
             return False
     return True
 
@@ -105,19 +105,19 @@ def filter_domains_inverse(n: int, next: NDArray, prev: NDArray, next_offset: in
     # pointers, touching only the infeasible prefix and suffix instead of scanning the whole range.
     for j in range(n):
         label = j + next_offset
-        lo = prev[j, MIN] - prev_offset
-        hi = prev[j, MAX] - prev_offset
+        lo = prev[j, DOMAIN_MIN] - prev_offset
+        hi = prev[j, DOMAIN_MAX] - prev_offset
         if lo == hi:  # prev[j] is fixed, propagate it to next
             next[lo] = label
         else:
             # raise the lower bound past the leading i where prev[j] != i (j is outside next[i])
-            while lo <= hi and (label < next[lo, MIN] or label > next[lo, MAX]):
+            while lo <= hi and (label < next[lo, DOMAIN_MIN] or label > next[lo, DOMAIN_MAX]):
                 lo += 1
             if lo > hi:  # no feasible value left
                 return False
-            prev[j, MIN] = lo + prev_offset
+            prev[j, DOMAIN_MIN] = lo + prev_offset
             # lower the upper bound past the trailing i where prev[j] != i
-            while label < next[hi, MIN] or label > next[hi, MAX]:
+            while label < next[hi, DOMAIN_MIN] or label > next[hi, DOMAIN_MAX]:
                 hi -= 1
-            prev[j, MAX] = hi + prev_offset
+            prev[j, DOMAIN_MAX] = hi + prev_offset
     return True

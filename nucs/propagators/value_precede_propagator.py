@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_value_precede(n: int, parameters: NDArray) -> int:
@@ -69,17 +76,17 @@ def compute_domains_value_precede(domains: NDArray, parameters: NDArray) -> int:
     s = parameters[0]
     t = parameters[1]
     for i in range(n):
-        lo = domains[i, MIN]
-        hi = domains[i, MAX]
+        lo = domains[i, DOMAIN_MIN]
+        hi = domains[i, DOMAIN_MAX]
         # t is forbidden at this position: no value s can precede it yet
         if lo == t and hi == t:
             return PROP_INCONSISTENCY
         if lo == t:
             lo += 1
-            domains[i, MIN] = lo
+            domains[i, DOMAIN_MIN] = lo
         elif hi == t:
             hi -= 1
-            domains[i, MAX] = hi
+            domains[i, DOMAIN_MAX] = hi
         # the first position that can still hold s ends the forbidden prefix
         if lo <= s <= hi:
             if lo == s and hi == s:  # s is fixed here, so it precedes every later t

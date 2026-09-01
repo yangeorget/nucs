@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_MIN_MAX, PROP_CONSISTENCY
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import IDEMPOTENCIES, get_algorithm_nb, register_propagator
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -31,8 +31,8 @@ def get_triggers_leq(n: int, variable: int, parameters: NDArray) -> int:
 @njit(cache=True)
 def compute_domains_leq(domains: NDArray, parameters: NDArray) -> int:
     """x <= y, as a propagator registered from outside the library."""
-    domains[0][MAX] = min(domains[0][MAX], domains[1][MAX])
-    domains[1][MIN] = max(domains[1][MIN], domains[0][MIN])
+    domains[0][DOMAIN_MAX] = min(domains[0][DOMAIN_MAX], domains[1][DOMAIN_MAX])
+    domains[1][DOMAIN_MIN] = max(domains[1][DOMAIN_MIN], domains[0][DOMAIN_MIN])
     return PROP_CONSISTENCY
 
 

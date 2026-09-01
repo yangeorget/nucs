@@ -15,7 +15,7 @@ import sys
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 
 
 @njit(cache=True)
@@ -37,7 +37,7 @@ def smallest_minimal_value_var_heuristic(decision_variables: NDArray, domains: N
     best_variable = -1
     for variable in decision_variables:
         domain = domains[variable]
-        if domain[MIN] < domain[MAX] and domain[MIN] < best_min:  # not instantiated
+        if domain[DOMAIN_MIN] < domain[DOMAIN_MAX] and domain[DOMAIN_MIN] < best_min:  # not instantiated
             best_variable = variable
-            best_min = domain[MIN]
+            best_min = domain[DOMAIN_MIN]
     return best_variable

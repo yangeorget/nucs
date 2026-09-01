@@ -16,7 +16,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_MIN_MAX, PROP_CONSISTENCY, PROP_INCONSISTENCY
 
 
 def get_complexity_total_cost(n: int, parameters: NDArray) -> int:
@@ -60,8 +60,8 @@ def compute_domains_total_cost(domains: NDArray, parameters: NDArray) -> int:
     n = len(domains) - 1
     used = np.zeros(n, dtype=np.bool)
     for i in range(n):
-        if domains[i, MIN] == domains[i, MAX]:
-            used[domains[i, MIN]] = True
+        if domains[i, DOMAIN_MIN] == domains[i, DOMAIN_MAX]:
+            used[domains[i, DOMAIN_MIN]] = True
     global_min = 0
     # for j in range(n):
     #     max_regret = 0
@@ -75,12 +75,12 @@ def compute_domains_total_cost(domains: NDArray, parameters: NDArray) -> int:
     #     global_min -= max_regret
     global_max = 0
     for i in range(n):
-        if domains[i, MIN] == domains[i, MAX]:
-            local_min = local_max = parameters[i * n + domains[i, MIN]]
+        if domains[i, DOMAIN_MIN] == domains[i, DOMAIN_MAX]:
+            local_min = local_max = parameters[i * n + domains[i, DOMAIN_MIN]]
         else:
             local_min = sys.maxsize
             local_max = 0
-            for value in range(domains[i, MIN], domains[i, MAX] + 1):
+            for value in range(domains[i, DOMAIN_MIN], domains[i, DOMAIN_MAX] + 1):
                 if not used[value]:
                     cost = parameters[i * n + value]
                     if cost > 0:
@@ -90,8 +90,8 @@ def compute_domains_total_cost(domains: NDArray, parameters: NDArray) -> int:
             #     return PROP_INCONSISTENCY
         global_min += local_min
         global_max += local_max
-    domains[-1, MIN] = max(domains[-1, MIN], global_min)
-    domains[-1, MAX] = min(domains[-1, MAX], global_max)
-    if domains[-1, MIN] > domains[-1, MAX]:
+    domains[-1, DOMAIN_MIN] = max(domains[-1, DOMAIN_MIN], global_min)
+    domains[-1, DOMAIN_MAX] = min(domains[-1, DOMAIN_MAX], global_max)
+    if domains[-1, DOMAIN_MIN] > domains[-1, DOMAIN_MAX]:
         return PROP_INCONSISTENCY
     return PROP_CONSISTENCY

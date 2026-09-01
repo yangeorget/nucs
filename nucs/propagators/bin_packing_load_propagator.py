@@ -14,7 +14,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_MIN_MAX, PROP_CONSISTENCY, PROP_INCONSISTENCY
 
 # Budgets bounding the exact subset-sum reasoning so a single call stays cheap on large instances; beyond
 # them the propagator falls back to the (always sound) load bounds and O(1) item rules.
@@ -150,9 +150,9 @@ def compute_domains_bin_packing_load(domains: NDArray, parameters: NDArray) -> i
         nc = 0
         for i in range(item_nb):
             item = domains[bin_nb + i]
-            if item[MIN] <= v <= item[MAX]:
+            if item[DOMAIN_MIN] <= v <= item[DOMAIN_MAX]:
                 w = parameters[1 + i]
-                if item[MIN] == item[MAX]:
+                if item[DOMAIN_MIN] == item[DOMAIN_MAX]:
                     required += w
                 else:
                     cand_idx[nc] = i
@@ -161,16 +161,16 @@ def compute_domains_bin_packing_load(domains: NDArray, parameters: NDArray) -> i
                     nc += 1
         load = domains[j]
         # load bounds: required <= load[j] <= required + (all candidates)
-        load[MIN] = max(load[MIN], required)
-        load[MAX] = min(load[MAX], required + total)
-        if load[MIN] > load[MAX]:
+        load[DOMAIN_MIN] = max(load[DOMAIN_MIN], required)
+        load[DOMAIN_MAX] = min(load[DOMAIN_MAX], required + total)
+        if load[DOMAIN_MIN] > load[DOMAIN_MAX]:
             return PROP_INCONSISTENCY
         if nc == 0:
             continue  # the load is fully determined by the fixed items
         if total <= SUBSET_SUM_CAP:
             reach = _reach(cand_w, nc, -1, total)
-            lo = load[MIN] - required
-            hi = load[MAX] - required
+            lo = load[DOMAIN_MIN] - required
+            hi = load[DOMAIN_MAX] - required
             # tighten the load to the sub-range its candidates can actually sum to
             min_c = -1
             for s in range(lo, hi + 1):
@@ -184,67 +184,67 @@ def compute_domains_bin_packing_load(domains: NDArray, parameters: NDArray) -> i
                 if reach[s]:
                     max_c = s
                     break
-            load[MIN] = max(load[MIN], required + min_c)
-            load[MAX] = min(load[MAX], required + max_c)
-            lo = load[MIN] - required
-            hi = load[MAX] - required
+            load[DOMAIN_MIN] = max(load[DOMAIN_MIN], required + min_c)
+            load[DOMAIN_MAX] = min(load[DOMAIN_MAX], required + max_c)
+            lo = load[DOMAIN_MIN] - required
+            hi = load[DOMAIN_MAX] - required
             if nc <= ITEM_SUBSET_CAP:
                 for t in range(nc):
                     item = domains[bin_nb + cand_idx[t]]
-                    if item[MIN] == item[MAX]:
+                    if item[DOMAIN_MIN] == item[DOMAIN_MAX]:
                         continue  # already committed by an earlier rule this pass
                     w = cand_w[t]
                     others = _reach(cand_w, nc, t, total - w)
                     # can the item still be in bin j? the others must fill [lo - w, hi - w]
                     if not _any_reachable(others, lo - w, hi - w):
-                        if item[MIN] == v:
-                            item[MIN] += 1
-                        elif item[MAX] == v:
-                            item[MAX] -= 1
-                        if item[MIN] > item[MAX]:
+                        if item[DOMAIN_MIN] == v:
+                            item[DOMAIN_MIN] += 1
+                        elif item[DOMAIN_MAX] == v:
+                            item[DOMAIN_MAX] -= 1
+                        if item[DOMAIN_MIN] > item[DOMAIN_MAX]:
                             return PROP_INCONSISTENCY
                         continue
                     # can the item still be out of bin j? the others alone must fill [lo, hi]
                     if not _any_reachable(others, lo, hi):
-                        item[MIN] = v
-                        item[MAX] = v
+                        item[DOMAIN_MIN] = v
+                        item[DOMAIN_MAX] = v
         else:
             # large candidate weight: fall back to the cheap sound rules
             for t in range(nc):
                 item = domains[bin_nb + cand_idx[t]]
-                if item[MIN] == item[MAX]:
+                if item[DOMAIN_MIN] == item[DOMAIN_MAX]:
                     continue
                 w = cand_w[t]
-                if required + w > load[MAX]:  # the item cannot fit in bin j
-                    if item[MIN] == v:
-                        item[MIN] += 1
-                    elif item[MAX] == v:
-                        item[MAX] -= 1
-                    if item[MIN] > item[MAX]:
+                if required + w > load[DOMAIN_MAX]:  # the item cannot fit in bin j
+                    if item[DOMAIN_MIN] == v:
+                        item[DOMAIN_MIN] += 1
+                    elif item[DOMAIN_MAX] == v:
+                        item[DOMAIN_MAX] -= 1
+                    if item[DOMAIN_MIN] > item[DOMAIN_MAX]:
                         return PROP_INCONSISTENCY
-                elif required + total - w < load[MIN]:  # nothing else can fill bin j
-                    item[MIN] = v
-                    item[MAX] = v
+                elif required + total - w < load[DOMAIN_MIN]:  # nothing else can fill bin j
+                    item[DOMAIN_MIN] = v
+                    item[DOMAIN_MAX] = v
     # total-weight channeling: when every item is placed within range, the loads sum to the total weight
     weight_sum = 0
     all_in_range = True
     for i in range(item_nb):
         weight_sum += parameters[1 + i]
         item = domains[bin_nb + i]
-        if item[MIN] < bin_low or item[MAX] > bin_low + bin_nb - 1:
+        if item[DOMAIN_MIN] < bin_low or item[DOMAIN_MAX] > bin_low + bin_nb - 1:
             all_in_range = False
     if all_in_range:
         load_min_sum = 0
         load_max_sum = 0
         for j in range(bin_nb):
-            load_min_sum += domains[j][MIN]
-            load_max_sum += domains[j][MAX]
+            load_min_sum += domains[j][DOMAIN_MIN]
+            load_max_sum += domains[j][DOMAIN_MAX]
         for j in range(bin_nb):
             load = domains[j]
-            new_min = weight_sum - (load_max_sum - load[MAX])
-            new_max = weight_sum - (load_min_sum - load[MIN])
-            load[MIN] = max(load[MIN], new_min)
-            load[MAX] = min(load[MAX], new_max)
-            if load[MIN] > load[MAX]:
+            new_min = weight_sum - (load_max_sum - load[DOMAIN_MAX])
+            new_max = weight_sum - (load_min_sum - load[DOMAIN_MIN])
+            load[DOMAIN_MIN] = max(load[DOMAIN_MIN], new_min)
+            load[DOMAIN_MAX] = min(load[DOMAIN_MAX], new_max)
+            if load[DOMAIN_MIN] > load[DOMAIN_MAX]:
                 return PROP_INCONSISTENCY
     return PROP_CONSISTENCY

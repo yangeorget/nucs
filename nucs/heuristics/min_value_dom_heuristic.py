@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import DECISION_LE, MIN
+from nucs.constants import DECISION_LE, DOMAIN_MIN
 
 
 @njit(cache=True)
@@ -31,4 +31,4 @@ def min_value_dom_heuristic(domains: NDArray, variable: int, params: NDArray) ->
     :return: the kind of the decision and the value the domain is split at
     :rtype: Tuple[int, int]
     """
-    return DECISION_LE, domains[variable, MIN]
+    return DECISION_LE, domains[variable, DOMAIN_MIN]

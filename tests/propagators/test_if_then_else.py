@@ -16,7 +16,7 @@ import random
 import numpy as np
 import pytest
 
-from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.if_then_else_propagator import compute_domains_if_then_else
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -97,5 +97,5 @@ class TestIfThenElse(PropagatorTest):
             for v in range(2 * b + 1):
                 bc_min = min(a[v] for a in feasible)
                 bc_max = max(a[v] for a in feasible)
-                assert domains[v, MIN] <= bc_min, f"over-pruned MIN of var {v}: {bounds}"
-                assert domains[v, MAX] >= bc_max, f"over-pruned MAX of var {v}: {bounds}"
+                assert domains[v, DOMAIN_MIN] <= bc_min, f"over-pruned MIN of var {v}: {bounds}"
+                assert domains[v, DOMAIN_MAX] >= bc_max, f"over-pruned MAX of var {v}: {bounds}"

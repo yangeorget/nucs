@@ -17,7 +17,7 @@ import random
 import numpy as np
 import pytest
 
-from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 from nucs.propagators.bin_packing_load_propagator import compute_domains_bin_packing_load
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -127,4 +127,9 @@ class TestBinPackingLoad(PropagatorTest):
                 for var in range(bin_nb + item_nb):
                     lo = min(sol[var] for sol in solutions)
                     hi = max(sol[var] for sol in solutions)
-                    assert arr[var][MIN] <= lo and arr[var][MAX] >= hi, (weights, load_doms, bin_doms, var)
+                    assert arr[var][DOMAIN_MIN] <= lo and arr[var][DOMAIN_MAX] >= hi, (
+                        weights,
+                        load_doms,
+                        bin_doms,
+                        var,
+                    )

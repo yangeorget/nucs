@@ -15,7 +15,7 @@ import sys
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import DECISION_EQ, MAX, MIN
+from nucs.constants import DECISION_EQ, DOMAIN_MAX, DOMAIN_MIN
 
 
 @njit(cache=True)
@@ -39,8 +39,8 @@ def min_cost_dom_heuristic(domains: NDArray, variable: int, params: NDArray) -> 
     """
     best_cost = sys.maxsize
     domain = domains[variable]
-    best_value = domain[MIN]
-    for value in range(domain[MIN], domain[MAX] + 1):
+    best_value = domain[DOMAIN_MIN]
+    for value in range(domain[DOMAIN_MIN], domain[DOMAIN_MAX] + 1):
         cost = params[variable][value]
         if 0 < cost < best_cost:
             best_cost = cost

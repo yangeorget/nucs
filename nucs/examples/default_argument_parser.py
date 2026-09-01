@@ -16,7 +16,7 @@ from typing import Any
 
 from numpy.typing import NDArray
 
-from nucs.constants import LOG_LEVELS, MAX, MIN, OPTIM_MODES, OPTIM_RESET
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, LOG_LEVELS, OPTIM_MODES, OPTIM_RESET
 from nucs.heuristics.heuristics import DOM_HEURISTICS, VAR_HEURISTICS
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALGS
 from nucs.solvers.solver import Solver
@@ -150,7 +150,7 @@ def run_optimizer(
     :rtype: Optional[NDArray]
     """
     mode = args.optimization_mode or default_mode
-    solution = solver.find_best(objective, bound=MAX if maximize else MIN, mode=mode)
+    solution = solver.find_best(objective, bound=DOMAIN_MAX if maximize else DOMAIN_MIN, mode=mode)
     if args.display_stats:
         solver.print_statistics()
     if args.display_solutions:

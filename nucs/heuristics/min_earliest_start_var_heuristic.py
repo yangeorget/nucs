@@ -15,7 +15,7 @@ import sys
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 
 
 @njit(cache=True)
@@ -45,8 +45,8 @@ def min_earliest_start_var_heuristic(decision_variables: NDArray, domains: NDArr
     best_earliest_start = sys.maxsize
     best_latest_start = sys.maxsize
     for variable in decision_variables:
-        earliest_start = domains[variable, MIN]
-        latest_start = domains[variable, MAX]
+        earliest_start = domains[variable, DOMAIN_MIN]
+        latest_start = domains[variable, DOMAIN_MAX]
         # unbound, and lexicographically better on (earliest_start, latest_start)
         if earliest_start < latest_start and (
             earliest_start < best_earliest_start

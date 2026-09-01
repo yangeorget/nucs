@@ -17,7 +17,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_MIN_MAX, PROP_CONSISTENCY, PROP_INCONSISTENCY
 from nucs.propagators.alldifferent_propagator import argsort_into, path_max, path_min, path_set
 
 
@@ -136,8 +136,8 @@ def update_bounds(
     l: NDArray,
     u: NDArray,
 ) -> int:
-    min_value = domains[min_sorted_vars[0], MIN]
-    max_value = domains[max_sorted_vars[0], MAX] + 1
+    min_value = domains[min_sorted_vars[0], DOMAIN_MIN]
+    max_value = domains[max_sorted_vars[0], DOMAIN_MAX] + 1
     bounds[0] = last = l[0, -1] + 1
     i = j = nb = 0
     while True:
@@ -145,19 +145,19 @@ def update_bounds(
             if min_value != last:
                 nb += 1
                 bounds[nb] = last = min_value
-            ranks[min_sorted_vars[i], MIN] = nb
+            ranks[min_sorted_vars[i], DOMAIN_MIN] = nb
             i += 1
             if i < n:
-                min_value = domains[min_sorted_vars[i], MIN]
+                min_value = domains[min_sorted_vars[i], DOMAIN_MIN]
         else:
             if max_value != last:
                 nb += 1
                 bounds[nb] = last = max_value
-            ranks[max_sorted_vars[j], MAX] = nb
+            ranks[max_sorted_vars[j], DOMAIN_MAX] = nb
             j += 1
             if j == n:
                 break
-            max_value = domains[max_sorted_vars[j], MAX] + 1
+            max_value = domains[max_sorted_vars[j], DOMAIN_MAX] + 1
     bounds[nb + 1] = u[1, -1] + 1
     return nb
 
@@ -180,8 +180,8 @@ def filter_lower_max(
         t[i] = h[i] = i1
         d[i] = get_sum(u, bounds[i1], bounds[i] - 1)
     for i in range(len(max_sorted_vars)):
-        x = ranks[max_sorted_vars[i], MIN]
-        y = ranks[max_sorted_vars[i], MAX]
+        x = ranks[max_sorted_vars[i], DOMAIN_MIN]
+        y = ranks[max_sorted_vars[i], DOMAIN_MAX]
         z = path_max(t, x + 1)
         j = t[z]
         d[z] -= 1
@@ -195,7 +195,7 @@ def filter_lower_max(
         path_set(t, x + 1, z, z)  # path compression
         if h[x] > x:
             w = path_max(h, h[x])
-            domains[max_sorted_vars[i], MIN] = bounds[w]
+            domains[max_sorted_vars[i], DOMAIN_MIN] = bounds[w]
             path_set(h, x, w, w)  # path compression
             # changes = 1
         if delta == 0:
@@ -223,8 +223,8 @@ def filter_upper_max(
         t[i] = h[i] = i1
         d[i] = get_sum(u, bounds[i], bounds[i1] - 1)
     for i in range(n - 1, -1, -1):
-        x = ranks[min_sorted_vars[i], MAX]
-        y = ranks[min_sorted_vars[i], MIN]
+        x = ranks[min_sorted_vars[i], DOMAIN_MAX]
+        y = ranks[min_sorted_vars[i], DOMAIN_MIN]
         z = path_min(t, x - 1)
         j = t[z]
         d[z] -= 1
@@ -238,7 +238,7 @@ def filter_upper_max(
         path_set(t, x - 1, z, z)  # path compression
         if h[x] < x:
             w = path_min(h, h[x])
-            domains[min_sorted_vars[i], MAX] = bounds[w] - 1
+            domains[min_sorted_vars[i], DOMAIN_MAX] = bounds[w] - 1
             path_set(h, x, w, w)  # path compression
             # changes = 1
         if delta == 0:
@@ -280,8 +280,8 @@ def filter_lower_min(
         else:
             tl[w] = w = i
     for i in range(len(max_sorted_vars)):  # visit intervals in increasing max order
-        x = ranks[max_sorted_vars[i], MIN]
-        y = ranks[max_sorted_vars[i], MAX]
+        x = ranks[max_sorted_vars[i], DOMAIN_MIN]
+        y = ranks[max_sorted_vars[i], DOMAIN_MAX]
         z = path_max(tl, x + 1)
         j = tl[z]
         if z != x + 1:
@@ -330,10 +330,10 @@ def filter_lower_min(
             w = i
     # For all variables that are not a subset of a stable set, shrink the lower bound.
     for i in range(n - 1, -1, -1):
-        x = ranks[max_sorted_vars[i], MIN]
-        y = ranks[max_sorted_vars[i], MAX]
+        x = ranks[max_sorted_vars[i], DOMAIN_MIN]
+        y = ranks[max_sorted_vars[i], DOMAIN_MAX]
         if stable_intervals[x] <= x or y > stable_intervals[x]:
-            domains[max_sorted_vars[i], MIN] = skip_non_null_elements_right(l, bounds[new_mins[i]])
+            domains[max_sorted_vars[i], DOMAIN_MIN] = skip_non_null_elements_right(l, bounds[new_mins[i]])
             # changes = 1
     return True
 
@@ -370,8 +370,8 @@ def filter_upper_min(
             w = i
     sets[w] = nb + 1
     for i in range(n - 1, -1, -1):  # visit intervals in decreasing max order
-        x = ranks[min_sorted_vars[i], MAX]
-        y = ranks[min_sorted_vars[i], MIN]
+        x = ranks[min_sorted_vars[i], DOMAIN_MAX]
+        y = ranks[min_sorted_vars[i], DOMAIN_MIN]
         # solve the lower bound problem
         z = path_min(tl, x - 1)
         j = tl[z]
@@ -396,10 +396,10 @@ def filter_upper_min(
         path_set(tl, x - 1, z, z)
     #  For all variables that are not subsets of a stable set, shrink the lower bound.
     for i in range(n - 1, -1, -1):
-        x = ranks[min_sorted_vars[i], MIN]
-        y = ranks[min_sorted_vars[i], MAX]
+        x = ranks[min_sorted_vars[i], DOMAIN_MIN]
+        y = ranks[min_sorted_vars[i], DOMAIN_MAX]
         if stable_intervals[x] <= x or y > stable_intervals[x]:
-            domains[min_sorted_vars[i], MAX] = skip_non_null_elements_left(l, bounds[new_maxs[i]] - 1)
+            domains[min_sorted_vars[i], DOMAIN_MAX] = skip_non_null_elements_left(l, bounds[new_maxs[i]] - 1)
             # changes = 1
     return True
 
@@ -467,16 +467,16 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     new_mins = zero_buffer[2 * bounds_nb :]
     l = init_partial_sum(parameters[0], m, parameters[1 : 1 + m])
     u = init_partial_sum(parameters[0], m, parameters[1 + m :])
-    argsort_into(min_sorted_vars, domains, MIN)
-    argsort_into(max_sorted_vars, domains, MAX)
+    argsort_into(min_sorted_vars, domains, DOMAIN_MIN)
+    argsort_into(max_sorted_vars, domains, DOMAIN_MAX)
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
     # assert get_min_value(l) == get_min_value(u)
     # assert get_max_value(l) == get_max_value(u)
     # assert get_min_value(l) <= domains[min_sorted_vars[0], MIN]
     # assert domains[max_sorted_vars[n - 1], MAX] <= get_max_value(u)
-    if get_sum(l, get_min_value(l), domains[min_sorted_vars[0], MIN] - 1) > 0:
+    if get_sum(l, get_min_value(l), domains[min_sorted_vars[0], DOMAIN_MIN] - 1) > 0:
         return PROP_INCONSISTENCY
-    if get_sum(l, domains[max_sorted_vars[n - 1], MAX] + 1, get_max_value(l)) > 0:
+    if get_sum(l, domains[max_sorted_vars[n - 1], DOMAIN_MAX] + 1, get_max_value(l)) > 0:
         return PROP_INCONSISTENCY
     if not filter_lower_max(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars, u):
         return PROP_INCONSISTENCY

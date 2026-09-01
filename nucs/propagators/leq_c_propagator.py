@@ -14,10 +14,10 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
     EVENT_MASK_MAX,
     EVENT_MASK_MIN,
-    MAX,
-    MIN,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
@@ -69,12 +69,12 @@ def compute_domains_leq_c(domains: NDArray, parameters: NDArray) -> int:
     x = domains[0]
     y = domains[1]
     c = int(parameters[0])
-    if x[MAX] <= y[MIN] + c:
+    if x[DOMAIN_MAX] <= y[DOMAIN_MIN] + c:
         return PROP_ENTAILMENT
-    x[MAX] = min(x[MAX], y[MAX] + c)
-    if x[MIN] > x[MAX]:
+    x[DOMAIN_MAX] = min(x[DOMAIN_MAX], y[DOMAIN_MAX] + c)
+    if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
         return PROP_INCONSISTENCY
-    y[MIN] = max(y[MIN], x[MIN] - c)
-    if y[MIN] > y[MAX]:
+    y[DOMAIN_MIN] = max(y[DOMAIN_MIN], x[DOMAIN_MIN] - c)
+    if y[DOMAIN_MIN] > y[DOMAIN_MAX]:
         return PROP_INCONSISTENCY
     return PROP_CONSISTENCY

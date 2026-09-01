@@ -14,10 +14,10 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
     EVENT_MASK_GROUND,
     EVENT_MASK_NONE,
-    MAX,
-    MIN,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
@@ -82,8 +82,8 @@ def compute_domains_linear_neq_c(domains: NDArray, parameters: NDArray) -> int:
         factor = factors[i]
         if factor == 0:
             continue
-        x_min = domains[i, MIN]
-        x_max = domains[i, MAX]
+        x_min = domains[i, DOMAIN_MIN]
+        x_max = domains[i, DOMAIN_MAX]
         if factor > 0:
             sum_min += factor * x_min
             sum_max += factor * x_max
@@ -107,14 +107,14 @@ def compute_domains_linear_neq_c(domains: NDArray, parameters: NDArray) -> int:
     rest = c
     for i in range(n):
         if i != unbound and factors[i] != 0:
-            rest -= factors[i] * domains[i, MIN]
+            rest -= factors[i] * domains[i, DOMAIN_MIN]
     if rest % factor != 0:
         return PROP_ENTAILMENT
     v = rest // factor
-    if domains[unbound, MIN] == v:
-        domains[unbound, MIN] = v + 1
-    elif domains[unbound, MAX] == v:
-        domains[unbound, MAX] = v - 1
+    if domains[unbound, DOMAIN_MIN] == v:
+        domains[unbound, DOMAIN_MIN] = v + 1
+    elif domains[unbound, DOMAIN_MAX] == v:
+        domains[unbound, DOMAIN_MAX] = v - 1
     else:
         return PROP_CONSISTENCY
     return PROP_ENTAILMENT

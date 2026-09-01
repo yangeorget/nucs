@@ -17,7 +17,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import CHOICE_POINT_TRAIL_MARK, EVENT_NB, MAX, MIN
+from nucs.constants import CHOICE_POINT_TRAIL_MARK, DOMAIN_MAX, DOMAIN_MIN, EVENT_NB
 from nucs.numba_helper import ComputeDomainsFunctions
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
@@ -91,10 +91,10 @@ class GolombProblem(Problem):
         domains = [[0, sum_first(dist_nb) - sum_first(dist_nb - mark_nb)]] * dist_nb
         for i in range(mark_nb - 1):
             for j in range(i + 1, mark_nb):
-                domains[index(mark_nb, i, j)][MIN] = (
+                domains[index(mark_nb, i, j)][DOMAIN_MIN] = (
                     GOLOMB_LENGTHS[j - i + 1] if j - i + 1 < mark_nb else sum_first(j - i)
                 )
-        super().__init__([(domain[MIN], domain[MAX]) for domain in domains])
+        super().__init__([(domain[DOMAIN_MIN], domain[DOMAIN_MAX]) for domain in domains])
         self.length_idx = index(mark_nb, 0, mark_nb - 1)  # we want to minimize this
         # dist_ij = mark_j - mark_i for j > i
         # mark_j = dist_0j for j > 0
@@ -167,7 +167,7 @@ def golomb_consistency_algorithm(
     # the first unbound variable in index order (the marks are the leading variables), -1 when all are bound
     ni_var = -1
     for var in range(domain_nb):
-        if domains[var, MIN] < domains[var, MAX]:
+        if domains[var, DOMAIN_MIN] < domains[var, DOMAIN_MAX]:
             ni_var = var
             break
     if 1 < ni_var < mark_nb - 1:  # otherwise useless
@@ -178,7 +178,7 @@ def golomb_consistency_algorithm(
         # the following will mark at most sum(n-3) numbers as used
         # hence there will be at least n-2 unused numbers greater than 0
         for var in range(index(mark_nb, ni_var - 2, ni_var - 1) + 1):
-            dist = domains[var, MIN]  # no offset
+            dist = domains[var, DOMAIN_MIN]  # no offset
             if dist < len(used_distance):
                 used_distance[dist] = True
         # let's compute the sum of non-used numbers

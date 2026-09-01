@@ -15,7 +15,7 @@ import sys
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import MAX, MIN
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 
 
 @njit(cache=True)
@@ -36,7 +36,7 @@ def max_regret_var_heuristic(decision_variables: NDArray, domains: NDArray, para
     best_score = best_variable = -1
     for variable in decision_variables:
         domain = domains[variable]
-        if domain[MIN] < domain[MAX]:
+        if domain[DOMAIN_MIN] < domain[DOMAIN_MAX]:
             score = regret(domain, params[variable])
             if best_score < score:
                 best_variable = variable
@@ -47,7 +47,7 @@ def max_regret_var_heuristic(decision_variables: NDArray, domains: NDArray, para
 @njit(cache=True)
 def regret(domain: NDArray, costs: NDArray) -> int:
     best_cost = second_cost = sys.maxsize
-    for value in range(domain[MIN], domain[MAX] + 1):
+    for value in range(domain[DOMAIN_MIN], domain[DOMAIN_MAX] + 1):
         cost = costs[value]
         if 0 < cost < best_cost:
             second_cost = best_cost

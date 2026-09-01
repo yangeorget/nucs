@@ -14,10 +14,10 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
     EVENT_MASK_MIN,
     EVENT_MASK_MIN_MAX,
-    MAX,
-    MIN,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
@@ -79,17 +79,17 @@ def compute_domains_eq_c_imp(domains: NDArray, parameters: NDArray) -> int:
     b = domains[0]
     x = domains[1]
     c = int(parameters[0])
-    if b[MAX] == 0:  # b is false: the implication is vacuously satisfied
+    if b[DOMAIN_MAX] == 0:  # b is false: the implication is vacuously satisfied
         return PROP_ENTAILMENT
-    if b[MIN] == 1:  # b is true: enforce x = c
-        if c < x[MIN] or c > x[MAX]:
+    if b[DOMAIN_MIN] == 1:  # b is true: enforce x = c
+        if c < x[DOMAIN_MIN] or c > x[DOMAIN_MAX]:
             return PROP_INCONSISTENCY
         x[:] = c
         return PROP_ENTAILMENT
     # b is free: only the contrapositive can fire
-    if x[MIN] > c or x[MAX] < c:  # x = c is impossible -> b must be false
+    if x[DOMAIN_MIN] > c or x[DOMAIN_MAX] < c:  # x = c is impossible -> b must be false
         b[:] = 0
         return PROP_ENTAILMENT
-    if x[MIN] == c and x[MAX] == c:  # x = c is entailed -> the implication holds for any b
+    if x[DOMAIN_MIN] == c and x[DOMAIN_MAX] == c:  # x = c is entailed -> the implication holds for any b
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY

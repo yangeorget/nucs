@@ -14,10 +14,10 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
     EVENT_MASK_MIN,
     EVENT_MASK_MIN_MAX,
-    MAX,
-    MIN,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
@@ -80,20 +80,20 @@ def compute_domains_leq_c_imp(domains: NDArray, parameters: NDArray) -> int:
     x = domains[1]
     y = domains[2]
     c = parameters[0]
-    if b[MAX] == 0:  # b is false: the implication is vacuously satisfied
+    if b[DOMAIN_MAX] == 0:  # b is false: the implication is vacuously satisfied
         return PROP_ENTAILMENT
-    if b[MIN] == 1:  # b is true: enforce x <= y + c
-        x[MAX] = min(x[MAX], y[MAX] + c)
-        y[MIN] = max(y[MIN], x[MIN] - c)
-        if x[MIN] > x[MAX] or y[MIN] > y[MAX]:
+    if b[DOMAIN_MIN] == 1:  # b is true: enforce x <= y + c
+        x[DOMAIN_MAX] = min(x[DOMAIN_MAX], y[DOMAIN_MAX] + c)
+        y[DOMAIN_MIN] = max(y[DOMAIN_MIN], x[DOMAIN_MIN] - c)
+        if x[DOMAIN_MIN] > x[DOMAIN_MAX] or y[DOMAIN_MIN] > y[DOMAIN_MAX]:
             return PROP_INCONSISTENCY
-        if x[MAX] <= y[MIN] + c:
+        if x[DOMAIN_MAX] <= y[DOMAIN_MIN] + c:
             return PROP_ENTAILMENT
         return PROP_CONSISTENCY
     # b is free: only the contrapositive can fire
-    if x[MIN] > y[MAX] + c:  # x <= y + c is impossible -> b must be false
+    if x[DOMAIN_MIN] > y[DOMAIN_MAX] + c:  # x <= y + c is impossible -> b must be false
         b[:] = 0
         return PROP_ENTAILMENT
-    if x[MAX] <= y[MIN] + c:  # x <= y + c is entailed -> the implication holds for any b
+    if x[DOMAIN_MAX] <= y[DOMAIN_MIN] + c:  # x <= y + c is entailed -> the implication holds for any b
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY

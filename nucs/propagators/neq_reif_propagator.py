@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_neq_reif(n: int, parameters: NDArray) -> int:
@@ -66,49 +73,49 @@ def compute_domains_neq_reif(domains: NDArray, parameters: NDArray) -> int:
     x = domains[1]
     y = domains[2]
     # If b is fixed to 1, then x != y
-    if b[MIN] == 1:
+    if b[DOMAIN_MIN] == 1:
         # Check if x and y are already different
-        if x[MAX] < y[MIN] or y[MAX] < x[MIN]:
+        if x[DOMAIN_MAX] < y[DOMAIN_MIN] or y[DOMAIN_MAX] < x[DOMAIN_MIN]:
             return PROP_ENTAILMENT
         # If x is fixed, remove that value from y
-        if x[MIN] == x[MAX]:
-            if y[MIN] == x[MIN]:
-                y[MIN] += 1
-                if y[MIN] > y[MAX]:
+        if x[DOMAIN_MIN] == x[DOMAIN_MAX]:
+            if y[DOMAIN_MIN] == x[DOMAIN_MIN]:
+                y[DOMAIN_MIN] += 1
+                if y[DOMAIN_MIN] > y[DOMAIN_MAX]:
                     return PROP_INCONSISTENCY
-            if y[MAX] == x[MAX]:
-                y[MAX] -= 1
-                if y[MIN] > y[MAX]:
+            if y[DOMAIN_MAX] == x[DOMAIN_MAX]:
+                y[DOMAIN_MAX] -= 1
+                if y[DOMAIN_MIN] > y[DOMAIN_MAX]:
                     return PROP_INCONSISTENCY
         # If y is fixed, remove that value from x
-        if y[MIN] == y[MAX]:
-            if x[MIN] == y[MIN]:
-                x[MIN] += 1
-                if x[MIN] > x[MAX]:
+        if y[DOMAIN_MIN] == y[DOMAIN_MAX]:
+            if x[DOMAIN_MIN] == y[DOMAIN_MIN]:
+                x[DOMAIN_MIN] += 1
+                if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
                     return PROP_INCONSISTENCY
-            if x[MAX] == y[MAX]:
-                x[MAX] -= 1
-                if x[MIN] > x[MAX]:
+            if x[DOMAIN_MAX] == y[DOMAIN_MAX]:
+                x[DOMAIN_MAX] -= 1
+                if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
                     return PROP_INCONSISTENCY
         return PROP_CONSISTENCY
     # If b is fixed to 0, then x = y
-    if b[MAX] == 0:
+    if b[DOMAIN_MAX] == 0:
         # Compute intersection
-        new_min = max(x[MIN], y[MIN])
-        new_max = min(x[MAX], y[MAX])
+        new_min = max(x[DOMAIN_MIN], y[DOMAIN_MIN])
+        new_max = min(x[DOMAIN_MAX], y[DOMAIN_MAX])
         if new_min > new_max:
             return PROP_INCONSISTENCY
-        x[MIN] = y[MIN] = new_min
-        x[MAX] = y[MAX] = new_max
-        if x[MIN] == x[MAX]:
+        x[DOMAIN_MIN] = y[DOMAIN_MIN] = new_min
+        x[DOMAIN_MAX] = y[DOMAIN_MAX] = new_max
+        if x[DOMAIN_MIN] == x[DOMAIN_MAX]:
             return PROP_ENTAILMENT
         return PROP_CONSISTENCY
     # If x and y have no overlap, then b = 1
-    if x[MAX] < y[MIN] or y[MAX] < x[MIN]:
+    if x[DOMAIN_MAX] < y[DOMAIN_MIN] or y[DOMAIN_MAX] < x[DOMAIN_MIN]:
         b[:] = 1
         return PROP_ENTAILMENT
     # If x and y are fixed, then b = 1 or 0
-    if x[MIN] == x[MAX] and y[MIN] == y[MAX]:
-        b[:] = 1 if x[MIN] != y[MIN] else 0
+    if x[DOMAIN_MIN] == x[DOMAIN_MAX] and y[DOMAIN_MIN] == y[DOMAIN_MAX]:
+        b[:] = 1 if x[DOMAIN_MIN] != y[DOMAIN_MIN] else 0
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY

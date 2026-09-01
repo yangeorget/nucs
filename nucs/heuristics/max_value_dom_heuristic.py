@@ -13,7 +13,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import DECISION_GT, MAX
+from nucs.constants import DECISION_GT, DOMAIN_MAX
 
 
 @njit(cache=True)
@@ -31,4 +31,4 @@ def max_value_dom_heuristic(domains: NDArray, variable: int, params: NDArray) ->
     :return: the kind of the decision and the value the domain is split at
     :rtype: Tuple[int, int]
     """
-    return DECISION_GT, domains[variable, MAX] - 1
+    return DECISION_GT, domains[variable, DOMAIN_MAX] - 1

@@ -40,8 +40,8 @@ from rich.console import Console
 from rich.table import Table
 
 from nucs.constants import (
-    MAX,
-    MIN,
+    DOMAIN_MAX,
+    DOMAIN_MIN,
     OPTIM_PRUNE,
     STATS_LBL_ALG_BC_NB,
     STATS_LBL_PROPAGATOR_ENTAILMENT_NB,
@@ -132,12 +132,12 @@ def first_solution(name: str, solver: BacktrackSolver) -> BenchmarkResult:
 
 
 def minimize(name: str, solver: BacktrackSolver, variable: int) -> BenchmarkResult:
-    solver.find_best(variable, MIN, OPTIM_PRUNE)
+    solver.find_best(variable, DOMAIN_MIN, OPTIM_PRUNE)
     return _result(name, solver)
 
 
 def maximize(name: str, solver: BacktrackSolver, variable: int) -> BenchmarkResult:
-    solver.find_best(variable, MAX)
+    solver.find_best(variable, DOMAIN_MAX)
     return _result(name, solver)
 
 

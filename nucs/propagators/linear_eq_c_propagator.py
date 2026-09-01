@@ -14,10 +14,10 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
     EVENT_MASK_MIN_MAX,
     EVENT_MASK_NONE,
-    MAX,
-    MIN,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
@@ -75,8 +75,8 @@ def compute_domains_linear_eq_c(domains: NDArray, parameters: NDArray) -> int:
     unbound_count = 0
     for i in range(n):
         factor = factors[i]
-        x_min = domains[i, MIN]
-        x_max = domains[i, MAX]
+        x_min = domains[i, DOMAIN_MIN]
+        x_max = domains[i, DOMAIN_MAX]
         if factor > 0:
             domain_sum_min += factor * x_max
             domain_sum_max += factor * x_min
@@ -96,8 +96,8 @@ def compute_domains_linear_eq_c(domains: NDArray, parameters: NDArray) -> int:
         factor = factors[i]
         if factor == 0:
             continue
-        x_min = domains[i, MIN]
-        x_max = domains[i, MAX]
+        x_min = domains[i, DOMAIN_MIN]
+        x_max = domains[i, DOMAIN_MAX]
         if x_min == x_max:
             continue
         if factor > 0:
@@ -107,7 +107,7 @@ def compute_domains_linear_eq_c(domains: NDArray, parameters: NDArray) -> int:
             new_min = x_max - (domain_sum_max // factor)
             new_max = x_min + (-domain_sum_min // factor)
         if new_min > x_min:
-            domains[i, MIN] = new_min
+            domains[i, DOMAIN_MIN] = new_min
         if new_max < x_max:
-            domains[i, MAX] = new_max
+            domains[i, DOMAIN_MAX] = new_max
     return PROP_CONSISTENCY

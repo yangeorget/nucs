@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_diffn(n: int, parameters: NDArray) -> int:
@@ -76,14 +83,14 @@ def compute_domains_diffn(domains: NDArray, parameters: NDArray) -> int:
     # reschedules it after any pass that changed a domain.
     for i in range(n):
         for j in range(i + 1, n):
-            xi_min = domains[i, MIN]
-            xi_max = domains[i, MAX]
-            xj_min = domains[j, MIN]
-            xj_max = domains[j, MAX]
-            yi_min = domains[n + i, MIN]
-            yi_max = domains[n + i, MAX]
-            yj_min = domains[n + j, MIN]
-            yj_max = domains[n + j, MAX]
+            xi_min = domains[i, DOMAIN_MIN]
+            xi_max = domains[i, DOMAIN_MAX]
+            xj_min = domains[j, DOMAIN_MIN]
+            xj_max = domains[j, DOMAIN_MAX]
+            yi_min = domains[n + i, DOMAIN_MIN]
+            yi_max = domains[n + i, DOMAIN_MAX]
+            yj_min = domains[n + j, DOMAIN_MIN]
+            yj_max = domains[n + j, DOMAIN_MAX]
             dxi = parameters[i]
             dxj = parameters[j]
             dyi = parameters[n + i]
@@ -100,31 +107,43 @@ def compute_domains_diffn(domains: NDArray, parameters: NDArray) -> int:
             if not x_sep:
                 # the rectangles overlap along x, so they must be separated along y
                 if not c:  # only D remains: enforce y_j + dy_j <= y_i
-                    domains[n + i, MIN] = max(domains[n + i, MIN], yj_min + dyj)
-                    domains[n + j, MAX] = min(domains[n + j, MAX], yi_max - dyj)
-                    if domains[n + i, MIN] > domains[n + i, MAX] or domains[n + j, MIN] > domains[n + j, MAX]:
+                    domains[n + i, DOMAIN_MIN] = max(domains[n + i, DOMAIN_MIN], yj_min + dyj)
+                    domains[n + j, DOMAIN_MAX] = min(domains[n + j, DOMAIN_MAX], yi_max - dyj)
+                    if (
+                        domains[n + i, DOMAIN_MIN] > domains[n + i, DOMAIN_MAX]
+                        or domains[n + j, DOMAIN_MIN] > domains[n + j, DOMAIN_MAX]
+                    ):
                         return PROP_INCONSISTENCY
                 elif not d:  # only C remains: enforce y_i + dy_i <= y_j
-                    domains[n + j, MIN] = max(domains[n + j, MIN], yi_min + dyi)
-                    domains[n + i, MAX] = min(domains[n + i, MAX], yj_max - dyi)
-                    if domains[n + i, MIN] > domains[n + i, MAX] or domains[n + j, MIN] > domains[n + j, MAX]:
+                    domains[n + j, DOMAIN_MIN] = max(domains[n + j, DOMAIN_MIN], yi_min + dyi)
+                    domains[n + i, DOMAIN_MAX] = min(domains[n + i, DOMAIN_MAX], yj_max - dyi)
+                    if (
+                        domains[n + i, DOMAIN_MIN] > domains[n + i, DOMAIN_MAX]
+                        or domains[n + j, DOMAIN_MIN] > domains[n + j, DOMAIN_MAX]
+                    ):
                         return PROP_INCONSISTENCY
             elif not y_sep:
                 # the rectangles overlap along y, so they must be separated along x
                 if not a:  # only B remains: enforce x_j + dx_j <= x_i
-                    domains[i, MIN] = max(domains[i, MIN], xj_min + dxj)
-                    domains[j, MAX] = min(domains[j, MAX], xi_max - dxj)
-                    if domains[i, MIN] > domains[i, MAX] or domains[j, MIN] > domains[j, MAX]:
+                    domains[i, DOMAIN_MIN] = max(domains[i, DOMAIN_MIN], xj_min + dxj)
+                    domains[j, DOMAIN_MAX] = min(domains[j, DOMAIN_MAX], xi_max - dxj)
+                    if (
+                        domains[i, DOMAIN_MIN] > domains[i, DOMAIN_MAX]
+                        or domains[j, DOMAIN_MIN] > domains[j, DOMAIN_MAX]
+                    ):
                         return PROP_INCONSISTENCY
                 elif not b:  # only A remains: enforce x_i + dx_i <= x_j
-                    domains[j, MIN] = max(domains[j, MIN], xi_min + dxi)
-                    domains[i, MAX] = min(domains[i, MAX], xj_max - dxi)
-                    if domains[i, MIN] > domains[i, MAX] or domains[j, MIN] > domains[j, MAX]:
+                    domains[j, DOMAIN_MIN] = max(domains[j, DOMAIN_MIN], xi_min + dxi)
+                    domains[i, DOMAIN_MAX] = min(domains[i, DOMAIN_MAX], xj_max - dxi)
+                    if (
+                        domains[i, DOMAIN_MIN] > domains[i, DOMAIN_MAX]
+                        or domains[j, DOMAIN_MIN] > domains[j, DOMAIN_MAX]
+                    ):
                         return PROP_INCONSISTENCY
     # when every coordinate is fixed and no overlap was detected, the constraint can no longer be violated
     bound_nb = 0
     for v in range(2 * n):
-        if domains[v, MIN] == domains[v, MAX]:
+        if domains[v, DOMAIN_MIN] == domains[v, DOMAIN_MAX]:
             bound_nb += 1
     if bound_nb == 2 * n:
         return PROP_ENTAILMENT

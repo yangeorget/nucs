@@ -14,7 +14,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_GROUND, MAX, MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_GROUND, PROP_CONSISTENCY, PROP_INCONSISTENCY
 
 PATH_START = 0
 PATH_END = 1
@@ -73,9 +73,9 @@ def compute_domains_no_sub_cycle(domains: NDArray, parameters: NDArray) -> int:
     n = len(domains)
     offset = int(parameters[0]) if len(parameters) > 0 else 0
     for i in range(n):
-        domains[i, MIN] = max(domains[i, MIN], offset)
-        domains[i, MAX] = min(domains[i, MAX], offset + n - 1)
-        if domains[i, MIN] > domains[i, MAX]:
+        domains[i, DOMAIN_MIN] = max(domains[i, DOMAIN_MIN], offset)
+        domains[i, DOMAIN_MAX] = min(domains[i, DOMAIN_MAX], offset + n - 1)
+        if domains[i, DOMAIN_MIN] > domains[i, DOMAIN_MAX]:
             return PROP_INCONSISTENCY
     paths = np.zeros((n, 3), dtype=np.int16)
     for i in range(n):
@@ -84,8 +84,8 @@ def compute_domains_no_sub_cycle(domains: NDArray, parameters: NDArray) -> int:
     while loop:
         loop = False
         for i in range(n):
-            if domains[i, MIN] == domains[i, MAX]:
-                j = domains[i, MIN] - offset
+            if domains[i, DOMAIN_MIN] == domains[i, DOMAIN_MAX]:
+                j = domains[i, DOMAIN_MIN] - offset
                 if i == j:
                     return PROP_INCONSISTENCY
                 if paths[i, PATH_END] == i:
@@ -99,11 +99,11 @@ def compute_domains_no_sub_cycle(domains: NDArray, parameters: NDArray) -> int:
                     ] = length
                     if length < n - 1:
                         # closing the chain back onto its start would make a sub-cycle: forbid that label
-                        if domains[end, MIN] == start + offset:
-                            domains[end, MIN] = start + offset + 1
-                        if domains[end, MAX] == start + offset:
-                            domains[end, MAX] = start + offset - 1
-                        if domains[end, MIN] > domains[end, MAX]:
+                        if domains[end, DOMAIN_MIN] == start + offset:
+                            domains[end, DOMAIN_MIN] = start + offset + 1
+                        if domains[end, DOMAIN_MAX] == start + offset:
+                            domains[end, DOMAIN_MAX] = start + offset - 1
+                        if domains[end, DOMAIN_MIN] > domains[end, DOMAIN_MAX]:
                             return PROP_INCONSISTENCY
                         if end < i:
                             loop = True

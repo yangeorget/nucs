@@ -12,7 +12,7 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import MIN
+from nucs.constants import DOMAIN_MIN
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm, index
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import register_consistency_algorithm
@@ -30,6 +30,6 @@ class TestGolomb:
         problem = GolombProblem(mark_nb)
         consistency_alg_golomb = register_consistency_algorithm(golomb_consistency_algorithm)
         solver = BacktrackSolver(problem, consistency_algorithm=consistency_alg_golomb)
-        solution = solver.find_best(problem.length_idx, MIN)
+        solution = solver.find_best(problem.length_idx, DOMAIN_MIN)
         assert solution is not None
         assert solution[problem.length_idx] == length

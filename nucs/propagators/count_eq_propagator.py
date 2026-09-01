@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_count_eq(n: int, parameters: NDArray) -> int:
@@ -65,13 +72,13 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray) -> int:
     # the counter must lie in [count_min, count_max]. The counter bounds are read once into locals,
     # and the loop bails out as soon as count_max drops below them (too few possible) or count_min
     # rises above them (too many forced), saving the rest of the scan.
-    counter_min = counter[MIN]
-    counter_max = counter[MAX]
+    counter_min = counter[DOMAIN_MIN]
+    counter_max = counter[DOMAIN_MAX]
     count_max = len(x)
     count_min = 0
     for x_i in x:
-        x_i_min = x_i[MIN]
-        x_i_max = x_i[MAX]
+        x_i_min = x_i[DOMAIN_MIN]
+        x_i_max = x_i[DOMAIN_MAX]
         if x_i_min > a or x_i_max < a:  # a is not in the domain: this x_i can never equal a
             count_max -= 1
             if count_max < counter_min:
@@ -81,29 +88,29 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray) -> int:
             if count_min > counter_max:
                 return PROP_INCONSISTENCY
     if count_min > counter_min:
-        counter[MIN] = count_min
+        counter[DOMAIN_MIN] = count_min
     if count_max < counter_max:
-        counter[MAX] = count_max
+        counter[DOMAIN_MAX] = count_max
     if count_min == count_max:
         return PROP_ENTAILMENT
     if count_min == counter_max:  # we cannot have more domains equal to a
         all_different = True
         for x_i in x:
-            x_i_min = x_i[MIN]
-            x_i_max = x_i[MAX]
+            x_i_min = x_i[DOMAIN_MIN]
+            x_i_max = x_i[DOMAIN_MAX]
             if x_i_min == a:
                 if x_i_max > a:
-                    x_i[MIN] = a + 1
+                    x_i[DOMAIN_MIN] = a + 1
             elif x_i_min < a:
                 if x_i_max == a:
-                    x_i[MAX] = a - 1
+                    x_i[DOMAIN_MAX] = a - 1
                 elif x_i_max > a:
                     all_different = False
         if all_different:
             return PROP_ENTAILMENT
     if count_max == counter_min:  # we cannot have more domains different from a
         for x_i in x:
-            if x_i[MIN] <= a <= x_i[MAX]:
+            if x_i[DOMAIN_MIN] <= a <= x_i[DOMAIN_MAX]:
                 x_i[:] = a
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY

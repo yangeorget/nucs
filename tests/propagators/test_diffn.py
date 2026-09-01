@@ -16,7 +16,7 @@ import random
 import numpy as np
 import pytest
 
-from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.diffn_propagator import compute_domains_diffn
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -90,5 +90,5 @@ class TestDiffn(PropagatorTest):
             for v in range(2 * n):
                 bc_min = min(coord[v] for coord in feasible)
                 bc_max = max(coord[v] for coord in feasible)
-                assert domains[v, MIN] <= bc_min, f"over-pruned MIN of {v}: {bounds} {dx} {dy}"
-                assert domains[v, MAX] >= bc_max, f"over-pruned MAX of {v}: {bounds} {dx} {dy}"
+                assert domains[v, DOMAIN_MIN] <= bc_min, f"over-pruned MIN of {v}: {bounds} {dx} {dy}"
+                assert domains[v, DOMAIN_MAX] >= bc_max, f"over-pruned MAX of {v}: {bounds} {dx} {dy}"

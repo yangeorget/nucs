@@ -41,8 +41,8 @@ import time
 
 import nucs
 from nucs.constants import (
-    MAX,
-    MIN,
+    DOMAIN_MAX,
+    DOMAIN_MIN,
     STATS_IDX_PROPAGATOR_FILTER_NB,
     STATS_IDX_SOLVER_BACKTRACK_NB,
 )
@@ -101,7 +101,7 @@ def _solve_worker(problem, model, queue) -> None:  # type: ignore[no-untyped-def
     solver = BacktrackSolver(problem, log_level="ERROR")
     if model.solve.kind in ("minimize", "maximize"):
         objective_var = model.var_index_of(model.solve.objective)
-        solution = solver.find_best(objective_var, MIN if model.solve.kind == "minimize" else MAX)
+        solution = solver.find_best(objective_var, DOMAIN_MIN if model.solve.kind == "minimize" else DOMAIN_MAX)
         status = "OPTIMAL" if solution is not None else "UNSATISFIABLE"
         objective = int(solution[objective_var]) if solution is not None else None
     else:

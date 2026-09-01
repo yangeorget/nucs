@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_increasing(n: int, parameters: NDArray) -> int:
@@ -63,15 +70,15 @@ def compute_domains_increasing(domains: NDArray, parameters: NDArray) -> int:
     n = len(domains)
     # forward sweep: each x_i is at least its predecessor's minimum
     for i in range(1, n):
-        domains[i][MIN] = max(domains[i][MIN], domains[i - 1][MIN])
+        domains[i][DOMAIN_MIN] = max(domains[i][DOMAIN_MIN], domains[i - 1][DOMAIN_MIN])
     # backward sweep: each x_i is at most its successor's maximum
     for i in range(n - 2, -1, -1):
-        domains[i][MAX] = min(domains[i][MAX], domains[i + 1][MAX])
+        domains[i][DOMAIN_MAX] = min(domains[i][DOMAIN_MAX], domains[i + 1][DOMAIN_MAX])
     # consistency check and entailment detection (entailed when every pair is already ordered)
     entailed = True
     for i in range(n):
-        if domains[i][MIN] > domains[i][MAX]:
+        if domains[i][DOMAIN_MIN] > domains[i][DOMAIN_MAX]:
             return PROP_INCONSISTENCY
-        if i < n - 1 and domains[i][MAX] > domains[i + 1][MIN]:
+        if i < n - 1 and domains[i][DOMAIN_MAX] > domains[i + 1][DOMAIN_MIN]:
             entailed = False
     return PROP_ENTAILMENT if entailed else PROP_CONSISTENCY

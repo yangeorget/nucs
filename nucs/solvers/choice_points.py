@@ -22,12 +22,12 @@ from nucs.constants import (
     DECISION_EQ,
     DECISION_GT,
     DECISION_LE,
+    DOMAIN_MAX,
+    DOMAIN_MIN,
     EVENT_MASK_NONE,
-    MAX,
-    MIN,
-    OBJ_BOUND,
-    OBJ_VALUE,
-    OBJ_VARIABLE,
+    OBJECTIVE_BOUND,
+    OBJECTIVE_VALUE,
+    OBJECTIVE_VARIABLE,
     STATS_IDX_SOLVER_BACKTRACK_NB,
 )
 from nucs.propagators.propagators import update_propagators
@@ -70,8 +70,9 @@ def choice_point_init(
     :type unbound_variable_nb: int
     """
     for variable in range(len(domains)):
-        state[variable << 1] = domains[variable, MIN]
-        state[(variable << 1) | 1] = domains[variable, MAX]
+        cell_idx = variable << 1
+        state[cell_idx] = domains[variable, DOMAIN_MIN]
+        state[cell_idx | 1] = domains[variable, DOMAIN_MAX]
     state[unbound_index(state)] = unbound_variable_nb
     entailed.fill(0)
     trail_indices.fill(-1)
@@ -171,17 +172,19 @@ def branch(
             kind = DECISION_GT
             value = domain_max - 1
     if kind == DECISION_LE:
-        park(choice_point_stk, choice_point, mark, variable, MIN, value + 1)
+        park(choice_point_stk, choice_point, mark, variable, DOMAIN_MIN, value + 1)
         choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark
         choice_point_top[0] = choice_point + 1
         return tighten(state, trail_log, trail_top, trail_indices, mark, variable, domain_min, value)
     if kind == DECISION_GT:
-        park(choice_point_stk, choice_point, mark, variable, MAX, value)
+        park(choice_point_stk, choice_point, mark, variable, DOMAIN_MAX, value)
         choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark
         choice_point_top[0] = choice_point + 1
         return tighten(state, trail_log, trail_top, trail_indices, mark, variable, value + 1, domain_max)
-    park(choice_point_stk, choice_point, mark, variable, MIN, value + 1)  # the shallower alternative is resumed last
-    park(choice_point_stk, choice_point + 1, mark, variable, MAX, value - 1)
+    park(
+        choice_point_stk, choice_point, mark, variable, DOMAIN_MIN, value + 1
+    )  # the shallower alternative is resumed last
+    park(choice_point_stk, choice_point + 1, mark, variable, DOMAIN_MAX, value - 1)
     choice_point_stk[choice_point + 2, CHOICE_POINT_TRAIL_MARK] = mark
     choice_point_top[0] = choice_point + 2
     return tighten(state, trail_log, trail_top, trail_indices, mark, variable, value, value)
@@ -220,10 +223,10 @@ def tighten_objective(
              -1 when the choice point wipes out
     :rtype: int
     """
-    variable = objective[OBJ_VARIABLE]
-    value = objective[OBJ_VALUE]
+    variable = objective[OBJECTIVE_VARIABLE]
+    value = objective[OBJECTIVE_VALUE]
     cell_idx = variable << 1
-    if objective[OBJ_BOUND] == MIN:
+    if objective[OBJECTIVE_BOUND] == DOMAIN_MIN:
         new_min = max(value + 1, state[cell_idx])
         new_max = state[cell_idx | 1]
     else:
@@ -295,7 +298,7 @@ def backtrack(
     :return: true iff it is possible to backtrack
     :rtype: bool
     """
-    optimized_variable = objective[OBJ_VARIABLE]
+    optimized_variable = objective[OBJECTIVE_VARIABLE]
     while choice_point_top[0] > 0:
         choice_point_top[0] -= 1
         choice_point = choice_point_top[0]
@@ -304,7 +307,7 @@ def backtrack(
         trail_undo(state, trail_log, trail_indices, trail_top, mark)
         variable = choice_point_stk[choice_point, CHOICE_POINT_VARIABLE]
         cell_idx = variable << 1
-        if choice_point_stk[choice_point, CHOICE_POINT_BOUND] == MIN:
+        if choice_point_stk[choice_point, CHOICE_POINT_BOUND] == DOMAIN_MIN:
             new_min = max(choice_point_stk[choice_point, CHOICE_POINT_VALUE], state[cell_idx])
             new_max = state[cell_idx | 1]
         else:
@@ -375,7 +378,7 @@ def tighten_objective_at_root(
     :rtype: bool
     """
     cell_idx = variable << 1
-    if bound == MIN:
+    if bound == DOMAIN_MIN:
         new_min = value + 1
         new_max = state[cell_idx | 1]
     else:

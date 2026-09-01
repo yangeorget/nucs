@@ -17,7 +17,7 @@ import random
 import numpy as np
 import pytest
 
-from nucs.constants import MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_REGULAR
 from nucs.propagators.regular_propagator import compute_domains_regular, is_vacuous_regular
@@ -50,7 +50,6 @@ def _brute_solutions(
 
 # DFA over {1, 2} accepting words with at least one 2: params [Q, S, q0, d(row-major), accept]
 AT_LEAST_ONE_2 = [2, 2, 1, 1, 2, 2, 2, 0, 1]
-
 
 # Q=1, S=2, q0=1, both symbols self-loop on the single accepting state: accepts every word over {1, 2}
 ALL_ACCEPTING = [1, 2, 1, 1, 1, 1]
@@ -102,7 +101,12 @@ class TestRegular(PropagatorTest):
             assert status != PROP_INCONSISTENCY, (d, accept, doms)
             for var in range(length):
                 values = {sol[var] for sol in solutions}
-                assert arr[var][MIN] == min(values) and arr[var][MAX] == max(values), (d, accept, doms, var)
+                assert arr[var][DOMAIN_MIN] == min(values) and arr[var][DOMAIN_MAX] == max(values), (
+                    d,
+                    accept,
+                    doms,
+                    var,
+                )
 
     @pytest.mark.parametrize(
         "parameters,domains,vacuous",

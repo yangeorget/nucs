@@ -14,7 +14,14 @@
 from numba import int64, njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_mul_eq(n: int, parameters: NDArray) -> int:
@@ -113,42 +120,42 @@ def compute_domains_mul_eq(domains: NDArray, parameters: NDArray) -> int:
     z = domains[2]
     # int64 avoids int32 overflow of the corner products
     # z = x * y: tighten z to the hull of the four corner products
-    z_lo, z_hi = prod_hull(int64(x[MIN]), int64(x[MAX]), int64(y[MIN]), int64(y[MAX]))
-    if z_lo > z[MAX] or z_hi < z[MIN]:
+    z_lo, z_hi = prod_hull(int64(x[DOMAIN_MIN]), int64(x[DOMAIN_MAX]), int64(y[DOMAIN_MIN]), int64(y[DOMAIN_MAX]))
+    if z_lo > z[DOMAIN_MAX] or z_hi < z[DOMAIN_MIN]:
         return PROP_INCONSISTENCY
-    z[MIN] = max(z[MIN], z_lo)
-    z[MAX] = min(z[MAX], z_hi)
-    zl = int64(z[MIN])
-    zu = int64(z[MAX])
+    z[DOMAIN_MIN] = max(z[DOMAIN_MIN], z_lo)
+    z[DOMAIN_MAX] = min(z[DOMAIN_MAX], z_hi)
+    zl = int64(z[DOMAIN_MIN])
+    zu = int64(z[DOMAIN_MAX])
     # x = z / y, only when 0 is not in [y] (otherwise x is unbounded)
-    yl = int64(y[MIN])
-    yu = int64(y[MAX])
+    yl = int64(y[DOMAIN_MIN])
+    yu = int64(y[DOMAIN_MAX])
     if yl > 0 or yu < 0:
         x_lo = div_lo(zl, zu, yl, yu)
         x_hi = div_hi(zl, zu, yl, yu)
-        if x_lo > x[MAX] or x_hi < x[MIN]:
+        if x_lo > x[DOMAIN_MAX] or x_hi < x[DOMAIN_MIN]:
             return PROP_INCONSISTENCY
-        x[MIN] = max(x[MIN], x_lo)
-        x[MAX] = min(x[MAX], x_hi)
+        x[DOMAIN_MIN] = max(x[DOMAIN_MIN], x_lo)
+        x[DOMAIN_MAX] = min(x[DOMAIN_MAX], x_hi)
     # y = z / x, only when 0 is not in [x]
-    xl = int64(x[MIN])
-    xu = int64(x[MAX])
+    xl = int64(x[DOMAIN_MIN])
+    xu = int64(x[DOMAIN_MAX])
     if xl > 0 or xu < 0:
         y_lo = div_lo(zl, zu, xl, xu)
         y_hi = div_hi(zl, zu, xl, xu)
-        if y_lo > y[MAX] or y_hi < y[MIN]:
+        if y_lo > y[DOMAIN_MAX] or y_hi < y[DOMAIN_MIN]:
             return PROP_INCONSISTENCY
-        y[MIN] = max(y[MIN], y_lo)
-        y[MAX] = min(y[MAX], y_hi)
+        y[DOMAIN_MIN] = max(y[DOMAIN_MIN], y_lo)
+        y[DOMAIN_MAX] = min(y[DOMAIN_MAX], y_hi)
     # re-tighten z now that x and y may have narrowed, so z is consistent before any entailment claim
-    z_lo, z_hi = prod_hull(int64(x[MIN]), int64(x[MAX]), int64(y[MIN]), int64(y[MAX]))
-    if z_lo > z[MAX] or z_hi < z[MIN]:
+    z_lo, z_hi = prod_hull(int64(x[DOMAIN_MIN]), int64(x[DOMAIN_MAX]), int64(y[DOMAIN_MIN]), int64(y[DOMAIN_MAX]))
+    if z_lo > z[DOMAIN_MAX] or z_hi < z[DOMAIN_MIN]:
         return PROP_INCONSISTENCY
-    z[MIN] = max(z[MIN], z_lo)
-    z[MAX] = min(z[MAX], z_hi)
-    x_ground = x[MIN] == x[MAX]
-    y_ground = y[MIN] == y[MAX]
+    z[DOMAIN_MIN] = max(z[DOMAIN_MIN], z_lo)
+    z[DOMAIN_MAX] = min(z[DOMAIN_MAX], z_hi)
+    x_ground = x[DOMAIN_MIN] == x[DOMAIN_MAX]
+    y_ground = y[DOMAIN_MIN] == y[DOMAIN_MAX]
     # entailed once both factors are fixed (z is now their product), or once a factor is fixed to 0 (z is 0)
-    if (x_ground and y_ground) or (x_ground and x[MIN] == 0) or (y_ground and y[MIN] == 0):
+    if (x_ground and y_ground) or (x_ground and x[DOMAIN_MIN] == 0) or (y_ground and y[DOMAIN_MIN] == 0):
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY

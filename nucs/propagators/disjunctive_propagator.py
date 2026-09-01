@@ -14,7 +14,14 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 # A sentinel smaller than any earliest start time, used to seed earliest-completion-time accumulations.
 MINUS_INF = -(1 << 62)
@@ -211,10 +218,10 @@ def compute_domains_disjunctive(domains: NDArray, parameters: NDArray) -> int:
     p = np.empty(n, dtype=np.int64)
     bound_nb = 0
     for i in range(n):
-        est[i] = domains[i, MIN]
+        est[i] = domains[i, DOMAIN_MIN]
         p[i] = parameters[i]
-        lct[i] = domains[i, MAX] + p[i]
-        if domains[i, MIN] == domains[i, MAX]:
+        lct[i] = domains[i, DOMAIN_MAX] + p[i]
+        if domains[i, DOMAIN_MIN] == domains[i, DOMAIN_MAX]:
             bound_nb += 1
     mest = np.empty(n, dtype=np.int64)
     mlct = np.empty(n, dtype=np.int64)
@@ -255,10 +262,10 @@ def compute_domains_disjunctive(domains: NDArray, parameters: NDArray) -> int:
         if est[i] + p[i] > lct[i]:
             return PROP_INCONSISTENCY
     for i in range(n):
-        domains[i, MIN] = max(domains[i, MIN], est[i])
+        domains[i, DOMAIN_MIN] = max(domains[i, DOMAIN_MIN], est[i])
         new_max = lct[i] - p[i]
-        domains[i, MAX] = min(domains[i, MAX], new_max)
-        if domains[i, MIN] > domains[i, MAX]:
+        domains[i, DOMAIN_MAX] = min(domains[i, DOMAIN_MAX], new_max)
+        if domains[i, DOMAIN_MIN] > domains[i, DOMAIN_MAX]:
             return PROP_INCONSISTENCY
     # When every start time is already fixed and consistent, the constraint can no longer be violated.
     if bound_nb == n:

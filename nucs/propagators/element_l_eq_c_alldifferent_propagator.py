@@ -13,7 +13,14 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import EVENT_MASK_MIN_MAX, MAX, MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 
 
 def get_complexity_element_l_eq_c_alldifferent(n: int, parameters: NDArray) -> int:
@@ -62,25 +69,25 @@ def compute_domains_element_l_eq_c_alldifferent(domains: NDArray, parameters: ND
     i = domains[-1]
     c = int(parameters[0])
     # i could be updated only once
-    i[MIN] = max(i[MIN], 0)
-    i[MAX] = min(i[MAX], len(l) - 1)
+    i[DOMAIN_MIN] = max(i[DOMAIN_MIN], 0)
+    i[DOMAIN_MAX] = min(i[DOMAIN_MAX], len(l) - 1)
     non_intersecting_idx = -1
-    for idx in range(i[MIN], i[MAX] + 1):
-        if c < l[idx, MIN] or c > l[idx, MAX]:  # no intersection
+    for idx in range(i[DOMAIN_MIN], i[DOMAIN_MAX] + 1):
+        if c < l[idx, DOMAIN_MIN] or c > l[idx, DOMAIN_MAX]:  # no intersection
             if non_intersecting_idx == -1:
                 non_intersecting_idx = idx
-            if idx == i[MIN]:
-                i[MIN] += 1
+            if idx == i[DOMAIN_MIN]:
+                i[DOMAIN_MIN] += 1
         else:  # intersection
-            if c == l[idx, MIN] and c == l[idx, MAX]:
+            if c == l[idx, DOMAIN_MIN] and c == l[idx, DOMAIN_MAX]:
                 i[:] = idx
                 return PROP_ENTAILMENT
             non_intersecting_idx = -1
     if non_intersecting_idx >= 0:
-        i[MAX] = non_intersecting_idx - 1
-        if i[MAX] < i[MIN]:
+        i[DOMAIN_MAX] = non_intersecting_idx - 1
+        if i[DOMAIN_MAX] < i[DOMAIN_MIN]:
             return PROP_INCONSISTENCY
-    if i[MIN] == i[MAX]:
-        l[i[MIN]] = c
+    if i[DOMAIN_MIN] == i[DOMAIN_MAX]:
+        l[i[DOMAIN_MIN]] = c
         return PROP_ENTAILMENT
     return PROP_CONSISTENCY
