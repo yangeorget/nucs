@@ -65,6 +65,8 @@ from nucs.constants import (
     STATS_LBL_SOLVER_CHOICE_NB,
     STATS_LBL_SOLVER_ELAPSED_TIME,
     STATS_MAX,
+    STEP_TIGHTENING_NB,
+    TIGHTENING_TRAIL_ENTRY_NB,
     VARIABLE,
 )
 from nucs.heuristics.heuristics import (
@@ -211,14 +213,16 @@ class BacktrackSolver(Solver):
         # bound and reactivating an entailed propagator are then the same instruction.
         domain_nb = self.problem.domain_nb
         propagator_nb = self.problem.propagator_nb
-        self.state = np.zeros(2 * domain_nb + propagator_nb + 1, dtype=np.int32)
-        self.domains = self.state[: 2 * domain_nb].reshape(domain_nb, 2)
-        self.entailed = self.state[2 * domain_nb : 2 * domain_nb + propagator_nb]
+        propagator_entailment_offset = 2 * domain_nb
+        unbound_count_offset = propagator_entailment_offset + propagator_nb
+        self.state = np.zeros(unbound_count_offset + 1, dtype=np.int32)
+        self.domains = self.state[:propagator_entailment_offset].reshape(domain_nb, 2)
+        self.entailed = self.state[propagator_entailment_offset:unbound_count_offset]
         # the guard lets a choice point trail each cell of state at most once -- every domain bound, every
-        # entailment flag and the count -- so a whole step of the search cannot need more than that,
-        # plus the handful of writes branching and backtracking add on top. The solver grows the trail
-        # when this much room is no longer there.
-        self.trail_headroom = 2 * domain_nb + propagator_nb + 9
+        # entailment flag and the count -- so a fixpoint cannot need more than len(state) entries, whatever
+        # it does; the tightenings the search applies around it write at their own mark and are counted on
+        # top. The solver grows the trail when this much room is no longer there.
+        self.trail_headroom = len(self.state) + STEP_TIGHTENING_NB * TIGHTENING_TRAIL_ENTRY_NB
         # Both starting sizes are a flat floor for the models the flat floor already covers, and a
         # model-derived one for the wide models it does not reach. The flat halves are measured: across the
         # 27 benchmark models the trail never exceeds 4096 entries and the stack never exceeds 64 rows, so

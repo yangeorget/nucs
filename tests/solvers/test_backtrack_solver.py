@@ -19,14 +19,20 @@ from nucs.constants import (
     CHOICE_POINT_BOUND,
     CHOICE_POINT_VALUE,
     CHOICE_POINT_VARIABLE,
+    DECISION_EQ,
     MAX,
     MIN,
+    OBJ_BOUND,
+    OBJ_VALUE,
+    OBJ_VARIABLE,
     OPTIM_PRUNE,
     OPTIM_RESET,
     STATS_LBL_PROPAGATOR_FILTER_NB,
     STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_LBL_SOLUTION_NB,
     STATS_LBL_SOLVER_CHOICE_DEPTH,
+    STEP_TIGHTENING_NB,
+    TIGHTENING_TRAIL_ENTRY_NB,
 )
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
@@ -46,7 +52,7 @@ from nucs.propagators.propagators import (
     ALG_RELATION,
 )
 from nucs.solvers.backtrack_solver import BacktrackSolver, solve_one
-from nucs.solvers.choice_points import backtrack
+from nucs.solvers.choice_points import backtrack, branch, tighten
 from nucs.solvers.search import Search
 
 
@@ -214,12 +220,14 @@ class TestBacktrackSolver:
         assert solver.trail_top[0] < 4 * len(solver.trail_indices)
         assert len(solver.trail_log) == 1 << 16  # it never had to grow
 
-    @pytest.mark.parametrize("trail_max_size", [8, 9, 16, 17, 33])
-    def test_the_trail_grows_rather_than_overruns(self, trail_max_size: int) -> None:
+    @pytest.mark.parametrize("offset", [-6, -5, 0, 1])
+    def test_the_trail_grows_rather_than_overruns(self, offset: int) -> None:
         """A trail too small for the search is grown, not overrun -- and the search is not restarted.
 
         Parameterized over sizes below and just above the headroom the solver reserves, so that a
         headroom too small for one step of the search shows up as a wrong answer rather than as luck.
+        The sizes are taken from the headroom rather than written out, so that they stay on that
+        boundary when what the headroom is derived from changes.
         """
 
         def build() -> Problem:
@@ -227,11 +235,71 @@ class TestBacktrackSolver:
             problem.add_propagator(ALG_ALLDIFFERENT, range(3))
             return problem
 
-        reference = [solution.tolist() for solution in BacktrackSolver(build()).find_all()]
+        reference_solver = BacktrackSolver(build())
+        reference = [solution.tolist() for solution in reference_solver.find_all()]
         assert len(reference) == 336
+        trail_max_size = reference_solver.trail_headroom + offset
         solver = BacktrackSolver(build(), trail_max_size=trail_max_size)
         assert [solution.tolist() for solution in solver.find_all()] == reference
         assert len(solver.trail_log) > trail_max_size  # it did have to grow
+
+    def test_what_the_trail_headroom_is_derived_from(self) -> None:
+        """The headroom reserves len(state) + STEP_TIGHTENING_NB x TIGHTENING_TRAIL_ENTRY_NB entries.
+
+        The first term is the write barrier's doing and is checked by the search itself; these two are
+        properties of tighten and backtrack, which nothing else would catch going stale. A tightening
+        that gains a fourth trailed cell, or a backtrack that gains a third tightening, has to raise the
+        constant it no longer fits in -- silently overrunning the trail is what the reserve exists to
+        prevent, and with boundscheck off it does not raise.
+        """
+        solver = BacktrackSolver(Problem([(0, 9), (0, 9)]))
+        mark = int(solver.trail_top[0])
+        # the widest single tightening: it moves both bounds and grounds the variable
+        tighten(solver.state, solver.trail_log, solver.trail_top, solver.trail_indices, mark, 0, 5, 5)
+        assert int(solver.trail_top[0]) - mark == TIGHTENING_TRAIL_ENTRY_NB
+
+        # a step that ends in a backtrack applies two tightenings -- the choice point's refutation, then
+        # the objective bound -- at a mark the trail holds nothing for, so each trails every cell it
+        # writes. Both ground their variable here, which is the most either can write.
+        solver = BacktrackSolver(Problem([(0, 9), (0, 9)]))
+        mark = int(solver.trail_top[0])
+        branch(
+            solver.state,
+            solver.trail_log,
+            solver.trail_top,
+            solver.trail_indices,
+            solver.choice_point_stk,
+            solver.choice_point_top,
+            0,
+            DECISION_EQ,
+            1,
+        )
+        solver.objective[OBJ_VARIABLE] = 1
+        solver.objective[OBJ_BOUND] = MAX
+        solver.objective[OBJ_VALUE] = 1
+        assert self._backtrack(solver)
+        assert solver.domains.tolist() == [[0, 0], [0, 0]]  # both refuted down to their min
+        # the reserve is an upper bound, not a tight one: a tightening moving one bound writes less than
+        # one moving two, and the unbound count is shared -- the second grounding finds it already trailed
+        assert int(solver.trail_top[0]) - mark <= STEP_TIGHTENING_NB * TIGHTENING_TRAIL_ENTRY_NB
+
+    @staticmethod
+    def _backtrack(solver: BacktrackSolver) -> bool:
+        return backtrack(
+            solver.statistics,
+            solver.state,
+            solver.trail_log,
+            solver.trail_top,
+            solver.trail_indices,
+            solver.choice_point_stk,
+            solver.choice_point_top,
+            solver.entailed,
+            solver.triggered_propagators,
+            solver.problem.triggers,
+            solver.problem.triggers_offsets,
+            solver.problem.priorities,
+            solver.objective,
+        )
 
     def test_the_level_stack_grows_rather_than_overruns(self) -> None:
         """Likewise for a search deeper than the choice point stack: grow, do not corrupt memory."""
