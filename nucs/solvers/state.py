@@ -37,11 +37,13 @@ def unbound_index(state: NDArray) -> int:
 @njit(cache=True, inline="always")
 def trail_push(trail_log: NDArray, trail_indices: NDArray, trail_size: int, cell_idx: int, old: int) -> int:
     """
-    Records a cell's old value unconditionally, for state that guards itself.
+    Records a cell's old value and stamps its position, without testing whether the entry is needed.
 
-    An entailment flag only ever goes from active to entailed, and only where the caller has just tested
-    that it was active, so it cannot be written twice in a choice point and needs no positional guard. The
-    position is still recorded, so that trail_undo can clear it like any other.
+    This is what trail_set records with once its barrier has decided, and the whole of what a caller
+    that owns the decision itself has to do. An entailment flag only ever goes from active to entailed,
+    and only where the caller has just tested that it was active, so it cannot be written twice in a
+    choice point and needs no positional guard. The position is still recorded either way, so that
+    trail_undo can clear it like any other.
 
     :param trail_log: the undo log of (cell index, old value) pairs
     :type trail_log: NDArray
@@ -93,12 +95,12 @@ def trail_set(
     cell, means there is no counter to bump -- and therefore no site that can forget to bump one. choice_point_init
     runs at solve time on every OPTIM_RESET, and every stack mutation is covered for free.
 
-    :param state: all the backtrackable state
-    :type state: NDArray
     The trail size is taken and returned rather than read out of its array, so that a caller writing
     several cells in a row -- which is every caller -- keeps it in a register instead of reloading it
     across each write.
 
+    :param state: all the backtrackable state
+    :type state: NDArray
     :param trail_log: the undo log of (cell index, old value) pairs
     :type trail_log: NDArray
     :param trail_indices: the index of the last trail entry per positionally guarded cell
@@ -119,10 +121,7 @@ def trail_set(
     """
     entry = trail_indices[cell_idx]
     if not mark <= entry < trail_size:  # no live entry for this cell at this choice point
-        trail_log[trail_size, 0] = cell_idx
-        trail_log[trail_size, 1] = old
-        trail_indices[cell_idx] = trail_size
-        trail_size += 1
+        trail_size = trail_push(trail_log, trail_indices, trail_size, cell_idx, old)
     state[cell_idx] = value
     return trail_size
 
