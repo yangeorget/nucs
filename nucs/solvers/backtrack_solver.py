@@ -240,9 +240,19 @@ class BacktrackSolver(Solver):
             (choice_point_max_height or max(1 << 13, 4 * domain_nb), CHOICE_POINT_WIDTH), dtype=np.int32
         )
         self.choice_point_top = np.ones((1,), dtype=np.uint32)
+        # why the jitted search last returned. It returns None both when the search is over and when it
+        # stopped because an array it cannot grow ran out, so the reason has to travel back beside the
+        # solution rather than in it: SOLVER_TRAIL_FULL and SOLVER_CHOICE_POINTS_FULL name the array that
+        # filled up, and _solve_one grows that one and resumes, while SOLVER_RUNNING means the search
+        # returned on its own terms and the loop is over. An array of one cell, not an int, because that
+        # is how a jitted function writes back to its caller.
         self.status = np.zeros(SOLVER_STATUS_WIDTH, dtype=np.int32)
-        # the branch-and-bound bound is solver state, not choice-point state: OBJ_VARIABLE is -1 outside
-        # OPTIM_PRUNE, and backtrack re-applies the bound to each choice point it resumes
+        # the branch-and-bound bound, as OBJ_VARIABLE, OBJ_BOUND and OBJ_VALUE: the variable being
+        # optimized, the side of its domain to tighten, and the best value found so far. It is solver
+        # state, not choice-point state -- the bound holds for the whole remaining search, so backtrack
+        # re-applies it to each choice point it resumes rather than it being written into them all when it
+        # is found, and nothing about it is trailed. OBJ_VARIABLE stays -1 outside OPTIM_PRUNE, which is
+        # how backtrack knows there is no bound to apply: OPTIM_RESET tightens at the root instead.
         self.objective = np.full(OBJ_WIDTH, -1, dtype=np.int32)
         logger.info(
             f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"

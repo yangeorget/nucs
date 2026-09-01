@@ -44,9 +44,9 @@ CHOICE_POINT_WIDTH = 4  # the number of columns of a choice point
 # give back the memory this representation wins -- the search stops and says which one is full, and the
 # solver grows it and resumes. Nothing of the search is lost: the state, the trail marks and the
 # positions all stay valid across the reallocation.
-SOLVER_RUNNING = 0  # the search stopped because it needs more room, not because it is over
-SOLVER_TRAIL_FULL = 1
-SOLVER_CHOICE_POINTS_FULL = 2
+SOLVER_RUNNING = 0  # nothing filled up: the search returned a solution or exhausted itself
+SOLVER_TRAIL_FULL = 1  # the search stopped because the trail needs more room, not because it is over
+SOLVER_CHOICE_POINTS_FULL = 2  # likewise for the stack of choice points
 SOLVER_STATUS = 0  # index for the status in the status array
 SOLVER_STATUS_WIDTH = 1
 
