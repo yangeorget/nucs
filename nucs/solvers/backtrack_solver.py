@@ -613,7 +613,7 @@ def solve_one_step(
     :type domains: NDArray
     :param entailed: whether each propagator is entailed, a view of state
     :type entailed: NDArray
-    :param trail: the undo log of (flat index, old value) pairs
+    :param trail: the undo log of (cell index, old value) pairs
     :type trail: NDArray
     :param trail_top: the trail size as a Numpy array
     :type trail_top: NDArray

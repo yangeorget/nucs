@@ -14,9 +14,10 @@ path runs in Numba nopython mode with no Python objects.
   `PROP_CONSISTENCY` / `PROP_ENTAILMENT`), `get_triggers_*` (when to re-wake), `get_complexity_*` (queue ordering). See
   `nucs/propagators/abs_eq_propagator.py` for the minimal template.
 - **`nucs/solvers/`** — `BacktrackSolver` (backtracking + propagation). The propagation fixpoint is `bc_algorithm`
-  (`bc_algorithm.py`), registered as `CONSISTENCY_ALG_BC`; the search driver is `solve_one_step` and the choice-point
-  primitives live in `choice_points.py`. Iterate solutions with `solver.solve()`, or optimize with
-  `solver.find_best(var, MIN)` / `solver.find_best(var, MAX)`.
+  (`bc_algorithm.py`), registered as `CONSISTENCY_ALG_BC`; the search driver is `solve_one_step`. The backtrackable
+  state and its trail live in `state.py` — `tighten`/`tighten_at` are the only sanctioned way to write a domain — and
+  the choice-point stack built on them lives in `choice_points.py`. Iterate solutions with `solver.solve()`, or
+  optimize with `solver.find_best(var, MIN)` / `solver.find_best(var, MAX)`.
 - **`nucs/heuristics/`** — variable heuristics pick the next unbound decision variable, domain heuristics pick how to
   split its domain. Both are Numba-jitted against the fixed signatures `SIGN_VAR_HEURISTIC` / `SIGN_DOM_HEURISTIC` in
   `nucs/constants.py` and dispatched by id.

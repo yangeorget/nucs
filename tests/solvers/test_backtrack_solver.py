@@ -52,8 +52,9 @@ from nucs.propagators.propagators import (
     ALG_RELATION,
 )
 from nucs.solvers.backtrack_solver import BacktrackSolver, solve_one_step
-from nucs.solvers.choice_points import backtrack, branch, tighten
+from nucs.solvers.choice_points import backtrack, branch
 from nucs.solvers.search import Search
+from nucs.solvers.state import tighten
 
 
 class TestBacktrackSolver:

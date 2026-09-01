@@ -27,7 +27,7 @@ from nucs.propagators.propagators import (
     update_propagators,
 )
 from nucs.solvers.bc_algorithm import bc_algorithm
-from nucs.solvers.choice_points import tighten_at
+from nucs.solvers.state import tighten_at
 
 GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])
 
@@ -193,7 +193,7 @@ def golomb_consistency_algorithm(
                 var = index(mark_nb, i, j)
                 # every domain write goes through tighten, which owns the groundness test and the
                 # unbound-variable count -- and, once domains are trailed, the write barrier
-                flat = var << 1
+                cell_idx = var << 1
                 events, trail_size = tighten_at(
                     state,
                     trail_log,
@@ -201,8 +201,8 @@ def golomb_consistency_algorithm(
                     mark,
                     trail_size,
                     var,
-                    max(state[flat], minimal_sum[j - i]),  # no offset
-                    state[flat | 1],
+                    max(state[cell_idx], minimal_sum[j - i]),  # no offset
+                    state[cell_idx | 1],
                 )
                 if events:
                     update_propagators(

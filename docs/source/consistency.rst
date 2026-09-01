@@ -35,8 +35,8 @@ Writing a domain
 .. warning::
 
    In NuCS 15 a consistency algorithm receives the current domains rather than a stack of them, and
-   **must** write them through :func:`nucs.solvers.choice_points.tighten` (or
-   :func:`~nucs.solvers.choice_points.tighten_at`, which threads the trail size through a loop). Assigning
+   **must** write them through :func:`nucs.solvers.state.tighten` (or
+   :func:`~nucs.solvers.state.tighten_at`, which threads the trail size through a loop). Assigning
    a domain directly still compiles and still looks right, but the write is not recorded on the trail:
    it is never undone, and it survives the backtrack into sibling subtrees. That is silent unsoundness,
    with no error to point at.

@@ -39,7 +39,7 @@ from nucs.constants import (
     VARIABLE,
 )
 from nucs.numba_helper import ComputeDomainsFunctions
-from nucs.solvers.choice_points import tighten_at, trail_push, unbound_index
+from nucs.solvers.state import tighten_at, trail_push, unbound_index
 
 
 @njit(cache=True)
@@ -95,7 +95,7 @@ def bc_algorithm(
     :type domains: NDArray
     :param entailed: whether each propagator is entailed, a view of state
     :type entailed: NDArray
-    :param trail_log: the undo log of (flat index, old value) pairs
+    :param trail_log: the undo log of (cell index, old value) pairs
     :type trail_log: NDArray
     :param trail_top: the trail size as a Numpy array
     :type trail_top: NDArray
@@ -223,8 +223,8 @@ def update_domains(
         variable = propagator_variables[prop_var_start + var_idx]
         # read the bounds out of state rather than out of the domains view of it: they are the same two
         # int32, but only this way can the compiler see that tighten is about to reload them
-        flat = variable << 1
-        if state[flat] != state[flat | 1]:
+        cell_idx = variable << 1
+        if state[cell_idx] != state[cell_idx | 1]:
             events, trail_size = tighten_at(
                 state,
                 trail_log,
