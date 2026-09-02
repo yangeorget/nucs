@@ -51,8 +51,6 @@ from nucs.constants import (
     STATS_LBL_SOLVER_CHOICE_NB,
     STATS_LBL_SOLVER_ELAPSED_TIME,
     STATS_MAX,
-    STEP_TIGHTENING_NB,
-    TIGHTENING_TRAIL_ENTRY_NB,
 )
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_FCTS,
@@ -103,6 +101,16 @@ SOLVER_TRAIL_FULL = 1  # the search stopped because the trail needs more room, n
 SOLVER_CHOICE_POINTS_FULL = 2  # likewise for the stack of choice points
 SOLVER_STATUS = 0  # index for the status in the status array
 SOLVER_STATUS_WIDTH = 1
+
+# Trail entries a step of the search needs beyond one per cell of the backtrackable state.
+# The barrier in trail_set trails each cell at most once per choice point, so a fixpoint cannot need more
+# than len(state) entries however long it runs. The tightenings the search applies around it are not
+# covered by that budget: each writes at a mark the trail holds nothing for yet, so every one of their
+# writes is trailed. A tightening writes a domain's two bounds and, when it grounds the variable, the
+# unbound count; a step applies at most two of them -- branch's decision is one, while backtracking a
+# choice point applies its parked alternative and then the branch-and-bound objective bound.
+TIGHTENING_TRAIL_ENTRY_NB = 3  # the two bounds of a domain and the unbound count
+STEP_TIGHTENING_NB = 2  # an alternative then the objective bound, the longer of the two ways out of a step
 
 
 class BacktrackSolver(Solver):

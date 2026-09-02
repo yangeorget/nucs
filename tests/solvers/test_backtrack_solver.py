@@ -26,8 +26,6 @@ from nucs.constants import (
     STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_LBL_SOLUTION_NB,
     STATS_LBL_SOLVER_CHOICE_DEPTH,
-    STEP_TIGHTENING_NB,
-    TIGHTENING_TRAIL_ENTRY_NB,
 )
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
@@ -46,7 +44,12 @@ from nucs.propagators.propagators import (
     ALG_NEQ,
     ALG_RELATION,
 )
-from nucs.solvers.backtrack_solver import BacktrackSolver, solve_one_step
+from nucs.solvers.backtrack_solver import (
+    STEP_TIGHTENING_NB,
+    TIGHTENING_TRAIL_ENTRY_NB,
+    BacktrackSolver,
+    solve_one_step,
+)
 from nucs.solvers.choice_points import CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_VARIABLE, backtrack, branch
 from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
