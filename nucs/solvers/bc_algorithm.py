@@ -238,9 +238,9 @@ def update_domains(
                 prop_domains[var_idx, DOMAIN_MAX],
             )
             if events:
-                offset = (variable << EVENT_NB) | events
+                idx = (variable << EVENT_NB) | events
                 if is_idempotent:
-                    for other_prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
+                    for other_prop_idx in triggers[triggers_offsets[idx] : triggers_offsets[idx + 1]]:
                         if not (
                             triggered_propagators[membership_offset + other_prop_idx]
                             or other_prop_idx == prop_idx
@@ -248,7 +248,7 @@ def update_domains(
                         ):
                             buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
                 else:
-                    for other_prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
+                    for other_prop_idx in triggers[triggers_offsets[idx] : triggers_offsets[idx + 1]]:
                         if not (triggered_propagators[membership_offset + other_prop_idx] or entailed[other_prop_idx]):
                             buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
                 no_changes = False
