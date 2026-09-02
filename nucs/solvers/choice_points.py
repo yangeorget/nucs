@@ -204,14 +204,21 @@ def tighten_objective(
     trail_top: NDArray,
     trail_indices: NDArray,
     mark: int,
-    objective: NDArray,
+    variable: int,
+    value: int,
+    bound: int,
 ) -> int:
     """
-    Applies the current branch-and-bound bound to the choice point the search has just resumed.
+    Applies a branch-and-bound bound to one choice point, wiping it out when nothing improving is left.
 
-    The bound is not backtrackable: it holds for the whole remaining search, so it is re-applied to each
-    choice point as the search resumes it rather than written into them all when it is found. The tightening
-    is monotone and idempotent, so re-applying it to an already-tightened choice point is a no-op.
+    The bound is not backtrackable: it holds for the whole remaining search, so OPTIM_PRUNE re-applies it to
+    each choice point as the search resumes it rather than writing it into them all when it is found. The
+    tightening is monotone and idempotent, so re-applying it to an already-tightened choice point is a no-op.
+
+    OPTIM_RESET calls this at the root instead, with a mark of 0, once per improving solution. The clamp
+    against the domain is redundant there -- the domains are the initial ones and value is a value some
+    solution reached, so it lies inside them -- but it costs one comparison on a path that runs once per
+    solution, and it is what keeps this function safe against its callers rather than dependent on them.
 
     :param state: all the backtrackable state
     :type state: NDArray
@@ -221,19 +228,21 @@ def tighten_objective(
     :type trail_top: NDArray
     :param trail_indices: the index of the last trail entry per positionally guarded cell
     :type trail_indices: NDArray
-    :param mark: the trail size when the resumed choice point branched
+    :param mark: the trail size when the choice point being tightened branched, 0 at the root
     :type mark: int
-    :param objective: the objective as a Numpy array of variable, bound and value
-    :type objective: NDArray
+    :param variable: the variable being optimized
+    :type variable: int
+    :param value: the best value found so far for that variable
+    :type value: int
+    :param bound: the side of its domain the bound tightens
+    :type bound: int
 
     :return: the events triggered by the tightening, EVENT_MASK_NONE when it changed nothing,
              -1 when the choice point wipes out
     :rtype: int
     """
-    variable = objective[OBJECTIVE_VARIABLE]
-    value = objective[OBJECTIVE_VALUE]
     cell_idx = variable << 1
-    if objective[OBJECTIVE_BOUND] == DOMAIN_MIN:
+    if bound == DOMAIN_MIN:
         new_min = max(value + 1, state[cell_idx])
         new_max = state[cell_idx | 1]
     else:
@@ -333,7 +342,16 @@ def backtrack(
             )
         if optimized_variable < 0:
             return True
-        events = tighten_objective(state, trail_log, trail_top, trail_indices, mark, objective)
+        events = tighten_objective(
+            state,
+            trail_log,
+            trail_top,
+            trail_indices,
+            mark,
+            optimized_variable,
+            objective[OBJECTIVE_VALUE],
+            objective[OBJECTIVE_BOUND],
+        )
         if events < 0:  # the choice point cannot hold an improving solution, keep popping
             continue
         if events != EVENT_MASK_NONE:
@@ -348,50 +366,3 @@ def backtrack(
             )
         return True
     return False
-
-
-@njit(cache=True)
-def tighten_objective_at_root(
-    state: NDArray,
-    trail_log: NDArray,
-    trail_top: NDArray,
-    trail_indices: NDArray,
-    variable: int,
-    value: int,
-    bound: int,
-) -> bool:
-    """
-    Applies the branch-and-bound bound to the root, after a reset.
-
-    The OPTIM_RESET half of what tighten_objective does for OPTIM_PRUNE. It needs no clamp against the
-    domain it writes: the domains are the initial ones, so the bound is a tightening by construction.
-
-    :param state: all the backtrackable state
-    :type state: NDArray
-    :param trail_log: the undo log of (cell index, old value) pairs
-    :type trail_log: NDArray
-    :param trail_top: the trail size as a Numpy array
-    :type trail_top: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
-    :param variable:  the variable being optimized
-    :type variable: int
-    :param value: the current optimal value for the variable
-    :type value: int
-    :param bound: the bound being optimized
-    :type bound: int
-
-    :return: true iff the resulting domain is non-empty
-    :rtype: bool
-    """
-    cell_idx = variable << 1
-    if bound == DOMAIN_MIN:
-        new_min = value + 1
-        new_max = state[cell_idx | 1]
-    else:
-        new_min = state[cell_idx]
-        new_max = value - 1
-    if new_min > new_max:
-        return False
-    tighten(state, trail_log, trail_top, trail_indices, 0, variable, new_min, new_max)
-    return True

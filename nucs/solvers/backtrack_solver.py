@@ -59,7 +59,7 @@ from nucs.solvers.choice_points import (
     backtrack,
     branch,
     choice_point_init,
-    tighten_objective_at_root,
+    tighten_objective,
 )
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
 from nucs.solvers.search import Search
@@ -407,8 +407,12 @@ class BacktrackSolver(Solver):
         if mode == OPTIM_RESET:
             logger.debug("Resetting solver")
             self._choice_point_init()
-            if not tighten_objective_at_root(
-                self.state, self.trail_log, self.trail_top, self.trail_indices, variable, value, bound
+            # at the root, so with a mark of 0: what this tightening writes is undone only by the next reset
+            if (
+                tighten_objective(
+                    self.state, self.trail_log, self.trail_top, self.trail_indices, 0, variable, value, bound
+                )
+                < 0
             ):
                 return False
             buckets_init(self.triggered_propagators, self.problem.priorities)
