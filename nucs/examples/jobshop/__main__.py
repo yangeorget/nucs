@@ -12,10 +12,11 @@
 ###############################################################################
 import json
 
-from nucs.constants import DOMAIN_MIN, OPTIM_PRUNE
+from nucs.constants import DOMAIN_MIN
 from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
 from nucs.examples.jobshop.jobshop_problem import JobShopProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.solver import OPTIM_PRUNE
 
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.jobshop --dataset datasets/examples/jobshop/mt06.json

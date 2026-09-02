@@ -25,19 +25,18 @@ at run time. We therefore compile each function exactly as :class:`BacktrackSolv
 solves to compile the remaining glue (the typed-list builders and inner-loop helpers).
 """
 
-from nucs.constants import (
-    SIGN_COMPUTE_DOMAINS,
-    SIGN_CONSISTENCY_ALG,
-    SIGN_DOM_HEURISTIC,
-    SIGN_GET_TRIGGERS,
-    SIGN_VAR_HEURISTIC,
-)
-from nucs.heuristics.heuristics import DOM_HEURISTIC_FCTS, VAR_HEURISTIC_FCTS
+from nucs.heuristics.heuristics import DOM_HEURISTIC_FCTS, SIGN_DOM_HEURISTIC, SIGN_VAR_HEURISTIC, VAR_HEURISTIC_FCTS
 from nucs.numba_helper import addresses_from_functions
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, COMPUTE_DOMAINS_FCTS, GET_TRIGGERS_FCTS
+from nucs.propagators.propagators import (
+    ALG_ALLDIFFERENT,
+    COMPUTE_DOMAINS_FCTS,
+    GET_TRIGGERS_FCTS,
+    SIGN_COMPUTE_DOMAINS,
+    SIGN_GET_TRIGGERS,
+)
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_FCTS
+from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
 
 
 def warm() -> None:

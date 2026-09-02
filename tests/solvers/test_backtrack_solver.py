@@ -16,17 +16,12 @@ import pytest
 
 from nucs.buckets import buckets_empty
 from nucs.constants import (
-    CHOICE_POINT_BOUND,
-    CHOICE_POINT_VALUE,
-    CHOICE_POINT_VARIABLE,
     DECISION_EQ,
     DOMAIN_MAX,
     DOMAIN_MIN,
     OBJECTIVE_BOUND,
     OBJECTIVE_VALUE,
     OBJECTIVE_VARIABLE,
-    OPTIM_PRUNE,
-    OPTIM_RESET,
     STATS_LBL_PROPAGATOR_FILTER_NB,
     STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_LBL_SOLUTION_NB,
@@ -52,8 +47,9 @@ from nucs.propagators.propagators import (
     ALG_RELATION,
 )
 from nucs.solvers.backtrack_solver import BacktrackSolver, solve_one_step
-from nucs.solvers.choice_points import backtrack, branch
+from nucs.solvers.choice_points import CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_VARIABLE, backtrack, branch
 from nucs.solvers.search import Search
+from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
 from nucs.solvers.state import tighten
 
 

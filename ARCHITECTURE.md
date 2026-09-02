@@ -20,7 +20,7 @@ path runs in Numba nopython mode with no Python objects.
   optimize with `solver.find_best(var, DOMAIN_MIN)` / `solver.find_best(var, DOMAIN_MAX)`.
 - **`nucs/heuristics/`** — variable heuristics pick the next unbound decision variable, domain heuristics pick how to
   split its domain. Both are Numba-jitted against the fixed signatures `SIGN_VAR_HEURISTIC` / `SIGN_DOM_HEURISTIC` in
-  `nucs/constants.py` and dispatched by id.
+  `nucs/heuristics/heuristics.py` and dispatched by id.
 - **`nucs/fzn/`** — the **FlatZinc adapter**: model in MiniZinc, solve with NuCS via `minizinc --solver nucs`. Pipeline
   is `parser.py` (FlatZinc text → IR) → `model.py` (`FznModel` builds a `Problem`) → `builtins.py` (the `BUILTINS`
   dispatch table: FlatZinc builtin name → `add_propagator` calls) → `runner.py` (solve) → `output.py` (FlatZinc solution
@@ -50,9 +50,16 @@ resumes.
 
 ## Constants
 
-`nucs/constants.py` holds the enum-like integer constants that index the flat arrays. The signatures
-`SIGN_COMPUTE_DOMAINS`, `SIGN_CONSISTENCY_ALG`, `SIGN_VAR_HEURISTIC`, `SIGN_DOM_HEURISTIC` also live here — they are the
-fixed ABIs through which jitted callables are dispatched (see *Functions are values* below).
+`nucs/constants.py` holds what several layers share: the protocols a propagator (`PROP_*`, `EVENT_MASK_*`), a domain
+heuristic (`DECISION_*`) and the solver (`DOMAIN_*`, `OBJECTIVE_*`) are written against, plus the logging and statistics
+indices. A constant owned by one module lives with it instead: `CHOICE_POINT_*` in `nucs/solvers/choice_points.py`,
+`OFFSETS_*` and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` in `nucs/solvers/backtrack_solver.py`, `OPTIM_*`
+in `nucs/solvers/solver.py`.
+
+The `SIGN_*` signatures — the fixed ABIs through which jitted callables are dispatched (see *Functions are values*
+below) — live with the registry that compiles against them: `SIGN_COMPUTE_DOMAINS` and `SIGN_GET_TRIGGERS` in
+`nucs/propagators/propagators.py`, `SIGN_CONSISTENCY_ALG` in `nucs/solvers/consistency_algorithms.py`,
+`SIGN_VAR_HEURISTIC` and `SIGN_DOM_HEURISTIC` in `nucs/heuristics/heuristics.py`.
 
 ### Domain rows
 
@@ -186,7 +193,7 @@ there is no per-propagator state to restore on backtrack.
 Propagators and heuristics register into typed lists indexed by `ALG_*` / heuristic ids; the ids live in integer
 arrays, and callables cross into nopython mode through `_get_wrapper_address` plus the `function_ptr_from_address`
 intrinsic (see `nucs/numba_helper.py`). Numba cannot dispatch on heterogeneous Python callables, so indirection through
-ids and addresses is the mechanism. Each callable family has a fixed `SIGN_*` signature in `nucs/constants.py` that
+ids and addresses is the mechanism. Each callable family has a fixed `SIGN_*` signature, kept with its registry, that
 every member must match — this is why an unused parameter can only be dropped from a family if *no* member needs it.
 
 ### The propagation queue is a bucketed FIFO keyed by complexity

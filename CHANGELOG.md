@@ -10,6 +10,24 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Changed
 
+- **`nucs/constants.py` keeps only what several layers share; the rest moved to the module that owns it.**
+  `CHOICE_POINT_*` is in `nucs/solvers/choice_points.py`, `OFFSETS_*` and `PROBLEM_*` in
+  `nucs/problems/problem.py`, `SOLVER_*` in `nucs/solvers/backtrack_solver.py`, `OPTIM_*` in
+  `nucs/solvers/solver.py`, `NUMBA_DISABLE_JIT` in `nucs/numba_helper.py`, and each `SIGN_*` / `TYPE_*`
+  Numba signature with the registry that compiles against it. What stays is the protocols a propagator
+  (`PROP_*`, `EVENT_MASK_*`), a domain heuristic (`DECISION_*`) and the solver (`DOMAIN_*`, `OBJECTIVE_*`)
+  are written against, plus the logging and statistics indices — those are imported by leaf modules that
+  the owning registries themselves import, so they cannot live with the registry without a cycle.
+
+  The only one of these a model is likely to import is the optimization mode:
+
+  ```python
+  # was
+  from nucs.constants import OPTIM_PRUNE
+
+  # now
+  from nucs.solvers.solver import OPTIM_PRUNE
+  ```
 - **Every index constant is now prefixed with the array it indexes.** `MIN` / `MAX` / `GROUND` are
   `DOMAIN_MIN` / `DOMAIN_MAX` / `DOMAIN_GROUND`, `VARIABLE` / `PARAM` are `OFFSETS_VARIABLE` /
   `OFFSETS_PARAM`, and `OBJ_VARIABLE` / `OBJ_BOUND` / `OBJ_VALUE` / `OBJ_WIDTH` are `OBJECTIVE_*`. A bare

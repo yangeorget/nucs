@@ -42,7 +42,6 @@ from rich.table import Table
 from nucs.constants import (
     DOMAIN_MAX,
     DOMAIN_MIN,
-    OPTIM_PRUNE,
     STATS_LBL_ALG_BC_NB,
     STATS_LBL_PROPAGATOR_ENTAILMENT_NB,
     STATS_LBL_PROPAGATOR_FILTER_NB,
@@ -72,6 +71,7 @@ from nucs.heuristics.heuristics import (
 )
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import register_consistency_algorithm
+from nucs.solvers.solver import OPTIM_PRUNE
 
 # name, statistics, domain_nb, choice-point bytes
 BenchmarkResult = tuple[str, dict[str, int], int, int]

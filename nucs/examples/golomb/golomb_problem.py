@@ -17,7 +17,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import CHOICE_POINT_TRAIL_MARK, DOMAIN_MAX, DOMAIN_MIN, EVENT_NB
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_NB
 from nucs.numba_helper import ComputeDomainsFunctions
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
@@ -27,6 +27,7 @@ from nucs.propagators.propagators import (
     update_propagators,
 )
 from nucs.solvers.bc_algorithm import bc_algorithm
+from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
 from nucs.solvers.state import tighten_at
 
 GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])

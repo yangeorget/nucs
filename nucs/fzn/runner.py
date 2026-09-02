@@ -19,7 +19,7 @@ from typing import TextIO
 
 from numpy.typing import NDArray
 
-from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, OPTIM_PRUNE
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import FznModel
 from nucs.fzn.output import print_search_complete, print_solution, print_unknown, print_unsatisfiable
@@ -40,6 +40,7 @@ from nucs.heuristics.heuristics import (
 )
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.search import Search
+from nucs.solvers.solver import OPTIM_PRUNE
 
 logger = logging.getLogger(__name__)
 

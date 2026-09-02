@@ -16,10 +16,10 @@ from typing import Any
 
 from numpy.typing import NDArray
 
-from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, LOG_LEVELS, OPTIM_MODES, OPTIM_RESET
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, LOG_LEVELS
 from nucs.heuristics.heuristics import DOM_HEURISTICS, VAR_HEURISTICS
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALGS
-from nucs.solvers.solver import Solver
+from nucs.solvers.solver import OPTIM_MODES, OPTIM_RESET, Solver
 
 
 class DefaultArgumentParser(argparse.ArgumentParser):

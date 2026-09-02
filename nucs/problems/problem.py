@@ -20,25 +20,27 @@ from numpy.typing import NDArray
 from rich import print
 
 from nucs.buckets import compute_priority
-from nucs.constants import (
-    EVENT_MASK_NB,
-    EVENT_NB,
-    NUMBA_DISABLE_JIT,
-    OFFSETS_PARAM,
-    OFFSETS_VARIABLE,
-    SIGN_GET_TRIGGERS,
-    TYPE_GET_TRIGGERS,
-)
-from nucs.numba_helper import addresses_from_functions, function_ptr_from_address
+from nucs.constants import EVENT_MASK_NB, EVENT_NB
+from nucs.numba_helper import NUMBA_DISABLE_JIT, addresses_from_functions, function_ptr_from_address
 from nucs.propagators.propagators import (
     ALG_DUMMY,
     GET_COMPLEXITY_FCTS,
     GET_TRIGGERS_FCTS,
     IDEMPOTENCIES,
     IS_VACUOUS_FCTS,
+    SIGN_GET_TRIGGERS,
+    TYPE_GET_TRIGGERS,
 )
 
 logger = logging.getLogger(__name__)
+
+PROBLEM_INCONSISTENT = 0  # returned when the filtering of a problem detects an inconsistency
+PROBLEM_UNBOUND = 1  # returned when the filtering of a problem has been completed, but the problem is not solved
+PROBLEM_BOUND = 2  # returned when a problem is solved
+
+# Offsets columns
+OFFSETS_VARIABLE = 0  # column of offsets holding the propagator variable offsets
+OFFSETS_PARAM = 1  # column of offsets holding the propagator parameter offsets
 
 
 class Problem:

@@ -12,6 +12,8 @@
 ###############################################################################
 from collections.abc import Callable
 
+from numba import int32, int64, types, uint32
+
 from nucs.heuristics.critical_resource_var_heuristic import critical_resource_var_heuristic
 from nucs.heuristics.first_not_instantiated_var_heuristic import first_not_instantiated_var_heuristic
 from nucs.heuristics.greatest_domain_var_heuristic import greatest_domain_var_heuristic
@@ -32,6 +34,30 @@ VAR_HEURISTIC_FCTS: list[Callable] = []
 DOM_HEURISTIC_FCTS: list[Callable] = []
 VAR_HEURISTICS: dict[str, int] = {}  # heuristic name to index, for name-based selection (eg from the CLI)
 DOM_HEURISTICS: dict[str, int] = {}  # heuristic name to index, for name-based selection (eg from the CLI)
+
+# A domain heuristic is a pure decision function: it reads the current domains and returns where to split
+# them, as (kind, value). It mutates nothing -- the solver applies the decision.
+#
+# The pair is int32, and that matters. A heuristic is declared @njit(cache=True) with no signature and
+# compiled for this one later, by _get_wrapper_address, so how the pair crosses back is an ABI question.
+# Declared as a UniTuple(int64, 2) it is silently wrong: Numba infers `return DECISION_LE,
+# domains[variable, DOMAIN_MIN]` as the heterogeneous Tuple(int64, int32), and the wrapper *zero-extends* the
+# int32, so a split value of -5 arrives as 4294967291. Nothing widens at an int32 pair -- the kind
+# narrows from a 0/1/2 constant, losslessly, and the value is already int32 -- so the natural expression
+# is correct without the author casting anything. Verified down to INT32_MIN.
+SIGN_DOM_HEURISTIC = types.UniTuple(int32, 2)(
+    int32[:, ::1],  # domains
+    int64,  # variable
+    int64[:, :],  # dom_heuristic_params
+)
+TYPE_DOM_HEURISTIC = types.FunctionType(SIGN_DOM_HEURISTIC)
+
+SIGN_VAR_HEURISTIC = int64(
+    uint32[::1],  # decision_variables
+    int32[:, ::1],  # domains
+    int64[:, :],  # var_heuristic_params
+)
+TYPE_VAR_HEURISTIC = types.FunctionType(SIGN_VAR_HEURISTIC)
 
 
 def register_var_heuristic(var_heuristic_fct: Callable, name: str | None = None) -> int:

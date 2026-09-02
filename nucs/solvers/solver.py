@@ -19,10 +19,15 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 from rich import print
 
-from nucs.constants import DOMAIN_MIN, LOG_FORMAT, LOG_LEVEL_INFO, OPTIM_RESET
+from nucs.constants import DOMAIN_MIN, LOG_FORMAT, LOG_LEVEL_INFO
 from nucs.problems.problem import Problem
 
 logger = logging.getLogger(__name__)
+
+# Optimizer modes, the mode argument of the optimization methods below.
+OPTIM_RESET = "RESET"
+OPTIM_PRUNE = "PRUNE"
+OPTIM_MODES = [OPTIM_RESET, OPTIM_PRUNE]
 
 
 class Solver(ABC):

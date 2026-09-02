@@ -15,10 +15,6 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
-    CHOICE_POINT_BOUND,
-    CHOICE_POINT_TRAIL_MARK,
-    CHOICE_POINT_VALUE,
-    CHOICE_POINT_VARIABLE,
     DECISION_EQ,
     DECISION_GT,
     DECISION_LE,
@@ -32,6 +28,16 @@ from nucs.constants import (
 )
 from nucs.propagators.propagators import update_propagators
 from nucs.solvers.state import tighten, trail_undo, unbound_index
+
+# Choice point metadata columns.
+# One row per choice point, holding what *describes* it rather than what it changed: the trail
+# position at its decision point, and the single-bound tightening to apply when the search resumes it.
+# None of it is trailed -- trailing the decision would erase the very thing backtrack is about to apply.
+CHOICE_POINT_TRAIL_MARK = 0  # the trail size when the choice point branched, the point trail_undo restores to
+CHOICE_POINT_VARIABLE = 1  # the variable of the parked alternative
+CHOICE_POINT_BOUND = 2  # the side of its domain the alternative tightens
+CHOICE_POINT_VALUE = 3  # the value the alternative tightens that side to
+CHOICE_POINT_WIDTH = 4  # the number of columns of a choice point
 
 
 @njit(cache=True)

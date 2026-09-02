@@ -10,6 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+import os
 from collections.abc import Callable, Sequence
 from typing import Any
 
@@ -21,7 +22,7 @@ from numba.extending import intrinsic
 from numba.typed import List as NumbaList  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import NUMBA_DISABLE_JIT
+NUMBA_DISABLE_JIT = os.getenv("NUMBA_DISABLE_JIT")
 
 # These function tables are Numba typed lists under the JIT and plain Python lists under
 # NUMBA_DISABLE_JIT; both are indexed and measured the same way, so they are typed structurally as

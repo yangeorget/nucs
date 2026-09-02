@@ -12,7 +12,7 @@
 ###############################################################################
 from collections.abc import Callable, Sequence
 
-from numba import njit  # type: ignore
+from numba import int32, int64, njit, types, uint64  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.buckets import STORAGE_OFFSET, buckets_add
@@ -272,6 +272,16 @@ from nucs.propagators.value_precede_propagator import (
     get_complexity_value_precede,
     get_triggers_value_precede,
 )
+
+# The array arguments are typed C-contiguous (::1) rather than any-layout (:) so the hot loops in every
+# propagator and in the consistency algorithm index with a plain offset instead of a stride multiply.
+# All these arrays are contiguous np.empty/np.zeros/np.ones allocations threaded through unchanged.
+SIGN_COMPUTE_DOMAINS = int64(int32[:, ::1], int32[::1])  # domains, parameters
+TYPE_COMPUTE_DOMAINS = types.FunctionType(SIGN_COMPUTE_DOMAINS)
+TYPE_COMPUTE_DOMAINS_LIST = types.ListType(TYPE_COMPUTE_DOMAINS)
+
+SIGN_GET_TRIGGERS = int64(uint64, uint64, int32[::1])
+TYPE_GET_TRIGGERS = types.FunctionType(SIGN_GET_TRIGGERS)
 
 GET_TRIGGERS_FCTS: list[Callable] = []
 GET_COMPLEXITY_FCTS: list[Callable] = []

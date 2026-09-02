@@ -20,28 +20,13 @@ from numpy.typing import NDArray
 
 from nucs.buckets import buckets_create, buckets_empty, buckets_init
 from nucs.constants import (
-    CHOICE_POINT_WIDTH,
     DOMAIN_MAX,
     DOMAIN_MIN,
     LOG_LEVEL_INFO,
-    NUMBA_DISABLE_JIT,
     OBJECTIVE_BOUND,
     OBJECTIVE_VALUE,
     OBJECTIVE_VARIABLE,
     OBJECTIVE_WIDTH,
-    OFFSETS_VARIABLE,
-    OPTIM_RESET,
-    PROBLEM_BOUND,
-    PROBLEM_UNBOUND,
-    SIGN_COMPUTE_DOMAINS,
-    SIGN_CONSISTENCY_ALG,
-    SIGN_DOM_HEURISTIC,
-    SIGN_VAR_HEURISTIC,
-    SOLVER_CHOICE_POINTS_FULL,
-    SOLVER_RUNNING,
-    SOLVER_STATUS,
-    SOLVER_STATUS_WIDTH,
-    SOLVER_TRAIL_FULL,
     STATS_ALG_IDX_FILTER_NB,
     STATS_ALG_IDX_FILTER_NO_CHANGE_NB,
     STATS_ALG_WIDTH,
@@ -72,10 +57,13 @@ from nucs.constants import (
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_FCTS,
     DOM_HEURISTIC_MIN_VALUE,
+    SIGN_DOM_HEURISTIC,
+    SIGN_VAR_HEURISTIC,
     VAR_HEURISTIC_FCTS,
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
 )
 from nucs.numba_helper import (
+    NUMBA_DISABLE_JIT,
     ComputeDomainsFunctions,
     ConsistencyAlgorithmFunctions,
     DomainHeuristicFunctions,
@@ -83,19 +71,38 @@ from nucs.numba_helper import (
     build_function_ptrs,
 )
 from nucs.numpy_helper import flatten_arrays
-from nucs.problems.problem import Problem
+from nucs.problems.problem import OFFSETS_VARIABLE, PROBLEM_BOUND, PROBLEM_UNBOUND, Problem
 from nucs.propagators.propagators import (
     ALG_DUMMY,
     COMPUTE_DOMAINS_FCTS,
+    SIGN_COMPUTE_DOMAINS,
     get_algorithm_nb,
     update_propagators,
 )
-from nucs.solvers.choice_points import backtrack, branch, choice_point_init, tighten_objective_at_root
-from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS
+from nucs.solvers.choice_points import (
+    CHOICE_POINT_WIDTH,
+    backtrack,
+    branch,
+    choice_point_init,
+    tighten_objective_at_root,
+)
+from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
 from nucs.solvers.search import Search
-from nucs.solvers.solver import Solver, get_solution
+from nucs.solvers.solver import OPTIM_RESET, Solver, get_solution
 
 logger = logging.getLogger(__name__)
+
+# Capacity outcomes of a search step.
+# The trail and the choice point stack are caller-allocated, so they cannot grow inside @njit. Rather than
+# sizing them for a worst case that never happens -- depth x (2 x domain_nb + 1) entries, which would
+# give back the memory this representation wins -- the search stops and says which one is full, and the
+# solver grows it and resumes. Nothing of the search is lost: the state, the trail marks and the
+# positions all stay valid across the reallocation.
+SOLVER_RUNNING = 0  # nothing filled up: the search returned a solution or exhausted itself
+SOLVER_TRAIL_FULL = 1  # the search stopped because the trail needs more room, not because it is over
+SOLVER_CHOICE_POINTS_FULL = 2  # likewise for the stack of choice points
+SOLVER_STATUS = 0  # index for the status in the status array
+SOLVER_STATUS_WIDTH = 1
 
 
 class BacktrackSolver(Solver):
@@ -247,11 +254,11 @@ class BacktrackSolver(Solver):
         # returned on its own terms and the loop is over. An array of one cell, not an int, because that
         # is how a jitted function writes back to its caller.
         self.status = np.zeros(SOLVER_STATUS_WIDTH, dtype=np.int32)
-        # the branch-and-bound bound, as OBJ_VARIABLE, OBJ_BOUND and OBJ_VALUE: the variable being
+        # the branch-and-bound bound, as OBJECTIVE_VARIABLE, OBJECTIVE_BOUND and OBJECTIVE_VALUE: the variable
         # optimized, the side of its domain to tighten, and the best value found so far. It is solver
         # state, not choice-point state -- the bound holds for the whole remaining search, so backtrack
         # re-applies it to each choice point it resumes rather than it being written into them all when it
-        # is found, and nothing about it is trailed. OBJ_VARIABLE stays -1 outside OPTIM_PRUNE, which is
+        # is found, and nothing about it is trailed. OBJECTIVE_VARIABLE stays -1 outside OPTIM_PRUNE, which is
         # how backtrack knows there is no bound to apply: OPTIM_RESET tightens at the root instead.
         self.objective = np.full(OBJECTIVE_WIDTH, -1, dtype=np.int32)
         logger.info(
