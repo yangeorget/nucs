@@ -656,7 +656,6 @@ def solve_one_step(
             compute_domains_fcts,
             domain_buffer,
         )
-        choice_point = choice_point_top[0]
         if problem_status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLUTION_NB] += 1
             return SOLVER_RUNNING, get_solution(domains)
