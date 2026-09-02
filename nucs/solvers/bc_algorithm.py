@@ -139,9 +139,11 @@ def bc_algorithm(
         prop_var_end = offsets[prop_idx + 1, OFFSETS_VARIABLE]
         prop_arity = prop_var_end - prop_var_start
         prop_domains = domain_buffer[:prop_arity]
-        # gather the propagator's domains, reading each pair out of state as two scalars: domains[variable]
-        # is the same memory, but indexing the view builds an array struct per variable, and at the arity
-        # of a magic sequence's count constraints that construction costs more than the copy it wraps
+        # gather the propagator's domains as scalars. What this replaces is the row assignment
+        # prop_domains[var_idx] = domains[variable], and it is that assignment, not the row view it reads,
+        # that costs: it lowers to a generic array copy whose setup dwarfs the eight bytes it moves at the
+        # arity of a magic sequence's count constraints. Two scalar stores through the domains view are
+        # already most of the win there (90ms -> 59ms); reading the pair out of state takes it to 55ms.
         for var_idx in range(prop_arity):
             cell_idx = propagator_variables[prop_var_start + var_idx] << 1
             prop_domains[var_idx, DOMAIN_MIN] = state[cell_idx]
