@@ -39,18 +39,7 @@ import numpy as np
 from rich.console import Console
 from rich.table import Table
 
-from nucs.constants import (
-    DOMAIN_MAX,
-    DOMAIN_MIN,
-    STATS_LBL_ALG_BC_NB,
-    STATS_LBL_PROPAGATOR_ENTAILMENT_NB,
-    STATS_LBL_PROPAGATOR_FILTER_NB,
-    STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
-    STATS_LBL_PROPAGATOR_INCONSISTENCY_NB,
-    STATS_LBL_SOLUTION_NB,
-    STATS_LBL_SOLVER_BACKTRACK_NB,
-    STATS_LBL_SOLVER_ELAPSED_TIME,
-)
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 from nucs.examples.all_interval_series.all_interval_series_problem import AllIntervalSeriesProblem
 from nucs.examples.bibd.bibd_problem import BIBDProblem
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm
@@ -72,6 +61,16 @@ from nucs.heuristics.heuristics import (
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import register_consistency_algorithm
 from nucs.solvers.solver import OPTIM_PRUNE
+from nucs.statistics import (
+    STATS_LBL_ALG_BC_NB,
+    STATS_LBL_PROPAGATOR_ENTAILMENT_NB,
+    STATS_LBL_PROPAGATOR_FILTER_NB,
+    STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
+    STATS_LBL_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_LBL_SOLUTION_NB,
+    STATS_LBL_SOLVER_BACKTRACK_NB,
+    STATS_LBL_SOLVER_ELAPSED_TIME,
+)
 
 # name, statistics, domain_nb, choice-point bytes
 BenchmarkResult = tuple[str, dict[str, int], int, int]

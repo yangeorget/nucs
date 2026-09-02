@@ -15,18 +15,7 @@ import time
 import pytest
 
 from nucs.buckets import buckets_empty
-from nucs.constants import (
-    DECISION_EQ,
-    DOMAIN_MAX,
-    DOMAIN_MIN,
-    OBJECTIVE_BOUND,
-    OBJECTIVE_VALUE,
-    OBJECTIVE_VARIABLE,
-    STATS_LBL_PROPAGATOR_FILTER_NB,
-    STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
-    STATS_LBL_SOLUTION_NB,
-    STATS_LBL_SOLVER_CHOICE_DEPTH,
-)
+from nucs.constants import DECISION_EQ, DOMAIN_MAX, DOMAIN_MIN, OBJECTIVE_BOUND, OBJECTIVE_VALUE, OBJECTIVE_VARIABLE
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
     DOM_HEURISTIC_MID_VALUE,
@@ -55,6 +44,12 @@ from nucs.solvers.choice_points import CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, C
 from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
 from nucs.solvers.state import tighten
+from nucs.statistics import (
+    STATS_LBL_PROPAGATOR_FILTER_NB,
+    STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
+    STATS_LBL_SOLUTION_NB,
+    STATS_LBL_SOLVER_CHOICE_DEPTH,
+)
 
 
 class TestBacktrackSolver:

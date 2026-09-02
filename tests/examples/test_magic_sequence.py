@@ -12,9 +12,9 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
 class TestMagicSequence:

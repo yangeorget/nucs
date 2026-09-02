@@ -10,6 +10,23 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Changed
 
+- **The statistics live in `nucs/statistics.py`.** The array's layout (`STATS_MAX`, `STATS_IDX_*`,
+  `STATS_ALG_*`), the labels it is reported under (`STATS_LBL_*`), and the two functions that allocate and
+  read it back (`statistics_init`, `statistics_as_dictionary`) were spread across `nucs/constants.py` and
+  `BacktrackSolver`. `get_statistics_as_array` and `get_statistics_as_dictionary` are unchanged; the
+  solver now delegates to the module rather than building the dictionary itself.
+
+  It is a leaf module: it takes the algorithm count and the algorithm names as arguments instead of
+  importing the propagator registry, so a jitted module can import a counter index without pulling the
+  registry in behind it. `get_algorithm_names()` on `nucs.propagators.propagators` supplies the names.
+
+  ```python
+  # was
+  from nucs.constants import STATS_LBL_SOLUTION_NB
+
+  # now
+  from nucs.statistics import STATS_LBL_SOLUTION_NB
+  ```
 - **`nucs/constants.py` keeps only what several layers share; the rest moved to the module that owns it.**
   `CHOICE_POINT_*` is in `nucs/solvers/choice_points.py`, `OFFSETS_*` and `PROBLEM_*` in
   `nucs/problems/problem.py`, `SOLVER_*` in `nucs/solvers/backtrack_solver.py`, `OPTIM_*` in

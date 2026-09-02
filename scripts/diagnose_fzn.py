@@ -40,16 +40,12 @@ import sys
 import time
 
 import nucs
-from nucs.constants import (
-    DOMAIN_MAX,
-    DOMAIN_MIN,
-    STATS_IDX_PROPAGATOR_FILTER_NB,
-    STATS_IDX_SOLVER_BACKTRACK_NB,
-)
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 from nucs.fzn.model import build_model
 from nucs.fzn.parser import parse
 from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_IDX_PROPAGATOR_FILTER_NB, STATS_IDX_SOLVER_BACKTRACK_NB
 
 SHARE_DIR = os.path.join(os.path.dirname(nucs.__file__), "fzn", "share")
 

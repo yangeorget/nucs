@@ -12,9 +12,9 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.problems.permutation_problem import PermutationProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
 class TestPermutationProblem:

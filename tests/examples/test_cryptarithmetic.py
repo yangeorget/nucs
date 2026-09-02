@@ -14,10 +14,10 @@ import json
 
 import pytest
 
-from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.examples.cryptarithmetic.cryptarithmetic_problem import CryptarithmeticProblem
 from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
 class TestCryptarithmetic:

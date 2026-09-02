@@ -13,11 +13,12 @@
 
 import pytest
 
-from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY, STATS_IDX_SOLUTION_NB
+from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.problems.problem import Problem
 from nucs.propagators.lexleq_propagator import compute_domains_lexleq
 from nucs.propagators.propagators import ALG_LEXLEQ
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_IDX_SOLUTION_NB
 from tests.propagators.propagator_test import PropagatorTest
 
 

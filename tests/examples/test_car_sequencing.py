@@ -12,9 +12,9 @@
 ###############################################################################
 import json
 
-from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.examples.car_sequencing.car_sequencing_problem import CarSequencingProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
 class TestCarSequencing:

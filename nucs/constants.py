@@ -11,10 +11,10 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 # What is left here is what several layers share: the protocols a propagator, a domain heuristic and a
-# consistency algorithm are written against, plus the logging and statistics indices. A constant owned by
-# one module lives with it instead -- CHOICE_POINT_* in solvers/choice_points.py, OFFSETS_* and PROBLEM_*
-# in problems/problem.py, SOLVER_* in solvers/backtrack_solver.py, OPTIM_* in solvers/solver.py, and each
-# Numba signature with the registry that compiles against it.
+# consistency algorithm are written against, plus the logging levels. A constant owned by one module lives
+# with it instead -- CHOICE_POINT_* in solvers/choice_points.py, OFFSETS_* and PROBLEM_* in
+# problems/problem.py, SOLVER_* in solvers/backtrack_solver.py, OPTIM_* in solvers/solver.py, STATS_* in
+# statistics.py, and each Numba signature with the registry that compiles against it.
 #
 # Index constants are prefixed with the array they index -- DOMAIN_, OBJECTIVE_, CHOICE_POINT_, OFFSETS_,
 # STATS_IDX_ -- so that a bare index constant never has to be traced back to find out what it indexes.
@@ -65,35 +65,3 @@ LOG_LEVEL_WARNING = "WARNING"
 LOG_LEVEL_ERROR = "ERROR"
 LOG_LEVEL_CRITICAL = "CRITICAL"
 LOG_LEVELS = [LOG_LEVEL_DEBUG, LOG_LEVEL_INFO, LOG_LEVEL_WARNING, LOG_LEVEL_ERROR, LOG_LEVEL_CRITICAL]
-
-STATS_MAX = 10
-(
-    STATS_IDX_ALG_BC_NB,
-    STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
-    STATS_IDX_PROPAGATOR_FILTER_NB,
-    STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
-    STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
-    STATS_IDX_SOLUTION_NB,
-    STATS_IDX_SOLVER_BACKTRACK_NB,
-    STATS_IDX_SOLVER_CHOICE_DEPTH,
-    STATS_IDX_SOLVER_CHOICE_NB,
-    STATS_IDX_SOLVER_ELAPSED_TIME,
-) = tuple(range(STATS_MAX))
-
-# The statistics array carries a per-algorithm tail after the STATS_MAX global counters: two counters per
-# registered algorithm, at STATS_MAX + STATS_ALG_WIDTH * algorithm. It rides along in the same array so the
-# jitted consistency-algorithm signature does not have to grow a parameter for it.
-STATS_ALG_WIDTH = 2
-STATS_ALG_IDX_FILTER_NB = 0  # calls made
-STATS_ALG_IDX_FILTER_NO_CHANGE_NB = 1  # calls that pruned nothing
-
-STATS_LBL_ALG_BC_NB = "ALG_BC_NB"
-STATS_LBL_PROPAGATOR_ENTAILMENT_NB = "PROPAGATOR_ENTAILMENT_NB"
-STATS_LBL_PROPAGATOR_FILTER_NB = "PROPAGATOR_FILTER_NB"
-STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB = "PROPAGATOR_FILTER_NO_CHANGE_NB"
-STATS_LBL_PROPAGATOR_INCONSISTENCY_NB = "PROPAGATOR_INCONSISTENCY_NB"
-STATS_LBL_SOLUTION_NB = "SOLUTION_NB"
-STATS_LBL_SOLVER_BACKTRACK_NB = "SOLVER_BACKTRACK_NB"
-STATS_LBL_SOLVER_CHOICE_DEPTH = "SOLVER_CHOICE_DEPTH"
-STATS_LBL_SOLVER_CHOICE_NB = "SOLVER_CHOICE_NB"
-STATS_LBL_SOLVER_ELAPSED_TIME = "SOLVER_ELAPSED_TIME_MS"

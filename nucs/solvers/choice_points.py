@@ -24,10 +24,10 @@ from nucs.constants import (
     OBJECTIVE_BOUND,
     OBJECTIVE_VALUE,
     OBJECTIVE_VARIABLE,
-    STATS_IDX_SOLVER_BACKTRACK_NB,
 )
 from nucs.propagators.propagators import update_propagators
 from nucs.solvers.state import tighten, trail_undo, unbound_index
+from nucs.statistics import STATS_IDX_SOLVER_BACKTRACK_NB
 
 # Choice point metadata columns.
 # One row per choice point, holding what *describes* it rather than what it changed: the trail

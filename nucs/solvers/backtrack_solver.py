@@ -27,30 +27,6 @@ from nucs.constants import (
     OBJECTIVE_VALUE,
     OBJECTIVE_VARIABLE,
     OBJECTIVE_WIDTH,
-    STATS_ALG_IDX_FILTER_NB,
-    STATS_ALG_IDX_FILTER_NO_CHANGE_NB,
-    STATS_ALG_WIDTH,
-    STATS_IDX_ALG_BC_NB,
-    STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
-    STATS_IDX_PROPAGATOR_FILTER_NB,
-    STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
-    STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
-    STATS_IDX_SOLUTION_NB,
-    STATS_IDX_SOLVER_BACKTRACK_NB,
-    STATS_IDX_SOLVER_CHOICE_DEPTH,
-    STATS_IDX_SOLVER_CHOICE_NB,
-    STATS_IDX_SOLVER_ELAPSED_TIME,
-    STATS_LBL_ALG_BC_NB,
-    STATS_LBL_PROPAGATOR_ENTAILMENT_NB,
-    STATS_LBL_PROPAGATOR_FILTER_NB,
-    STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
-    STATS_LBL_PROPAGATOR_INCONSISTENCY_NB,
-    STATS_LBL_SOLUTION_NB,
-    STATS_LBL_SOLVER_BACKTRACK_NB,
-    STATS_LBL_SOLVER_CHOICE_DEPTH,
-    STATS_LBL_SOLVER_CHOICE_NB,
-    STATS_LBL_SOLVER_ELAPSED_TIME,
-    STATS_MAX,
 )
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_FCTS,
@@ -74,6 +50,7 @@ from nucs.propagators.propagators import (
     ALG_DUMMY,
     COMPUTE_DOMAINS_FCTS,
     SIGN_COMPUTE_DOMAINS,
+    get_algorithm_names,
     get_algorithm_nb,
     update_propagators,
 )
@@ -87,6 +64,14 @@ from nucs.solvers.choice_points import (
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
 from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_RESET, Solver, get_solution
+from nucs.statistics import (
+    STATS_IDX_SOLUTION_NB,
+    STATS_IDX_SOLVER_CHOICE_DEPTH,
+    STATS_IDX_SOLVER_CHOICE_NB,
+    STATS_IDX_SOLVER_ELAPSED_TIME,
+    statistics_as_dictionary,
+    statistics_init,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -267,7 +252,7 @@ class BacktrackSolver(Solver):
         self._choice_point_init()
         logger.debug("Choice points initialized")
         logger.debug("Initializing statistics")
-        self.statistics = np.zeros(STATS_MAX + STATS_ALG_WIDTH * get_algorithm_nb(), dtype=np.int64)
+        self.statistics = statistics_init(get_algorithm_nb())
         logger.debug("Statistics initialized")
         if NUMBA_DISABLE_JIT:
             self.compute_domains_fcts = COMPUTE_DOMAINS_FCTS
@@ -512,40 +497,10 @@ class BacktrackSolver(Solver):
         """
         Returns the statistics as a dictionary.
 
-        Beyond the global counters, the dictionary breaks the two filtering counters down per propagator
-        algorithm, restricted to the algorithms that ran at least once so that the breakdown stays readable.
-        Each entry is suffixed with the algorithm name, so a breakdown sorts next to the total it partitions.
-
-        A call that prunes nothing still costs a bucket pop, a gather of its variables' domains into the
-        scratch buffer, an indirect call and a write-back, so a high no-change share on a given algorithm is
-        where wasted propagation is concentrated.
-
         :return: a dictionary mapping statistic labels to values
         :rtype: Dict[str, int]
         """
-        statistics = {
-            STATS_LBL_ALG_BC_NB: int(self.statistics[STATS_IDX_ALG_BC_NB]),
-            STATS_LBL_PROPAGATOR_ENTAILMENT_NB: int(self.statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB]),
-            STATS_LBL_PROPAGATOR_FILTER_NB: int(self.statistics[STATS_IDX_PROPAGATOR_FILTER_NB]),
-            STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB: int(self.statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB]),
-            STATS_LBL_PROPAGATOR_INCONSISTENCY_NB: int(self.statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB]),
-            STATS_LBL_SOLVER_BACKTRACK_NB: int(self.statistics[STATS_IDX_SOLVER_BACKTRACK_NB]),
-            STATS_LBL_SOLVER_CHOICE_NB: int(self.statistics[STATS_IDX_SOLVER_CHOICE_NB]),
-            STATS_LBL_SOLVER_CHOICE_DEPTH: int(self.statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]),
-            STATS_LBL_SOLUTION_NB: int(self.statistics[STATS_IDX_SOLUTION_NB]),
-            # the statistics array accumulates nanoseconds, the reported statistic is in milliseconds
-            STATS_LBL_SOLVER_ELAPSED_TIME: int(self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME]) // 1_000_000,
-        }
-        for algorithm in range(get_algorithm_nb()):
-            base = STATS_MAX + STATS_ALG_WIDTH * algorithm
-            calls = int(self.statistics[base + STATS_ALG_IDX_FILTER_NB])
-            if calls:
-                name = COMPUTE_DOMAINS_FCTS[algorithm].__name__.replace("compute_domains_", "").upper()
-                statistics[f"{STATS_LBL_PROPAGATOR_FILTER_NB}_{name}"] = calls
-                statistics[f"{STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB}_{name}"] = int(
-                    self.statistics[base + STATS_ALG_IDX_FILTER_NO_CHANGE_NB]
-                )
-        return statistics
+        return statistics_as_dictionary(self.statistics, get_algorithm_names())
 
 
 @njit(cache=True)

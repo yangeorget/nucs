@@ -12,9 +12,9 @@
 ###############################################################################
 import pytest
 
-from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.examples.social_golfers.social_golfers_problem import SocialGolfersProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
 class TestGolfers:

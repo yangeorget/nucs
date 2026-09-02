@@ -14,9 +14,9 @@ import json
 
 import pytest
 
-from nucs.constants import STATS_IDX_SOLUTION_NB
 from nucs.examples.sudoku.sudoku_problem import SudokuProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
 class TestSudokus:

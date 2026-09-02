@@ -16,12 +16,12 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.buckets import STORAGE_OFFSET, buckets_add, buckets_pop
-from nucs.constants import (
-    DOMAIN_MAX,
-    DOMAIN_MIN,
-    EVENT_NB,
-    PROP_ENTAILMENT,
-    PROP_INCONSISTENCY,
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_NB, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.numba_helper import ComputeDomainsFunctions
+from nucs.problems.problem import OFFSETS_PARAM, OFFSETS_VARIABLE, PROBLEM_BOUND, PROBLEM_INCONSISTENT, PROBLEM_UNBOUND
+from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
+from nucs.solvers.state import tighten_at, trail_push, unbound_index
+from nucs.statistics import (
     STATS_ALG_IDX_FILTER_NB,
     STATS_ALG_IDX_FILTER_NO_CHANGE_NB,
     STATS_ALG_WIDTH,
@@ -32,10 +32,6 @@ from nucs.constants import (
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
     STATS_MAX,
 )
-from nucs.numba_helper import ComputeDomainsFunctions
-from nucs.problems.problem import OFFSETS_PARAM, OFFSETS_VARIABLE, PROBLEM_BOUND, PROBLEM_INCONSISTENT, PROBLEM_UNBOUND
-from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
-from nucs.solvers.state import tighten_at, trail_push, unbound_index
 
 
 @njit(cache=True)

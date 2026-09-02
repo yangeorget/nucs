@@ -317,6 +317,16 @@ def get_algorithm_nb() -> int:
     return len(COMPUTE_DOMAINS_FCTS)
 
 
+def get_algorithm_names() -> list[str]:
+    """
+    Returns the display name of each registered algorithm, indexed by algorithm.
+
+    :return: the algorithm names
+    :rtype: List[str]
+    """
+    return [fct.__name__.replace("compute_domains_", "").upper() for fct in COMPUTE_DOMAINS_FCTS]
+
+
 def register_propagator(
     get_triggers_fct: Callable,
     get_complexity_fct: Callable,

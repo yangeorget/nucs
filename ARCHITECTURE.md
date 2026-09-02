@@ -51,10 +51,10 @@ resumes.
 ## Constants
 
 `nucs/constants.py` holds what several layers share: the protocols a propagator (`PROP_*`, `EVENT_MASK_*`), a domain
-heuristic (`DECISION_*`) and the solver (`DOMAIN_*`, `OBJECTIVE_*`) are written against, plus the logging and statistics
-indices. A constant owned by one module lives with it instead: `CHOICE_POINT_*` in `nucs/solvers/choice_points.py`,
-`OFFSETS_*` and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` in `nucs/solvers/backtrack_solver.py`, `OPTIM_*`
-in `nucs/solvers/solver.py`.
+heuristic (`DECISION_*`) and the solver (`DOMAIN_*`, `OBJECTIVE_*`) are written against, plus the logging levels. A
+constant owned by one module lives with it instead: `CHOICE_POINT_*` in `nucs/solvers/choice_points.py`, `OFFSETS_*`
+and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` in `nucs/solvers/backtrack_solver.py`, `OPTIM_*` in
+`nucs/solvers/solver.py`, `STATS_*` in `nucs/statistics.py`.
 
 The `SIGN_*` signatures — the fixed ABIs through which jitted callables are dispatched (see *Functions are values*
 below) — live with the registry that compiles against them: `SIGN_COMPUTE_DOMAINS` and `SIGN_GET_TRIGGERS` in
@@ -96,7 +96,10 @@ Two distinct code sets share the values `0/1/2`:
 
 ### Statistics
 
-`STATS_IDX_*` index a single `int64` array of `STATS_MAX = 10` counters (`statistics`).
+`nucs/statistics.py` owns the array: `STATS_IDX_*` index a single `int64` array of `STATS_MAX = 10` counters
+(`statistics`), `statistics_init` allocates it and `statistics_as_dictionary` reads it back under the `STATS_LBL_*`
+labels. It is a leaf module — it takes the algorithm count and the algorithm names as arguments rather than importing
+the propagator registry, so a jitted module can import a counter index without pulling the registry in behind it.
 
 | idx | label | counts |
 |-----|-------|--------|

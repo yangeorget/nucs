@@ -14,12 +14,13 @@ import json
 
 import pytest
 
-from nucs.constants import DOMAIN_MIN, STATS_IDX_SOLUTION_NB
+from nucs.constants import DOMAIN_MIN
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.solver import OPTIM_PRUNE
+from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
 class TestTSP:

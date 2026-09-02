@@ -32,7 +32,7 @@ import tempfile
 
 import pytest
 
-from nucs.constants import DOMAIN_MIN, STATS_IDX_SOLUTION_NB
+from nucs.constants import DOMAIN_MIN
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm
 from nucs.examples.langford.langford_problem import LangfordProblem
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
@@ -42,6 +42,7 @@ from nucs.fzn.parser import parse
 from nucs.fzn.runner import run
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import register_consistency_algorithm
+from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 SHARE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "nucs", "fzn", "share")
 MINIZINC = os.environ.get("MINIZINC") or shutil.which("minizinc")
