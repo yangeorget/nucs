@@ -139,8 +139,13 @@ def bc_algorithm(
         prop_var_end = offsets[prop_idx + 1, OFFSETS_VARIABLE]
         prop_arity = prop_var_end - prop_var_start
         prop_domains = domain_buffer[:prop_arity]
+        # gather the propagator's domains, reading each pair out of state as two scalars: domains[variable]
+        # is the same memory, but indexing the view builds an array struct per variable, and at the arity
+        # of a magic sequence's count constraints that construction costs more than the copy it wraps
         for var_idx in range(prop_arity):
-            prop_domains[var_idx] = domains[propagator_variables[prop_var_start + var_idx]]
+            cell_idx = propagator_variables[prop_var_start + var_idx] << 1
+            prop_domains[var_idx, DOMAIN_MIN] = state[cell_idx]
+            prop_domains[var_idx, DOMAIN_MAX] = state[cell_idx | 1]
         status = compute_domains_fcts[algorithm](
             prop_domains,
             propagator_parameters[offsets[prop_idx, OFFSETS_PARAM] : offsets[prop_idx + 1, OFFSETS_PARAM]],
