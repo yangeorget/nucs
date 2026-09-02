@@ -264,7 +264,6 @@ class BacktrackSolver(Solver):
             f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"
         )
         logger.info(f"The trail starts at {len(self.trail_log)} entries and grows when it runs out")
-        self.initial_domains = np.array(problem.domains)
         self._choice_point_init()
         logger.debug("Choice points initialized")
         logger.debug("Initializing statistics")
@@ -450,7 +449,7 @@ class BacktrackSolver(Solver):
             self.trail_indices,
             self.choice_point_stk,
             self.choice_point_top,
-            self.initial_domains,
+            self.problem.initial_domains,
             self.problem.unbound_variable_nb,
         )
 

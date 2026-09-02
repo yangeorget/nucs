@@ -125,6 +125,10 @@ class Problem:
         for domain_min, domain_max in self.domains:
             if domain_min != domain_max:
                 self.unbound_variable_nb += 1
+        # the compiled form of the domains the model was built with. domains stays the list the model API
+        # appends to; this is what a search resets to, and it has to survive the search that overwrites the
+        # solver's own domains -- those are a view of state. int32 because that is what it is copied into.
+        self.initial_domains = np.array(self.domains, dtype=np.int32)
         self.algorithms = np.array([propagator[1] for propagator in self.propagators], dtype=np.uint8)
         # Built here, beside the algorithms that index it, so the two are fixed at the same instant and the
         # flags cover every algorithm this problem can name -- including one registered after import. The
