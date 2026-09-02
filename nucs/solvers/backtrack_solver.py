@@ -54,13 +54,7 @@ from nucs.propagators.propagators import (
     get_algorithm_nb,
     update_propagators,
 )
-from nucs.solvers.choice_points import (
-    CHOICE_POINT_WIDTH,
-    backtrack,
-    branch,
-    choice_point_init,
-    tighten_objective,
-)
+from nucs.solvers.choice_points import CHOICE_POINT_WIDTH, backtrack, branch, choice_point_init, tighten_objective
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
 from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_RESET, Solver, get_solution
