@@ -99,8 +99,6 @@ logger = logging.getLogger(__name__)
 SOLVER_RUNNING = 0  # nothing filled up: the search returned a solution or exhausted itself
 SOLVER_TRAIL_FULL = 1  # the search stopped because the trail needs more room, not because it is over
 SOLVER_CHOICE_POINTS_FULL = 2  # likewise for the stack of choice points
-SOLVER_STATUS = 0  # index for the status in the status array
-SOLVER_STATUS_WIDTH = 1
 
 # Trail entries a step of the search needs beyond one per cell of the backtrackable state.
 # The barrier in trail_set trails each cell at most once per choice point, so a fixpoint cannot need more
@@ -255,13 +253,6 @@ class BacktrackSolver(Solver):
             (choice_point_max_height or max(1 << 13, 4 * domain_nb), CHOICE_POINT_WIDTH), dtype=np.int32
         )
         self.choice_point_top = np.ones((1,), dtype=np.uint32)
-        # why the jitted search last returned. It returns None both when the search is over and when it
-        # stopped because an array it cannot grow ran out, so the reason has to travel back beside the
-        # solution rather than in it: SOLVER_TRAIL_FULL and SOLVER_CHOICE_POINTS_FULL name the array that
-        # filled up, and _solve_one grows that one and resumes, while SOLVER_RUNNING means the search
-        # returned on its own terms and the loop is over. An array of one cell, not an int, because that
-        # is how a jitted function writes back to its caller.
-        self.status = np.zeros(SOLVER_STATUS_WIDTH, dtype=np.int32)
         # the branch-and-bound bound, as OBJECTIVE_VARIABLE, OBJECTIVE_BOUND and OBJECTIVE_VALUE: the variable
         # optimized, the side of its domain to tighten, and the best value found so far. It is solver
         # state, not choice-point state -- the bound holds for the whole remaining search, so backtrack
@@ -364,17 +355,17 @@ class BacktrackSolver(Solver):
         :rtype: Optional[NDArray]
         """
         while True:
-            solution = self._solve_one_step()
-            if self.status[SOLVER_STATUS] == SOLVER_RUNNING:
+            status, solution = self._solve_one_step()
+            if status == SOLVER_RUNNING:
                 return solution
-            self._grow()
+            self._grow(status)
 
-    def _solve_one_step(self) -> NDArray | None:
+    def _solve_one_step(self) -> tuple[int, NDArray | None]:
         """
         Runs one step of the search by forwarding the solver state to the jitted solve_one_step.
 
-        :return: the solution if this step found one, None when the search is over or an array filled up
-        :rtype: Optional[NDArray]
+        :return: why the step returned, and the solution when it found one
+        :rtype: Tuple[int, Optional[NDArray]]
         """
         return solve_one_step(
             self.statistics,
@@ -409,7 +400,6 @@ class BacktrackSolver(Solver):
             self.domain_buffer,
             self.problem.idempotencies,
             self.objective,
-            self.status,
             self.trail_headroom,
         )
 
@@ -464,16 +454,19 @@ class BacktrackSolver(Solver):
             self.problem.unbound_variable_nb,
         )
 
-    def _grow(self) -> None:
+    def _grow(self, status: int) -> None:
         """
         Doubles whichever caller-allocated array the search ran out of, and lets it continue.
+
+        :param status: SOLVER_TRAIL_FULL or SOLVER_CHOICE_POINTS_FULL, the array that filled up
+        :type status: int
 
         Nothing of the search is lost. The trail keeps its contents, so every mark and every position in
         trail_indices still addresses the same entry; the choice point stack keeps its rows. Sizing either array for its
         worst case instead -- depth x (2 x domain_nb + 1) trail entries -- would hand back the memory
         this representation wins, and a hard failure would end a long optimization run for no reason.
         """
-        if self.status[SOLVER_STATUS] == SOLVER_TRAIL_FULL:
+        if status == SOLVER_TRAIL_FULL:
             trail = np.empty((2 * len(self.trail_log), 2), dtype=np.int32)
             trail[: len(self.trail_log)] = self.trail_log
             self.trail_log = trail
@@ -483,7 +476,6 @@ class BacktrackSolver(Solver):
             choice_point_stk[: len(self.choice_point_stk)] = self.choice_point_stk
             self.choice_point_stk = choice_point_stk
             logger.info(f"The stack of choice points grew to a maximal height of {len(self.choice_point_stk)}")
-        self.status[SOLVER_STATUS] = SOLVER_RUNNING
 
     def _backtrack(self) -> bool:
         """
@@ -591,15 +583,18 @@ def solve_one_step(
     domain_buffer: NDArray,
     idempotencies: NDArray,
     objective: NDArray,
-    status: NDArray,
     trail_headroom: int,
-) -> NDArray | None:
+) -> tuple[int, NDArray | None]:
     """
     Searches for one solution, stopping early when an array it cannot grow runs out of room.
 
     It is a step rather than the whole search because the trail and the choice point stack belong to the
-    caller: when either fills up, status names it and the search returns None having found nothing, for
-    _solve_one to grow that array and call again. Nothing of the search is lost in between.
+    caller: when either fills up, the returned status names it and no solution comes back, for _solve_one
+    to grow that array and call again. Nothing of the search is lost in between.
+
+    The status is returned rather than written into a one-cell array because nothing inside @njit reads
+    it -- it is the reason the step stopped, and only the Python caller acts on it. A solution alone
+    cannot carry that reason: None means both "the search is over" and "grow an array and call me again".
 
     Expects the propagation queue to already hold the propagators that need to run: the callers enqueue
     all the propagators (buckets_init) before the first call, and rely on backtrack to schedule the
@@ -674,13 +669,11 @@ def solve_one_step(
     :param objective: the objective as a Numpy array of variable, bound and value,
                       whose variable is -1 when not optimizing
     :type objective: NDArray
-    :param status: set to SOLVER_TRAIL_FULL or SOLVER_CHOICE_POINTS_FULL when the search stops for want of room
-    :type status: NDArray
     :param trail_headroom: the trail entries any one step of the search can need
     :type trail_headroom: int
 
-    :return: the solution if it exists or None
-    :rtype: Optional[NDArray]
+    :return: why the step returned, and the solution when it found one
+    :rtype: Tuple[int, Optional[NDArray]]
     """
     consistency_alg_fct = consistency_alg_fcts[0]
     nb_searches = len(decision_variables_offsets) - 1
@@ -689,11 +682,9 @@ def solve_one_step(
         # the arrays are caller-allocated, so the search stops for the solver to grow one rather than
         # overrun it silently -- with boundscheck off, the overrun is what would otherwise happen
         if trail_top[0] + trail_headroom > len(trail):
-            status[SOLVER_STATUS] = SOLVER_TRAIL_FULL
-            return None
+            return SOLVER_TRAIL_FULL, None
         if choice_point_top[0] > max_choice_point:
-            status[SOLVER_STATUS] = SOLVER_CHOICE_POINTS_FULL
-            return None
+            return SOLVER_CHOICE_POINTS_FULL, None
         problem_status = consistency_alg_fct(
             statistics,
             idempotencies,
@@ -719,7 +710,7 @@ def solve_one_step(
         choice_point = choice_point_top[0]
         if problem_status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLUTION_NB] += 1
-            return get_solution(domains)
+            return SOLVER_RUNNING, get_solution(domains)
         branched = False
         if problem_status == PROBLEM_UNBOUND:
             # sequential search: the first search that still has an unbound decision variable owns the
@@ -789,7 +780,7 @@ def solve_one_step(
             priorities,
             objective,
         ):
-            return None
+            return SOLVER_RUNNING, None
 
 
 def get_domain_buffer(offsets: NDArray) -> NDArray:

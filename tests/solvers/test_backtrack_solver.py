@@ -45,6 +45,7 @@ from nucs.propagators.propagators import (
     ALG_RELATION,
 )
 from nucs.solvers.backtrack_solver import (
+    SOLVER_RUNNING,
     STEP_TIGHTENING_NB,
     TIGHTENING_TRAIL_ENTRY_NB,
     BacktrackSolver,
@@ -133,7 +134,7 @@ class TestBacktrackSolver:
         problem = Problem([(0, 1), (0, 1)])
         solver = BacktrackSolver(problem)
         buckets_empty(solver.triggered_propagators, problem.priorities)
-        solution = solve_one_step(
+        status, solution = solve_one_step(
             solver.statistics,
             problem.algorithms,
             problem.priorities,
@@ -166,9 +167,9 @@ class TestBacktrackSolver:
             solver.domain_buffer,
             problem.idempotencies,
             solver.objective,
-            solver.status,
             solver.trail_headroom,
         )
+        assert status == SOLVER_RUNNING
         assert solution is not None
         assert solution.tolist() == [0, 0]
         assert solver.choice_point_top == 2
