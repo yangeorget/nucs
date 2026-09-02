@@ -33,13 +33,7 @@ from nucs.constants import (
     STATS_MAX,
 )
 from nucs.numba_helper import ComputeDomainsFunctions
-from nucs.problems.problem import (
-    OFFSETS_PARAM,
-    OFFSETS_VARIABLE,
-    PROBLEM_BOUND,
-    PROBLEM_INCONSISTENT,
-    PROBLEM_UNBOUND,
-)
+from nucs.problems.problem import OFFSETS_PARAM, OFFSETS_VARIABLE, PROBLEM_BOUND, PROBLEM_INCONSISTENT, PROBLEM_UNBOUND
 from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
 from nucs.solvers.state import tighten_at, trail_push, unbound_index
 
