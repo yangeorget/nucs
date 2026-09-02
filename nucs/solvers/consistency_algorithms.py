@@ -35,7 +35,7 @@ SIGN_CONSISTENCY_ALG = int64(
     int32[::1],  # entailed, a view of the tail of state
     int32[:, ::1],  # trail
     int32[::1],  # trail_top
-    int32[::1],  # pos
+    int32[::1],  # trail_indices
     int32[:, ::1],  # choice_point_stk
     uint32[::1],  # choice_point_top
     int32[::1],  # triggered_propagators

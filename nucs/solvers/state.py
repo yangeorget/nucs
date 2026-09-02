@@ -95,6 +95,13 @@ def trail_set(
     cell, means there is no counter to bump -- and therefore no site that can forget to bump one. choice_point_init
     runs at solve time on every OPTIM_RESET, and every stack mutation is covered for free.
 
+    The test is stated as a range, but only its lower half decides anything today: trail_push never writes
+    a position that is not below the trail size, and trail_undo clears what it pops, so a position is
+    either stale at -1 or live and below the size. The upper half is kept against a future pop that
+    forgets to clear -- it would still reject the entries above the new top, where entry < mark alone
+    would silently skip a write that needed trailing. Measured on queens, all_interval, bibd and golomb,
+    dropping it changes nothing.
+
     The trail size is taken and returned rather than read out of its array, so that a caller writing
     several cells in a row -- which is every caller -- keeps it in a register instead of reloading it
     across each write.
@@ -254,8 +261,9 @@ def tighten_at(
     :return: the events triggered by the write and the new trail size
     :rtype: Tuple[int, int]
     """
-    # the barrier is per bound, not per variable: a filtering writes both DOMAIN_MIN and DOMAIN_MAX within one choice point,
-    # so a guard indexed by variable would suppress the second write and never restore DOMAIN_MAX
+    # the barrier is per bound, not per variable: a filtering writes both DOMAIN_MIN and DOMAIN_MAX within
+    # one choice point, so a guard indexed by variable would suppress the second write and never restore
+    # DOMAIN_MAX
     cell_idx = variable << 1
     old_min = state[cell_idx]
     old_max = state[cell_idx | 1]

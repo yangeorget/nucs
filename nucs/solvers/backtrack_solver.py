@@ -461,7 +461,7 @@ class BacktrackSolver(Solver):
         Doubles whichever caller-allocated array the search ran out of, and lets it continue.
 
         Nothing of the search is lost. The trail keeps its contents, so every mark and every position in
-        pos still addresses the same entry; the choice point stack keeps its rows. Sizing either array for its
+        trail_indices still addresses the same entry; the choice point stack keeps its rows. Sizing either array for its
         worst case instead -- depth x (2 x domain_nb + 1) trail entries -- would hand back the memory
         this representation wins, and a hard failure would end a long optimization run for no reason.
         """
@@ -564,7 +564,7 @@ def solve_one_step(
     entailed: NDArray,
     trail: NDArray,
     trail_top: NDArray,
-    pos: NDArray,
+    trail_indices: NDArray,
     choice_point_stk: NDArray,
     choice_point_top: NDArray,
     triggered_propagators: NDArray,
@@ -625,8 +625,8 @@ def solve_one_step(
     :type trail: NDArray
     :param trail_top: the trail size as a Numpy array
     :type trail_top: NDArray
-    :param pos: the index of the last trail entry per positionally guarded cell
-    :type pos: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
     :param choice_point_top: the index of the top of the choice points as a Numpy array
@@ -701,7 +701,7 @@ def solve_one_step(
             entailed,
             trail,
             trail_top,
-            pos,
+            trail_indices,
             choice_point_stk,
             choice_point_top,
             triggered_propagators,
@@ -741,7 +741,7 @@ def solve_one_step(
                         state,
                         trail,
                         trail_top,
-                        pos,
+                        trail_indices,
                         choice_point_stk,
                         choice_point_top,
                         variable,
@@ -771,7 +771,7 @@ def solve_one_step(
             state,
             trail,
             trail_top,
-            pos,
+            trail_indices,
             choice_point_stk,
             choice_point_top,
             entailed,
