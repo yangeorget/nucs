@@ -41,7 +41,7 @@ class TestSquare:
             "square_21",  # order-21 simple perfect squared square, side 112 (the lowest-order SPSS)
         ],
     )
-    def test_square_placement(self, name: str) -> None:
+    def test_solve(self, name: str) -> None:
         with open(f"datasets/examples/square/{name}.json", "r") as json_file:
             dataset = json.load(json_file)
         # the instances are perfect packings: the squares exactly tile the master rectangle

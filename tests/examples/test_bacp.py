@@ -21,7 +21,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
 class TestBACP:
-    def test_balanced(self) -> None:
+    def test_find_best(self) -> None:
         dataset = {
             "n_courses": 3,
             "n_periods": 2,
@@ -40,7 +40,7 @@ class TestBACP:
         loads = [int(solution[problem.load(j)]) for j in range(problem.n_periods)]
         assert sorted(loads) == [3, 3]
 
-    def test_infeasible_load_bounds(self) -> None:
+    def test_find_best_infeasible(self) -> None:
         # Total load is 6 but each period must have load <= 2, and we only have 2 periods (capacity 4).
         dataset = {
             "n_courses": 3,
@@ -70,7 +70,7 @@ class TestBACP:
             ("datasets/examples/bacp/bacp-9.json", 38),
         ],
     )
-    def test_datasets(self, path: str, max_load: int) -> None:
+    def test_find_best_datasets(self, path: str, max_load: int) -> None:
         with open(path, "r") as json_file:
             dataset = json.load(json_file)
         problem = BACPProblem(dataset)

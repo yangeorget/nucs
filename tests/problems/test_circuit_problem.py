@@ -26,7 +26,7 @@ class TestCircuitProblem:
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb
 
-    def test_no_sub_cycle_5(self) -> None:
+    def test_solve_all_no_sub_cycle_5(self) -> None:
         problem = CircuitProblem(5)
         problem.domains[1] = (2, 2)
         problem.domains[2] = (1, 1)

@@ -21,7 +21,7 @@ from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 class TestSudokus:
     @pytest.mark.parametrize("path", ["datasets/examples/sudoku/sudoku1.json", "datasets/examples/sudoku/sudoku2.json"])
-    def test_sudokus(self, path: str) -> None:
+    def test_solve_all(self, path: str) -> None:
         with open(path, "r") as json_file:
             givens = json.load(json_file)["givens"]
             problem = SudokuProblem(givens)

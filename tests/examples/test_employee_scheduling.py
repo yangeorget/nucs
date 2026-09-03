@@ -29,7 +29,7 @@ class TestEmployeeScheduling:
         assert list(EmployeeSchedulingProblem().shifts(1, 0)) == [15, 20, 25]
         assert list(EmployeeSchedulingProblem().shifts(1, 1)) == [16, 21, 26]
 
-    def test_employee_scheduling(self) -> None:
+    def test_find_best(self) -> None:
         problem = EmployeeSchedulingProblem()
         solver = BacktrackSolver(
             problem, decision_variables=problem.requested_shifts, dom_heuristic=DOM_HEURISTIC_MAX_VALUE

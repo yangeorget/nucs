@@ -19,14 +19,14 @@ from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
 class TestMagicSquare:
-    def test_first_diagonal(self) -> None:
+    def test_first_diag(self) -> None:
         assert list(MagicSquareProblem(3).first_diag()) == [0, 4, 8]
 
-    def test_second_diagonal(self) -> None:
+    def test_second_diag(self) -> None:
         assert list(MagicSquareProblem(3).second_diag()) == [6, 4, 2]
 
     @pytest.mark.parametrize("size,solution_nb", [(2, 0), (3, 1), (4, 880)])
-    def test_magic_square(self, size: int, solution_nb: int) -> None:
+    def test_solve_all(self, size: int, solution_nb: int) -> None:
         problem = MagicSquareProblem(size)
         solver = BacktrackSolver(
             problem, var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MAX_VALUE

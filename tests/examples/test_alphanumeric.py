@@ -57,7 +57,7 @@ class TestAlphanumeric:
             )
         ],
     )
-    def test_puzzles(self, path: str, values: list[int]) -> None:
+    def test_find_all(self, path: str, values: list[int]) -> None:
         with open(path, "r") as json_file:
             dataset = json.load(json_file)
             problem = AlphanumericProblem(dataset)

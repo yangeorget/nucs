@@ -45,7 +45,7 @@ class TestJobShop:
         "name, optimum",
         [("mt06", 55), ("mt20", 1165), ("la01", 666), ("la31", 1784)],
     )
-    def test_jobshop_optimality_proof(self, name: str, optimum: int) -> None:
+    def test_solve(self, name: str, optimum: int) -> None:
         with open(f"datasets/examples/jobshop/{name}.json", "r") as json_file:
             dataset = json.load(json_file)
         problem = JobShopProblem(dataset["jobs"], optimum - 1)
@@ -63,7 +63,7 @@ class TestJobShop:
             ("la05", 593),
         ],
     )
-    def test_jobshop_first_solution(self, name: str, optimum: int) -> None:
+    def test_solve_first_solution(self, name: str, optimum: int) -> None:
         # the critical-resource search keeps branching on one machine until its tasks are sequenced, then
         # schedules each task at its earliest start: a valid schedule whose first-solution makespan is
         # reproducible (and, on the larger instances, far better than the smallest-domain baseline)
@@ -80,7 +80,7 @@ class TestJobShop:
         "name, optimum",
         [("mt06", 55)],
     )
-    def test_jobshop_best_solution(self, name: str, optimum: int) -> None:
+    def test_find_best(self, name: str, optimum: int) -> None:
         with open(f"datasets/examples/jobshop/{name}.json", "r") as json_file:
             dataset = json.load(json_file)
         assert dataset["optimum"] == optimum

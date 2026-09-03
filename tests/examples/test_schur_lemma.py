@@ -41,7 +41,7 @@ class TestSchurLemma:
             (20, 0),
         ],
     )
-    def test_solve(self, ball_nb: int, solution_nb: bool) -> None:
+    def test_solve_all(self, ball_nb: int, solution_nb: bool) -> None:
         problem = SchurLemmaProblem(ball_nb)
         solver = BacktrackSolver(problem)
         solver.solve_all()

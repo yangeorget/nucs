@@ -19,7 +19,7 @@ from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 class TestMagicSequence:
     @pytest.mark.parametrize("size,zero_nb", [(50, 46), (100, 96), (200, 196)])
-    def test_magic_sequence(self, size: int, zero_nb: int) -> None:
+    def test_find_all(self, size: int, zero_nb: int) -> None:
         problem = MagicSequenceProblem(size)
         solver = BacktrackSolver(problem, decision_variables=range(size - 1, -1, -1))
         solutions = solver.find_all()

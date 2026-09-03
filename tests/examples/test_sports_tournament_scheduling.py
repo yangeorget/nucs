@@ -33,7 +33,7 @@ class TestSportsTournamentScheduling:
         problem = SportsTournamentSchedulingProblem(4)
         assert problem.plays() == [0, 1, 0, 0, 2, 1, 0, 3, 2, 1, 2, 3, 1, 3, 4, 2, 3, 5]
 
-    def test_sports_tournament_scheduling_check(self) -> None:
+    def test_solve_domains_fixed(self) -> None:
         problem = SportsTournamentSchedulingProblem(8, False)
         problem.domains[:56] = [
             (v, v)
@@ -99,7 +99,7 @@ class TestSportsTournamentScheduling:
         solver = BacktrackSolver(problem)
         assert next(solver.solve(), None) is not None
 
-    def test_sports_tournament_scheduling_solve(self) -> None:
+    def test_solve(self) -> None:
         problem = SportsTournamentSchedulingProblem(8)
         solver = BacktrackSolver(problem, var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN)
         assert next(solver.solve(), None) is not None

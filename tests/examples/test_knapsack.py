@@ -19,7 +19,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
 class TestKnapsack:
-    def test_knapsack(self) -> None:
+    def test_find_best(self) -> None:
         with open("datasets/examples/knapsack/simple.json", "r") as json_file:
             dataset = json.load(json_file)
             problem = KnapsackProblem(dataset)

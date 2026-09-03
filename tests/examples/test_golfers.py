@@ -22,7 +22,7 @@ class TestGolfers:
         "group_nb, group_size, week_nb, symmetry_breaking, solution_nb",
         [(2, 2, 3, True, 1), (3, 2, 5, True, 2), (3, 3, 4, True, 12)],
     )
-    def test_golfers(
+    def test_solve_all(
         self, group_nb: int, group_size: int, week_nb: bool, symmetry_breaking: bool, solution_nb: int
     ) -> None:
         problem = SocialGolfersProblem(group_nb, group_size, week_nb, symmetry_breaking)

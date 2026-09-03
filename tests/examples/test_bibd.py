@@ -21,7 +21,7 @@ class TestBIBD:
     @pytest.mark.parametrize(
         "v, b, r, k, l, solution_nb", [(6, 10, 5, 3, 2, 1), (7, 7, 3, 3, 1, 1), (8, 14, 7, 4, 3, 92)]
     )
-    def test_bibd(self, v: int, b: int, r: int, k: int, l: int, solution_nb: int) -> None:
+    def test_solve_all(self, v: int, b: int, r: int, k: int, l: int, solution_nb: int) -> None:
         problem = BIBDProblem(v, b, r, k, l)
         solver = BacktrackSolver(problem)
         solver.solve_all()

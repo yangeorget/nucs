@@ -37,7 +37,7 @@ class TestLangford:
             (3, 9, 6),
         ],
     )
-    def test_langford(self, k: int, n: int, solution_nb: int) -> None:
+    def test_solve_all(self, k: int, n: int, solution_nb: int) -> None:
         problem = LangfordProblem(k, n)
         solver = BacktrackSolver(problem)
         solver.solve_all()

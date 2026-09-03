@@ -53,7 +53,7 @@ from nucs.statistics import (
 
 
 class TestBacktrackSolver:
-    def test_algorithm_statistics_partition_the_global_counters(self) -> None:
+    def test_solve_all_algorithm_statistics_partition_the_global_counters(self) -> None:
         """The per-algorithm counters are a breakdown of the global ones, so they must sum to them.
 
         This is what makes them usable for a throughput investigation: a no-change share attributed to one
@@ -74,7 +74,7 @@ class TestBacktrackSolver:
         # a propagator cannot change nothing more often than it was called
         assert all(no_changes[name] <= calls[name] for name in names)
 
-    def test_algorithm_statistics_omit_algorithms_that_never_ran(self) -> None:
+    def test_solve_all_algorithm_statistics_omit_algorithms_that_never_ran(self) -> None:
         """Only the algorithms a problem actually uses appear, so the breakdown stays readable."""
         problem = Problem([(0, 3)] * 2)
         problem.add_propagator(ALG_NEQ, [0, 1])
@@ -99,7 +99,7 @@ class TestBacktrackSolver:
         assert sum(1 for _ in solver.solve()) == 10000
         assert not solver.timed_out
 
-    def test_find_best_returns_the_best_found_within_the_timeout(self) -> None:
+    def test_optimize_returns_the_best_found_within_the_timeout(self) -> None:
         """Under a timeout find_best still returns a solution -- just not a proven optimum."""
         problem = Problem([(1, 500)])
         solver = BacktrackSolver(problem)
@@ -198,7 +198,7 @@ class TestBacktrackSolver:
         assert solver.domains[0].tolist() == [0, 0]
         assert solver.domains[1].tolist() == [1, 1]
 
-    def test_the_trail_holds_only_what_the_live_branch_changed(self) -> None:
+    def test_find_all_the_trail_holds_only_what_the_live_branch_changed(self) -> None:
         """The trail is bounded by the changes on the path, not by domain_nb per node.
 
         That is the whole claim of trailing over copying, and it is checkable: a live trail of a few
@@ -217,7 +217,7 @@ class TestBacktrackSolver:
         assert len(solver.trail_log) == 1 << 16  # it never had to grow
 
     @pytest.mark.parametrize("offset", [-6, -5, 0, 1])
-    def test_the_trail_grows_rather_than_overruns(self, offset: int) -> None:
+    def test_find_all_the_trail_grows_rather_than_overruns(self, offset: int) -> None:
         """A trail too small for the search is grown, not overrun -- and the search is not restarted.
 
         Parameterized over sizes below and just above the headroom the solver reserves, so that a
@@ -297,7 +297,7 @@ class TestBacktrackSolver:
             solver.objective,
         )
 
-    def test_the_level_stack_grows_rather_than_overruns(self) -> None:
+    def test_find_all_the_level_stack_grows_rather_than_overruns(self) -> None:
         """Likewise for a search deeper than the choice point stack: grow, do not corrupt memory."""
         problem = Problem([(0, 5)] * 6)
         reference = BacktrackSolver(problem).find_all()
@@ -333,7 +333,7 @@ class TestBacktrackSolver:
         statistics = solver.get_statistics_as_dictionary()
         assert statistics[STATS_LBL_SOLUTION_NB] == 6
 
-    def test_sequential_search(self) -> None:
+    def test_find_all_sequential_search(self) -> None:
         # two searches: the first branches variable 0 (indomain_max), the second variable 1 (indomain_min)
         problem = Problem([(1, 3), (1, 3)])
         problem.add_propagator(ALG_NEQ, [0, 1])  # x != y
@@ -351,7 +351,7 @@ class TestBacktrackSolver:
         assert len(solutions) == 6
         assert all(x != y for x, y in (s.tolist() for s in solutions))
 
-    def test_sequential_search_second_group_only_after_first_bound(self) -> None:
+    def test_solve_sequential_search_second_group_only_after_first_bound(self) -> None:
         # the second search must stay dormant until every decision variable of the first search is bound:
         # variable 2 (searched first) is fixed to its max before variables 0 and 1 are touched
         problem = Problem([(0, 9), (0, 9), (0, 9)])
@@ -365,7 +365,7 @@ class TestBacktrackSolver:
         solution = next(solver.solve())
         assert solution.tolist() == [0, 0, 9]  # variable 2 grounded to 9 first, then 0 and 1 to their min
 
-    def test_split_grounding_wakes_ground_triggered_propagator(self) -> None:
+    def test_find_all_split_grounding_wakes_ground_triggered_propagator(self) -> None:
         # A split heuristic that grounds a variable in its current branch must report a ground event,
         # otherwise a propagator woken only on ground events (here linear_neq_c) never fires and an
         # inconsistent solution slips through. Regression for indomain_reverse_split + anti_first_fail.
@@ -377,7 +377,7 @@ class TestBacktrackSolver:
             assert len(solutions) == 8
             assert all(x != y for x, y in (s.tolist() for s in solutions))
 
-    def test_minimize_relation(self) -> None:
+    def test_find_best_relation(self) -> None:
         problem = Problem([(-5, 5), (-100, 100)])
         problem.add_propagator(
             ALG_RELATION, [0, 1], [-5, 25, -4, 16, -3, 9, -2, 4, -1, 1, 0, 0, 1, 1, 2, 4, 3, 9, 4, 16, 5, 25]
@@ -389,7 +389,7 @@ class TestBacktrackSolver:
         statistics = solver.get_statistics_as_dictionary()
         assert statistics[STATS_LBL_SOLUTION_NB] == 6
 
-    def test_minimize_linear_leq_c(self) -> None:
+    def test_find_best_linear_leq_c(self) -> None:
         problem = Problem([(2, 5), (2, 5), (0, 10)])
         problem.add_propagator(ALG_LINEAR_LEQ_C, [0, 1, 2], [1, 1, -1, 0])
         solver = BacktrackSolver(problem)
@@ -412,7 +412,7 @@ class TestBacktrackSolver:
             (OPTIM_RESET, DOM_HEURISTIC_SPLIT_HIGH, 1),
         ],
     )
-    def test_maximize(self, mode: str, dom_heuristic: int, solution_nb: int) -> None:
+    def test_find_best(self, mode: str, dom_heuristic: int, solution_nb: int) -> None:
         problem = Problem([(1, 5)])
         solver = BacktrackSolver(problem, dom_heuristic=dom_heuristic)
         solution = solver.find_best(0, bound=DOMAIN_MAX, mode=mode)
@@ -432,7 +432,9 @@ class TestBacktrackSolver:
         ],
     )
     @pytest.mark.parametrize("bound", [DOMAIN_MIN, DOMAIN_MAX])
-    def test_prune_and_reset_yield_the_same_optimization_sequence(self, dom_heuristic: int, bound: int) -> None:
+    def test_optimize_prune_and_reset_yield_the_same_optimization_sequence(
+        self, dom_heuristic: int, bound: int
+    ) -> None:
         """OPTIM_PRUNE resumes the search where it was instead of restarting, but the improving solutions
         it reports must be the ones OPTIM_RESET reports -- pruning is an optimization, not a semantics.
 
@@ -458,7 +460,7 @@ class TestBacktrackSolver:
         ]
         assert actual == expected
 
-    def test_prune_terminates_on_a_three_way_split(self) -> None:
+    def test_optimize_prune_terminates_on_a_three_way_split(self) -> None:
         """The minimal reproduction of the hang above, pinned to its exact expected output."""
         solver = BacktrackSolver(Problem([(1, 5)]), dom_heuristic=DOM_HEURISTIC_MID_VALUE, log_level="ERROR")
         assert [solution.tolist() for solution in solver.optimize(0, DOMAIN_MIN, OPTIM_PRUNE)] == [[3], [1]]

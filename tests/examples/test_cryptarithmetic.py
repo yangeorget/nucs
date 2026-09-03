@@ -28,7 +28,7 @@ class TestCryptarithmetic:
             ("datasets/examples/cryptarithmetic/sendmore.json", [7, 5, 1, 6, 0, 8, 9, 2]),
         ],
     )
-    def test_puzzles(self, path: str, values: list[int]) -> None:
+    def test_find_all(self, path: str, values: list[int]) -> None:
         with open(path, "r") as json_file:
             dataset = json.load(json_file)
             problem = CryptarithmeticProblem(dataset)

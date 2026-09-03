@@ -18,7 +18,7 @@ from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
 class TestCarSequencing:
-    def test_car_sequencing(self) -> None:
+    def test_solve_all(self) -> None:
         with open("datasets/examples/car_sequencing/ecai88.json", "r") as json_file:
             dataset = json.load(json_file)
             problem = CarSequencingProblem(dataset)

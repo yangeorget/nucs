@@ -46,7 +46,7 @@ class TestQueens:
             (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 11, 2680),
         ],
     )
-    def test_queens_solve(self, dual: bool, var_heuristic: int, queen_nb: int, solution_nb: int) -> None:
+    def test_solve_all(self, dual: bool, var_heuristic: int, queen_nb: int, solution_nb: int) -> None:
         problem = QueensDualProblem(queen_nb) if dual else QueensProblem(queen_nb)
         solver = BacktrackSolver(problem, var_heuristic=var_heuristic)
         solver.solve_all()

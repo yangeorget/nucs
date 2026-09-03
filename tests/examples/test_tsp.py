@@ -24,7 +24,7 @@ from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
 class TestTSP:
-    def test_tsp_1(self) -> None:
+    def test_find_best(self) -> None:
         problem = TSPProblem([[0, 2, 1, 2], [2, 0, 2, 1], [1, 2, 0, 2], [2, 1, 2, 0]])
         solver = BacktrackSolver(problem, decision_variables=[0, 1, 2, 3])
         solution = solver.find_best(problem.total_cost, bound=DOMAIN_MIN)
@@ -41,7 +41,7 @@ class TestTSP:
             # ("gr24", 1272)
         ],
     )
-    def test_tsp_gr(self, name: str, minimum: int) -> None:
+    def test_find_best_datasets(self, name: str, minimum: int) -> None:
         with open(f"datasets/examples/tsp/{name}.json", "r") as json_file:
             costs = json.load(json_file)["costs"]
             n = len(costs)

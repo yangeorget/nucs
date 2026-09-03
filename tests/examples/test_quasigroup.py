@@ -56,7 +56,7 @@ class TestQuasigroup:
             # (7, 9, True, 1),
         ],
     )
-    def test_qg(self, kind: int, size: int, idempotent: bool, solution_nb: int) -> None:
+    def test_solve_all(self, kind: int, size: int, idempotent: bool, solution_nb: int) -> None:
         problem = QuasigroupProblem(kind, size, idempotent, True)
         solver = BacktrackSolver(
             problem,
