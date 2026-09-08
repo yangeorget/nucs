@@ -50,7 +50,7 @@ def get_triggers_inverse(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_inverse(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_inverse(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Channels two inverse arrays next and prev of equal length: prev[j] = i iff next[i] = j.
 
@@ -66,6 +66,8 @@ def compute_domains_inverse(domains: NDArray, parameters: NDArray) -> int:
     :param parameters: the offset of the values next takes then the offset of the values prev takes, or no
         parameter at all when both are 0
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

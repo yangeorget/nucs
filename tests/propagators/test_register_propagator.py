@@ -29,7 +29,7 @@ def get_triggers_leq(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_leq(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_leq(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """x <= y, as a propagator registered from outside the library."""
     domains[0][DOMAIN_MAX] = min(domains[0][DOMAIN_MAX], domains[1][DOMAIN_MAX])
     domains[1][DOMAIN_MIN] = max(domains[1][DOMAIN_MIN], domains[0][DOMAIN_MIN])

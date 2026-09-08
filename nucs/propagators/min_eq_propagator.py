@@ -48,7 +48,7 @@ def get_triggers_min_eq(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_min_eq(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_min_eq(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements :math:`\\min_i x_i = x_{n-1}`.
 
@@ -56,6 +56,8 @@ def compute_domains_min_eq(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: unused here
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

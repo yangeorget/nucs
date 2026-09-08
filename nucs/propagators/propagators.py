@@ -26,6 +26,7 @@ from nucs.propagators.add_c_eq_propagator import (
 from nucs.propagators.alldifferent_propagator import (
     compute_domains_alldifferent,
     get_complexity_alldifferent,
+    get_state_alldifferent,
     get_triggers_alldifferent,
 )
 from nucs.propagators.and_eq_propagator import compute_domains_and_eq, get_complexity_and_eq, get_triggers_and_eq
@@ -129,6 +130,7 @@ from nucs.propagators.eq_reif_propagator import (
 from nucs.propagators.gcc_propagator import (
     compute_domains_gcc,
     get_complexity_gcc,
+    get_state_gcc,
     get_triggers_gcc,
     is_vacuous_gcc,
 )
@@ -276,7 +278,11 @@ from nucs.propagators.value_precede_propagator import (
 # The array arguments are typed C-contiguous (::1) rather than any-layout (:) so the hot loops in every
 # propagator and in the consistency algorithm index with a plain offset instead of a stride multiply.
 # All these arrays are contiguous np.empty/np.zeros/np.ones allocations threaded through unchanged.
-SIGN_COMPUTE_DOMAINS = int64(int32[:, ::1], int32[::1])  # domains, parameters
+# prop_state is this propagator's own slice of solver-owned memory (see get_state_default below): a
+# trailed prefix of backtrackable cells followed by an untrailed hint suffix, both int32, both C-contiguous
+# for the same reason domains and parameters are. Almost every propagator ignores it; alldifferent and gcc
+# use the hint suffix as scratch space and, for alldifferent, as warm-started sort permutations.
+SIGN_COMPUTE_DOMAINS = int64(int32[:, ::1], int32[::1], int32[::1])  # domains, parameters, prop_state
 TYPE_COMPUTE_DOMAINS = types.FunctionType(SIGN_COMPUTE_DOMAINS)
 TYPE_COMPUTE_DOMAINS_LIST = types.ListType(TYPE_COMPUTE_DOMAINS)
 
@@ -287,6 +293,7 @@ GET_TRIGGERS_FCTS: list[Callable] = []
 GET_COMPLEXITY_FCTS: list[Callable] = []
 COMPUTE_DOMAINS_FCTS: list[Callable] = []
 IS_VACUOUS_FCTS: list[Callable] = []
+GET_STATE_FCTS: list[Callable] = []
 # Whether one call of the algorithm reaches its own fixpoint, indexed by algorithm. A propagator that does
 # not is rescheduled by the engine after any call that changed a domain, instead of iterating internally.
 # A list, appended to like the four above, rather than the boolean array the consistency algorithm wants:
@@ -313,6 +320,21 @@ def is_never_vacuous(n: int, parameters: Sequence[int], domains: Sequence[tuple[
     return False
 
 
+def get_state_default(n: int, parameters: Sequence[int]) -> tuple[int, int]:
+    """
+    Returns the size of this propagator's state block: the default for every propagator that needs none.
+
+    :param n: the number of variables, unused here
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: Sequence[int]
+
+    :return: (trailed_nb, hint_nb) = (0, 0)
+    :rtype: tuple[int, int]
+    """
+    return 0, 0
+
+
 def get_algorithm_nb() -> int:
     return len(COMPUTE_DOMAINS_FCTS)
 
@@ -333,6 +355,7 @@ def register_propagator(
     compute_domains_fct: Callable,
     is_vacuous_fct: Callable = is_never_vacuous,
     idempotent: bool = True,
+    get_state_fct: Callable = get_state_default,
 ) -> int:
     """
     Registers a propagator by adding its functions to the corresponding lists of functions.
@@ -349,6 +372,9 @@ def register_propagator(
     :param idempotent: whether one call reaches the propagator's own fixpoint; when False the engine
         reschedules it after any call that changed a domain
     :type idempotent: bool
+    :param get_state_fct: a function that returns the (trailed_nb, hint_nb) size of this propagator's
+        state block, defaulting to none
+    :type get_state_fct: Callable
 
     :return: the index of the propagator
     :rtype: int
@@ -357,6 +383,7 @@ def register_propagator(
     GET_COMPLEXITY_FCTS.append(get_complexity_fct)
     COMPUTE_DOMAINS_FCTS.append(compute_domains_fct)
     IS_VACUOUS_FCTS.append(is_vacuous_fct)
+    GET_STATE_FCTS.append(get_state_fct)
     IDEMPOTENCIES.append(idempotent)
     return get_algorithm_nb() - 1
 
@@ -383,7 +410,10 @@ ALG_LINEAR_NEQ_C = register_propagator(
     get_triggers_linear_neq_c, get_complexity_linear_neq_c, compute_domains_linear_neq_c
 )
 ALG_ALLDIFFERENT = register_propagator(
-    get_triggers_alldifferent, get_complexity_alldifferent, compute_domains_alldifferent
+    get_triggers_alldifferent,
+    get_complexity_alldifferent,
+    compute_domains_alldifferent,
+    get_state_fct=get_state_alldifferent,
 )
 ALG_COUNT_EQ = register_propagator(get_triggers_count_eq, get_complexity_count_eq, compute_domains_count_eq)
 ALG_COUNT_EQ_C = register_propagator(get_triggers_count_eq_c, get_complexity_count_eq_c, compute_domains_count_eq_c)
@@ -431,7 +461,9 @@ ALG_EQ_C_IMP = register_propagator(get_triggers_eq_c_imp, get_complexity_eq_c_im
 ALG_EQ_C_REIF = register_propagator(get_triggers_eq_c_reif, get_complexity_eq_c_reif, compute_domains_eq_c_reif)
 ALG_EQ_IMP = register_propagator(get_triggers_eq_imp, get_complexity_eq_imp, compute_domains_eq_imp)
 ALG_EQ_REIF = register_propagator(get_triggers_eq_reif, get_complexity_eq_reif, compute_domains_eq_reif)
-ALG_GCC = register_propagator(get_triggers_gcc, get_complexity_gcc, compute_domains_gcc, is_vacuous_gcc)
+ALG_GCC = register_propagator(
+    get_triggers_gcc, get_complexity_gcc, compute_domains_gcc, is_vacuous_gcc, get_state_fct=get_state_gcc
+)
 ALG_IF_THEN_ELSE = register_propagator(
     get_triggers_if_then_else,
     get_complexity_if_then_else,

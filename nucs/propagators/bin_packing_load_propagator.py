@@ -113,7 +113,7 @@ def _any_reachable(reach: NDArray, lo: int, hi: int) -> bool:
 
 
 @njit(cache=True)
-def compute_domains_bin_packing_load(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_bin_packing_load(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements the bin_packing_load constraint: each item i (with non-negative weight w[i]) is placed in bin
     bin[i], and load[j] equals the sum of the weights of the items placed in bin j.
@@ -134,6 +134,8 @@ def compute_domains_bin_packing_load(domains: NDArray, parameters: NDArray) -> i
     :type domains: NDArray
     :param parameters: the bin offset then the item weights
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency or inconsistency) as an int
     :rtype: int

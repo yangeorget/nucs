@@ -57,7 +57,7 @@ def get_triggers_member(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_member(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_member(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements :math:`x \\in \\{a_0, ..., a_{n-1}\\}`.
 
@@ -65,6 +65,8 @@ def compute_domains_member(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the allowed values, in strictly ascending order
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

@@ -86,7 +86,9 @@ class TestDisjunctive(PropagatorTest):
                 bounds.append((lo, hi))
             feasible = _feasible_starts(bounds, durations)
             domains = np.array([[lo, hi] for lo, hi in bounds], dtype=np.int32)
-            result = compute_domains_disjunctive(domains, np.array(durations, dtype=np.int32))
+            result = compute_domains_disjunctive(
+                domains, np.array(durations, dtype=np.int32), np.empty(0, dtype=np.int32)
+            )
             if result == PROP_INCONSISTENCY:
                 assert not feasible, f"declared inconsistent but feasible: {bounds} {durations} {feasible[:3]}"
                 continue

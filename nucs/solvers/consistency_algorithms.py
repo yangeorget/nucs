@@ -28,6 +28,7 @@ SIGN_CONSISTENCY_ALG = int64(
     uint32[:, ::1],  # offsets
     uint32[::1],  # propagator_variables
     int32[::1],  # propagator_parameters
+    uint32[::1],  # state_trailed_nb
     int32[::1],  # triggers
     int32[::1],  # triggers_offsets
     int32[::1],  # state

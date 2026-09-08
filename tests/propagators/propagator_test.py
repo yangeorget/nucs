@@ -15,7 +15,7 @@ from collections.abc import Callable
 import numpy as np
 
 from nucs.constants import PROP_CONSISTENCY
-from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, IDEMPOTENCIES
+from nucs.propagators.propagators import COMPUTE_DOMAINS_FCTS, GET_STATE_FCTS, IDEMPOTENCIES
 
 
 class PropagatorTest:
@@ -31,14 +31,17 @@ class PropagatorTest:
             [(domain, domain) if isinstance(domain, int) else domain for domain in domains], dtype=np.int32
         )
         parameters_arr = np.array(parameters, dtype=np.int32)
-        status = compute_domains_fct(domains_arr, parameters_arr)
+        # a fresh, zeroed state block, correctly sized by the propagator's own get_state_fct -- (0, 0), and
+        # so an empty array, for every propagator that doesn't declare one
+        prop_state_arr = np.zeros(sum(_get_state_size(compute_domains_fct, domains_arr, parameters)), dtype=np.int32)
+        status = compute_domains_fct(domains_arr, parameters_arr, prop_state_arr)
         # A propagator that is not idempotent is rescheduled by the engine after every call that changed a
         # domain, so its outcome is the outcome of that iteration rather than of any single call; asserting
         # one call would be asserting something the solver never observes.
         if not _is_idempotent(compute_domains_fct):
             while status == PROP_CONSISTENCY:
                 previous = domains_arr.copy()
-                status = compute_domains_fct(domains_arr, parameters_arr)
+                status = compute_domains_fct(domains_arr, parameters_arr, prop_state_arr)
                 if np.array_equal(previous, domains_arr):
                     break
         assert status == consistency_result
@@ -55,3 +58,14 @@ def _is_idempotent(compute_domains_fct: Callable) -> bool:
         if fct is compute_domains_fct:
             return IDEMPOTENCIES[algorithm]
     return True
+
+
+def _get_state_size(compute_domains_fct: Callable, domains_arr: np.ndarray, parameters: list[int]) -> tuple[int, int]:
+    """
+    Returns the (trailed_nb, hint_nb) size of a compute_domains function's state block, by the same
+    by-identity lookup as _is_idempotent; unknown functions (a test-local one, say) get none.
+    """
+    for algorithm, fct in enumerate(COMPUTE_DOMAINS_FCTS):
+        if fct is compute_domains_fct:
+            return GET_STATE_FCTS[algorithm](len(domains_arr), parameters)
+    return 0, 0

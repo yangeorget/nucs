@@ -58,7 +58,7 @@ def get_triggers_linear_neq_c(n: int, variable: int, parameters: NDArray) -> int
 
 
 @njit(cache=True)
-def compute_domains_linear_neq_c(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_linear_neq_c(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements :math:`\\sum_i a_i * x_i \\neq a_{n}`.
 
@@ -66,6 +66,8 @@ def compute_domains_linear_neq_c(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the parameters of the propagator, a is an alias for parameters
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

@@ -53,7 +53,7 @@ def get_triggers_subcircuit(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_subcircuit(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_subcircuit(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Enforces that the successor array forms a sub-circuit: the nodes i with x_i != i form a single circuit
     while the remaining nodes are self-loops (x_i = i, excluded). The empty sub-circuit (all self-loops) is
@@ -69,6 +69,8 @@ def compute_domains_subcircuit(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the node label offset, parameters[0], or no parameter at all for 0-based successors
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

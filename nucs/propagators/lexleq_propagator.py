@@ -159,7 +159,7 @@ def compute_domains_1(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
 
 
 @njit(cache=True)
-def compute_domains_lexleq(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_lexleq(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements lexicographic leq: :math:`x <_leq y`.
     See https://www.diva-portal.org/smash/record.jsf?pid=diva2:1041533.
@@ -170,6 +170,8 @@ def compute_domains_lexleq(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: unused here
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

@@ -53,7 +53,7 @@ def get_triggers_count_leq_c(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_count_leq_c(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_count_leq_c(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements :math:`S\\sum_i (x_i == a) <= c`.
 
@@ -61,6 +61,8 @@ def compute_domains_count_leq_c(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the parameters of the propagator, a is the first parameter, c is the second parameter
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

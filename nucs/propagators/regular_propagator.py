@@ -121,7 +121,7 @@ def is_vacuous_regular(n: int, parameters: Sequence[int], domains: Sequence[tupl
 
 
 @njit(cache=True)
-def compute_domains_regular(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_regular(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements the regular constraint: the sequence of variables must be accepted by a deterministic finite
     automaton.
@@ -141,6 +141,8 @@ def compute_domains_regular(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the DFA description, as above
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

@@ -49,7 +49,7 @@ def get_triggers_nvalue(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_nvalue(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_nvalue(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements :math:`y = |\\{x_0, ..., x_{n-1}\\}|`, the number of distinct values taken by the x_i.
 
@@ -61,6 +61,8 @@ def compute_domains_nvalue(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: unused here
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

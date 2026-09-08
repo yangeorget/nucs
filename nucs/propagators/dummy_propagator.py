@@ -46,10 +46,12 @@ def get_triggers_dummy(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_dummy(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_dummy(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     A propagator that does nothing.
 
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int
     """

@@ -53,7 +53,7 @@ def get_triggers_element_l_eq_c_alldifferent(n: int, variable: int, parameters: 
 
 
 @njit(cache=True)
-def compute_domains_element_l_eq_c_alldifferent(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_element_l_eq_c_alldifferent(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Enforces :math:`l_i = c` when the elements of l are all different.
 
@@ -61,6 +61,8 @@ def compute_domains_element_l_eq_c_alldifferent(domains: NDArray, parameters: ND
     :type domains: NDArray
     :param parameters: the parameters of the propagator, c is the first parameter
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

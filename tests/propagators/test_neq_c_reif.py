@@ -33,7 +33,9 @@ class TestNeqCReif(PropagatorTest):
                         if bv == (1 if xv != c else 0)
                     ]
                     domains = np.array([list(b_dom), [xl, xu]], dtype=np.int32)
-                    status = compute_domains_neq_c_reif(domains, np.array([c], dtype=np.int32))
+                    status = compute_domains_neq_c_reif(
+                        domains, np.array([c], dtype=np.int32), np.empty(0, dtype=np.int32)
+                    )
                     if not feasible:
                         assert status == PROP_INCONSISTENCY, f"expected inconsistency b={b_dom} x={xl}..{xu} c={c}"
                         continue

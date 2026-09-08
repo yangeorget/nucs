@@ -124,7 +124,7 @@ def _last_le(end: int, rl: int, ru: int, m: int) -> int:
 
 
 @njit(cache=True)
-def compute_domains_mod_c_eq(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_mod_c_eq(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements :math:`x \\bmod m = z` for a constant modulus m, with truncated division (the remainder takes
     the sign of the dividend x), i.e. the FlatZinc/MiniZinc ``int_mod`` semantics with a fixed divisor.
@@ -136,6 +136,8 @@ def compute_domains_mod_c_eq(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the parameters, m is parameters[0]
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

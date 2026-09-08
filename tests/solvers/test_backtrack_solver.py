@@ -136,6 +136,7 @@ class TestBacktrackSolver:
             problem.offsets,
             problem.propagator_variables,
             problem.propagator_parameters,
+            problem.state_trailed_nb,
             problem.triggers,
             problem.triggers_offsets,
             solver.state,

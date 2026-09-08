@@ -57,7 +57,7 @@ def get_triggers_mul_c_eq(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_mul_c_eq(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_mul_c_eq(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements :math:`x * c = y`.
 
@@ -65,6 +65,8 @@ def compute_domains_mul_c_eq(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the constant c, parameters[0]
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency or inconsistency) as an int
     :rtype: int

@@ -191,7 +191,7 @@ def _filter_detectable_precedences(est: NDArray, lct: NDArray, p: NDArray, n: in
 
 
 @njit(cache=True)
-def compute_domains_disjunctive(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_disjunctive(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements the disjunctive (unary resource) constraint: tasks with start times ``domains`` and constant
     durations ``parameters`` must not overlap in time, i.e. for all i != j either ``s_i + p_i <= s_j`` or
@@ -206,6 +206,8 @@ def compute_domains_disjunctive(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the durations, one constant per task in the same order as the variables
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

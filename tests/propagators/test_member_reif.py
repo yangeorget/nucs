@@ -108,7 +108,9 @@ class TestMemberReif(PropagatorTest):
                     if b == (1 if x in values else 0)
                 ]
                 domains = np.array([(b_min, b_max), (x_min, x_max)], dtype=np.int32)
-                status = compute_domains_member_reif(domains, np.array(values, dtype=np.int32))
+                status = compute_domains_member_reif(
+                    domains, np.array(values, dtype=np.int32), np.empty(0, dtype=np.int32)
+                )
                 if not solutions:
                     assert status == PROP_INCONSISTENCY, f"{values} {b_min}..{b_max} {x_min}..{x_max}"
                     continue

@@ -55,7 +55,7 @@ def get_triggers_strictly_increasing(n: int, variable: int, parameters: NDArray)
 
 
 @njit(cache=True)
-def compute_domains_strictly_increasing(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_strictly_increasing(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements :math:`x_i < x_{i+1}` for all i.
 
@@ -63,6 +63,8 @@ def compute_domains_strictly_increasing(domains: NDArray, parameters: NDArray) -
     :type domains: NDArray
     :param parameters: unused here
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

@@ -68,7 +68,7 @@ class TestImp(PropagatorTest):
                         if pred(r, ops, params):
                             feasible.append((r, *ops))
                 domains = np.array([list(b_dom), *[list(d) for d in op_dom]], dtype=np.int32)
-                status = compute_fn(domains, p)
+                status = compute_fn(domains, p, np.empty(0, dtype=np.int32))
                 if not feasible:
                     assert status == PROP_INCONSISTENCY, f"expected inconsistency b={b_dom} ops={op_dom} p={params}"
                     continue

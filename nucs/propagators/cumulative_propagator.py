@@ -316,7 +316,7 @@ def is_vacuous_cumulative(n: int, parameters: Sequence[int], domains: Sequence[t
 
 
 @njit(cache=True)
-def compute_domains_cumulative(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_cumulative(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements the cumulative constraint: tasks with start times ``domains`` run for constant durations and
     consume constant amounts of a resource of fixed capacity; at no instant may the total consumption of the
@@ -332,6 +332,8 @@ def compute_domains_cumulative(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the durations, the demands and the capacity, as described above
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int
@@ -424,7 +426,7 @@ def is_vacuous_cumulative_var(n: int, parameters: Sequence[int], domains: Sequen
 
 
 @njit(cache=True)
-def compute_domains_cumulative_var(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_cumulative_var(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements the cumulative constraint with variable durations and constant demands and capacity.
 
@@ -438,6 +440,8 @@ def compute_domains_cumulative_var(domains: NDArray, parameters: NDArray) -> int
     :type domains: NDArray
     :param parameters: the demands then the capacity
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

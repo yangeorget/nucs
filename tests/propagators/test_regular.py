@@ -94,7 +94,7 @@ class TestRegular(PropagatorTest):
             params = [q_nb, s_nb, q0, *d, *accept]
             solutions = _brute_solutions(doms, q_nb, s_nb, d, q0, accept)
             arr = np.array(list(doms), dtype=np.int32)
-            status = compute_domains_regular(arr, np.array(params, dtype=np.int32))
+            status = compute_domains_regular(arr, np.array(params, dtype=np.int32), np.empty(0, dtype=np.int32))
             if not solutions:
                 assert status == PROP_INCONSISTENCY, (d, accept, doms)
                 continue

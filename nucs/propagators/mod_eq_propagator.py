@@ -57,7 +57,7 @@ def get_triggers_mod_eq(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_mod_eq(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_mod_eq(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements :math:`x \\bmod y = z` with truncated division (the remainder takes the sign of the
     dividend x), i.e. the FlatZinc/MiniZinc ``int_mod`` semantics.
@@ -66,6 +66,8 @@ def compute_domains_mod_eq(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: unused here
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

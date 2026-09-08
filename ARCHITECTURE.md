@@ -148,14 +148,16 @@ watching `(variable, event)` are the slice `triggers[triggers_offsets[variable·
 Every backtrackable value lives in one flat `int32` array, and one undo log restores all of it:
 
 ```
-              0                     2n                2n+P      2n+P+1
-state (int32) [ ----- domains ----- | --- entailed --- | unbound ]     n = domain_nb, P = propagator_nb
+              0                     2n                2n+P              2n+P+S      2n+P+S+1
+state (int32) [ ----- domains ----- | --- entailed --- | propagator state | unbound ]     n = domain_nb, P = propagator_nb, S = total propagator state width
 ```
 
 `domains` is an `int32[:, ::1]` view of the head and `entailed` a view of the middle — the same memory, addressed the
 way each reader wants it — so the flat index of `(variable, bound)` is `(variable << 1) | bound` and that of
 propagator `p` is `2n + p`. A trail entry is `(flat index, old value)` with no discriminator, so restoring a domain
 bound, reactivating an entailed propagator and rolling back the unbound-variable count are the same instruction.
+Propagator state sits between the entailment flags and the unbound count, so `unbound_index()` — `len(state) - 1` —
+stays independent of it. See *Propagator state* below.
 
 | array | shape | dtype | role |
 |-------|-------|-------|------|
@@ -191,6 +193,41 @@ arity) and mutates that copy; `update_domains` diffs it against the real domains
 detects inconsistency halfway through cannot corrupt global state, event computation is centralized in one place, and
 there is no per-propagator state to restore on backtrack.
 
+### Propagator state: a solver-owned block per propagator
+
+`compute_domains_*` takes a third argument, `prop_state`: a per-propagator `int32[::1]` slice of `state`, addressed
+CSR-style exactly like `propagator_variables`/`propagator_parameters` — a third `OFFSETS_STATE` column in `offsets`,
+holding *absolute* indices into `state` rather than 0-based ones (the base, `2 * domain_nb + propagator_nb`, is
+already known to `Problem`, so `bc_algorithm` slices `state[offsets[p, OFFSETS_STATE]:offsets[p+1, OFFSETS_STATE]]`
+directly, no extra argument for the base). `register_propagator` takes an optional `get_state_fct` returning
+`(trailed_nb, hint_nb)`, defaulting to `(0, 0)` — a propagator that doesn't ask for one costs nothing: no branch, no
+cache line, no trail entry.
+
+Two tiers, by contract:
+
+- **Tier A — hints (untrailed).** The filtering result must be identical whatever the block contains; staleness
+  costs time, never correctness. Nothing is trailed, nothing is restored, the non-JIT path is untouched, and a fresh
+  block's root value is whatever `np.zeros` gives it. `alldifferent`/`gcc` use this tier today (below).
+- **Tier B — semantic state (trailed).** The cells are a function of the current domains, maintained incrementally;
+  the engine trails the block, the propagator keeps it in sync. **Not yet used by any propagator** — the barrier for
+  it exists (`bc_algorithm` trails a propagator's `trailed_nb`-wide prefix, unconditionally, through the same
+  `trail_set` a domain write uses, right before calling `compute_domains_*`) but `choice_point_init` does not yet
+  reseed a Tier-B block to a non-zero root value, so a first real Tier-B propagator needs that piece added.
+
+Because the barrier runs before the call, a propagator that returns `PROP_INCONSISTENCY` halfway through may already
+have written its state block, and that is safe — trailed on entry, restored by `trail_undo` like any other cell.
+
+**`alldifferent`/`gcc` (Tier A — landed the two experiments below described as "explored, not adopted"):**
+`get_state_alldifferent` reserves `[flag, min_sorted_vars[n], max_sorted_vars[n], bounds, t, d, h, ranks]` — the
+`bounds/t/d/h/ranks` scratch that used to come from one `np.empty` per call, plus a warm-started sort permutation.
+`flag == 0` means cold (a fresh, zeroed block): seed identity via `argsort_into` and set `flag = 1`; otherwise
+`argsort_into_warm` re-sorts the existing (possibly stale) permutation in place, which is `O(n + inversions since
+the previous call)` rather than relative to identity order — this is what removes the identity-seeded sort's
+`O(n^2)` cliff when sort keys decorrelate from variable index. `get_state_gcc` reserves the equivalent scratch
+(`bounds/t/d/h`, the sort permutations, `ranks`, `stable_intervals`, `stable_sets`, `new_mins`) without the warm
+permutation reuse; the three arrays that used to come from a fresh `np.zeros` (`stable_intervals`, `stable_sets`,
+`new_mins`) are explicitly re-zeroed each call, since a persistent block no longer implies that for free.
+
 ### Functions are values via numeric ids and wrapper addresses
 
 Propagators and heuristics register into typed lists indexed by `ALG_*` / heuristic ids; the ids live in integer
@@ -223,48 +260,18 @@ non-JIT fallback.
 
 ## Explored, not adopted
 
-### A solver-owned scratch buffer for propagator working memory
+### A solver-owned scratch buffer for propagator working memory, and warm alldifferent permutations
 
-*(benchmarked 2026-07, ~4%, shelved)* Some propagators need temporary arrays per call: `alldifferent` and `gcc` each do
-one `np.empty` inside `compute_domains_*` (already collapsed from several allocations into a single one). The explored
-alternative threads a second preallocated buffer — alongside `domain_buffer` — through the consistency algorithms and
-extends the propagator signature to `compute_domains_*(domains, parameters, scratch)`, removing the last allocator
-traffic from the propagation hot loop. Measured on queens 11–13 `solve_all`: a consistent 3.5–4.5% end-to-end speedup,
-matching a per-call microbenchmark saving of ~40 ns (the cost of one Numba NRT allocation), which is most visible at
-small arities where `alldifferent`'s O(n log n) body doesn't yet dominate. Two findings worth keeping:
-
-- **The scratch argument must be typed C-contiguous (`int32[::1]`) in `SIGN_COMPUTE_DOMAINS`.** Reusing the existing
-  `parameters` array as scratch space avoids the signature change but is typed `int32[:]` (any layout), so every scratch
-  slice loses compile-time contiguity and the hot loops pay strided indexing — that variant was 5% *slower* than
-  baseline despite allocating nothing. A local `np.empty` gives Numba layout knowledge for free; a passed-in buffer only
-  matches it when the signature says `::1`.
-- **Why shelved:** `compute_domains_*` is a public extension point, so the third argument breaks every external
-  propagator and every test that calls one directly — a 52-propagator, API-breaking change for a capped ~4-5% on
-  alldifferent-heavy problems. With the single-allocation layout, Numba's allocator costs only ~40 ns per call; the
-  current code is near-optimal without the break. Revisit if the signature changes anyway for another reason.
-
-### Incremental alldifferent via persistent warm permutations
-
-*(benchmarked 2026-07, ~8% total, shelved with the scratch buffer)* Follow-up to the scratch-buffer experiment, using the
-same third argument: instead of pure scratch, each propagator gets a persistent per-propagator state row laid out as
-`[flag, min_sorted_vars[n], max_sorted_vars[n], scratch...]` (zeroed at solver init, `flag == 0` means cold since an
-all-zeros permutation is invalid). The insertion argsorts then warm-start from the previous call's permutations instead
-of rebuilding from the identity, costing O(n + inversions *since the previous call*) rather than displacement relative
-to index order. Findings:
-
-- **Hint state needs no backtrack bookkeeping.** A stale permutation is a valid input from any search node — merely a
-  slower one — so nothing is trailed or restored and the non-JIT fallback is untouched. Verified by identical solution counts across all configurations (73,712 solutions of queens 13, millions
-  of backtracks) and a bit-identical-propagation checksum in the microbenchmark. This is the cheapest sound form of
-  propagator state; anything semantic (cached sums, counts) would instead need a generation stamp bumped on backtrack.
-- **Measured:** queens 11–13 `solve_all` ~7.5–8% end-to-end vs baseline (vs ~3.5% for scratch-only — warm permutations
-  roughly double the win), langford(3,9) ~5.5%, all_interval(12) 0% (alldifferent is not its hot propagator). Per call,
-  warm equals cold when sort keys correlate with variable index but removes the identity-seeded sort's O(n²) cliff when
-  they don't: 2.4× at n=128, 14× at n=512, 49× at n=2048 (~1 ms/call cold vs 21 µs warm). Mid-search, the no-offset
-  alldifferent's keys (the values) decorrelate from index, which is where the end-to-end gain over scratch-only comes
-  from; the diagonal constraints' monotone offsets keep their keys index-correlated, capping the gain on queens.
-- **Why shelved, and when to revisit:** same API break as the scratch buffer, so the same verdict — but if the
-  `compute_domains_*` signature ever breaks for any reason, adopt this rather than plain scratch: same third argument,
-  ~30 extra lines in `alldifferent` (and the same recipe applies to `gcc`), and it is insurance for FlatZinc-sourced
-  models with large alldifferents over arbitrarily-ordered variables, which currently sit on the O(n²) sort cliff.
-  Large-arity queens could not witness the effect either way: first-solution at n = 128 with
-  `VAR_HEURISTIC_SMALLEST_DOMAIN` is search-bound and did not finish under any configuration.
+*(benchmarked 2026-07, ~4% and ~8% respectively; landed together as the `prop_state` argument — see
+*Propagator state* above)* These two were explored and shelved separately, purely because of the shared cost of
+breaking `compute_domains_*`'s signature — a public extension point, so the change breaks every external propagator
+and every test calling one directly. Once *something* forced that break, both were pure profit, so they landed in
+the same pass as the mechanism itself. Numbers from the original measurement, kept for reference: scratch alone
+(replacing `alldifferent`/`gcc`'s one `np.empty` per call) was a consistent 3.5–4.5% end-to-end speedup on queens
+11–13 `solve_all`, matching a ~40 ns per-call microbenchmark saving (one Numba NRT allocation) — and the scratch
+argument has to be typed C-contiguous (`int32[::1]`) in `SIGN_COMPUTE_DOMAINS`; reusing `parameters` as scratch
+avoids the signature change but loses compile-time contiguity and was 5% *slower* despite allocating nothing. Warm
+permutations on top brought queens 11–13 to ~7.5–8% end-to-end (roughly double scratch-only), langford(3,9) ~5.5%,
+all_interval(12) 0% (alldifferent isn't its hot propagator); per call, warm equals cold when sort keys correlate with
+variable index but removes the identity-seeded sort's O(n²) cliff when they don't (2.4× at n=128, 14× at n=512, 49×
+at n=2048) — this is the gain FlatZinc-sourced models with large, arbitrarily-ordered alldifferents stand to see.

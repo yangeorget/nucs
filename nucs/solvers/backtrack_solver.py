@@ -198,18 +198,23 @@ class BacktrackSolver(Solver):
         logger.debug("Initializing choice points")
         # all the backtrackable state in one flat int32 array, so that one undo log and one undo loop
         # restore every kind of it:
-        #     [ 2 * domain_nb domain bounds | propagator_nb entailment flags | the unbound count ]
+        #     [ 2 * domain_nb domain bounds | propagator_nb entailment flags | propagator state | the unbound count ]
         # domains is a (domain_nb, 2) view of its head and entailed a view of the middle -- the same
         # memory, addressed the way each reader wants it -- so the flat index of (variable, bound) is
         # (variable << 1) | bound, and that of propagator p is 2 * domain_nb + p. Restoring a domain
-        # bound and reactivating an entailed propagator are then the same instruction.
+        # bound and reactivating an entailed propagator are then the same instruction. Propagator state
+        # (problem.state_width cells, addressed per propagator by offsets[:, OFFSETS_STATE], see
+        # Problem.init_propagator_arrays) sits between the entailment flags and the unbound count so that
+        # unbound_index() -- len(state) - 1 -- stays independent of it; every state block in this stage
+        # defaults its root value to 0 (np.zeros below), which is what every propagator using one expects.
         domain_nb = self.problem.domain_nb
         propagator_nb = self.problem.propagator_nb
         propagator_entailment_offset = 2 * domain_nb
-        unbound_count_offset = propagator_entailment_offset + propagator_nb
+        propagator_state_offset = propagator_entailment_offset + propagator_nb
+        unbound_count_offset = propagator_state_offset + self.problem.state_width
         self.state = np.zeros(unbound_count_offset + 1, dtype=np.int32)
         self.domains = self.state[:propagator_entailment_offset].reshape(domain_nb, 2)
-        self.entailed = self.state[propagator_entailment_offset:unbound_count_offset]
+        self.entailed = self.state[propagator_entailment_offset:propagator_state_offset]
         # the guard lets a choice point trail each cell of state at most once -- every domain bound, every
         # entailment flag and the count -- so a fixpoint cannot need more than len(state) entries, whatever
         # it does; the tightenings the search applies around it write at their own mark and are counted on
@@ -352,6 +357,7 @@ class BacktrackSolver(Solver):
             self.problem.offsets,
             self.problem.propagator_variables,
             self.problem.propagator_parameters,
+            self.problem.state_trailed_nb,
             self.problem.triggers,
             self.problem.triggers_offsets,
             self.state,
@@ -500,6 +506,7 @@ def solve_one_step(
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
+    state_trailed_nb: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
     state: NDArray,
@@ -557,6 +564,8 @@ def solve_one_step(
     :type propagator_variables: NDArray
     :param propagator_parameters: the parameters by propagators
     :type propagator_parameters: NDArray
+    :param state_trailed_nb: the trailed width of each propagator's state block, indexed by propagator
+    :type state_trailed_nb: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :type triggers: NDArray
     :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
@@ -636,6 +645,7 @@ def solve_one_step(
             offsets,
             propagator_variables,
             propagator_parameters,
+            state_trailed_nb,
             triggers,
             triggers_offsets,
             state,

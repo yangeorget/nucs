@@ -65,7 +65,9 @@ class TestDivCEq(PropagatorTest):
                     for yu in range(yl, 6):
                         feasible = [(xv, trunc_div(xv, c)) for xv in range(xl, xu + 1) if yl <= trunc_div(xv, c) <= yu]
                         domains = np.array([[xl, xu], [yl, yu]], dtype=np.int32)
-                        status = compute_domains_div_c_eq(domains, np.array([c], dtype=np.int32))
+                        status = compute_domains_div_c_eq(
+                            domains, np.array([c], dtype=np.int32), np.empty(0, dtype=np.int32)
+                        )
                         if not feasible:
                             assert status == PROP_INCONSISTENCY, (
                                 f"expected inconsistency for {xl}..{xu} {yl}..{yu} c={c}"

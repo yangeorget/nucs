@@ -93,7 +93,9 @@ class TestCumulativeVar(PropagatorTest):
             capacity = rng.randint(1, 3)
             solutions = _brute_solutions(start_doms, dur_doms, heights, capacity)
             arr = np.array(list(start_doms) + list(dur_doms), dtype=np.int32)
-            status = compute_domains_cumulative_var(arr, np.array([*heights, capacity], dtype=np.int32))
+            status = compute_domains_cumulative_var(
+                arr, np.array([*heights, capacity], dtype=np.int32), np.empty(0, dtype=np.int32)
+            )
             if solutions:
                 assert status != PROP_INCONSISTENCY, (start_doms, dur_doms, heights, capacity)
                 for var in range(2 * n):

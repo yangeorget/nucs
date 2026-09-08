@@ -81,7 +81,7 @@ class TestDiffn(PropagatorTest):
                 bounds.append((lo, hi))
             feasible = _feasible_placements(bounds, dx, dy)
             domains = np.array([[lo, hi] for lo, hi in bounds], dtype=np.int32)
-            result = compute_domains_diffn(domains, np.array(dx + dy, dtype=np.int32))
+            result = compute_domains_diffn(domains, np.array(dx + dy, dtype=np.int32), np.empty(0, dtype=np.int32))
             if result == PROP_INCONSISTENCY:
                 assert not feasible, f"declared inconsistent but feasible: {bounds} {dx} {dy}"
                 continue

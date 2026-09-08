@@ -35,6 +35,27 @@ def get_complexity_gcc(n: int, parameters: NDArray) -> int:
     return int(n * math.log(n))
 
 
+def get_state_gcc(n: int, parameters: NDArray) -> tuple:
+    """
+    Returns the size of this propagator's state block: the scratch space compute_domains_gcc used to
+    allocate with np.empty/np.zeros on every call.
+
+    Every cell is either fully overwritten before it is read (bounds, t, d, h, the sort permutations,
+    ranks) or explicitly re-zeroed by compute_domains_gcc itself (stable_intervals, stable_sets, new_mins,
+    which used to come from a fresh np.zeros), so the whole block is an untrailed hint.
+
+    :param n: the number of variables
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: NDArray
+
+    :return: (trailed_nb, hint_nb) = (0, 6 * bounds_nb + 5n)
+    :rtype: tuple[int, int]
+    """
+    bounds_nb = 2 * (n + 1)
+    return 0, 6 * bounds_nb + 5 * n
+
+
 @njit(cache=True)
 def get_triggers_gcc(n: int, variable: int, parameters: NDArray) -> int:
     """
@@ -436,7 +457,7 @@ def is_vacuous_gcc(n: int, parameters: Sequence[int], domains: Sequence[tuple[in
 
 
 @njit(cache=True)
-def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_gcc(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     r"""
     This propagator (Global Cardinality Constraint) enforces that
     :math:`l_j \le |\{ i : x_i = v_j \}| \le c_j` for all j.
@@ -447,24 +468,30 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray) -> int:
     :param parameters: there are 1 + 2 * m parameters:
                        the first domain value (v_0), then the m lower bounds, then the m upper bounds (capacities)
     :type parameters: NDArray
+    :param prop_state: this propagator's state block, sized by get_state_gcc
+    :type prop_state: NDArray
     :return: a propagation status (PROP_INCONSISTENCY or PROP_CONSISTENCY)
     :rtype: int
     """
     n = len(domains)
     m = (len(parameters) - 1) >> 1  # number of values
     bounds_nb = 2 * (n + 1)
-    empty_buffer = np.empty(4 * bounds_nb + 4 * n, dtype=np.int32)  # single allocation for all the scratch arrays
-    bounds = empty_buffer[:bounds_nb]
-    t = empty_buffer[bounds_nb : 2 * bounds_nb]  # critical capacity pointers
-    d = empty_buffer[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
-    h = empty_buffer[3 * bounds_nb : 4 * bounds_nb]  # Hall interval pointers
-    min_sorted_vars = empty_buffer[4 * bounds_nb : 4 * bounds_nb + n]
-    max_sorted_vars = empty_buffer[4 * bounds_nb + n : 4 * bounds_nb + 2 * n]
-    ranks = empty_buffer[4 * bounds_nb + 2 * n :].reshape(n, 2)
-    zero_buffer = np.zeros(2 * bounds_nb + n, dtype=np.int32)  # to reduce the number of allocations
-    stable_intervals = zero_buffer[:bounds_nb]
-    stable_sets = zero_buffer[bounds_nb : 2 * bounds_nb]
-    new_mins = zero_buffer[2 * bounds_nb :]
+    bounds = prop_state[:bounds_nb]
+    t = prop_state[bounds_nb : 2 * bounds_nb]  # critical capacity pointers
+    d = prop_state[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
+    h = prop_state[3 * bounds_nb : 4 * bounds_nb]  # Hall interval pointers
+    min_sorted_vars = prop_state[4 * bounds_nb : 4 * bounds_nb + n]
+    max_sorted_vars = prop_state[4 * bounds_nb + n : 4 * bounds_nb + 2 * n]
+    ranks = prop_state[4 * bounds_nb + 2 * n : 4 * bounds_nb + 4 * n].reshape(n, 2)
+    zero_start = 4 * bounds_nb + 4 * n
+    stable_intervals = prop_state[zero_start : zero_start + bounds_nb]
+    stable_sets = prop_state[zero_start + bounds_nb : zero_start + 2 * bounds_nb]
+    new_mins = prop_state[zero_start + 2 * bounds_nb :]
+    # these three used to come from a fresh np.zeros every call; the persistent block needs the same
+    # re-zeroing done explicitly, since it is no longer implied by a fresh allocation
+    stable_intervals.fill(0)
+    stable_sets.fill(0)
+    new_mins.fill(0)
     l = init_partial_sum(parameters[0], m, parameters[1 : 1 + m])
     u = init_partial_sum(parameters[0], m, parameters[1 + m :])
     argsort_into(min_sorted_vars, domains, DOMAIN_MIN)

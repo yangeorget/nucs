@@ -56,7 +56,7 @@ def get_triggers_relation(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_relation(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_relation(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements a relation over n variables defined by its allowed tuples.
 
@@ -66,6 +66,8 @@ def compute_domains_relation(domains: NDArray, parameters: NDArray) -> int:
            the allowed tuples correspond to:
            (parameters_0, ..., parameters_n-1), (parameters_n, ..., parameters_2n-1), ...
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

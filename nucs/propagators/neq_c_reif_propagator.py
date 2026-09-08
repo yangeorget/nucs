@@ -57,7 +57,7 @@ def get_triggers_neq_c_reif(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_neq_c_reif(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_neq_c_reif(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements :math:`b \\Leftrightarrow x \\neq c` for a constant c (the specialization of ``int_ne_reif``
     when one operand is constant, mirroring ``eq_c_reif``).
@@ -66,6 +66,8 @@ def compute_domains_neq_c_reif(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: c is the first parameter
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

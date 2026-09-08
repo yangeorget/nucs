@@ -57,7 +57,7 @@ def get_triggers_if_then_else(n: int, variable: int, parameters: NDArray) -> int
 
 
 @njit(cache=True)
-def compute_domains_if_then_else(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_if_then_else(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements the if-then-else selection y = x[k] where k is the smallest index such that the condition
     c[k] holds (the MiniZinc else branch is a literal-true condition, so a branch is normally always taken;
@@ -71,6 +71,8 @@ def compute_domains_if_then_else(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the parameters, unused here
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

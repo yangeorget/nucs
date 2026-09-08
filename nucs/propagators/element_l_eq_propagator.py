@@ -55,7 +55,7 @@ def get_triggers_element_l_eq(n: int, variable: int, parameters: NDArray) -> int
 
 
 @njit(cache=True)
-def compute_domains_element_l_eq(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_element_l_eq(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Enforces :math:`l_i = v`.
 
@@ -66,6 +66,8 @@ def compute_domains_element_l_eq(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the parameters of the propagator, it is unused
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

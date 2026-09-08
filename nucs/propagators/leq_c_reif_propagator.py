@@ -57,7 +57,7 @@ def get_triggers_leq_c_reif(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_leq_c_reif(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_leq_c_reif(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements :math:`b <=> x \\leq y + a_0`.
 
@@ -65,6 +65,8 @@ def compute_domains_leq_c_reif(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the parameters of the propagator, a_0 is the constant added to y
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

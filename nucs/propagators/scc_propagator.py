@@ -72,7 +72,7 @@ def next_unvisited(parent: NDArray, i: int) -> int:
 
 
 @njit(cache=True)
-def compute_domains_scc(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_scc(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Enforces that the digraph whose arcs are i -> j for j in [domains[i, DOMAIN_MIN], domains[i, DOMAIN_MAX]] is strongly connected.
 
@@ -88,6 +88,8 @@ def compute_domains_scc(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: unused here
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

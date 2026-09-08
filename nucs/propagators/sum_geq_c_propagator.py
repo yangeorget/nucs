@@ -53,7 +53,7 @@ def get_triggers_sum_geq_c(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_sum_geq_c(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_sum_geq_c(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements :math:`\\sum_i x_i >= c`.
 
@@ -61,6 +61,8 @@ def compute_domains_sum_geq_c(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the parameters of the propagator, c is the first parameter
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

@@ -103,7 +103,7 @@ def div_hi(num_min: int, num_max: int, den_min: int, den_max: int) -> int:
 
 
 @njit(cache=True)
-def compute_domains_mul_eq(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_mul_eq(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements :math:`x * y = z`.
 
@@ -111,6 +111,8 @@ def compute_domains_mul_eq(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: unused here
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

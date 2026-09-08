@@ -119,7 +119,9 @@ class TestBinPackingLoad(PropagatorTest):
             bin_doms = [_pair(rng.randint(1, bin_nb), rng.randint(1, bin_nb)) for _ in range(item_nb)]
             solutions = _brute_solutions(weights, load_doms, bin_doms)
             arr = np.array(list(load_doms) + list(bin_doms), dtype=np.int32)
-            status = compute_domains_bin_packing_load(arr, np.array([1, *weights], dtype=np.int32))
+            status = compute_domains_bin_packing_load(
+                arr, np.array([1, *weights], dtype=np.int32), np.empty(0, dtype=np.int32)
+            )
             # only soundness is asserted: with no solution the propagator may or may not detect it (the exact
             # subset-sum reasoning is complete within its budget but the budget can be exceeded)
             if solutions:

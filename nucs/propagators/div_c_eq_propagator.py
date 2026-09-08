@@ -75,7 +75,7 @@ def _tdiv(x: int, m: int) -> int:
 
 
 @njit(cache=True)
-def compute_domains_div_c_eq(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_div_c_eq(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements :math:`x \\div c = y` for a constant non-zero divisor c, with truncated division (the quotient
     is rounded toward zero), i.e. the FlatZinc/MiniZinc ``int_div`` semantics with a fixed divisor.
@@ -88,6 +88,8 @@ def compute_domains_div_c_eq(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the parameters, c is parameters[0]
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

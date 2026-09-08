@@ -43,6 +43,29 @@ def get_complexity_alldifferent(n: int, parameters: NDArray) -> int:
     return int(n * math.log(n))
 
 
+def get_state_alldifferent(n: int, parameters: NDArray) -> tuple:
+    """
+    Returns the size of this propagator's state block: a persistent cold/warm flag plus warm-started sort
+    permutations, plus the scratch space compute_domains_alldifferent used to allocate with np.empty on
+    every call.
+
+    A stale permutation is still a valid permutation, and a stale bounds/t/d/h/ranks scratch region is
+    always fully overwritten before it is read (see compute_domains_alldifferent), so the whole block is
+    an untrailed hint: staleness costs time, never correctness, and nothing here needs restoring on
+    backtrack.
+
+    :param n: the number of variables
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: NDArray
+
+    :return: (trailed_nb, hint_nb) = (0, 1 + 4n + 4 * bounds_nb)
+    :rtype: tuple[int, int]
+    """
+    bounds_nb = 2 * (n + 1)
+    return 0, 1 + 4 * n + 4 * bounds_nb
+
+
 @njit(cache=True)
 def get_triggers_alldifferent(n: int, variable: int, parameters: NDArray) -> int:
     """
@@ -261,8 +284,38 @@ def argsort_into(sorted_vars: NDArray, domains: NDArray, bound: int) -> None:
         sorted_vars[j + 1] = var
 
 
+@njit(cache=True, inline="always")
+def argsort_into_warm(sorted_vars: NDArray, domains: NDArray, bound: int) -> None:
+    """
+    Re-sorts sorted_vars by their given bound, warm-starting from its own current contents instead of
+    re-seeding identity order.
+
+    sorted_vars is assumed to already hold a permutation of range(len(sorted_vars)) -- possibly stale,
+    but still a permutation, since a stored one is only ever written by this function or by argsort_into.
+    The insertion sort below is then exactly argsort_into's, minus the identity reseed: cost is
+    O(n + inversions since the previous call) rather than relative to identity order, which is what
+    removes the identity-seeded sort's O(n^2) cliff when sort keys decorrelate from variable index.
+
+    :param sorted_vars: the permutation to re-sort, modified in place
+    :type sorted_vars: NDArray
+    :param domains: the domains of the variables
+    :type domains: NDArray
+    :param bound: DOMAIN_MIN or DOMAIN_MAX, the bound to sort on
+    :type bound: int
+    """
+    n = len(sorted_vars)
+    for i in range(1, n):
+        var = sorted_vars[i]
+        value = domains[var, bound]
+        j = i - 1
+        while j >= 0 and domains[sorted_vars[j], bound] > value:
+            sorted_vars[j + 1] = sorted_vars[j]
+            j -= 1
+        sorted_vars[j + 1] = var
+
+
 @njit(cache=True)
-def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_alldifferent(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Enforces that :math:`x_i <> x_j when i<>j`.
 
@@ -271,6 +324,9 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: either empty or offsets
     :type parameters: NDArray
+    :param prop_state: this propagator's state block: [flag, min_sorted_vars[n], max_sorted_vars[n],
+                       bounds, t, d, h, ranks], sized by get_state_alldifferent
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int
@@ -281,16 +337,21 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray) -> int:
         offsets = parameters[:, np.newaxis]
         domains += offsets
     bounds_nb = 2 * (n + 1)
-    empty_buffer = np.empty(4 * bounds_nb + 4 * n, dtype=np.int32)  # single allocation for all the scratch arrays
-    bounds = empty_buffer[:bounds_nb]
-    t = empty_buffer[bounds_nb : 2 * bounds_nb]  # critical capacity pointers
-    d = empty_buffer[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
-    h = empty_buffer[3 * bounds_nb : 4 * bounds_nb]  # Hall interval pointers
-    min_sorted_vars = empty_buffer[4 * bounds_nb : 4 * bounds_nb + n]
-    max_sorted_vars = empty_buffer[4 * bounds_nb + n : 4 * bounds_nb + 2 * n]
-    ranks = empty_buffer[4 * bounds_nb + 2 * n :].reshape(n, 2)
-    argsort_into(min_sorted_vars, domains, DOMAIN_MIN)
-    argsort_into(max_sorted_vars, domains, DOMAIN_MAX)
+    min_sorted_vars = prop_state[1 : 1 + n]
+    max_sorted_vars = prop_state[1 + n : 1 + 2 * n]
+    scratch = prop_state[1 + 2 * n :]
+    bounds = scratch[:bounds_nb]
+    t = scratch[bounds_nb : 2 * bounds_nb]  # critical capacity pointers
+    d = scratch[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
+    h = scratch[3 * bounds_nb : 4 * bounds_nb]  # Hall interval pointers
+    ranks = scratch[4 * bounds_nb :].reshape(n, 2)
+    if prop_state[0] == 0:  # cold: state blocks are zeroed at solver init/reset, so 0 means untouched since
+        prop_state[0] = 1
+        argsort_into(min_sorted_vars, domains, DOMAIN_MIN)
+        argsort_into(max_sorted_vars, domains, DOMAIN_MAX)
+    else:
+        argsort_into_warm(min_sorted_vars, domains, DOMAIN_MIN)
+        argsort_into_warm(max_sorted_vars, domains, DOMAIN_MAX)
     ground = True
     for i in range(n):
         if domains[i, DOMAIN_MIN] != domains[i, DOMAIN_MAX]:

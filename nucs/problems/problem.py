@@ -25,6 +25,7 @@ from nucs.numba_helper import NUMBA_DISABLE_JIT, addresses_from_functions, funct
 from nucs.propagators.propagators import (
     ALG_DUMMY,
     GET_COMPLEXITY_FCTS,
+    GET_STATE_FCTS,
     GET_TRIGGERS_FCTS,
     IDEMPOTENCIES,
     IS_VACUOUS_FCTS,
@@ -41,6 +42,7 @@ PROBLEM_BOUND = 2  # returned when a problem is solved
 # Offsets columns
 OFFSETS_VARIABLE = 0  # column of offsets holding the propagator variable offsets
 OFFSETS_PARAM = 1  # column of offsets holding the propagator parameter offsets
+OFFSETS_STATE = 2  # column of offsets holding the propagator state offsets, absolute into state (see below)
 
 
 class Problem:
@@ -166,9 +168,21 @@ class Problem:
         Propagator specific data lives in global arrays; propagator p owns the slice
         offsets[p, col]:offsets[p + 1, col] of each. The slices are contiguous, so one offset per propagator
         suffices: one row per propagator plus a closing row holding the totals.
+
+        The OFFSETS_STATE column is filled the same way but, unlike the other two, holds absolute indices
+        into the solver's state array rather than 0-based ones: propagator state starts right after the
+        domains and entailment flags, at a base this method can already compute (2 * domain_nb +
+        propagator_nb), so bc_algorithm can slice state[offsets[p, OFFSETS_STATE]:offsets[p+1,
+        OFFSETS_STATE]] directly, exactly like propagator_variables/propagator_parameters, with no extra
+        argument threaded through for the base. state_trailed_nb records, per propagator, how much of that
+        slice is trailed (a prefix) versus an untrailed hint (the rest) -- the offsets alone only bound the
+        total width.
         """
         logger.debug("Initializing offsets")
-        self.offsets = np.zeros((self.propagator_nb + 1, 2), dtype=np.uint32)
+        self.offsets = np.zeros((self.propagator_nb + 1, 3), dtype=np.uint32)
+        state_base = 2 * self.domain_nb + self.propagator_nb
+        self.offsets[0, OFFSETS_STATE] = state_base
+        self.state_trailed_nb = np.zeros(self.propagator_nb, dtype=np.uint32)
         for propagator_idx, propagator in enumerate(self.propagators):
             self.offsets[propagator_idx + 1, OFFSETS_VARIABLE] = self.offsets[propagator_idx, OFFSETS_VARIABLE] + len(
                 propagator[0]
@@ -176,6 +190,12 @@ class Problem:
             self.offsets[propagator_idx + 1, OFFSETS_PARAM] = self.offsets[propagator_idx, OFFSETS_PARAM] + len(
                 propagator[2]
             )
+            trailed_nb, hint_nb = GET_STATE_FCTS[propagator[1]](len(propagator[0]), propagator[2])
+            self.state_trailed_nb[propagator_idx] = trailed_nb
+            self.offsets[propagator_idx + 1, OFFSETS_STATE] = (
+                self.offsets[propagator_idx, OFFSETS_STATE] + trailed_nb + hint_nb
+            )
+        self.state_width = int(self.offsets[-1, OFFSETS_STATE] - state_base)
         logger.debug("Initializing props")
         self.propagator_variables = np.empty(self.offsets[-1, OFFSETS_VARIABLE], dtype=np.uint32)
         self.propagator_parameters = np.empty(self.offsets[-1, OFFSETS_PARAM], dtype=np.int32)

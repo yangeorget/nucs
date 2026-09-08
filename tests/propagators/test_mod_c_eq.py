@@ -63,7 +63,9 @@ class TestModCEq(PropagatorTest):
                     for zu in range(zl, 6):
                         feasible = [(xv, trunc_mod(xv, m)) for xv in range(xl, xu + 1) if zl <= trunc_mod(xv, m) <= zu]
                         domains = np.array([[xl, xu], [zl, zu]], dtype=np.int32)
-                        status = compute_domains_mod_c_eq(domains, np.array([m], dtype=np.int32))
+                        status = compute_domains_mod_c_eq(
+                            domains, np.array([m], dtype=np.int32), np.empty(0, dtype=np.int32)
+                        )
                         if not feasible:
                             assert status == PROP_INCONSISTENCY, (
                                 f"expected inconsistency for {xl}..{xu} {zl}..{zu} m={m}"

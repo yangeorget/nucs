@@ -18,9 +18,16 @@ from numpy.typing import NDArray
 from nucs.buckets import STORAGE_OFFSET, buckets_add, buckets_pop
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_NB, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.numba_helper import ComputeDomainsFunctions
-from nucs.problems.problem import OFFSETS_PARAM, OFFSETS_VARIABLE, PROBLEM_BOUND, PROBLEM_INCONSISTENT, PROBLEM_UNBOUND
+from nucs.problems.problem import (
+    OFFSETS_PARAM,
+    OFFSETS_STATE,
+    OFFSETS_VARIABLE,
+    PROBLEM_BOUND,
+    PROBLEM_INCONSISTENT,
+    PROBLEM_UNBOUND,
+)
 from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
-from nucs.solvers.state import tighten_at, trail_push, unbound_index
+from nucs.solvers.state import tighten_at, trail_push, trail_set, unbound_index
 from nucs.statistics import (
     STATS_ALG_IDX_FILTER_NB,
     STATS_ALG_IDX_FILTER_NO_CHANGE_NB,
@@ -43,6 +50,7 @@ def bc_algorithm(
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
+    state_trailed_nb: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
     state: NDArray,
@@ -69,13 +77,16 @@ def bc_algorithm(
     :type algorithms: NDArray
     :param priorities: the propagation queue bucket priorities indexed by propagators
     :type priorities: NDArray
-    :param offsets: the CSR offsets delimiting each propagator's slice of propagator_variables
-                    and propagator_parameters
+    :param offsets: the CSR offsets delimiting each propagator's slice of propagator_variables,
+                    propagator_parameters and its own state block (see OFFSETS_STATE)
     :type offsets: NDArray
     :param propagator_variables: the variables by propagators
     :type propagator_variables: NDArray
     :param propagator_parameters: the parameters by propagators
     :type propagator_parameters: NDArray
+    :param state_trailed_nb: the trailed width of each propagator's state block, indexed by propagator --
+                             the offsets alone only bound its total width (trailed prefix + hint suffix)
+    :type state_trailed_nb: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :type triggers: NDArray
     :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
@@ -144,9 +155,19 @@ def bc_algorithm(
             cell_idx = propagator_variables[prop_var_start + var_idx] << 1
             prop_domains[var_idx, DOMAIN_MIN] = state[cell_idx]
             prop_domains[var_idx, DOMAIN_MAX] = state[cell_idx | 1]
+        # the entry barrier for this propagator's state block: trail its trailed prefix unconditionally
+        # (trail_set no-ops if this choice point already holds a live entry for a cell), so the propagator
+        # itself can write prop_state directly with no trail bookkeeping of its own. Cost is trailed_nb L1
+        # loads per call -- zero for every propagator with no trailed state, which today is all of them.
+        prop_state_start = offsets[prop_idx, OFFSETS_STATE]
+        prop_state_end = offsets[prop_idx + 1, OFFSETS_STATE]
+        for k in range(state_trailed_nb[prop_idx]):
+            cell = prop_state_start + k
+            trail_size = trail_set(state, trail_log, trail_indices, mark, trail_size, cell, state[cell], state[cell])
         status = compute_domains_fcts[algorithm](
             prop_domains,
             propagator_parameters[offsets[prop_idx, OFFSETS_PARAM] : offsets[prop_idx + 1, OFFSETS_PARAM]],
+            state[prop_state_start:prop_state_end],
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1

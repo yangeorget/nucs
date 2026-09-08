@@ -53,7 +53,7 @@ def get_triggers_no_sub_cycle(n: int, variable: int, parameters: NDArray) -> int
 
 
 @njit(cache=True)
-def compute_domains_no_sub_cycle(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_no_sub_cycle(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Enforces that a permutation does not contain any sub-cycle.
 
@@ -66,6 +66,8 @@ def compute_domains_no_sub_cycle(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the node label offset, parameters[0], or no parameter at all for 0-based successors
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int

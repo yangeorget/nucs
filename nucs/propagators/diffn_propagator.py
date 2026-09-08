@@ -57,7 +57,7 @@ def get_triggers_diffn(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_diffn(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_diffn(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
     Implements the 2D diffn (non-overlapping rectangles) constraint. Rectangle i has its bottom-left corner
     at ``(x_i, y_i)`` and constant size ``(dx_i, dy_i)``; no two rectangles overlap, i.e. for all i != j at
@@ -72,6 +72,8 @@ def compute_domains_diffn(domains: NDArray, parameters: NDArray) -> int:
     :type domains: NDArray
     :param parameters: the n widths (dx) then the n heights (dy)
     :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int
