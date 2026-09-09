@@ -158,7 +158,8 @@ Rules:
   and `get_state_gcc` do. This is the one place where a wrong claim reads as a heisenbug: the search finds
   different solutions depending on the path it took to a node.
 
-See `get_state_alldifferent` (flag + warm permutations + scratch) and `get_state_gcc` (scratch only).
+See `get_state_alldifferent` and `get_state_gcc` (both: flag + warm permutations + scratch, and for gcc
+the two partial-sum tables it builds once from its immutable parameters).
 
 ## 3. Register in `nucs/propagators/propagators.py`
 

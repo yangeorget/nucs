@@ -13,12 +13,11 @@
 import math
 from collections.abc import Sequence
 
-import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_MIN_MAX, PROP_CONSISTENCY, PROP_INCONSISTENCY
-from nucs.propagators.alldifferent_propagator import argsort_into, path_max, path_min, path_set
+from nucs.propagators.alldifferent_propagator import argsort_into, argsort_into_warm, path_max, path_min, path_set
 
 
 def get_complexity_gcc(n: int, parameters: NDArray) -> int:
@@ -37,23 +36,29 @@ def get_complexity_gcc(n: int, parameters: NDArray) -> int:
 
 def get_state_gcc(n: int, parameters: Sequence[int]) -> tuple[int, int]:
     """
-    Returns the size of this propagator's state block: the scratch space compute_domains_gcc used to
-    allocate with np.empty/np.zeros on every call.
+    Returns the size of this propagator's state block: a persistent cold/warm flag, the two partial-sum
+    tables built from the capacities, and the scratch space compute_domains_gcc used to allocate with
+    np.empty/np.zeros on every call.
 
-    Every cell is either fully overwritten before it is read (bounds, t, d, h, the sort permutations,
-    ranks) or explicitly re-zeroed by compute_domains_gcc itself (stable_intervals, stable_sets, new_mins,
-    which used to come from a fresh np.zeros), so the whole block is an untrailed hint.
+    The two partial-sum tables are a function of parameters alone, which the engine never writes, so they
+    are built once on the cold call instead of on every one. Every other cell is either fully overwritten
+    before it is read (bounds, t, d, h, ranks), explicitly re-zeroed by compute_domains_gcc itself
+    (stable_intervals, stable_sets, new_mins, which used to come from a fresh np.zeros) or a stale
+    permutation, which is still a permutation (the sort permutations, warm-started like alldifferent's).
+    So the whole block is an untrailed hint: staleness costs time, never correctness.
 
     :param n: the number of variables
     :type n: int
-    :param parameters: the parameters, unused here
+    :param parameters: the domain offset, then the lower capacities, then the upper capacities
     :type parameters: Sequence[int]
 
-    :return: (trailed_nb, hint_nb) = (0, 6 * bounds_nb + 5n)
+    :return: (trailed_nb, hint_nb) = (0, 1 + 4 * (m + 6) + 6 * bounds_nb + 5n)
     :rtype: tuple[int, int]
     """
     bounds_nb = 2 * (n + 1)
-    return 0, 6 * bounds_nb + 5 * n
+    m = (len(parameters) - 1) >> 1  # number of values
+    psum_nb = 2 * (m + 6)  # cells of one (2, m + 6) partial_sum table, as laid out by init_partial_sum_into
+    return 0, 1 + 2 * psum_nb + 6 * bounds_nb + 5 * n
 
 
 @njit(cache=True)
@@ -74,7 +79,7 @@ def get_triggers_gcc(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def init_partial_sum(first_value: int, m: int, values: NDArray) -> NDArray:
+def init_partial_sum_into(partial_sum: NDArray, first_value: int, m: int, values: NDArray) -> None:
     """
     Inits the partial_sum data structure:
     ---------------------
@@ -82,8 +87,20 @@ def init_partial_sum(first_value: int, m: int, values: NDArray) -> NDArray:
     ---------------------
     | ds  | last_value  |
     ---------------------
+
+    Writes into a caller-provided (2, m + 6) table rather than allocating one, so that a propagator whose
+    capacities never change builds it once instead of on every call. The ds row is walked rather than
+    filled, so the table has to arrive zeroed -- which is what the np.zeros this replaced gave it for free.
+
+    :param partial_sum: the zeroed (2, m + 6) table to fill
+    :type partial_sum: NDArray
+    :param first_value: the first domain value
+    :type first_value: int
+    :param m: the number of values
+    :type m: int
+    :param values: the capacities
+    :type values: NDArray
     """
-    partial_sum = np.zeros((2, m + 6), dtype=np.int32)
     partial_sum[0, -1] = first_value - 3
     partial_sum[1, -1] = first_value + m + 1
     sm = partial_sum[0, :-1]
@@ -105,7 +122,6 @@ def init_partial_sum(first_value: int, m: int, values: NDArray) -> NDArray:
         j = i
         i -= 1
     ds[j] = 0
-    return partial_sum
 
 
 @njit(cache=True)
@@ -468,7 +484,9 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray, prop_state: NDArr
     :param parameters: there are 1 + 2 * m parameters:
                        the first domain value (v_0), then the m lower bounds, then the m upper bounds (capacities)
     :type parameters: NDArray
-    :param prop_state: this propagator's state block, sized by get_state_gcc
+    :param prop_state: this propagator's state block: [flag, l, u, bounds, t, d, h, min_sorted_vars,
+                       max_sorted_vars, ranks, stable_intervals, stable_sets, new_mins],
+                       sized by get_state_gcc
     :type prop_state: NDArray
     :return: a propagation status (PROP_INCONSISTENCY or PROP_CONSISTENCY)
     :rtype: int
@@ -476,26 +494,40 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray, prop_state: NDArr
     n = len(domains)
     m = (len(parameters) - 1) >> 1  # number of values
     bounds_nb = 2 * (n + 1)
-    bounds = prop_state[:bounds_nb]
-    t = prop_state[bounds_nb : 2 * bounds_nb]  # critical capacity pointers
-    d = prop_state[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
-    h = prop_state[3 * bounds_nb : 4 * bounds_nb]  # Hall interval pointers
-    min_sorted_vars = prop_state[4 * bounds_nb : 4 * bounds_nb + n]
-    max_sorted_vars = prop_state[4 * bounds_nb + n : 4 * bounds_nb + 2 * n]
-    ranks = prop_state[4 * bounds_nb + 2 * n : 4 * bounds_nb + 4 * n].reshape(n, 2)
+    psum_nb = 2 * (m + 6)
+    psum_buffer = prop_state[1 : 1 + 2 * psum_nb]
+    l = psum_buffer[:psum_nb].reshape(2, m + 6)
+    u = psum_buffer[psum_nb:].reshape(2, m + 6)
+    scratch = prop_state[1 + 2 * psum_nb :]
+    bounds = scratch[:bounds_nb]
+    t = scratch[bounds_nb : 2 * bounds_nb]  # critical capacity pointers
+    d = scratch[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
+    h = scratch[3 * bounds_nb : 4 * bounds_nb]  # Hall interval pointers
+    min_sorted_vars = scratch[4 * bounds_nb : 4 * bounds_nb + n]
+    max_sorted_vars = scratch[4 * bounds_nb + n : 4 * bounds_nb + 2 * n]
+    ranks = scratch[4 * bounds_nb + 2 * n : 4 * bounds_nb + 4 * n].reshape(n, 2)
     zero_start = 4 * bounds_nb + 4 * n
-    stable_intervals = prop_state[zero_start : zero_start + bounds_nb]
-    stable_sets = prop_state[zero_start + bounds_nb : zero_start + 2 * bounds_nb]
-    new_mins = prop_state[zero_start + 2 * bounds_nb :]
+    stable_intervals = scratch[zero_start : zero_start + bounds_nb]
+    stable_sets = scratch[zero_start + bounds_nb : zero_start + 2 * bounds_nb]
+    new_mins = scratch[zero_start + 2 * bounds_nb :]
     # these three used to come from a fresh np.zeros every call; the persistent block needs the same
     # re-zeroing done explicitly, since it is no longer implied by a fresh allocation
     stable_intervals.fill(0)
     stable_sets.fill(0)
     new_mins.fill(0)
-    l = init_partial_sum(parameters[0], m, parameters[1 : 1 + m])
-    u = init_partial_sum(parameters[0], m, parameters[1 + m :])
-    argsort_into(min_sorted_vars, domains, DOMAIN_MIN)
-    argsort_into(max_sorted_vars, domains, DOMAIN_MAX)
+    if prop_state[0] == 0:  # cold: the block is zeroed at solver init, so 0 means never called on this block
+        prop_state[0] = 1
+        # l and u are a function of parameters, which the engine never writes, so they are built once here
+        # rather than on every call. init_partial_sum_into walks the ds row instead of filling it, so the
+        # table has to start zeroed, exactly as the np.zeros this replaced left it.
+        psum_buffer.fill(0)
+        init_partial_sum_into(l, parameters[0], m, parameters[1 : 1 + m])
+        init_partial_sum_into(u, parameters[0], m, parameters[1 + m :])
+        argsort_into(min_sorted_vars, domains, DOMAIN_MIN)
+        argsort_into(max_sorted_vars, domains, DOMAIN_MAX)
+    else:
+        argsort_into_warm(min_sorted_vars, domains, DOMAIN_MIN)
+        argsort_into_warm(max_sorted_vars, domains, DOMAIN_MAX)
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
     # assert get_min_value(l) == get_min_value(u)
     # assert get_max_value(l) == get_max_value(u)

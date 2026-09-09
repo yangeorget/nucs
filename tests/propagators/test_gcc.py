@@ -11,11 +11,13 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 
+import numpy as np
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY
 from nucs.problems.problem import Problem
-from nucs.propagators.gcc_propagator import compute_domains_gcc, is_vacuous_gcc
+from nucs.propagators.alldifferent_propagator import SORT_MAX_N
+from nucs.propagators.gcc_propagator import compute_domains_gcc, get_state_gcc, is_vacuous_gcc
 from nucs.propagators.propagators import ALG_GCC
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -101,3 +103,25 @@ class TestGCC(PropagatorTest):
             PROP_CONSISTENCY,
             [[0, 1], [0, 1], [0, 0]],
         )
+
+    # the block persists across calls, so a reused one has to filter exactly as a fresh one would: the
+    # partial-sum tables are now built only on the cold call, and the sort permutations are warm-started
+    # from whatever the previous call left. Neither is exercised by assert_compute_domains, which always
+    # starts cold.
+    @pytest.mark.parametrize("n,m", [(3, 3), (8, 6), (SORT_MAX_N, 12), (SORT_MAX_N + 1, 12)])
+    def test_a_reused_state_block_filters_as_a_fresh_one(self, n: int, m: int) -> None:
+        rng = np.random.default_rng(n * 100 + m)
+        parameters = np.array([0] + [0] * m + [n] * m, dtype=np.int32)
+        trailed_nb, hint_nb = get_state_gcc(n, parameters.tolist())
+        reused = np.zeros(trailed_nb + hint_nb, dtype=np.int32)
+        for _ in range(8):  # the first call warms the block, the rest run against a stale one
+            mins = rng.integers(0, m, size=n, dtype=np.int32)
+            maxs = np.minimum(mins + rng.integers(0, m, size=n, dtype=np.int32), m - 1)
+            domains = np.ascontiguousarray(np.stack([mins, maxs], axis=1), dtype=np.int32)
+            fresh_domains = domains.copy()
+            fresh_status = compute_domains_gcc(
+                fresh_domains, parameters, np.zeros(trailed_nb + hint_nb, dtype=np.int32)
+            )
+            reused_status = compute_domains_gcc(domains, parameters, reused)
+            assert reused_status == fresh_status
+            assert np.array_equal(domains, fresh_domains)

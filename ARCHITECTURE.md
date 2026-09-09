@@ -224,9 +224,11 @@ have written its state block, and that is safe — trailed on entry, restored by
 `argsort_into_warm` re-sorts the existing (possibly stale) permutation in place, which is `O(n + inversions since
 the previous call)` rather than relative to identity order — this is what removes the identity-seeded sort's
 `O(n^2)` cliff when sort keys decorrelate from variable index. `get_state_gcc` reserves the equivalent scratch
-(`bounds/t/d/h`, the sort permutations, `ranks`, `stable_intervals`, `stable_sets`, `new_mins`) without the warm
-permutation reuse; the three arrays that used to come from a fresh `np.zeros` (`stable_intervals`, `stable_sets`,
-`new_mins`) are explicitly re-zeroed each call, since a persistent block no longer implies that for free.
+(`bounds/t/d/h`, the sort permutations, `ranks`, `stable_intervals`, `stable_sets`, `new_mins`) behind the same
+`flag`, plus the two `partial_sum` tables `l`/`u`: those are a function of `parameters` alone, which the engine
+never writes, so they are built once on the cold call instead of by two `np.zeros` allocations per call. The
+three arrays that used to come from a fresh `np.zeros` (`stable_intervals`, `stable_sets`, `new_mins`) are
+explicitly re-zeroed each call, since a persistent block no longer implies that for free.
 
 ### Functions are values via numeric ids and wrapper addresses
 

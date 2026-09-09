@@ -18,7 +18,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   propagators that need none only had to take the extra argument.
 
   This replaces the per-call `np.empty`/`np.zeros` that `alldifferent` and `gcc` were paying at every
-  fixpoint, and lets `alldifferent` warm-start its two sort permutations from the previous call instead of
+  fixpoint — including the two `partial_sum` tables `gcc` rebuilt from its capacities on every call, which
+  are now built once — and lets both warm-start their sort permutations from the previous call instead of
   re-seeding identity order — sound because a stale permutation is still a permutation, which is the
   property the untrailed suffix requires of anything stored in it.
 
