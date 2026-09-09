@@ -14,8 +14,16 @@
 import numpy as np
 import pytest
 
-from nucs.constants import PROP_CONSISTENCY
-from nucs.propagators.alldifferent_propagator import compute_domains_alldifferent, path_max, path_min, path_set
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY
+from nucs.propagators.alldifferent_propagator import (
+    SORT_MAX_N,
+    argsort_into,
+    argsort_into_warm,
+    compute_domains_alldifferent,
+    path_max,
+    path_min,
+    path_set,
+)
 from tests.propagators.propagator_test import PropagatorTest
 
 
@@ -40,6 +48,28 @@ class TestAlldifferent(PropagatorTest):
         a = np.array([2, 3, 4, 0, 1])
         path_set(a, 0, 4, -1)
         assert np.all(a == np.array([-1, 3, -1, 0, 1]))
+
+    # both sides of SORT_MAX_N, since each argsort takes the np.argsort fallback above it, and a stale seed
+    # (a permutation of a *previous* call's keys) is the case the warm path exists for and the one that
+    # could leave it unsorted
+    @pytest.mark.parametrize("n", [1, 2, 5, SORT_MAX_N, SORT_MAX_N + 1, 3 * SORT_MAX_N])
+    @pytest.mark.parametrize("bound", [DOMAIN_MIN, DOMAIN_MAX])
+    def test_argsort_into_warm(self, n: int, bound: int) -> None:
+        rng = np.random.default_rng(n * 2 + bound)
+        # a seed that is a permutation of range(n) but decorrelated from the keys, as after a backtrack
+        seed = rng.permutation(n).astype(np.int32)
+        for _ in range(4):
+            mins = rng.integers(0, 3 * n + 1, size=n, dtype=np.int32)
+            domains = np.stack([mins, mins + rng.integers(0, n + 1, size=n, dtype=np.int32)], axis=1)
+            domains = np.ascontiguousarray(domains, dtype=np.int32)
+            cold = np.empty(n, dtype=np.int32)
+            argsort_into(cold, domains, bound)
+            argsort_into_warm(seed, domains, bound)
+            # the two orderings agree on the keys -- not necessarily on the permutation, since ties break by
+            # whatever order each started from -- and the warm result is still a permutation, which is what
+            # the next call warm-starts from
+            assert np.array_equal(domains[seed, bound], domains[cold, bound])
+            assert np.array_equal(np.sort(seed), np.arange(n))
 
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",

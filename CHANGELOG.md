@@ -10,6 +10,36 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Changed
 
+- **`compute_domains_*` takes a third argument, `prop_state`.** Every propagator now receives its own slice
+  of one solver-owned `int32` array: a trailed prefix the solver saves and restores like a domain bound,
+  followed by an untrailed hint suffix that keeps whatever the previous call left in it. A propagator says
+  how wide it wants each half with an optional `get_state_*` function, registered through the new
+  `get_state_fct` parameter of `register_propagator`; the default is a zero-width block, so the 59
+  propagators that need none only had to take the extra argument.
+
+  This replaces the per-call `np.empty`/`np.zeros` that `alldifferent` and `gcc` were paying at every
+  fixpoint, and lets `alldifferent` warm-start its two sort permutations from the previous call instead of
+  re-seeding identity order — sound because a stale permutation is still a permutation, which is the
+  property the untrailed suffix requires of anything stored in it.
+
+  Both the propagator signature and `register_propagator` are documented extension points, so this is a
+  breaking change for custom propagators:
+
+  ```python
+  # was
+  @njit(cache=True)
+  def compute_domains_xxx(domains: NDArray, parameters: NDArray) -> int: ...
+
+  ALG_XXX = register_propagator(get_triggers_xxx, get_complexity_xxx, compute_domains_xxx)
+
+  # now
+  @njit(cache=True)
+  def compute_domains_xxx(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int: ...
+
+  ALG_XXX = register_propagator(
+      get_triggers_xxx, get_complexity_xxx, compute_domains_xxx, get_state_fct=get_state_xxx
+  )
+  ```
 - **The statistics live in `nucs/statistics.py`.** The array's layout (`STATS_MAX`, `STATS_IDX_*`,
   `STATS_ALG_*`), the labels it is reported under (`STATS_LBL_*`), and the two functions that allocate and
   read it back (`statistics_init`, `statistics_as_dictionary`) were spread across `nucs/constants.py` and

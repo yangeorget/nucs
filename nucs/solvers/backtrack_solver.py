@@ -215,11 +215,16 @@ class BacktrackSolver(Solver):
         self.state = np.zeros(unbound_count_offset + 1, dtype=np.int32)
         self.domains = self.state[:propagator_entailment_offset].reshape(domain_nb, 2)
         self.entailed = self.state[propagator_entailment_offset:propagator_state_offset]
-        # the guard lets a choice point trail each cell of state at most once -- every domain bound, every
-        # entailment flag and the count -- so a fixpoint cannot need more than len(state) entries, whatever
-        # it does; the tightenings the search applies around it write at their own mark and are counted on
-        # top. The solver grows the trail when this much room is no longer there.
-        self.trail_headroom = len(self.state) + STEP_TIGHTENING_NB * TIGHTENING_TRAIL_ENTRY_NB
+        # the guard lets a choice point trail each *trailable* cell at most once -- every domain bound, every
+        # entailment flag, the count, and the trailed prefix of each propagator's state block -- so a fixpoint
+        # cannot need more than that many entries, whatever it does; the tightenings the search applies around
+        # it write at their own mark and are counted on top. The solver grows the trail when this much room is
+        # no longer there. Counted rather than taken as len(self.state), which would include the untrailed hint
+        # suffixes: bc_algorithm only ever trails the first state_trailed_nb[p] cells of block p, so a hint cell
+        # can never reach the trail, and a wide alldifferent would otherwise inflate trail_log -- 16x
+        # trail_headroom rows of 2 int32 -- by 128 bytes per scratch cell it can never use.
+        trailable_nb = propagator_state_offset + int(self.problem.state_trailed_nb.sum()) + 1
+        self.trail_headroom = trailable_nb + STEP_TIGHTENING_NB * TIGHTENING_TRAIL_ENTRY_NB
         # Both starting sizes are a flat floor for the models the flat floor already covers, and a
         # model-derived one for the wide models it does not reach. The flat halves are measured: across the
         # 27 benchmark models the trail never exceeds 4096 entries and the stack never exceeds 64 rows, so

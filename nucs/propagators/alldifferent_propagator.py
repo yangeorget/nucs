@@ -11,6 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import math
+from collections.abc import Sequence
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -43,7 +44,7 @@ def get_complexity_alldifferent(n: int, parameters: NDArray) -> int:
     return int(n * math.log(n))
 
 
-def get_state_alldifferent(n: int, parameters: NDArray) -> tuple:
+def get_state_alldifferent(n: int, parameters: Sequence[int]) -> tuple[int, int]:
     """
     Returns the size of this propagator's state block: a persistent cold/warm flag plus warm-started sort
     permutations, plus the scratch space compute_domains_alldifferent used to allocate with np.empty on
@@ -57,7 +58,7 @@ def get_state_alldifferent(n: int, parameters: NDArray) -> tuple:
     :param n: the number of variables
     :type n: int
     :param parameters: the parameters, unused here
-    :type parameters: NDArray
+    :type parameters: Sequence[int]
 
     :return: (trailed_nb, hint_nb) = (0, 1 + 4n + 4 * bounds_nb)
     :rtype: tuple[int, int]
@@ -296,6 +297,10 @@ def argsort_into_warm(sorted_vars: NDArray, domains: NDArray, bound: int) -> Non
     O(n + inversions since the previous call) rather than relative to identity order, which is what
     removes the identity-seeded sort's O(n^2) cliff when sort keys decorrelate from variable index.
 
+    Above SORT_MAX_N, argsort_into's np.argsort fallback is kept: warm-starting bounds the cost by the
+    number of inversions, but does not bound it -- after a backtrack to a distant node the stored
+    permutation is decorrelated from the keys and the insertion sort degenerates to O(n^2).
+
     :param sorted_vars: the permutation to re-sort, modified in place
     :type sorted_vars: NDArray
     :param domains: the domains of the variables
@@ -304,6 +309,9 @@ def argsort_into_warm(sorted_vars: NDArray, domains: NDArray, bound: int) -> Non
     :type bound: int
     """
     n = len(sorted_vars)
+    if n > SORT_MAX_N:
+        sorted_vars[:] = np.argsort(domains[:, bound])
+        return
     for i in range(1, n):
         var = sorted_vars[i]
         value = domains[var, bound]
@@ -345,7 +353,7 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray, prop_sta
     d = scratch[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
     h = scratch[3 * bounds_nb : 4 * bounds_nb]  # Hall interval pointers
     ranks = scratch[4 * bounds_nb :].reshape(n, 2)
-    if prop_state[0] == 0:  # cold: state blocks are zeroed at solver init/reset, so 0 means untouched since
+    if prop_state[0] == 0:  # cold: the block is zeroed at solver init, so 0 means never called on this block
         prop_state[0] = 1
         argsort_into(min_sorted_vars, domains, DOMAIN_MIN)
         argsort_into(max_sorted_vars, domains, DOMAIN_MAX)

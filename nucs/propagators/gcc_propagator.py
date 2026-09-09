@@ -35,7 +35,7 @@ def get_complexity_gcc(n: int, parameters: NDArray) -> int:
     return int(n * math.log(n))
 
 
-def get_state_gcc(n: int, parameters: NDArray) -> tuple:
+def get_state_gcc(n: int, parameters: Sequence[int]) -> tuple[int, int]:
     """
     Returns the size of this propagator's state block: the scratch space compute_domains_gcc used to
     allocate with np.empty/np.zeros on every call.
@@ -47,7 +47,7 @@ def get_state_gcc(n: int, parameters: NDArray) -> tuple:
     :param n: the number of variables
     :type n: int
     :param parameters: the parameters, unused here
-    :type parameters: NDArray
+    :type parameters: Sequence[int]
 
     :return: (trailed_nb, hint_nb) = (0, 6 * bounds_nb + 5n)
     :rtype: tuple[int, int]

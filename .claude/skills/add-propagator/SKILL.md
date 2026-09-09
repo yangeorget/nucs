@@ -8,7 +8,7 @@ description: Skill to add a propagator to NuCS.
 A propagator is a constraint enforced by domain filtering.
 Adding one means:
 
-- writing a module with three Numba-jitted functions, plus an optional fourth that is not jitted
+- writing a module with three Numba-jitted functions, plus up to two optional ones that are not jitted
 - registering it with an `ALG_*` id
 - adding a parameterized test
 
@@ -23,7 +23,7 @@ Adding one means:
 
 ## 2. Create `nucs/propagators/name_propagator.py`
 
-The file must contain three functions, optionally a fourth, and the standard copyright header (use the skill add-header).
+The file must contain three functions, optionally two more, and the standard copyright header (use the skill add-header).
 
 Reference: `nucs/propagators/abs_eq_propagator.py` is the minimal template.
 
@@ -42,9 +42,12 @@ def get_triggers_name(n: int, variable: int, parameters: NDArray) -> int:
 
 
 @njit(cache=True)
-def compute_domains_name(domains: NDArray, parameters: NDArray) -> int:
+def compute_domains_name(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     # Mutate domains in place. Return PROP_INCONSISTENCY, PROP_CONSISTENCY, or PROP_ENTAILMENT.
     # Use domains[i][MIN] and domains[i][MAX]; never reassign domains[i] = ....
+    # prop_state is this propagator's own int32 scratch/state block, empty unless you declare a
+    # get_state_name — see below. Take the third argument even if you ignore it: the solver compiles
+    # every compute_domains against the same three-argument signature.
     # If one call cannot reach this propagator's fixpoint, register it with idempotent=False — see below.
     ...
 ```
@@ -117,6 +120,46 @@ does not count it. The default, `is_never_vacuous`, returns False for every prop
 See `is_vacuous_cumulative` (parameters only), `is_vacuous_gcc` (parameters only) and `is_vacuous_regular`
 (parameters and domains).
 
+### Optional: ask for a state block
+
+`compute_domains` gets a third argument, `prop_state`: a slice of one solver-owned `int32` array, zero-width
+unless you declare how much you want. Declare it with a fifth function:
+
+```python
+def get_state_name(n: int, parameters: Sequence[int]) -> tuple[int, int]:
+    # NOT jitted: it runs once per propagator, at problem init, in plain Python.
+    # Return (trailed_nb, hint_nb) — how many int32 cells you want, split into a backtrackable
+    # prefix and an untrailed suffix. compute_domains receives both as one contiguous block,
+    # the trailed cells first.
+    ...
+```
+
+Two reasons to want one, and they have very different rules:
+
+- **Scratch space** (`hint_nb`), to replace a per-call `np.empty`/`np.zeros`. An allocation inside a jitted
+  `compute_domains` is paid at every fixpoint; a block is paid once. This is what `gcc` uses it for.
+- **A hint carried across calls** (`hint_nb` again). The suffix is *never* trailed: it holds whatever the last
+  call from *any* node of the search left there. So it may only hold values that are either fully overwritten
+  before being read, or still valid however stale — staleness may cost time, never correctness.
+  `alldifferent` warm-starts its sort permutations from it, which is sound precisely because a stale
+  permutation is still a permutation.
+- **Per-node state** (`trailed_nb`). The solver saves and restores this prefix exactly like a domain bound, so
+  it reads back what this node wrote. It costs a trail entry per cell per node that writes it, so keep it
+  narrow. No propagator uses it today.
+
+Rules:
+
+- **The block is zeroed once, at solver init** — not on backtrack, and not on an `OPTIM_RESET` restart. If you
+  need a cleared block, clear it yourself in `compute_domains`.
+- **Warm-starting does not bound the work.** `argsort_into_warm`'s cost is the inversions since the previous
+  call, which is small down a descent and O(n²) after a jump, so it keeps `argsort_into`'s `np.argsort`
+  fallback above `SORT_MAX_N`. If a hint's payoff depends on locality, keep the unconditional fallback.
+- Justify the untrailed claim in the `get_state_name` docstring, cell by cell — as `get_state_alldifferent`
+  and `get_state_gcc` do. This is the one place where a wrong claim reads as a heisenbug: the search finds
+  different solutions depending on the path it took to a node.
+
+See `get_state_alldifferent` (flag + warm permutations + scratch) and `get_state_gcc` (scratch only).
+
 ## 3. Register in `nucs/propagators/propagators.py`
 
 Add the import alongside the others, then append a registration line.
@@ -129,19 +172,25 @@ from nucs.propagators.name_propagator import compute_domains_name, get_complexit
 ALG_NAME = register_propagator(get_triggers_name, get_complexity_name, compute_domains_name)
 ```
 
-The two declarations above are the fourth and fifth parameters, and both default to the answer that asks
-nothing of you: `is_never_vacuous`, which always posts, and `idempotent=True`. Only the first of those two
-defaults is on the safe side, which is why the idempotence one has to be verified rather than left implicit.
+The three declarations above are the fourth, fifth and sixth parameters, and each defaults to the answer that
+asks nothing of you: `is_never_vacuous`, which always posts, `idempotent=True`, and `get_state_default`, which
+asks for no state block. Only the vacuity and state defaults are on the safe side, which is why the idempotence
+one has to be verified rather than left implicit.
 
 ```python
 ALG_NAME = register_propagator(
-    get_triggers_name, get_complexity_name, compute_domains_name, is_vacuous_name, idempotent=False
+    get_triggers_name,
+    get_complexity_name,
+    compute_domains_name,
+    is_vacuous_name,
+    idempotent=False,
+    get_state_fct=get_state_name,
 )
 ```
 
-The returned id is the propagator's index; never hardcode it. It indexes `IS_VACUOUS_FCTS` and
-`IDEMPOTENCIES` just as it does the three function lists, so a registration that omits a declaration is
-what puts the default in that slot. All five are plain lists appended to in place — deliberately, so that
+The returned id is the propagator's index; never hardcode it. It indexes `IS_VACUOUS_FCTS`, `IDEMPOTENCIES`
+and `GET_STATE_FCTS` just as it does the three function lists, so a registration that omits a declaration is
+what puts the default in that slot. All six are plain lists appended to in place — deliberately, so that
 a propagator registered after import is visible to everything that already imported them.
 
 ## 4. Add `tests/propagators/test_name.py`
