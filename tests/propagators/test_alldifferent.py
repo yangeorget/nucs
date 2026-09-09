@@ -71,6 +71,30 @@ class TestAlldifferent(PropagatorTest):
             assert np.array_equal(domains[seed, bound], domains[cold, bound])
             assert np.array_equal(np.sort(seed), np.arange(n))
 
+    # above SORT_MAX_N the warm sort runs on a shift budget: a descent stays inside it and the insertion
+    # sort finishes, a jump blows it and hands over to np.argsort. Both branches have to land on the same
+    # ordering, and test_argsort_into_warm only ever reaches the second -- its seed is always decorrelated.
+    @pytest.mark.parametrize("moved", [0, 1, 8, -1])  # -1 decorrelates the seed, which blows the budget
+    @pytest.mark.parametrize("bound", [DOMAIN_MIN, DOMAIN_MAX])
+    def test_argsort_into_warm_above_sort_max_n(self, moved: int, bound: int) -> None:
+        n = 4 * SORT_MAX_N
+        rng = np.random.default_rng(100 + moved * 2 + bound)
+        keys = rng.integers(0, 4 * n, size=n, dtype=np.int32)
+        seed = np.argsort(keys).astype(np.int32)  # sorted for the keys as they stood at the previous call
+        if moved < 0:
+            rng.shuffle(seed)
+        else:
+            for _ in range(moved):  # a few bounds move, as one node of a descent does
+                keys[rng.integers(0, n)] += rng.integers(1, 3 * n)
+        other = keys + rng.integers(0, n + 1, size=n, dtype=np.int32)
+        columns = (keys, other) if bound == DOMAIN_MIN else (other - 2 * n, keys)
+        domains = np.ascontiguousarray(np.stack(columns, axis=1), dtype=np.int32)
+        cold = np.empty(n, dtype=np.int32)
+        argsort_into(cold, domains, bound)
+        argsort_into_warm(seed, domains, bound)
+        assert np.array_equal(domains[seed, bound], domains[cold, bound])
+        assert np.array_equal(np.sort(seed), np.arange(n))
+
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [

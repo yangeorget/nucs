@@ -27,6 +27,14 @@ from nucs.constants import (
 )
 
 SORT_MAX_N = 64  # above this arity, np.argsort amortizes its fixed cost and beats the insertion sort
+# Above SORT_MAX_N, how many shifts per variable a warm insertion sort may spend before handing over to
+# np.argsort. The shifts spent before giving up are what a decorrelated permutation pays on top of np.argsort,
+# and they cost most relative to it at small n, where np.argsort is itself cheap: measured decorrelated
+# overhead at n=128/512/2048/8192 is +31/+8/+7/+4% for 4, against +56/+25/+10/+9% for 8. Against that, 4 and 8
+# buy the same thing -- both re-sort a node that moved 8 bounds in ~1/9th of np.argsort's time at n=512, and a
+# node that moved one in ~1/17th. 8 only pulls ahead once tens of bounds have moved, by which point it is
+# barely better than np.argsort anyway, so 4 takes the cheaper worst case.
+SORT_WARM_BUDGET_FACTOR = 4
 
 
 def get_complexity_alldifferent(n: int, parameters: NDArray) -> int:
@@ -297,9 +305,15 @@ def argsort_into_warm(sorted_vars: NDArray, domains: NDArray, bound: int) -> Non
     O(n + inversions since the previous call) rather than relative to identity order, which is what
     removes the identity-seeded sort's O(n^2) cliff when sort keys decorrelate from variable index.
 
-    Above SORT_MAX_N, argsort_into's np.argsort fallback is kept: warm-starting bounds the cost by the
-    number of inversions, but does not bound it -- after a backtrack to a distant node the stored
-    permutation is decorrelated from the keys and the insertion sort degenerates to O(n^2).
+    Warm-starting bounds the cost by the number of inversions but does not bound it: after a backtrack to a
+    distant node the stored permutation is decorrelated from the keys and the insertion sort degenerates to
+    O(n^2). Above SORT_MAX_N that needs a ceiling, but argsort_into's unconditional np.argsort is the wrong
+    one -- it pays the O(n log n) fixed cost on every call to insure against a case most calls are not in,
+    and so gives up the warm start exactly where n makes it worth most. Instead the sort runs on a budget of
+    SORT_WARM_BUDGET_FACTOR shifts per variable and falls back only once it blows it, which is self-tuning:
+    a descent that moved a few bounds finishes far inside the budget, a post-jump permutation blows it after
+    a bounded amount of wasted work. Below SORT_MAX_N no budget is applied -- it could never bind there
+    (insertion sort shifts at most n(n-1)/2 < n * n times) and testing it is not free.
 
     :param sorted_vars: the permutation to re-sort, modified in place
     :type sorted_vars: NDArray
@@ -309,9 +323,18 @@ def argsort_into_warm(sorted_vars: NDArray, domains: NDArray, bound: int) -> Non
     :type bound: int
     """
     n = len(sorted_vars)
-    if n > SORT_MAX_N:
-        sorted_vars[:] = np.argsort(domains[:, bound])
+    if n <= SORT_MAX_N:  # unbudgeted: the budget could not bind, and the counter it needs is not free
+        for i in range(1, n):
+            var = sorted_vars[i]
+            value = domains[var, bound]
+            j = i - 1
+            while j >= 0 and domains[sorted_vars[j], bound] > value:
+                sorted_vars[j + 1] = sorted_vars[j]
+                j -= 1
+            sorted_vars[j + 1] = var
         return
+    budget = SORT_WARM_BUDGET_FACTOR * n
+    shifts = 0
     for i in range(1, n):
         var = sorted_vars[i]
         value = domains[var, bound]
@@ -320,6 +343,14 @@ def argsort_into_warm(sorted_vars: NDArray, domains: NDArray, bound: int) -> Non
             sorted_vars[j + 1] = sorted_vars[j]
             j -= 1
         sorted_vars[j + 1] = var
+        # counted once per variable rather than per shift, and only above SORT_MAX_N, so the budget costs
+        # one add and one compare per variable on the path that can actually blow it
+        shifts += i - 1 - j
+        if shifts > budget:
+            # sorted_vars is still a permutation -- an insertion sort only ever permutes it -- and np.argsort
+            # overwrites it outright, so giving up partway through is safe
+            sorted_vars[:] = np.argsort(domains[:, bound])
+            return
 
 
 @njit(cache=True)

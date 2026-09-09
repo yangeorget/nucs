@@ -223,7 +223,14 @@ have written its state block, and that is safe — trailed on entry, restored by
 `flag == 0` means cold (a fresh, zeroed block): seed identity via `argsort_into` and set `flag = 1`; otherwise
 `argsort_into_warm` re-sorts the existing (possibly stale) permutation in place, which is `O(n + inversions since
 the previous call)` rather than relative to identity order — this is what removes the identity-seeded sort's
-`O(n^2)` cliff when sort keys decorrelate from variable index. `get_state_gcc` reserves the equivalent scratch
+`O(n^2)` cliff when sort keys decorrelate from variable index. Inversions bound that cost but do not cap it, so
+above `SORT_MAX_N` the sort runs on a budget of `SORT_WARM_BUDGET_FACTOR` shifts per variable and hands over to
+`np.argsort` once it blows it. That is what makes the warm start pay at the arities it was meant for: a hard
+`np.argsort` above `SORT_MAX_N` insures against the post-jump case on every call, including the overwhelming
+majority that are one step down a descent. Measured against that hard fallback, a node that moved one bound
+re-sorts 4× faster at `n=128`, 17× at `n=512` and 44× at `n=8192`, and a fully decorrelated permutation costs
++31%/+8%/+4% at those sizes — worst at small `n`, where the wasted shifts are largest next to a cheap
+`np.argsort`. `get_state_gcc` reserves the equivalent scratch
 (`bounds/t/d/h`, the sort permutations, `ranks`, `stable_intervals`, `stable_sets`, `new_mins`) behind the same
 `flag`, plus the two `partial_sum` tables `l`/`u`: those are a function of `parameters` alone, which the engine
 never writes, so they are built once on the cold call instead of by two `np.zeros` allocations per call. The

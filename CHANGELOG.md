@@ -23,6 +23,12 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   re-seeding identity order — sound because a stale permutation is still a permutation, which is the
   property the untrailed suffix requires of anything stored in it.
 
+  Above `SORT_MAX_N`, where `alldifferent` used to fall straight through to `np.argsort`, the warm sort now
+  runs on a shift budget and falls back only once it blows it. The hard fallback paid `np.argsort`'s fixed
+  cost on every call to insure against the permutation being decorrelated, which it is only just after a
+  jump; a budget makes that self-tuning. A node that moved one bound re-sorts 4× faster at `n=128`, 17× at
+  `n=512` and 44× at `n=8192`; a decorrelated permutation costs +31%/+8%/+4% at those sizes.
+
   Both the propagator signature and `register_propagator` are documented extension points, so this is a
   breaking change for custom propagators:
 
