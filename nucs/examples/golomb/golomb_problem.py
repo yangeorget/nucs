@@ -133,7 +133,6 @@ def golomb_consistency_algorithm(
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
-    state_trailed_nb: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
     state: NDArray,
@@ -156,8 +155,6 @@ def golomb_consistency_algorithm(
     :param idempotencies: whether each algorithm reaches its own fixpoint in a single call, indexed by
                           algorithm rather than by propagator
     :type idempotencies: NDArray
-    :param state_trailed_nb: the trailed width of each propagator's state block, indexed by propagator
-    :type state_trailed_nb: NDArray
 
     :return: the status as an int
     :rtype: int
@@ -227,7 +224,6 @@ def golomb_consistency_algorithm(
         offsets,
         propagator_variables,
         propagator_parameters,
-        state_trailed_nb,
         triggers,
         triggers_offsets,
         state,

@@ -43,6 +43,7 @@ PROBLEM_BOUND = 2  # returned when a problem is solved
 OFFSETS_VARIABLE = 0  # column of offsets holding the propagator variable offsets
 OFFSETS_PARAM = 1  # column of offsets holding the propagator parameter offsets
 OFFSETS_STATE = 2  # column of offsets holding the propagator state offsets, absolute into state (see below)
+OFFSETS_STATE_HINT = 3  # column of offsets holding where each state block's untrailed hint suffix starts
 
 
 class Problem:
@@ -174,15 +175,20 @@ class Problem:
         domains and entailment flags, at a base this method can already compute (2 * domain_nb +
         propagator_nb), so bc_algorithm can slice state[offsets[p, OFFSETS_STATE]:offsets[p+1,
         OFFSETS_STATE]] directly, exactly like propagator_variables/propagator_parameters, with no extra
-        argument threaded through for the base. state_trailed_nb records, per propagator, how much of that
-        slice is trailed (a prefix) versus an untrailed hint (the rest) -- the offsets alone only bound the
-        total width.
+        argument threaded through for the base.
+
+        OFFSETS_STATE_HINT splits that block in two: it holds the absolute index where propagator p's
+        untrailed hint suffix begins, so its trailed prefix is [offsets[p, OFFSETS_STATE], offsets[p,
+        OFFSETS_STATE_HINT]) and bc_algorithm's trailing loop reads both bounds out of the offsets row it
+        has already loaded. It is a column rather than an array of its own because a per-propagator width
+        is exactly what this table is for, and one indexed by propagator sitting outside it would be a
+        second cache line on the per-call path and a fourth argument through SIGN_CONSISTENCY_ALG.
         """
         logger.debug("Initializing offsets")
-        self.offsets = np.zeros((self.propagator_nb + 1, 3), dtype=np.uint32)
+        self.offsets = np.zeros((self.propagator_nb + 1, 4), dtype=np.uint32)
         state_base = 2 * self.domain_nb + self.propagator_nb
-        self.offsets[0, OFFSETS_STATE] = state_base
-        self.state_trailed_nb = np.zeros(self.propagator_nb, dtype=np.uint32)
+        self.offsets[0, OFFSETS_STATE] = self.offsets[0, OFFSETS_STATE_HINT] = state_base
+        self.state_trailed_width = 0
         for propagator_idx, propagator in enumerate(self.propagators):
             self.offsets[propagator_idx + 1, OFFSETS_VARIABLE] = self.offsets[propagator_idx, OFFSETS_VARIABLE] + len(
                 propagator[0]
@@ -191,11 +197,14 @@ class Problem:
                 propagator[2]
             )
             trailed_nb, hint_nb = GET_STATE_FCTS[propagator[1]](len(propagator[0]), propagator[2])
-            self.state_trailed_nb[propagator_idx] = trailed_nb
-            self.offsets[propagator_idx + 1, OFFSETS_STATE] = (
-                self.offsets[propagator_idx, OFFSETS_STATE] + trailed_nb + hint_nb
-            )
+            self.state_trailed_width += trailed_nb
+            state_start = self.offsets[propagator_idx, OFFSETS_STATE]
+            self.offsets[propagator_idx, OFFSETS_STATE_HINT] = state_start + trailed_nb
+            self.offsets[propagator_idx + 1, OFFSETS_STATE] = state_start + trailed_nb + hint_nb
         self.state_width = int(self.offsets[-1, OFFSETS_STATE] - state_base)
+        # the closing row has no propagator, so its split is degenerate; keeping it consistent means a
+        # reader never sees a hint start below its own state start
+        self.offsets[-1, OFFSETS_STATE_HINT] = self.offsets[-1, OFFSETS_STATE]
         logger.debug("Initializing props")
         self.propagator_variables = np.empty(self.offsets[-1, OFFSETS_VARIABLE], dtype=np.uint32)
         self.propagator_parameters = np.empty(self.offsets[-1, OFFSETS_PARAM], dtype=np.int32)

@@ -134,7 +134,7 @@ CSR-style: an `offsets` array delimits, for each propagator, its slice of the fl
 |-------|-------|-----------|-------|
 | `algorithms` | `(P,)` uint8 | propagator | its `ALG_*` id |
 | `priorities` | `(P,)` uint32 | propagator | its queue bucket index |
-| `offsets` | `(P+1, 2)` uint32 | propagator | `[OFFSETS_VARIABLE, OFFSETS_PARAM]` — where each propagator's slice of the two arrays below starts; it ends where the next propagator's begins |
+| `offsets` | `(P+1, 4)` uint32 | propagator | `[OFFSETS_VARIABLE, OFFSETS_PARAM, OFFSETS_STATE, OFFSETS_STATE_HINT]` — where each propagator's slice of the two arrays below starts; it ends where the next propagator's begins. The last two address its state block (see *Propagator state*) |
 | `propagator_variables` | `(Σ arity,)` uint32 | flat (CSR) | every propagator's variables, concatenated |
 | `propagator_parameters` | `(Σ params,)` int32 | flat (CSR) | every propagator's parameters, concatenated |
 | `triggers` | `(Σ triggers,)` int32 | flat (CSR) | propagators to wake, grouped by `(variable, event)` |
@@ -196,12 +196,16 @@ there is no per-propagator state to restore on backtrack.
 ### Propagator state: a solver-owned block per propagator
 
 `compute_domains_*` takes a third argument, `prop_state`: a per-propagator `int32[::1]` slice of `state`, addressed
-CSR-style exactly like `propagator_variables`/`propagator_parameters` — a third `OFFSETS_STATE` column in `offsets`,
+CSR-style exactly like `propagator_variables`/`propagator_parameters` — an `OFFSETS_STATE` column in `offsets`,
 holding *absolute* indices into `state` rather than 0-based ones (the base, `2 * domain_nb + propagator_nb`, is
 already known to `Problem`, so `bc_algorithm` slices `state[offsets[p, OFFSETS_STATE]:offsets[p+1, OFFSETS_STATE]]`
-directly, no extra argument for the base). `register_propagator` takes an optional `get_state_fct` returning
-`(trailed_nb, hint_nb)`, defaulting to `(0, 0)` — a propagator that doesn't ask for one costs nothing: no branch, no
-cache line, no trail entry.
+directly, no extra argument for the base). A fourth column, `OFFSETS_STATE_HINT`, splits that block: it is where
+p's untrailed hint suffix starts, so the trailed prefix the engine has to save is
+`[offsets[p, OFFSETS_STATE], offsets[p, OFFSETS_STATE_HINT])` and both bounds come out of the offsets row the
+slicing has already loaded — a per-propagator width belongs in the per-propagator table, and one kept beside it
+would be a second cache line on the per-call path and another argument through `SIGN_CONSISTENCY_ALG`.
+`register_propagator` takes an optional `get_state_fct` returning `(trailed_nb, hint_nb)`, defaulting to `(0, 0)`
+— a propagator that doesn't ask for one costs nothing: no branch, no cache line, no trail entry.
 
 Two tiers, by contract:
 

@@ -29,6 +29,10 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   jump; a budget makes that self-tuning. A node that moved one bound re-sorts 4× faster at `n=128`, 17× at
   `n=512` and 44× at `n=8192`; a decorrelated permutation costs +31%/+8%/+4% at those sizes.
 
+  A custom **consistency algorithm** is unaffected: the per-propagator trailed width is a fourth column of
+  `offsets` (`OFFSETS_STATE_HINT`), which the algorithm already receives and forwards, rather than an array
+  of its own, so `SIGN_CONSISTENCY_ALG` keeps the shape it had.
+
   Both the propagator signature and `register_propagator` are documented extension points, so this is a
   breaking change for custom propagators:
 

@@ -220,10 +220,10 @@ class BacktrackSolver(Solver):
         # cannot need more than that many entries, whatever it does; the tightenings the search applies around
         # it write at their own mark and are counted on top. The solver grows the trail when this much room is
         # no longer there. Counted rather than taken as len(self.state), which would include the untrailed hint
-        # suffixes: bc_algorithm only ever trails the first state_trailed_nb[p] cells of block p, so a hint cell
-        # can never reach the trail, and a wide alldifferent would otherwise inflate trail_log -- 16x
+        # suffixes: bc_algorithm only ever trails block p's prefix below offsets[p, OFFSETS_STATE_HINT], so a
+        # hint cell can never reach the trail, and a wide alldifferent would otherwise inflate trail_log -- 16x
         # trail_headroom rows of 2 int32 -- by 128 bytes per scratch cell it can never use.
-        trailable_nb = propagator_state_offset + int(self.problem.state_trailed_nb.sum()) + 1
+        trailable_nb = propagator_state_offset + self.problem.state_trailed_width + 1
         self.trail_headroom = trailable_nb + STEP_TIGHTENING_NB * TIGHTENING_TRAIL_ENTRY_NB
         # Both starting sizes are a flat floor for the models the flat floor already covers, and a
         # model-derived one for the wide models it does not reach. The flat halves are measured: across the
@@ -362,7 +362,6 @@ class BacktrackSolver(Solver):
             self.problem.offsets,
             self.problem.propagator_variables,
             self.problem.propagator_parameters,
-            self.problem.state_trailed_nb,
             self.problem.triggers,
             self.problem.triggers_offsets,
             self.state,
@@ -511,7 +510,6 @@ def solve_one_step(
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
-    state_trailed_nb: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
     state: NDArray,
@@ -569,8 +567,6 @@ def solve_one_step(
     :type propagator_variables: NDArray
     :param propagator_parameters: the parameters by propagators
     :type propagator_parameters: NDArray
-    :param state_trailed_nb: the trailed width of each propagator's state block, indexed by propagator
-    :type state_trailed_nb: NDArray
     :param triggers: a Numpy array of event masks indexed by variables and propagators
     :type triggers: NDArray
     :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
@@ -650,7 +646,6 @@ def solve_one_step(
             offsets,
             propagator_variables,
             propagator_parameters,
-            state_trailed_nb,
             triggers,
             triggers_offsets,
             state,
