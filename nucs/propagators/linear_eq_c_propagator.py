@@ -74,7 +74,6 @@ def compute_domains_linear_eq_c(domains: NDArray, parameters: NDArray, prop_stat
     # its largest possible value, domain_sum_max its smallest (the swapped naming is shared with the
     # geq/leq propagators). The bounds are recomputed and re-filtered until a fixpoint is reached.
     domain_sum_min = domain_sum_max = -parameters[-1]
-    unbound_count = 0
     for i in range(n):
         factor = factors[i]
         x_min = domains[i, DOMAIN_MIN]
@@ -85,14 +84,17 @@ def compute_domains_linear_eq_c(domains: NDArray, parameters: NDArray, prop_stat
         else:
             domain_sum_min += factor * x_min
             domain_sum_max += factor * x_max
-        if factor != 0 and x_min < x_max:
-            unbound_count += 1
     # If the sum is forced strictly above or below a_n the equality is unsatisfiable. This single
     # global test catches every inconsistency, so the per-variable x[DOMAIN_MIN] > x[DOMAIN_MAX] check that used
     # to sit inside the filtering loop below is redundant and was dropped.
     if domain_sum_max > 0 or domain_sum_min < 0:
         return PROP_INCONSISTENCY
-    if unbound_count == 0:
+    # The two bounds meet exactly when every variable is bound or has a zero factor, which is what the
+    # loop above used to count: subtracting them term by term leaves sum |a_i| * (x_max - x_min), a sum of
+    # non-negative terms, each zero only for a variable that cannot move the total. Reading entailment off
+    # the two accumulators instead takes a compare and an add per variable out of the scan -- and with them
+    # a data-dependent branch, in the one loop here that is otherwise straight-line arithmetic.
+    if domain_sum_min == domain_sum_max:
         return PROP_ENTAILMENT
     for i in range(n):
         factor = factors[i]
