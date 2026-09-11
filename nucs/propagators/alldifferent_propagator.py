@@ -356,15 +356,16 @@ def argsort_into_warm(sorted_vars: NDArray, domains: NDArray, bound: int) -> Non
 @njit(cache=True)
 def compute_domains_alldifferent(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
-    Enforces that :math:`x_i <> x_j when i<>j`.
+    Enforces that :math:`x_i<>x_j\\ when\\ i<>j`.
 
     Adapted from "A fast and simple algorithm for bounds consistency of the alldifferent constraint".
+
     :param domains: the domains of the variables, x is an alias for domains
     :type domains: NDArray
     :param parameters: either empty or offsets
     :type parameters: NDArray
-    :param prop_state: this propagator's state block: [flag, min_sorted_vars[n], max_sorted_vars[n],
-                       bounds, t, d, h, ranks], sized by get_state_alldifferent
+    :param prop_state: this propagator's state block:
+                       [flag, min_sorted_vars[n], max_sorted_vars[n], bounds, t, d, h, ranks], sized by get_state_alldifferent
     :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
