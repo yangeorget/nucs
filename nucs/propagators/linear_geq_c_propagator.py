@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from collections.abc import Sequence
+
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -38,6 +40,25 @@ def get_complexity_linear_geq_c(n: int, parameters: NDArray) -> int:
     :rtype: int
     """
     return n
+
+
+def get_state_linear_geq_c(n: int, parameters: Sequence[int]) -> tuple[int, int]:
+    """
+    Returns the size of this propagator's state block: the one cell it reports its changes in.
+
+    The cell is untrailed, and could not be anything else: it describes the call that has just happened,
+    not the node, so there is nothing about it to restore. The engine pre-sets it to 1 and reads it back
+    once, between the call and the write-back it decides.
+
+    :param n: the number of variables, unused here
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: Sequence[int]
+
+    :return: (trailed_nb, hint_nb) = (0, 1)
+    :rtype: tuple[int, int]
+    """
+    return 0, 1
 
 
 @njit(cache=True)
@@ -94,6 +115,7 @@ def compute_domains_linear_geq_c(domains: NDArray, parameters: NDArray, prop_sta
     # A single pass reaches the fixpoint: the bounds are derived from domain_sum_min, and
     # tightening x_min (factor > 0) or x_max (factor < 0) never changes domain_sum_min, so a
     # second pass would compute the same bounds. domain_sum_max is updated to detect entailment.
+    changed = False
     for i in range(n):
         factor = factors[i]
         if factor == 0:
@@ -107,11 +129,15 @@ def compute_domains_linear_geq_c(domains: NDArray, parameters: NDArray, prop_sta
             if new_min > x_min:
                 domains[i, DOMAIN_MIN] = new_min
                 domain_sum_max += factor * (new_min - x_min)
+                changed = True
         else:
             new_max = x_min + (-domain_sum_min // factor)
             if new_max < x_max:
                 domains[i, DOMAIN_MAX] = new_max
                 domain_sum_max += factor * (new_max - x_max)
+                changed = True
     if domain_sum_max >= 0:
         return PROP_ENTAILMENT
+    if not changed:
+        prop_state[0] = 0  # nothing written: the engine can skip the write-back scan
     return PROP_CONSISTENCY

@@ -16,7 +16,7 @@ from numba import int32, int64, njit, types, uint64  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.buckets import STORAGE_OFFSET, buckets_add
-from nucs.constants import EVENT_NB
+from nucs.constants import EVENT_NB, PROP_FLAG_IDEMPOTENT, PROP_FLAG_REPORTS_CHANGES
 from nucs.propagators.abs_eq_propagator import compute_domains_abs_eq, get_complexity_abs_eq, get_triggers_abs_eq
 from nucs.propagators.add_c_eq_propagator import (
     compute_domains_add_c_eq,
@@ -43,6 +43,7 @@ from nucs.propagators.count_eq_c_propagator import (
 from nucs.propagators.count_eq_propagator import (
     compute_domains_count_eq,
     get_complexity_count_eq,
+    get_state_count_eq,
     get_triggers_count_eq,
 )
 from nucs.propagators.count_geq_c_propagator import (
@@ -154,7 +155,12 @@ from nucs.propagators.leq_c_imp_propagator import (
     get_complexity_leq_c_imp,
     get_triggers_leq_c_imp,
 )
-from nucs.propagators.leq_c_propagator import compute_domains_leq_c, get_complexity_leq_c, get_triggers_leq_c
+from nucs.propagators.leq_c_propagator import (
+    compute_domains_leq_c,
+    get_complexity_leq_c,
+    get_state_leq_c,
+    get_triggers_leq_c,
+)
 from nucs.propagators.leq_c_reif_propagator import (
     compute_domains_leq_c_reif,
     get_complexity_leq_c_reif,
@@ -168,16 +174,19 @@ from nucs.propagators.lexleq_propagator import (
 from nucs.propagators.linear_eq_c_propagator import (
     compute_domains_linear_eq_c,
     get_complexity_linear_eq_c,
+    get_state_linear_eq_c,
     get_triggers_linear_eq_c,
 )
 from nucs.propagators.linear_geq_c_propagator import (
     compute_domains_linear_geq_c,
     get_complexity_linear_geq_c,
+    get_state_linear_geq_c,
     get_triggers_linear_geq_c,
 )
 from nucs.propagators.linear_leq_c_propagator import (
     compute_domains_linear_leq_c,
     get_complexity_linear_leq_c,
+    get_state_linear_leq_c,
     get_triggers_linear_leq_c,
 )
 from nucs.propagators.linear_neq_c_propagator import (
@@ -256,17 +265,25 @@ from nucs.propagators.subcircuit_propagator import (
 from nucs.propagators.sum_eq_c_propagator import (
     compute_domains_sum_eq_c,
     get_complexity_sum_eq_c,
+    get_state_sum_eq_c,
     get_triggers_sum_eq_c,
 )
-from nucs.propagators.sum_eq_propagator import compute_domains_sum_eq, get_complexity_sum_eq, get_triggers_sum_eq
+from nucs.propagators.sum_eq_propagator import (
+    compute_domains_sum_eq,
+    get_complexity_sum_eq,
+    get_state_sum_eq,
+    get_triggers_sum_eq,
+)
 from nucs.propagators.sum_geq_c_propagator import (
     compute_domains_sum_geq_c,
     get_complexity_sum_geq_c,
+    get_state_sum_geq_c,
     get_triggers_sum_geq_c,
 )
 from nucs.propagators.sum_leq_c_propagator import (
     compute_domains_sum_leq_c,
     get_complexity_sum_leq_c,
+    get_state_sum_leq_c,
     get_triggers_sum_leq_c,
 )
 from nucs.propagators.value_precede_propagator import (
@@ -294,13 +311,15 @@ GET_COMPLEXITY_FCTS: list[Callable] = []
 COMPUTE_DOMAINS_FCTS: list[Callable] = []
 IS_VACUOUS_FCTS: list[Callable] = []
 GET_STATE_FCTS: list[Callable] = []
-# Whether one call of the algorithm reaches its own fixpoint, indexed by algorithm. A propagator that does
-# not is rescheduled by the engine after any call that changed a domain, instead of iterating internally.
-# A list, appended to like the four above, rather than the boolean array the consistency algorithm wants:
+# The PROP_FLAG_* properties of each algorithm, packed into one word and indexed by algorithm. Packed
+# rather than one array per property because this is what a consistency algorithm receives and forwards:
+# a second array would be a second parameter through SIGN_CONSISTENCY_ALG, and so a breaking change to
+# every custom consistency algorithm, for something a spare bit already carries.
+# A list, appended to like the five above, rather than the array the consistency algorithm wants:
 # np.append returns a new array, so growing one would rebind this name, and any module that had imported
 # it by value would keep an array one entry short of every algorithm registered since -- indexing past it
 # for the new one. Problem.init makes the array, beside the algorithms that index it.
-IDEMPOTENCIES: list[bool] = []
+ALGORITHM_FLAGS: list[int] = []
 
 
 def is_never_vacuous(n: int, parameters: Sequence[int], domains: Sequence[tuple[int, int]]) -> bool:
@@ -356,6 +375,7 @@ def register_propagator(
     is_vacuous_fct: Callable = is_never_vacuous,
     idempotent: bool = True,
     get_state_fct: Callable = get_state_default,
+    reports_changes: bool = False,
 ) -> int:
     """
     Registers a propagator by adding its functions to the corresponding lists of functions.
@@ -375,6 +395,10 @@ def register_propagator(
     :param get_state_fct: a function that returns the (trailed_nb, hint_nb) size of this propagator's
         state block, defaulting to none
     :type get_state_fct: Callable
+    :param reports_changes: whether the propagator writes, into the first cell of its state block's hint
+        suffix, whether it changed any domain -- which lets the engine skip the write-back scan on the
+        calls that changed none. Opting in obliges get_state_fct to reserve that cell
+    :type reports_changes: bool
 
     :return: the index of the propagator
     :rtype: int
@@ -384,7 +408,9 @@ def register_propagator(
     COMPUTE_DOMAINS_FCTS.append(compute_domains_fct)
     IS_VACUOUS_FCTS.append(is_vacuous_fct)
     GET_STATE_FCTS.append(get_state_fct)
-    IDEMPOTENCIES.append(idempotent)
+    ALGORITHM_FLAGS.append(
+        (PROP_FLAG_IDEMPOTENT if idempotent else 0) | (PROP_FLAG_REPORTS_CHANGES if reports_changes else 0)
+    )
     return get_algorithm_nb() - 1
 
 
@@ -398,13 +424,26 @@ ALG_BIN_PACKING_LOAD = register_propagator(
     idempotent=False,
 )
 ALG_LINEAR_EQ_C = register_propagator(
-    get_triggers_linear_eq_c, get_complexity_linear_eq_c, compute_domains_linear_eq_c, idempotent=False
+    get_triggers_linear_eq_c,
+    get_complexity_linear_eq_c,
+    compute_domains_linear_eq_c,
+    idempotent=False,
+    get_state_fct=get_state_linear_eq_c,
+    reports_changes=True,
 )
 ALG_LINEAR_GEQ_C = register_propagator(
-    get_triggers_linear_geq_c, get_complexity_linear_geq_c, compute_domains_linear_geq_c
+    get_triggers_linear_geq_c,
+    get_complexity_linear_geq_c,
+    compute_domains_linear_geq_c,
+    get_state_fct=get_state_linear_geq_c,
+    reports_changes=True,
 )
 ALG_LINEAR_LEQ_C = register_propagator(
-    get_triggers_linear_leq_c, get_complexity_linear_leq_c, compute_domains_linear_leq_c
+    get_triggers_linear_leq_c,
+    get_complexity_linear_leq_c,
+    compute_domains_linear_leq_c,
+    get_state_fct=get_state_linear_leq_c,
+    reports_changes=True,
 )
 ALG_LINEAR_NEQ_C = register_propagator(
     get_triggers_linear_neq_c, get_complexity_linear_neq_c, compute_domains_linear_neq_c
@@ -414,8 +453,15 @@ ALG_ALLDIFFERENT = register_propagator(
     get_complexity_alldifferent,
     compute_domains_alldifferent,
     get_state_fct=get_state_alldifferent,
+    reports_changes=True,
 )
-ALG_COUNT_EQ = register_propagator(get_triggers_count_eq, get_complexity_count_eq, compute_domains_count_eq)
+ALG_COUNT_EQ = register_propagator(
+    get_triggers_count_eq,
+    get_complexity_count_eq,
+    compute_domains_count_eq,
+    get_state_fct=get_state_count_eq,
+    reports_changes=True,
+)
 ALG_COUNT_EQ_C = register_propagator(get_triggers_count_eq_c, get_complexity_count_eq_c, compute_domains_count_eq_c)
 ALG_COUNT_GEQ_C = register_propagator(get_triggers_count_geq_c, get_complexity_count_geq_c, compute_domains_count_geq_c)
 ALG_COUNT_LEQ_C = register_propagator(get_triggers_count_leq_c, get_complexity_count_leq_c, compute_domains_count_leq_c)
@@ -474,7 +520,13 @@ ALG_INCREASING = register_propagator(get_triggers_increasing, get_complexity_inc
 ALG_INVERSE = register_propagator(
     get_triggers_inverse, get_complexity_inverse, compute_domains_inverse, idempotent=False
 )
-ALG_LEQ_C = register_propagator(get_triggers_leq_c, get_complexity_leq_c, compute_domains_leq_c)
+ALG_LEQ_C = register_propagator(
+    get_triggers_leq_c,
+    get_complexity_leq_c,
+    compute_domains_leq_c,
+    get_state_fct=get_state_leq_c,
+    reports_changes=True,
+)
 ALG_LEQ_C_IMP = register_propagator(get_triggers_leq_c_imp, get_complexity_leq_c_imp, compute_domains_leq_c_imp)
 ALG_LEQ_C_REIF = register_propagator(get_triggers_leq_c_reif, get_complexity_leq_c_reif, compute_domains_leq_c_reif)
 ALG_LEXLEQ = register_propagator(get_triggers_lexleq, get_complexity_lexleq, compute_domains_lexleq)
@@ -507,10 +559,34 @@ ALG_STRICTLY_INCREASING = register_propagator(
     get_triggers_strictly_increasing, get_complexity_strictly_increasing, compute_domains_strictly_increasing
 )
 ALG_SUBCIRCUIT = register_propagator(get_triggers_subcircuit, get_complexity_subcircuit, compute_domains_subcircuit)
-ALG_SUM_EQ = register_propagator(get_triggers_sum_eq, get_complexity_sum_eq, compute_domains_sum_eq)
-ALG_SUM_EQ_C = register_propagator(get_triggers_sum_eq_c, get_complexity_sum_eq_c, compute_domains_sum_eq_c)
-ALG_SUM_GEQ_C = register_propagator(get_triggers_sum_geq_c, get_complexity_sum_geq_c, compute_domains_sum_geq_c)
-ALG_SUM_LEQ_C = register_propagator(get_triggers_sum_leq_c, get_complexity_sum_leq_c, compute_domains_sum_leq_c)
+ALG_SUM_EQ = register_propagator(
+    get_triggers_sum_eq,
+    get_complexity_sum_eq,
+    compute_domains_sum_eq,
+    get_state_fct=get_state_sum_eq,
+    reports_changes=True,
+)
+ALG_SUM_EQ_C = register_propagator(
+    get_triggers_sum_eq_c,
+    get_complexity_sum_eq_c,
+    compute_domains_sum_eq_c,
+    get_state_fct=get_state_sum_eq_c,
+    reports_changes=True,
+)
+ALG_SUM_GEQ_C = register_propagator(
+    get_triggers_sum_geq_c,
+    get_complexity_sum_geq_c,
+    compute_domains_sum_geq_c,
+    get_state_fct=get_state_sum_geq_c,
+    reports_changes=True,
+)
+ALG_SUM_LEQ_C = register_propagator(
+    get_triggers_sum_leq_c,
+    get_complexity_sum_leq_c,
+    compute_domains_sum_leq_c,
+    get_state_fct=get_state_sum_leq_c,
+    reports_changes=True,
+)
 ALG_VALUE_PRECEDE = register_propagator(
     get_triggers_value_precede, get_complexity_value_precede, compute_domains_value_precede
 )

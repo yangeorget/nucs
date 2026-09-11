@@ -12,7 +12,7 @@
 ###############################################################################
 from collections.abc import Callable
 
-from numba import boolean, int32, int64, types, uint8, uint32
+from numba import int32, int64, types, uint8, uint32
 
 from nucs.propagators.propagators import TYPE_COMPUTE_DOMAINS_LIST
 from nucs.solvers.bc_algorithm import bc_algorithm
@@ -22,7 +22,7 @@ CONSISTENCY_ALGS: dict[str, int] = {}  # algorithm name to index, for name-based
 
 SIGN_CONSISTENCY_ALG = int64(
     int64[::1],  # statistics
-    boolean[::1],  # idempotencies
+    uint8[::1],  # algorithm_flags
     uint8[::1],  # algorithms
     uint32[::1],  # priorities
     uint32[:, ::1],  # offsets

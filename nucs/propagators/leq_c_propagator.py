@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from collections.abc import Sequence
+
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -37,6 +39,25 @@ def get_complexity_leq_c(n: int, parameters: NDArray) -> int:
     :rtype: int
     """
     return 1
+
+
+def get_state_leq_c(n: int, parameters: Sequence[int]) -> tuple[int, int]:
+    """
+    Returns the size of this propagator's state block: the one cell it reports its changes in.
+
+    The cell is untrailed, and could not be anything else: it describes the call that has just happened,
+    not the node, so there is nothing about it to restore. The engine pre-sets it to 1 and reads it back
+    once, between the call and the write-back it decides.
+
+    :param n: the number of variables, unused here
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: Sequence[int]
+
+    :return: (trailed_nb, hint_nb) = (0, 1)
+    :rtype: tuple[int, int]
+    """
+    return 0, 1
 
 
 @njit(cache=True)
@@ -73,10 +94,14 @@ def compute_domains_leq_c(domains: NDArray, parameters: NDArray, prop_state: NDA
     c = int(parameters[0])
     if x[DOMAIN_MAX] <= y[DOMAIN_MIN] + c:
         return PROP_ENTAILMENT
+    old_x_max = x[DOMAIN_MAX]
     x[DOMAIN_MAX] = min(x[DOMAIN_MAX], y[DOMAIN_MAX] + c)
     if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
         return PROP_INCONSISTENCY
+    old_y_min = y[DOMAIN_MIN]
     y[DOMAIN_MIN] = max(y[DOMAIN_MIN], x[DOMAIN_MIN] - c)
     if y[DOMAIN_MIN] > y[DOMAIN_MAX]:
         return PROP_INCONSISTENCY
+    if x[DOMAIN_MAX] == old_x_max and y[DOMAIN_MIN] == old_y_min:
+        prop_state[0] = 0  # nothing written: the engine can skip the write-back scan
     return PROP_CONSISTENCY

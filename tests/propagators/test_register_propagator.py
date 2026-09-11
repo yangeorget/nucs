@@ -17,7 +17,7 @@ from numpy.typing import NDArray
 
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_MIN_MAX, PROP_CONSISTENCY
 from nucs.problems.problem import OFFSETS_STATE, Problem
-from nucs.propagators.propagators import IDEMPOTENCIES, get_algorithm_nb, register_propagator
+from nucs.propagators.propagators import ALGORITHM_FLAGS, get_algorithm_nb, register_propagator
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
@@ -49,11 +49,11 @@ class TestRegisterPropagator:
         """
         alg = register_propagator(get_triggers_leq, get_complexity_leq, compute_domains_leq)
         assert alg == get_algorithm_nb() - 1
-        assert len(IDEMPOTENCIES) == get_algorithm_nb()  # the flags cover the new algorithm
+        assert len(ALGORITHM_FLAGS) == get_algorithm_nb()  # the flags cover the new algorithm
         problem = Problem([(0, 2), (0, 2)])
         problem.add_propagator(alg, [0, 1])
         solver = BacktrackSolver(problem, log_level="ERROR")  # constructing it is what runs Problem.init
-        assert len(problem.idempotencies) == get_algorithm_nb()  # the problem's copy covers it too
+        assert len(problem.algorithm_flags) == get_algorithm_nb()  # the problem's copy covers it too
         solutions = [tuple(solution) for solution in solver.find_all()]
         assert sorted(solutions) == [(x, y) for x in range(3) for y in range(3) if x <= y]
 

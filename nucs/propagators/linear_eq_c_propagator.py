@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from collections.abc import Sequence
+
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -37,6 +39,25 @@ def get_complexity_linear_eq_c(n: int, parameters: NDArray) -> int:
     :rtype: int
     """
     return n
+
+
+def get_state_linear_eq_c(n: int, parameters: Sequence[int]) -> tuple[int, int]:
+    """
+    Returns the size of this propagator's state block: the one cell it reports its changes in.
+
+    The cell is untrailed, and could not be anything else: it describes the call that has just happened,
+    not the node, so there is nothing about it to restore. The engine pre-sets it to 1 and reads it back
+    once, between the call and the write-back it decides.
+
+    :param n: the number of variables, unused here
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: Sequence[int]
+
+    :return: (trailed_nb, hint_nb) = (0, 1)
+    :rtype: tuple[int, int]
+    """
+    return 0, 1
 
 
 @njit(cache=True)
@@ -96,6 +117,7 @@ def compute_domains_linear_eq_c(domains: NDArray, parameters: NDArray, prop_stat
     # a data-dependent branch, in the one loop here that is otherwise straight-line arithmetic.
     if domain_sum_min == domain_sum_max:
         return PROP_ENTAILMENT
+    changed = False
     for i in range(n):
         factor = factors[i]
         if factor == 0:
@@ -112,6 +134,10 @@ def compute_domains_linear_eq_c(domains: NDArray, parameters: NDArray, prop_stat
             new_max = x_min + (-domain_sum_min // factor)
         if new_min > x_min:
             domains[i, DOMAIN_MIN] = new_min
+            changed = True
         if new_max < x_max:
             domains[i, DOMAIN_MAX] = new_max
+            changed = True
+    if not changed:
+        prop_state[0] = 0  # nothing written: the engine can skip the write-back scan
     return PROP_CONSISTENCY

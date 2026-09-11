@@ -16,7 +16,16 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.buckets import STORAGE_OFFSET, buckets_add, buckets_pop
-from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_NB, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_NB,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_FLAG_IDEMPOTENT,
+    PROP_FLAG_REPORTS_CHANGES,
+    PROP_INCONSISTENCY,
+)
 from nucs.numba_helper import ComputeDomainsFunctions
 from nucs.problems.problem import (
     OFFSETS_PARAM,
@@ -45,7 +54,7 @@ from nucs.statistics import (
 @njit(cache=True)
 def bc_algorithm(
     statistics: NDArray,
-    idempotencies: NDArray,
+    algorithm_flags: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
     offsets: NDArray,
@@ -70,9 +79,9 @@ def bc_algorithm(
 
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
-    :param idempotencies: whether each algorithm reaches its own fixpoint in a single call, indexed by
-                          algorithm rather than by propagator
-    :type idempotencies: NDArray
+    :param algorithm_flags: the PROP_FLAG_* properties of each algorithm, packed into one word and indexed
+                            by algorithm rather than by propagator
+    :type algorithm_flags: NDArray
     :param algorithms: the algorithms indexed by propagators
     :type algorithms: NDArray
     :param priorities: the propagation queue bucket priorities indexed by propagators
@@ -159,10 +168,19 @@ def bc_algorithm(
         # loads per call -- zero for every propagator with no trailed state, which today is all of them.
         # The prefix bound comes out of the same offsets row as the block itself, so an empty prefix costs
         # no load the slicing was not making anyway.
+        flags = algorithm_flags[algorithm]
+        reports_changes = flags & PROP_FLAG_REPORTS_CHANGES
         prop_state_start = offsets[prop_idx, OFFSETS_STATE]
         prop_state_end = offsets[prop_idx + 1, OFFSETS_STATE]
-        for cell in range(prop_state_start, offsets[prop_idx, OFFSETS_STATE_HINT]):
+        # where the untrailed hint suffix starts: the end of the trailed prefix the loop below saves, and
+        # the cell a reporting propagator answers in
+        prop_state_hint = offsets[prop_idx, OFFSETS_STATE_HINT]
+        for cell in range(prop_state_start, prop_state_hint):
             trail_size = trail_set(state, trail_log, trail_indices, mark, trail_size, cell, state[cell], state[cell])
+        if reports_changes:
+            # pre-set to "changed", so that the fast path below is taken only on a propagator that has
+            # positively said it wrote nothing -- one that forgets simply gets the scan it gets today
+            state[prop_state_hint] = 1
         status = compute_domains_fcts[algorithm](
             prop_domains,
             propagator_parameters[offsets[prop_idx, OFFSETS_PARAM] : offsets[prop_idx + 1, OFFSETS_PARAM]],
@@ -179,6 +197,12 @@ def bc_algorithm(
                 # has just established the flag is still clear, so it cannot be trailed twice in a choice point
                 trail_size = trail_push(trail_log, trail_indices, trail_size, entailed_index + prop_idx, 0)
                 entailed[prop_idx] = 1
+        if reports_changes and status == PROP_CONSISTENCY and state[prop_state_hint] == 0:
+            # the propagator wrote no domain, so update_domains would scan every variable only to find
+            # no event and schedule nobody: skip it outright
+            statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
+            statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NO_CHANGE_NB] += 1
+            continue
         no_change, trail_size = update_domains(
             prop_idx,
             prop_var_start,
@@ -196,7 +220,7 @@ def bc_algorithm(
             triggers,
             triggers_offsets,
             priorities,
-            idempotencies[algorithm],
+            flags & PROP_FLAG_IDEMPOTENT,
         )
         if no_change:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1

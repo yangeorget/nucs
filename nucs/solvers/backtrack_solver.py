@@ -386,7 +386,7 @@ class BacktrackSolver(Solver):
             self.dom_heuristic_params_shapes,
             self.compute_domains_fcts,
             self.domain_buffer,
-            self.problem.idempotencies,
+            self.problem.algorithm_flags,
             self.objective,
             self.trail_headroom,
         )
@@ -535,7 +535,7 @@ def solve_one_step(
     dom_heuristic_params_shapes: NDArray,
     compute_domains_fcts: ComputeDomainsFunctions,
     domain_buffer: NDArray,
-    idempotencies: NDArray,
+    algorithm_flags: NDArray,
     objective: NDArray,
     trail_headroom: int,
 ) -> tuple[int, NDArray | None]:
@@ -617,9 +617,9 @@ def solve_one_step(
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray
-    :param idempotencies: whether each algorithm reaches its own fixpoint in a single call, indexed by
+    :param algorithm_flags: the PROP_FLAG_* properties of each algorithm, packed into one word and indexed by
                           algorithm rather than by propagator
-    :type idempotencies: NDArray
+    :type algorithm_flags: NDArray
     :param objective: the objective as a Numpy array of variable, bound and value,
                       whose variable is -1 when not optimizing
     :type objective: NDArray
@@ -641,7 +641,7 @@ def solve_one_step(
             return SOLVER_CHOICE_POINTS_FULL, None
         problem_status = consistency_alg_fct(
             statistics,
-            idempotencies,
+            algorithm_flags,
             algorithms,
             priorities,
             offsets,

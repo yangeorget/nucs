@@ -38,6 +38,15 @@ PROP_INCONSISTENCY = 0  # returned by a propagator when inconsistent
 PROP_CONSISTENCY = 1  # returned by a propagator when consistent
 PROP_ENTAILMENT = 2  # returned by a propagator when entailed
 
+# Per-algorithm properties, packed into one word so that adding one does not change the shape of
+# SIGN_CONSISTENCY_ALG -- the array is already threaded through every consistency algorithm, which
+# forwards it untouched.
+PROP_FLAG_IDEMPOTENT = 1  # one call reaches the propagator's own fixpoint
+# The propagator reports, in the first cell of its state block's hint suffix, whether it wrote any domain:
+# 0 means it wrote none, so the engine can skip the write-back scan entirely. The engine pre-sets the cell
+# to 1 before every call, so a propagator that forgets to report simply gets the full scan.
+PROP_FLAG_REPORTS_CHANGES = 2
+
 # Objective indices.
 # The branch-and-bound bound is solver state, not choice-point state: it is not backtrackable, so it is
 # re-applied to each choice point as the search resumes it rather than written into them all up front.

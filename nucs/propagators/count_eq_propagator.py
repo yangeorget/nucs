@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from collections.abc import Sequence
+
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -36,6 +38,25 @@ def get_complexity_count_eq(n: int, parameters: NDArray) -> int:
     :rtype: int
     """
     return n
+
+
+def get_state_count_eq(n: int, parameters: Sequence[int]) -> tuple[int, int]:
+    """
+    Returns the size of this propagator's state block: the one cell it reports its changes in.
+
+    The cell is untrailed, and could not be anything else: it describes the call that has just happened,
+    not the node, so there is nothing about it to restore. The engine pre-sets it to 1 and reads it back
+    once, between the call and the write-back it decides.
+
+    :param n: the number of variables, unused here
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: Sequence[int]
+
+    :return: (trailed_nb, hint_nb) = (0, 1)
+    :rtype: tuple[int, int]
+    """
+    return 0, 1
 
 
 @njit(cache=True)
@@ -89,10 +110,13 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray, prop_state: 
             count_min += 1
             if count_min > counter_max:
                 return PROP_INCONSISTENCY
+    changed = False
     if count_min > counter_min:
         counter[DOMAIN_MIN] = count_min
+        changed = True
     if count_max < counter_max:
         counter[DOMAIN_MAX] = count_max
+        changed = True
     if count_min == count_max:
         return PROP_ENTAILMENT
     if count_min == counter_max:  # we cannot have more domains equal to a
@@ -103,9 +127,11 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray, prop_state: 
             if x_i_min == a:
                 if x_i_max > a:
                     x_i[DOMAIN_MIN] = a + 1
+                    changed = True
             elif x_i_min < a:
                 if x_i_max == a:
                     x_i[DOMAIN_MAX] = a - 1
+                    changed = True
                 elif x_i_max > a:
                     all_different = False
         if all_different:
@@ -115,4 +141,6 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray, prop_state: 
             if x_i[DOMAIN_MIN] <= a <= x_i[DOMAIN_MAX]:
                 x_i[:] = a
         return PROP_ENTAILMENT
+    if not changed:
+        prop_state[0] = 0  # nothing written: the engine can skip the write-back scan
     return PROP_CONSISTENCY

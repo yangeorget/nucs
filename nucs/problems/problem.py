@@ -24,10 +24,10 @@ from nucs.constants import EVENT_MASK_NB, EVENT_NB
 from nucs.numba_helper import NUMBA_DISABLE_JIT, addresses_from_functions, function_ptr_from_address
 from nucs.propagators.propagators import (
     ALG_DUMMY,
+    ALGORITHM_FLAGS,
     GET_COMPLEXITY_FCTS,
     GET_STATE_FCTS,
     GET_TRIGGERS_FCTS,
-    IDEMPOTENCIES,
     IS_VACUOUS_FCTS,
     SIGN_GET_TRIGGERS,
     TYPE_GET_TRIGGERS,
@@ -137,7 +137,7 @@ class Problem:
         # flags cover every algorithm this problem can name -- including one registered after import. The
         # consistency algorithm needs a boolean array rather than the registry's list; converting some sixty
         # bools once per problem is nothing next to the rest of this method.
-        self.idempotencies = np.array(IDEMPOTENCIES, dtype=np.bool)
+        self.algorithm_flags = np.array(ALGORITHM_FLAGS, dtype=np.uint8)
         self.init_priorities()
         self.init_propagator_arrays()
         self.init_triggers()

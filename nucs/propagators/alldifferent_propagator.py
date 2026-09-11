@@ -68,11 +68,13 @@ def get_state_alldifferent(n: int, parameters: Sequence[int]) -> tuple[int, int]
     :param parameters: the parameters, unused here
     :type parameters: Sequence[int]
 
-    :return: (trailed_nb, hint_nb) = (0, 1 + 4n + 4 * bounds_nb)
+    :return: (trailed_nb, hint_nb) = (0, 2 + 4n + 4 * bounds_nb)
     :rtype: tuple[int, int]
     """
     bounds_nb = 2 * (n + 1)
-    return 0, 1 + 4 * n + 4 * bounds_nb
+    # one cell for the change this propagator reports to the engine, one for its own cold flag, then the
+    # permutations and the scratch
+    return 0, 2 + 4 * n + 4 * bounds_nb
 
 
 @njit(cache=True)
@@ -190,7 +192,8 @@ def filter_lower(
     domains: NDArray,
     ranks: NDArray,
     max_sorted_vars: NDArray,
-) -> bool:
+) -> tuple[bool, bool]:
+    changed = False
     for i in range(1, nb + 2):
         i1 = i - 1
         t[i] = h[i] = i1
@@ -207,17 +210,22 @@ def filter_lower(
             t[z] = j
         delta = d[z] + bounds[y] - bounds[z]
         if delta < 0:  # moved above the path compression which is not the case in the paper
-            return False
+            return False, changed
         path_set(t, x + 1, z, z)  # path compression
         if h[x] > x:
             w = path_max(h, h[x])
-            domains[max_sorted_vars[i], DOMAIN_MIN] = bounds[w]
+            # tested rather than written blind: the write is a no-op whenever the Hall interval does not
+            # actually move the bound, and telling the two apart is the whole of what the engine needs
+            variable = max_sorted_vars[i]
+            if domains[variable, DOMAIN_MIN] != bounds[w]:
+                domains[variable, DOMAIN_MIN] = bounds[w]
+                changed = True
             path_set(h, x, w, w)  # path compression
         if delta == 0:
             j1 = j - 1
             path_set(h, h[y], j1, y)  # mark hall interval
             h[y] = j1  # hall interval[bounds[j], bounds[y]]
-    return True
+    return True, changed
 
 
 @njit(cache=True)
@@ -231,7 +239,8 @@ def filter_upper(
     domains: NDArray,
     ranks: NDArray,
     min_sorted_vars: NDArray,
-) -> bool:
+) -> tuple[bool, bool]:
+    changed = False
     for i in range(nb + 1):
         i1 = i + 1
         t[i] = h[i] = i1
@@ -248,17 +257,20 @@ def filter_upper(
             t[z] = j
         delta = d[z] + bounds[z] - bounds[y]
         if delta < 0:  # moved above the path compression which is not the case in the paper
-            return False
+            return False, changed
         path_set(t, x - 1, z, z)  # path compression
         if h[x] < x:
             w = path_min(h, h[x])
-            domains[min_sorted_vars[i], DOMAIN_MAX] = bounds[w] - 1
+            variable = min_sorted_vars[i]
+            if domains[variable, DOMAIN_MAX] != bounds[w] - 1:
+                domains[variable, DOMAIN_MAX] = bounds[w] - 1
+                changed = True
             path_set(h, x, w, w)  # path compression
         if delta == 0:
             j1 = j + 1
             path_set(h, h[y], j1, y)  # mark hall interval
             h[y] = j1  # hall interval[bounds[j], bounds[y]]
-    return True
+    return True, changed
 
 
 @njit(cache=True, inline="always")
@@ -377,16 +389,17 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray, prop_sta
         offsets = parameters[:, np.newaxis]
         domains += offsets
     bounds_nb = 2 * (n + 1)
-    min_sorted_vars = prop_state[1 : 1 + n]
-    max_sorted_vars = prop_state[1 + n : 1 + 2 * n]
-    scratch = prop_state[1 + 2 * n :]
+    # cell 0 is the change report the engine pre-sets and reads back; this propagator's own state follows
+    min_sorted_vars = prop_state[2 : 2 + n]
+    max_sorted_vars = prop_state[2 + n : 2 + 2 * n]
+    scratch = prop_state[2 + 2 * n :]
     bounds = scratch[:bounds_nb]
     t = scratch[bounds_nb : 2 * bounds_nb]  # critical capacity pointers
     d = scratch[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
     h = scratch[3 * bounds_nb : 4 * bounds_nb]  # Hall interval pointers
     ranks = scratch[4 * bounds_nb :].reshape(n, 2)
-    if prop_state[0] == 0:  # cold: the block is zeroed at solver init, so 0 means never called on this block
-        prop_state[0] = 1
+    if prop_state[1] == 0:  # cold: the block is zeroed at solver init, so 0 means never called on this block
+        prop_state[1] = 1
         argsort_into(min_sorted_vars, domains, DOMAIN_MIN)
         argsort_into(max_sorted_vars, domains, DOMAIN_MAX)
     else:
@@ -398,12 +411,17 @@ def compute_domains_alldifferent(domains: NDArray, parameters: NDArray, prop_sta
             ground = False
             break
     nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars)
-    if filter_lower(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars) and filter_upper(
-        n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars
-    ):
-        if has_offsets:
-            domains -= offsets
-        # all the variables were ground and pairwise distinct: the constraint stays true in the subtree
-        return PROP_ENTAILMENT if ground else PROP_CONSISTENCY
-    else:
+    lower_ok, lower_changed = filter_lower(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars)
+    if not lower_ok:
         return PROP_INCONSISTENCY
+    upper_ok, upper_changed = filter_upper(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars)
+    if not upper_ok:
+        return PROP_INCONSISTENCY
+    if has_offsets:
+        domains -= offsets
+    if ground:
+        # all the variables were ground and pairwise distinct: the constraint stays true in the subtree
+        return PROP_ENTAILMENT
+    if not (lower_changed or upper_changed):
+        prop_state[0] = 0  # nothing written: the engine can skip the write-back scan
+    return PROP_CONSISTENCY
