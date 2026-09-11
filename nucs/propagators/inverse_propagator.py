@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from collections.abc import Sequence
+
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -29,6 +31,21 @@ def get_complexity_inverse(n: int, parameters: NDArray) -> int:
     :rtype: int
     """
     return n * n
+
+
+def get_state_inverse(n: int, parameters: Sequence[int]) -> tuple[int, int]:
+    """
+    Returns the size of this propagator's state block: the one cell it reports its changes in.
+
+    :param n: the number of variables, unused here
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: Sequence[int]
+
+    :return: (trailed_nb, hint_nb) = (0, 1)
+    :rtype: tuple[int, int]
+    """
+    return 0, 1
 
 
 @njit(cache=True)
@@ -66,7 +83,7 @@ def compute_domains_inverse(domains: NDArray, parameters: NDArray, prop_state: N
     :param parameters: the offset of the values next takes then the offset of the values prev takes, or no
         parameter at all when both are 0
     :type parameters: NDArray
-    :param prop_state: this propagator's state block (unused)
+    :param prop_state: this propagator's state block, whose first cell is the change report
     :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
@@ -77,29 +94,42 @@ def compute_domains_inverse(domains: NDArray, parameters: NDArray, prop_state: N
     prev = domains[n:]
     next_offset = int(parameters[0]) if len(parameters) > 0 else 0
     prev_offset = int(parameters[1]) if len(parameters) > 1 else 0
-    if not trim_domains_inverse(n, next, next_offset) or not trim_domains_inverse(n, prev, prev_offset):
+    # cleared here and raised again by any write below, so that the two helpers can go on returning a
+    # bare "still consistent" instead of threading a change flag back through four returns
+    prop_state[0] = 0
+    if not trim_domains_inverse(n, next, next_offset, prop_state) or not trim_domains_inverse(
+        n, prev, prev_offset, prop_state
+    ):
         return PROP_INCONSISTENCY
     return (
         PROP_CONSISTENCY
-        if filter_domains_inverse(n, next, prev, next_offset, prev_offset)
-        and filter_domains_inverse(n, prev, next, prev_offset, next_offset)
+        if filter_domains_inverse(n, next, prev, next_offset, prev_offset, prop_state)
+        and filter_domains_inverse(n, prev, next, prev_offset, next_offset, prop_state)
         else PROP_INCONSISTENCY
     )
 
 
 @njit(cache=True)
-def trim_domains_inverse(n: int, variables: NDArray, offset: int) -> bool:
+def trim_domains_inverse(n: int, variables: NDArray, offset: int, prop_state: NDArray) -> bool:
     # An inverse array only ever takes the n node labels offset..offset + n - 1.
     for i in range(n):
-        variables[i, DOMAIN_MIN] = max(variables[i, DOMAIN_MIN], offset)
-        variables[i, DOMAIN_MAX] = min(variables[i, DOMAIN_MAX], offset + n - 1)
+        # tested rather than written blind: both writes are a no-op on most calls, and telling the two
+        # apart is the whole of what the engine needs
+        if variables[i, DOMAIN_MIN] < offset:
+            variables[i, DOMAIN_MIN] = offset
+            prop_state[0] = 1
+        if variables[i, DOMAIN_MAX] > offset + n - 1:
+            variables[i, DOMAIN_MAX] = offset + n - 1
+            prop_state[0] = 1
         if variables[i, DOMAIN_MIN] > variables[i, DOMAIN_MAX]:
             return False
     return True
 
 
 @njit(cache=True)
-def filter_domains_inverse(n: int, next: NDArray, prev: NDArray, next_offset: int, prev_offset: int) -> bool:
+def filter_domains_inverse(
+    n: int, next: NDArray, prev: NDArray, next_offset: int, prev_offset: int, prop_state: NDArray
+) -> bool:
     # next and prev are inverse: prev[j] = i iff next[i] = j, where the node j is the value j + next_offset
     # of next and the node i is the value i + prev_offset of prev. So prev[j] can take the value of node i
     # only when j's label belongs to next[i]'s domain; the test below means prev[j] != node i.
@@ -110,16 +140,22 @@ def filter_domains_inverse(n: int, next: NDArray, prev: NDArray, next_offset: in
         lo = prev[j, DOMAIN_MIN] - prev_offset
         hi = prev[j, DOMAIN_MAX] - prev_offset
         if lo == hi:  # prev[j] is fixed, propagate it to next
-            next[lo] = label
+            if next[lo, DOMAIN_MIN] != label or next[lo, DOMAIN_MAX] != label:
+                next[lo] = label
+                prop_state[0] = 1
         else:
             # raise the lower bound past the leading i where prev[j] != i (j is outside next[i])
             while lo <= hi and (label < next[lo, DOMAIN_MIN] or label > next[lo, DOMAIN_MAX]):
                 lo += 1
             if lo > hi:  # no feasible value left
                 return False
-            prev[j, DOMAIN_MIN] = lo + prev_offset
+            if prev[j, DOMAIN_MIN] != lo + prev_offset:
+                prev[j, DOMAIN_MIN] = lo + prev_offset
+                prop_state[0] = 1
             # lower the upper bound past the trailing i where prev[j] != i
             while label < next[hi, DOMAIN_MIN] or label > next[hi, DOMAIN_MAX]:
                 hi -= 1
-            prev[j, DOMAIN_MAX] = hi + prev_offset
+            if prev[j, DOMAIN_MAX] != hi + prev_offset:
+                prev[j, DOMAIN_MAX] = hi + prev_offset
+                prop_state[0] = 1
     return True

@@ -257,17 +257,23 @@ event and schedules nobody".
   second parameter through `SIGN_CONSISTENCY_ALG`, and so a breaking change to every custom consistency algorithm,
   for one bit. Six bits are left.
 
-Thirteen propagators report today: `linear_eq_c`/`leq_c`/`geq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`, `count_eq`,
-`leq_c`, `abs_eq`, `alldifferent`, `gcc` and `lexleq`. Three ways of answering, picked by shape:
+Fifteen propagators report today: `linear_eq_c`/`leq_c`/`geq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`, `count_eq`,
+`leq_c`, `abs_eq`, `alldifferent`, `gcc`, `lexleq`, `element_l_eq_alldifferent` and `inverse`. Three ways of
+answering, picked by shape:
 
 - **A `changed` local**, raised at each write and read at the single `PROP_CONSISTENCY` return — the linear and
   sum family, where the filtering is one flat loop.
-- **A snapshot**, for `abs_eq`: four bounds are the whole of what it can write and all four are already loaded, so
-  comparing them at the exit beats tracking eleven write sites spread over three sign cases.
-- **Clear on entry, raise at each write**, for `lexleq`: its filtering is spread over four mutually recursive
-  functions, so it zeroes the cell on the way in — overriding the `1` the engine pre-set — and two inline helpers
-  (`tighten_max`/`tighten_min`) raise it again at each write. No flag has to be threaded back through the returns,
-  and it survives any control flow.
+- **A snapshot**, for `abs_eq` and `element_l_eq_alldifferent`: what matters is not how many write sites there are
+  but how many domains can be written. `abs_eq` has eleven sites over three sign cases and only two domains;
+  `element_l_eq_alldifferent` has a dozen, several inside its two scanning loops, and can narrow only `i` and `v`
+  — and already snapshots `v` for its own purposes, so the report costs two extra loads. Its one write to `l` is
+  tested where it happens.
+- **Clear on entry, raise at each write**, for `lexleq` and `inverse`. `lexleq`'s filtering is spread over four
+  mutually recursive functions, `inverse`'s over two helpers called four times, each returning a bare "still
+  consistent" bool; either way a flag would have to be threaded back through every return. Clearing the cell at
+  the entry point — overriding the `1` the engine pre-set — and raising it at each write is the same answer, leaves
+  the helper signatures alone, and survives any control flow. For `lexleq` the eight writes were all a `min` or a
+  `max` onto a bound, so two inline helpers (`tighten_max`/`tighten_min`) narrow and report in one place.
 
 Two things are worth copying from how `alldifferent` does it. Its block gained a cell, because
 it was already using its first for the cold flag — the report cell is fixed at the front of the hint suffix so the
@@ -287,6 +293,18 @@ what 57,000 skipped two-variable scans is worth and no more. `alldifferent` on q
 but only arity 12 against an `O(n log n)` body that still runs in full. `gcc` and `lexleq` have the shape that
 pays — arity `n` and `2n`, no-change rates of 48–100% — and no bundled model that exercises them: the ones that
 post them run in 1–8 ms with at most 1778 calls.
+
+The clearest case of the rule paying is `quasigroup`, whose `element_l_eq_alldifferent` makes 66.8% of all
+propagator calls at arity 14 and **changes nothing on 90.9% of them**; `inverse` adds 6.9% at arity 24 and 69.8%.
+Duplicating the write-back in situ put it at 172 ms of quasigroup(5,12)'s 756 ms, and reporting from those two
+took the model to 608 ms — 1.24×, with 1.22× on (5,11), 1.20× on (5,10) and 1.16× on (3,8). That is slightly more
+than the 123 ms the scan-share arithmetic predicted, because skipping `update_domains` drops its call overhead
+and its per-variable scheduling branch as well as the scan.
+
+**Test the write, don't make it blind.** `alldifferent`'s Hall-interval writes, `gcc`'s four, and
+`trim_domains_inverse`'s clamp of every variable to `[offset, offset + n - 1]` are all no-ops on most calls.
+Counting "I executed a write" rather than "I changed a value" is safe but gives most of the reporting back, and
+it is the standard way to get this mechanism wrong.
 
 **`alldifferent`/`gcc` (Tier A — landed the two experiments below described as "explored, not adopted"):**
 `get_state_alldifferent` reserves `[flag, min_sorted_vars[n], max_sorted_vars[n], bounds, t, d, h, ranks]` — the

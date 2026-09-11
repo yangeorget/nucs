@@ -16,12 +16,15 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   most calls give it nothing to find (96% of `sum_leq_c`'s calls on schur_lemma, 93.7% of `count_eq`'s on
   magic_sequence, 31.6% of `alldifferent`'s on queens). A propagator that declares `reports_changes=True` answers, in
   the first cell of its state block's hint suffix, whether it wrote any domain; a `0` lets the solver skip the write
-  back entirely. Thirteen propagators do: `linear_eq_c`/`leq_c`/`geq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`,
-  `count_eq`, `leq_c`, `abs_eq`, `alldifferent`, `gcc` and `lexleq`.
+  back entirely. Fifteen propagators do: `linear_eq_c`/`leq_c`/`geq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`,
+  `count_eq`, `leq_c`, `abs_eq`, `alldifferent`, `gcc`, `lexleq`, `element_l_eq_alldifferent` and `inverse`.
 
   The search is unchanged — every statistic of the benchmark models is identical, counter for counter. Measured,
   median of five: magic_sequence(200) 48 → 16 ms, magic_sequence(100) 6 → 2 ms, magic_square(4) 121 → 111 ms,
-  golomb(10) 169 → 160 ms, queens(12) 1052 → 1035 ms. The win wants a long constraint *and* a high no-change rate:
+  golomb(10) 169 → 160 ms, queens(12) 1052 → 1035 ms, and — from `element_l_eq_alldifferent` and `inverse`, which
+  between them make three quarters of quasigroup's propagator calls and change nothing on 90.9% and 69.8% of them
+  — quasigroup(5,12) 756 → 608 ms, (5,11) 93 → 76 ms, (5,10) 12 → 10 ms, (3,8) 57 → 49 ms. The win wants a long
+  constraint *and* a high no-change rate:
   the saving is the rate times the arity, so a short constraint has next to nothing to skip however often it
   changes nothing — `abs_eq` reports on 39.6% of 144,439 calls in all_interval and that is worth 1 ms of 43.
 

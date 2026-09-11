@@ -95,6 +95,7 @@ from nucs.propagators.element_eq_propagator import (
 from nucs.propagators.element_l_eq_alldifferent_propagator import (
     compute_domains_element_l_eq_alldifferent,
     get_complexity_element_l_eq_alldifferent,
+    get_state_element_l_eq_alldifferent,
     get_triggers_element_l_eq_alldifferent,
 )
 from nucs.propagators.element_l_eq_c_alldifferent_propagator import (
@@ -153,6 +154,7 @@ from nucs.propagators.increasing_propagator import (
 from nucs.propagators.inverse_propagator import (
     compute_domains_inverse,
     get_complexity_inverse,
+    get_state_inverse,
     get_triggers_inverse,
 )
 from nucs.propagators.leq_c_imp_propagator import (
@@ -505,6 +507,8 @@ ALG_ELEMENT_L_EQ_ALLDIFFERENT = register_propagator(
     get_triggers_element_l_eq_alldifferent,
     get_complexity_element_l_eq_alldifferent,
     compute_domains_element_l_eq_alldifferent,
+    get_state_fct=get_state_element_l_eq_alldifferent,
+    reports_changes=True,
 )
 ALG_ELEMENT_L_EQ_C = register_propagator(
     get_triggers_element_l_eq_c, get_complexity_element_l_eq_c, compute_domains_element_l_eq_c
@@ -535,7 +539,12 @@ ALG_IF_THEN_ELSE = register_propagator(
 )
 ALG_INCREASING = register_propagator(get_triggers_increasing, get_complexity_increasing, compute_domains_increasing)
 ALG_INVERSE = register_propagator(
-    get_triggers_inverse, get_complexity_inverse, compute_domains_inverse, idempotent=False
+    get_triggers_inverse,
+    get_complexity_inverse,
+    compute_domains_inverse,
+    idempotent=False,
+    get_state_fct=get_state_inverse,
+    reports_changes=True,
 )
 ALG_LEQ_C = register_propagator(
     get_triggers_leq_c,
