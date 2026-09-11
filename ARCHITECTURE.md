@@ -257,8 +257,19 @@ event and schedules nobody".
   second parameter through `SIGN_CONSISTENCY_ALG`, and so a breaking change to every custom consistency algorithm,
   for one bit. Six bits are left.
 
-Ten propagators report today: `linear_eq_c`/`leq_c`/`geq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`, `count_eq`, `leq_c`
-and `alldifferent`. Two things are worth copying from how `alldifferent` does it. Its block gained a cell, because
+Thirteen propagators report today: `linear_eq_c`/`leq_c`/`geq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`, `count_eq`,
+`leq_c`, `abs_eq`, `alldifferent`, `gcc` and `lexleq`. Three ways of answering, picked by shape:
+
+- **A `changed` local**, raised at each write and read at the single `PROP_CONSISTENCY` return — the linear and
+  sum family, where the filtering is one flat loop.
+- **A snapshot**, for `abs_eq`: four bounds are the whole of what it can write and all four are already loaded, so
+  comparing them at the exit beats tracking eleven write sites spread over three sign cases.
+- **Clear on entry, raise at each write**, for `lexleq`: its filtering is spread over four mutually recursive
+  functions, so it zeroes the cell on the way in — overriding the `1` the engine pre-set — and two inline helpers
+  (`tighten_max`/`tighten_min`) raise it again at each write. No flag has to be threaded back through the returns,
+  and it survives any control flow.
+
+Two things are worth copying from how `alldifferent` does it. Its block gained a cell, because
 it was already using its first for the cold flag — the report cell is fixed at the front of the hint suffix so the
 engine can find it without knowing anything about the propagator's own layout. And its `filter_lower`/`filter_upper`
 now return `(consistent, changed)`, with the Hall-interval writes *tested* rather than made blind: the write is
@@ -266,10 +277,16 @@ frequently a no-op, and counting "I executed a write" instead of "I changed a va
 of the win.
 
 Measured, median of five: magic_sequence(200) 48 → 16 ms, magic_sequence(100) 6 → 2 ms, magic_square(4) 121 → 111
-ms, golomb(10) 169 → 160 ms, queens(12) 1052 → 1035 ms. The win needs a *long* constraint **and** a high no-change
-rate: `alldifferent` on queens has the rate but only arity 12, so the scan it skips is small beside the
-`O(n log n)` filtering that still runs; `count_eq` on magic_sequence has arity 101 and a body that bails out early,
-so the scan *was* the work.
+ms, golomb(10) 169 → 160 ms, queens(12) 1052 → 1035 ms.
+
+**The saving is `(no-change rate) × (arity) × (cost of a write-back iteration)`, and the rate alone buys nothing.**
+`count_eq` on magic_sequence has arity 101 and a body that bails out early, so the scan *was* the work. Against
+that, `sum_leq_c` on schur_lemma changes nothing on 96% of its calls and `abs_eq` on all_interval on 39.6% of
+144,439 — but both are arity 2 or 3, so there is next to nothing to skip: `abs_eq` measures 1 ms of 43, which is
+what 57,000 skipped two-variable scans is worth and no more. `alldifferent` on queens sits between, with the rate
+but only arity 12 against an `O(n log n)` body that still runs in full. `gcc` and `lexleq` have the shape that
+pays — arity `n` and `2n`, no-change rates of 48–100% — and no bundled model that exercises them: the ones that
+post them run in 1–8 ms with at most 1778 calls.
 
 **`alldifferent`/`gcc` (Tier A — landed the two experiments below described as "explored, not adopted"):**
 `get_state_alldifferent` reserves `[flag, min_sorted_vars[n], max_sorted_vars[n], bounds, t, d, h, ranks]` — the

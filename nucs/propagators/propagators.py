@@ -17,7 +17,12 @@ from numpy.typing import NDArray
 
 from nucs.buckets import STORAGE_OFFSET, buckets_add
 from nucs.constants import EVENT_NB, PROP_FLAG_IDEMPOTENT, PROP_FLAG_REPORTS_CHANGES
-from nucs.propagators.abs_eq_propagator import compute_domains_abs_eq, get_complexity_abs_eq, get_triggers_abs_eq
+from nucs.propagators.abs_eq_propagator import (
+    compute_domains_abs_eq,
+    get_complexity_abs_eq,
+    get_state_abs_eq,
+    get_triggers_abs_eq,
+)
 from nucs.propagators.add_c_eq_propagator import (
     compute_domains_add_c_eq,
     get_complexity_add_c_eq,
@@ -169,6 +174,7 @@ from nucs.propagators.leq_c_reif_propagator import (
 from nucs.propagators.lexleq_propagator import (
     compute_domains_lexleq,
     get_complexity_lexleq,
+    get_state_lexleq,
     get_triggers_lexleq,
 )
 from nucs.propagators.linear_eq_c_propagator import (
@@ -414,7 +420,13 @@ def register_propagator(
     return get_algorithm_nb() - 1
 
 
-ALG_ABS_EQ = register_propagator(get_triggers_abs_eq, get_complexity_abs_eq, compute_domains_abs_eq)
+ALG_ABS_EQ = register_propagator(
+    get_triggers_abs_eq,
+    get_complexity_abs_eq,
+    compute_domains_abs_eq,
+    get_state_fct=get_state_abs_eq,
+    reports_changes=True,
+)
 ALG_ADD_C_EQ = register_propagator(get_triggers_add_c_eq, get_complexity_add_c_eq, compute_domains_add_c_eq)
 ALG_AND_EQ = register_propagator(get_triggers_and_eq, get_complexity_and_eq, compute_domains_and_eq)
 ALG_BIN_PACKING_LOAD = register_propagator(
@@ -508,7 +520,12 @@ ALG_EQ_C_REIF = register_propagator(get_triggers_eq_c_reif, get_complexity_eq_c_
 ALG_EQ_IMP = register_propagator(get_triggers_eq_imp, get_complexity_eq_imp, compute_domains_eq_imp)
 ALG_EQ_REIF = register_propagator(get_triggers_eq_reif, get_complexity_eq_reif, compute_domains_eq_reif)
 ALG_GCC = register_propagator(
-    get_triggers_gcc, get_complexity_gcc, compute_domains_gcc, is_vacuous_gcc, get_state_fct=get_state_gcc
+    get_triggers_gcc,
+    get_complexity_gcc,
+    compute_domains_gcc,
+    is_vacuous_gcc,
+    get_state_fct=get_state_gcc,
+    reports_changes=True,
 )
 ALG_IF_THEN_ELSE = register_propagator(
     get_triggers_if_then_else,
@@ -529,7 +546,13 @@ ALG_LEQ_C = register_propagator(
 )
 ALG_LEQ_C_IMP = register_propagator(get_triggers_leq_c_imp, get_complexity_leq_c_imp, compute_domains_leq_c_imp)
 ALG_LEQ_C_REIF = register_propagator(get_triggers_leq_c_reif, get_complexity_leq_c_reif, compute_domains_leq_c_reif)
-ALG_LEXLEQ = register_propagator(get_triggers_lexleq, get_complexity_lexleq, compute_domains_lexleq)
+ALG_LEXLEQ = register_propagator(
+    get_triggers_lexleq,
+    get_complexity_lexleq,
+    compute_domains_lexleq,
+    get_state_fct=get_state_lexleq,
+    reports_changes=True,
+)
 ALG_MAX_EQ = register_propagator(get_triggers_max_eq, get_complexity_max_eq, compute_domains_max_eq)
 ALG_MEMBER = register_propagator(get_triggers_member, get_complexity_member, compute_domains_member)
 ALG_MEMBER_REIF = register_propagator(get_triggers_member_reif, get_complexity_member_reif, compute_domains_member_reif)

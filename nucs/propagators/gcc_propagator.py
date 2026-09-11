@@ -36,7 +36,8 @@ def get_complexity_gcc(n: int, parameters: NDArray) -> int:
 
 def get_state_gcc(n: int, parameters: Sequence[int]) -> tuple[int, int]:
     """
-    Returns the size of this propagator's state block: a persistent cold/warm flag, the two partial-sum
+    Returns the size of this propagator's state block: the cell it reports its changes in, a persistent
+    cold/warm flag, the two partial-sum
     tables built from the capacities, and the scratch space compute_domains_gcc used to allocate with
     np.empty/np.zeros on every call.
 
@@ -58,7 +59,7 @@ def get_state_gcc(n: int, parameters: Sequence[int]) -> tuple[int, int]:
     bounds_nb = 2 * (n + 1)
     m = (len(parameters) - 1) >> 1  # number of values
     psum_nb = 2 * (m + 6)  # cells of one (2, m + 6) partial_sum table, as laid out by init_partial_sum_into
-    return 0, 1 + 2 * psum_nb + 6 * bounds_nb + 5 * n
+    return 0, 2 + 2 * psum_nb + 6 * bounds_nb + 5 * n
 
 
 @njit(cache=True)
@@ -211,6 +212,7 @@ def filter_lower_max(
     ranks: NDArray,
     max_sorted_vars: NDArray,
     u: NDArray,
+    prop_state: NDArray,
 ) -> bool:
     for i in range(1, nb + 2):
         i1 = i - 1
@@ -232,7 +234,10 @@ def filter_lower_max(
         path_set(t, x + 1, z, z)  # path compression
         if h[x] > x:
             w = path_max(h, h[x])
-            domains[max_sorted_vars[i], DOMAIN_MIN] = bounds[w]
+            variable = max_sorted_vars[i]
+            if domains[variable, DOMAIN_MIN] != bounds[w]:
+                domains[variable, DOMAIN_MIN] = bounds[w]
+                prop_state[0] = 1
             path_set(h, x, w, w)  # path compression
             # changes = 1
         if delta == 0:
@@ -254,6 +259,7 @@ def filter_upper_max(
     ranks: NDArray,
     min_sorted_vars: NDArray,
     u: NDArray,
+    prop_state: NDArray,
 ) -> bool:
     for i in range(nb + 1):
         i1 = i + 1
@@ -275,7 +281,10 @@ def filter_upper_max(
         path_set(t, x - 1, z, z)  # path compression
         if h[x] < x:
             w = path_min(h, h[x])
-            domains[min_sorted_vars[i], DOMAIN_MAX] = bounds[w] - 1
+            variable = min_sorted_vars[i]
+            if domains[variable, DOMAIN_MAX] != bounds[w] - 1:
+                domains[variable, DOMAIN_MAX] = bounds[w] - 1
+                prop_state[0] = 1
             path_set(h, x, w, w)  # path compression
             # changes = 1
         if delta == 0:
@@ -300,6 +309,7 @@ def filter_lower_min(
     stable_intervals: NDArray,
     stable_sets: NDArray,
     new_mins: NDArray,
+    prop_state: NDArray,
 ) -> bool:
     w = nb + 1
     for i in range(nb + 1, 0, -1):
@@ -370,7 +380,11 @@ def filter_lower_min(
         x = ranks[max_sorted_vars[i], DOMAIN_MIN]
         y = ranks[max_sorted_vars[i], DOMAIN_MAX]
         if stable_intervals[x] <= x or y > stable_intervals[x]:
-            domains[max_sorted_vars[i], DOMAIN_MIN] = skip_non_null_elements_right(l, bounds[new_mins[i]])
+            variable = max_sorted_vars[i]
+            new_min = skip_non_null_elements_right(l, bounds[new_mins[i]])
+            if domains[variable, DOMAIN_MIN] != new_min:
+                domains[variable, DOMAIN_MIN] = new_min
+                prop_state[0] = 1
             # changes = 1
     return True
 
@@ -389,6 +403,7 @@ def filter_upper_min(
     l: NDArray,
     stable_intervals: NDArray,
     new_maxs: NDArray,
+    prop_state: NDArray,
 ) -> bool:
     w = 0
     for i in range(nb + 1):
@@ -436,7 +451,11 @@ def filter_upper_min(
         x = ranks[min_sorted_vars[i], DOMAIN_MIN]
         y = ranks[min_sorted_vars[i], DOMAIN_MAX]
         if stable_intervals[x] <= x or y > stable_intervals[x]:
-            domains[min_sorted_vars[i], DOMAIN_MAX] = skip_non_null_elements_left(l, bounds[new_maxs[i]] - 1)
+            variable = min_sorted_vars[i]
+            new_max = skip_non_null_elements_left(l, bounds[new_maxs[i]] - 1)
+            if domains[variable, DOMAIN_MAX] != new_max:
+                domains[variable, DOMAIN_MAX] = new_max
+                prop_state[0] = 1
             # changes = 1
     return True
 
@@ -495,10 +514,11 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray, prop_state: NDArr
     m = (len(parameters) - 1) >> 1  # number of values
     bounds_nb = 2 * (n + 1)
     psum_nb = 2 * (m + 6)
-    psum_buffer = prop_state[1 : 1 + 2 * psum_nb]
+    # cell 0 is the change report the engine pre-sets and reads back; this propagator's own state follows
+    psum_buffer = prop_state[2 : 2 + 2 * psum_nb]
     l = psum_buffer[:psum_nb].reshape(2, m + 6)
     u = psum_buffer[psum_nb:].reshape(2, m + 6)
-    scratch = prop_state[1 + 2 * psum_nb :]
+    scratch = prop_state[2 + 2 * psum_nb :]
     bounds = scratch[:bounds_nb]
     t = scratch[bounds_nb : 2 * bounds_nb]  # critical capacity pointers
     d = scratch[2 * bounds_nb : 3 * bounds_nb]  # differences between critical capacities
@@ -515,8 +535,8 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray, prop_state: NDArr
     stable_intervals.fill(0)
     stable_sets.fill(0)
     new_mins.fill(0)
-    if prop_state[0] == 0:  # cold: the block is zeroed at solver init, so 0 means never called on this block
-        prop_state[0] = 1
+    if prop_state[1] == 0:  # cold: the block is zeroed at solver init, so 0 means never called on this block
+        prop_state[1] = 1
         # l and u are a function of parameters, which the engine never writes, so they are built once here
         # rather than on every call. init_partial_sum_into walks the ds row instead of filling it, so the
         # table has to start zeroed, exactly as the np.zeros this replaced left it.
@@ -537,7 +557,7 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray, prop_state: NDArr
         return PROP_INCONSISTENCY
     if get_sum(l, domains[max_sorted_vars[n - 1], DOMAIN_MAX] + 1, get_max_value(l)) > 0:
         return PROP_INCONSISTENCY
-    if not filter_lower_max(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars, u):
+    if not filter_lower_max(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars, u, prop_state):
         return PROP_INCONSISTENCY
     if not filter_lower_min(
         n,
@@ -553,10 +573,13 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray, prop_state: NDArr
         stable_intervals,
         stable_sets,
         new_mins,
+        prop_state,
     ):
         return PROP_INCONSISTENCY
-    if not filter_upper_max(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, u):
+    if not filter_upper_max(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, u, prop_state):
         return PROP_INCONSISTENCY
-    if not filter_upper_min(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, l, stable_intervals, new_mins):
+    if not filter_upper_min(
+        n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, l, stable_intervals, new_mins, prop_state
+    ):
         return PROP_INCONSISTENCY
     return PROP_CONSISTENCY
