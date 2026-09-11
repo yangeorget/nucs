@@ -25,6 +25,7 @@ from nucs.constants import (
     OBJECTIVE_VALUE,
     OBJECTIVE_VARIABLE,
 )
+from nucs.problems.problem import OFFSETS_STATE, OFFSETS_STATE_HINT
 from nucs.propagators.propagators import update_propagators
 from nucs.solvers.state import tighten, trail_undo, unbound_index
 from nucs.statistics import STATS_IDX_SOLVER_BACKTRACK_NB
@@ -50,6 +51,7 @@ def choice_point_init(
     choice_point_top: NDArray,
     domains: NDArray,
     unbound_variable_nb: int,
+    offsets: NDArray,
 ) -> None:
     """
     Initializes the choice points.
@@ -57,6 +59,18 @@ def choice_point_init(
     trail_indices has to be cleared rather than left to invalidate itself: the guard reads trail_indices[cell_idx] as
     a trail index, and a position left over from a previous search can fall inside the new live range and
     suppress a write that needed trailing.
+
+    The trailed prefix of every propagator's state block is cleared for the same reason the domains are
+    rewritten: this drops the trail, so whatever those cells hold is about to become unrecoverable, and what
+    they hold is the invariant of the node the previous search stopped at, not of the root. Zero is what a
+    block is worth at the root -- it is what the solver allocates and what every propagator reads as cold --
+    so clearing is the whole restore. The untrailed hint suffixes are deliberately left alone: a hint is
+    valid from any node by contract, and clearing them would throw away the warm sort permutations
+    alldifferent and gcc have built up, which is the one thing an optimization restart should keep.
+
+    The prefixes are cleared per propagator rather than as one range because a block is laid out
+    [trailed | hint] and the blocks are contiguous, so the trailed cells are interleaved with the hint
+    cells they must not touch. This runs once per restart, off any hot path.
 
     :param state: all the backtrackable state
     :type state: NDArray
@@ -74,12 +88,17 @@ def choice_point_init(
     :type domains: NDArray
     :param unbound_variable_nb: the number of unbound variables
     :type unbound_variable_nb: int
+    :param offsets: the CSR offsets, whose OFFSETS_STATE and OFFSETS_STATE_HINT columns delimit the
+                    trailed prefix of each propagator's state block
+    :type offsets: NDArray
     """
     for variable in range(len(domains)):
         cell_idx = variable << 1
         state[cell_idx] = domains[variable, DOMAIN_MIN]
         state[cell_idx | 1] = domains[variable, DOMAIN_MAX]
     state[unbound_index(state)] = unbound_variable_nb
+    for propagator in range(len(offsets) - 1):
+        state[offsets[propagator, OFFSETS_STATE] : offsets[propagator, OFFSETS_STATE_HINT]] = 0
     entailed.fill(0)
     trail_indices.fill(-1)
     choice_point_stk[0, CHOICE_POINT_TRAIL_MARK] = trail_top[0] = choice_point_top[0] = 0

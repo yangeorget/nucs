@@ -444,6 +444,7 @@ class BacktrackSolver(Solver):
             self.choice_point_top,
             self.problem.initial_domains,
             self.problem.unbound_variable_nb,
+            self.problem.offsets,
         )
 
     def _grow(self, status: int) -> None:
