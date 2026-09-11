@@ -17,6 +17,14 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `get_state_fct` parameter of `register_propagator`; the default is a zero-width block, so the 59
   propagators that need none only had to take the extra argument.
 
+  Beyond backtracking, the trailed half is also **cleared whenever the search restarts from the root** —
+  which `find_best` does in `OPTIM_RESET` mode. That restart drops the trail rather than unwinding it, so
+  nothing would otherwise restore the block, and the restarted search would begin holding the invariant of
+  the node the previous one stopped at. Zero is the block's root value
+  by construction, so a propagator that reads an all-zero block as cold needs nothing further; one wanting
+  a different root value has to seed it on the cold call. The untrailed half is deliberately left alone
+  across a restart, since that is where the warm sort permutations below live.
+
   This replaces the per-call `np.empty`/`np.zeros` that `alldifferent` and `gcc` were paying at every
   fixpoint — including the two `partial_sum` tables `gcc` rebuilt from its capacities on every call, which
   are now built once — and lets both warm-start their sort permutations from the previous call instead of
