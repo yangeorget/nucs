@@ -16,8 +16,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   most calls give it nothing to find (96% of `sum_leq_c`'s calls on schur_lemma, 93.7% of `count_eq`'s on
   magic_sequence, 31.6% of `alldifferent`'s on queens). A propagator that declares `reports_changes=True` answers, in
   the first cell of its state block's hint suffix, whether it wrote any domain; a `0` lets the solver skip the write
-  back entirely. Fifteen propagators do: `linear_eq_c`/`leq_c`/`geq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`,
-  `count_eq`, `leq_c`, `abs_eq`, `alldifferent`, `gcc`, `lexleq`, `element_l_eq_alldifferent` and `inverse`.
+  back entirely. Twenty-one propagators do: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`,
+  `sum_eq`/`eq_c`/`leq_c`/`geq_c`, `count_eq`/`leq_c`/`geq_c`, `leq_c`, `abs_eq`, `alldifferent`, `gcc`,
+  `lexleq`, `inverse`, and the four `element_l_eq` variants.
 
   The search is unchanged — every statistic of the benchmark models is identical, counter for counter. Measured,
   median of five: magic_sequence(200) 48 → 16 ms, magic_sequence(100) 6 → 2 ms, magic_square(4) 121 → 111 ms,

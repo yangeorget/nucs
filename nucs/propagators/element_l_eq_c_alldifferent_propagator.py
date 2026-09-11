@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from collections.abc import Sequence
+
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -38,6 +40,21 @@ def get_complexity_element_l_eq_c_alldifferent(n: int, parameters: NDArray) -> i
     return n
 
 
+def get_state_element_l_eq_c_alldifferent(n: int, parameters: Sequence[int]) -> tuple[int, int]:
+    """
+    Returns the size of this propagator's state block: the one cell it reports its changes in.
+
+    :param n: the number of variables, unused here
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: Sequence[int]
+
+    :return: (trailed_nb, hint_nb) = (0, 1)
+    :rtype: tuple[int, int]
+    """
+    return 0, 1
+
+
 @njit(cache=True)
 def get_triggers_element_l_eq_c_alldifferent(n: int, variable: int, parameters: NDArray) -> int:
     """
@@ -61,7 +78,7 @@ def compute_domains_element_l_eq_c_alldifferent(domains: NDArray, parameters: ND
     :type domains: NDArray
     :param parameters: the parameters of the propagator, c is the first parameter
     :type parameters: NDArray
-    :param prop_state: this propagator's state block (unused)
+    :param prop_state: this propagator's state block, whose first cell is the change report
     :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
@@ -71,6 +88,10 @@ def compute_domains_element_l_eq_c_alldifferent(domains: NDArray, parameters: ND
     i = domains[-1]
     c = int(parameters[0])
     # i could be updated only once
+    # the write to l returns entailment, so i is the only domain this can narrow on the way to
+    # consistency -- two bounds to snapshot against half a dozen write sites, two of them in the loop
+    old_i_min = i[DOMAIN_MIN]
+    old_i_max = i[DOMAIN_MAX]
     i[DOMAIN_MIN] = max(i[DOMAIN_MIN], 0)
     i[DOMAIN_MAX] = min(i[DOMAIN_MAX], len(l) - 1)
     non_intersecting_idx = -1
@@ -92,4 +113,6 @@ def compute_domains_element_l_eq_c_alldifferent(domains: NDArray, parameters: ND
     if i[DOMAIN_MIN] == i[DOMAIN_MAX]:
         l[i[DOMAIN_MIN]] = c
         return PROP_ENTAILMENT
+    if i[DOMAIN_MIN] == old_i_min and i[DOMAIN_MAX] == old_i_max:
+        prop_state[0] = 0  # nothing written: the engine can skip the write-back scan
     return PROP_CONSISTENCY

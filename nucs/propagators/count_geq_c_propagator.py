@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from collections.abc import Sequence
+
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -38,6 +40,21 @@ def get_complexity_count_geq_c(n: int, parameters: NDArray) -> int:
     return n
 
 
+def get_state_count_geq_c(n: int, parameters: Sequence[int]) -> tuple[int, int]:
+    """
+    Returns the size of this propagator's state block: the one cell it reports its changes in.
+
+    :param n: the number of variables, unused here
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: Sequence[int]
+
+    :return: (trailed_nb, hint_nb) = (0, 1)
+    :rtype: tuple[int, int]
+    """
+    return 0, 1
+
+
 @njit(cache=True)
 def get_triggers_count_geq_c(n: int, variable: int, parameters: NDArray) -> int:
     """
@@ -61,7 +78,7 @@ def compute_domains_count_geq_c(domains: NDArray, parameters: NDArray, prop_stat
     :type domains: NDArray
     :param parameters: the parameters of the propagator, a is the first parameter, c is the second parameter
     :type parameters: NDArray
-    :param prop_state: this propagator's state block (unused)
+    :param prop_state: this propagator's state block, whose first cell is the change report
     :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
@@ -87,4 +104,7 @@ def compute_domains_count_geq_c(domains: NDArray, parameters: NDArray, prop_stat
             if domain[DOMAIN_MIN] <= a <= domain[DOMAIN_MAX]:
                 domain[:] = a
         return PROP_ENTAILMENT
+    # every write this propagator makes is in the branch above, which returns entailment, so reaching
+    # here means nothing was written
+    prop_state[0] = 0
     return PROP_CONSISTENCY

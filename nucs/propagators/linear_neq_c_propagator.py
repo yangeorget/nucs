@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from collections.abc import Sequence
+
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -39,6 +41,21 @@ def get_complexity_linear_neq_c(n: int, parameters: NDArray) -> int:
     return n
 
 
+def get_state_linear_neq_c(n: int, parameters: Sequence[int]) -> tuple[int, int]:
+    """
+    Returns the size of this propagator's state block: the one cell it reports its changes in.
+
+    :param n: the number of variables, unused here
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: Sequence[int]
+
+    :return: (trailed_nb, hint_nb) = (0, 1)
+    :rtype: tuple[int, int]
+    """
+    return 0, 1
+
+
 @njit(cache=True)
 def get_triggers_linear_neq_c(n: int, variable: int, parameters: NDArray) -> int:
     """
@@ -66,7 +83,7 @@ def compute_domains_linear_neq_c(domains: NDArray, parameters: NDArray, prop_sta
     :type domains: NDArray
     :param parameters: the parameters of the propagator, a is an alias for parameters
     :type parameters: NDArray
-    :param prop_state: this propagator's state block (unused)
+    :param prop_state: this propagator's state block, whose first cell is the change report
     :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
@@ -102,6 +119,7 @@ def compute_domains_linear_neq_c(domains: NDArray, parameters: NDArray, prop_sta
         # The expression is a fixed value sitting inside [sum_min, sum_max] == {c}.
         return PROP_INCONSISTENCY
     if unbound_count > 1:
+        prop_state[0] = 0  # this path writes no domain, ever
         return PROP_CONSISTENCY
     # Exactly one unbound variable: the rest contribute a fixed amount, so the forbidden value of the
     # unbound variable is v = (c - rest) / factor, removable only when it lands on one of its bounds.
@@ -118,5 +136,6 @@ def compute_domains_linear_neq_c(domains: NDArray, parameters: NDArray, prop_sta
     elif domains[unbound, DOMAIN_MAX] == v:
         domains[unbound, DOMAIN_MAX] = v - 1
     else:
+        prop_state[0] = 0  # this path writes no domain, ever
         return PROP_CONSISTENCY
     return PROP_ENTAILMENT

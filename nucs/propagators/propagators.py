@@ -54,11 +54,13 @@ from nucs.propagators.count_eq_propagator import (
 from nucs.propagators.count_geq_c_propagator import (
     compute_domains_count_geq_c,
     get_complexity_count_geq_c,
+    get_state_count_geq_c,
     get_triggers_count_geq_c,
 )
 from nucs.propagators.count_leq_c_propagator import (
     compute_domains_count_leq_c,
     get_complexity_count_leq_c,
+    get_state_count_leq_c,
     get_triggers_count_leq_c,
 )
 from nucs.propagators.cumulative_propagator import (
@@ -101,16 +103,19 @@ from nucs.propagators.element_l_eq_alldifferent_propagator import (
 from nucs.propagators.element_l_eq_c_alldifferent_propagator import (
     compute_domains_element_l_eq_c_alldifferent,
     get_complexity_element_l_eq_c_alldifferent,
+    get_state_element_l_eq_c_alldifferent,
     get_triggers_element_l_eq_c_alldifferent,
 )
 from nucs.propagators.element_l_eq_c_propagator import (
     compute_domains_element_l_eq_c,
     get_complexity_element_l_eq_c,
+    get_state_element_l_eq_c,
     get_triggers_element_l_eq_c,
 )
 from nucs.propagators.element_l_eq_propagator import (
     compute_domains_element_l_eq,
     get_complexity_element_l_eq,
+    get_state_element_l_eq,
     get_triggers_element_l_eq,
 )
 from nucs.propagators.eq_c_imp_propagator import (
@@ -200,6 +205,7 @@ from nucs.propagators.linear_leq_c_propagator import (
 from nucs.propagators.linear_neq_c_propagator import (
     compute_domains_linear_neq_c,
     get_complexity_linear_neq_c,
+    get_state_linear_neq_c,
     get_triggers_linear_neq_c,
 )
 from nucs.propagators.max_eq_propagator import compute_domains_max_eq, get_complexity_max_eq, get_triggers_max_eq
@@ -460,7 +466,11 @@ ALG_LINEAR_LEQ_C = register_propagator(
     reports_changes=True,
 )
 ALG_LINEAR_NEQ_C = register_propagator(
-    get_triggers_linear_neq_c, get_complexity_linear_neq_c, compute_domains_linear_neq_c
+    get_triggers_linear_neq_c,
+    get_complexity_linear_neq_c,
+    compute_domains_linear_neq_c,
+    get_state_fct=get_state_linear_neq_c,
+    reports_changes=True,
 )
 ALG_ALLDIFFERENT = register_propagator(
     get_triggers_alldifferent,
@@ -477,8 +487,20 @@ ALG_COUNT_EQ = register_propagator(
     reports_changes=True,
 )
 ALG_COUNT_EQ_C = register_propagator(get_triggers_count_eq_c, get_complexity_count_eq_c, compute_domains_count_eq_c)
-ALG_COUNT_GEQ_C = register_propagator(get_triggers_count_geq_c, get_complexity_count_geq_c, compute_domains_count_geq_c)
-ALG_COUNT_LEQ_C = register_propagator(get_triggers_count_leq_c, get_complexity_count_leq_c, compute_domains_count_leq_c)
+ALG_COUNT_GEQ_C = register_propagator(
+    get_triggers_count_geq_c,
+    get_complexity_count_geq_c,
+    compute_domains_count_geq_c,
+    get_state_fct=get_state_count_geq_c,
+    reports_changes=True,
+)
+ALG_COUNT_LEQ_C = register_propagator(
+    get_triggers_count_leq_c,
+    get_complexity_count_leq_c,
+    compute_domains_count_leq_c,
+    get_state_fct=get_state_count_leq_c,
+    reports_changes=True,
+)
 ALG_CUMULATIVE = register_propagator(
     get_triggers_cumulative,
     get_complexity_cumulative,
@@ -501,7 +523,11 @@ ALG_DIV_C_EQ = register_propagator(get_triggers_div_c_eq, get_complexity_div_c_e
 ALG_DUMMY = register_propagator(get_triggers_dummy, get_complexity_dummy, compute_domains_dummy)
 ALG_ELEMENT_EQ = register_propagator(get_triggers_element_eq, get_complexity_element_eq, compute_domains_element_eq)
 ALG_ELEMENT_L_EQ = register_propagator(
-    get_triggers_element_l_eq, get_complexity_element_l_eq, compute_domains_element_l_eq
+    get_triggers_element_l_eq,
+    get_complexity_element_l_eq,
+    compute_domains_element_l_eq,
+    get_state_fct=get_state_element_l_eq,
+    reports_changes=True,
 )
 ALG_ELEMENT_L_EQ_ALLDIFFERENT = register_propagator(
     get_triggers_element_l_eq_alldifferent,
@@ -511,12 +537,18 @@ ALG_ELEMENT_L_EQ_ALLDIFFERENT = register_propagator(
     reports_changes=True,
 )
 ALG_ELEMENT_L_EQ_C = register_propagator(
-    get_triggers_element_l_eq_c, get_complexity_element_l_eq_c, compute_domains_element_l_eq_c
+    get_triggers_element_l_eq_c,
+    get_complexity_element_l_eq_c,
+    compute_domains_element_l_eq_c,
+    get_state_fct=get_state_element_l_eq_c,
+    reports_changes=True,
 )
 ALG_ELEMENT_L_EQ_C_ALLDIFFERENT = register_propagator(
     get_triggers_element_l_eq_c_alldifferent,
     get_complexity_element_l_eq_c_alldifferent,
     compute_domains_element_l_eq_c_alldifferent,
+    get_state_fct=get_state_element_l_eq_c_alldifferent,
+    reports_changes=True,
 )
 ALG_EQ = register_propagator(get_triggers_eq, get_complexity_eq, compute_domains_eq)
 ALG_EQ_C_IMP = register_propagator(get_triggers_eq_c_imp, get_complexity_eq_c_imp, compute_domains_eq_c_imp)

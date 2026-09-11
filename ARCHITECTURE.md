@@ -257,9 +257,13 @@ event and schedules nobody".
   second parameter through `SIGN_CONSISTENCY_ALG`, and so a breaking change to every custom consistency algorithm,
   for one bit. Six bits are left.
 
-Fifteen propagators report today: `linear_eq_c`/`leq_c`/`geq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`, `count_eq`,
-`leq_c`, `abs_eq`, `alldifferent`, `gcc`, `lexleq`, `element_l_eq_alldifferent` and `inverse`. Three ways of
-answering, picked by shape:
+Twenty-one propagators report today: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`,
+`count_eq`/`leq_c`/`geq_c`, `leq_c`, `abs_eq`, `alldifferent`, `gcc`, `lexleq`, `inverse`, and the four
+`element_l_eq`/`_c`/`_alldifferent`/`_c_alldifferent`. Four ways of answering, picked by shape:
+
+- **Nothing at all**, for `count_geq_c` and `linear_neq_c`: every write they make is in a branch that returns
+  entailment, so reaching `PROP_CONSISTENCY` already means nothing was written and the report is a single
+  `prop_state[0] = 0`. Worth checking for before writing any of the three below.
 
 - **A `changed` local**, raised at each write and read at the single `PROP_CONSISTENCY` return — the linear and
   sum family, where the filtering is one flat loop.
@@ -285,8 +289,15 @@ of the win.
 Measured, median of five: magic_sequence(200) 48 → 16 ms, magic_sequence(100) 6 → 2 ms, magic_square(4) 121 → 111
 ms, golomb(10) 169 → 160 ms, queens(12) 1052 → 1035 ms.
 
-**The saving is `(no-change rate) × (arity) × (cost of a write-back iteration)`, and the rate alone buys nothing.**
-`count_eq` on magic_sequence has arity 101 and a body that bails out early, so the scan *was* the work. Against
+**The saving is `(no-change rate) × (unbound variables in scope) × (cost of a `tighten_at`)`.** Arity is only a
+proxy for the middle term, and a good one only while domains stay wide: `update_domains` skips `tighten_at`
+outright for a *bound* variable, at the cost of a load and a compare, so a propagator whose variables ground
+early has almost no write-back to skip however wide it is. A `count_leq_c` at arity 60 with a 76.2% no-change
+rate — the profile that made `count_eq` pay — measured *nothing*, because in that model the whole write-back was
+2.4% of the run: the search ground its variables fast. `magic_sequence` is the opposite regime, 200-wide domains
+and 198 backtracks, which is why its write-back was 71%. Read the rate together with how long the model's domains
+stay live, not with arity alone.
+`count_eq` on magic_sequence has arity 101 over domains that stay unbound, so the scan *was* the work. Against
 that, `sum_leq_c` on schur_lemma changes nothing on 96% of its calls and `abs_eq` on all_interval on 39.6% of
 144,439 — but both are arity 2 or 3, so there is next to nothing to skip: `abs_eq` measures 1 ms of 43, which is
 what 57,000 skipped two-variable scans is worth and no more. `alldifferent` on queens sits between, with the rate
