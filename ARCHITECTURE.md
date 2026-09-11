@@ -257,9 +257,13 @@ event and schedules nobody".
   second parameter through `SIGN_CONSISTENCY_ALG`, and so a breaking change to every custom consistency algorithm,
   for one bit. Six bits are left.
 
-Twenty-one propagators report today: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`,
-`count_eq`/`leq_c`/`geq_c`, `leq_c`, `abs_eq`, `alldifferent`, `gcc`, `lexleq`, `inverse`, and the four
-`element_l_eq`/`_c`/`_alldifferent`/`_c_alldifferent`. Four ways of answering, picked by shape:
+Nineteen propagators report today: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`,
+`count_eq`/`leq_c`/`geq_c`, `alldifferent`, `gcc`, `lexleq`, `inverse`, and the four
+`element_l_eq`/`_c`/`_alldifferent`/`_c_alldifferent`. All of them are n-ary: `abs_eq` and `leq_c` reported for a
+while and were taken back out, because a propagator holding two variables has at most two write-back iterations
+to skip and pays the report on every call to do it. The reporting set is meant to stay tight.
+
+Four ways of answering, picked by shape:
 
 - **Nothing at all**, for `count_geq_c` and `linear_neq_c`: every write they make is in a branch that returns
   entailment, so reaching `PROP_CONSISTENCY` already means nothing was written and the report is a single
@@ -267,9 +271,9 @@ Twenty-one propagators report today: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`, `sum
 
 - **A `changed` local**, raised at each write and read at the single `PROP_CONSISTENCY` return — the linear and
   sum family, where the filtering is one flat loop.
-- **A snapshot**, for `abs_eq` and `element_l_eq_alldifferent`: what matters is not how many write sites there are
-  but how many domains can be written. `abs_eq` has eleven sites over three sign cases and only two domains;
-  `element_l_eq_alldifferent` has a dozen, several inside its two scanning loops, and can narrow only `i` and `v`
+- **A snapshot**, for the four `element_l_eq` variants: what matters is not how many write sites there are but
+  how many domains can be written. `element_l_eq_alldifferent` has a dozen sites, several inside its two scanning
+  loops, and can narrow only `i` and `v`
   — and already snapshots `v` for its own purposes, so the report costs two extra loads. Its one write to `l` is
   tested where it happens.
 - **Clear on entry, raise at each write**, for `lexleq` and `inverse`. `lexleq`'s filtering is spread over four
@@ -286,8 +290,15 @@ now return `(consistent, changed)`, with the Hall-interval writes *tested* rathe
 frequently a no-op, and counting "I executed a write" instead of "I changed a value" is safe but throws away most
 of the win.
 
-Measured, median of five: magic_sequence(200) 48 → 16 ms, magic_sequence(100) 6 → 2 ms, magic_square(4) 121 → 111
-ms, golomb(10) 169 → 160 ms, queens(12) 1052 → 1035 ms.
+Measured, median of five: magic_sequence(200) 48 → 16 ms, magic_sequence(100) 6 → 2 ms, quasigroup(5,12)
+756 → 608 ms, quasigroup(5,11) 93 → 76 ms, golfers(3,2,5) 7 → 5 ms.
+
+**Nothing below about 5% is measurable here, so nothing below it is claimed.** This machine drifts 1–4% with run
+order: an A/B that runs one build then the other reports whichever ran second as slower, in *both* directions.
+The way to catch that is a model the change cannot possibly affect — for the reporting work, `queens` posts
+nothing but `alldifferent` — and to discard the whole comparison when the control moves as much as the subjects.
+Numbers stated here are the ones far enough above that floor to survive the reversed order; the smaller readings
+that were once quoted for `abs_eq`, `queens` and `langford` did not, and are gone.
 
 **The saving is `(no-change rate) × (unbound variables in scope) × (cost of a `tighten_at`)`.** Arity is only a
 proxy for the middle term, and a good one only while domains stay wide: `update_domains` skips `tighten_at`
@@ -299,9 +310,9 @@ and 198 backtracks, which is why its write-back was 71%. Read the rate together 
 stay live, not with arity alone.
 `count_eq` on magic_sequence has arity 101 over domains that stay unbound, so the scan *was* the work. Against
 that, `sum_leq_c` on schur_lemma changes nothing on 96% of its calls and `abs_eq` on all_interval on 39.6% of
-144,439 — but both are arity 2 or 3, so there is next to nothing to skip: `abs_eq` measures 1 ms of 43, which is
-what 57,000 skipped two-variable scans is worth and no more. `alldifferent` on queens sits between, with the rate
-but only arity 12 against an `O(n log n)` body that still runs in full. `gcc` and `lexleq` have the shape that
+144,439 — but both hold two or three variables, so there is next to nothing to skip whatever the rate, which is
+why `abs_eq` no longer reports. `alldifferent` on queens sits between, with the rate but only arity 12 against an
+`O(n log n)` body that still runs in full. `gcc` and `lexleq` have the shape that
 pays — arity `n` and `2n`, no-change rates of 48–100% — and no bundled model that exercises them: the ones that
 post them run in 1–8 ms with at most 1778 calls.
 

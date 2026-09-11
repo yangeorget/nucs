@@ -20,7 +20,6 @@ from nucs.constants import EVENT_NB, PROP_FLAG_IDEMPOTENT, PROP_FLAG_REPORTS_CHA
 from nucs.propagators.abs_eq_propagator import (
     compute_domains_abs_eq,
     get_complexity_abs_eq,
-    get_state_abs_eq,
     get_triggers_abs_eq,
 )
 from nucs.propagators.add_c_eq_propagator import (
@@ -170,7 +169,6 @@ from nucs.propagators.leq_c_imp_propagator import (
 from nucs.propagators.leq_c_propagator import (
     compute_domains_leq_c,
     get_complexity_leq_c,
-    get_state_leq_c,
     get_triggers_leq_c,
 )
 from nucs.propagators.leq_c_reif_propagator import (
@@ -428,13 +426,7 @@ def register_propagator(
     return get_algorithm_nb() - 1
 
 
-ALG_ABS_EQ = register_propagator(
-    get_triggers_abs_eq,
-    get_complexity_abs_eq,
-    compute_domains_abs_eq,
-    get_state_fct=get_state_abs_eq,
-    reports_changes=True,
-)
+ALG_ABS_EQ = register_propagator(get_triggers_abs_eq, get_complexity_abs_eq, compute_domains_abs_eq)
 ALG_ADD_C_EQ = register_propagator(get_triggers_add_c_eq, get_complexity_add_c_eq, compute_domains_add_c_eq)
 ALG_AND_EQ = register_propagator(get_triggers_and_eq, get_complexity_and_eq, compute_domains_and_eq)
 ALG_BIN_PACKING_LOAD = register_propagator(
@@ -578,13 +570,7 @@ ALG_INVERSE = register_propagator(
     get_state_fct=get_state_inverse,
     reports_changes=True,
 )
-ALG_LEQ_C = register_propagator(
-    get_triggers_leq_c,
-    get_complexity_leq_c,
-    compute_domains_leq_c,
-    get_state_fct=get_state_leq_c,
-    reports_changes=True,
-)
+ALG_LEQ_C = register_propagator(get_triggers_leq_c, get_complexity_leq_c, compute_domains_leq_c)
 ALG_LEQ_C_IMP = register_propagator(get_triggers_leq_c_imp, get_complexity_leq_c_imp, compute_domains_leq_c_imp)
 ALG_LEQ_C_REIF = register_propagator(get_triggers_leq_c_reif, get_complexity_leq_c_reif, compute_domains_leq_c_reif)
 ALG_LEXLEQ = register_propagator(
