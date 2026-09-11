@@ -231,6 +231,46 @@ Two tiers, by contract:
 Because the barrier runs before the call, a propagator that returns `PROP_INCONSISTENCY` halfway through may already
 have written its state block, and that is safe — trailed on entry, restored by `trail_undo` like any other cell.
 
+#### Reporting what changed
+
+A propagator call costs three passes over its variables, not one: `bc_algorithm` **gathers** them into
+`domain_buffer`, the propagator **filters**, and `update_domains` **writes back** — walking them again to see what
+moved and wake whoever watches it. Measured in situ by duplicating each pass, the write-back is 71% of
+magic_sequence(200)'s solve time against 10% for the gather. And most calls give it nothing to find: 96% of
+schur_lemma's `sum_leq_c` calls change no domain, 93.7% of magic_sequence's `count_eq`, 85% of bibd's `sum_eq_c`,
+31.6% of queens' `alldifferent`.
+
+So a propagator can say so. Declaring `reports_changes=True` at registration obliges its `get_state_fct` to reserve
+the **first cell of the hint suffix**; the engine pre-sets that cell to `1` before every call and reads it back
+after, and a `0` lets it skip `update_domains` outright. The equivalence is exact: the gather copies `state` into
+`prop_domains`, so "the propagator wrote nothing" is "`prop_domains == state`", which is "`update_domains` finds no
+event and schedules nobody".
+
+- **The cell is untrailed, and could not be anything else.** It describes the call that has just happened, not the
+  node, so there is nothing about it to restore; it never meets the trail, `choice_point_init` or the entry barrier.
+- **Pre-setting to `1` is what makes the default safe.** A propagator that forgets to answer gets the scan it would
+  have got anyway. Only the other direction is a bug, and it is a silent one — reporting `0` after narrowing
+  something drops that pruning and the engine cannot tell, because checking would be the scan it is avoiding.
+  `PropagatorTest` therefore holds every reporting propagator to it, on every call of every curated case.
+- **Opting in costs no ABI.** It is a per-algorithm property, and `IDEMPOTENCIES` became `ALGORITHM_FLAGS` carrying
+  `PROP_FLAG_IDEMPOTENT | PROP_FLAG_REPORTS_CHANGES` rather than growing a second array — which would have been a
+  second parameter through `SIGN_CONSISTENCY_ALG`, and so a breaking change to every custom consistency algorithm,
+  for one bit. Six bits are left.
+
+Ten propagators report today: `linear_eq_c`/`leq_c`/`geq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`, `count_eq`, `leq_c`
+and `alldifferent`. Two things are worth copying from how `alldifferent` does it. Its block gained a cell, because
+it was already using its first for the cold flag — the report cell is fixed at the front of the hint suffix so the
+engine can find it without knowing anything about the propagator's own layout. And its `filter_lower`/`filter_upper`
+now return `(consistent, changed)`, with the Hall-interval writes *tested* rather than made blind: the write is
+frequently a no-op, and counting "I executed a write" instead of "I changed a value" is safe but throws away most
+of the win.
+
+Measured, median of five: magic_sequence(200) 48 → 16 ms, magic_sequence(100) 6 → 2 ms, magic_square(4) 121 → 111
+ms, golomb(10) 169 → 160 ms, queens(12) 1052 → 1035 ms. The win needs a *long* constraint **and** a high no-change
+rate: `alldifferent` on queens has the rate but only arity 12, so the scan it skips is small beside the
+`O(n log n)` filtering that still runs; `count_eq` on magic_sequence has arity 101 and a body that bails out early,
+so the scan *was* the work.
+
 **`alldifferent`/`gcc` (Tier A — landed the two experiments below described as "explored, not adopted"):**
 `get_state_alldifferent` reserves `[flag, min_sorted_vars[n], max_sorted_vars[n], bounds, t, d, h, ranks]` — the
 `bounds/t/d/h/ranks` scratch that used to come from one `np.empty` per call, plus a warm-started sort permutation.

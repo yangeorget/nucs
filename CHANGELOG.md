@@ -10,6 +10,37 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Changed
 
+- **A propagator can tell the solver it changed nothing, and skip a pass over its variables.** A call costs three
+  passes: the solver gathers the propagator's domains, the propagator filters, and the solver writes back — walking
+  the variables again to find what moved and wake whoever watches them. That third pass is the expensive one, and
+  most calls give it nothing to find (96% of `sum_leq_c`'s calls on schur_lemma, 93.7% of `count_eq`'s on
+  magic_sequence, 31.6% of `alldifferent`'s on queens). A propagator that declares `reports_changes=True` answers, in
+  the first cell of its state block's hint suffix, whether it wrote any domain; a `0` lets the solver skip the write
+  back entirely. Ten propagators do: `linear_eq_c`/`leq_c`/`geq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`, `count_eq`,
+  `leq_c` and `alldifferent`.
+
+  The search is unchanged — every statistic of the benchmark models is identical, counter for counter. Measured,
+  median of five: magic_sequence(200) 48 → 16 ms, magic_sequence(100) 6 → 2 ms, magic_square(4) 121 → 111 ms,
+  golomb(10) 169 → 160 ms, queens(12) 1052 → 1035 ms. The win wants a long constraint *and* a high no-change rate;
+  a short one has little scan to skip.
+
+  Writing a custom propagator that opts in means reserving that cell in `get_state_*` and setting it to `0` on the
+  `PROP_CONSISTENCY` paths that wrote nothing. The solver pre-sets it to `1`, so forgetting is merely slow — but
+  reporting `0` after narrowing a domain silently drops that pruning, and `PropagatorTest` checks every reporting
+  propagator against it.
+
+- **`IDEMPOTENCIES` is now `ALGORITHM_FLAGS`, a packed word per algorithm.** It carries `PROP_FLAG_IDEMPOTENT` and
+  `PROP_FLAG_REPORTS_CHANGES` instead of a bare boolean, so that a new per-algorithm property does not mean a new
+  parameter through `SIGN_CONSISTENCY_ALG`. A **custom consistency algorithm** keeps the shape it had; its second
+  parameter is the same array in the same slot, now `uint8` and read through the flags:
+
+  ```python
+  # was
+  is_idempotent = idempotencies[algorithm]
+  # now
+  is_idempotent = algorithm_flags[algorithm] & PROP_FLAG_IDEMPOTENT
+  ```
+
 - **`compute_domains_*` takes a third argument, `prop_state`.** Every propagator now receives its own slice
   of one solver-owned `int32` array: a trailed prefix the solver saves and restores like a domain bound,
   followed by an untrailed hint suffix that keeps whatever the previous call left in it. A propagator says
