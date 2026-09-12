@@ -283,25 +283,20 @@ Four ways of answering, picked by shape:
   the helper signatures alone, and survives any control flow. For `lexleq` the eight writes were all a `min` or a
   `max` onto a bound, so two inline helpers (`tighten_max`/`tighten_min`) narrow and report in one place.
 
-`regular` keeps a **no-op cache**, which is the cheapest form of incrementality the block supports and the
-one to reach for when a propagator is expensive and re-entered often. It records the domains as they stood at
-the end of a call that changed nothing; finding them unchanged on the way in means the answer is again
-"nothing to do", at the price of an `O(length)` comparison instead of the `O(length * q * s)` its two
-reachability passes and support tests cost. It declares itself non-idempotent, so the engine re-enters it
-until it stops changing anything — which is exactly the sequence that ends in a call worth caching, and 90%
-of its calls in a purpose-built model change nothing. Measured on the propagator, a hit against a full call:
-4.4× at `length=16`, 11.5× at 64, 27× at 256, 47× at 1024, the hit being `O(length)` while the call is not.
+**A cache keyed on the exact domains cannot hit, and the trigger mechanism is why.** `regular` was given
+one: it recorded the domains a call that changed nothing had ended on, and compared against them on the way
+in, to spare its `O(length * q * s)` passes. On the propagator that looked superb — a hit is `O(length)`, so
+4.4× at `length=16` up to 47× at 1024, and 87–90% of its calls change nothing. In the engine it hit **0 times
+out of 131**. A propagator is scheduled only when one of *its own* variables has changed, so by the time it
+is entered again its domains necessarily differ from the ones it last settled on: the event that wakes it is
+the event that invalidates the cache. Two tries at `cumulative` and `disjunctive`, whose `O(n^3)` made the
+microbenchmark show 18,000×, would have been worth exactly as much.
 
-What makes this a hint rather than trailed state is that **the cache stores the input it was computed from**.
-A backtrack widens the domains, the comparison sees it, and the call runs in full; the cache never claims
-anything about an input it has not stored, so it cannot go stale. Any cache of a propagator's own conclusions
-wants this shape — the alternative, trusting a cached answer against an unrecorded input, is how a stale
-layered graph would silently prune less.
-
-Its `fwd`/`bwd` passes were tried in the block too, to spare their two `np.zeros` per call, and measured
-**2–8% slower** on the full path at every length: the block is `int32` and they are `uint8`, so moving them
-quadruples a footprint the passes walk repeatedly, which costs more than an allocation does. They stayed
-local. That is the counter-case to `alldifferent`'s scratch, whose arrays were `int32` already.
+"Most calls change nothing" is therefore not the same claim as "the same input recurs", and only the second
+would make such a cache pay. What could work is a cache keyed on the *subset* a conclusion depends on, so
+that a change elsewhere does not invalidate it — but that needs the propagator to know its own dependencies,
+which is a different and much larger design. `regular` keeps only the change report, which is the part that
+does pay.
 
 `lexleq` is the one that keeps something besides the report: a trailed `q`, the length of the prefix over
 which `x_i = y_i` has been enforced. Its four mutually recursive states are the Frisch et al. lexicographic
