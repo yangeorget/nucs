@@ -283,6 +283,18 @@ Four ways of answering, picked by shape:
   the helper signatures alone, and survives any control flow. For `lexleq` the eight writes were all a `min` or a
   `max` onto a bound, so two inline helpers (`tighten_max`/`tighten_min`) narrow and report in one place.
 
+`lexleq` is the one that keeps something besides the report: a trailed `q`, the length of the prefix over
+which `x_i = y_i` has been enforced. Its four mutually recursive states are the Frisch et al. lexicographic
+algorithm, whose whole point is to resume where it left off, and NuCS had transcribed it with the resumption
+switched off — every call restarted the automaton at state 1, index 0. State 1's loop tightens both bounds onto
+one value, so a counted index is *ground on both sides*, which makes the prefix monotone within a branch and
+`q` trailed rather than a hint. Resuming there is not merely sound but silent: the loop over an already-equal
+prefix tests a condition that still holds and applies two tightenings that are no-ops. Measured on the
+propagator, the resumed call is flat at ~220 ns whatever the prefix, against a rescan that grows with it —
+1.6× at `n=128`, 3.2× at `n=512`, 9.4× at `n=2048`, each with a 99% prefix. The `r` and `s` pointers of the
+other three states still start at 0 every call: their conditions are *not* monotone under narrowing, so
+resuming past them could skip an index that has since become decisive.
+
 Two things are worth copying from how `alldifferent` does it. Its block gained a cell, because
 it was already using its first for the cold flag — the report cell is fixed at the front of the hint suffix so the
 engine can find it without knowing anything about the propagator's own layout. And its `filter_lower`/`filter_upper`

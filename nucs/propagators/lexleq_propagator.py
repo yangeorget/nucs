@@ -54,19 +54,35 @@ def get_triggers_lexleq(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
+# The state block: the length of the ground-equal prefix, then the change report.
+STATE_Q = 0  # trailed
+STATE_REPORT = 1  # the first hint cell, which is where the engine looks
+
+
 def get_state_lexleq(n: int, parameters: Sequence[int]) -> tuple[int, int]:
     """
-    Returns the size of this propagator's state block: the one cell it reports its changes in.
+    Returns the size of this propagator's state block: where the scan left off, and the change report.
+
+    q is the length of the prefix over which x_i = y_i has been enforced. State 1's loop below does that
+    by tightening both bounds onto one value, so a counted index is *ground* on both sides -- which makes
+    the prefix monotone within a branch, and q trailed rather than a hint: a backtrack ungrounds the tail
+    of it. Resuming the scan at q rather than at 0 is not merely sound but silent, since the loop over an
+    already-equal prefix tests a condition that still holds and applies two tightenings that are no-ops.
+
+    Only q is carried. The r and s pointers of the other three states start at 0 on every call as before:
+    their conditions (x_i max == y_i min, x_i min == y_i max) are *not* monotone under narrowing, so
+    resuming past them could skip an index that has since become decisive. That is the rest of the
+    Frisch et al. incrementality, and it needs the argument this one does not.
 
     :param n: the number of variables, unused here
     :type n: int
     :param parameters: the parameters, unused here
     :type parameters: Sequence[int]
 
-    :return: (trailed_nb, hint_nb) = (0, 1)
+    :return: (trailed_nb, hint_nb) = (1, 1)
     :rtype: tuple[int, int]
     """
-    return 0, 1
+    return 1, 1
 
 
 @njit(cache=True, inline="always")
@@ -88,7 +104,7 @@ def tighten_max(row: NDArray, value: int, prop_state: NDArray) -> None:
     """
     if value < row[DOMAIN_MAX]:
         row[DOMAIN_MAX] = value
-        prop_state[0] = 1
+        prop_state[STATE_REPORT] = 1
 
 
 @njit(cache=True, inline="always")
@@ -105,7 +121,7 @@ def tighten_min(row: NDArray, value: int, prop_state: NDArray) -> None:
     """
     if value > row[DOMAIN_MIN]:
         row[DOMAIN_MIN] = value
-        prop_state[0] = 1
+        prop_state[STATE_REPORT] = 1
 
 
 @njit(cache=True)
@@ -196,7 +212,7 @@ def compute_domains_1(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
         if y[i, DOMAIN_MAX] < y[i, DOMAIN_MIN]:
             return PROP_INCONSISTENCY
         i += 1
-        q = i
+        q = prop_state[STATE_Q] = i
     if i == n or x[i, DOMAIN_MAX] < y[i, DOMAIN_MIN]:
         return PROP_ENTAILMENT
     # enforce xq <= yq
@@ -232,7 +248,8 @@ def compute_domains_lexleq(domains: NDArray, parameters: NDArray, prop_state: ND
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int
     """
-    # TODO: make incremental, use a var?
     n = len(domains) >> 1
-    prop_state[0] = 0  # cleared here and raised again by any write, see tighten_max
-    return compute_domains_1(domains[:n], domains[n:], n, 0, 0, 0, 0, prop_state)
+    prop_state[STATE_REPORT] = 0  # cleared here and raised again by any write, see tighten_max
+    # resume the scan past the prefix already known equal, rather than walking it again: see get_state_lexleq
+    q = prop_state[STATE_Q]
+    return compute_domains_1(domains[:n], domains[n:], n, q, q, 0, 0, prop_state)

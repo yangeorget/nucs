@@ -35,6 +35,14 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   reporting `0` after narrowing a domain silently drops that pruning, and `PropagatorTest` checks every reporting
   propagator against it.
 
+- **`lexleq` resumes its scan instead of restarting it.** Its four mutually recursive states are the Frisch et
+  al. lexicographic algorithm, which is designed to carry its pointers across calls; NuCS restarted it at state
+  1, index 0 every time. It now keeps, in its state block, the length of the prefix over which `x_i = y_i` has
+  already been enforced, and resumes past it. The filtering is unchanged — the skipped prefix is ground on both
+  sides, so walking it tested a condition that still held and applied two tightenings that were no-ops. Measured
+  on the propagator with a 99% equal prefix: 1.6× at 128 variables, 3.2× at 512, 9.4× at 2048, with the resumed
+  call flat at ~220 ns whatever the prefix.
+
 - **`IDEMPOTENCIES` is now `ALGORITHM_FLAGS`, a packed word per algorithm.** It carries `PROP_FLAG_IDEMPOTENT` and
   `PROP_FLAG_REPORTS_CHANGES` instead of a bare boolean, so that a new per-algorithm property does not mean a new
   parameter through `SIGN_CONSISTENCY_ALG`. A **custom consistency algorithm** keeps the shape it had; its second
