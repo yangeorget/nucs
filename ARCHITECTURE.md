@@ -407,6 +407,39 @@ non-JIT fallback.
 
 ## Explored, not adopted
 
+### Three ways of making a propagator incremental that do not work
+
+*(all measured 2026-09-12)* Kept because each looks compelling on paper and two of them look spectacular in a
+microbenchmark.
+
+**A cache keyed on the exact domains cannot hit.** A propagator is woken only when one of its own variables
+has changed, so the event that wakes it is the event that invalidates the cache — 0 hits in 131 lookups on
+`regular`, against a microbenchmark that said 47×. See *Reporting what changed* above.
+
+**Ground-task elimination does not apply to `cumulative` or `disjunctive`.** In a linear constraint a ground
+variable's contribution is a *scalar*, so it folds into a running constant and the variable leaves the
+computation. A ground task's contribution is a *rectangle in time*, and what the other tasks need to know is
+where it sits, not what it totals — a ground task is the most constraining kind there is. Two tasks suffice
+to show it: capacity 1, A ground at 0 with `p=2,h=1`, B free in `[0,5]` — B's earliest start goes 0 → 2, and
+that pruning comes only from A. The companion idea, caching the profile, fails because `_filter_est` derives
+its segment boundaries from *all* the compulsory parts, so one non-ground task re-segments the profile.
+
+**A Θ-Λ-tree does not beat `disjunctive`'s cubic enumeration at the sizes NuCS sees.** The `O(n log n)`
+edge-finding was written and verified — 26,000 random instances, identical status and identical earliest
+starts to the enumeration it replaces — and then measured slower almost everywhere:
+
+| instance shape | n=16 | n=64 | n=256 | n=512 |
+|---|---|---|---|---|
+| one shared deadline, tight (the cubic case) | 0.21× | 0.27× | 0.92× | **1.62×** |
+| tight windows, spread starts (the ordinary case) | 0.24× | 0.12× | 0.06× | **0.05×** |
+
+`_filter_est` is cubic only when every task shares a deadline. On spread instances its `lct[i] <= bound` test
+leaves `Θ` tiny for most bounds, so it runs near-linearly — 4 µs at 512 tasks — while the tree pays seven
+array allocations per call and six memory writes per level up the path on every move. The crossover exists,
+but at 512 tasks in the worst shape only, and the shape is not knowable cheaply. Same lesson as the
+linear-compaction and array-merge results: **a tight contiguous scan with a data-dependent early exit is very
+hard to beat with a better asymptotic and worse locality.**
+
 ### A solver-owned scratch buffer for propagator working memory, and warm alldifferent permutations
 
 *(benchmarked 2026-07, ~4% and ~8% respectively; landed together as the `prop_state` argument — see
