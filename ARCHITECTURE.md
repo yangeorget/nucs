@@ -316,8 +316,34 @@ and 6.23× at 99%; 1024 of 8 columns, 7.32× at 99%. A small table gains little 
 calls against a handful of 3-column tuples and measures flat — so the win is for FlatZinc `table`
 constraints, which is where the long ones come from.
 
-`lexleq` is the one that keeps something besides the report: a trailed `q`, the length of the prefix over
-which `x_i = y_i` has been enforced. Its four mutually recursive states are the Frisch et al. lexicographic
+`lexleq` keeps two trailed positions besides the report — `q` and `r`, which are α and β in Carlsson and
+Beldiceanu's *Revisiting the Lexicographic Ordering Constraint* (`papers/lexleq/`), the report this
+implementation is transcribed from. That paper's whole point is resumption: it claims `O(n)` on posting plus
+**amortized `O(1)` per propagation event**, and §5 says to record "the state q ∈ {1,2,3,4} that preceded the
+suspension, and the positions α β γ", trailed. NuCS had transcribed the four states and threaded all three
+positions through their signatures, with the resumption switched off — every call restarted the automaton at
+state 1, position 0, and the `if r > i + 1: i = r` that jumps to a carried position could never fire.
+
+Two of the three positions are safe to carry here, and the third is not, which is worth separating:
+
+- **`q` (α) and `r` (β) are safe**, and for the same reason: state 1 advances `q` only over positions where
+  its two tightenings have forced `x_i = y_i` *ground on both sides*, and state 2 advances `r` only over
+  positions where all four bounds are equal. Both prefixes are therefore monotone within a branch, so
+  resuming past them is not merely sound but silent — the skipped loop tests a condition that still holds
+  and applies tightenings that write nothing. The paper puts the second as "in state 2, any letter before
+  pos. β is ignored; this is safe, for the ignored letters will all be =".
+- **`s` (γ) is not**, and the reason is a difference in engines rather than in the algorithm. The paper skips
+  past γ in states 3 and 4 too, on the grounds that a position before it which has since become decisive
+  will arrive as its own pending propagation event — "the pending event will lead to just that, when it is
+  processed". NuCS coalesces events: a propagator is woken once however many of its variables moved, and
+  sees all of it on entry, so there is no later event to rely on and skipping those positions would lose the
+  transition. Their conditions (`x_i.max == y_i.min`, `x_i.min == y_i.max`) are not monotone under narrowing
+  either, which is the same fact from the other side. **A paper's incrementality can depend on how its host
+  engine delivers events, and that assumption has to be checked rather than inherited.**
+
+Measured on the propagator, each resume against the rescan it replaces, with a 99% prefix: state 1's is 1.6×
+at `n=128`, 3.2× at 512, 9.4× at 2048; state 2's is 1.6× at 128, 3.1× at 512, 9.4× at 2048 — the resumed
+call flat at ~230 ns whatever the prefix. Its four mutually recursive states are the Frisch et al. lexicographic
 algorithm, whose whole point is to resume where it left off, and NuCS had transcribed it with the resumption
 switched off — every call restarted the automaton at state 1, index 0. State 1's loop tightens both bounds onto
 one value, so a counted index is *ground on both sides*, which makes the prefix monotone within a branch and

@@ -45,7 +45,7 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   92%, 6.23× at 99%; over 8 columns, 7.32× at 99%. Small tables gain little, so this is for the long
   `table` constraints a FlatZinc model brings.
 
-- **`lexleq` resumes its scan instead of restarting it.** Its four mutually recursive states are the Frisch et
+- **`lexleq` resumes its scan instead of restarting it**, in both of the two states where that is sound. Its four mutually recursive states are the Frisch et
   al. lexicographic algorithm, which is designed to carry its pointers across calls; NuCS restarted it at state
   1, index 0 every time. It now keeps, in its state block, the length of the prefix over which `x_i = y_i` has
   already been enforced, and resumes past it. The filtering is unchanged — the skipped prefix is ground on both

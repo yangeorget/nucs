@@ -54,9 +54,10 @@ def get_triggers_lexleq(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-# The state block: the length of the ground-equal prefix, then the change report.
-STATE_Q = 0  # trailed
-STATE_REPORT = 1  # the first hint cell, which is where the engine looks
+# The state block: the two resumable positions of the automaton, then the change report.
+STATE_Q = 0  # trailed: alpha in the paper
+STATE_R = 1  # trailed: beta in the paper
+STATE_REPORT = 2  # the first hint cell, which is where the engine looks
 
 
 def get_state_lexleq(n: int, parameters: Sequence[int]) -> tuple[int, int]:
@@ -69,20 +70,28 @@ def get_state_lexleq(n: int, parameters: Sequence[int]) -> tuple[int, int]:
     of it. Resuming the scan at q rather than at 0 is not merely sound but silent, since the loop over an
     already-equal prefix tests a condition that still holds and applies two tightenings that are no-ops.
 
-    Only q is carried. The r and s pointers of the other three states start at 0 on every call as before:
-    their conditions (x_i max == y_i min, x_i min == y_i max) are *not* monotone under narrowing, so
-    resuming past them could skip an index that has since become decisive. That is the rest of the
-    Frisch et al. incrementality, and it needs the argument this one does not.
+    r is carried for the same reason: state 2 advances it only over positions where all four bounds are
+    equal, so its prefix is ground on both sides too. Carlsson and Beldiceanu, who this implementation is
+    transcribed from, put it as "in state 2, any letter before pos. beta is ignored; this is safe, for the
+    ignored letters will all be =".
+
+    s is *not* carried, and that is a difference between NuCS's engine and the one the paper assumes. The
+    paper also skips past s in states 3 and 4, on the grounds that a position before it which has become
+    decisive will arrive as its own pending propagation event: "the pending event will lead to just that,
+    when it is processed". NuCS coalesces events instead -- a propagator is woken once however many of its
+    variables moved, and sees all of it on entry -- so there is no later event to rely on, and skipping
+    those positions would lose the transition. The conditions there (x_i max == y_i min, x_i min ==
+    y_i max) are not monotone under narrowing either, which is the same fact from the other side.
 
     :param n: the number of variables, unused here
     :type n: int
     :param parameters: the parameters, unused here
     :type parameters: Sequence[int]
 
-    :return: (trailed_nb, hint_nb) = (1, 1)
+    :return: (trailed_nb, hint_nb) = (2, 1)
     :rtype: tuple[int, int]
     """
-    return 1, 1
+    return 2, 1
 
 
 @njit(cache=True, inline="always")
@@ -164,7 +173,7 @@ def compute_domains_3(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
 def compute_domains_2(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s: int, prop_state: NDArray) -> int:
     while i < n and x[i, DOMAIN_MIN] == x[i, DOMAIN_MAX] == y[i, DOMAIN_MIN] == y[i, DOMAIN_MAX]:
         i += 1
-        r = i
+        r = prop_state[STATE_R] = i
     if i == n or x[i, DOMAIN_MAX] < y[i, DOMAIN_MIN]:
         # xq <= yq
         tighten_max(x[q], y[q, DOMAIN_MAX], prop_state)
@@ -226,7 +235,7 @@ def compute_domains_1(x: NDArray, y: NDArray, n: int, i: int, q: int, r: int, s:
         i = r
     else:
         i += 1
-        r = i
+        r = prop_state[STATE_R] = i
     return compute_domains_2(x, y, n, i, q, r, s, prop_state)
 
 
@@ -252,4 +261,4 @@ def compute_domains_lexleq(domains: NDArray, parameters: NDArray, prop_state: ND
     prop_state[STATE_REPORT] = 0  # cleared here and raised again by any write, see tighten_max
     # resume the scan past the prefix already known equal, rather than walking it again: see get_state_lexleq
     q = prop_state[STATE_Q]
-    return compute_domains_1(domains[:n], domains[n:], n, q, q, 0, 0, prop_state)
+    return compute_domains_1(domains[:n], domains[n:], n, q, q, prop_state[STATE_R], 0, prop_state)
