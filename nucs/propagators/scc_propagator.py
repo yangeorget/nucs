@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from collections.abc import Sequence
+
 import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
@@ -30,6 +32,26 @@ def get_complexity_scc(n: int, parameters: NDArray) -> int:
     :rtype: int
     """
     return n * n
+
+
+def get_state_scc(n: int, parameters: Sequence[int]) -> tuple[int, int]:
+    """
+    Returns the size of this propagator's state block: the one cell it reports its changes in.
+
+    This propagator writes no domain, ever -- it is a feasibility check, answering only whether the digraph
+    is still strongly connected. So it reports "nothing written" unconditionally, and the engine skips the
+    write-back scan on every call rather than walking every variable to rediscover that. There is no cheaper
+    case for the report to have, and no propagator that wants it more.
+
+    :param n: the number of variables, unused here
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: Sequence[int]
+
+    :return: (trailed_nb, hint_nb) = (0, 1)
+    :rtype: tuple[int, int]
+    """
+    return 0, 1
 
 
 @njit(cache=True)
@@ -88,7 +110,7 @@ def compute_domains_scc(domains: NDArray, parameters: NDArray, prop_state: NDArr
     :type domains: NDArray
     :param parameters: unused here
     :type parameters: NDArray
-    :param prop_state: this propagator's state block (unused)
+    :param prop_state: this propagator's state block, whose first cell is the change report
     :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
@@ -132,4 +154,5 @@ def compute_domains_scc(domains: NDArray, parameters: NDArray, prop_state: NDArr
                 sp += 1
     if count != n:
         return PROP_INCONSISTENCY
+    prop_state[0] = 0  # this propagator prunes nothing, so there is never anything to write back
     return PROP_CONSISTENCY

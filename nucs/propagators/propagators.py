@@ -264,7 +264,12 @@ from nucs.propagators.relation_propagator import (
     get_complexity_relation,
     get_triggers_relation,
 )
-from nucs.propagators.scc_propagator import compute_domains_scc, get_complexity_scc, get_triggers_scc
+from nucs.propagators.scc_propagator import (
+    compute_domains_scc,
+    get_complexity_scc,
+    get_state_scc,
+    get_triggers_scc,
+)
 from nucs.propagators.strictly_increasing_propagator import (
     compute_domains_strictly_increasing,
     get_complexity_strictly_increasing,
@@ -607,7 +612,13 @@ ALG_REGULAR = register_propagator(
     reports_changes=True,
 )
 ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relation, compute_domains_relation)
-ALG_SCC = register_propagator(get_triggers_scc, get_complexity_scc, compute_domains_scc)
+ALG_SCC = register_propagator(
+    get_triggers_scc,
+    get_complexity_scc,
+    compute_domains_scc,
+    get_state_fct=get_state_scc,
+    reports_changes=True,
+)
 ALG_STRICTLY_INCREASING = register_propagator(
     get_triggers_strictly_increasing, get_complexity_strictly_increasing, compute_domains_strictly_increasing
 )
