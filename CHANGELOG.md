@@ -18,7 +18,7 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   the first cell of its state block's hint suffix, whether it wrote any domain; a `0` lets the solver skip the write
   back entirely. Twenty propagators do: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`,
   `sum_eq`/`eq_c`/`leq_c`/`geq_c`, `count_eq`/`leq_c`/`geq_c`, `alldifferent`, `gcc`, `lexleq`, `inverse`,
-  `regular`, `scc`, and the four `element_l_eq` variants — all of them n-ary, since a propagator holding two variables has at most two
+  `regular`, `scc`, `relation`, and the four `element_l_eq` variants — all of them n-ary, since a propagator holding two variables has at most two
   write-back iterations to skip and pays the report on every call to do it.
 
   The search is unchanged — every statistic of the benchmark models is identical, counter for counter. Measured,
@@ -37,6 +37,13 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 - **`regular` reports whether it changed anything**, so the solver can skip its write-back on the calls that
   changed nothing — which is 87–90% of them.
+
+- **`relation` stops re-testing tuples it has already ruled out.** A tuple that no longer fits inside the
+  domains can never fit again, so the propagator keeps the still-possible ones in its state block and scans
+  those instead of the whole table — simple tabular reduction. The filtering is unchanged. Measured on the
+  propagator, for a table of 1024 tuples over 4 columns: 1.56× once half the table is ruled out, 4.05× at
+  92%, 6.23× at 99%; over 8 columns, 7.32× at 99%. Small tables gain little, so this is for the long
+  `table` constraints a FlatZinc model brings.
 
 - **`lexleq` resumes its scan instead of restarting it.** Its four mutually recursive states are the Frisch et
   al. lexicographic algorithm, which is designed to carry its pointers across calls; NuCS restarted it at state

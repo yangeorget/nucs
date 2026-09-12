@@ -257,8 +257,8 @@ event and schedules nobody".
   second parameter through `SIGN_CONSISTENCY_ALG`, and so a breaking change to every custom consistency algorithm,
   for one bit. Six bits are left.
 
-Twenty propagators report today: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`,
-`count_eq`/`leq_c`/`geq_c`, `alldifferent`, `gcc`, `lexleq`, `inverse`, `regular`, `scc`, and the four
+Twenty-one propagators report today: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`,
+`count_eq`/`leq_c`/`geq_c`, `alldifferent`, `gcc`, `lexleq`, `inverse`, `regular`, `scc`, `relation`, and the four
 `element_l_eq`/`_c`/`_alldifferent`/`_c_alldifferent`. All of them are n-ary: `abs_eq` and `leq_c` reported for a
 while and were taken back out, because a propagator holding two variables has at most two write-back iterations
 to skip and pays the report on every call to do it. The reporting set is meant to stay tight.
@@ -300,6 +300,21 @@ would make such a cache pay. What could work is a cache keyed on the *subset* a 
 that a change elsewhere does not invalidate it — but that needs the propagator to know its own dependencies,
 which is a different and much larger design. `regular` keeps only the change report, which is the part that
 does pay.
+
+`relation` keeps a **live-tuple sparse set**, and it is the one case where absorbing *does* pay. A tuple
+that no longer fits inside the domains can never fit again, so the set of tuples worth testing shrinks
+monotonically down a branch; the scan costs the tuples still alive rather than the whole table. That is
+simple tabular reduction, and what Gecode's and Choco's table propagators do. Only the *count* of ruled-out
+tuples is trailed — one cell — while the permutation is a hint, for the reason the sparse set always allows:
+every swap stays inside the window its choice point handed down, so restoring the count restores the set.
+
+Why this one pays where the same shape failed on `linear_*`: **skipping a tuple skips a loop over the
+columns, so the indirection is amortised over the width of the table**, whereas skipping a variable in a
+linear constraint saved a single multiply-add and cost a full indirection. Measured on the propagator, by
+table size and share of the table ruled out: 1024 tuples of 4 columns gives 1.56× at 50% dead, 4.05× at 92%
+and 6.23× at 99%; 1024 of 8 columns, 7.32× at 99%. A small table gains little — `sports(8)` makes 568,602
+calls against a handful of 3-column tuples and measures flat — so the win is for FlatZinc `table`
+constraints, which is where the long ones come from.
 
 `lexleq` is the one that keeps something besides the report: a trailed `q`, the length of the prefix over
 which `x_i = y_i` has been enforced. Its four mutually recursive states are the Frisch et al. lexicographic
