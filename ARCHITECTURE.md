@@ -443,6 +443,31 @@ semantics (`BUCKET_NB = 8`, so `STORAGE_OFFSET = 2 · BUCKET_NB = 16`):
 | `[16+C : 16+2C]` | `C` | membership flag per element (`0`/`1`) |
 | `[-1]` | 1 | cached lowest non-empty bucket index (search hint for `buckets_pop`) |
 
+**The queue coalesces, and that decides what incrementality is available.** A propagator is enqueued once
+however many of its variables moved, so by the time it is popped it sees the whole batch at once. Gecode's
+advisors are the opposite arrangement — one call per modification, each handed a `Delta` — and three separate
+attempts at Gecode-style incrementality have foundered on the difference, each looking obvious until measured:
+
+- **A cache keyed on the exact domains never hits.** A propagator is woken *because* one of its variables
+  changed, so its domains always differ from the ones it last settled on. The event that wakes it is the event
+  that invalidates the cache. Measured 0 hits in 131 lookups on `regular`.
+- **A propagator cannot defer work to "a later event".** Carlsson and Beldiceanu's `lexleq` skips positions
+  before γ on the grounds that one which has become decisive "will lead to just that, when it is processed" —
+  true with per-variable events, false here, where there is no later call to rely on. So `q` and `r` are
+  carried and `s` is not.
+- **A guard in front of the body cannot be O(1).** When a propagator is woken, **15–41% of its variables have
+  already moved** — 82 of `count_eq`'s 201 on magic_sequence(200), 2.25 of 14 for
+  `element_l_eq_alldifferent` on quasigroup, 3.22 of 12 for `alldifferent` on queens. Any guard has to read
+  the changed set to decide anything, so it costs `O(#changed)`, which at 40% of `n` is the same order as the
+  body it was meant to skip — and it would be paid on the writer side, which is already the hot one at ~1193
+  propagator calls per node. Gecode gets `ES_FIX` in constant time only because its advisor sees one
+  modification at a time.
+
+Coalescing is what makes scheduling cheap; per-event advisor precision is what it costs. **The mechanisms that
+do pay here are the ones needing no delta at all** — reporting after the fact (`prop_state`'s change cell),
+resuming past a prefix that is monotone by construction (`lexleq`), and dropping candidates that can never
+come back (`relation`'s live tuples).
+
 ### The pure-Python escape hatch is a hard constraint
 
 Everything must also run under `NUMBA_DISABLE_JIT=1` (debugging, coverage, real tracebacks) — this is why
@@ -458,7 +483,8 @@ microbenchmark.
 
 **A cache keyed on the exact domains cannot hit.** A propagator is woken only when one of its own variables
 has changed, so the event that wakes it is the event that invalidates the cache — 0 hits in 131 lookups on
-`regular`, against a microbenchmark that said 47×. See *Reporting what changed* above.
+`regular`, against a microbenchmark that said 47×. One of three consequences of the queue coalescing; see
+*The propagation queue* above for the other two and for why a Gecode-style guard cannot be `O(1)` here.
 
 **Ground-task elimination does not apply to `cumulative` or `disjunctive`.** In a linear constraint a ground
 variable's contribution is a *scalar*, so it folds into a running constant and the variable leaves the
