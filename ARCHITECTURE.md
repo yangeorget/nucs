@@ -257,7 +257,7 @@ event and schedules nobody".
   second parameter through `SIGN_CONSISTENCY_ALG`, and so a breaking change to every custom consistency algorithm,
   for one bit. Six bits are left.
 
-Twenty-one propagators report today: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`,
+Twenty-two propagators report today: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`,
 `count_eq`/`leq_c`/`geq_c`, `alldifferent`, `gcc`, `lexleq`, `inverse`, `regular`, `scc`, `relation`, and the four
 `element_l_eq`/`_c`/`_alldifferent`/`_c_alldifferent`. All of them are n-ary: `abs_eq` and `leq_c` reported for a
 while and were taken back out, because a propagator holding two variables has at most two write-back iterations
