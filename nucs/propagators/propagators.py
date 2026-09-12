@@ -255,6 +255,7 @@ from nucs.propagators.nvalue_propagator import (
 from nucs.propagators.regular_propagator import (
     compute_domains_regular,
     get_complexity_regular,
+    get_state_regular,
     get_triggers_regular,
     is_vacuous_regular,
 )
@@ -602,6 +603,8 @@ ALG_REGULAR = register_propagator(
     compute_domains_regular,
     is_vacuous_regular,
     idempotent=False,
+    get_state_fct=get_state_regular,
+    reports_changes=True,
 )
 ALG_RELATION = register_propagator(get_triggers_relation, get_complexity_relation, compute_domains_relation)
 ALG_SCC = register_propagator(get_triggers_scc, get_complexity_scc, compute_domains_scc)

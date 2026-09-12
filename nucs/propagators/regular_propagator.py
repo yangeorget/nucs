@@ -43,6 +43,44 @@ def get_complexity_regular(n: int, parameters: NDArray) -> int:
     return n * q * s
 
 
+# The state block, all of it an untrailed hint (see get_state_regular):
+#   [report | cached | bounds[2 * length]]
+STATE_REPORT = 0
+STATE_CACHED = 1  # whether bounds below records an input this propagator is known to leave alone
+STATE_BOUNDS = 2
+
+
+def get_state_regular(n: int, parameters: Sequence[int]) -> tuple[int, int]:
+    """
+    Returns the size of this propagator's state block: the two layered-graph passes, plus a no-op cache.
+
+    Two things live here, and both are hints rather than trailed state.
+
+    Only the cache lives here. ``fwd`` and ``bwd`` were tried in the block too, to spare their two
+    ``np.zeros`` per call, and measured 2-8% *slower* on the full path at every length: the block is int32
+    and they are uint8, so moving them quadruples a footprint the two passes walk repeatedly, which costs
+    more than an allocation does.
+
+    ``bounds`` records the domains as they stood at the end of a call that
+    changed nothing, and ``cached`` says so. Reaching this propagator again with those exact domains
+    therefore means the answer is again "nothing to do", which is an O(length) comparison instead of the
+    O(length * q * s) the two passes and the support tests cost -- and this propagator declares itself
+    non-idempotent, so the engine re-enters it until it stops changing anything, which is exactly the
+    sequence that ends in a call like that. Pairing the cache with the input it was computed from is what
+    makes it a hint: a backtrack widens the domains, the comparison sees it, and the call runs in full. The
+    cache cannot go stale because it never claims anything about an input it has not stored.
+
+    :param n: the number of variables (the sequence length)
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: Sequence[int]
+
+    :return: (trailed_nb, hint_nb) = (0, 2 + 2n)
+    :rtype: tuple[int, int]
+    """
+    return 0, STATE_BOUNDS + 2 * n
+
+
 @njit(cache=True)
 def get_triggers_regular(n: int, variable: int, parameters: NDArray) -> int:
     """
@@ -141,7 +179,8 @@ def compute_domains_regular(domains: NDArray, parameters: NDArray, prop_state: N
     :type domains: NDArray
     :param parameters: the DFA description, as above
     :type parameters: NDArray
-    :param prop_state: this propagator's state block (unused)
+    :param prop_state: this propagator's state block, holding the change report, the no-op cache and the
+        two reachability passes; see get_state_regular
     :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
@@ -154,10 +193,25 @@ def compute_domains_regular(domains: NDArray, parameters: NDArray, prop_state: N
     acc_off = 3 + q_nb * s_nb
     if length == 0:
         return PROP_ENTAILMENT if parameters[acc_off + (q0 - 1)] else PROP_INCONSISTENCY
+    bounds = prop_state[STATE_BOUNDS : STATE_BOUNDS + 2 * length]
+    # The no-op cache: bounds holds the domains at the end of a call that changed nothing, so finding them
+    # unchanged means this call changes nothing either. O(length) against the O(length * q * s) below.
+    if prop_state[STATE_CACHED]:
+        same = True
+        for i in range(length):
+            if bounds[i << 1] != domains[i, DOMAIN_MIN] or bounds[(i << 1) | 1] != domains[i, DOMAIN_MAX]:
+                same = False
+                break
+        if same:
+            prop_state[STATE_REPORT] = 0
+            return PROP_CONSISTENCY
+    prop_state[STATE_CACHED] = 0  # whatever it held no longer describes the input
+    # fwd and bwd stay local uint8 rather than moving into the block: the block is int32, so holding them
+    # there quadruples their footprint, and the two passes below walk them enough for that to cost more
+    # than the allocation saves -- measured 2-8% slower on the full path at every length tried.
     fwd = np.zeros((length + 1, q_nb + 1), dtype=np.uint8)
     bwd = np.zeros((length + 1, q_nb + 1), dtype=np.uint8)
     # forward reachability
-    fwd[:] = 0
     fwd[0, q0] = 1
     for i in range(length):
         var = domains[i]
@@ -183,6 +237,7 @@ def compute_domains_regular(domains: NDArray, parameters: NDArray, prop_state: N
     if not bwd[0, q0]:
         return PROP_INCONSISTENCY  # the initial state cannot reach acceptance
     # prune each variable's bounds to the supported symbols
+    changed = False
     for i in range(length):
         var = domains[i]
         new_min = var[DOMAIN_MIN]
@@ -196,10 +251,18 @@ def compute_domains_regular(domains: NDArray, parameters: NDArray, prop_state: N
         if new_min != var[DOMAIN_MIN] or new_max != var[DOMAIN_MAX]:
             var[DOMAIN_MIN] = new_min
             var[DOMAIN_MAX] = new_max
+            changed = True
     ground_nb = 0
     for i in range(length):
         if domains[i, DOMAIN_MIN] == domains[i, DOMAIN_MAX]:
             ground_nb += 1
     if ground_nb == length:
         return PROP_ENTAILMENT  # a single accepted word remains
+    if not changed:
+        # this input is now known to be left alone: record it so the next call recognises it
+        for i in range(length):
+            bounds[i << 1] = domains[i, DOMAIN_MIN]
+            bounds[(i << 1) | 1] = domains[i, DOMAIN_MAX]
+        prop_state[STATE_CACHED] = 1
+        prop_state[STATE_REPORT] = 0
     return PROP_CONSISTENCY

@@ -35,6 +35,15 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   reporting `0` after narrowing a domain silently drops that pruning, and `PropagatorTest` checks every reporting
   propagator against it.
 
+- **`regular` recognises an input it has already settled.** It keeps, in its state block, the domains as they
+  stood at the end of a call that changed nothing; meeting them again means the answer is again "nothing to
+  do", which is a comparison over the sequence instead of the two reachability passes and support tests that
+  cost `O(length * states * symbols)`. It is non-idempotent, so the solver re-enters it until it stops
+  changing anything — 90% of its calls in a purpose-built model change nothing. Measured on the propagator, a
+  recognised input against a full call: 4.4× at 16 variables, 11.5× at 64, 27× at 256, 47× at 1024. The
+  filtering is unchanged, because the cache stores the input it was computed from and so never answers for an
+  input it has not seen.
+
 - **`lexleq` resumes its scan instead of restarting it.** Its four mutually recursive states are the Frisch et
   al. lexicographic algorithm, which is designed to carry its pointers across calls; NuCS restarted it at state
   1, index 0 every time. It now keeps, in its state block, the length of the prefix over which `x_i = y_i` has

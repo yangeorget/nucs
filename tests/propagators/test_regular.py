@@ -20,7 +20,7 @@ import pytest
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_REGULAR
-from nucs.propagators.regular_propagator import compute_domains_regular, is_vacuous_regular
+from nucs.propagators.regular_propagator import compute_domains_regular, get_state_regular, is_vacuous_regular
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -94,7 +94,11 @@ class TestRegular(PropagatorTest):
             params = [q_nb, s_nb, q0, *d, *accept]
             solutions = _brute_solutions(doms, q_nb, s_nb, d, q0, accept)
             arr = np.array(list(doms), dtype=np.int32)
-            status = compute_domains_regular(arr, np.array(params, dtype=np.int32), np.empty(0, dtype=np.int32))
+            # sized by the propagator itself, as bc_algorithm does: regular keeps its two reachability
+            # passes and its no-op cache in the block, so an empty one is not a valid input
+            trailed_nb, hint_nb = get_state_regular(length, params)
+            prop_state = np.zeros(trailed_nb + hint_nb, dtype=np.int32)
+            status = compute_domains_regular(arr, np.array(params, dtype=np.int32), prop_state)
             if not solutions:
                 assert status == PROP_INCONSISTENCY, (d, accept, doms)
                 continue
