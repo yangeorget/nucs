@@ -443,30 +443,49 @@ semantics (`BUCKET_NB = 8`, so `STORAGE_OFFSET = 2 · BUCKET_NB = 16`):
 | `[16+C : 16+2C]` | `C` | membership flag per element (`0`/`1`) |
 | `[-1]` | 1 | cached lowest non-empty bucket index (search hint for `buckets_pop`) |
 
-**The queue coalesces, and that decides what incrementality is available.** A propagator is enqueued once
-however many of its variables moved, so by the time it is popped it sees the whole batch at once. Gecode's
-advisors are the opposite arrangement — one call per modification, each handed a `Delta` — and three separate
-attempts at Gecode-style incrementality have foundered on the difference, each looking obvious until measured:
+**Every solver coalesces the call; NuCS alone discards the delta.** A propagator is enqueued once however many
+of its variables moved — and so it is in Gecode (`me_combine` folds the modification events together), in Choco
+("the variable stores events but is enqueued only once") and in CP-SAT ("assume that a propagator does not need
+to be called twice in a row"). Coalescing the *call* is universal. What the other three keep, and NuCS throws
+away, is **what changed**:
+
+| | call coalesced | delta survives to the call |
+|---|---|---|
+| Gecode | yes | `ModEventDelta`, plus **advisors** run per modification with a `Delta` |
+| Choco | yes | `propagate(idxVarInProp, mask)` per modified variable, when `reactToFineEvent()` |
+| CP-SAT | yes | `IncrementalPropagate(watch_indices)` — the accumulated changed set |
+| **NuCS** | yes | **no** — `update_domains` holds `(variable, events)` when it schedules, and records only that it did |
+
+Two things follow, and they pull in opposite directions.
+
+**What is genuinely closed off** is anything that needs a *per-modification* hook. Only Gecode's advisors have
+one, and two attempts foundered on that:
 
 - **A cache keyed on the exact domains never hits.** A propagator is woken *because* one of its variables
-  changed, so its domains always differ from the ones it last settled on. The event that wakes it is the event
+  changed, so its domains always differ from the ones it last settled on: the event that wakes it is the event
   that invalidates the cache. Measured 0 hits in 131 lookups on `regular`.
 - **A propagator cannot defer work to "a later event".** Carlsson and Beldiceanu's `lexleq` skips positions
   before γ on the grounds that one which has become decisive "will lead to just that, when it is processed" —
-  true with per-variable events, false here, where there is no later call to rely on. So `q` and `r` are
+  true with per-variable events, false here, where the batched call is the only call. So `q` and `r` are
   carried and `s` is not.
-- **A guard in front of the body cannot be O(1).** When a propagator is woken, **15–41% of its variables have
-  already moved** — 82 of `count_eq`'s 201 on magic_sequence(200), 2.25 of 14 for
-  `element_l_eq_alldifferent` on quasigroup, 3.22 of 12 for `alldifferent` on queens. Any guard has to read
-  the changed set to decide anything, so it costs `O(#changed)`, which at 40% of `n` is the same order as the
-  body it was meant to skip — and it would be paid on the writer side, which is already the hot one at ~1193
-  propagator calls per node. Gecode gets `ES_FIX` in constant time only because its advisor sees one
-  modification at a time.
 
-Coalescing is what makes scheduling cheap; per-event advisor precision is what it costs. **The mechanisms that
-do pay here are the ones needing no delta at all** — reporting after the fact (`prop_state`'s change cell),
-resuming past a prefix that is monotone by construction (`lexleq`), and dropping candidates that can never
-come back (`relation`'s live tuples).
+**What is not closed off is recording the delta**, and an earlier version of this note said otherwise on the
+strength of a half-read measurement. When a propagator is woken, **15–41% of its variables have already
+moved** — 82 of `count_eq`'s 201 on magic_sequence(200), 6.69 of 24 for `inverse` on quasigroup, 3.22 of 12 for
+`alldifferent` on queens, 2.25 of 14 for `element_l_eq_alldifferent`. That rules out a *guard*: a test costing
+`O(#changed)` in front of an `O(n)` body saves nothing at 40% of `n`. It does **not** rule out handing the
+propagator a smaller input — 82 of 201 is still 2.4× less to scan, which is the ratio CP-SAT's
+`IncrementalPropagate` exists to exploit, and the same shape as `relation`'s live tuples, which paid.
+
+The cost is the reason it has not been done rather than a reason it cannot be: the write lands in
+`update_domains`'s trigger loop, NuCS's hot scattered pass, and is paid on every trigger hit whether the
+propagator reads it or not. That is the trade the linear-prefix compaction, the array merges, the Θ-tree and
+`regular`'s `uint8` buffers all lost. Opt-in per propagator, measured on `count_eq`/magic_sequence first, is
+the way to find out.
+
+Meanwhile **the mechanisms that have paid here need no delta at all** — reporting after the fact
+(`prop_state`'s change cell), resuming past a prefix that is monotone by construction (`lexleq`), and dropping
+candidates that can never come back (`relation`'s live tuples).
 
 ### The pure-Python escape hatch is a hard constraint
 
@@ -483,8 +502,8 @@ microbenchmark.
 
 **A cache keyed on the exact domains cannot hit.** A propagator is woken only when one of its own variables
 has changed, so the event that wakes it is the event that invalidates the cache — 0 hits in 131 lookups on
-`regular`, against a microbenchmark that said 47×. One of three consequences of the queue coalescing; see
-*The propagation queue* above for the other two and for why a Gecode-style guard cannot be `O(1)` here.
+`regular`, against a microbenchmark that said 47×. A consequence of there being no per-modification hook; see
+*The propagation queue* above for what that does and does not rule out.
 
 **Ground-task elimination does not apply to `cumulative` or `disjunctive`.** In a linear constraint a ground
 variable's contribution is a *scalar*, so it folds into a running constant and the variable leaves the
