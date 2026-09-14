@@ -73,8 +73,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   hypothetical: `global_cardinality_low_up` collapses entirely when its low and up bounds are equal, and
   `gcc_roster` posted none of its target until they were separated.
 
-- **Every propagator was checked for a monotone set worth carrying in its state block, and `count_eq` was
-  the only one.** The shape that pays — park what has left past the end of a live prefix, trail the prefix
+- **Every propagator was checked for a monotone set worth carrying in its state block, and four of them
+  now carry one.** The shape that pays — park what has left past the end of a live prefix, trail the prefix
   size and nothing else — was already behind `relation`'s live tuples, and had already failed on
   `sum_*`/`linear_*`. What separates the two is not the constraint but **how far its candidate set
   collapses**, and that is worth stating because it is cheap to measure and the wrong guess is expensive:
@@ -91,19 +91,26 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   | `diffn` | pairs not yet definitely separated | 62–82% live | no — the invariant holds, the set does not collapse |
   | `value_precede`, `increasing`, `strictly_increasing` | a settled prefix to resume past | only the *ground* prefix | no — a walked-past position can start pruning again; and nothing here posts them |
 
-  So a **custom propagator** weighing a live set should probe that fraction first, with a counter in its own
-  state block: under about a fifth it is worth building, over about two fifths it cannot pay whatever the
-  per-element work is. The `cx = 1` propagators are out of scope entirely — a constraint over two or three
-  variables has nothing to amortise a carried set over.
-
-  Those last three landed too, but only above an arity, and getting there sharpened the rule.
+  The three `count_*` siblings are what sharpened that into a rule with two terms rather than one.
   `count_leq_c`, `count_geq_c` and `count_eq_c` count the same predicate over the same shrinking set, so
-  the code is `count_eq`'s almost line for line. What a live set *costs*, though — two trailed cells the
-  solver copies on every call — does not shrink with the constraint while what it saves does, so at arity
-  3 the same change made `employee_scheduling` 5–8% slower. Below `LIVE_SET_MIN_ARITY` the three therefore
-  reserve no live set and take the plain scan, inlined rather than called. Above it they are **1.18×** on
-  a 120-long roster posting 2.9M `count_leq_c` calls. The test is not shrinkage alone but
-  `n × (1 − live fraction) × per-element work` against a fixed per-call cost.
+  the code is `count_eq`'s almost line for line. But what a live set *costs* — two trailed cells the solver
+  copies on every call — does not shrink with the constraint while what it saves does, so at arity 3 the
+  same change made `employee_scheduling` 5–8% slower. Below `LIVE_SET_MIN_ARITY` the three therefore
+  reserve no live set and take the plain scan, kept as an inlined helper because at those arities the call
+  itself measured against it. Above it they are **1.18×** on a 120-long roster posting 2.9M `count_leq_c`
+  calls at 87% no-change.
+
+  So a **custom propagator** weighing a live set has two things to check, not one. Probe the candidate-set
+  fraction with a counter in its own state block — under about a fifth it is worth building, over about two
+  fifths it cannot pay whatever the per-element work is — and check the **arity**, because the saving is
+  `n × (1 − live fraction) × per-element work` while the cost is flat per call. The `cx = 1` propagators
+  are out of scope on the second count alone: a constraint over two or three variables has nothing to
+  amortise a carried set over, however far its set collapses.
+
+  Worth knowing how that second term was found, since it is the kind a propagator benchmark hides: timing
+  `compute_domains_*` directly leaves out the trailing the engine does around it, so the propagator-level
+  table above reads 1.00–1.02× at arity 16 where the solver reads 5–8% *slower*. A change that adds trailed
+  state has to be confirmed in the solver, not on the propagator.
 
 - **`lexleq` resumes its scan instead of restarting it**, in both of the two states where that is sound. Its four mutually recursive states are the Frisch et
   al. lexicographic algorithm, which is designed to carry its pointers across calls; NuCS restarted it at state
