@@ -53,6 +53,19 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   on the propagator with a 99% equal prefix: 1.6× at 128 variables, 3.2× at 512, 9.4× at 2048, with the resumed
   call flat at ~220 ns whatever the prefix.
 
+- **A propagator is still not told *which* of its variables changed, and the measurement for that is now
+  written down.** Gecode, Choco and CP-SAT all keep the set of modified variables and hand it to the
+  propagator (CP-SAT's `IncrementalPropagate`); NuCS coalesces the call like they do but drops the set. The
+  mechanism was built and measured on the best case NuCS has for it — `count_eq` on magic_sequence, the widest
+  propagators and the highest no-change rate — and it is **0.75–0.80×**, with every statistic identical. The
+  scan it shortens is worth 34–38% of the solve, but recording the changes costs 31–40% and the shorter scan
+  gives back only 5–6%: a propagator here is called just **1.63 times per filtering**, so 61.2% of calls have
+  no delta to use and the rest cannot amortise what recording cost. Reporting *after the fact*, above, is the
+  cheaper half of the same idea and has already taken the slack — it works by removing calls, which are
+  exactly what a delta needs to amortise against. `ARCHITECTURE.md` carries the decomposition; the code is on
+  the `delta-count-eq` branch. **Nothing in the API changed**, and a custom propagator's
+  `compute_domains_*` keeps the three arguments it has.
+
 - **`IDEMPOTENCIES` is now `ALGORITHM_FLAGS`, a packed word per algorithm.** It carries `PROP_FLAG_IDEMPOTENT` and
   `PROP_FLAG_REPORTS_CHANGES` instead of a bare boolean, so that a new per-algorithm property does not mean a new
   parameter through `SIGN_CONSISTENCY_ALG`. A **custom consistency algorithm** keeps the shape it had; its second
