@@ -316,6 +316,26 @@ and 6.23× at 99%; 1024 of 8 columns, 7.32× at 99%. A small table gains little 
 calls against a handful of 3-column tuples and measures flat — so the win is for FlatZinc `table`
 constraints, which is where the long ones come from.
 
+`count_eq` keeps a **live set of the x_i still undetermined**, which is `relation`'s shape applied to a
+much narrower body. An `x_i` is undetermined while `a` is inside its domain and it is not fixed to `a`; it
+leaves that state by losing `a` (it can never equal `a`, so it leaves `count_max`) or by grounding on `a` (it
+must, so it joins `count_min`). Neither departure can be undone inside a branch, so the first pass costs the
+ones that have not departed instead of all n — and so do the other two passes, which only ever acted on an
+undetermined `x_i` anyway, and whose case analysis collapses once every element scanned is known to have `a`
+strictly inside its bounds. Two cells are trailed: the size of the live prefix, biased by one so that a
+zeroed block reads as cold, and `count_min`. `count_max` is not stored at all — `count_max = count_min +
+live_nb` — which matters because the engine copies the trailed prefix on every call.
+
+**Why this one pays where the same shape failed on `linear_*`**, given that skipping an `x_i` here saves two
+loads and two compares and costs an indirection, much the same trade that lost there: the break-even is a
+*shrinkage*, and the two constraints are nowhere near each other on it. Measured, on the models that post
+them: `count_eq`'s undetermined set is **4.0% of its variables on magic_sequence(200) and 2.3% on (400)** —
+8 of 200, 9.1 of 400 — while the unbound set of a `sum_*` is 46–75% across schur_lemma, employee_scheduling,
+bibd, magic_square and golfers, at arities of 2 to 12.5. A loop that shrinks 25× can pay a doubled cost per
+element and still come out ten times ahead; one that shrinks by a third cannot pay anything. Measured
+end-to-end: magic_sequence(200) 1.35×, (400) 1.30×, (600) 1.39×, with every statistic identical and
+`employee_scheduling`, `queens`, `quasigroup` and `schur_lemma` flat.
+
 `lexleq` keeps two trailed positions besides the report — `q` and `r`, which are α and β in Carlsson and
 Beldiceanu's *Revisiting the Lexicographic Ordering Constraint* (`papers/lexleq/`), the report this
 implementation is transcribed from. That paper's whole point is resumption: it claims `O(n)` on posting plus

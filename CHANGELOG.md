@@ -45,6 +45,16 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   92%, 6.23× at 99%; over 8 columns, 7.32× at 99%. Small tables gain little, so this is for the long
   `table` constraints a FlatZinc model brings.
 
+- **`count_eq` stops re-examining the variables it has already settled.** A variable that has lost the
+  counted value can never regain it, and one that has ground onto it can never leave it, so the set worth
+  looking at only shrinks as the search descends. The propagator now keeps that set — and the two counts it
+  feeds — in its state block, and all three of its passes cost the variables still undecided rather than the
+  whole array. The filtering is unchanged, counter for counter. Measured: magic_sequence(200) 1.35×, (400)
+  1.30×, (600) 1.39×; models posting no wide `count_eq` are unaffected. The win needs a long constraint
+  *and* a set that really collapses: `count_eq` is down to **4% of its variables** on magic_sequence, which
+  is why it pays here when the same idea has repeatedly failed on `sum_*`/`linear_*`, whose unbound sets
+  measure 46–75% at arities of 2 to 12.5.
+
 - **`lexleq` resumes its scan instead of restarting it**, in both of the two states where that is sound. Its four mutually recursive states are the Frisch et
   al. lexicographic algorithm, which is designed to carry its pointers across calls; NuCS restarted it at state
   1, index 0 every time. It now keeps, in its state block, the length of the prefix over which `x_i = y_i` has
