@@ -467,6 +467,37 @@ but at 512 tasks in the worst shape only, and the shape is not knowable cheaply.
 linear-compaction and array-merge results: **a tight contiguous scan with a data-dependent early exit is very
 hard to beat with a better asymptotic and worse locality.**
 
+### `regular` allocated twice a call, cleared what it allocated, and then recomputed its own answer
+
+*(measured 2026-09-15)* Pesant's layered graph needs two reachability tables — which states are reachable
+at each position, and from which states acceptance is still reachable. `regular` was building both with
+`np.zeros` on every call, on a propagator whose state block held nothing but the report cell: the same
+omission as `nvalue`, found the same way, by the FlatZinc coverage report showing 544,220 calls against a
+propagator nobody had looked at.
+
+Two changes, and the second is the interesting one:
+
+- **The tables moved into the state block and are stamped rather than cleared.** Each call takes the next
+  stamp and writes it where it used to write a 1; a cell holding any other stamp reads as unreachable. That
+  removes the allocation *and* the `O(length * q)` clearing, which a fresh `np.zeros` had been providing
+  for free. Worth ~1.09× on `regular_shifts`.
+- **The pruning pass was deleted, because the backward pass already knows the answer.** A symbol `v` is
+  supported at position `i` exactly when some forward-reachable state reads it into a state that still
+  accepts — which is the pair `(q, v)` the backward sweep is already visiting. It now records the supported
+  range as it goes, and pruning is a bound assignment per variable instead of a scan calling a support test
+  per candidate bound. The early exit survives for states that are *not* forward-reachable, which cannot
+  support anything and so still stop at the first transition that marks them.
+
+Measured on `regular_shifts` (442,654 nodes, 544,220 `regular` calls) with `nvalue_assign` flat as a
+control and every statistic identical across both benchmark sets: **901 ms → 776 ms, 1.16×**.
+
+**The estimate that pointed here was badly wrong in size and right in direction.** Duplicating each pass in
+situ priced the forward sweep at 7% of the model, the backward at 14% and the pruning loop at **64%** —
+which predicted roughly 2×. Deleting the pruning loop outright was worth 8%. Duplication prices a pass by
+running it twice, and for a pass built out of calls to a small non-inlined function that doubles the call
+overhead too, which is not what removing the pass recovers. Inlining that function first, which measured
+3%, was the signal that the estimate was inflated and it was read too late.
+
 ### `nvalue` was left out of the scratch-and-warm-permutations pass, and paid 2x for it
 
 *(measured 2026-09-14)* `nvalue` bounds its count variable between the largest set of pairwise-disjoint

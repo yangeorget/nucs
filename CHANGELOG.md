@@ -35,6 +35,17 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   reporting `0` after narrowing a domain silently drops that pruning, and `PropagatorTest` checks every reporting
   propagator against it.
 
+- **`regular` stops allocating its layered graph on every call, and stops recomputing what it already
+  knows.** It needs two reachability tables — which automaton states are reachable at each position, and
+  from which states acceptance is still reachable — and was building both with `np.zeros` per call, with no
+  state block beyond the change-report cell. They now live in the block and are *stamped* rather than
+  cleared: each call marks with the next stamp, and a cell holding any other stamp reads as unreachable,
+  which removes the clearing as well as the allocation. Separately, its pruning pass is gone: a symbol is
+  supported exactly when some forward-reachable state reads it into a state that still accepts, which is
+  the pair the backward sweep already visits, so the supported range is recorded as it goes and pruning
+  becomes a bound assignment per variable. Measured on a 45-day rostering automaton making 544,220 calls:
+  **901 ms → 776 ms**, with the filtering identical counter for counter.
+
 - **`nvalue` stops rebuilding its two sort orders from scratch on every call, and is 2× faster for it.** It
   bounds the count variable between the largest set of pairwise-disjoint domains and the size of their
   union, which needs the variables sorted by upper bound and by lower bound — and it was doing that with two
