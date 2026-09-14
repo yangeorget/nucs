@@ -16,3 +16,7 @@ profile.pstats
 specs
 tmp
 venv*
+
+# compiled FlatZinc, regenerated from the .mzn beside it by scripts/fzn_benchmark.py
+datasets/fzn/*.fzn
+datasets/fzn/*.ozn

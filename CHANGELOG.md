@@ -55,6 +55,20 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   is why it pays here when the same idea has repeatedly failed on `sum_*`/`linear_*`, whose unbound sets
   measure 46–75% at arities of 2 to 12.5.
 
+- **There is a FlatZinc benchmark set now, and a coverage report saying which propagators nothing calls.**
+  `datasets/fzn` holds small MiniZinc models, each declaring the propagator it exists for, and
+  `scripts/fzn_benchmark.py` compiles them through NuCS's own globals library and reports per model the
+  target propagator's calls, no-change rate and arity — plus, with `--coverage`, every propagator that went
+  uncalled. This closes a gap that had been deciding propagator work by default rather than on evidence:
+  most globals are reachable only through FlatZinc, so `nucs/examples` left `value_precede`,
+  `bin_packing_load`, a wide `count_leq_c`, `regular`, `nvalue` and `diffn` at zero calls, and a propagator
+  nothing posts cannot be measured. Four of the seven models are hot enough to A/B a change against —
+  `diffn_packing` (64,452 `diffn` calls), `gcc_roster` (3.7M `gcc`), `regular_shifts` (544,220 `regular`),
+  `nvalue_assign` (19,233 `nvalue`) — and three more post their target at a useful arity without yet being
+  hot. The report also catches a model that has stopped exercising what it was written for, which is not
+  hypothetical: `global_cardinality_low_up` collapses entirely when its low and up bounds are equal, and
+  `gcc_roster` posted none of its target until they were separated.
+
 - **Every propagator was checked for a monotone set worth carrying in its state block, and `count_eq` was
   the only one.** The shape that pays — park what has left past the end of a live prefix, trail the prefix
   size and nothing else — was already behind `relation`'s live tuples, and had already failed on
