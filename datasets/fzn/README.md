@@ -25,7 +25,7 @@ registered (`fzn-nucs --register`). The `.fzn` is cached beside the `.mzn` and i
 
 | model | target | what it is |
 |---|---|---|
-| `bin_packing_load` | `BIN_PACKING_LOAD` | partition weighted items, minimising the heaviest bin |
+| `bin_packing_load` | `BIN_PACKING_LOAD` | partition 54 weighted items into 7 bins, minimising the heaviest |
 | `count_shifts` | `COUNT_LEQ_C` | per-shift quotas as `at_most`/`at_least` over a 120-long roster |
 | `diffn_packing` | `DIFFN` | strip packing, minimising the height |
 | `gcc_roster` | `GCC` | a shift roster with per-shift cardinality bounds |
@@ -33,11 +33,20 @@ registered (`fzn-nucs --register`). The `.fzn` is cached beside the `.mzn` and i
 | `regular_shifts` | `REGULAR` | a rostering pattern automaton over a long horizon |
 | `value_precede_colouring` | `VALUE_PRECEDE` | graph colouring with the value symmetry broken |
 
-Five are hot enough to A/B a change against — `count_shifts` (2.9M `count_leq_c` calls at arity 120, and
+Six are hot enough to A/B a change against — `count_shifts` (2.9M `count_leq_c` calls at arity 120, with
 2.1M `count_geq_c` beside it), `gcc_roster` (3.7M `gcc`), `regular_shifts` (544k `regular`),
-`diffn_packing` (64k `diffn`) and `nvalue_assign` (19k `nvalue`). Two — `value_precede_colouring` and
-`bin_packing_load` — post their target at a useful arity (50 and 42) but are still coverage rather than
-timing.
+`diffn_packing` (64k `diffn`), `nvalue_assign` (19k `nvalue`) and `bin_packing_load` (13k calls at arity
+61, where the propagator is most of the runtime because its cost is quadratic in that arity).
+
+`value_precede_colouring` is the exception, and it is **coverage only by nature rather than by neglect**.
+`value_precede(s, t)` returns entailment as soon as the earliest position that can hold `s` is ground to
+`s`, and entailment is trailed, so any search that grounds variables settles it at shallow depth and it
+stays settled for the whole subtree. Five shapes were tried — fixed prefix, fixed suffix, reversed search
+order, all-solutions enumeration to 945,937 nodes, and barring the chained values from an early window —
+and the propagator is called at most 12 times in any of them. Keeping it live needs `s` excluded from a
+long prefix without ever being ground there, and arranging that makes the model infeasible, because
+`value_precede` then bars `t` from the same prefix and the cascade runs out of values. **There is nothing
+in that propagator to optimise**, which is worth knowing and is what this model records.
 
 Two knobs make a model hot without making it huge. `% nucs-solve: all` enumerates every solution instead
 of stopping at the first, which is what turns a model the solver satisfies greedily into one whose search

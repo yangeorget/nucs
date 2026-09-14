@@ -65,7 +65,12 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   nothing posts cannot be measured. Four of the seven models are hot enough to A/B a change against —
   `count_shifts` (2.9M `count_leq_c` calls at arity 120, with 2.1M `count_geq_c` beside it), `gcc_roster`
   (3.7M `gcc`), `regular_shifts` (544,220 `regular`), `diffn_packing` (64,452 `diffn`) and `nvalue_assign`
-  (19,233 `nvalue`) — and two more post their target at a useful arity without yet being hot. Two knobs do
+  (19,233 `nvalue`) and `bin_packing_load` (13,473 calls at arity 61, where the propagator is most of the
+  runtime because its cost is quadratic in that arity). The seventh, `value_precede`, turns out not to be
+  makeable hot at all: it entails as soon as the earliest position that can hold its first value is ground
+  to it, which any search does at shallow depth, and across five model shapes — including an all-solutions
+  enumeration to 945,937 nodes — it is called at most 12 times. That is a result rather than a gap: there
+  is nothing in that propagator to optimise. Two knobs do
   that work: `% nucs-solve: all` enumerates every solution rather than stopping at the first, which turns a
   model the solver satisfies greedily into one whose search depth follows its size, and pre-assigning part
   of the problem fixes the propagators' arity independently of how much search is left, so a model can be
