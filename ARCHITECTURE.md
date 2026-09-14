@@ -326,6 +326,28 @@ strictly inside its bounds. Two cells are trailed: the size of the live prefix, 
 zeroed block reads as cold, and `count_min`. `count_max` is not stored at all — `count_max = count_min +
 live_nb` — which matters because the engine copies the trailed prefix on every call.
 
+**`diffn` has the invariant and not the shrinkage**, which is the third way the rule can come out negative
+and the one that looks most like a win right up to the measurement. *(measured 2026-09-14)* Its pass is
+`O(n^2)` over pairs, and a pair is **definitely separated** once `x_i.max + dx_i <= x_j.min` — or any of the
+four symmetric forms — which is monotone down a branch because `x_i.max` only falls and `x_j.min` only
+rises. The propagator's work on such a pair is then provably nothing: the separation makes its own direction
+feasible, so the `not x_sep` / `not y_sep` branches cannot be entered on that axis, and the tightenings the
+other axis would apply are already implied by the bounds. Checked on 242,323 randomly generated
+definitely-separated pairs: zero were narrowed.
+
+None of which helps, because the set does not collapse. Dead pairs measured **38.5%** on `rect_09` and
+**29.7%** on `square_21` for a first solution, and — going the wrong way as the search deepens — **26.7%**
+and **18.3%** enumerating all solutions, the last over 9,863 nodes and 15,651 `diffn` calls. At 82% of the
+pairs still live, the scan is barely shorter than the one it replaces, and the four extra comparisons per
+live pair that maintain the set eat what is left.
+
+This one is worth separating from the `sum_*` rejection, because the per-element term points the other way:
+a pair costs a dozen loads and a branch, so the indirection amortises the way `relation`'s does and the
+break-even shrinkage is *much* lower than `count_eq`'s. `diffn` fails anyway, on the one term that was
+favourable everywhere else. Worth knowing too that `square` is the only model here that posts `diffn`, and
+with its recommended searches it makes 447 calls inside 14 ms — so even a real gain would have had nothing
+to show it on.
+
 **The same live set does not transfer to `count_leq_c`, `count_geq_c` or `count_eq_c`**, and they are what
 completes the rule above. *(built and measured 2026-09-14; not landed)* The three count the same predicate
 over the same monotone set, so the code is `count_eq`'s almost line for line, plus a short-circuit it does
