@@ -63,9 +63,13 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   most globals are reachable only through FlatZinc, so `nucs/examples` left `value_precede`,
   `bin_packing_load`, a wide `count_leq_c`, `regular`, `nvalue` and `diffn` at zero calls, and a propagator
   nothing posts cannot be measured. Four of the seven models are hot enough to A/B a change against —
-  `diffn_packing` (64,452 `diffn` calls), `gcc_roster` (3.7M `gcc`), `regular_shifts` (544,220 `regular`),
-  `nvalue_assign` (19,233 `nvalue`) — and three more post their target at a useful arity without yet being
-  hot. The report also catches a model that has stopped exercising what it was written for, which is not
+  `count_shifts` (2.9M `count_leq_c` calls at arity 120, with 2.1M `count_geq_c` beside it), `gcc_roster`
+  (3.7M `gcc`), `regular_shifts` (544,220 `regular`), `diffn_packing` (64,452 `diffn`) and `nvalue_assign`
+  (19,233 `nvalue`) — and two more post their target at a useful arity without yet being hot. Two knobs do
+  that work: `% nucs-solve: all` enumerates every solution rather than stopping at the first, which turns a
+  model the solver satisfies greedily into one whose search depth follows its size, and pre-assigning part
+  of the problem fixes the propagators' arity independently of how much search is left, so a model can be
+  wide without its enumeration exploding. The report also catches a model that has stopped exercising what it was written for, which is not
   hypothetical: `global_cardinality_low_up` collapses entirely when its low and up bounds are equal, and
   `gcc_roster` posted none of its target until they were separated.
 

@@ -48,6 +48,25 @@ MODEL_DIR = ROOT / "datasets" / "fzn"
 MINIZINC = os.environ.get("MINIZINC") or shutil.which("minizinc")
 
 
+def annotation_of(mzn: Path, key: str) -> str | None:
+    """
+    Returns a ``% nucs-<key>: value`` annotation from a model, or None when it declares none.
+
+    :param mzn: the model to read
+    :type mzn: Path
+    :param key: the annotation name, without the ``nucs-`` prefix
+    :type key: str
+
+    :return: the annotation's value
+    :rtype: Optional[str]
+    """
+    prefix = f"% nucs-{key}:"
+    for line in mzn.read_text().splitlines():
+        if line.startswith(prefix):
+            return line.split(":", 1)[1].strip()
+    return None
+
+
 def target_of(mzn: Path) -> str | None:
     """
     Returns the propagator a model exists to exercise, declared in it as ``% nucs-target: NAME``.
@@ -62,10 +81,7 @@ def target_of(mzn: Path) -> str | None:
     :return: the algorithm name, or None when the model declares none
     :rtype: Optional[str]
     """
-    for line in mzn.read_text().splitlines():
-        if line.startswith("% nucs-target:"):
-            return line.split(":", 1)[1].strip()
-    return None
+    return annotation_of(mzn, "target")
 
 
 def compile_model(mzn: Path, rebuild: bool = False) -> Path:
@@ -95,12 +111,16 @@ def compile_model(mzn: Path, rebuild: bool = False) -> Path:
     return fzn
 
 
-def solve(fzn: Path) -> dict[str, Any]:
+def solve(fzn: Path, all_solutions: bool = False) -> dict[str, Any]:
     """
     Solves one compiled model and returns its statistics, including the per-propagator call counts.
 
     :param fzn: the compiled FlatZinc to solve
     :type fzn: Path
+    :param all_solutions: whether to enumerate every solution rather than stop at the first. A satisfiable
+        model is often solved greedily, which exercises its propagators barely at all; enumerating makes
+        the search depth a property of the instance size, and so tunable
+    :type all_solutions: bool
 
     :return: the model's statistics, its propagator counts by algorithm name, and its arities
     :rtype: Dict[str, Any]
@@ -124,7 +144,10 @@ def solve(fzn: Path) -> dict[str, Any]:
     objective = None if model.solve.objective is None else model.var_index_of(model.solve.objective)
     started = time.perf_counter()
     if model.solve.kind == "satisfy":
-        found = next(solver.solve(), None) is not None
+        if all_solutions:
+            found = sum(1 for _ in solver.solve()) > 0
+        else:
+            found = next(solver.solve(), None) is not None
     else:
         from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
         from nucs.solvers.solver import OPTIM_PRUNE
@@ -250,7 +273,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.child:
         child = Path(args.child)
-        print(json.dumps({**solve(compile_model(child)), "target": target_of(child)}))
+        every = annotation_of(child, "solve") == "all"
+        print(json.dumps({**solve(compile_model(child), every), "target": target_of(child)}))
         return
     console = Console(width=200)
     models = sorted(MODEL_DIR.glob("*.mzn"))

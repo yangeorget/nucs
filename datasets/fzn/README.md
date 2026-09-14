@@ -26,13 +26,21 @@ registered (`fzn-nucs --register`). The `.fzn` is cached beside the `.mzn` and i
 | model | target | what it is |
 |---|---|---|
 | `bin_packing_load` | `BIN_PACKING_LOAD` | partition weighted items, minimising the heaviest bin |
-| `count_shifts` | `COUNT_LEQ_C` | per-value quotas as `at_most`/`at_least` over a 72-long sequence |
+| `count_shifts` | `COUNT_LEQ_C` | per-shift quotas as `at_most`/`at_least` over a 120-long roster |
 | `diffn_packing` | `DIFFN` | strip packing, minimising the height |
 | `gcc_roster` | `GCC` | a shift roster with per-shift cardinality bounds |
 | `nvalue_assign` | `NVALUE` | minimise the number of distinct values in a constrained assignment |
 | `regular_shifts` | `REGULAR` | a rostering pattern automaton over a long horizon |
 | `value_precede_colouring` | `VALUE_PRECEDE` | graph colouring with the value symmetry broken |
 
-Three of them — `count_shifts`, `value_precede_colouring` and `bin_packing_load` — post their target at a
-useful **arity** (72, 50 and 42) but are not yet hot enough to time a change against; they are coverage,
-not timing. `diffn_packing`, `gcc_roster`, `regular_shifts` and `nvalue_assign` are hot enough to A/B.
+Five are hot enough to A/B a change against — `count_shifts` (2.9M `count_leq_c` calls at arity 120, and
+2.1M `count_geq_c` beside it), `gcc_roster` (3.7M `gcc`), `regular_shifts` (544k `regular`),
+`diffn_packing` (64k `diffn`) and `nvalue_assign` (19k `nvalue`). Two — `value_precede_colouring` and
+`bin_packing_load` — post their target at a useful arity (50 and 42) but are still coverage rather than
+timing.
+
+Two knobs make a model hot without making it huge. `% nucs-solve: all` enumerates every solution instead
+of stopping at the first, which is what turns a model the solver satisfies greedily into one whose search
+depth follows the instance size. And pre-assigning part of the problem sets the propagators' **arity**
+independently of how much search is left, so a model can be wide — which is what makes it representative —
+without its enumeration exploding. `count_shifts` uses both.
