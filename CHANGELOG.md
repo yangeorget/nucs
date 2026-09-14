@@ -55,6 +55,27 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   is why it pays here when the same idea has repeatedly failed on `sum_*`/`linear_*`, whose unbound sets
   measure 46–75% at arities of 2 to 12.5.
 
+- **Every propagator was checked for a monotone set worth carrying in its state block, and `count_eq` was
+  the only one.** The shape that pays — park what has left past the end of a live prefix, trail the prefix
+  size and nothing else — was already behind `relation`'s live tuples, and had already failed on
+  `sum_*`/`linear_*`. What separates the two is not the constraint but **how far its candidate set
+  collapses**, and that is worth stating because it is cheap to measure and the wrong guess is expensive:
+  the speedup on the scan is about `n / (live × (1 + indirection))`, so a set that falls to 4% pays twelve
+  times over while one that stops at half pays nothing at all. Measured on the models that post them:
+
+  | propagator | monotone set | measured | outcome |
+  |---|---|---|---|
+  | `count_eq` | x_i still undetermined | **4.0% / 2.3%** of n | landed, 1.35–1.39× |
+  | `element_l_eq_alldifferent` | indices still meeting `v` | 94% live | no — `i`'s bounds already keep the scan at 7.5 |
+  | `alldifferent`, `gcc` | ground variables | 27–56% | no — a ground variable is a singleton Hall interval, the most constraining kind there is |
+  | `sum_*`, `linear_*` | unbound variables | 46–75%, arity 2–12.5 | no — hostile on both counts |
+  | `count_eq_c` | x_i still undetermined | 52.7%, arity 4 | no |
+
+  So a **custom propagator** weighing a live set should probe that fraction first, with a counter in its own
+  state block: under about a fifth it is worth building, over about two fifths it cannot pay whatever the
+  per-element work is. The `cx = 1` propagators are out of scope entirely — a constraint over two or three
+  variables has nothing to amortise a carried set over.
+
 - **`lexleq` resumes its scan instead of restarting it**, in both of the two states where that is sound. Its four mutually recursive states are the Frisch et
   al. lexicographic algorithm, which is designed to carry its pointers across calls; NuCS restarted it at state
   1, index 0 every time. It now keeps, in its state block, the length of the prefix over which `x_i = y_i` has
