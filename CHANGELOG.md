@@ -35,6 +35,17 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   reporting `0` after narrowing a domain silently drops that pruning, and `PropagatorTest` checks every reporting
   propagator against it.
 
+- **`nvalue` stops rebuilding its two sort orders from scratch on every call, and is 2× faster for it.** It
+  bounds the count variable between the largest set of pairwise-disjoint domains and the size of their
+  union, which needs the variables sorted by upper bound and by lower bound — and it was doing that with two
+  `np.argsort` calls per call, two allocations and two sorts seeded from nothing. It now keeps both
+  permutations in its state block and warm-starts them the way `alldifferent` and `gcc` have since
+  `prop_state` landed; `nvalue` was simply left out of that pass. It also reports its changes now, and
+  detects entailment when its two bounds meet. Measured on a 30-variable, 10-value assignment making
+  725,713 `nvalue` calls: 751 ms → 417 ms from the permutations alone, → **374 ms** with reporting, the
+  search identical counter for counter. Entailment is sound but fired 7 times out of 725,713, so it is kept
+  for the models where the count collapses early rather than claimed here.
+
 - **`regular` reports whether it changed anything**, so the solver can skip its write-back on the calls that
   changed nothing — which is 87–90% of them.
 

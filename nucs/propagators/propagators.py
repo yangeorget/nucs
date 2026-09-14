@@ -251,6 +251,7 @@ from nucs.propagators.no_sub_cycle_propagator import (
 from nucs.propagators.nvalue_propagator import (
     compute_domains_nvalue,
     get_complexity_nvalue,
+    get_state_nvalue,
     get_triggers_nvalue,
 )
 from nucs.propagators.regular_propagator import (
@@ -608,7 +609,13 @@ ALG_NEQ_REIF = register_propagator(get_triggers_neq_reif, get_complexity_neq_rei
 ALG_NO_SUB_CYCLE = register_propagator(
     get_triggers_no_sub_cycle, get_complexity_no_sub_cycle, compute_domains_no_sub_cycle, idempotent=False
 )
-ALG_NVALUE = register_propagator(get_triggers_nvalue, get_complexity_nvalue, compute_domains_nvalue)
+ALG_NVALUE = register_propagator(
+    get_triggers_nvalue,
+    get_complexity_nvalue,
+    compute_domains_nvalue,
+    get_state_fct=get_state_nvalue,
+    reports_changes=True,
+)
 ALG_REGULAR = register_propagator(
     get_triggers_regular,
     get_complexity_regular,

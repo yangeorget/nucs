@@ -467,6 +467,36 @@ but at 512 tasks in the worst shape only, and the shape is not knowable cheaply.
 linear-compaction and array-merge results: **a tight contiguous scan with a data-dependent early exit is very
 hard to beat with a better asymptotic and worse locality.**
 
+### `nvalue` was left out of the scratch-and-warm-permutations pass, and paid 2x for it
+
+*(measured 2026-09-14)* `nvalue` bounds its count variable between the largest set of pairwise-disjoint
+domains and the size of their union, and each bound needs the variables sorted — by upper bound for the
+first, by lower bound for the second. It was doing that with **two `np.argsort` calls per call**, which is
+two Numba allocations and two sorts seeded from scratch, on a propagator with no state block at all. That
+is exactly what `alldifferent` and `gcc` stopped doing when `prop_state` landed, and `nvalue` simply was
+not in that pass. It now keeps both permutations in its block and re-sorts them from their own previous
+contents through the same `argsort_into_warm`, so a call costs the inversions since the last one rather
+than a full sort.
+
+Measured on `nvalue_assign` (30 variables over 10 values, 806,212 nodes, 725,713 `nvalue` calls), with
+`regular_shifts` flat as a control and the search identical counter for counter:
+
+| | time | |
+|---|---|---|
+| before | 751 ms | |
+| warm permutations, no allocation | 417 ms | **1.80×** |
+| and change reporting on top | **374 ms** | **2.01×** total |
+
+Entailment was added in the same pass and is worth ~nothing here — `low == up` proves every remaining
+assignment has the same number of distinct values, and it is sound and monotone, but it fired on 7 calls
+out of 725,713. Worth keeping for the models where the count collapses early, not worth claiming.
+
+**The general point is that a mechanism landing does not land it everywhere.** Scratch and warm
+permutations were measured at 3.5–4.5% and ~8% when they went into `alldifferent` and `gcc`; the same
+change is worth 1.80× on `nvalue`, because `nvalue` sorts *twice* per call and its models call it often.
+Nothing recorded which propagators had been converted, so the one with the most to gain kept allocating
+for a year. The FlatZinc coverage report exists to make that kind of omission visible.
+
 ### A solver-owned scratch buffer for propagator working memory, and warm alldifferent permutations
 
 *(benchmarked 2026-07, ~4% and ~8% respectively; landed together as the `prop_state` argument — see
