@@ -467,6 +467,35 @@ but at 512 tasks in the worst shape only, and the shape is not knowable cheaply.
 linear-compaction and array-merge results: **a tight contiguous scan with a data-dependent early exit is very
 hard to beat with a better asymptotic and worse locality.**
 
+### `bin_packing_load` was rebuilding a subset-sum per item, and a stamp made it worse before prefixes made it 4.6x
+
+*(measured 2026-09-15)* Its item rule asks, for each candidate in a bin, whether the *other* candidates can
+still fill the bin's remaining load — and answered it by rebuilding the whole subset-sum reachability
+without that candidate. That is `O(nc^2 * total)` per bin, and on `datasets/fzn/bin_packing_load` it came to
+**1.67 billion DP iterations** across 1,327,522 `_reach` calls: 98.5 per propagator call.
+
+**The first attempt made it 38% slower, and is worth recording.** The obvious move was the one that had just
+worked for `regular`: put the reachability buffer in the state block and *stamp* it rather than clear it,
+removing 1.3M allocations and 221M cell-clears. It measured 1,847 ms → 2,418 ms, filtering identical. Two
+controls place the blame exactly: the same scratch buffer with explicit clearing measured 1,843 ms, i.e.
+**the allocations were worth nothing**, and switching from `uint8` to `int32` cost nothing either — so what
+the 38% bought was the stamped comparison itself. A 0/1 array tested against zero is a shape LLVM can
+vectorise; `reach[s - w] == stamp` against a loop-varying value is not. The clearing was only 13.2% of the
+work it accompanied, so there was never much there to win.
+
+**What did work was removing the recomputation.** Reachability without candidate `t` is the subsets of the
+candidates before `t` combined with those after it, so one pass from the right records every suffix, a
+running prefix covers the left, and each question becomes "does some reachable prefix sum `a` leave
+`[lo - a, hi - a]` reachable in the suffix" — `O(1)` per `a` against the suffix's running count, so `O(nc *
+total)` for the whole rule instead of `O(nc^2 * total)`. Measured **1,847 ms → 399 ms, 4.6x**, with
+`nvalue_assign` flat as a control and every statistic identical across both benchmark sets.
+
+**Two lessons, and they pull against each other.** Removing an allocation pays in proportion to allocations
+per unit of work: `nvalue` allocated twice per call against a couple of hundred operations and gained 2x;
+this propagator allocated a hundred times per call against 124,000 DP iterations and gained nothing. And a
+mechanism that won next door can lose on its own merits — the stamp is right where clearing dominates and
+wrong where it is a thirteenth of the work and the array it marks is the hot loop's working set.
+
 ### `regular` allocated twice a call, cleared what it allocated, and then recomputed its own answer
 
 *(measured 2026-09-15)* Pesant's layered graph needs two reachability tables — which states are reachable

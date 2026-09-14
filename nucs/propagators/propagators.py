@@ -37,6 +37,7 @@ from nucs.propagators.and_eq_propagator import compute_domains_and_eq, get_compl
 from nucs.propagators.bin_packing_load_propagator import (
     compute_domains_bin_packing_load,
     get_complexity_bin_packing_load,
+    get_state_bin_packing_load,
     get_triggers_bin_packing_load,
 )
 from nucs.propagators.count_eq_c_propagator import (
@@ -443,6 +444,7 @@ ALG_BIN_PACKING_LOAD = register_propagator(
     get_complexity_bin_packing_load,
     compute_domains_bin_packing_load,
     idempotent=False,
+    get_state_fct=get_state_bin_packing_load,
 )
 ALG_LINEAR_EQ_C = register_propagator(
     get_triggers_linear_eq_c,

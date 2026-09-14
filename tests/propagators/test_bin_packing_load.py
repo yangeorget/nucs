@@ -18,7 +18,10 @@ import numpy as np
 import pytest
 
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
-from nucs.propagators.bin_packing_load_propagator import compute_domains_bin_packing_load
+from nucs.propagators.bin_packing_load_propagator import (
+    compute_domains_bin_packing_load,
+    get_state_bin_packing_load,
+)
 from tests.propagators.propagator_test import PropagatorTest
 
 
@@ -119,8 +122,12 @@ class TestBinPackingLoad(PropagatorTest):
             bin_doms = [_pair(rng.randint(1, bin_nb), rng.randint(1, bin_nb)) for _ in range(item_nb)]
             solutions = _brute_solutions(weights, load_doms, bin_doms)
             arr = np.array(list(load_doms) + list(bin_doms), dtype=np.int32)
+            parameters = [1, *weights]
+            trailed_nb, hint_nb = get_state_bin_packing_load(len(arr), parameters)
             status = compute_domains_bin_packing_load(
-                arr, np.array([1, *weights], dtype=np.int32), np.empty(0, dtype=np.int32)
+                arr,
+                np.array(parameters, dtype=np.int32),
+                np.zeros(trailed_nb + hint_nb, dtype=np.int32),
             )
             # only soundness is asserted: with no solution the propagator may or may not detect it (the exact
             # subset-sum reasoning is complete within its budget but the budget can be exceeded)

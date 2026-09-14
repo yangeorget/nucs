@@ -35,6 +35,17 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   reporting `0` after narrowing a domain silently drops that pruning, and `PropagatorTest` checks every reporting
   propagator against it.
 
+- **`bin_packing_load` stops rebuilding a subset-sum for every item, and is 4.6× faster.** Its item rule
+  asks whether the candidates *other than* this one can still fill a bin, and was answering by rebuilding
+  the whole reachability without that candidate — `O(nc²·total)` per bin, 1.67 billion inner iterations on
+  a 54-item instance. Reachability without a candidate is the subsets before it combined with those after,
+  so one pass from the right records every suffix and a running prefix covers the left, which makes each
+  question a lookup against the suffix's running count and the rule `O(nc·total)`. Measured **1,847 ms →
+  399 ms**, filtering identical counter for counter. The obvious first move — putting the buffer in the
+  state block and stamping it, as `regular` now does — was tried and made it **38% slower**: the
+  allocations turned out to be worth nothing against that much arithmetic, and a 0/1 array tested against
+  zero vectorises where a stamped one does not.
+
 - **`regular` stops allocating its layered graph on every call, and stops recomputing what it already
   knows.** It needs two reachability tables — which automaton states are reachable at each position, and
   from which states acceptance is still reachable — and was building both with `np.zeros` per call, with no
