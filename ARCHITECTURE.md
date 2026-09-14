@@ -469,8 +469,8 @@ one, and two attempts foundered on that:
   true with per-variable events, false here, where the batched call is the only call. So `q` and `r` are
   carried and `s` is not.
 
-**Recording the delta was then built, and lost.** *(measured 2026-09-14; the experiment is on the
-`delta-count-eq` branch)* An earlier version of this note ruled it out on a half-read measurement, and the
+**Recording the delta was then built, and lost.** *(measured 2026-09-14; the code is not kept -- the
+paragraph below is the build)* An earlier version of this note ruled it out on a half-read measurement, and the
 version after that said the measurement ruled out only a *guard*, not a smaller input, and that `count_eq` on
 magic_sequence was the way to find out. It was: `update_domains` gained a parallel `trigger_positions` array
 and appends, per trigger hit, the position the changed variable holds in the woken propagator's own variable

@@ -62,8 +62,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   gives back only 5–6%: a propagator here is called just **1.63 times per filtering**, so 61.2% of calls have
   no delta to use and the rest cannot amortise what recording cost. Reporting *after the fact*, above, is the
   cheaper half of the same idea and has already taken the slack — it works by removing calls, which are
-  exactly what a delta needs to amortise against. `ARCHITECTURE.md` carries the decomposition; the code is on
-  the `delta-count-eq` branch. **Nothing in the API changed**, and a custom propagator's
+  exactly what a delta needs to amortise against. `ARCHITECTURE.md` carries the decomposition and enough of the
+  design to rebuild it. **Nothing in the API changed**, and a custom propagator's
   `compute_domains_*` keeps the three arguments it has.
 
 - **`IDEMPOTENCIES` is now `ALGORITHM_FLAGS`, a packed word per algorithm.** It carries `PROP_FLAG_IDEMPOTENT` and
