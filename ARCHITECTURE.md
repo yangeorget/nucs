@@ -469,19 +469,46 @@ one, and two attempts foundered on that:
   true with per-variable events, false here, where the batched call is the only call. So `q` and `r` are
   carried and `s` is not.
 
-**What is not closed off is recording the delta**, and an earlier version of this note said otherwise on the
-strength of a half-read measurement. When a propagator is woken, **15–41% of its variables have already
-moved** — 82 of `count_eq`'s 201 on magic_sequence(200), 6.69 of 24 for `inverse` on quasigroup, 3.22 of 12 for
-`alldifferent` on queens, 2.25 of 14 for `element_l_eq_alldifferent`. That rules out a *guard*: a test costing
-`O(#changed)` in front of an `O(n)` body saves nothing at 40% of `n`. It does **not** rule out handing the
-propagator a smaller input — 82 of 201 is still 2.4× less to scan, which is the ratio CP-SAT's
-`IncrementalPropagate` exists to exploit, and the same shape as `relation`'s live tuples, which paid.
+**Recording the delta was then built, and lost.** *(measured 2026-09-14; the experiment is on the
+`delta-count-eq` branch)* An earlier version of this note ruled it out on a half-read measurement, and the
+version after that said the measurement ruled out only a *guard*, not a smaller input, and that `count_eq` on
+magic_sequence was the way to find out. It was: `update_domains` gained a parallel `trigger_positions` array
+and appends, per trigger hit, the position the changed variable holds in the woken propagator's own variable
+list; `count_eq` keeps `count_min`/`count_max` and a status code per variable and updates them from the
+entries instead of rebuilding them. Invalidation is an epoch stamp — a delta is usable only within the
+filtering that recorded it, which is exactly the window over which domains only narrow, so nothing has to be
+trailed and backtracking invalidates the lot for free. Every statistic is identical on magic_sequence
+100/200/400, `employee_scheduling` and queens 9 `solve_all`: the filtering is the same one, computed a
+different way. It is **0.80× / 0.78× / 0.75×** on magic_sequence(200/400/600).
 
-The cost is the reason it has not been done rather than a reason it cannot be: the write lands in
-`update_domains`'s trigger loop, NuCS's hot scattered pass, and is paid on every trigger hit whether the
-propagator reads it or not. That is the trade the linear-prefix compaction, the array merges, the Θ-tree and
-`regular`'s `uint8` buffers all lost. Opt-in per propagator, measured on `count_eq`/magic_sequence first, is
-the way to find out.
+The decomposition is the useful part, because the target was real. Duplicating `count_eq`'s counting pass in
+situ prices it at **34–38% of the whole solve**. A build where the engine still appends but the propagator
+ignores what it appends — cost with the benefit switched off — runs at 0.76×/0.74×/0.71×, so **the append
+alone costs 31–40%** and the delta recovers only 5–6% of it. Two measurements say why:
+
+- **61.2% of `count_eq` calls rescan anyway**, because a propagator is called only **1.63 times per
+  filtering**. The first call of each (propagator, filtering) pair has no delta by construction.
+- **A usable delta still names a quarter of the variables** — 51 of 201 at `n=200`, 100 of 401 at `n=400`.
+  The ratio is scale-invariant, so it does not improve with size.
+
+Underneath both is one structural fact: **the cost of recording a delta and the size of that delta are the
+same quantity.** A change to one variable is appended once per propagator watching it, and grows each of those
+propagators' deltas by one. So recording costs `fan-out` and saves `arity − |delta|`, and the append has to be
+amortised over the calls the propagator makes before the filtering ends. At 1.63 calls there is nothing to
+amortise over. Predicting from `|delta| / arity` — the 82-of-201 figure the previous note reasoned from — was
+measuring the wrong thing a third time: the usable deltas turned out *smaller* than that (51 of 201, a 4×
+narrower scan, better than the 2.4× predicted), and it lost anyway, because calls-per-filtering, not
+scan-width, is what binds.
+
+And that closes a loop. **Change reporting — the mechanism that paid 3.0× on this very model — works by
+removing calls**, and the calls it removed are the ones a delta needs to amortise against. The two
+optimisations compete for the same slack, and the cheap one already took it.
+
+Not all bad news: on models posting no delta propagator the mechanism costs nothing measurable (queens 11
+`solve_all` moved within the 1–4% drift band, in both directions across runs), so `PROP_FLAG_WANTS_DELTA` is
+free where it is unused. The cost falls entirely on the models that opt in, and on this one it falls hardest
+precisely because `count_eq`'s fan-out is total: every variable of magic_sequence is watched by every one of
+its 202 propagators, so one bound change writes 202 entries.
 
 Meanwhile **the mechanisms that have paid here need no delta at all** — reporting after the fact
 (`prop_state`'s change cell), resuming past a prefix that is monotone by construction (`lexleq`), and dropping
@@ -495,10 +522,10 @@ non-JIT fallback.
 
 ## Explored, not adopted
 
-### Three ways of making a propagator incremental that do not work
+### Four ways of making a propagator incremental that do not work
 
-*(all measured 2026-09-12)* Kept because each looks compelling on paper and two of them look spectacular in a
-microbenchmark.
+*(measured 2026-09-12, the fourth 2026-09-14)* Kept because each looks compelling on paper and two of them
+look spectacular in a microbenchmark.
 
 **A cache keyed on the exact domains cannot hit.** A propagator is woken only when one of its own variables
 has changed, so the event that wakes it is the event that invalidates the cache — 0 hits in 131 lookups on
@@ -512,6 +539,12 @@ where it sits, not what it totals — a ground task is the most constraining kin
 to show it: capacity 1, A ground at 0 with `p=2,h=1`, B free in `[0,5]` — B's earliest start goes 0 → 2, and
 that pruning comes only from A. The companion idea, caching the profile, fails because `_filter_est` derives
 its segment boundaries from *all* the compulsory parts, so one non-ground task re-segments the profile.
+
+**Recording what changed and handing it to the propagator costs more than the scan it saves.** Built for
+`count_eq` on magic_sequence — the model with the widest propagators and the highest no-change rate, so the
+best case there is — and measured 0.75–0.80×, with statistics identical throughout. The append costs 31–40%
+of the solve and the shorter scan gives back 5–6%. See *The propagation queue* above for the decomposition and
+for why the binding constraint is calls-per-filtering (1.63) rather than the width of the delta.
 
 **A Θ-Λ-tree does not beat `disjunctive`'s cubic enumeration at the sizes NuCS sees.** The `O(n log n)`
 edge-finding was written and verified — 26,000 random instances, identical status and identical earliest
