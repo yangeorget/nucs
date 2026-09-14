@@ -425,6 +425,28 @@ propagator, the resumed call is flat at ~220 ns whatever the prefix, against a r
 other three states still start at 0 every call: their conditions are *not* monotone under narrowing, so
 resuming past them could skip an index that has since become decisive.
 
+**Nowhere else does a resume pointer have anything to resume past.** *(swept 2026-09-14)* `lexleq` is the
+only propagator here carrying one, so the other sequence-shaped propagators were checked for the same
+shape — `value_precede`, `increasing` and `strictly_increasing`, the three that scan a sequence from index
+0 on every call. The answer is the same in all three, and it is `s` (γ) again rather than `q` and `r`: **a
+position the propagator has already walked past is not settled, because the condition that would make it
+prune can arrive later.** Two counterexamples, both confirmed against the propagators:
+
+- `value_precede(s=5, t=3)` leaves a position with domain `[0, 4]` alone — neither bound is `t`. Narrow
+  that same position to `[2, 3]` and its *max* is now `t`, so it prunes to `[2, 2]`.
+- `increasing` leaves `x_1 = [5, 9]` alone when `x_0 = [0, 9]`. Narrow `x_0` to `[7, 9]` and the same
+  sweep step now lifts `x_1` to `[7, 9]`.
+
+The one prefix that is settled is the one where every variable is **ground**, which cannot come undone
+inside a branch and over which all three propagators are provably no-ops. That is a sound resume and it
+costs a single trailed cell, the cheapest state a propagator can carry here. It was not built, because
+none of the three is posted by any model in this repository — they arrive only through FlatZinc
+(`value_precede_int`, `value_precede_chain_int`, `increasing_int`, `strictly_increasing_int`), and
+`value_precede_chain_int` is the one that would matter, since it posts one propagator per consecutive pair
+of values over the whole array. Their per-element work is also the unfavourable kind — two loads and a
+`max` — so by the rule above a ground prefix would have to be most of the array before it paid. All three
+also still lack change reporting, which is the cheaper thing to try first if a model ever posts them.
+
 Two things are worth copying from how `alldifferent` does it. Its block gained a cell, because
 it was already using its first for the cold flag — the report cell is fixed at the front of the hint suffix so the
 engine can find it without knowing anything about the propagator's own layout. And its `filter_lower`/`filter_upper`

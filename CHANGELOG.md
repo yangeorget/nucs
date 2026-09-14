@@ -71,6 +71,7 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   | `sum_*`, `linear_*` | unbound variables | 46–75%, arity 2–12.5 | no — hostile on both counts |
   | `count_leq_c`, `count_geq_c`, `count_eq_c` | x_i still undetermined | 53–57%, arity 3–4 | built, then dropped — see below |
   | `diffn` | pairs not yet definitely separated | 62–82% live | no — the invariant holds, the set does not collapse |
+  | `value_precede`, `increasing`, `strictly_increasing` | a settled prefix to resume past | only the *ground* prefix | no — a walked-past position can start pruning again; and nothing here posts them |
 
   So a **custom propagator** weighing a live set should probe that fraction first, with a counter in its own
   state block: under about a fifth it is worth building, over about two fifths it cannot pay whatever the
