@@ -326,6 +326,35 @@ strictly inside its bounds. Two cells are trailed: the size of the live prefix, 
 zeroed block reads as cold, and `count_min`. `count_max` is not stored at all — `count_max = count_min +
 live_nb` — which matters because the engine copies the trailed prefix on every call.
 
+**The same live set does not transfer to `count_leq_c`, `count_geq_c` or `count_eq_c`**, and they are what
+completes the rule above. *(built and measured 2026-09-14; not landed)* The three count the same predicate
+over the same monotone set, so the code is `count_eq`'s almost line for line, plus a short-circuit it does
+not have: with `count_min` carried and only able to rise, and `count_max` carried and only able to fall,
+either bound can settle the constraint before anything is scanned. Measured on the propagator, against the
+plain scan, by arity and by the fraction of variables still undetermined:
+
+| | n=16 | n=64 | n=256 | n=1024 |
+|---|---|---|---|---|
+| a tenth still live | 1.00–1.02× | 1.12–1.16× | 1.54–1.65× | 2.64–3.06× |
+| a hundredth still live | 1.01–1.03× | 1.08–1.18× | 1.67× | 3.51–4.43× |
+
+It was dropped because **the propagator benchmark cannot see what the engine pays**: it calls
+`compute_domains_*` directly, so it leaves out the trailing of the block's two new cells, which the engine
+copies on *every* call. That cost is fixed while the saving grows with n, so there is an arity below which
+it cannot pay — and in the solver a `count_leq_c` of arity 3 made `employee_scheduling` 5–8% slower, the
+cost showing up undiluted. Gating the live set on arity (16, with the plain scan kept below it) fixed
+`sports(8)` outright and left magic_sequence alone, but still cost `employee_scheduling` 2–3% for the
+dispatch alone, across four runs.
+
+What decided it is that nothing reaches the width where the table pays. The MiniZinc Challenge models that
+post counts — `on-call-rostering`, `rotating-workforce-scheduling`, `vaccine`, `handball` — count over
+roster columns and week arrays, tens of variables rather than hundreds, which is the band where the
+propagator benchmark reads 1.04–1.18× and the one in-solver reading at arity ~21 reads *slower*. So this
+is written down instead: **the shrinkage rule needs a second term.** What a live set saves is
+`n × (1 − live fraction) × per-element work`; what it costs is a fixed ~15 ns of trailing per call. A
+`count_eq` over 200 variables at 4% live clears that by two orders of magnitude. A `count_leq_c` over three
+variables clears it at no shrinkage whatever.
+
 **Why this one pays where the same shape failed on `linear_*`**, given that skipping an `x_i` here saves two
 loads and two compares and costs an indirection, much the same trade that lost there: the break-even is a
 *shrinkage*, and the two constraints are nowhere near each other on it. Measured, on the models that post

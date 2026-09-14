@@ -76,6 +76,16 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   per-element work is. The `cx = 1` propagators are out of scope entirely — a constraint over two or three
   variables has nothing to amortise a carried set over.
 
+  The three other `count_*` propagators were the near miss, and they sharpen that rule. `count_leq_c`,
+  `count_geq_c` and `count_eq_c` count the same predicate over the same shrinking set, so the code is
+  `count_eq`'s almost line for line, and carrying it measures 1.5–1.7× at 256 variables and up to 4.4× at
+  1024. It is **not** landed, because what a live set *costs* — two trailed cells the solver copies on
+  every call — does not shrink with the constraint while what it saves does: at arity 3 the same change
+  made `employee_scheduling` 5–8% slower. So the test is not shrinkage alone but `n × (1 − live fraction)
+  × per-element work` against a fixed per-call cost, and the counts real models post — roster columns,
+  week arrays, tens of variables rather than hundreds — do not clear it. `ARCHITECTURE.md` carries the
+  measurements by arity, so the decision is already made if a wide one turns up.
+
 - **`lexleq` resumes its scan instead of restarting it**, in both of the two states where that is sound. Its four mutually recursive states are the Frisch et
   al. lexicographic algorithm, which is designed to carry its pointers across calls; NuCS restarted it at state
   1, index 0 every time. It now keeps, in its state block, the length of the prefix over which `x_i = y_i` has
