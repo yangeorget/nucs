@@ -348,219 +348,31 @@ favourable everywhere else. Worth knowing too that `square` is the only model he
 with its recommended searches it makes 447 calls inside 14 ms — so even a real gain would have had nothing
 to show it on.
 
-**The same live set does not transfer to `count_leq_c`, `count_geq_c` or `count_eq_c`**, and they are what
-completes the rule above. *(built and measured 2026-09-14; not landed)* The three count the same predicate
-over the same monotone set, so the code is `count_eq`'s almost line for line, plus a short-circuit it does
-not have: with `count_min` carried and only able to rise, and `count_max` carried and only able to fall,
-either bound can settle the constraint before anything is scanned. Measured on the propagator, against the
-plain scan, by arity and by the fraction of variables still undetermined:
+**The same live set transfers to `count_leq_c`, `count_geq_c` and `count_eq_c`, but only above an arity.**
+*(built 2026-09-14, shelved the same day for want of a model, landed once `count_shifts` existed)* The three
+count the same predicate over the same monotone set, so the code is `count_eq`'s almost line for line, plus
+a short-circuit it does not have: with `count_min` carried and only able to rise, and `count_max` carried
+and only able to fall, either bound can settle the constraint before anything is scanned. Measured on the
+propagator, against the plain scan, by arity and by the fraction still undetermined:
 
 | | n=16 | n=64 | n=256 | n=1024 |
 |---|---|---|---|---|
 | a tenth still live | 1.00–1.02× | 1.12–1.16× | 1.54–1.65× | 2.64–3.06× |
 | a hundredth still live | 1.01–1.03× | 1.08–1.18× | 1.67× | 3.51–4.43× |
 
-It was dropped because **the propagator benchmark cannot see what the engine pays**: it calls
-`compute_domains_*` directly, so it leaves out the trailing of the block's two new cells, which the engine
-copies on *every* call. That cost is fixed while the saving grows with n, so there is an arity below which
-it cannot pay — and in the solver a `count_leq_c` of arity 3 made `employee_scheduling` 5–8% slower, the
-cost showing up undiluted. Gating the live set on arity (16, with the plain scan kept below it) fixed
-`sports(8)` outright and left magic_sequence alone, but still cost `employee_scheduling` 2–3% for the
-dispatch alone, across four runs.
+**What that table cannot see is the engine.** It calls `compute_domains_*` directly, so it leaves out the
+trailing of the block's two new cells, which the engine copies on every call. That cost is fixed while the
+saving grows with n, so there is an arity below which it cannot pay — and in the solver a `count_leq_c` of
+arity 3 made `employee_scheduling` 5–8% slower, the cost arriving undiluted. Hence `LIVE_SET_MIN_ARITY`:
+below it `get_state_*` reserves no live set and `compute_domains_*` takes the plain scan, which is kept as
+an inlined helper rather than a call, because at these arities the call itself measured against it
+(4.3% on `employee_scheduling`, down to 1.5% once inlined).
 
-What decided it is that nothing reaches the width where the table pays. The MiniZinc Challenge models that
-post counts — `on-call-rostering`, `rotating-workforce-scheduling`, `vaccine`, `handball` — count over
-roster columns and week arrays, tens of variables rather than hundreds, which is the band where the
-propagator benchmark reads 1.04–1.18× and the one in-solver reading at arity ~21 reads *slower*. So this
-is written down instead: **the shrinkage rule needs a second term.** What a live set saves is
-`n × (1 − live fraction) × per-element work`; what it costs is a fixed ~15 ns of trailing per call. A
-`count_eq` over 200 variables at 4% live clears that by two orders of magnitude. A `count_leq_c` over three
-variables clears it at no shrinkage whatever.
-
-**Why this one pays where the same shape failed on `linear_*`**, given that skipping an `x_i` here saves two
-loads and two compares and costs an indirection, much the same trade that lost there: the break-even is a
-*shrinkage*, and the two constraints are nowhere near each other on it. Measured, on the models that post
-them: `count_eq`'s undetermined set is **4.0% of its variables on magic_sequence(200) and 2.3% on (400)** —
-8 of 200, 9.1 of 400 — while the unbound set of a `sum_*` is 46–75% across schur_lemma, employee_scheduling,
-bibd, magic_square and golfers, at arities of 2 to 12.5. A loop that shrinks 25× can pay a doubled cost per
-element and still come out ten times ahead; one that shrinks by a third cannot pay anything. Measured
-end-to-end: magic_sequence(200) 1.35×, (400) 1.30×, (600) 1.39×, with every statistic identical and
-`employee_scheduling`, `queens`, `quasigroup` and `schur_lemma` flat.
-
-`lexleq` keeps two trailed positions besides the report — `q` and `r`, which are α and β in Carlsson and
-Beldiceanu's *Revisiting the Lexicographic Ordering Constraint* (`papers/lexleq/`), the report this
-implementation is transcribed from. That paper's whole point is resumption: it claims `O(n)` on posting plus
-**amortized `O(1)` per propagation event**, and §5 says to record "the state q ∈ {1,2,3,4} that preceded the
-suspension, and the positions α β γ", trailed. NuCS had transcribed the four states and threaded all three
-positions through their signatures, with the resumption switched off — every call restarted the automaton at
-state 1, position 0, and the `if r > i + 1: i = r` that jumps to a carried position could never fire.
-
-Two of the three positions are safe to carry here, and the third is not, which is worth separating:
-
-- **`q` (α) and `r` (β) are safe**, and for the same reason: state 1 advances `q` only over positions where
-  its two tightenings have forced `x_i = y_i` *ground on both sides*, and state 2 advances `r` only over
-  positions where all four bounds are equal. Both prefixes are therefore monotone within a branch, so
-  resuming past them is not merely sound but silent — the skipped loop tests a condition that still holds
-  and applies tightenings that write nothing. The paper puts the second as "in state 2, any letter before
-  pos. β is ignored; this is safe, for the ignored letters will all be =".
-- **`s` (γ) is not**, and the reason is a difference in engines rather than in the algorithm. The paper skips
-  past γ in states 3 and 4 too, on the grounds that a position before it which has since become decisive
-  will arrive as its own pending propagation event — "the pending event will lead to just that, when it is
-  processed". NuCS coalesces events: a propagator is woken once however many of its variables moved, and
-  sees all of it on entry, so there is no later event to rely on and skipping those positions would lose the
-  transition. Their conditions (`x_i.max == y_i.min`, `x_i.min == y_i.max`) are not monotone under narrowing
-  either, which is the same fact from the other side. **A paper's incrementality can depend on how its host
-  engine delivers events, and that assumption has to be checked rather than inherited.**
-
-Measured on the propagator, each resume against the rescan it replaces, with a 99% prefix: state 1's is 1.6×
-at `n=128`, 3.2× at 512, 9.4× at 2048; state 2's is 1.6× at 128, 3.1× at 512, 9.4× at 2048 — the resumed
-call flat at ~230 ns whatever the prefix. Its four mutually recursive states are the Frisch et al. lexicographic
-algorithm, whose whole point is to resume where it left off, and NuCS had transcribed it with the resumption
-switched off — every call restarted the automaton at state 1, index 0. State 1's loop tightens both bounds onto
-one value, so a counted index is *ground on both sides*, which makes the prefix monotone within a branch and
-`q` trailed rather than a hint. Resuming there is not merely sound but silent: the loop over an already-equal
-prefix tests a condition that still holds and applies two tightenings that are no-ops. Measured on the
-propagator, the resumed call is flat at ~220 ns whatever the prefix, against a rescan that grows with it —
-1.6× at `n=128`, 3.2× at `n=512`, 9.4× at `n=2048`, each with a 99% prefix. The `r` and `s` pointers of the
-other three states still start at 0 every call: their conditions are *not* monotone under narrowing, so
-resuming past them could skip an index that has since become decisive.
-
-**Nowhere else does a resume pointer have anything to resume past.** *(swept 2026-09-14)* `lexleq` is the
-only propagator here carrying one, so the other sequence-shaped propagators were checked for the same
-shape — `value_precede`, `increasing` and `strictly_increasing`, the three that scan a sequence from index
-0 on every call. The answer is the same in all three, and it is `s` (γ) again rather than `q` and `r`: **a
-position the propagator has already walked past is not settled, because the condition that would make it
-prune can arrive later.** Two counterexamples, both confirmed against the propagators:
-
-- `value_precede(s=5, t=3)` leaves a position with domain `[0, 4]` alone — neither bound is `t`. Narrow
-  that same position to `[2, 3]` and its *max* is now `t`, so it prunes to `[2, 2]`.
-- `increasing` leaves `x_1 = [5, 9]` alone when `x_0 = [0, 9]`. Narrow `x_0` to `[7, 9]` and the same
-  sweep step now lifts `x_1` to `[7, 9]`.
-
-The one prefix that is settled is the one where every variable is **ground**, which cannot come undone
-inside a branch and over which all three propagators are provably no-ops. That is a sound resume and it
-costs a single trailed cell, the cheapest state a propagator can carry here. It was not built, because
-none of the three is posted by any model in this repository — they arrive only through FlatZinc
-(`value_precede_int`, `value_precede_chain_int`, `increasing_int`, `strictly_increasing_int`), and
-`value_precede_chain_int` is the one that would matter, since it posts one propagator per consecutive pair
-of values over the whole array. Their per-element work is also the unfavourable kind — two loads and a
-`max` — so by the rule above a ground prefix would have to be most of the array before it paid. All three
-also still lack change reporting, which is the cheaper thing to try first if a model ever posts them.
-
-Two things are worth copying from how `alldifferent` does it. Its block gained a cell, because
-it was already using its first for the cold flag — the report cell is fixed at the front of the hint suffix so the
-engine can find it without knowing anything about the propagator's own layout. And its `filter_lower`/`filter_upper`
-now return `(consistent, changed)`, with the Hall-interval writes *tested* rather than made blind: the write is
-frequently a no-op, and counting "I executed a write" instead of "I changed a value" is safe but throws away most
-of the win.
-
-Measured, median of five: magic_sequence(200) 48 → 16 ms, magic_sequence(100) 6 → 2 ms, quasigroup(5,12)
-756 → 608 ms, quasigroup(5,11) 93 → 76 ms, golfers(3,2,5) 7 → 5 ms.
-
-**Nothing below about 5% is measurable here, so nothing below it is claimed.** This machine drifts 1–4% with run
-order: an A/B that runs one build then the other reports whichever ran second as slower, in *both* directions.
-The way to catch that is a model the change cannot possibly affect — for the reporting work, `queens` posts
-nothing but `alldifferent` — and to discard the whole comparison when the control moves as much as the subjects.
-Numbers stated here are the ones far enough above that floor to survive the reversed order; the smaller readings
-that were once quoted for `abs_eq`, `queens` and `langford` did not, and are gone.
-
-**The saving is `(no-change rate) × (unbound variables in scope) × (cost of a `tighten_at`)`.** Arity is only a
-proxy for the middle term, and a good one only while domains stay wide: `update_domains` skips `tighten_at`
-outright for a *bound* variable, at the cost of a load and a compare, so a propagator whose variables ground
-early has almost no write-back to skip however wide it is. A `count_leq_c` at arity 60 with a 76.2% no-change
-rate — the profile that made `count_eq` pay — measured *nothing*, because in that model the whole write-back was
-2.4% of the run: the search ground its variables fast. `magic_sequence` is the opposite regime, 200-wide domains
-and 198 backtracks, which is why its write-back was 71%. Read the rate together with how long the model's domains
-stay live, not with arity alone.
-`count_eq` on magic_sequence has arity 101 over domains that stay unbound, so the scan *was* the work. Against
-that, `sum_leq_c` on schur_lemma changes nothing on 96% of its calls and `abs_eq` on all_interval on 39.6% of
-144,439 — but both hold two or three variables, so there is next to nothing to skip whatever the rate, which is
-why `abs_eq` no longer reports. `alldifferent` on queens sits between, with the rate but only arity 12 against an
-`O(n log n)` body that still runs in full. `gcc` and `lexleq` have the shape that
-pays — arity `n` and `2n`, no-change rates of 48–100% — and no bundled model that exercises them: the ones that
-post them run in 1–8 ms with at most 1778 calls.
-
-The clearest case of the rule paying is `quasigroup`, whose `element_l_eq_alldifferent` makes 66.8% of all
-propagator calls at arity 14 and **changes nothing on 90.9% of them**; `inverse` adds 6.9% at arity 24 and 69.8%.
-Duplicating the write-back in situ put it at 172 ms of quasigroup(5,12)'s 756 ms, and reporting from those two
-took the model to 608 ms — 1.24×, with 1.22× on (5,11), 1.20× on (5,10) and 1.16× on (3,8). That is slightly more
-than the 123 ms the scan-share arithmetic predicted, because skipping `update_domains` drops its call overhead
-and its per-variable scheduling branch as well as the scan.
-
-**Test the write, don't make it blind.** `alldifferent`'s Hall-interval writes, `gcc`'s four, and
-`trim_domains_inverse`'s clamp of every variable to `[offset, offset + n - 1]` are all no-ops on most calls.
-Counting "I executed a write" rather than "I changed a value" is safe but gives most of the reporting back, and
-it is the standard way to get this mechanism wrong.
-
-**`alldifferent`/`gcc` (Tier A — landed the two experiments below described as "explored, not adopted"):**
-`get_state_alldifferent` reserves `[flag, min_sorted_vars[n], max_sorted_vars[n], bounds, t, d, h, ranks]` — the
-`bounds/t/d/h/ranks` scratch that used to come from one `np.empty` per call, plus a warm-started sort permutation.
-`flag == 0` means cold (a fresh, zeroed block): seed identity via `argsort_into` and set `flag = 1`; otherwise
-`argsort_into_warm` re-sorts the existing (possibly stale) permutation in place, which is `O(n + inversions since
-the previous call)` rather than relative to identity order — this is what removes the identity-seeded sort's
-`O(n^2)` cliff when sort keys decorrelate from variable index. Inversions bound that cost but do not cap it, so
-above `SORT_MAX_N` the sort runs on a budget of `SORT_WARM_BUDGET_FACTOR` shifts per variable and hands over to
-`np.argsort` once it blows it. That is what makes the warm start pay at the arities it was meant for: a hard
-`np.argsort` above `SORT_MAX_N` insures against the post-jump case on every call, including the overwhelming
-majority that are one step down a descent. Measured against that hard fallback, a node that moved one bound
-re-sorts 4× faster at `n=128`, 17× at `n=512` and 44× at `n=8192`, and a fully decorrelated permutation costs
-+31%/+8%/+4% at those sizes — worst at small `n`, where the wasted shifts are largest next to a cheap
-`np.argsort`. `get_state_gcc` reserves the equivalent scratch
-(`bounds/t/d/h`, the sort permutations, `ranks`, `stable_intervals`, `stable_sets`, `new_mins`) behind the same
-`flag`, plus the two `partial_sum` tables `l`/`u`: those are a function of `parameters` alone, which the engine
-never writes, so they are built once on the cold call instead of by two `np.zeros` allocations per call. The
-three arrays that used to come from a fresh `np.zeros` (`stable_intervals`, `stable_sets`, `new_mins`) are
-explicitly re-zeroed each call, since a persistent block no longer implies that for free.
-
-### Functions are values via numeric ids and wrapper addresses
-
-Propagators and heuristics register into typed lists indexed by `ALG_*` / heuristic ids; the ids live in integer
-arrays, and callables cross into nopython mode through `_get_wrapper_address` plus the `function_ptr_from_address`
-intrinsic (see `nucs/numba_helper.py`). Numba cannot dispatch on heterogeneous Python callables, so indirection through
-ids and addresses is the mechanism. Each callable family has a fixed `SIGN_*` signature, kept with its registry, that
-every member must match — this is why an unused parameter can only be dropped from a family if *no* member needs it.
-
-### The propagation queue is a bucketed FIFO keyed by complexity
-
-`get_complexity_*` estimates a propagator's work per call; `compute_priority` folds that into a bucket index by
-repeated right-shift of `BUCKET_FACTOR` bits (a log scale), clamped to `[0, BUCKET_NB)`. The queue (`nucs/buckets.py`)
-runs the cheapest bucket first, FIFO within a bucket; add and pop are O(1), no heap. The whole queue is a single `int32`
-array over `C = propagator_nb` elements, with intrusive per-element next-pointers and membership flags for set
-semantics (`BUCKET_NB = 8`, so `STORAGE_OFFSET = 2 · BUCKET_NB = 16`):
-
-| slice | length | holds |
-|-------|--------|-------|
-| `[0 : 8]` | `BUCKET_NB` | head element of each bucket (`-1` = empty) |
-| `[8 : 16]` | `BUCKET_NB` | tail element of each bucket (`-1` = empty) |
-| `[16 : 16+C]` | `C` | intrusive next-pointer per element (`-1` = end of bucket) |
-| `[16+C : 16+2C]` | `C` | membership flag per element (`0`/`1`) |
-| `[-1]` | 1 | cached lowest non-empty bucket index (search hint for `buckets_pop`) |
-
-**Every solver coalesces the call; NuCS alone discards the delta.** A propagator is enqueued once however many
-of its variables moved — and so it is in Gecode (`me_combine` folds the modification events together), in Choco
-("the variable stores events but is enqueued only once") and in CP-SAT ("assume that a propagator does not need
-to be called twice in a row"). Coalescing the *call* is universal. What the other three keep, and NuCS throws
-away, is **what changed**:
-
-| | call coalesced | delta survives to the call |
-|---|---|---|
-| Gecode | yes | `ModEventDelta`, plus **advisors** run per modification with a `Delta` |
-| Choco | yes | `propagate(idxVarInProp, mask)` per modified variable, when `reactToFineEvent()` |
-| CP-SAT | yes | `IncrementalPropagate(watch_indices)` — the accumulated changed set |
-| **NuCS** | yes | **no** — `update_domains` holds `(variable, events)` when it schedules, and records only that it did |
-
-Two things follow, and they pull in opposite directions.
-
-**What is genuinely closed off** is anything that needs a *per-modification* hook. Only Gecode's advisors have
-one, and two attempts foundered on that:
-
-- **A cache keyed on the exact domains never hits.** A propagator is woken *because* one of its variables
-  changed, so its domains always differ from the ones it last settled on: the event that wakes it is the event
-  that invalidates the cache. Measured 0 hits in 131 lookups on `regular`.
-- **A propagator cannot defer work to "a later event".** Carlsson and Beldiceanu's `lexleq` skips positions
-  before γ on the grounds that one which has become decisive "will lead to just that, when it is processed" —
-  true with per-variable events, false here, where the batched call is the only call. So `q` and `r` are
-  carried and `s` is not.
+Above it the win is real, and it took a model to see: `count_shifts` in `datasets/fzn` posts `count_leq_c`
+and `count_geq_c` over a 120-long roster, 2.9M and 2.1M calls at 87% and 96% no-change, and the pair is
+**1.18×** there (2,112 ms to 1,748 ms) with `regular_shifts` flat as a control. Nothing in `nucs/examples`
+posts a count wider than 21, which is why this sat measured-but-undecided until the FlatZinc benchmark set
+existed. Every statistic is identical across all seven FlatZinc models and all seven Python models.
 
 **Recording the delta was then built, and lost.** *(measured 2026-09-14; the code is not kept -- the
 paragraph below is the build)* An earlier version of this note ruled it out on a half-read measurement, and the

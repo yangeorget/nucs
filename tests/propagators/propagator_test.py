@@ -14,7 +14,13 @@ from collections.abc import Callable
 
 import numpy as np
 
-from nucs.constants import PROP_CONSISTENCY, PROP_FLAG_IDEMPOTENT, PROP_FLAG_REPORTS_CHANGES
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    PROP_CONSISTENCY,
+    PROP_FLAG_IDEMPOTENT,
+    PROP_FLAG_REPORTS_CHANGES,
+)
 from nucs.propagators.propagators import ALGORITHM_FLAGS, COMPUTE_DOMAINS_FCTS, GET_STATE_FCTS
 
 
@@ -83,6 +89,94 @@ class PropagatorTest:
                 f"{before.tolist()} -> {domains_arr.tolist()}"
             )
         return status
+
+    def assert_live_set_is_sound(
+        self,
+        compute_domains_fct: Callable,
+        domains: np.ndarray,
+        parameters: list[int],
+        rng: np.random.Generator,
+        backtrack: bool,
+    ) -> None:
+        """
+        Holds a propagator that carries a live set across calls to what a propagator without one concludes.
+
+        A propagator whose state block summarises its variables -- which of them are still undecided, and
+        what the decided ones have already contributed -- rebuilds none of that per call, which is sound
+        only because domains narrow monotonically inside a branch. So the thing to check is not any one
+        call but a *chain* of them: narrow a little at a time, let one state block follow the chain, and
+        demand at each step that it agrees -- status, every bound, and the change report -- with a
+        propagator handed the same domains and a block it has never seen.
+
+        With backtrack set, the chain also does what the solver does at a choice point: descend, then
+        restore the trailed prefix and the bounds and descend differently. Only the prefix is restored,
+        because only the prefix is trailed -- the permutation behind it is left exactly as the abandoned
+        subtree permuted it, which is sound only because a departing element is parked past the end of the
+        live prefix rather than dropped. Nothing else in these tests can see that.
+
+        :param compute_domains_fct: the compute_domains function under test
+        :type compute_domains_fct: Callable
+        :param domains: the starting domains, narrowed in place
+        :type domains: np.ndarray
+        :param parameters: the propagator parameters
+        :type parameters: list[int]
+        :param rng: the source of the narrowings
+        :type rng: np.random.Generator
+        :param backtrack: whether the chain restores a choice point partway through
+        :type backtrack: bool
+        """
+        trailed_nb, hint_nb = _get_state_size(compute_domains_fct, domains, parameters)
+        report_idx = trailed_nb if _reports_changes(compute_domains_fct) else -1
+        parameters_arr = np.array(parameters, dtype=np.int32)
+        warm_state = np.zeros(trailed_nb + hint_nb, dtype=np.int32)
+        n = len(domains)
+
+        def narrow(doms: np.ndarray) -> None:
+            # only ever narrow: a widening is something the engine never does inside a branch, and every
+            # live set here is unsound without that
+            i = int(rng.integers(0, n))
+            if doms[i, DOMAIN_MIN] < doms[i, DOMAIN_MAX]:
+                if rng.integers(0, 2):
+                    doms[i, DOMAIN_MIN] += 1
+                else:
+                    doms[i, DOMAIN_MAX] -= 1
+
+        def step(doms: np.ndarray) -> int:
+            cold_domains = doms.copy()
+            cold_state = np.zeros(trailed_nb + hint_nb, dtype=np.int32)
+            if report_idx >= 0:
+                warm_state[report_idx] = cold_state[report_idx] = 1  # what the engine pre-sets
+            warm_status = compute_domains_fct(doms, parameters_arr, warm_state)
+            cold_status = compute_domains_fct(cold_domains, parameters_arr, cold_state)
+            assert warm_status == cold_status
+            assert np.array_equal(doms, cold_domains)
+            if report_idx >= 0:
+                assert warm_state[report_idx] == cold_state[report_idx]
+            return warm_status
+
+        node_domains = domains.copy()
+        for _ in range(3):
+            narrow(node_domains)
+            if step(node_domains) != PROP_CONSISTENCY:
+                return
+        if not backtrack:
+            for _ in range(9):
+                narrow(node_domains)
+                if step(node_domains) != PROP_CONSISTENCY:
+                    return
+            return
+        trailed_mark = warm_state[:trailed_nb].copy()  # the choice point: the trail holds this and the bounds
+        domains_mark = node_domains.copy()
+        for _ in range(6):  # descend, permuting the live array as it goes
+            narrow(node_domains)
+            if step(node_domains) != PROP_CONSISTENCY:
+                break
+        warm_state[:trailed_nb] = trailed_mark  # backtrack: exactly what the trail undoes, and no more
+        node_domains = domains_mark.copy()
+        for _ in range(6):  # and away down a different branch
+            narrow(node_domains)
+            if step(node_domains) != PROP_CONSISTENCY:
+                return
 
 
 def _is_idempotent(compute_domains_fct: Callable) -> bool:

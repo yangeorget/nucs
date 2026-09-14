@@ -19,6 +19,7 @@ from nucs.constants import (
     DOMAIN_MAX,
     DOMAIN_MIN,
     EVENT_MASK_MIN_MAX,
+    LIVE_SET_MIN_ARITY,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_INCONSISTENCY,
@@ -70,6 +71,8 @@ def get_state_count_eq(n: int, parameters: Sequence[int]) -> tuple[int, int]:
     :return: (trailed_nb, hint_nb) = (2, 1 + (n - 1))
     :rtype: tuple[int, int]
     """
+    if n < LIVE_SET_MIN_ARITY:
+        return 0, 1
     return 2, n
 
 
@@ -87,9 +90,13 @@ def get_triggers_count_eq(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True)
-def compute_domains_count_eq(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
+# inlined into the dispatch above: the narrow path is the one a short constraint takes on every
+# call, and the call itself was measurable against it
+@njit(cache=True, inline="always")
+def _compute_domains_count_eq_plain(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     """
+    Scans every variable: the plain path, for a propagator too narrow to carry a live set.
+
     Implements :math:`\\sum_i (x_i == a) = x_{n-1}`.
 
     :param domains: the domains of the variables, x is an alias for domains
@@ -105,8 +112,82 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray, prop_state: 
     a = int(parameters[0])
     x = domains[:-1]
     counter = domains[-1]
+    # count_min = number of x_i already fixed to a, count_max = number that can still equal a;
+    # the counter must lie in [count_min, count_max]. The counter bounds are read once into locals,
+    # and the loop bails out as soon as count_max drops below them (too few possible) or count_min
+    # rises above them (too many forced), saving the rest of the scan.
+    counter_min = counter[DOMAIN_MIN]
+    counter_max = counter[DOMAIN_MAX]
+    count_max = len(x)
+    count_min = 0
+    for x_i in x:
+        x_i_min = x_i[DOMAIN_MIN]
+        x_i_max = x_i[DOMAIN_MAX]
+        if x_i_min > a or x_i_max < a:  # a is not in the domain: this x_i can never equal a
+            count_max -= 1
+            if count_max < counter_min:
+                return PROP_INCONSISTENCY
+        elif x_i_min == a and x_i_max == a:  # x_i is fixed to a
+            count_min += 1
+            if count_min > counter_max:
+                return PROP_INCONSISTENCY
+    changed = False
+    if count_min > counter_min:
+        counter[DOMAIN_MIN] = count_min
+        changed = True
+    if count_max < counter_max:
+        counter[DOMAIN_MAX] = count_max
+        changed = True
+    if count_min == count_max:
+        return PROP_ENTAILMENT
+    if count_min == counter_max:  # we cannot have more domains equal to a
+        all_different = True
+        for x_i in x:
+            x_i_min = x_i[DOMAIN_MIN]
+            x_i_max = x_i[DOMAIN_MAX]
+            if x_i_min == a:
+                if x_i_max > a:
+                    x_i[DOMAIN_MIN] = a + 1
+                    changed = True
+            elif x_i_min < a:
+                if x_i_max == a:
+                    x_i[DOMAIN_MAX] = a - 1
+                    changed = True
+                elif x_i_max > a:
+                    all_different = False
+        if all_different:
+            return PROP_ENTAILMENT
+    if count_max == counter_min:  # we cannot have more domains different from a
+        for x_i in x:
+            if x_i[DOMAIN_MIN] <= a <= x_i[DOMAIN_MAX]:
+                x_i[:] = a
+        return PROP_ENTAILMENT
+    if not changed:
+        prop_state[0] = 0  # nothing written: the engine can skip the write-back scan
+    return PROP_CONSISTENCY
+
+
+@njit(cache=True)
+def compute_domains_count_eq(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
+    """
+    Implements :math:`\\sum_i (x_i == a) = x_{n-1}`.
+
+    :param domains: the domains of the variables, x is an alias for domains
+    :type domains: NDArray
+    :param parameters: the parameters of the propagator, a is the first parameter
+    :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
+
+    :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
+    """
+    if len(prop_state) < STATE_LIVE + len(domains) - 1:  # x is one shorter than domains
+        return _compute_domains_count_eq_plain(domains, parameters, prop_state)
+    a = int(parameters[0])
+    x = domains[:-1]
+    counter = domains[-1]
     n = len(x)
-    live = prop_state[STATE_LIVE:]
     # count_min = number of x_i already fixed to a, count_max = number that can still equal a;
     # the counter must lie in [count_min, count_max]. The counter bounds are read once into locals,
     # and the loop bails out as soon as count_max drops below them (too few possible) or count_min
@@ -116,7 +197,7 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray, prop_state: 
     live_nb = prop_state[STATE_LIVE_NB]
     if live_nb == 0:  # cold: a zeroed block, which is what the solver allocates and what a restart restores
         for i in range(n):
-            live[i] = i
+            prop_state[STATE_LIVE + i] = i
         live_nb = n
         count_min = 0
     else:
@@ -128,15 +209,15 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray, prop_state: 
     # prefix in the same pass, so the scan shrinks down the branch instead of restarting at n every call
     k = 0
     while k < live_nb:
-        i = live[k]
+        i = prop_state[STATE_LIVE + k]
         x_i = x[i]
         x_i_min = x_i[DOMAIN_MIN]
         x_i_max = x_i[DOMAIN_MAX]
         if x_i_min > a or x_i_max < a:  # a is not in the domain: this x_i can never equal a
             count_max -= 1
             live_nb -= 1
-            live[k] = live[live_nb]
-            live[live_nb] = i
+            prop_state[STATE_LIVE + k] = prop_state[STATE_LIVE + live_nb]
+            prop_state[STATE_LIVE + live_nb] = i
             if count_max < counter_min:
                 prop_state[STATE_LIVE_NB] = live_nb + 1
                 prop_state[STATE_COUNT_MIN] = count_min
@@ -144,8 +225,8 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray, prop_state: 
         elif x_i_min == a and x_i_max == a:  # x_i is fixed to a
             count_min += 1
             live_nb -= 1
-            live[k] = live[live_nb]
-            live[live_nb] = i
+            prop_state[STATE_LIVE + k] = prop_state[STATE_LIVE + live_nb]
+            prop_state[STATE_LIVE + live_nb] = i
             if count_min > counter_max:
                 prop_state[STATE_LIVE_NB] = live_nb + 1
                 prop_state[STATE_COUNT_MIN] = count_min
@@ -166,7 +247,7 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray, prop_state: 
     if count_min == counter_max:  # we cannot have more domains equal to a
         all_different = True
         for k in range(live_nb):
-            x_i = x[live[k]]
+            x_i = x[prop_state[STATE_LIVE + k]]
             if x_i[DOMAIN_MIN] == a:  # live, so its max is above a
                 x_i[DOMAIN_MIN] = a + 1
                 changed = True
@@ -179,7 +260,7 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray, prop_state: 
             return PROP_ENTAILMENT
     if count_max == counter_min:  # we cannot have more domains different from a
         for k in range(live_nb):
-            x[live[k]][:] = a
+            x[prop_state[STATE_LIVE + k]][:] = a
         return PROP_ENTAILMENT
     if not changed:
         prop_state[STATE_REPORT] = 0  # nothing written: the engine can skip the write-back scan

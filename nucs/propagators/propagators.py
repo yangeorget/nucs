@@ -42,6 +42,7 @@ from nucs.propagators.bin_packing_load_propagator import (
 from nucs.propagators.count_eq_c_propagator import (
     compute_domains_count_eq_c,
     get_complexity_count_eq_c,
+    get_state_count_eq_c,
     get_triggers_count_eq_c,
 )
 from nucs.propagators.count_eq_propagator import (
@@ -485,7 +486,12 @@ ALG_COUNT_EQ = register_propagator(
     get_state_fct=get_state_count_eq,
     reports_changes=True,
 )
-ALG_COUNT_EQ_C = register_propagator(get_triggers_count_eq_c, get_complexity_count_eq_c, compute_domains_count_eq_c)
+ALG_COUNT_EQ_C = register_propagator(
+    get_triggers_count_eq_c,
+    get_complexity_count_eq_c,
+    compute_domains_count_eq_c,
+    get_state_fct=get_state_count_eq_c,
+)
 ALG_COUNT_GEQ_C = register_propagator(
     get_triggers_count_geq_c,
     get_complexity_count_geq_c,

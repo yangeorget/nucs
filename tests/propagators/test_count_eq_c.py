@@ -11,6 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 
+import numpy as np
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
@@ -51,3 +52,16 @@ class TestCountEqC(PropagatorTest):
         self.assert_compute_domains(
             compute_domains_count_eq_c, domains, parameters, consistency_result, expected_domains
         )
+
+    @pytest.mark.parametrize("seed", range(200))
+    @pytest.mark.parametrize("backtrack", [False, True])
+    def test_live_set_is_sound(self, seed: int, backtrack: bool) -> None:
+        rng = np.random.default_rng(seed)
+        n = int(rng.integers(3, 40))  # straddles LIVE_SET_MIN_ARITY, so both paths are exercised
+        a = int(rng.integers(0, 5))
+        c = int(rng.integers(0, n + 1))
+        domains = np.empty((n, 2), dtype=np.int32)
+        for i in range(n):
+            lo = int(rng.integers(0, 5))
+            domains[i] = (lo, lo + int(rng.integers(0, 5)))
+        self.assert_live_set_is_sound(compute_domains_count_eq_c, domains, [a, c], rng, backtrack)

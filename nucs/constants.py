@@ -46,6 +46,13 @@ PROP_FLAG_IDEMPOTENT = 1  # one call reaches the propagator's own fixpoint
 # 0 means it wrote none, so the engine can skip the write-back scan entirely. The engine pre-sets the cell
 # to 1 before every call, so a propagator that forgets to report simply gets the full scan.
 PROP_FLAG_REPORTS_CHANGES = 2
+# Below this arity a propagator does not carry a live set of the variables still worth looking at. What a
+# live set saves grows with the variables it skips, while what it costs -- two trailed cells, which the
+# engine copies into the trail on every call -- does not, so there is an arity under which it cannot pay.
+# Measured on the propagator, against the plain scan it replaces, at a tenth of the variables still live:
+# 1.00x at 16 variables, 1.12-1.16x at 64, 1.54-1.65x at 256, 2.6-3.1x at 1024 -- and in the solver a
+# count_leq_c of arity 3 measured 5-8% slower with one, which is the cost showing up undiluted.
+LIVE_SET_MIN_ARITY = 16
 
 # Objective indices.
 # The branch-and-bound bound is solver state, not choice-point state: it is not backtrackable, so it is
