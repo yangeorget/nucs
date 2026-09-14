@@ -69,14 +69,14 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   | `element_l_eq_alldifferent` | indices still meeting `v` | 94% live | no — `i`'s bounds already keep the scan at 7.5 |
   | `alldifferent`, `gcc` | ground variables | 27–56% | no — a ground variable is a singleton Hall interval, the most constraining kind there is |
   | `sum_*`, `linear_*` | unbound variables | 46–75%, arity 2–12.5 | no — hostile on both counts |
-  | `count_eq_c` | x_i still undetermined | 52.7%, arity 4 | no |
+  | `count_leq_c`, `count_geq_c`, `count_eq_c` | x_i still undetermined | 53–57%, arity 3–4 | built, then dropped — see below |
 
   So a **custom propagator** weighing a live set should probe that fraction first, with a counter in its own
   state block: under about a fifth it is worth building, over about two fifths it cannot pay whatever the
   per-element work is. The `cx = 1` propagators are out of scope entirely — a constraint over two or three
   variables has nothing to amortise a carried set over.
 
-  The three other `count_*` propagators were the near miss, and they sharpen that rule. `count_leq_c`,
+  Those last three are the near miss, and they sharpen the rule rather than just failing it. `count_leq_c`,
   `count_geq_c` and `count_eq_c` count the same predicate over the same shrinking set, so the code is
   `count_eq`'s almost line for line, and carrying it measures 1.5–1.7× at 256 variables and up to 4.4× at
   1024. It is **not** landed, because what a live set *costs* — two trailed cells the solver copies on
