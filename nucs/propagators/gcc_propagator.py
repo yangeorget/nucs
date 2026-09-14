@@ -531,7 +531,25 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray, prop_state: NDArr
     stable_sets = scratch[zero_start + bounds_nb : zero_start + 2 * bounds_nb]
     new_mins = scratch[zero_start + 2 * bounds_nb :]
     # these three used to come from a fresh np.zeros every call; the persistent block needs the same
-    # re-zeroing done explicitly, since it is no longer implied by a fresh allocation
+    # re-zeroing done explicitly, since it is no longer implied by a fresh allocation.
+    #
+    # Two of the three are wider than they have to be, and the third is not, which is worth writing down
+    # because the asymmetry is not visible from here. filter_lower_gcc writes stable_intervals and
+    # stable_sets over [1, nb + 1] before it reads either, and nothing in the algorithm reaches above
+    # nb + 1: every value the two hold is a bound index no greater than that, path_max only ascends
+    # through them, and path_set only walks where path_max can reach. Index 0 is the one cell that is
+    # reachable and never written -- path_max is entered at stable_sets[y], which is 0 for the
+    # lowest-ranked bound -- so for those two, `[0] = 0` is the whole of what the fill is doing. new_mins
+    # gets no such argument: it is written inside one branch and read inside another, so whether a stale
+    # cell can be read at all rests on those two conditions agreeing, which is the algorithm's invariant
+    # and not something this code states.
+    #
+    # The narrow version was written and measured, and measures nothing: statistics identical on five gcc
+    # models, and 0.7-1.2% on sports(8), against a model that drifts 10.6% run to run on this machine.
+    # bounds_nb is 29 there, so all three arrays are ~284 bytes and never leave L1 however they are
+    # filled -- the same reason every array merge and shrink tried here has measured zero. It was left
+    # alone rather than landed: it trades a fill that is correct whatever the index ranges do for a
+    # reachability argument that nothing checks, and buys nothing for it.
     stable_intervals.fill(0)
     stable_sets.fill(0)
     new_mins.fill(0)
