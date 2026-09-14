@@ -187,8 +187,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   of one solver-owned `int32` array: a trailed prefix the solver saves and restores like a domain bound,
   followed by an untrailed hint suffix that keeps whatever the previous call left in it. A propagator says
   how wide it wants each half with an optional `get_state_*` function, registered through the new
-  `get_state_fct` parameter of `register_propagator`; the default is a zero-width block, so the 59
-  propagators that need none only had to take the extra argument.
+  `get_state_fct` parameter of `register_propagator`; the default is a zero-width block, so a propagator
+  wanting none only had to take the extra argument. Twenty-four of the sixty-one declare one today.
 
   Beyond backtracking, the trailed half is also **cleared whenever the search restarts from the root** —
   which `find_best` does in `OPTIM_RESET` mode. That restart drops the trail rather than unwinding it, so
@@ -203,6 +203,16 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   are now built once — and lets both warm-start their sort permutations from the previous call instead of
   re-seeding identity order — sound because a stale permutation is still a permutation, which is the
   property the untrailed suffix requires of anything stored in it.
+
+  **Three propagators paying the same per-call allocation were missed by that conversion**, and what they
+  were worth once converted says when the conversion is the point and when it is not. `nvalue` rebuilt two
+  `np.argsort` orders per call and gained **2.01×**. `regular` allocated and cleared two reachability
+  tables per call and gained **1.16×**. `bin_packing_load` allocated ~98 subset-sum buffers per call — by
+  far the most of the three — and gained **nothing**, because those allocations sat against 124,000 DP
+  iterations per call, where `nvalue`'s two sat against a couple of hundred operations. **What an
+  allocation costs is not its count but its share of the work it accompanies**, and only measuring the
+  second tells you which. Nothing recorded which propagators had been converted, which is why the one with
+  the most to gain kept allocating; the FlatZinc coverage report added above is what made them visible.
 
   Above `SORT_MAX_N`, where `alldifferent` used to fall straight through to `np.argsort`, the warm sort now
   runs on a shift budget and falls back only once it blows it. The hard fallback paid `np.argsort`'s fixed
