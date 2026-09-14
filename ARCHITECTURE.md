@@ -467,6 +467,35 @@ but at 512 tasks in the worst shape only, and the shape is not knowable cheaply.
 linear-compaction and array-merge results: **a tight contiguous scan with a data-dependent early exit is very
 hard to beat with a better asymptotic and worse locality.**
 
+### The busiest propagator in the benchmarks has nothing in it worth optimising
+
+*(measured 2026-09-15)* `sum_eq` makes **31.5 million calls** across the Python benchmark set, more than any
+other propagator, and 26.7 million of those are `golomb(11)` alone — **72% of every propagator call it
+makes**, in the longest-running model there is. It looks like the obvious place to spend an afternoon.
+
+It is not, and the reason is arity. Golomb posts `sum_eq` as `d(0,i) + d(i,j) = d(0,j)`, forty-five of them
+at **arity 3**, so the propagator's two loops run two iterations each. Pricing them by duplication in situ —
+each probe verified neutral by an unchanged node count, which is what the equivalent probe on `regular`
+failed to be:
+
+| pass | golomb(10) | golomb(11) |
+|---|---|---|
+| accumulating the bounds | 3.2% | 2.8% |
+| filtering the variables | 8.3% | 5.9% |
+| **the whole body** | **11.5%** | **8.7%** |
+
+So making `sum_eq` *free* would buy about a tenth of the model it dominates. `golomb(11)` spends 4,530 ms on
+37.3 million propagator calls — **121 ns a call**, of which roughly 110 ns is everything around the
+propagator: gathering three domains out of `state`, the indirect call through the typed function list, and
+`update_domains` walking three variables back with their trigger slices. **A propagator this small is a
+rounding error inside its own call.**
+
+Which relocates the question rather than answering it. The cost is per-call machinery, and the one
+measurement there says the same thing from the other side: inlining `update_domains` into the filtering
+loop was worth 5.8%, while every attempt to shrink or merge the arrays it touches has measured zero,
+because they are L1-resident already. A model posting a hundred propagators of arity 2 and 3 pays that
+machinery 37 million times, and that — not the arithmetic inside any of them — is what golomb is made of.
+
 ### `bin_packing_load` was rebuilding a subset-sum per item, and a stamp made it worse before prefixes made it 4.6x
 
 *(measured 2026-09-15)* Its item rule asks, for each candidate in a bin, whether the *other* candidates can
