@@ -36,12 +36,13 @@ jobs:
           echo "$HOME/minizinc/bin" >> "$GITHUB_PATH"
       - name: Verify MiniZinc
         run: minizinc --version
+      # Check only, never fix: a fix made on the runner is thrown away, and the step would pass on code that is not clean.
       - name: Ruff check
-        run: ruff check --fix nucs tests
+        run: ruff check nucs tests scripts
       - name: Ruff format
-        run: ruff format nucs tests
+        run: ruff format --diff nucs tests scripts
       - name: Check typing with mypy
-        run: mypy nucs tests
+        run: mypy nucs tests scripts
       - name: Test with pytest (with Numba)
         run: NUMBA_CACHE_DIR=.numba/cache pytest
       - name: Test with pytest (without Numba)
