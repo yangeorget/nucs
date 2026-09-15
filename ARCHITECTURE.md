@@ -467,6 +467,59 @@ but at 512 tasks in the worst shape only, and the shape is not knowable cheaply.
 linear-compaction and array-merge results: **a tight contiguous scan with a data-dependent early exit is very
 hard to beat with a better asymptotic and worse locality.**
 
+### The engine's per-call cost has no single owner
+
+*(measured 2026-09-15)* The section below prices `sum_eq`'s body at under 12% of `golomb(11)`, which leaves
+**about 110 ns of every 121 ns call** in the machinery around the propagator. Two candidates looked like
+discrete, removable items, and both were tested against a stop rule set in advance: **if together they came
+to under 10%, the overhead is diffuse and not worth a specialised engine.**
+
+**Devirtualising the dispatch: 2.5%.** `compute_domains_fcts[algorithm](...)` is a call through a Numba
+typed function list — uninlinable, forcing live values to memory across the boundary. It looked like the
+largest single item because real models dispatch over almost nothing: `golomb(11)` posts 101 propagators
+over **3 distinct algorithms**, `queens(12)` posts 3 over **1**. A chain testing those three ahead of the
+indirect call, falling through to it otherwise, measured:
+
+| | devirtualised | base | |
+|---|---|---|---|
+| golomb(10), all three algorithms in the chain | 158.8 ms | 163.3 ms | 1.029× |
+| golomb(11), all three | 4,617 ms | 4,733 ms | 1.025× |
+| magic_square(4), two of three | 203.6 ms | 206.9 ms | 1.017× |
+| magic_sequence(400), **none** — the control | 218.8 ms | 220.1 ms | 1.006× |
+
+The gradient is right — the gain falls as fewer of a model's algorithms are devirtualised, and the control
+that takes none of the branches is flat — so the effect is real rather than drift. It is also a quarter of
+what the hypothesis needed. Numba's dispatch is an indirect branch through a known signature, not a Python
+lookup, and an indirect branch resolving to one of three targets is predicted well; what devirtualising
+removes is mostly the inlining barrier, and these bodies are too small for inlining to be worth much.
+
+**Removing the per-call statistics: 1.4%, and that is an upper bound.** Four `int64` read-modify-writes per
+call, 37M times on `golomb(11)`. The build that drops them also drops the `no_change` bookkeeping they were
+the only consumer of, so it removes more than the counters:
+
+| | no statistics | base | | calls/ms |
+|---|---|---|---|---|
+| golomb(10) | 161.8 ms | 164.0 ms | 1.014× | 8,073 |
+| golomb(11) | 4,699 ms | 4,740 ms | 1.009× | 7,880 |
+| magic_square(4) | 206.6 ms | 207.5 ms | 1.004× | 4,367 |
+| magic_sequence(400) | 221.2 ms | 220.0 ms | 0.995× | 2,056 |
+
+There is no model a statistics change cannot affect, so the substitute for a control was a prediction made
+before the run: the gain should track calls per millisecond. It does, and it reaches zero at the bottom of
+the column, which is what makes 1.4% an effect rather than noise.
+
+**So the stop rule fires.** Together the two account for about a twenty-fifth of the 110 ns. What is left is
+not overhead in the sense of being removable: three scattered reads out of `state` and six stores into the
+domain buffer, five `offsets` loads, a queue pop, three `tighten_at` calls with their write barriers, and a
+walk of a trigger slice — **mean 4.8 entries on golomb, 3.0 on queens** — testing membership and entailment
+on each. That is what propagating a constraint costs.
+
+Which reframes the finding rather than solving it. "90% of a `sum_eq` call is machinery" reads as an
+indictment of the engine; it is closer to saying that **a three-variable constraint is not enough work to
+amortise a general propagation engine over**. Golomb's forty-five ternary `sum_eq` are a modelling choice,
+and the lever on models shaped like that is to post fewer and wider constraints, not to make the call
+cheaper. The one per-call change that ever did pay — inlining `update_domains`, 5.8% — is already in.
+
 ### The busiest propagator in the benchmarks has nothing in it worth optimising
 
 *(measured 2026-09-15)* `sum_eq` makes **31.5 million calls** across the Python benchmark set, more than any
