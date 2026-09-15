@@ -10,6 +10,28 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Changed
 
+- **The propagation loop is 1.23–1.36× faster: it is compiled without Numba's reference-counting runtime.** With
+  the runtime on, every array an `inline="always"` helper takes is increfed on entry and decrefed on exit, and on
+  `bc_algorithm` those calls survived into the machine code as real calls — three of each for every bound
+  `trail_set` writes, more around every slice handed to a propagator and every queue operation. `bc_algorithm`
+  now compiles with `_nrt=False`, which the address dispatch below is what made possible, and
+  `buckets_add`/`buckets_pop` are `inline="always"`, since a helper compiled on its own was inlined with the
+  refcounts of whichever context first put it in the cache. The search is unchanged: all 27 benchmark models
+  and all 7 FlatZinc models report identical statistics. Median solve time, interleaved, against `2dae120`:
+
+  | model | before | after | |
+  |---|---|---|---|
+  | golomb(10) | 167 ms | 127.5 ms | 1.31× |
+  | golomb(11) | 4,692 ms | 3,561 ms | 1.32× |
+  | magic_square(4) | 124 ms | 101 ms | 1.23× |
+  | all_interval(12) | 235 ms | 174.5 ms | 1.35× |
+  | magic_sequence(400) | 99 ms | 73 ms | 1.36× |
+  | queens(12) | 1,116 ms | 1,039 ms | 1.07× |
+
+  The address dispatch accounts for 1.01–1.03× of that and the runtime for the rest. Queens gains least because
+  `alldifferent`'s own work, not the loop around it, dominates its calls. Startup is unchanged. Code inlined into
+  `bc_algorithm` may no longer allocate an array or index a typed list — it fails to compile — and every jitted
+  function it calls must be `inline="always"`; `tests/solvers/test_bc_algorithm.py` checks both.
 - **A consistency algorithm calls a propagator through its compiled address, not through a typed list.**
   `SIGN_CONSISTENCY_ALG`'s `compute_domains_fcts`, a Numba typed list of functions, is now
   `compute_domains_addrs`: an `int64[::1]` array holding the compiled address of each algorithm's

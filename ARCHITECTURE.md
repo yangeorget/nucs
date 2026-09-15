@@ -419,6 +419,35 @@ Meanwhile **the mechanisms that have paid here need no delta at all** — report
 (`prop_state`'s change cell), resuming past a prefix that is monotone by construction (`lexleq`), and dropping
 candidates that can never come back (`relation`'s live tuples).
 
+### The propagation loop is compiled without the reference-counting runtime
+
+*(landed 2026-09-15)* `bc_algorithm` is `@njit(cache=True, _nrt=False)`. With Numba's runtime on, an
+`inline="always"` helper increfs every array it takes on entry and decrefs it on exit — Numba inlines at its
+own IR level, so the callee's argument handling comes along — and on the propagation loop those calls
+survived into the arm64 machine code as real calls (`ldr x22, [_NRT_incref@GOTPAGEOFF]`, `blr x22`), forcing
+live values onto the stack around them. The loop's IR held 48 `NRT_incref` and 79 `NRT_decref` call sites:
+three of each for every bound `trail_set` writes, a typed-list incref and a `numba_list_size_address` C call
+per propagator call, more around the slices handed to the propagator and around the queue operations.
+Removing all of them is worth **1.23–1.36×** on golomb, magic_square, all_interval and magic_sequence and
+**1.07×** on queens, with every statistic identical — see *The engine's per-call cost has no single owner*
+below, which it overturns.
+
+Two rules come with it, and both are enforced:
+
+- **Nothing in the loop may allocate an array or index a typed list.** Either fails to compile with "NRT
+  required but not enabled". That is why a propagator is called through `call_compute_domains` and an `int64`
+  array of compiled addresses rather than through a typed list of functions.
+- **Every jitted function the loop calls must be `inline="always"`.** One compiled on its own is inlined by
+  LLVM as whichever context first compiled it into the cache left it, and the cache key does not record that
+  context: `buckets_add`, first compiled by a refcounted caller, brought 4 increfs and 6 decrefs back into the
+  loop on a warm cache and none on an empty one. That fails nothing; it only makes the loop's speed depend on
+  the cache's history. `tests/solvers/test_bc_algorithm.py` forces the bad case — it compiles the queue
+  helpers in a refcounted context first — and fails if the compiled loop holds any refcount call.
+
+`_nrt` is a private Numba option. Numba is pinned to an exact version and the same test pins the option on the
+decorator, so an upgrade that drops or ignores it fails a test rather than a benchmark. Propagators keep the
+runtime: `_nrt=False` on the five hottest non-allocating ones measured only 1.02–1.03× more.
+
 ### The pure-Python escape hatch is a hard constraint
 
 Everything must also run under `NUMBA_DISABLE_JIT=1` (debugging, coverage, real tracebacks) — this is why
@@ -519,6 +548,15 @@ indictment of the engine; it is closer to saying that **a three-variable constra
 amortise a general propagation engine over**. Golomb's forty-five ternary `sum_eq` are a modelling choice,
 and the lever on models shaped like that is to post fewer and wider constraints, not to make the call
 cheaper. The one per-call change that ever did pay — inlining `update_domains`, 5.8% — is already in.
+
+**It had one after all.** *(measured 2026-09-15, the same day)* The stop rule priced the two items it could
+name, dispatch and statistics, and read the remaining 110 ns off the source: reads, stores, a queue pop, a
+trigger walk. The machine code held one more item the source does not show at all — reference counting,
+added by the compiler around every array an inlined helper takes. Compiling the loop without Numba's runtime
+took `golomb(11)` from 4,692 to 3,561 ms with the search identical, about **30 ns of the 121 ns** per call; see
+*The propagation loop is compiled without the reference-counting runtime* above. The lesson is where to look:
+an itemisation read off the source cannot find a cost the compiler adds, and `inspect_llvm` on a fresh
+compilation — a dispatcher loaded from the cache has no IR — shows what the loop really executes.
 
 ### The busiest propagator in the benchmarks has nothing in it worth optimising
 

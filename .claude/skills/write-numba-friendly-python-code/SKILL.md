@@ -14,5 +14,11 @@ Most of `nucs/` runs under `@njit`. In that code:
 - **Pass functions as addresses.** `addresses_from_functions` in `nucs/numba_helper.py` turns functions into addresses
   with `_get_wrapper_address`, and `function_ptr_from_address` recovers a typed callable at run time. Use this
   mechanism for any new callable-typed parameter.
+- **`inline="always"` is not free on a hot path.** Numba inlines at its own IR level and increfs and decrefs every
+  array the inlined function takes; those calls survive into the machine code. Look with `inspect_llvm` on a fresh
+  compilation — a dispatcher loaded from the cache has no IR.
+- **`bc_algorithm` is compiled with `_nrt=False`.** Code inlined into it must not allocate or index a typed list (it
+  will not compile), and every jitted function it calls must be `inline="always"`, or LLVM inlines it with the
+  refcounts of whichever context first put it in the cache. `tests/solvers/test_bc_algorithm.py` checks both.
 - **Debug a cryptic compile or typing error with `NUMBA_DISABLE_JIT=1`**: the plain-Python traceback points at the
   real line.
