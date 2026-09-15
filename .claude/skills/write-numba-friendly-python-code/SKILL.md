@@ -1,18 +1,18 @@
 ---
 name: write-numba-friendly-python-code
-description: Skill to write Numba friendly Python code. Use it whenever you write or edit an `@njit` function in `nucs/`.
+description: Conventions for Numba-jitted code in NuCS — compile caching, what types jitted code may use, in-place array writes, passing functions as values, and debugging compile errors. Use whenever writing or editing an @njit function under nucs/, or when a Numba typing or compilation error needs diagnosing.
 ---
 
-# Write Numba friendly Python code
+# Write Numba-friendly Python code
 
-These apply to every `@njit` function in `nucs/` — most of the codebase.
+Most of `nucs/` runs under `@njit`. In that code:
 
-- Use `@njit(cache=True)`. `cache=True` is what makes warm starts fast; never remove it.
-- No Python objects in jitted code: no `dict`, no exceptions, no `isinstance`, no strings other than literals. Pass
-  typed `NDArray`s and ints.
-- Mutate arrays in place (`domains[i][MIN] = ...`). Never rebind a slot (`domains[i] = ...`) — Numba can't always type
-  that.
-- Functions passed as values go through `_get_wrapper_address` (see `nucs/numba_helper.py`); the address is recovered to
-  a typed callable at runtime. If you're adding a callable-typed parameter, this is the mechanism.
-- When a Numba compile error is cryptic, re-run with `NUMBA_DISABLE_JIT=1` — the real Python traceback points to the
-  line.
+- **Decorate with `@njit(cache=True)`.** The on-disk cache is what makes warm starts fast; never drop `cache=True`.
+- **Use only typed NDArrays and scalars.** No `dict`, no exceptions, no `isinstance`, no strings other than literals.
+- **Write array cells in place** (`domains[i, DOMAIN_MIN] = ...`). Never rebind a slot (`domains[i] = ...`): Numba
+  cannot always type it.
+- **Pass functions as addresses.** `addresses_from_functions` in `nucs/numba_helper.py` turns functions into addresses
+  with `_get_wrapper_address`, and `function_ptr_from_address` recovers a typed callable at run time. Use this
+  mechanism for any new callable-typed parameter.
+- **Debug a cryptic compile or typing error with `NUMBA_DISABLE_JIT=1`**: the plain-Python traceback points at the
+  real line.

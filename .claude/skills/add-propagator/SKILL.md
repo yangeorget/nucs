@@ -1,202 +1,111 @@
 ---
 name: add-propagator
-description: Skill to add a propagator to NuCS.
+description: Adds a constraint propagator to NuCS end to end — the propagator module, its ALG_* registration, tests, reference docs and, when needed, the FlatZinc builtin. Use when implementing a new constraint or global, when a FlatZinc/MiniZinc builtin needs a native propagator, or when giving an existing propagator a vacuity check, a state block or change reporting.
 ---
 
 # Add a propagator
 
-A propagator is a constraint enforced by domain filtering.
-Adding one means:
+A propagator enforces one constraint by bounds filtering. Copy this checklist and tick it off:
 
-- writing a module with three Numba-jitted functions, plus up to two optional ones that are not jitted
-- registering it with an `ALG_*` id
-- adding a parameterized test
+```
+- [ ] 1. Fix the name and the domains/parameters contract
+- [ ] 2. Write nucs/propagators/<name>_propagator.py
+- [ ] 3. Register ALG_<NAME> in nucs/propagators/propagators.py
+- [ ] 4. Write tests/propagators/test_<name>.py
+- [ ] 5. Add the autofunction to docs/source/reference/reference_propagators.rst
+- [ ] 6. Wire nucs/fzn/ (only if it backs a FlatZinc builtin)
+- [ ] 7. Style and tests pass
+```
 
-## 1. Pick a name and signature
+## 1. Name and contract
 
-- `name` is snake_case, derived from the constraint (e.g. `abs_eq`, `sum_leq_c`). Suffix `_c` means a constant
-  parameter is involved.
-- Decide what `domains` and `parameters` carry:
-    - `domains` is an `NDArray` of shape `(n, 2)` — one `(MIN, MAX)` row per variable, in a fixed order chosen by you.
-    - `parameters` is a 1-D `NDArray` of ints (may be empty). Use it for constants, coefficients, or table data.
-- Document the variable order in the `compute_domains_name` docstring — callers rely on it.
+- `<name>` is snake_case after the constraint (`abs_eq`, `sum_leq_c`); a `_c` suffix means a constant parameter.
+- `domains` is an int32 array of shape `(n, 2)`: one `[DOMAIN_MIN, DOMAIN_MAX]` row per variable, in an order you
+  choose. Document that order in the `compute_domains_<name>` docstring — callers depend on it.
+- `parameters` is a 1-D int32 array, possibly empty: constants, coefficients, table data.
 
-## 2. Create `nucs/propagators/name_propagator.py`
+## 2. Write the module
 
-The file must contain three functions, optionally two more, and the standard copyright header (use the skill add-header).
-
-Reference: `nucs/propagators/abs_eq_propagator.py` is the minimal template.
+Start from `nucs/propagators/abs_eq_propagator.py`, the minimal template. The file starts with the banner from
+`header.txt` (`.claude/rules/add-header.md`), docstrings follow `.claude/rules/write-docstring.md`, and the jitted
+functions follow the write-numba-friendly-python-code skill.
 
 ```python
-def get_complexity_name(n: int, parameters: NDArray) -> int:
-    # Not jitted. Return an int estimate of work per call.
-    # Used to order propagators in the queue — relative magnitude matters, not units.
-    ...
+def get_complexity_<name>(n: int, parameters: NDArray) -> int:
+    # plain Python: a work estimate that orders the propagation queue; only relative magnitude matters
 
 
 @njit(cache=True)
-def get_triggers_name(n: int, variable: int, parameters: NDArray) -> int:
-    # Return an EVENT_MASK_* constant from nucs.constants for the given variable index.
-    # Controls when this propagator wakes up after another propagator filters that variable.
-    ...
+def get_triggers_<name>(n: int, variable: int, parameters: NDArray) -> int:
+    # the EVENT_MASK_* from nucs.constants that wakes this propagator when `variable` is narrowed
 
 
 @njit(cache=True)
-def compute_domains_name(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
-    # Mutate domains in place. Return PROP_INCONSISTENCY, PROP_CONSISTENCY, or PROP_ENTAILMENT.
-    # Use domains[i][MIN] and domains[i][MAX]; never reassign domains[i] = ....
-    # prop_state is this propagator's own int32 scratch/state block, empty unless you declare a
-    # get_state_name — see below. Take the third argument even if you ignore it: the solver compiles
-    # every compute_domains against the same three-argument signature.
-    # If one call cannot reach this propagator's fixpoint, register it with idempotent=False — see below.
-    ...
+def compute_domains_<name>(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
+    # narrow domains in place; return PROP_INCONSISTENCY, PROP_CONSISTENCY or PROP_ENTAILMENT
 ```
 
-Rules for the jitted functions:
+Rules for `compute_domains_<name>`:
 
-- Use the skill write-numba-friendly-python-code.
-- No Python objects, no exceptions, no list/dict comprehensions over heterogeneous types.
-- Mutate `domains` in place.
-  After each tightening, check `if domains[i][MIN] > domains[i][MAX]: return PROP_INCONSISTENCY`.
-- Return `PROP_ENTAILMENT` only when the constraint can never be violated again
-  (rare; safe to return `PROP_CONSISTENCY` if unsure).
-- **Decide whether `compute_domains` is idempotent, and declare it.** Idempotent means one call reaches the
-  propagator's own fixpoint: a second consecutive call changes nothing. The engine never reschedules a
-  propagator onto its own prunes (the `other_prop_idx == prop_idx` skip in `bc_algorithm.py`), so it will not
-  re-run you to finish the job unless you say it must.
+- Take `prop_state` even when unused: every `compute_domains` is compiled against the same three-argument signature.
+- Write bounds in place (`domains[i, DOMAIN_MIN] = ...`, or through a row view `x = domains[i]`); never rebind a row.
+- After tightening a variable, return `PROP_INCONSISTENCY` as soon as its `DOMAIN_MIN` exceeds its `DOMAIN_MAX`.
+- Return `PROP_ENTAILMENT` only when no later narrowing can violate the constraint. `PROP_CONSISTENCY` is always safe.
+- Do not allocate: an `np.empty`/`np.zeros` here is paid at every fixpoint. Take scratch space from a state block.
 
-  If one pass can leave filtering on the table — tightening one variable re-opens filtering for another the
-  pass already visited, as in any pairwise or cascading rule — register with `idempotent=False` and the engine
-  puts you back on the propagation queue after any call that changed a domain, until a call changes nothing:
+### Decide idempotence (every propagator)
 
-  ```python
-  ALG_NAME = register_propagator(
-      get_triggers_name, get_complexity_name, compute_domains_name, idempotent=False
-  )
-  ```
+A `compute_domains` is idempotent when a second consecutive call changes nothing. The engine never wakes a
+propagator on its own prunes (the `other_prop_idx == prop_idx` skip in `nucs/solvers/bc_algorithm.py`), so if one
+pass can leave filtering undone — pairwise or cascading rules, where tightening one variable reopens one already
+visited — register with `idempotent=False`. The engine then requeues the propagator after every call that changed a
+domain, letting cheaper propagators run in between. Examples: `cumulative`, `diffn`, `disjunctive`, `linear_eq_c`,
+`regular`.
 
-  Going back through the queue rather than looping internally lets cheaper propagators — and any inconsistency
-  they expose — run in between. See `cumulative`, `diffn`, `disjunctive`, `linear_eq_c` for propagators that
-  declare it.
+The default, `idempotent=True`, is the unsafe direction. If a pass creates an inconsistency it fails to detect and
+nothing reruns it, an infeasible assignment is reported as a solution — the `diffn` bug. Verify instead of assuming:
+call `compute_domains` twice on random valid inputs and assert the second call changes nothing. A propagator that
+filters each variable once from fixed data is idempotent by construction.
 
-  **Getting this wrong in the `True` direction is a soundness bug, not a filtering weakness.** If your own
-  pruning can *create* an inconsistency that the same pass then fails to detect, and nothing re-runs you, an
-  infeasible assignment reaches a leaf and is reported as a solution — this is exactly what `diffn` did. The
-  default is `idempotent=True`, i.e. the dangerous side, so do not leave it implicit: **verify it.** Call
-  `compute_domains` twice on random contract-valid instances and assert the second call changes nothing.
-  Purely functional propagators (each variable filtered once from fixed data) are idempotent by construction.
+### Optional declarations
 
-### Optional: say when the constraint is vacuous
+Read the reference only when its row applies:
 
-Some constraints are settled by their parameters, or by their parameters and the initial domains together:
-no assignment those domains allow can violate them. A propagator for one of those is pure overhead. If that
-case is reachable for your constraint — and it is common for anything a FlatZinc model generates, where the
-same global is emitted with whatever capacities the model happens to give it — add a fourth function:
+| Declaration             | Add it when                                                                                                     | Reference                  |
+|-------------------------|-----------------------------------------------------------------------------------------------------------------|----------------------------|
+| `is_vacuous_<name>`     | the parameters, or the parameters and initial domains, can make the constraint unviolable — common in FlatZinc | `references/vacuity.md`     |
+| `get_state_<name>`      | the propagator needs scratch space, a hint carried across calls, or trailed per-node state                     | `references/state-block.md` |
+| `reports_changes=True`  | calls often narrow nothing, so the engine should skip its write-back scan                                      | `references/state-block.md` |
+
+## 3. Register
+
+In `nucs/propagators/propagators.py`, import the functions and add the registration in alphabetical position among
+the `ALG_*` lines:
 
 ```python
-def is_vacuous_name(n: int, parameters: Sequence[int], domains: Sequence[tuple[int, int]]) -> bool:
-    # NOT jitted, and not on any hot path: it runs once per add_propagator, in plain Python, so
-    # sum/all/comprehensions over `parameters` and `domains` are all fine.
-    # Return True only when no assignment allowed by `domains` can violate the constraint.
-    ...
+ALG_<NAME> = register_propagator(get_triggers_<name>, get_complexity_<name>, compute_domains_<name>)
 ```
 
-`Problem.add_propagator` calls it before posting, and simply does not post when it returns True: no call at
-every fixpoint, no entry in the trigger buckets, no slot in the propagator arrays, and `problem.propagator_nb`
-does not count it. The default, `is_never_vacuous`, returns False for every propagator that does not supply one.
-
-- **Returning True wrongly silently drops a constraint**, so extra solutions come out and nothing reports an
-  error. Prove the claim in the docstring rather than pattern-matching a special case.
-- **The domains are the ones held at post time**, and domains only shrink during the search, so a property
-  that holds of them holds for the whole search. That is what makes it safe to look at them and not only at
-  the parameters — `is_vacuous_regular` needs them, since an all-accepting automaton still filters values
-  outside its alphabet, so it is vacuous only once every domain already sits inside that alphabet.
-- **Vacuity is about the constraint, not about the filtering.** "This call happens to prune nothing" is not
-  it; the question is whether every assignment the domains allow satisfies the constraint. `PROP_ENTAILMENT`
-  is the run-time counterpart and is decided per call — this one is decided once, at post time.
-- Order the cheap discriminating tests first: `is_vacuous_gcc` scans the upper capacities before the lower
-  ones because that is what fails fast on a constraint that does bind.
-
-See `is_vacuous_cumulative` (parameters only), `is_vacuous_gcc` (parameters only) and `is_vacuous_regular`
-(parameters and domains).
-
-### Optional: ask for a state block
-
-`compute_domains` gets a third argument, `prop_state`: a slice of one solver-owned `int32` array, zero-width
-unless you declare how much you want. Declare it with a fifth function:
+The optional declarations are the remaining parameters; each one omitted takes its default:
 
 ```python
-def get_state_name(n: int, parameters: Sequence[int]) -> tuple[int, int]:
-    # NOT jitted: it runs once per propagator, at problem init, in plain Python.
-    # Return (trailed_nb, hint_nb) — how many int32 cells you want, split into a backtrackable
-    # prefix and an untrailed suffix. compute_domains receives both as one contiguous block,
-    # the trailed cells first.
-    ...
-```
-
-Two reasons to want one, and they have very different rules:
-
-- **Scratch space** (`hint_nb`), to replace a per-call `np.empty`/`np.zeros`. An allocation inside a jitted
-  `compute_domains` is paid at every fixpoint; a block is paid once. This is what `gcc` uses it for.
-- **A hint carried across calls** (`hint_nb` again). The suffix is *never* trailed: it holds whatever the last
-  call from *any* node of the search left there. So it may only hold values that are either fully overwritten
-  before being read, or still valid however stale — staleness may cost time, never correctness.
-  `alldifferent` warm-starts its sort permutations from it, which is sound precisely because a stale
-  permutation is still a permutation.
-- **Per-node state** (`trailed_nb`). The solver saves and restores this prefix exactly like a domain bound, so
-  it reads back what this node wrote. It costs a trail entry per cell per node that writes it, so keep it
-  narrow. No propagator uses it today.
-
-Rules:
-
-- **The block is zeroed once, at solver init** — not on backtrack, and not on an `OPTIM_RESET` restart. If you
-  need a cleared block, clear it yourself in `compute_domains`.
-- **Warm-starting does not bound the work.** `argsort_into_warm`'s cost is the inversions since the previous
-  call, which is small down a descent and O(n²) after a jump, so it keeps `argsort_into`'s `np.argsort`
-  fallback above `SORT_MAX_N`. If a hint's payoff depends on locality, keep the unconditional fallback.
-- Justify the untrailed claim in the `get_state_name` docstring, cell by cell — as `get_state_alldifferent`
-  and `get_state_gcc` do. This is the one place where a wrong claim reads as a heisenbug: the search finds
-  different solutions depending on the path it took to a node.
-
-See `get_state_alldifferent` and `get_state_gcc` (both: flag + warm permutations + scratch, and for gcc
-the two partial-sum tables it builds once from its immutable parameters).
-
-## 3. Register in `nucs/propagators/propagators.py`
-
-Add the import alongside the others, then append a registration line.
-The `ALG_*` lines are ordered alphabetically by id — keep that.
-
-```python
-from nucs.propagators.name_propagator import compute_domains_name, get_complexity_name, get_triggers_name
-
-...
-ALG_NAME = register_propagator(get_triggers_name, get_complexity_name, compute_domains_name)
-```
-
-The three declarations above are the fourth, fifth and sixth parameters, and each defaults to the answer that
-asks nothing of you: `is_never_vacuous`, which always posts, `idempotent=True`, and `get_state_default`, which
-asks for no state block. Only the vacuity and state defaults are on the safe side, which is why the idempotence
-one has to be verified rather than left implicit.
-
-```python
-ALG_NAME = register_propagator(
-    get_triggers_name,
-    get_complexity_name,
-    compute_domains_name,
-    is_vacuous_name,
-    idempotent=False,
-    get_state_fct=get_state_name,
+ALG_<NAME> = register_propagator(
+    get_triggers_<name>,
+    get_complexity_<name>,
+    compute_domains_<name>,
+    is_vacuous_<name>,               # default is_never_vacuous: always post
+    idempotent=False,                # default True: verify it, see above
+    get_state_fct=get_state_<name>,  # default get_state_default: no state block
+    reports_changes=True,            # default False
 )
 ```
 
-The returned id is the propagator's index; never hardcode it. It indexes `IS_VACUOUS_FCTS`, `IDEMPOTENCIES`
-and `GET_STATE_FCTS` just as it does the three function lists, so a registration that omits a declaration is
-what puts the default in that slot. All six are plain lists appended to in place — deliberately, so that
-a propagator registered after import is visible to everything that already imported them.
+The return value indexes the registry lists and `ALGORITHM_FLAGS`; never hardcode it. The registries are lists
+appended in place so that a propagator registered after import is visible to modules that already imported them.
 
-## 4. Add `tests/propagators/test_name.py`
+## 4. Test
 
-Follow the `PropagatorTest` pattern (see `tests/propagators/test_abs_eq.py`):
+Create `tests/propagators/test_<name>.py` on the `PropagatorTest` pattern of `tests/propagators/test_abs_eq.py`:
 
 ```python
 class TestName(PropagatorTest):
@@ -204,65 +113,49 @@ class TestName(PropagatorTest):
         "domains,parameters,consistency_result,expected_domains",
         [
             ([(lo, hi), ...], [param, ...], PROP_CONSISTENCY, [[lo, hi], ...]),
-            # one row per case: boundary, inconsistency, entailment, no-change
         ],
     )
     def test_compute_domains(self, domains, parameters, consistency_result, expected_domains) -> None:
-        self.assert_compute_domains(compute_domains_name, domains, parameters, consistency_result, expected_domains)
+        self.assert_compute_domains(compute_domains_<name>, domains, parameters, consistency_result, expected_domains)
 ```
 
-Cover at minimum: a pruning case, an inconsistency case, and a no-op case where the input is already tight.
+`assert_compute_domains` sizes a zeroed state block from `get_state_<name>`, iterates a non-idempotent propagator to
+its fixpoint as the engine does, and fails a `reports_changes` propagator that reports no change but narrowed a domain.
 
-Also guard the invariants above:
+Cover at least a pruning case, an inconsistency case, a case already at its fixpoint, and entailment if you return it.
+Then guard idempotence:
 
-- **Idempotence:** feeding a `compute_domains` result back into a second call must change nothing — the
-  expected domains of every pruning case are themselves a fixpoint, so `assert_compute_domains(fct, expected,
-  parameters, PROP_*, expected)` must hold. For any propagator with pairwise or cascading rules, add a
-  brute-force soundness test (see `tests/propagators/test_diffn.py::test_soundness_against_brute_force`): over
-  small enumerated domains, assert the propagator never reports consistent a state that has no feasible ground
-  extension, and never prunes a value that belongs to a solution.
+- For an idempotent propagator, the expected domains of each pruning case are a fixpoint, so
+  `assert_compute_domains(fct, expected, parameters, status, expected)` must hold.
+- For pairwise or cascading rules, add a brute-force soundness test like
+  `tests/propagators/test_diffn.py::test_soundness_against_brute_force`: over small enumerated domains, the
+  propagator never reports consistent a state with no feasible ground extension, and never prunes a value that
+  belongs to a solution.
 
-- **Vacuity**, if you declared it. Three tests, of which the third is the one that would catch a wrong claim
-  (see `tests/propagators/test_cumulative.py` and `tests/propagators/test_regular.py`):
+Vacuity and state blocks have their own tests, described in their references.
 
-  1. a vacuous case is not posted — `is_vacuous_name(...)` is True and `problem.propagator_nb == 0` after
-     `add_propagator`, including the boundary where the constraint only just stops binding;
-  2. a binding case *is* posted — one parameter away from the vacuous case, so the test pins the boundary
-     rather than the direction;
-  3. dropping it preserves the solutions. Build the same problem twice, once through `add_propagator` (which
-     drops it) and once by appending to `problem.propagators` directly to bypass the check, and assert both
-     enumerate exactly the same solutions:
+## 5. Document
 
-     ```python
-     posted.propagators.append((list(variables), ALG_NAME, list(parameters)))
-     posted.propagator_nb += 1
-     ```
+Add `.. autofunction:: nucs.propagators.<name>_propagator.compute_domains_<name>` to
+`docs/source/reference/reference_propagators.rst`, in alphabetical position.
 
-## 5. Verify
+## 6. Wire FlatZinc (only if it backs a builtin)
+
+- Add an entry to `BUILTINS` in `nucs/fzn/builtins.py`, keyed by the FlatZinc builtin name. Its handler takes
+  `(model, args)`, resolves the args with `model.var_index_of` / `var_list_of` / `int_list_of` / `const_of`, and calls
+  `model.problem.add_propagator(ALG_<NAME>, variables, parameters)`.
+- For a global MiniZinc should keep native rather than decompose, add a body-less predicate under
+  `nucs/fzn/share/minizinc/nucs/` (see `fzn_all_different_int.mzn`) and key the `BUILTINS` entry on the predicate
+  name that file produces.
+
+## 7. Verify
 
 ```bash
 ./scripts/bash/style.sh
-NUMBA_CACHE_DIR=.numba/cache PYTHONPATH=. pytest tests/propagators/test_name.py
+NUMBA_CACHE_DIR=.numba/cache pytest tests/propagators/test_<name>.py
+NUMBA_CACHE_DIR=.numba/cache pytest tests/fzn  # if step 6 applied
 ```
 
-For debugging the propagator logic interactively,
-run with `NUMBA_DISABLE_JIT=1` so tracebacks land in your Python source.
-
-## 6. Document
-
-Add the propagator to `docs/source/reference/reference_propagators.rst`
-(the `.. autofunction::` list is ordered alphabetically by module name — keep that).
-
-## 7. Wire it into the FlatZinc adapter (only if it backs a FlatZinc builtin)
-
-If the propagator exists to support a MiniZinc/FlatZinc constraint, also connect it in `nucs/fzn/`:
-
-- Add one entry to the `BUILTINS` dict in `nucs/fzn/builtins.py`, keyed by the FlatZinc builtin name. Its handler
-  resolves the args (`model.var_index_of` / `var_list_of` / `int_list_of` / `const_of`) and calls
-  `model.problem.add_propagator(ALG_NAME, variables, parameters)`.
-- If it is a **global** you want MiniZinc to keep native rather than decompose, add a body-less predicate file under
-  `nucs/fzn/share/minizinc/nucs/` (see `fzn_all_different_int.mzn`), and key the dispatch entry on the `fzn_*` (or
-  custom)
-  predicate name that file produces.
-
-Verify end-to-end with `tests/fzn/` and, when `minizinc` is installed, `minizinc --solver nucs`.
+Fix and rerun until everything passes. For a cryptic Numba error, rerun with `NUMBA_DISABLE_JIT=1` to get a traceback
+on the real source line. `tests/fzn/test_minizinc.py` runs the *installed* `fzn-nucs` through MiniZinc, so reinstall
+first: `rm -rf build && pip install --no-deps .`.
