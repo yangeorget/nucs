@@ -43,7 +43,7 @@ jobs:
       - name: Check typing with mypy
         run: mypy nucs tests
       - name: Test with pytest (with Numba)
-        run: NUMBA_CACHE_DIR=./numba/cache pytest
+        run: NUMBA_CACHE_DIR=.numba/cache pytest
       - name: Test with pytest (without Numba)
         run: NUMBA_DISABLE_JIT=1 pytest
 
