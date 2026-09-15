@@ -22,4 +22,5 @@ mypy nucs tests scripts              # type-check
 - The first two rewrite files: review the diff they leave.
 - Fix by hand what ruff cannot fix and every mypy error, then rerun until the script passes. It must pass before
   committing.
-- No `NUMBA_CACHE_DIR` is needed: nothing here runs the JIT.
+- A hook (`.claude/hooks/ruff-edited-file.sh`) already runs the first two on each Python file Claude edits. The script
+  is still what must pass before committing: only it runs mypy.

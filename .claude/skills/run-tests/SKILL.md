@@ -9,11 +9,11 @@ Tests run under pytest from the repository root. The Numba JIT is on by default.
 
 ```bash
 # All tests (JIT on)
-NUMBA_CACHE_DIR=.numba/cache pytest
+pytest
 
 # One file / one test
-NUMBA_CACHE_DIR=.numba/cache pytest tests/examples/test_queens.py
-NUMBA_CACHE_DIR=.numba/cache pytest tests/examples/test_queens.py::TestQueens::test_solve_all
+pytest tests/examples/test_queens.py
+pytest tests/examples/test_queens.py::TestQueens::test_solve_all
 
 # No JIT (debugging)
 NUMBA_DISABLE_JIT=1 pytest tests/...
@@ -25,7 +25,8 @@ NUMBA_DISABLE_JIT=1 python -m cProfile -s time -m pytest tests/examples >> logs/
 NUMBA_DISABLE_JIT=1 PYTHONPATH=. coverage run --source=nucs,tests -m pytest && coverage html
 ```
 
-- Set `NUMBA_CACHE_DIR=.numba/cache` on every JIT run, so runs share one compiled cache.
+- `.claude/settings.json` sets `NUMBA_CACHE_DIR=.numba/cache` for every session, so runs share one compiled cache.
+  Outside Claude Code, set it yourself.
 - `NUMBA_DISABLE_JIT=1` runs interpreted Python: slow, but tracebacks land on real source lines. Use it when a failure
   inside jitted code is unreadable.
 - `tests/fzn/test_minizinc.py` runs the *installed* `fzn-nucs` through MiniZinc, not the working tree. After changing

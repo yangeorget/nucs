@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "NUMBA_CACHE_DIR": ".numba/cache"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(./scripts/bash/style.sh)",
+      "Bash(ruff check *)",
+      "Bash(ruff format *)",
+      "Bash(mypy *)",
+      "Bash(pytest *)",
+      "Bash(NUMBA_CACHE_DIR=.numba/cache pytest *)",
+      "Bash(NUMBA_DISABLE_JIT=1 pytest *)",
+      "Bash(NUMBA_DISABLE_JIT=1 python -m pytest *)",
+      "Bash(coverage report *)",
+      "Bash(minizinc *)",
+      "Bash(fzn-nucs *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "WebFetch(domain:www.csplib.org)",
+      "WebFetch(domain:www.minizinc.org)",
+      "WebFetch(domain:nucs.readthedocs.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ],
+    "ask": [
+      "Bash(git push *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/ruff-edited-file.sh\"",
+            "timeout": 30,
+            "statusMessage": "ruff"
+          }
+        ]
+      }
+    ]
+  }
+}

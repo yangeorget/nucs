@@ -152,8 +152,8 @@ Add `.. autofunction:: nucs.propagators.<name>_propagator.compute_domains_<name>
 
 ```bash
 ./scripts/bash/style.sh
-NUMBA_CACHE_DIR=.numba/cache pytest tests/propagators/test_<name>.py
-NUMBA_CACHE_DIR=.numba/cache pytest tests/fzn  # if step 6 applied
+pytest tests/propagators/test_<name>.py
+pytest tests/fzn  # if step 6 applied
 ```
 
 Fix and rerun until everything passes. For a cryptic Numba error, rerun with `NUMBA_DISABLE_JIT=1` to get a traceback
