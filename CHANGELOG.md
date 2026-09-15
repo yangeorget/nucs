@@ -88,6 +88,27 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   is why it pays here when the same idea has repeatedly failed on `sum_*`/`linear_*`, whose unbound sets
   measure 46–75% at arities of 2 to 12.5.
 
+- **A constraint over two or three variables costs almost nothing to *filter* and almost everything to
+  *call*, which is a modelling fact worth knowing.** `sum_eq` makes more calls than any other propagator in
+  the benchmark set — 31.5 million, 26.7 million of them in `golomb(11)` alone, 72% of every propagator call
+  that model makes. It is also the last place worth optimising. Golomb posts it as
+  `d(0,i) + d(i,j) = d(0,j)`, forty-five of them at **arity 3**, so its two loops run two iterations each:
+  priced by duplication, the whole body is **under 12%** of the model it dominates. `golomb(11)` spends
+  4,530 ms on 37.3 million calls — **121 ns each, of which roughly 110 ns is not the propagator**: gathering
+  three domains out of the state array, the dispatch, and walking three variables back with their trigger
+  slices.
+
+  That 110 ns was then attacked directly and **has no single owner**. Devirtualising the dispatch — sound,
+  because real models use very few algorithms, `golomb(11)` three and `queens(12)` one — is worth 2.5%.
+  Removing the per-call statistics counters entirely is worth 1.4%. What remains is not removable overhead
+  but what propagating a constraint costs at all. `ARCHITECTURE.md` carries both measurements and the stop
+  rule they were tested against.
+
+  **So the lever on a model built from many tiny constraints is the model.** Posting fewer and wider
+  constraints is what pays: the propagators that gained this cycle gained at arity 61 (`bin_packing_load`,
+  4.6×), 120 (`count_leq_c`, 1.18×) and 201 (`count_eq`, 1.39×), while everything tried at arity 3 measured
+  nothing or went backwards.
+
 - **There is a FlatZinc benchmark set now, and a coverage report saying which propagators nothing calls.**
   `datasets/fzn` holds small MiniZinc models, each declaring the propagator it exists for, and
   `scripts/fzn_benchmark.py` compiles them through NuCS's own globals library and reports per model the
