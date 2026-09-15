@@ -25,7 +25,13 @@ This custom consistency algorithm needs to be registered before it is used.
    :linenos:
 
    consistency_alg_golomb = register_consistency_algorithm(golomb_consistency_algorithm)
-   solver = BacktrackSolver(problem, consistency_alg_idx=consistency_alg_golomb)
+   solver = BacktrackSolver(problem, consistency_algorithm=consistency_alg_golomb)
+
+A custom consistency algorithm is compiled against :code:`SIGN_CONSISTENCY_ALG` in
+:mod:`nucs.solvers.consistency_algorithms`, so it takes the same arguments as
+:func:`nucs.solvers.bc_algorithm.bc_algorithm`. One of them, :code:`compute_domains_addrs`, holds the compiled
+address of each propagator algorithm's :code:`compute_domains` function: pass it on unchanged, to
+:code:`bc_algorithm` or to :func:`~nucs.propagators.propagators.call_compute_domains`.
 
 
 

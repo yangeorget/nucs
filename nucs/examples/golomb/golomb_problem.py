@@ -18,7 +18,6 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_NB
-from nucs.numba_helper import ComputeDomainsFunctions
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     ALG_ALLDIFFERENT,
@@ -144,7 +143,7 @@ def golomb_consistency_algorithm(
     choice_point_stk: NDArray,
     choice_point_top: NDArray,
     triggered_propagators: NDArray,
-    compute_domains_fcts: ComputeDomainsFunctions,
+    compute_domains_addrs: NDArray,
     domain_buffer: NDArray,
 ) -> int:
     """
@@ -235,6 +234,6 @@ def golomb_consistency_algorithm(
         choice_point_stk,
         choice_point_top,
         triggered_propagators,
-        compute_domains_fcts,
+        compute_domains_addrs,
         domain_buffer,
     )

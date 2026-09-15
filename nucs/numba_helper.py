@@ -28,7 +28,6 @@ NUMBA_DISABLE_JIT = os.getenv("NUMBA_DISABLE_JIT")
 # NUMBA_DISABLE_JIT; both are indexed and measured the same way, so they are typed structurally as
 # read-only sequences. The Callable element signatures mirror the matching SIGN_* in nucs.constants
 # (under the JIT the element is actually a Numba FunctionType, which has no Python type).
-ComputeDomainsFunctions = Sequence[Callable[[NDArray, NDArray], int]]
 VariableHeuristicFunctions = Sequence[Callable[[NDArray, NDArray, NDArray], int]]
 DomainHeuristicFunctions = Sequence[Callable[[NDArray, int, NDArray], tuple[int, int]]]
 ConsistencyAlgorithmFunctions = Sequence[Callable[..., int]]

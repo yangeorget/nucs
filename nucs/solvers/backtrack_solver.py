@@ -38,10 +38,10 @@ from nucs.heuristics.heuristics import (
 )
 from nucs.numba_helper import (
     NUMBA_DISABLE_JIT,
-    ComputeDomainsFunctions,
     ConsistencyAlgorithmFunctions,
     DomainHeuristicFunctions,
     VariableHeuristicFunctions,
+    addresses_from_functions,
     build_function_ptrs,
 )
 from nucs.numpy_helper import flatten_arrays
@@ -109,7 +109,8 @@ class BacktrackSolver(Solver):
     consistency_alg_fcts: ConsistencyAlgorithmFunctions
     var_heuristic_fcts: VariableHeuristicFunctions
     dom_heuristic_fcts: DomainHeuristicFunctions
-    compute_domains_fcts: ComputeDomainsFunctions
+    # the compiled compute_domains address of each algorithm, which the consistency algorithm calls a propagator through
+    compute_domains_addrs: NDArray
 
     def __init__(
         self,
@@ -258,17 +259,16 @@ class BacktrackSolver(Solver):
         logger.debug("Initializing statistics")
         self.statistics = statistics_init(get_algorithm_nb())
         logger.debug("Statistics initialized")
+        # resolving only the algorithms used by the problem keeps the init cost proportional to the problem instead
+        # of the whole propagator library; without the JIT this is a placeholder that call_compute_domains ignores
+        self.compute_domains_addrs = addresses_from_functions(
+            COMPUTE_DOMAINS_FCTS, SIGN_COMPUTE_DOMAINS, np.unique(self.problem.algorithms), ALG_DUMMY
+        )
         if NUMBA_DISABLE_JIT:
-            self.compute_domains_fcts = COMPUTE_DOMAINS_FCTS
             self.consistency_alg_fcts = [CONSISTENCY_ALG_FCTS[consistency_algorithm]]
             self.var_heuristic_fcts = [VAR_HEURISTIC_FCTS[h] for h in var_heuristics]
             self.dom_heuristic_fcts = [DOM_HEURISTIC_FCTS[h] for h in dom_heuristics]
         else:
-            # resolving only the algorithms used by the problem keeps the init cost proportional
-            # to the problem instead of the whole propagator library
-            self.compute_domains_fcts = build_function_ptrs(
-                COMPUTE_DOMAINS_FCTS, SIGN_COMPUTE_DOMAINS, np.unique(self.problem.algorithms), ALG_DUMMY
-            )
             self.consistency_alg_fcts = build_function_ptrs(
                 [CONSISTENCY_ALG_FCTS[consistency_algorithm]], SIGN_CONSISTENCY_ALG
             )
@@ -384,7 +384,7 @@ class BacktrackSolver(Solver):
             self.dom_heuristic_params,
             self.dom_heuristic_params_offsets,
             self.dom_heuristic_params_shapes,
-            self.compute_domains_fcts,
+            self.compute_domains_addrs,
             self.domain_buffer,
             self.problem.algorithm_flags,
             self.objective,
@@ -533,7 +533,7 @@ def solve_one_step(
     dom_heuristic_params: NDArray,
     dom_heuristic_params_offsets: NDArray,
     dom_heuristic_params_shapes: NDArray,
-    compute_domains_fcts: ComputeDomainsFunctions,
+    compute_domains_addrs: NDArray,
     domain_buffer: NDArray,
     algorithm_flags: NDArray,
     objective: NDArray,
@@ -612,8 +612,8 @@ def solve_one_step(
     :type dom_heuristic_params_offsets: NDArray
     :param dom_heuristic_params_shapes: the 2d shape of each search's domain heuristic parameter array
     :type dom_heuristic_params_shapes: NDArray
-    :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
-    :type compute_domains_fcts: ComputeDomainsFcts
+    :param compute_domains_addrs: the compiled compute_domains address of each algorithm, resolved once at solver init
+    :type compute_domains_addrs: NDArray
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray
@@ -658,7 +658,7 @@ def solve_one_step(
             choice_point_stk,
             choice_point_top,
             triggered_propagators,
-            compute_domains_fcts,
+            compute_domains_addrs,
             domain_buffer,
         )
         if problem_status == PROBLEM_BOUND:

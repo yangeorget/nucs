@@ -26,7 +26,6 @@ from nucs.constants import (
     PROP_FLAG_REPORTS_CHANGES,
     PROP_INCONSISTENCY,
 )
-from nucs.numba_helper import ComputeDomainsFunctions
 from nucs.problems.problem import (
     OFFSETS_PARAM,
     OFFSETS_STATE,
@@ -36,6 +35,7 @@ from nucs.problems.problem import (
     PROBLEM_INCONSISTENT,
     PROBLEM_UNBOUND,
 )
+from nucs.propagators.propagators import call_compute_domains
 from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
 from nucs.solvers.state import tighten_at, trail_push, trail_set, unbound_index
 from nucs.statistics import (
@@ -71,7 +71,7 @@ def bc_algorithm(
     choice_point_stk: NDArray,
     choice_point_top: NDArray,
     triggered_propagators: NDArray,
-    compute_domains_fcts: ComputeDomainsFunctions,
+    compute_domains_addrs: NDArray,
     domain_buffer: NDArray,
 ) -> int:
     """
@@ -117,8 +117,8 @@ def bc_algorithm(
     :type choice_point_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
-    :param compute_domains_fcts: the typed list of compute_domains functions, built once at solver init
-    :type compute_domains_fcts: ComputeDomainsFcts
+    :param compute_domains_addrs: the compiled compute_domains address of each algorithm, resolved once at solver init
+    :type compute_domains_addrs: NDArray
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray
@@ -181,7 +181,9 @@ def bc_algorithm(
             # pre-set to "changed", so that the fast path below is taken only on a propagator that has
             # positively said it wrote nothing -- one that forgets simply gets the scan it gets today
             state[prop_state_hint] = 1
-        status = compute_domains_fcts[algorithm](
+        status = call_compute_domains(
+            compute_domains_addrs,
+            algorithm,
             prop_domains,
             propagator_parameters[offsets[prop_idx, OFFSETS_PARAM] : offsets[prop_idx + 1, OFFSETS_PARAM]],
             state[prop_state_start:prop_state_end],

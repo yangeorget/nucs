@@ -14,7 +14,6 @@ from collections.abc import Callable
 
 from numba import int32, int64, types, uint8, uint32
 
-from nucs.propagators.propagators import TYPE_COMPUTE_DOMAINS_LIST
 from nucs.solvers.bc_algorithm import bc_algorithm
 
 CONSISTENCY_ALG_FCTS: list[Callable] = []
@@ -39,7 +38,7 @@ SIGN_CONSISTENCY_ALG = int64(
     int32[:, ::1],  # choice_point_stk
     uint32[::1],  # choice_point_top
     int32[::1],  # triggered_propagators
-    TYPE_COMPUTE_DOMAINS_LIST,  # compute_domains_fcts
+    int64[::1],  # compute_domains_addrs
     int32[:, ::1],  # domain_buffer
 )
 TYPE_CONSISTENCY_ALG = types.FunctionType(SIGN_CONSISTENCY_ALG)

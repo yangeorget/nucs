@@ -10,6 +10,28 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Changed
 
+- **A consistency algorithm calls a propagator through its compiled address, not through a typed list.**
+  `SIGN_CONSISTENCY_ALG`'s `compute_domains_fcts`, a Numba typed list of functions, is now
+  `compute_domains_addrs`: an `int64[::1]` array holding the compiled address of each algorithm's
+  `compute_domains`, which `bc_algorithm` calls through `call_compute_domains` in
+  `nucs/propagators/propagators.py`. Indexing a typed list needs Numba's reference-counting runtime on every
+  propagator call; an address does not, and that is what lets the propagation loop be compiled without the
+  runtime at all. Under `NUMBA_DISABLE_JIT` the array is a placeholder and the registered function is called.
+
+  Custom consistency algorithms are a documented extension point, so this is a breaking change. One that
+  forwards the argument to `bc_algorithm`, as golomb's does, only renames and retypes it:
+
+  ```python
+  # was
+  from nucs.numba_helper import ComputeDomainsFunctions
+
+  def my_consistency_algorithm(..., compute_domains_fcts: ComputeDomainsFunctions, domain_buffer: NDArray) -> int:
+      return bc_algorithm(..., compute_domains_fcts, domain_buffer)
+
+  # now
+  def my_consistency_algorithm(..., compute_domains_addrs: NDArray, domain_buffer: NDArray) -> int:
+      return bc_algorithm(..., compute_domains_addrs, domain_buffer)
+  ```
 - **A propagator can tell the solver it changed nothing, and skip a pass over its variables.** A call costs three
   passes: the solver gathers the propagator's domains, the propagator filters, and the solver writes back — walking
   the variables again to find what moved and wake whoever watches them. That third pass is the expensive one, and

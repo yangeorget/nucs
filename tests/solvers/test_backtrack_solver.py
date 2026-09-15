@@ -158,7 +158,7 @@ class TestBacktrackSolver:
             solver.dom_heuristic_params,
             solver.dom_heuristic_params_offsets,
             solver.dom_heuristic_params_shapes,
-            solver.compute_domains_fcts,
+            solver.compute_domains_addrs,
             solver.domain_buffer,
             problem.algorithm_flags,
             solver.objective,

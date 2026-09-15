@@ -17,6 +17,7 @@ from numpy.typing import NDArray
 
 from nucs.buckets import STORAGE_OFFSET, buckets_add
 from nucs.constants import EVENT_NB, PROP_FLAG_IDEMPOTENT, PROP_FLAG_REPORTS_CHANGES
+from nucs.numba_helper import NUMBA_DISABLE_JIT, function_ptr_from_address
 from nucs.propagators.abs_eq_propagator import (
     compute_domains_abs_eq,
     get_complexity_abs_eq,
@@ -323,7 +324,6 @@ from nucs.propagators.value_precede_propagator import (
 # use the hint suffix as scratch space and, for alldifferent, as warm-started sort permutations.
 SIGN_COMPUTE_DOMAINS = int64(int32[:, ::1], int32[::1], int32[::1])  # domains, parameters, prop_state
 TYPE_COMPUTE_DOMAINS = types.FunctionType(SIGN_COMPUTE_DOMAINS)
-TYPE_COMPUTE_DOMAINS_LIST = types.ListType(TYPE_COMPUTE_DOMAINS)
 
 SIGN_GET_TRIGGERS = int64(uint64, uint64, int32[::1])
 TYPE_GET_TRIGGERS = types.FunctionType(SIGN_GET_TRIGGERS)
@@ -342,6 +342,62 @@ GET_STATE_FCTS: list[Callable] = []
 # it by value would keep an array one entry short of every algorithm registered since -- indexing past it
 # for the new one. Problem.init makes the array, beside the algorithms that index it.
 ALGORITHM_FLAGS: list[int] = []
+
+# How a consistency algorithm calls a propagator: through the compiled address of its compute_domains, read
+# out of an int64 array resolved once at solver init, rather than through a typed list of functions. Indexing
+# a typed list needs Numba's reference-counting runtime, and bc_algorithm is compiled without it.
+# Chosen at import because an address means nothing without the JIT: the pure-Python variant ignores it and
+# calls the registered function. Inlined rather than cached on its own, so it adds no per-process cache load.
+if NUMBA_DISABLE_JIT:
+
+    def call_compute_domains(
+        compute_domains_addrs: NDArray, algorithm: int, domains: NDArray, parameters: NDArray, prop_state: NDArray
+    ) -> int:
+        """
+        Calls the compute_domains function of an algorithm, looked up in the registry.
+
+        :param compute_domains_addrs: the compiled compute_domains address of each algorithm, unused without the JIT
+        :type compute_domains_addrs: NDArray
+        :param algorithm: the algorithm
+        :type algorithm: int
+        :param domains: the domains of the propagator's variables
+        :type domains: NDArray
+        :param parameters: the parameters of the propagator
+        :type parameters: NDArray
+        :param prop_state: the state block of the propagator
+        :type prop_state: NDArray
+
+        :return: the status returned by the propagator
+        :rtype: int
+        """
+        return COMPUTE_DOMAINS_FCTS[algorithm](domains, parameters, prop_state)
+
+else:
+
+    @njit(cache=True, inline="always")
+    def call_compute_domains(
+        compute_domains_addrs: NDArray, algorithm: int, domains: NDArray, parameters: NDArray, prop_state: NDArray
+    ) -> int:
+        """
+        Calls the compute_domains function of an algorithm through its compiled address.
+
+        :param compute_domains_addrs: the compiled compute_domains address of each algorithm
+        :type compute_domains_addrs: NDArray
+        :param algorithm: the algorithm
+        :type algorithm: int
+        :param domains: the domains of the propagator's variables
+        :type domains: NDArray
+        :param parameters: the parameters of the propagator
+        :type parameters: NDArray
+        :param prop_state: the state block of the propagator
+        :type prop_state: NDArray
+
+        :return: the status returned by the propagator
+        :rtype: int
+        """
+        return function_ptr_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[algorithm])(  # type: ignore[call-arg, arg-type]
+            domains, parameters, prop_state
+        )
 
 
 def is_never_vacuous(n: int, parameters: Sequence[int], domains: Sequence[tuple[int, int]]) -> bool:

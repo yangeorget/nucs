@@ -444,7 +444,7 @@ argument.
 
 ### 5.5 The barrier: trail on entry
 
-In `bc_algorithm`, immediately before the `compute_domains_fcts[algorithm](...)` call, trail the block's
+In `bc_algorithm`, immediately before the `call_compute_domains(...)` call, trail the block's
 trailed prefix with the existing `trail_set`, which no-ops when this choice point already holds a live entry
 for the cell:
 
