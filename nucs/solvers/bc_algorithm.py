@@ -51,7 +51,16 @@ from nucs.statistics import (
 )
 
 
-@njit(cache=True)
+# compiled without Numba's reference-counting runtime: _nrt=False, a private Numba option, which is why
+# tests/solvers/test_bc_algorithm.py pins it. With the runtime on, every array an inline="always" helper takes
+# is increfed on entry and decrefed on exit, and those calls survive into the machine code -- three of each
+# per bound trail_set writes, more around every slice and every queue operation, on the hottest loop in the
+# solver (see ARCHITECTURE.md). The price is two rules. Nothing in this function, or inlined into it, may allocate
+# an array or touch a typed list: either fails to compile with "NRT required but not enabled", so neither can
+# slip in unnoticed. And every jitted function it calls must be inline="always": one compiled on its own is
+# inlined by LLVM as whichever context first compiled it into the cache left it, refcounts included -- which
+# does not fail, it only makes the loop's speed depend on the cache's history.
+@njit(cache=True, _nrt=False)  # type: ignore[call-overload]
 def bc_algorithm(
     statistics: NDArray,
     algorithm_flags: NDArray,

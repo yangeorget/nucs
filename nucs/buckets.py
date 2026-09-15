@@ -84,7 +84,9 @@ def buckets_empty(buckets: NDArray, priorities: NDArray) -> None:
     buckets[-1] = BUCKET_NB
 
 
-@njit(cache=True)
+# always inlined, like buckets_pop: bc_algorithm is compiled without the reference-counting runtime, and a helper
+# compiled on its own is inlined into it with the refcounts of whichever context first compiled it into the cache
+@njit(cache=True, inline="always")
 def buckets_add(buckets: NDArray, priorities: NDArray, idx: int, membership_offset: int) -> None:
     """
     Appends idx at the tail of bucket weights[idx].
@@ -107,7 +109,7 @@ def buckets_add(buckets: NDArray, priorities: NDArray, idx: int, membership_offs
     buckets[-1] = min(buckets[-1], bucket)
 
 
-@njit(cache=True)
+@njit(cache=True, inline="always")
 def buckets_pop(buckets: NDArray, membership_offset: int) -> int:
     """
     Removes and returns the head of the lowest-priority non-empty bucket.
