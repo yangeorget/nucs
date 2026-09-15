@@ -27,8 +27,8 @@ A propagator enforces one constraint by bounds filtering. Copy this checklist an
 ## 2. Write the module
 
 Start from `nucs/propagators/abs_eq_propagator.py`, the minimal template. The file starts with the banner from
-`header.txt` (`.claude/rules/add-header.md`), docstrings follow `.claude/rules/write-docstring.md`, and the jitted
-functions follow the write-numba-friendly-python-code skill.
+`header.txt` (the add-header skill), docstrings follow the write-docstring skill, and the jitted functions follow the
+write-numba-friendly-python-code skill.
 
 ```python
 def get_complexity_<name>(n: int, parameters: NDArray) -> int:

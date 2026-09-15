@@ -2,8 +2,15 @@
 
 Guidance for Claude Code working in this repository.
 For repository layout and core concepts: see `ARCHITECTURE.md`.
-For style checking (ruff & mypy): see `.claude/rules/check-style.md`.
-For running tests (with and without JIT): see `.claude/rules/run-tests.md`.
+
+## Conventions
+
+Each convention lives in a skill under `.claude/skills/`, loaded on demand — invoke it at the moment below:
+
+- After editing any Python file under `nucs/`, `tests/` or `scripts/`: `check-style`. It must pass before committing.
+- Running or debugging tests, with or without the JIT: `run-tests`.
+- Creating a Python file: `add-header`, since every one starts with the `header.txt` banner.
+- Writing or editing a docstring: `write-docstring`.
 
 ## FlatZinc adapter
 
