@@ -71,7 +71,6 @@ from nucs.propagators.propagators import (
     ALG_NEQ_C_REIF,
     ALG_NEQ_IMP,
     ALG_NEQ_REIF,
-    ALG_NO_SUB_CYCLE,
     ALG_NVALUE,
     ALG_REGULAR,
     ALG_RELATION,
@@ -884,20 +883,11 @@ def _strictly_decreasing(model: "FznModel", args: list[Term]) -> None:
 def _circuit(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``nucs_circuit(x, offset)``: the successor array x, whose values are the node labels
-    ``offset``, ``offset + 1``, ..., forms a single Hamiltonian circuit. A permutation (alldifferent) plus a
-    no-sub-cycle constraint together enforce the circuit; the node numbering is passed straight to the
-    latter, which is why no rebased copy of x is needed.
-    """
-    succ = model.var_list_of(args[0])
-    model.problem.add_propagator(ALG_ALLDIFFERENT, succ)
-    model.problem.add_propagator(ALG_NO_SUB_CYCLE, succ, [model.const_of(args[1])])
-
-
-def _circuit_positions(model: "FznModel", args: list[Term]) -> None:
-    """
-    Handles ``nucs_circuit_positions(x, offset)`` like ``nucs_circuit``, with the CIRCUIT_POSITIONS propagator in
-    place of NO_SUB_CYCLE: besides forbidding sub-cycles, it bounds the position of each node on the tour and prunes
-    the successors those positions rule out.
+    ``offset``, ``offset + 1``, ..., forms a single Hamiltonian circuit. A permutation (alldifferent) plus
+    CIRCUIT_POSITIONS enforce the circuit: besides forbidding sub-cycles, the latter bounds the position of each
+    node on the tour and prunes the successors those positions rule out -- the pruning MiniZinc's order-variable
+    decomposition gets, without its variables. The node numbering is passed straight to it, which is why no
+    rebased copy of x is needed.
     """
     succ = model.var_list_of(args[0])
     model.problem.add_propagator(ALG_ALLDIFFERENT, succ)
@@ -1225,7 +1215,6 @@ BUILTINS: dict[str, Handler] = {
     "fzn_strictly_decreasing_int": _strictly_decreasing,
     "fzn_strictly_increasing_int": _strictly_increasing,
     "nucs_circuit": _circuit,
-    "nucs_circuit_positions": _circuit_positions,
     "nucs_inverse": _inverse,
     "nucs_subcircuit": _subcircuit,
     "fzn_value_precede_chain_int": _value_precede_chain,

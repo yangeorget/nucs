@@ -44,7 +44,7 @@ absolute path to `share/minizinc/nucs`).
 
 ## Supported builtins
 
-The `BUILTINS` registry in `builtins.py` dispatches these 103 FlatZinc builtins (the list is
+The `BUILTINS` registry in `builtins.py` dispatches these 102 FlatZinc builtins (the list is
 checked against the registry by `tests/fzn/test_readme.py`, so it cannot drift):
 
 ```
@@ -59,7 +59,7 @@ global_cardinality_low_up, increasing_int, int_abs, int_div, int_eq, int_eq_imp,
 int_ge_reif, int_gt, int_gt_reif, int_le, int_le_imp, int_le_reif, int_lin_eq, int_lin_eq_imp,
 int_lin_eq_reif, int_lin_ge, int_lin_ge_reif, int_lin_le, int_lin_le_imp, int_lin_le_reif, int_lin_ne,
 int_lin_ne_reif, int_lt, int_lt_reif, int_max, int_min, int_mod, int_ne, int_ne_imp, int_ne_reif, int_plus,
-int_times, lex_less_int, lex_lesseq_int, nucs_bin_packing_load, nucs_circuit, nucs_circuit_positions, nucs_cumulative,
+int_times, lex_less_int, lex_lesseq_int, nucs_bin_packing_load, nucs_circuit, nucs_cumulative,
 nucs_cumulative_var, nucs_diffn, nucs_disjunctive, nucs_if_then_else_bool, nucs_if_then_else_int,
 nucs_if_then_else_var_bool, nucs_if_then_else_var_int, nucs_inverse, nucs_member_int, nucs_member_int_reif, nucs_regular,
 nucs_subcircuit, nucs_table_int, nvalue, set_in, set_in_reif, strictly_decreasing_int, strictly_increasing_int,
