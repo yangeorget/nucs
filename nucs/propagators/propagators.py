@@ -548,6 +548,7 @@ ALG_CIRCUIT_POSITIONS = register_propagator(
     get_triggers_circuit_positions,
     get_complexity_circuit_positions,
     compute_domains_circuit_positions,
+    idempotent=False,
     get_state_fct=get_state_circuit_positions,
 )
 ALG_COUNT_EQ = register_propagator(
@@ -640,7 +641,7 @@ ALG_GCC = register_propagator(
     reports_changes=True,
 )
 ALG_IF_THEN_ELSE = register_propagator(
-    get_triggers_if_then_else, get_complexity_if_then_else, compute_domains_if_then_else
+    get_triggers_if_then_else, get_complexity_if_then_else, compute_domains_if_then_else, idempotent=False
 )
 ALG_INCREASING = register_propagator(get_triggers_increasing, get_complexity_increasing, compute_domains_increasing)
 ALG_INVERSE = register_propagator(

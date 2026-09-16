@@ -102,8 +102,8 @@ def compute_domains_circuit_positions(domains: NDArray, parameters: NDArray, pro
     - the end of a fixed chain is kept from closing it back onto its start, as NO_SUB_CYCLE does.
 
     These are the bounds the position variables of MiniZinc's standard circuit decomposition would reach, without
-    the variables. Pruning an edge changes the distances, so the rules are iterated to a fixpoint, which makes the
-    propagator idempotent.
+    the variables. Pruning an edge changes the distances, so one pass is not a fixpoint: the propagator is not
+    idempotent, and the engine calls it again after a pass that changed a domain.
 
     :param domains: the domains of the successors
     :type domains: NDArray
@@ -138,127 +138,127 @@ def compute_domains_circuit_positions(domains: NDArray, parameters: NDArray, pro
             return PROP_INCONSISTENCY
     if n == 1:
         return PROP_ENTAILMENT
-    while True:
-        changed = False
-        # the end of a fixed chain cannot close it back onto its start unless the chain spans every node
+    changed = False
+    # the end of a fixed chain cannot close it back onto its start unless the chain spans every node
+    for i in range(n):
+        fixed_pred[i] = 0
+    for i in range(n):
+        if domains[i, DOMAIN_MIN] == domains[i, DOMAIN_MAX]:
+            j = domains[i, DOMAIN_MIN] - offset
+            if fixed_pred[j] != 0:
+                return PROP_INCONSISTENCY  # two nodes fixed to the same successor
+            fixed_pred[j] = i + 1
+    for start in range(n):
+        if fixed_pred[start] != 0 or domains[start, DOMAIN_MIN] != domains[start, DOMAIN_MAX]:
+            continue
+        end = start
+        length = 0
+        while domains[end, DOMAIN_MIN] == domains[end, DOMAIN_MAX] and length < n:
+            end = domains[end, DOMAIN_MIN] - offset
+            length += 1
+        if length < n - 1:
+            if domains[end, DOMAIN_MIN] == start + offset:
+                domains[end, DOMAIN_MIN] += 1
+                changed = True
+            if domains[end, DOMAIN_MAX] == start + offset:
+                domains[end, DOMAIN_MAX] -= 1
+                changed = True
+            if domains[end, DOMAIN_MIN] > domains[end, DOMAIN_MAX]:
+                return PROP_INCONSISTENCY
+    # forward distances from node 0
+    for i in range(n):
+        fwd[i] = -1
+        bwd[i] = -1
+    fwd[0] = 0
+    queue[0] = 0
+    head = 0
+    tail = 1
+    while head < tail:
+        i = queue[head]
+        head += 1
+        for label in range(domains[i, DOMAIN_MIN], domains[i, DOMAIN_MAX] + 1):
+            j = label - offset
+            if fwd[j] < 0 and (fixed_pred[j] == 0 or fixed_pred[j] == i + 1):
+                fwd[j] = fwd[i] + 1
+                queue[tail] = j
+                tail += 1
+    if tail < n:
+        return PROP_INCONSISTENCY  # some node cannot be reached from node 0
+    # backward distances to node 0
+    if with_lists:
+        # predecessor lists in O(n + sum of the successor widths): count each node's predecessors with a
+        # difference array over the successor intervals, turn the counts into starts, then fill
+        for j in range(n + 1):
+            starts[j] = 0
         for i in range(n):
-            fixed_pred[i] = 0
+            starts[domains[i, DOMAIN_MIN] - offset] += 1
+            starts[domains[i, DOMAIN_MAX] - offset + 1] -= 1
+        count = 0
+        total = 0
+        for j in range(n):
+            count += starts[j]
+            starts[j] = total
+            cursors[j] = total
+            total += count
+        starts[n] = total
         for i in range(n):
-            if domains[i, DOMAIN_MIN] == domains[i, DOMAIN_MAX]:
-                j = domains[i, DOMAIN_MIN] - offset
-                if fixed_pred[j] != 0:
-                    return PROP_INCONSISTENCY  # two nodes fixed to the same successor
-                fixed_pred[j] = i + 1
-        for start in range(n):
-            if fixed_pred[start] != 0 or domains[start, DOMAIN_MIN] != domains[start, DOMAIN_MAX]:
-                continue
-            end = start
-            length = 0
-            while domains[end, DOMAIN_MIN] == domains[end, DOMAIN_MAX] and length < n:
-                end = domains[end, DOMAIN_MIN] - offset
-                length += 1
-            if length < n - 1:
-                if domains[end, DOMAIN_MIN] == start + offset:
-                    domains[end, DOMAIN_MIN] += 1
-                    changed = True
-                if domains[end, DOMAIN_MAX] == start + offset:
-                    domains[end, DOMAIN_MAX] -= 1
-                    changed = True
-                if domains[end, DOMAIN_MIN] > domains[end, DOMAIN_MAX]:
-                    return PROP_INCONSISTENCY
-        # forward distances from node 0
-        for i in range(n):
-            fwd[i] = -1
-            bwd[i] = -1
-        fwd[0] = 0
-        queue[0] = 0
-        head = 0
-        tail = 1
-        while head < tail:
-            i = queue[head]
-            head += 1
             for label in range(domains[i, DOMAIN_MIN], domains[i, DOMAIN_MAX] + 1):
                 j = label - offset
-                if fwd[j] < 0 and (fixed_pred[j] == 0 or fixed_pred[j] == i + 1):
-                    fwd[j] = fwd[i] + 1
-                    queue[tail] = j
-                    tail += 1
-        if tail < n:
-            return PROP_INCONSISTENCY  # some node cannot be reached from node 0
-        # backward distances to node 0
+                preds[cursors[j]] = i
+                cursors[j] += 1
+    bwd[0] = 0
+    queue[0] = 0
+    head = 0
+    tail = 1
+    while head < tail:
+        j = queue[head]
+        head += 1
         if with_lists:
-            # predecessor lists in O(n + sum of the successor widths): count each node's predecessors with a
-            # difference array over the successor intervals, turn the counts into starts, then fill
-            for j in range(n + 1):
-                starts[j] = 0
+            for k in range(starts[j], starts[j + 1]):
+                i = preds[k]
+                if bwd[i] < 0 and (fixed_pred[j] == 0 or fixed_pred[j] == i + 1):
+                    bwd[i] = bwd[j] + 1
+                    queue[tail] = i
+                    tail += 1
+        else:
             for i in range(n):
-                starts[domains[i, DOMAIN_MIN] - offset] += 1
-                starts[domains[i, DOMAIN_MAX] - offset + 1] -= 1
-            count = 0
-            total = 0
-            for j in range(n):
-                count += starts[j]
-                starts[j] = total
-                cursors[j] = total
-                total += count
-            starts[n] = total
-            for i in range(n):
-                for label in range(domains[i, DOMAIN_MIN], domains[i, DOMAIN_MAX] + 1):
-                    j = label - offset
-                    preds[cursors[j]] = i
-                    cursors[j] += 1
-        bwd[0] = 0
-        queue[0] = 0
-        head = 0
-        tail = 1
-        while head < tail:
-            j = queue[head]
-            head += 1
-            if with_lists:
-                for k in range(starts[j], starts[j + 1]):
-                    i = preds[k]
-                    if bwd[i] < 0 and (fixed_pred[j] == 0 or fixed_pred[j] == i + 1):
-                        bwd[i] = bwd[j] + 1
-                        queue[tail] = i
-                        tail += 1
-            else:
-                for i in range(n):
-                    if (
-                        bwd[i] < 0
-                        and domains[i, DOMAIN_MIN] <= offset + j <= domains[i, DOMAIN_MAX]
-                        and (fixed_pred[j] == 0 or fixed_pred[j] == i + 1)
-                    ):
-                        bwd[i] = bwd[j] + 1
-                        queue[tail] = i
-                        tail += 1
-        if tail < n:
-            return PROP_INCONSISTENCY  # some node cannot reach node 0
-        # position windows: [fwd[j], n - bwd[j]] for j > 0, and [0, 0] for node 0
-        for j in range(1, n):
-            if fwd[j] > n - bwd[j]:
-                return PROP_INCONSISTENCY
-        all_fixed = True
-        for i in range(n):
-            i_min = fwd[i]
-            i_max = 0 if i == 0 else n - bwd[i]
-            lo = domains[i, DOMAIN_MIN]
-            hi = domains[i, DOMAIN_MAX]
-            # a bound moved by this loop may land on the node itself, so the self-loop is excluded here too
-            while lo <= hi and not _allowed(i, lo - offset, i_min, i_max, fwd, bwd, fixed_pred, n):
-                lo += 1
-            while lo <= hi and not _allowed(i, hi - offset, i_min, i_max, fwd, bwd, fixed_pred, n):
-                hi -= 1
-            if lo > hi:
-                return PROP_INCONSISTENCY
-            if lo != domains[i, DOMAIN_MIN] or hi != domains[i, DOMAIN_MAX]:
-                domains[i, DOMAIN_MIN] = lo
-                domains[i, DOMAIN_MAX] = hi
-                changed = True
-            if lo != hi:
-                all_fixed = False
-        if not changed:
-            # every node reachable both ways over fixed successors is a single circuit
-            return PROP_ENTAILMENT if all_fixed else PROP_CONSISTENCY
+                if (
+                    bwd[i] < 0
+                    and domains[i, DOMAIN_MIN] <= offset + j <= domains[i, DOMAIN_MAX]
+                    and (fixed_pred[j] == 0 or fixed_pred[j] == i + 1)
+                ):
+                    bwd[i] = bwd[j] + 1
+                    queue[tail] = i
+                    tail += 1
+    if tail < n:
+        return PROP_INCONSISTENCY  # some node cannot reach node 0
+    # position windows: [fwd[j], n - bwd[j]] for j > 0, and [0, 0] for node 0
+    for j in range(1, n):
+        if fwd[j] > n - bwd[j]:
+            return PROP_INCONSISTENCY
+    all_fixed = True
+    for i in range(n):
+        i_min = fwd[i]
+        i_max = 0 if i == 0 else n - bwd[i]
+        lo = domains[i, DOMAIN_MIN]
+        hi = domains[i, DOMAIN_MAX]
+        # a bound moved by this loop may land on the node itself, so the self-loop is excluded here too
+        while lo <= hi and not _allowed(i, lo - offset, i_min, i_max, fwd, bwd, fixed_pred, n):
+            lo += 1
+        while lo <= hi and not _allowed(i, hi - offset, i_min, i_max, fwd, bwd, fixed_pred, n):
+            hi -= 1
+        if lo > hi:
+            return PROP_INCONSISTENCY
+        if lo != domains[i, DOMAIN_MIN] or hi != domains[i, DOMAIN_MAX]:
+            domains[i, DOMAIN_MIN] = lo
+            domains[i, DOMAIN_MAX] = hi
+            changed = True
+        if lo != hi:
+            all_fixed = False
+    if changed:
+        return PROP_CONSISTENCY  # not idempotent: the engine calls it again, other propagators having run meanwhile
+    # every node reachable both ways over fixed successors is a single circuit
+    return PROP_ENTAILMENT if all_fixed else PROP_CONSISTENCY
 
 
 @njit(cache=True)

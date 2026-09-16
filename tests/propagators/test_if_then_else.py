@@ -82,9 +82,9 @@ class TestIfThenElse(PropagatorTest):
 
     @pytest.mark.parametrize("values_max", [1, 3])
     def test_bound_consistency_against_brute_force(self, values_max: int) -> None:
-        # on distinct variables one call leaves exactly the bounds of the feasible ground assignments: it
-        # fails exactly when there are none, never prunes a supported value, and leaves no unsupported bound.
-        # Being at its fixpoint after one call, a second call changes nothing.
+        # on distinct variables, iterated to its fixpoint as the engine iterates a non-idempotent propagator, it
+        # leaves exactly the bounds of the feasible ground assignments: it fails exactly when there are none, never
+        # prunes a supported value, and leaves no unsupported bound
         rng = random.Random(20260916 + values_max)
         parameters = np.empty(0, dtype=np.int32)
         for _ in range(1500):
@@ -95,7 +95,13 @@ class TestIfThenElse(PropagatorTest):
                 bounds.append((lo, rng.randint(lo, values_max)))
             feasible = _feasible(bounds)
             domains = np.array([[lo, hi] for lo, hi in bounds], dtype=np.int32)
-            result = compute_domains_if_then_else(domains, parameters, np.empty(0, dtype=np.int32))
+            for _ in range(4 * (2 * b + 1) * (values_max + 1) + 2):  # each changing pass narrows some bound
+                before = domains.copy()
+                result = compute_domains_if_then_else(domains, parameters, np.empty(0, dtype=np.int32))
+                if result != PROP_CONSISTENCY or np.array_equal(before, domains):
+                    break
+            else:
+                raise AssertionError(f"no fixpoint on {bounds}")
             if result == PROP_INCONSISTENCY:
                 assert not feasible, f"declared inconsistent but feasible exists: {bounds}"
                 continue
@@ -103,6 +109,3 @@ class TestIfThenElse(PropagatorTest):
             for v in range(2 * b + 1):
                 expected = [min(a[v] for a in feasible), max(a[v] for a in feasible)]
                 assert domains[v].tolist() == expected, f"var {v} of {bounds}: {domains[v].tolist()} != {expected}"
-            fixpoint = domains.copy()
-            compute_domains_if_then_else(domains, parameters, np.empty(0, dtype=np.int32))
-            assert np.array_equal(domains, fixpoint), f"not idempotent on {bounds}"

@@ -69,8 +69,9 @@ class TestCircuitPositions(PropagatorTest):
     @pytest.mark.parametrize("offset", [0, 2])
     @pytest.mark.parametrize("with_lists", [True, False])
     def test_soundness_against_brute_force(self, offset: int, with_lists: bool) -> None:
-        # the propagator never prunes a successor of some circuit, never fails when a circuit exists, and is at
-        # its fixpoint after one call -- with the predecessor lists, and with the scan used above their size cap
+        # iterated as the engine iterates a non-idempotent propagator, it reaches a fixpoint, never prunes a
+        # successor of some circuit, and never fails when a circuit exists -- with the predecessor lists, and with
+        # the scan used above their size cap
         rng = random.Random(20260916 + offset)
         parameters = np.array([offset], dtype=np.int32)
         for _ in range(3000):
@@ -83,13 +84,16 @@ class TestCircuitPositions(PropagatorTest):
             domains = np.array(bounds, dtype=np.int32)
             size = sum(get_state_circuit_positions(n, [offset])) if with_lists else 4 * n
             state = np.zeros(size, dtype=np.int32)
-            status = compute_domains_circuit_positions(domains, parameters, state)
+            for _ in range(2 * n * n + 2):  # each changing pass narrows some bound, so this many always suffice
+                before = domains.copy()
+                status = compute_domains_circuit_positions(domains, parameters, state)
+                if status != PROP_CONSISTENCY or np.array_equal(before, domains):
+                    break
+            else:
+                raise AssertionError(f"no fixpoint on {bounds}")
             if status == PROP_INCONSISTENCY:
                 assert not circuits, f"declared inconsistent but a circuit exists: {bounds}"
                 continue
             for i in range(n):
                 for c in circuits:
                     assert domains[i, 0] <= c[i] <= domains[i, 1], f"pruned succ[{i}]={c[i]} of {c}: {bounds}"
-            fixpoint = domains.copy()
-            compute_domains_circuit_positions(domains, parameters, state)
-            assert np.array_equal(domains, fixpoint), f"not idempotent on {bounds}"
