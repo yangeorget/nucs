@@ -117,27 +117,76 @@ def compute_domains_linear_eq_c(domains: NDArray, parameters: NDArray, prop_stat
     # a data-dependent branch, in the one loop here that is otherwise straight-line arithmetic.
     if domain_sum_min == domain_sum_max:
         return PROP_ENTAILMENT
+    # Narrow to the fixpoint within the call, as Gecode's linear propagators do, instead of one pass the engine
+    # would requeue: a narrowed bound tightens one of the two accumulators at once, so the variables that follow in
+    # the same phase already use it, and the phases repeat only while the other accumulator moved.
+    # The phase reading domain_sum_max lowers positive-factor maxima and raises negative-factor minima, which lowers
+    # domain_sum_min; the phase reading domain_sum_min raises positive-factor minima and lowers negative-factor
+    # maxima, which raises domain_sum_max.
     changed = False
-    for i in range(n):
-        factor = factors[i]
-        if factor == 0:
-            continue
-        x_min = domains[i, DOMAIN_MIN]
-        x_max = domains[i, DOMAIN_MAX]
-        if x_min == x_max:
-            continue
-        if factor > 0:
-            new_min = x_max - (domain_sum_min // factor)
-            new_max = x_min + (-domain_sum_max // factor)
-        else:
-            new_min = x_max - (domain_sum_max // factor)
-            new_max = x_min + (-domain_sum_min // factor)
-        if new_min > x_min:
-            domains[i, DOMAIN_MIN] = new_min
-            changed = True
-        if new_max < x_max:
-            domains[i, DOMAIN_MAX] = new_max
-            changed = True
+    by_sum_max = True  # whether the phase reading domain_sum_max has work to do
+    by_sum_min = True
+    while by_sum_max or by_sum_min:
+        if by_sum_max:
+            by_sum_max = False
+            for i in range(n):
+                factor = factors[i]
+                if factor == 0:
+                    continue
+                x_min = domains[i, DOMAIN_MIN]
+                x_max = domains[i, DOMAIN_MAX]
+                if x_min == x_max:
+                    continue
+                if factor > 0:
+                    new_max = x_min + (-domain_sum_max // factor)
+                    if new_max < x_max:
+                        if new_max < x_min:
+                            return PROP_INCONSISTENCY
+                        domains[i, DOMAIN_MAX] = new_max
+                        domain_sum_min -= factor * (x_max - new_max)
+                        changed = True
+                        by_sum_min = True
+                else:
+                    new_min = x_max - (domain_sum_max // factor)
+                    if new_min > x_min:
+                        if new_min > x_max:
+                            return PROP_INCONSISTENCY
+                        domains[i, DOMAIN_MIN] = new_min
+                        domain_sum_min += factor * (new_min - x_min)
+                        changed = True
+                        by_sum_min = True
+        if by_sum_min:
+            by_sum_min = False
+            for i in range(n):
+                factor = factors[i]
+                if factor == 0:
+                    continue
+                x_min = domains[i, DOMAIN_MIN]
+                x_max = domains[i, DOMAIN_MAX]
+                if x_min == x_max:
+                    continue
+                if factor > 0:
+                    new_min = x_max - (domain_sum_min // factor)
+                    if new_min > x_min:
+                        if new_min > x_max:
+                            return PROP_INCONSISTENCY
+                        domains[i, DOMAIN_MIN] = new_min
+                        domain_sum_max += factor * (new_min - x_min)
+                        changed = True
+                        by_sum_max = True
+                else:
+                    new_max = x_min + (-domain_sum_min // factor)
+                    if new_max < x_max:
+                        if new_max < x_min:
+                            return PROP_INCONSISTENCY
+                        domains[i, DOMAIN_MAX] = new_max
+                        domain_sum_max += factor * (new_max - x_max)
+                        changed = True
+                        by_sum_max = True
+        if domain_sum_max > 0 or domain_sum_min < 0:
+            return PROP_INCONSISTENCY
+    if domain_sum_min == domain_sum_max:
+        return PROP_ENTAILMENT
     if not changed:
         prop_state[0] = 0  # nothing written: the engine can skip the write-back scan
     return PROP_CONSISTENCY

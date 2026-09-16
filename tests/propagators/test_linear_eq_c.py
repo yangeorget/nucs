@@ -11,6 +11,9 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 
+import random
+
+import numpy as np
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
@@ -59,3 +62,53 @@ class TestLinearEqC(PropagatorTest):
         self.assert_compute_domains(
             compute_domains_linear_eq_c, domains, parameters, consistency_result, expected_domains
         )
+
+    def test_same_fixpoint_as_the_one_pass_rule(self) -> None:
+        # the in-call fixpoint narrows exactly as far as the one-pass rule the propagator used to apply, repeated
+        # until nothing changes -- so switching between them cannot change a search tree
+        rng = random.Random(20260917)
+        for _ in range(5000):
+            n = rng.randint(1, 5)
+            factors = [rng.choice([-3, -2, -1, 0, 1, 2, 3]) for _ in range(n)]
+            bounds = []
+            for _ in range(n):
+                lo = rng.randint(-6, 6)
+                bounds.append((lo, lo + rng.randint(0, 8)))
+            c = rng.randint(-15, 15)
+            expected_status, expected = _one_pass_fixpoint(bounds, factors, c)
+            domains = np.array(bounds, dtype=np.int32)
+            status = compute_domains_linear_eq_c(
+                domains, np.array(factors + [c], dtype=np.int32), np.zeros(1, dtype=np.int32)
+            )
+            assert (status == PROP_INCONSISTENCY) == (expected_status == PROP_INCONSISTENCY), (bounds, factors, c)
+            if status != PROP_INCONSISTENCY:
+                assert domains.tolist() == expected, (bounds, factors, c)
+                assert (status == PROP_ENTAILMENT) == (expected_status == PROP_ENTAILMENT), (bounds, factors, c)
+
+
+def _one_pass_fixpoint(bounds: list[tuple[int, int]], factors: list[int], c: int) -> tuple[int, list[list[int]]]:
+    """The one-pass rule, with sums computed at the start of each pass, repeated until nothing changes."""
+    domains = [list(b) for b in bounds]
+    while True:
+        sum_min = sum_max = -c
+        for (lo, hi), a in zip(domains, factors):
+            sum_min += a * hi if a > 0 else a * lo
+            sum_max += a * lo if a > 0 else a * hi
+        if sum_max > 0 or sum_min < 0:
+            return PROP_INCONSISTENCY, domains
+        if sum_min == sum_max:
+            return PROP_ENTAILMENT, domains
+        changed = False
+        for d, a in zip(domains, factors):
+            if a == 0 or d[0] == d[1]:
+                continue
+            if a > 0:
+                new_min, new_max = d[1] - (sum_min // a), d[0] + (-sum_max // a)
+            else:
+                new_min, new_max = d[1] - (sum_max // a), d[0] + (-sum_min // a)
+            if new_min > d[0]:
+                d[0], changed = new_min, True
+            if new_max < d[1]:
+                d[1], changed = new_max, True
+        if not changed:
+            return PROP_CONSISTENCY, domains

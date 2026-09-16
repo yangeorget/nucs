@@ -512,7 +512,6 @@ ALG_LINEAR_EQ_C = register_propagator(
     get_triggers_linear_eq_c,
     get_complexity_linear_eq_c,
     compute_domains_linear_eq_c,
-    idempotent=False,
     get_state_fct=get_state_linear_eq_c,
     reports_changes=True,
 )
