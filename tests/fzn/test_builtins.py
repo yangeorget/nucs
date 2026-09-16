@@ -13,6 +13,11 @@
 import io
 import json
 import logging
+import os
+import signal
+import subprocess
+import sys
+import tempfile
 
 import pytest
 
@@ -1523,6 +1528,37 @@ class TestBuiltins:
         # found but the space was not exhausted, which is exactly what the unknown marker reports
         out = solve_fzn("var 0..9: x :: output_var;\nsolve satisfy;", time_limit_ms=0)
         assert out.strip() in ("=====UNKNOWN=====", "x = 0;\n----------")
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="MiniZinc sends SIGTERM on POSIX only")
+    def test_fzn_nucs_prints_its_statistics_on_sigterm(self) -> None:
+        # MiniZinc enforces its time limit with SIGTERM, then SIGKILL a second later. The first solution
+        # comes at once, but proving that 13 pigeons do not fit in 12 holes does not end, so the signal
+        # lands mid-descent: the run must still conclude its stream with the statistics.
+        xs = [f"x{i}" for i in range(13)]
+        lines = [f"var 0..12: {x} :: output_var;" for x in xs] + ["var 0..12: m :: output_var;"]
+        lines += [f"constraint int_ne({x}, {y});" for i, x in enumerate(xs) for y in xs[i + 1 :]]
+        lines += [f"constraint int_le({x}, m);" for x in xs]
+        lines.append(f"solve :: int_search([{', '.join(xs)}], input_order, indomain_min, complete) minimize m;")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "pigeons.fzn")
+            with open(path, "w") as f:
+                f.write("\n".join(lines) + "\n")
+            process = subprocess.Popen(
+                [sys.executable, "-m", "nucs.fzn", "-a", "-s", path], stdout=subprocess.PIPE, text=True
+            )
+            try:
+                assert process.stdout is not None
+                # the first solution proves the handler is installed, since it is installed before the search
+                while (line := process.stdout.readline()) != "----------\n":
+                    assert line, "fzn-nucs exited before its first solution"
+                process.send_signal(signal.SIGTERM)
+                rest, _ = process.communicate(timeout=60)
+            finally:
+                process.kill()
+        assert process.returncode == 0
+        assert "==========" not in rest  # interrupted, so no optimality claim
+        assert rest.rstrip().endswith("%%%mzn-stat-end")
+        assert "%%%mzn-stat: SOLUTION_NB=1" in rest
 
     def test_parse_args_cli_parses_time_limit(self) -> None:
         from nucs.fzn.__main__ import build_arg_parser

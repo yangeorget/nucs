@@ -114,6 +114,7 @@ def main(argv: list[str] | None = None) -> int:
             output_objective=args.output_objective,
             intermediate_solutions=args.intermediate_solutions,
             time_limit_ms=args.time_limit,
+            stop_on_sigterm=True,
         )
     except FznError as e:
         sys.stderr.write(f"fzn-nucs: {e}\n")

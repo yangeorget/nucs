@@ -10,6 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+import threading
 import time
 
 import pytest
@@ -93,6 +94,30 @@ class TestBacktrackSolver:
         assert solver.timed_out
         assert 0 < solutions < 90000
 
+    def test_interrupt_stops_a_descent(self) -> None:
+        """An interrupt from another thread stops a search that finds no solution to return to Python at."""
+        # 13 pigeons in 12 holes: the descent never comes back with a solution, so only the compiled loop
+        # itself can notice the interruption
+        problem = Problem([(0, 11)] * 13)
+        for i in range(13):
+            for j in range(i + 1, 13):
+                problem.add_propagator(ALG_NEQ, [i, j])
+        solver = BacktrackSolver(problem)
+        timer = threading.Timer(0.2, solver.interrupt)
+        timer.start()
+        try:
+            assert next(solver.solve(), None) is None
+        finally:
+            timer.cancel()
+        assert solver.timed_out
+
+    def test_interrupt_before_the_search_is_kept(self) -> None:
+        """An interruption that arrives before the search starts is not lost: the search stops at once."""
+        solver = BacktrackSolver(Problem([(0, 99), (0, 99)]))
+        solver.interrupt()
+        assert list(solver.solve()) == []
+        assert solver.timed_out
+
     def test_solve_without_timeout_is_exhaustive(self) -> None:
         problem = Problem([(0, 99), (0, 99)])
         solver = BacktrackSolver(problem)
@@ -163,6 +188,7 @@ class TestBacktrackSolver:
             problem.algorithm_flags,
             solver.objective,
             solver.trail_headroom,
+            solver.interruption,
         )
         assert status == SOLVER_RUNNING
         assert solution is not None

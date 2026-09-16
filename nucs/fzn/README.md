@@ -77,5 +77,6 @@ entry to `nucs/fzn/builtins.py`.
   blows up into a big boolean encoding.
 - Boolean output variables are printed as `true`/`false`.
 - Unbounded `var int` declarations fall back to a wide finite interval.
-- `-t` (time limit) is accepted and ignored; MiniZinc enforces it by killing the process, so no
-  `=====UNKNOWN=====` marker is produced.
+- `-t` (time limit) is checked only between solutions, since a descent runs in compiled code. MiniZinc
+  enforces its limit with SIGTERM, which stops the descent at its next node: the run still prints its best
+  solution, `=====UNKNOWN=====` when it has none, and its statistics.

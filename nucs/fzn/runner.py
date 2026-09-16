@@ -15,6 +15,9 @@ Drives a built :class:`FznModel` through a :class:`BacktrackSolver` and streams 
 """
 
 import logging
+import signal
+import socket
+import threading
 from typing import TextIO
 
 from numpy.typing import NDArray
@@ -189,6 +192,7 @@ def run(
     output_objective: bool = False,
     intermediate_solutions: bool = False,
     time_limit_ms: int | None = None,
+    stop_on_sigterm: bool = False,
 ) -> None:
     """
     Solves the model and writes the FlatZinc solution stream.
@@ -215,6 +219,9 @@ def run(
     :type intermediate_solutions: bool
     :param time_limit_ms: the wall-clock budget in milliseconds, or None for an unbounded search
     :type time_limit_ms: Optional[int]
+    :param stop_on_sigterm: whether SIGTERM stops the search as a time limit would, which installs a process-wide
+        signal handler and so is for the executable only
+    :type stop_on_sigterm: bool
     """
     # Resolve the objective before constructing the solver, since the solver snapshots the domains on init.
     objective_var = None
@@ -227,6 +234,8 @@ def run(
         solver = BacktrackSolver(model.problem, log_level="ERROR")
     else:
         solver = BacktrackSolver(model.problem, searches=searches, log_level="ERROR")
+    if stop_on_sigterm:
+        _interrupt_on_sigterm(solver)
     timeout = None if time_limit_ms is None else time_limit_ms / 1000
     if model.solve.kind == "satisfy":
         _run_satisfy(model, solver, out, all_solutions, num_solutions, output_mode, timeout)
@@ -244,6 +253,36 @@ def run(
         )
     if statistics:
         _print_statistics(solver, out)
+
+
+def _interrupt_on_sigterm(solver: BacktrackSolver) -> None:
+    """
+    Makes SIGTERM interrupt the search, so that the run still prints its best solution, its terminator and
+    its statistics.
+
+    That is how MiniZinc enforces its time limit: SIGTERM about a second after the limit, SIGKILL a second
+    later. Left to the default action, SIGTERM kills the process with nothing printed. A Python handler alone
+    would not do either: it runs only once the main thread is back in the interpreter, which a descent in
+    compiled code may not be before SIGKILL. The wakeup fd is written by the C-level handler as soon as the
+    signal arrives, so a thread blocked on it interrupts the solver at once; the Python handler, whenever it
+    runs, merely does the same.
+
+    :param solver: the solver to interrupt
+    :type solver: BacktrackSolver
+    """
+    reader, writer = socket.socketpair()
+    writer.setblocking(False)
+    signal.set_wakeup_fd(writer.fileno())
+    signal.signal(signal.SIGTERM, lambda _signum, _frame: solver.interrupt())
+
+    def watch(reader: socket.socket, _writer: socket.socket) -> None:
+        # the wakeup fd receives the number of every signal that has a Python handler, SIGINT included
+        while reader.recv(1)[0] != signal.SIGTERM:
+            pass
+        solver.interrupt()
+
+    # the thread holds the writer too: collected, it would close the wakeup fd along with it
+    threading.Thread(target=watch, args=(reader, writer), name="fzn-nucs-sigterm", daemon=True).start()
 
 
 def _run_optimize(

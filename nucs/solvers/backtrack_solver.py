@@ -78,6 +78,7 @@ logger = logging.getLogger(__name__)
 SOLVER_RUNNING = 0  # nothing filled up: the search returned a solution or exhausted itself
 SOLVER_TRAIL_FULL = 1  # the search stopped because the trail needs more room, not because it is over
 SOLVER_CHOICE_POINTS_FULL = 2  # likewise for the stack of choice points
+SOLVER_INTERRUPTED = 3  # the search stopped because interrupt() asked it to, from outside the compiled loop
 
 # Trail entries a step of the search needs beyond one per cell of the backtrackable state.
 # The barrier in trail_set trails each cell at most once per choice point, so a fixpoint cannot need more
@@ -250,6 +251,10 @@ class BacktrackSolver(Solver):
         # is found, and nothing about it is trailed. OBJECTIVE_VARIABLE stays -1 outside OPTIM_PRUNE, which is
         # how backtrack knows there is no bound to apply: OPTIM_RESET tightens at the root instead.
         self.objective = np.full(OBJECTIVE_WIDTH, -1, dtype=np.int32)
+        # set by interrupt(), possibly from another thread, and read by solve_one_step at every node: a
+        # descent runs in compiled code that returns to Python only at a solution, so a flag it reads itself
+        # is the only way to stop it in between
+        self.interruption = np.zeros((1,), dtype=np.int32)
         logger.info(
             f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"
         )
@@ -346,6 +351,10 @@ class BacktrackSolver(Solver):
             status, solution = self._solve_one_step()
             if status == SOLVER_RUNNING:
                 return solution
+            if status == SOLVER_INTERRUPTED:
+                logger.info("Interrupted, stopping the search")
+                self.timed_out = True
+                return None
             self._grow(status)
 
     def _solve_one_step(self) -> tuple[int, NDArray | None]:
@@ -389,7 +398,18 @@ class BacktrackSolver(Solver):
             self.problem.algorithm_flags,
             self.objective,
             self.trail_headroom,
+            self.interruption,
         )
+
+    def interrupt(self) -> None:
+        """
+        Stops the search at its next node, as if its budget had run out: the iteration ends and
+        :attr:`timed_out` is set. The interruption is final, every later search stops at once too.
+
+        Safe to call from another thread or from a signal handler: it only writes a cell that the compiled
+        search reads, and solve_one_step releases the GIL so that such a thread gets to run.
+        """
+        self.interruption[0] = 1
 
     def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
         """
@@ -503,7 +523,7 @@ class BacktrackSolver(Solver):
         return statistics_as_dictionary(self.statistics, get_algorithm_names())
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def solve_one_step(
     statistics: NDArray,
     algorithms: NDArray,
@@ -538,6 +558,7 @@ def solve_one_step(
     algorithm_flags: NDArray,
     objective: NDArray,
     trail_headroom: int,
+    interruption: NDArray,
 ) -> tuple[int, NDArray | None]:
     """
     Searches for one solution, stopping early when an array it cannot grow runs out of room.
@@ -625,6 +646,8 @@ def solve_one_step(
     :type objective: NDArray
     :param trail_headroom: the trail entries any one step of the search can need
     :type trail_headroom: int
+    :param interruption: a one-cell array, non-zero once the search is asked to stop
+    :type interruption: NDArray
 
     :return: why the step returned, and the solution when it found one
     :rtype: Tuple[int, Optional[NDArray]]
@@ -633,6 +656,9 @@ def solve_one_step(
     nb_searches = len(decision_variables_offsets) - 1
     max_choice_point = len(choice_point_stk) - 3  # a ternary split pushes two choice points and marks a third
     while True:
+        # checked at every node and before the state is touched, like the two checks below
+        if interruption[0] != 0:
+            return SOLVER_INTERRUPTED, None
         # the arrays are caller-allocated, so the search stops for the solver to grow one rather than
         # overrun it silently -- with boundscheck off, the overrun is what would otherwise happen
         if trail_top[0] + trail_headroom > len(trail):
