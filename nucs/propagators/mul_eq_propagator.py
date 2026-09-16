@@ -120,43 +120,60 @@ def compute_domains_mul_eq(domains: NDArray, parameters: NDArray, prop_state: ND
     x = domains[0]
     y = domains[1]
     z = domains[2]
-    # int64 avoids int32 overflow of the corner products
-    # z = x * y: tighten z to the hull of the four corner products
-    z_lo, z_hi = prod_hull(int64(x[DOMAIN_MIN]), int64(x[DOMAIN_MAX]), int64(y[DOMAIN_MIN]), int64(y[DOMAIN_MAX]))
-    if z_lo > z[DOMAIN_MAX] or z_hi < z[DOMAIN_MIN]:
-        return PROP_INCONSISTENCY
-    z[DOMAIN_MIN] = max(z[DOMAIN_MIN], z_lo)
-    z[DOMAIN_MAX] = min(z[DOMAIN_MAX], z_hi)
-    zl = int64(z[DOMAIN_MIN])
-    zu = int64(z[DOMAIN_MAX])
-    # x = z / y, only when 0 is not in [y] (otherwise x is unbounded)
-    yl = int64(y[DOMAIN_MIN])
-    yu = int64(y[DOMAIN_MAX])
-    if yl > 0 or yu < 0:
-        x_lo = div_lo(zl, zu, yl, yu)
-        x_hi = div_hi(zl, zu, yl, yu)
-        # an empty quotient (no integer in [x_lo, x_hi], e.g. z = 1 and y = -2) must fail here: written into x, the
-        # crossed bounds would pass the "0 not in [x]" test below and the next division would be by zero
-        if x_lo > x_hi or x_lo > x[DOMAIN_MAX] or x_hi < x[DOMAIN_MIN]:
+    # One pass is not always a fixpoint -- z re-tightened from the narrowed factors can narrow a factor again -- so
+    # the pass repeats until no bound moves. Real inputs almost never need more than one narrowing pass, and a
+    # repeat here is far cheaper than the engine calling a non-idempotent propagator back, domains gathered and
+    # written again, only to confirm that nothing changes.
+    while True:
+        x_min0, x_max0 = x[DOMAIN_MIN], x[DOMAIN_MAX]
+        y_min0, y_max0 = y[DOMAIN_MIN], y[DOMAIN_MAX]
+        z_min0, z_max0 = z[DOMAIN_MIN], z[DOMAIN_MAX]
+        # int64 avoids int32 overflow of the corner products
+        # z = x * y: tighten z to the hull of the four corner products
+        z_lo, z_hi = prod_hull(int64(x[DOMAIN_MIN]), int64(x[DOMAIN_MAX]), int64(y[DOMAIN_MIN]), int64(y[DOMAIN_MAX]))
+        if z_lo > z[DOMAIN_MAX] or z_hi < z[DOMAIN_MIN]:
             return PROP_INCONSISTENCY
-        x[DOMAIN_MIN] = max(x[DOMAIN_MIN], x_lo)
-        x[DOMAIN_MAX] = min(x[DOMAIN_MAX], x_hi)
-    # y = z / x, only when 0 is not in [x]
-    xl = int64(x[DOMAIN_MIN])
-    xu = int64(x[DOMAIN_MAX])
-    if xl > 0 or xu < 0:
-        y_lo = div_lo(zl, zu, xl, xu)
-        y_hi = div_hi(zl, zu, xl, xu)
-        if y_lo > y_hi or y_lo > y[DOMAIN_MAX] or y_hi < y[DOMAIN_MIN]:
+        z[DOMAIN_MIN] = max(z[DOMAIN_MIN], z_lo)
+        z[DOMAIN_MAX] = min(z[DOMAIN_MAX], z_hi)
+        zl = int64(z[DOMAIN_MIN])
+        zu = int64(z[DOMAIN_MAX])
+        # x = z / y, only when 0 is not in [y] (otherwise x is unbounded)
+        yl = int64(y[DOMAIN_MIN])
+        yu = int64(y[DOMAIN_MAX])
+        if yl > 0 or yu < 0:
+            x_lo = div_lo(zl, zu, yl, yu)
+            x_hi = div_hi(zl, zu, yl, yu)
+            # an empty quotient (no integer in [x_lo, x_hi], e.g. z = 1 and y = -2) must fail here: written into x, the
+            # crossed bounds would pass the "0 not in [x]" test below and the next division would be by zero
+            if x_lo > x_hi or x_lo > x[DOMAIN_MAX] or x_hi < x[DOMAIN_MIN]:
+                return PROP_INCONSISTENCY
+            x[DOMAIN_MIN] = max(x[DOMAIN_MIN], x_lo)
+            x[DOMAIN_MAX] = min(x[DOMAIN_MAX], x_hi)
+        # y = z / x, only when 0 is not in [x]
+        xl = int64(x[DOMAIN_MIN])
+        xu = int64(x[DOMAIN_MAX])
+        if xl > 0 or xu < 0:
+            y_lo = div_lo(zl, zu, xl, xu)
+            y_hi = div_hi(zl, zu, xl, xu)
+            if y_lo > y_hi or y_lo > y[DOMAIN_MAX] or y_hi < y[DOMAIN_MIN]:
+                return PROP_INCONSISTENCY
+            y[DOMAIN_MIN] = max(y[DOMAIN_MIN], y_lo)
+            y[DOMAIN_MAX] = min(y[DOMAIN_MAX], y_hi)
+        # re-tighten z now that x and y may have narrowed, so z is consistent before any entailment claim
+        z_lo, z_hi = prod_hull(int64(x[DOMAIN_MIN]), int64(x[DOMAIN_MAX]), int64(y[DOMAIN_MIN]), int64(y[DOMAIN_MAX]))
+        if z_lo > z[DOMAIN_MAX] or z_hi < z[DOMAIN_MIN]:
             return PROP_INCONSISTENCY
-        y[DOMAIN_MIN] = max(y[DOMAIN_MIN], y_lo)
-        y[DOMAIN_MAX] = min(y[DOMAIN_MAX], y_hi)
-    # re-tighten z now that x and y may have narrowed, so z is consistent before any entailment claim
-    z_lo, z_hi = prod_hull(int64(x[DOMAIN_MIN]), int64(x[DOMAIN_MAX]), int64(y[DOMAIN_MIN]), int64(y[DOMAIN_MAX]))
-    if z_lo > z[DOMAIN_MAX] or z_hi < z[DOMAIN_MIN]:
-        return PROP_INCONSISTENCY
-    z[DOMAIN_MIN] = max(z[DOMAIN_MIN], z_lo)
-    z[DOMAIN_MAX] = min(z[DOMAIN_MAX], z_hi)
+        z[DOMAIN_MIN] = max(z[DOMAIN_MIN], z_lo)
+        z[DOMAIN_MAX] = min(z[DOMAIN_MAX], z_hi)
+        if (
+            x[DOMAIN_MIN] == x_min0
+            and x[DOMAIN_MAX] == x_max0
+            and y[DOMAIN_MIN] == y_min0
+            and y[DOMAIN_MAX] == y_max0
+            and z[DOMAIN_MIN] == z_min0
+            and z[DOMAIN_MAX] == z_max0
+        ):
+            break
     x_ground = x[DOMAIN_MIN] == x[DOMAIN_MAX]
     y_ground = y[DOMAIN_MIN] == y[DOMAIN_MAX]
     # entailed once both factors are fixed (z is now their product), or once a factor is fixed to 0 (z is 0)

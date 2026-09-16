@@ -668,7 +668,7 @@ ALG_MIN_EQ = register_propagator(get_triggers_min_eq, get_complexity_min_eq, com
 ALG_MOD_C_EQ = register_propagator(get_triggers_mod_c_eq, get_complexity_mod_c_eq, compute_domains_mod_c_eq)
 ALG_MOD_EQ = register_propagator(get_triggers_mod_eq, get_complexity_mod_eq, compute_domains_mod_eq, idempotent=False)
 ALG_MUL_C_EQ = register_propagator(get_triggers_mul_c_eq, get_complexity_mul_c_eq, compute_domains_mul_c_eq)
-ALG_MUL_EQ = register_propagator(get_triggers_mul_eq, get_complexity_mul_eq, compute_domains_mul_eq, idempotent=False)
+ALG_MUL_EQ = register_propagator(get_triggers_mul_eq, get_complexity_mul_eq, compute_domains_mul_eq)
 ALG_NEQ = register_propagator(get_triggers_neq, get_complexity_neq, compute_domains_neq)
 ALG_NEQ_IMP = register_propagator(get_triggers_neq_imp, get_complexity_neq_imp, compute_domains_neq_imp)
 ALG_NEQ_C_REIF = register_propagator(get_triggers_neq_c_reif, get_complexity_neq_c_reif, compute_domains_neq_c_reif)
