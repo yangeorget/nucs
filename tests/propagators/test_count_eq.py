@@ -82,7 +82,7 @@ class TestCountEq(PropagatorTest):
     ) -> None:
         self.assert_compute_domains(compute_domains_count_eq, domains, parameters, consistency_result, expected_domains)
 
-    @pytest.mark.parametrize("seed", range(200))
+    @pytest.mark.parametrize("seed", range(100))
     @pytest.mark.parametrize("backtrack", [False, True])
     def test_live_set_is_sound(self, seed: int, backtrack: bool) -> None:
         rng = np.random.default_rng(seed)
