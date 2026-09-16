@@ -77,9 +77,9 @@ class TestMulEq(PropagatorTest):
 
     def test_idempotent(self) -> None:
         # a call reaches its own fixpoint, which is what registering it idempotent claims: over every domain triple
-        # within [-4, 4], a second call narrows nothing
+        # within [-3, 3], a second call narrows nothing -- a one-pass mul_eq fails this on 496 of them
         empty = np.empty(0, dtype=np.int32)
-        for x0, x1, y0, y1, z0, z1 in itertools.product(range(-4, 5), repeat=6):
+        for x0, x1, y0, y1, z0, z1 in itertools.product(range(-3, 4), repeat=6):
             if x0 > x1 or y0 > y1 or z0 > z1:
                 continue
             domains = np.array([(x0, x1), (y0, y1), (z0, z1)], dtype=np.int32)

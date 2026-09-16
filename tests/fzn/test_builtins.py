@@ -1631,7 +1631,7 @@ class TestBuiltins:
             with open(path, "w") as f:
                 f.write("\n".join(lines) + "\n")
             process = subprocess.run(
-                [sys.executable, "-m", "nucs.fzn", "-s", "-t", "1000", path],
+                [sys.executable, "-m", "nucs.fzn", "-s", "-t", "200", path],
                 capture_output=True,
                 text=True,
                 timeout=120,

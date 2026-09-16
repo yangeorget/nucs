@@ -135,7 +135,7 @@ class TestBacktrackSolver:
                 problem.add_propagator(ALG_NEQ, [i, j])
         solver = BacktrackSolver(problem)
         start = time.monotonic()
-        assert next(solver.solve(timeout=0.2), None) is None
+        assert next(solver.solve(timeout=0.1), None) is None
         assert time.monotonic() - start < 5
         assert solver.timed_out
         assert solver.interruption[0] == 0  # the deadline belonged to that search only
@@ -155,7 +155,7 @@ class TestBacktrackSolver:
         assert isinstance(solutions, Generator)
         next(solutions)
         solutions.close()  # abandoned before the deadline
-        time.sleep(0.2)  # past it: a timer still armed would have written the cell by now
+        time.sleep(0.1)  # past it: a timer still armed would have written the cell by now
         assert solver.interruption[0] == 0
 
     def test_solve_without_timeout_is_exhaustive(self) -> None:
