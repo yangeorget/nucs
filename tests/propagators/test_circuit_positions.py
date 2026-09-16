@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
-from nucs.propagators.circuit_positions_propagator import compute_domains_circuit_positions
+from nucs.propagators.circuit_positions_propagator import compute_domains_circuit_positions, get_state_circuit_positions
 from tests.propagators.propagator_test import PropagatorTest
 
 
@@ -67,9 +67,10 @@ class TestCircuitPositions(PropagatorTest):
         )
 
     @pytest.mark.parametrize("offset", [0, 2])
-    def test_soundness_against_brute_force(self, offset: int) -> None:
+    @pytest.mark.parametrize("with_lists", [True, False])
+    def test_soundness_against_brute_force(self, offset: int, with_lists: bool) -> None:
         # the propagator never prunes a successor of some circuit, never fails when a circuit exists, and is at
-        # its fixpoint after one call
+        # its fixpoint after one call -- with the predecessor lists, and with the scan used above their size cap
         rng = random.Random(20260916 + offset)
         parameters = np.array([offset], dtype=np.int32)
         for _ in range(3000):
@@ -80,7 +81,8 @@ class TestCircuitPositions(PropagatorTest):
                 bounds.append((lo, rng.randint(lo, offset + n)))
             circuits = _circuits(bounds, offset)
             domains = np.array(bounds, dtype=np.int32)
-            state = np.zeros(4 * n, dtype=np.int32)
+            size = sum(get_state_circuit_positions(n, [offset])) if with_lists else 4 * n
+            state = np.zeros(size, dtype=np.int32)
             status = compute_domains_circuit_positions(domains, parameters, state)
             if status == PROP_INCONSISTENCY:
                 assert not circuits, f"declared inconsistent but a circuit exists: {bounds}"

@@ -24,6 +24,10 @@ from nucs.constants import (
     PROP_INCONSISTENCY,
 )
 
+# Above this many nodes the predecessor lists, up to n * n cells, are not reserved and the backward search scans
+# every node for each node it reaches instead.
+PREDECESSOR_LISTS_MAX_N = 1024
+
 
 def get_complexity_circuit_positions(n: int, parameters: NDArray) -> int:
     """
@@ -43,7 +47,8 @@ def get_complexity_circuit_positions(n: int, parameters: NDArray) -> int:
 def get_state_circuit_positions(n: int, parameters: Sequence[int]) -> tuple[int, int]:
     """
     Returns the size of this propagator's state block: scratch space for the two breadth-first searches and the
-    fixed chains, which compute_domains_circuit_positions would otherwise allocate on every call.
+    fixed chains, which compute_domains_circuit_positions would otherwise allocate on every call, plus, up to
+    PREDECESSOR_LISTS_MAX_N nodes, the predecessor lists the backward search walks.
 
     Every cell is fully overwritten before it is read, so the whole block is untrailed scratch.
 
@@ -52,10 +57,13 @@ def get_state_circuit_positions(n: int, parameters: Sequence[int]) -> tuple[int,
     :param parameters: the parameters, unused here
     :type parameters: Sequence[int]
 
-    :return: (trailed_nb, hint_nb) = (0, 4n): forward distances, backward distances, a queue, fixed predecessors
+    :return: (trailed_nb, hint_nb) = (0, 4n): forward distances, backward distances, a queue and fixed
+             predecessors; plus n + 1 list starts, n fill cursors and n * n list cells when the lists are reserved
     :rtype: tuple[int, int]
     """
-    return 0, 4 * n
+    if n > PREDECESSOR_LISTS_MAX_N:
+        return 0, 4 * n
+    return 0, 6 * n + 1 + n * n
 
 
 @njit(cache=True)
@@ -113,6 +121,11 @@ def compute_domains_circuit_positions(domains: NDArray, parameters: NDArray, pro
     bwd = prop_state[n : 2 * n]
     queue = prop_state[2 * n : 3 * n]
     fixed_pred = prop_state[3 * n : 4 * n]  # 1 + the fixed predecessor of each node, or 0
+    # the lists are used when the block reserves them, which is how get_state_circuit_positions sizes it
+    with_lists = len(prop_state) > 4 * n
+    starts = prop_state[4 * n : 5 * n + 1]  # the predecessors of node j are preds[starts[j] : starts[j + 1]]
+    cursors = prop_state[5 * n + 1 : 6 * n + 1]
+    preds = prop_state[6 * n + 1 :]
     for i in range(n):
         domains[i, DOMAIN_MIN] = max(domains[i, DOMAIN_MIN], offset)
         domains[i, DOMAIN_MAX] = min(domains[i, DOMAIN_MAX], offset + n - 1)
@@ -173,6 +186,27 @@ def compute_domains_circuit_positions(domains: NDArray, parameters: NDArray, pro
         if tail < n:
             return PROP_INCONSISTENCY  # some node cannot be reached from node 0
         # backward distances to node 0
+        if with_lists:
+            # predecessor lists in O(n + sum of the successor widths): count each node's predecessors with a
+            # difference array over the successor intervals, turn the counts into starts, then fill
+            for j in range(n + 1):
+                starts[j] = 0
+            for i in range(n):
+                starts[domains[i, DOMAIN_MIN] - offset] += 1
+                starts[domains[i, DOMAIN_MAX] - offset + 1] -= 1
+            count = 0
+            total = 0
+            for j in range(n):
+                count += starts[j]
+                starts[j] = total
+                cursors[j] = total
+                total += count
+            starts[n] = total
+            for i in range(n):
+                for label in range(domains[i, DOMAIN_MIN], domains[i, DOMAIN_MAX] + 1):
+                    j = label - offset
+                    preds[cursors[j]] = i
+                    cursors[j] += 1
         bwd[0] = 0
         queue[0] = 0
         head = 0
@@ -180,15 +214,23 @@ def compute_domains_circuit_positions(domains: NDArray, parameters: NDArray, pro
         while head < tail:
             j = queue[head]
             head += 1
-            for i in range(n):
-                if (
-                    bwd[i] < 0
-                    and domains[i, DOMAIN_MIN] <= offset + j <= domains[i, DOMAIN_MAX]
-                    and (fixed_pred[j] == 0 or fixed_pred[j] == i + 1)
-                ):
-                    bwd[i] = bwd[j] + 1
-                    queue[tail] = i
-                    tail += 1
+            if with_lists:
+                for k in range(starts[j], starts[j + 1]):
+                    i = preds[k]
+                    if bwd[i] < 0 and (fixed_pred[j] == 0 or fixed_pred[j] == i + 1):
+                        bwd[i] = bwd[j] + 1
+                        queue[tail] = i
+                        tail += 1
+            else:
+                for i in range(n):
+                    if (
+                        bwd[i] < 0
+                        and domains[i, DOMAIN_MIN] <= offset + j <= domains[i, DOMAIN_MAX]
+                        and (fixed_pred[j] == 0 or fixed_pred[j] == i + 1)
+                    ):
+                        bwd[i] = bwd[j] + 1
+                        queue[tail] = i
+                        tail += 1
         if tail < n:
             return PROP_INCONSISTENCY  # some node cannot reach node 0
         # position windows: [fwd[j], n - bwd[j]] for j > 0, and [0, 0] for node 0
