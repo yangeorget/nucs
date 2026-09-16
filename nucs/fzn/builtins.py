@@ -29,6 +29,7 @@ from nucs.propagators.propagators import (
     ALG_ALLDIFFERENT,
     ALG_AND_EQ,
     ALG_BIN_PACKING_LOAD,
+    ALG_CIRCUIT_POSITIONS,
     ALG_COUNT_EQ,
     ALG_COUNT_EQ_C,
     ALG_COUNT_GEQ_C,
@@ -892,6 +893,17 @@ def _circuit(model: "FznModel", args: list[Term]) -> None:
     model.problem.add_propagator(ALG_NO_SUB_CYCLE, succ, [model.const_of(args[1])])
 
 
+def _circuit_positions(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``nucs_circuit_positions(x, offset)`` like ``nucs_circuit``, with the CIRCUIT_POSITIONS propagator in
+    place of NO_SUB_CYCLE: besides forbidding sub-cycles, it bounds the position of each node on the tour and prunes
+    the successors those positions rule out.
+    """
+    succ = model.var_list_of(args[0])
+    model.problem.add_propagator(ALG_ALLDIFFERENT, succ)
+    model.problem.add_propagator(ALG_CIRCUIT_POSITIONS, succ, [model.const_of(args[1])])
+
+
 def _subcircuit(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``nucs_subcircuit(x, offset)``: the successor array x, whose values are the node labels
@@ -1213,6 +1225,7 @@ BUILTINS: dict[str, Handler] = {
     "fzn_strictly_decreasing_int": _strictly_decreasing,
     "fzn_strictly_increasing_int": _strictly_increasing,
     "nucs_circuit": _circuit,
+    "nucs_circuit_positions": _circuit_positions,
     "nucs_inverse": _inverse,
     "nucs_subcircuit": _subcircuit,
     "fzn_value_precede_chain_int": _value_precede_chain,
