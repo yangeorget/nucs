@@ -1514,10 +1514,10 @@ class TestBuiltins:
         assert args.output_objective is True
 
     def test_solve_fzn_a_time_limit_streams_so_the_incumbent_survives(self) -> None:
-        # A deadline is noticed only between solutions -- a descent runs in compiled code nothing can
-        # interrupt -- so under a time limit the best solution found so far has to be on the stream already,
-        # or MiniZinc's kill loses it. A generous limit still proves optimality here; what matters is that
-        # the improving solutions were printed on the way.
+        # MiniZinc may end the run from outside before the solver's own deadline stops it, so under a time
+        # limit the best solution found so far has to be on the stream already, or the kill loses it. A
+        # generous limit still proves optimality here; what matters is that the improving solutions were
+        # printed on the way.
         out = solve_fzn(self.OPTIMIZATION_MODEL, output_objective=True, time_limit_ms=600_000)
         objectives = [int(line.split("=")[1].strip(" ;")) for line in out.splitlines() if "_objective" in line]
         assert len(objectives) > 1
@@ -1559,6 +1559,29 @@ class TestBuiltins:
         assert "==========" not in rest  # interrupted, so no optimality claim
         assert rest.rstrip().endswith("%%%mzn-stat-end")
         assert "%%%mzn-stat: SOLUTION_NB=1" in rest
+
+    def test_fzn_nucs_time_limit_stops_a_descent(self) -> None:
+        # run without MiniZinc, nothing but -t stops a proof that 13 pigeons do not fit in 12 holes: the
+        # limit has to stop the descent itself, and the run still concludes its stream
+        xs = [f"x{i}" for i in range(13)]
+        lines = [f"var 0..11: {x} :: output_var;" for x in xs]
+        lines += [f"constraint int_ne({x}, {y});" for i, x in enumerate(xs) for y in xs[i + 1 :]]
+        lines.append(f"solve :: int_search([{', '.join(xs)}], input_order, indomain_min, complete) satisfy;")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "pigeons.fzn")
+            with open(path, "w") as f:
+                f.write("\n".join(lines) + "\n")
+            process = subprocess.run(
+                [sys.executable, "-m", "nucs.fzn", "-s", "-t", "1000", path],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+        assert process.returncode == 0
+        assert "=====UNKNOWN=====" in process.stdout
+        assert "=====UNSATISFIABLE=====" not in process.stdout
+        assert process.stdout.rstrip().endswith("%%%mzn-stat-end")
 
     def test_parse_args_cli_parses_time_limit(self) -> None:
         from nucs.fzn.__main__ import build_arg_parser

@@ -304,10 +304,10 @@ def _run_optimize(
     proven, and the unsatisfiable marker when no solution exists at all.
 
     A time limit also turns streaming on, whatever the flags say. Printing only at the end is safe exactly
-    when the search is allowed to finish; under a deadline it is not, because a descent runs in compiled
-    code that cannot be interrupted, so the deadline is noticed late and an external kill -- which is how
-    MiniZinc enforces its own limit -- would land while the best solution found so far had never been
-    printed. Streaming costs nothing there: MiniZinc keeps the last solution it received.
+    when the search is allowed to finish; under a deadline it is not, because the run may be ended from
+    outside -- MiniZinc enforces its own limit with SIGTERM, then SIGKILL -- and a kill that lands before the
+    end would lose a best solution that had never been printed. Streaming costs nothing there: MiniZinc keeps
+    the last solution it received.
 
     The search runs in ``OPTIM_PRUNE`` mode: the tightened objective bound is applied to the choice points
     and the search resumes where it was, instead of restarting from the initial domains after every

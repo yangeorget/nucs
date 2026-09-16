@@ -12,6 +12,7 @@
 ###############################################################################
 import threading
 import time
+from collections.abc import Generator
 
 import pytest
 
@@ -88,6 +89,9 @@ class TestBacktrackSolver:
 
     def test_solve_stops_at_the_timeout(self) -> None:
         """A timeout cuts the enumeration short and says so, instead of silently looking exhausted."""
+        # loads the compiled search, on a problem of its own since a search narrows its problem's domains:
+        # the budget also bounds the first descent, which would otherwise be spent loading
+        next(BacktrackSolver(Problem([(0, 299), (0, 299)])).solve())
         problem = Problem([(0, 299), (0, 299)])
         solver = BacktrackSolver(problem)
         solutions = sum(1 for _ in solver.solve(timeout=0.05))
@@ -117,6 +121,42 @@ class TestBacktrackSolver:
         solver.interrupt()
         assert list(solver.solve()) == []
         assert solver.timed_out
+
+    def test_timeout_stops_a_descent(self) -> None:
+        """A timeout stops a search that finds no solution to return to Python at, and does not outlive it."""
+        # loads the compiled search first, so that the budget below is spent searching
+        warm_up = Problem([(0, 1)] * 2)
+        warm_up.add_propagator(ALG_NEQ, [0, 1])
+        next(BacktrackSolver(warm_up).solve())
+        # 13 pigeons in 12 holes: only the compiled loop itself can notice the deadline
+        problem = Problem([(0, 11)] * 13)
+        for i in range(13):
+            for j in range(i + 1, 13):
+                problem.add_propagator(ALG_NEQ, [i, j])
+        solver = BacktrackSolver(problem)
+        start = time.monotonic()
+        assert next(solver.solve(timeout=0.2), None) is None
+        assert time.monotonic() - start < 5
+        assert solver.timed_out
+        assert solver.interruption[0] == 0  # the deadline belonged to that search only
+
+    def test_deadline_keeps_an_external_interruption(self) -> None:
+        """Clearing a deadline once its search is over leaves an interrupt() in place: that one is final."""
+        solver = BacktrackSolver(Problem([(0, 99), (0, 99)]))
+        solver.interrupt()
+        assert list(solver.solve(timeout=10)) == []
+        assert solver.timed_out
+        assert list(solver.solve()) == []
+
+    def test_abandoned_iteration_disarms_its_deadline(self) -> None:
+        """A consumer that stops iterating early does not leave a timer that would stop a later search."""
+        solver = BacktrackSolver(Problem([(0, 99), (0, 99)]))
+        solutions = solver.solve(timeout=0.05)
+        assert isinstance(solutions, Generator)
+        next(solutions)
+        solutions.close()  # abandoned before the deadline
+        time.sleep(0.2)  # past it: a timer still armed would have written the cell by now
+        assert solver.interruption[0] == 0
 
     def test_solve_without_timeout_is_exhaustive(self) -> None:
         problem = Problem([(0, 99), (0, 99)])

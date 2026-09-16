@@ -11,6 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import logging
+import threading
 import time
 from collections.abc import Callable, Iterable, Iterator
 
@@ -79,6 +80,11 @@ SOLVER_RUNNING = 0  # nothing filled up: the search returned a solution or exhau
 SOLVER_TRAIL_FULL = 1  # the search stopped because the trail needs more room, not because it is over
 SOLVER_CHOICE_POINTS_FULL = 2  # likewise for the stack of choice points
 SOLVER_INTERRUPTED = 3  # the search stopped because interrupt() asked it to, from outside the compiled loop
+
+# what the interruption cell holds; the compiled loop stops on anything non-zero
+INTERRUPTION_NONE = 0
+INTERRUPTION_EXTERNAL = 1  # interrupt(): final, every later search stops too
+INTERRUPTION_DEADLINE = 2  # a timeout: cleared once the search it belongs to is over
 
 # Trail entries a step of the search needs beyond one per cell of the backtrackable state.
 # The barrier in trail_set trails each cell at most once per choice point, so a fixpoint cannot need more
@@ -255,6 +261,10 @@ class BacktrackSolver(Solver):
         # descent runs in compiled code that returns to Python only at a solution, so a flag it reads itself
         # is the only way to stop it in between
         self.interruption = np.zeros((1,), dtype=np.int32)
+        # serializes the writers of the cell -- interrupt(), a deadline timer and the clearing of that
+        # deadline -- since a deadline must neither overwrite nor clear an external interruption. Reentrant
+        # because interrupt() may run as a signal handler on a main thread that already holds it.
+        self.interruption_lock = threading.RLock()
         logger.info(
             f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"
         )
@@ -324,21 +334,64 @@ class BacktrackSolver(Solver):
         """
         self.timed_out = False
         deadline = None if timeout is None else time.monotonic() + timeout
-        t0 = time.perf_counter_ns()
-        buckets_empty(self.triggered_propagators, self.problem.priorities)
-        buckets_init(self.triggered_propagators, self.problem.priorities)
-        # no incumbent yet, so the first descent runs unbounded; _advance_after_optimum arms the objective.
-        # An enumeration disarms it here too: the solver may have been optimized with before.
-        self.objective[OBJECTIVE_VARIABLE] = -1
-        while (solution := self._solve_one()) is not None:
-            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
-            yield solution
+        disarm = self._arm_deadline(timeout)
+        try:
             t0 = time.perf_counter_ns()
-            if self._expired(deadline):
-                break
-            if not advance(solution):
-                break
-        self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
+            buckets_empty(self.triggered_propagators, self.problem.priorities)
+            buckets_init(self.triggered_propagators, self.problem.priorities)
+            # no incumbent yet, so the first descent runs unbounded; _advance_after_optimum arms the objective.
+            # An enumeration disarms it here too: the solver may have been optimized with before.
+            self.objective[OBJECTIVE_VARIABLE] = -1
+            while (solution := self._solve_one()) is not None:
+                self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
+                yield solution
+                t0 = time.perf_counter_ns()
+                if self._expired(deadline):
+                    break
+                if not advance(solution):
+                    break
+            self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
+        finally:
+            # also when the consumer abandons the iteration, so that the timer cannot stop a later search
+            disarm()
+
+    def _arm_deadline(self, timeout: float | None) -> Callable[[], None]:
+        """
+        Starts a timer that stops the search at its next node once the timeout has elapsed.
+
+        Checking the deadline between solutions is not enough: a descent that finds no solution -- a proof of
+        optimality, an infeasible subtree -- never returns to Python, and would run past the budget for as long
+        as it lasts. So the timer writes the same cell interrupt() does, which the compiled search reads at
+        every node. Unlike interrupt(), the deadline belongs to one search: the returned function cancels
+        the timer and clears what it wrote, leaving an external interruption in place.
+
+        :param timeout: the search budget in seconds, or None for an unbounded search
+        :type timeout: Optional[float]
+
+        :return: the function to call once the search is over
+        :rtype: Callable[[], None]
+        """
+        if timeout is None:
+            return lambda: None
+        armed = [True]  # a callback already running when the timer is cancelled must not write after disarm
+
+        def expire() -> None:
+            with self.interruption_lock:
+                if armed[0] and self.interruption[0] == INTERRUPTION_NONE:
+                    self.interruption[0] = INTERRUPTION_DEADLINE
+
+        timer = threading.Timer(max(timeout, 0.0), expire)
+        timer.daemon = True
+        timer.start()
+
+        def disarm() -> None:
+            timer.cancel()
+            with self.interruption_lock:
+                armed[0] = False
+                if self.interruption[0] == INTERRUPTION_DEADLINE:
+                    self.interruption[0] = INTERRUPTION_NONE
+
+        return disarm
 
     def _solve_one(self) -> NDArray | None:
         """
@@ -409,7 +462,8 @@ class BacktrackSolver(Solver):
         Safe to call from another thread or from a signal handler: it only writes a cell that the compiled
         search reads, and solve_one_step releases the GIL so that such a thread gets to run.
         """
-        self.interruption[0] = 1
+        with self.interruption_lock:
+            self.interruption[0] = INTERRUPTION_EXTERNAL
 
     def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
         """
