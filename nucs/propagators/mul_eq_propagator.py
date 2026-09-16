@@ -135,7 +135,9 @@ def compute_domains_mul_eq(domains: NDArray, parameters: NDArray, prop_state: ND
     if yl > 0 or yu < 0:
         x_lo = div_lo(zl, zu, yl, yu)
         x_hi = div_hi(zl, zu, yl, yu)
-        if x_lo > x[DOMAIN_MAX] or x_hi < x[DOMAIN_MIN]:
+        # an empty quotient (no integer in [x_lo, x_hi], e.g. z = 1 and y = -2) must fail here: written into x, the
+        # crossed bounds would pass the "0 not in [x]" test below and the next division would be by zero
+        if x_lo > x_hi or x_lo > x[DOMAIN_MAX] or x_hi < x[DOMAIN_MIN]:
             return PROP_INCONSISTENCY
         x[DOMAIN_MIN] = max(x[DOMAIN_MIN], x_lo)
         x[DOMAIN_MAX] = min(x[DOMAIN_MAX], x_hi)
@@ -145,7 +147,7 @@ def compute_domains_mul_eq(domains: NDArray, parameters: NDArray, prop_state: ND
     if xl > 0 or xu < 0:
         y_lo = div_lo(zl, zu, xl, xu)
         y_hi = div_hi(zl, zu, xl, xu)
-        if y_lo > y[DOMAIN_MAX] or y_hi < y[DOMAIN_MIN]:
+        if y_lo > y_hi or y_lo > y[DOMAIN_MAX] or y_hi < y[DOMAIN_MIN]:
             return PROP_INCONSISTENCY
         y[DOMAIN_MIN] = max(y[DOMAIN_MIN], y_lo)
         y[DOMAIN_MAX] = min(y[DOMAIN_MAX], y_hi)
