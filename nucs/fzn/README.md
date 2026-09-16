@@ -21,8 +21,8 @@ propagators instead of being decomposed into reified primitives:
 all_different_int, at_least_int, at_most_int, bin_packing, bin_packing_capa, bin_packing_load, circuit,
 count_eq, count_geq, count_leq, cumulative, diffn, disjunctive, disjunctive_strict, exactly_int,
 global_cardinality_low_up, if_then_else_bool, if_then_else_int, if_then_else_var_bool, if_then_else_var_int,
-increasing_int, inverse, lex_less_int, lex_lesseq_int, nvalue, regular, strictly_increasing_int, subcircuit,
-table_bool, table_int, value_precede_chain_int, value_precede_int
+increasing_int, inverse, lex_less_int, lex_lesseq_int, member_int, member_int_reif, nvalue, regular,
+strictly_increasing_int, subcircuit, table_bool, table_int, value_precede_chain_int, value_precede_int
 ```
 
 A global not listed there still works: MiniZinc decomposes it into builtins NuCS supports. Linear and
@@ -44,7 +44,7 @@ absolute path to `share/minizinc/nucs`).
 
 ## Supported builtins
 
-The `BUILTINS` registry in `builtins.py` dispatches these 100 FlatZinc builtins (the list is
+The `BUILTINS` registry in `builtins.py` dispatches these 102 FlatZinc builtins (the list is
 checked against the registry by `tests/fzn/test_readme.py`, so it cannot drift):
 
 ```
@@ -61,8 +61,8 @@ int_lin_eq_reif, int_lin_ge, int_lin_ge_reif, int_lin_le, int_lin_le_imp, int_li
 int_lin_ne_reif, int_lt, int_lt_reif, int_max, int_min, int_mod, int_ne, int_ne_imp, int_ne_reif, int_plus,
 int_times, lex_less_int, lex_lesseq_int, nucs_bin_packing_load, nucs_circuit, nucs_cumulative,
 nucs_cumulative_var, nucs_diffn, nucs_disjunctive, nucs_if_then_else_bool, nucs_if_then_else_int,
-nucs_if_then_else_var_bool, nucs_if_then_else_var_int, nucs_inverse, nucs_regular, nucs_subcircuit,
-nucs_table_int, nvalue, set_in, set_in_reif, strictly_decreasing_int, strictly_increasing_int,
+nucs_if_then_else_var_bool, nucs_if_then_else_var_int, nucs_inverse, nucs_member_int, nucs_member_int_reif, nucs_regular,
+nucs_subcircuit, nucs_table_int, nvalue, set_in, set_in_reif, strictly_decreasing_int, strictly_increasing_int,
 value_precede_chain_int, value_precede_int
 ```
 

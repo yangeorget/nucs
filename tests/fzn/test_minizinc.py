@@ -167,6 +167,16 @@ KEPT_GLOBALS = {
         "fzn_lex_lesseq_int",
         "fzn_lex_lesseq_int.mzn",
     ),
+    "member_int": (
+        'include "member.mzn"; var 0..600: x; constraint member([3, 5, 7, 23, 507], x);',
+        "nucs_member_int",
+        "fzn_member_int.mzn",
+    ),
+    "member_int_reif": (
+        'include "member.mzn"; var 0..600: x; var bool: b; constraint b <-> member([3, 5, 7, 23, 507], x);',
+        "nucs_member_int_reif",
+        "fzn_member_int_reif.mzn",
+    ),
     "nvalue": (
         "var 0..4: n; array[1..4] of var 0..3: x; constraint nvalue(n, x);",
         "fzn_nvalue",

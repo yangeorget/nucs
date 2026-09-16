@@ -1081,6 +1081,35 @@ class TestBuiltins:
         expected = {(a, b, 3 if a else 7 if b else 5) for a in (False, True) for b in (False, True)}
         assert solutions == expected
 
+    def test_solve_fzn_member_int(self) -> None:
+        # an unsorted array with a repeat: x ranges over its distinct values only
+        out = solve_fzn(
+            "var 0..8: x :: output_var;\nconstraint nucs_member_int([7, 3, 5, 3], x);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        assert sorted(int(line.split(" = ")[1].rstrip(";")) for line in out.split("\n") if " = " in line) == [3, 5, 7]
+
+    def test_build_model_member_int_reif_sparse_maps_to_member_reif(self) -> None:
+        # an unsorted array with a repeat still gives the sorted distinct values the propagator expects
+        model = build_model(
+            parse("var 0..9: x;\nvar bool: b;\nconstraint nucs_member_int_reif([7, 3, 5, 3], x, b);\nsolve satisfy;")
+        )
+        (propagator,) = model.problem.propagators
+        assert propagator[1] == ALG_MEMBER_REIF
+        assert list(propagator[2]) == [3, 5, 7]
+
+    def test_solve_fzn_member_int_reif(self) -> None:
+        out = solve_fzn(
+            "var 0..8: x :: output_var;\nvar bool: b :: output_var;\n"
+            "constraint nucs_member_int_reif([7, 3, 5, 3], x, b);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        solutions = set()
+        for block in out.split("----------")[:-1]:
+            values = dict(line.rstrip(";").split(" = ") for line in block.split("\n") if " = " in line)
+            solutions.add((int(values["x"]), values["b"] == "true"))
+        assert solutions == {(x, x in (3, 5, 7)) for x in range(9)}
+
     def test_solve_fzn_nvalue_counts_distinct(self) -> None:
         out = solve_fzn(
             "var 0..3: n :: output_var;\nvar 1..1: a;\nvar 1..1: b;\nvar 2..2: c;\n"

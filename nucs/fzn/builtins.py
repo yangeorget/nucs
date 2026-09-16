@@ -966,6 +966,17 @@ def _set_in(model: "FznModel", args: list[Term]) -> None:
     model.problem.add_propagator(ALG_MEMBER, [model.var_index_of(args[0])], model.set_values_of(args[1]))
 
 
+def _member_int(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``member_int(A, y)`` as y being one of the constants in A, exactly as ``set_in`` handles the set of
+    A's values.
+
+    MiniZinc's standard library only has the overload over an array of variables, which decomposes into one
+    half-reified equality per element and a clause over them; the NuCS library adds the constant overload.
+    """
+    model.problem.add_propagator(ALG_MEMBER, [model.var_index_of(args[1])], sorted(set(model.int_list_of(args[0]))))
+
+
 def _set_in_reif(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``set_in_reif(x, S, b)`` as b <=> (x in S), where S is a constant set (a ``{..}`` literal or a
@@ -983,10 +994,43 @@ def _set_in_reif(model: "FznModel", args: list[Term]) -> None:
     comparisons rather than handed to MEMBER_REIF because the propagator's cost grows with the number of
     allowed values it carries, where two comparisons stay O(1) however wide the range is.
     """
-    x = model.var_index_of(args[0])
-    b = model.var_index_of(args[2])
+    _post_member_reif(model, model.var_index_of(args[0]), model.set_values_of(args[1]), model.var_index_of(args[2]))
+
+
+def _member_int_reif(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``member_int_reif(A, y, b)`` as b <=> (y in A), where A is an array of constants, exactly as
+    ``set_in_reif`` handles the set of A's values.
+
+    MiniZinc's standard library only has the overload over an array of variables, decomposing it into one
+    reified equality per element and a reified disjunction of them; the NuCS library adds the constant
+    overload. Besides the propagators, that decomposition costs the other uses of those equality literals:
+    MiniZinc shares a literal between its uses, so one use in the two-directional disjunction forces every use
+    to be fully reified where a half-reification would have done.
+    """
+    _post_member_reif(
+        model,
+        model.var_index_of(args[1]),
+        sorted(set(model.int_list_of(args[0]))),
+        model.var_index_of(args[2]),
+    )
+
+
+def _post_member_reif(model: "FznModel", x: int, values: list[int], b: int) -> None:
+    """
+    Posts b <=> (x in values) with the cheapest encoding, as described for ``set_in_reif``.
+
+    :param model: the model
+    :type model: FznModel
+    :param x: the variable
+    :type x: int
+    :param values: the allowed values, sorted and without duplicates
+    :type values: list[int]
+    :param b: the reified boolean
+    :type b: int
+    """
     x_min, x_max = model.problem.domains[x]
-    values = [value for value in model.set_values_of(args[1]) if x_min <= value <= x_max]
+    values = [value for value in values if x_min <= value <= x_max]
     if not values:  # x is never in the set, so b is false
         model.problem.add_propagator(ALG_LEQ_C, [b, model.var_index_of(0)], [0])
         return
@@ -1211,6 +1255,8 @@ BUILTINS: dict[str, Handler] = {
     "lex_lesseq_int": _lex_lesseq,
     "nucs_table_int": _table_int,
     "nvalue": _nvalue,
+    "nucs_member_int": _member_int,
+    "nucs_member_int_reif": _member_int_reif,
     "set_in": _set_in,
     "set_in_reif": _set_in_reif,
     "strictly_decreasing_int": _strictly_decreasing,
