@@ -1051,6 +1051,36 @@ class TestBuiltins:
         assert propagator[1] == ALG_NVALUE
         assert list(propagator[0]) == [1, 2, 3, 0]
 
+    def test_solve_fzn_if_then_else_var_int(self) -> None:
+        # y = if c then x else 0 over x, y in 0..2: c true pairs y with x (3 solutions), c false fixes y to 0
+        # whatever x is (3 solutions); the else value is a constant, which becomes a fixed variable
+        out = solve_fzn(
+            "var bool: c :: output_var;\nvar 0..2: x :: output_var;\nvar 0..2: y :: output_var;\n"
+            "array [1..2] of var bool: cs = [c, true];\narray [1..2] of var int: xs = [x, 0];\n"
+            "constraint nucs_if_then_else_var_int(cs, xs, y);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        solutions = set()
+        for block in out.split("----------")[:-1]:
+            values = dict(line.rstrip(";").split(" = ") for line in block.split("\n") if " = " in line)
+            solutions.add((values["c"] == "true", int(values["x"]), int(values["y"])))
+        assert solutions == {(c, x, x if c else 0) for c in (False, True) for x in range(3)}
+
+    def test_solve_fzn_if_then_else_int(self) -> None:
+        # y = if a then 3 elseif b then 7 else 5: every constant value becomes a fixed variable
+        out = solve_fzn(
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\nvar 0..9: y :: output_var;\n"
+            "array [1..3] of var bool: cs = [a, b, true];\n"
+            "constraint nucs_if_then_else_int(cs, [3, 7, 5], y);\nsolve satisfy;",
+            all_solutions=True,
+        )
+        solutions = set()
+        for block in out.split("----------")[:-1]:
+            values = dict(line.rstrip(";").split(" = ") for line in block.split("\n") if " = " in line)
+            solutions.add((values["a"] == "true", values["b"] == "true", int(values["y"])))
+        expected = {(a, b, 3 if a else 7 if b else 5) for a in (False, True) for b in (False, True)}
+        assert solutions == expected
+
     def test_solve_fzn_nvalue_counts_distinct(self) -> None:
         out = solve_fzn(
             "var 0..3: n :: output_var;\nvar 1..1: a;\nvar 1..1: b;\nvar 2..2: c;\n"

@@ -16,7 +16,7 @@ import random
 import numpy as np
 import pytest
 
-from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.if_then_else_propagator import compute_domains_if_then_else
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -57,6 +57,16 @@ class TestIfThenElse(PropagatorTest):
             ([(0, 1), (1, 1), (1, 1), (1, 1), (0, 1)], [], PROP_CONSISTENCY, [[0, 1], [1, 1], [1, 1], [1, 1], [1, 1]]),
             # nothing decided -> no pruning
             ([(0, 1), (0, 1), (0, 1), (0, 1), (0, 1)], [], PROP_CONSISTENCY, [[0, 1], [0, 1], [0, 1], [0, 1], [0, 1]]),
+            # y = if c then x else 0: y excludes 0, so the else branch cannot be taken -> c holds and x = y
+            ([(0, 1), (1, 1), (3, 4), (0, 0), (3, 3)], [], PROP_ENTAILMENT, [[1, 1], [1, 1], [3, 3], [0, 0], [3, 3]]),
+            # neither branch can equal y although one must be taken -> inconsistency
+            ([(0, 1), (1, 1), (4, 6), (0, 0), (1, 1)], [], PROP_INCONSISTENCY, None),
+            # both branches yield 0 -> y = 0 whichever is taken
+            ([(0, 1), (1, 1), (0, 0), (0, 0), (0, 1)], [], PROP_CONSISTENCY, [[0, 1], [1, 1], [0, 0], [0, 0], [0, 0]]),
+            # y lies within the hull of the candidate values
+            ([(0, 1), (1, 1), (2, 5), (8, 9), (0, 10)], [], PROP_CONSISTENCY, [[0, 1], [1, 1], [2, 5], [8, 9], [2, 9]]),
+            # a branch that cannot be taken is no candidate, whatever its condition may be
+            ([(0, 1), (0, 1), (5, 5), (1, 2), (0, 3)], [], PROP_CONSISTENCY, [[0, 0], [0, 1], [5, 5], [1, 2], [0, 3]]),
         ],
     )
     def test_compute_domains(
@@ -70,32 +80,29 @@ class TestIfThenElse(PropagatorTest):
             compute_domains_if_then_else, domains, parameters, consistency_result, expected_domains
         )
 
-    def test_soundness_against_brute_force(self) -> None:
-        # over many small random instances the propagator must never claim inconsistency when a feasible
-        # ground assignment exists, and never prune a value that belongs to a feasible assignment.
-        rng = random.Random(20260809)
-        for _ in range(5000):
-            b = rng.randint(1, 4)
-            bounds = []
-            for _ in range(2 * b + 1):  # b conditions, b values, then y -- each 0/1 or undecided
-                lo, hi = rng.choice([(0, 0), (1, 1), (0, 1)])
-                bounds.append((lo, hi))
+    @pytest.mark.parametrize("values_max", [1, 3])
+    def test_bound_consistency_against_brute_force(self, values_max: int) -> None:
+        # on distinct variables one call leaves exactly the bounds of the feasible ground assignments: it
+        # fails exactly when there are none, never prunes a supported value, and leaves no unsupported bound.
+        # Being at its fixpoint after one call, a second call changes nothing.
+        rng = random.Random(20260916 + values_max)
+        parameters = np.empty(0, dtype=np.int32)
+        for _ in range(1500):
+            b = rng.randint(1, 3)
+            bounds = [rng.choice([(0, 0), (1, 1), (0, 1)]) for _ in range(b)]  # the conditions
+            for _ in range(b + 1):  # the values, then y
+                lo = rng.randint(0, values_max)
+                bounds.append((lo, rng.randint(lo, values_max)))
             feasible = _feasible(bounds)
             domains = np.array([[lo, hi] for lo, hi in bounds], dtype=np.int32)
-            # if_then_else is not idempotent: iterate as the engine does before judging the outcome
-            parameters = np.empty(0, dtype=np.int32)
             result = compute_domains_if_then_else(domains, parameters, np.empty(0, dtype=np.int32))
-            while result == PROP_CONSISTENCY:
-                previous = domains.copy()
-                result = compute_domains_if_then_else(domains, parameters, np.empty(0, dtype=np.int32))
-                if np.array_equal(previous, domains):
-                    break
             if result == PROP_INCONSISTENCY:
                 assert not feasible, f"declared inconsistent but feasible exists: {bounds}"
                 continue
             assert feasible, f"stayed consistent but no feasible assignment: {bounds}"
             for v in range(2 * b + 1):
-                bc_min = min(a[v] for a in feasible)
-                bc_max = max(a[v] for a in feasible)
-                assert domains[v, DOMAIN_MIN] <= bc_min, f"over-pruned MIN of var {v}: {bounds}"
-                assert domains[v, DOMAIN_MAX] >= bc_max, f"over-pruned MAX of var {v}: {bounds}"
+                expected = [min(a[v] for a in feasible), max(a[v] for a in feasible)]
+                assert domains[v].tolist() == expected, f"var {v} of {bounds}: {domains[v].tolist()} != {expected}"
+            fixpoint = domains.copy()
+            compute_domains_if_then_else(domains, parameters, np.empty(0, dtype=np.int32))
+            assert np.array_equal(domains, fixpoint), f"not idempotent on {bounds}"

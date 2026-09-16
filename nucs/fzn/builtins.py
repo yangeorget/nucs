@@ -938,11 +938,12 @@ def _lex_less(model: "FznModel", args: list[Term]) -> None:
     model.problem.add_propagator(ALG_LEXLEQ, variables)
 
 
-def _if_then_else_var_bool(model: "FznModel", args: list[Term]) -> None:
+def _if_then_else(model: "FznModel", args: list[Term]) -> None:
     """
-    Handles ``if_then_else_var_bool(c, x, y)`` as y = x[k] where k is the smallest index with condition
-    c[k] true (the else branch is a literal-true condition). The conditions then the values then y are passed
-    to the IF_THEN_ELSE propagator in a single array.
+    Handles ``if_then_else_int``, ``if_then_else_bool``, ``if_then_else_var_int`` and ``if_then_else_var_bool``
+    (c, x, y) as y = x[k] where k is the smallest index with condition c[k] true (the else branch is a
+    literal-true condition). The conditions then the values then y are passed to the IF_THEN_ELSE propagator in
+    a single array; a constant value, and every value of the constant variants, becomes a fixed variable.
     """
     conditions = model.var_list_of(args[0])
     values = model.var_list_of(args[1])
@@ -1148,7 +1149,10 @@ BUILTINS: dict[str, Handler] = {
     "nucs_cumulative": _cumulative,
     "nucs_cumulative_var": _cumulative_var,
     "nucs_diffn": _diffn,
-    "nucs_if_then_else_var_bool": _if_then_else_var_bool,
+    "nucs_if_then_else_bool": _if_then_else,
+    "nucs_if_then_else_int": _if_then_else,
+    "nucs_if_then_else_var_bool": _if_then_else,
+    "nucs_if_then_else_var_int": _if_then_else,
     "nucs_disjunctive": _disjunctive,
     "fzn_all_different_int": _all_different,
     "nucs_bin_packing_load": _bin_packing_load,

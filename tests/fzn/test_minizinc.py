@@ -132,6 +132,21 @@ KEPT_GLOBALS = {
         "nucs_if_then_else_var_bool",
         "fzn_if_then_else_var_bool.mzn",
     ),
+    "if_then_else_int": (
+        "var bool: a; var bool: b; var 0..9: y; constraint y = if a then 3 elseif b then 7 else 5 endif;",
+        "nucs_if_then_else_int",
+        "fzn_if_then_else_int.mzn",
+    ),
+    "if_then_else_bool": (
+        "var bool: a; var bool: b; var bool: z; constraint z = if a then true elseif b then false else true endif;",
+        "nucs_if_then_else_bool",
+        "fzn_if_then_else_bool.mzn",
+    ),
+    "if_then_else_var_int": (
+        "var bool: c; var 0..5: x; var 0..5: y; constraint y = if c then x else 0 endif;",
+        "nucs_if_then_else_var_int",
+        "fzn_if_then_else_var_int.mzn",
+    ),
     "increasing": (
         "array[1..4] of var 0..9: x; constraint increasing(x);",
         "fzn_increasing_int",

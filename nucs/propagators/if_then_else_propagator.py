@@ -64,8 +64,19 @@ def compute_domains_if_then_else(domains: NDArray, parameters: NDArray, prop_sta
     when every condition is false nothing constrains y, matching the standard decomposition).
 
     The first b variables are the conditions c (booleans 0/1), the next b are the branch values x, and the
-    last is the result y. Filtering is bound-consistent and iterated to a fixpoint (a decision on the first
-    still-possible branch can advance which branch is first, re-opening deductions).
+    last is the result y. The values may be any integers.
+
+    The filtering reasons about candidates: a branch k is a candidate when it can still be the one taken, that
+    is c[k] can hold, every earlier condition can fail, and x[k] and y can still be equal. Then:
+
+    - c[i] cannot hold when no candidate precedes or is branch i, since the first true condition would name a
+      branch that cannot be taken;
+    - once some condition is fixed true a branch is taken, so there must be a candidate, y lies within the hull
+      of the candidates' values, and a sole candidate is the taken branch: its condition holds, the earlier
+      ones fail and its value equals y.
+
+    On distinct variables this is bound-consistent. It is iterated to a fixpoint -- narrowing y can remove
+    candidates, which can leave a sole one -- so the propagator is idempotent.
 
     :param domains: the domains of the variables, the b conditions then the b values then y
     :type domains: NDArray
@@ -79,51 +90,64 @@ def compute_domains_if_then_else(domains: NDArray, parameters: NDArray, prop_sta
     """
     b = (len(domains) - 1) // 2
     y = domains[2 * b]
-    # skip the leading branches whose condition is already false: they can never be the first true one
-    lo = 0
-    while lo < b and domains[lo, DOMAIN_MAX] == 0:
-        lo += 1
-    if lo == b:
-        # no condition can hold -> no branch is taken -> y is unconstrained and stays so
-        return PROP_ENTAILMENT
-    x_lo = domains[b + lo]
-    if domains[lo, DOMAIN_MIN] == 1:
-        # the first still-possible condition is true -> branch lo is taken -> y == x[lo]
-        new_min = max(x_lo[DOMAIN_MIN], y[DOMAIN_MIN])
-        new_max = min(x_lo[DOMAIN_MAX], y[DOMAIN_MAX])
-        if new_min > new_max:
+    while True:
+        changed = False
+        candidate_nb = 0
+        candidate = -1
+        hull_min = y[DOMAIN_MAX]
+        hull_max = y[DOMAIN_MIN]
+        taken = False  # some condition is fixed true, so some branch is taken
+        i = 0
+        while i < b:
+            c = domains[i]
+            if c[DOMAIN_MAX] == 1:
+                x = domains[b + i]
+                low = max(x[DOMAIN_MIN], y[DOMAIN_MIN])
+                high = min(x[DOMAIN_MAX], y[DOMAIN_MAX])
+                if low <= high:
+                    candidate_nb += 1
+                    candidate = i
+                    hull_min = min(hull_min, low)
+                    hull_max = max(hull_max, high)
+                elif candidate_nb == 0:
+                    # no branch up to i can be taken, so the first true condition cannot be c[i]
+                    if c[DOMAIN_MIN] == 1:
+                        return PROP_INCONSISTENCY
+                    c[DOMAIN_MAX] = 0
+                    changed = True
+                if c[DOMAIN_MIN] == 1:
+                    taken = True
+                    break  # the later branches can no longer be taken
+            i += 1
+        if not taken:
+            # every condition may fail, leaving y unconstrained, so y and the values keep their bounds; the
+            # conditions the scan has just closed cannot enable anything more
+            return PROP_ENTAILMENT if candidate_nb == 0 else PROP_CONSISTENCY
+        if candidate_nb == 0:
             return PROP_INCONSISTENCY
-        y[DOMAIN_MIN] = new_min
-        y[DOMAIN_MAX] = new_max
-        x_lo[DOMAIN_MIN] = new_min
-        x_lo[DOMAIN_MAX] = new_max
-        # branch lo is fixed as the taken one; the constraint reduces to the equality y == x[lo],
-        # entailed once both are ground (then it can no longer be violated)
-        return PROP_ENTAILMENT if new_min == new_max else PROP_CONSISTENCY
-    # the first still-possible condition c[lo] is unfixed: the constraint entails c[lo] -> (y == x[lo])
-    if y[DOMAIN_MIN] == y[DOMAIN_MAX] and x_lo[DOMAIN_MIN] == x_lo[DOMAIN_MAX] and y[DOMAIN_MIN] != x_lo[DOMAIN_MIN]:
-        # y and x[lo] are ground and disagree, so branch lo cannot be the taken one -> c[lo] = 0
-        domains[lo, DOMAIN_MAX] = 0
-        return PROP_CONSISTENCY
-    # value deduction: if some later condition is already true, one branch in [lo, hi] is definitely
-    # taken; if every candidate value x[lo..hi] is ground to the same v, then y = v whichever is taken
-    hi = lo
-    while hi < b and domains[hi, DOMAIN_MIN] == 0:
-        hi += 1
-    if hi < b:
-        v = x_lo[DOMAIN_MIN]
-        all_same = x_lo[DOMAIN_MIN] == x_lo[DOMAIN_MAX]
-        k = lo + 1
-        while all_same and k <= hi:
-            x_k = domains[b + k]
-            if x_k[DOMAIN_MIN] != x_k[DOMAIN_MAX] or x_k[DOMAIN_MIN] != v:
-                all_same = False
-            k += 1
-        if all_same:
-            if y[DOMAIN_MIN] > v or y[DOMAIN_MAX] < v:
-                return PROP_INCONSISTENCY
-            if y[DOMAIN_MIN] != v or y[DOMAIN_MAX] != v:
-                y[DOMAIN_MIN] = v
-                y[DOMAIN_MAX] = v
-                return PROP_CONSISTENCY
-    return PROP_CONSISTENCY
+        if y[DOMAIN_MIN] < hull_min:
+            y[DOMAIN_MIN] = hull_min
+            changed = True
+        if y[DOMAIN_MAX] > hull_max:
+            y[DOMAIN_MAX] = hull_max
+            changed = True
+        if candidate_nb == 1:
+            # the sole candidate is the taken branch
+            for j in range(candidate):
+                if domains[j, DOMAIN_MAX] == 1:
+                    domains[j, DOMAIN_MAX] = 0
+                    changed = True
+            if domains[candidate, DOMAIN_MIN] == 0:
+                domains[candidate, DOMAIN_MIN] = 1
+                changed = True
+            x = domains[b + candidate]
+            if x[DOMAIN_MIN] < y[DOMAIN_MIN]:
+                x[DOMAIN_MIN] = y[DOMAIN_MIN]
+                changed = True
+            if x[DOMAIN_MAX] > y[DOMAIN_MAX]:
+                x[DOMAIN_MAX] = y[DOMAIN_MAX]
+                changed = True
+            if y[DOMAIN_MIN] == y[DOMAIN_MAX]:
+                return PROP_ENTAILMENT  # the taken branch's value and y are equal and ground
+        if not changed:
+            return PROP_CONSISTENCY
