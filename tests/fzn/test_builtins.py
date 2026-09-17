@@ -39,7 +39,7 @@ from nucs.heuristics.heuristics import (
 from nucs.propagators.propagators import (
     ALG_ADD_C_EQ,
     ALG_ALLDIFFERENT,
-    ALG_CIRCUIT_POSITIONS,
+    ALG_CIRCUIT_CHAINS,
     ALG_COUNT_EQ,
     ALG_COUNT_EQ_C,
     ALG_COUNT_GEQ_C,
@@ -1318,12 +1318,12 @@ class TestBuiltins:
 
     def test_build_model_circuit_uses_variables_directly(self) -> None:
         # the node numbering is a propagator parameter, so the successors are used as they are under any
-        # offset: ALLDIFFERENT + CIRCUIT_POSITIONS and nothing else, no shifted copies
+        # offset: ALLDIFFERENT + CIRCUIT_CHAINS and nothing else, no shifted copies
         for offset, domain in ((0, "0..2"), (1, "1..3"), (-4, "-4..-2")):
             model = build_model(
                 parse(f"array [1..3] of var {domain}: x;\nconstraint nucs_circuit(x, {offset});\nsolve satisfy;")
             )
-            assert [prop[1] for prop in model.problem.propagators] == [ALG_ALLDIFFERENT, ALG_CIRCUIT_POSITIONS]
+            assert [prop[1] for prop in model.problem.propagators] == [ALG_ALLDIFFERENT, ALG_CIRCUIT_CHAINS]
             assert len(model.problem.domains) == 3
             assert model.problem.propagators[1][2] == [offset]
 

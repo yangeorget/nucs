@@ -41,11 +41,11 @@ from nucs.propagators.bin_packing_load_propagator import (
     get_state_bin_packing_load,
     get_triggers_bin_packing_load,
 )
-from nucs.propagators.circuit_positions_propagator import (
-    compute_domains_circuit_positions,
-    get_complexity_circuit_positions,
-    get_state_circuit_positions,
-    get_triggers_circuit_positions,
+from nucs.propagators.circuit_chains_propagator import (
+    compute_domains_circuit_chains,
+    get_complexity_circuit_chains,
+    get_state_circuit_chains,
+    get_triggers_circuit_chains,
 )
 from nucs.propagators.count_eq_c_propagator import (
     compute_domains_count_eq_c,
@@ -543,12 +543,11 @@ ALG_ALLDIFFERENT = register_propagator(
     get_state_fct=get_state_alldifferent,
     reports_changes=True,
 )
-ALG_CIRCUIT_POSITIONS = register_propagator(
-    get_triggers_circuit_positions,
-    get_complexity_circuit_positions,
-    compute_domains_circuit_positions,
-    idempotent=False,
-    get_state_fct=get_state_circuit_positions,
+ALG_CIRCUIT_CHAINS = register_propagator(
+    get_triggers_circuit_chains,
+    get_complexity_circuit_chains,
+    compute_domains_circuit_chains,
+    get_state_fct=get_state_circuit_chains,
 )
 ALG_COUNT_EQ = register_propagator(
     get_triggers_count_eq,

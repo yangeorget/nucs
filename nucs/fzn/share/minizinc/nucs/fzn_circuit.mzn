@@ -1,6 +1,5 @@
-% Keep circuit propagation native so NuCS uses its global alldifferent + circuit_positions propagators instead
-% of MiniZinc's auxiliary position-variable decomposition: circuit_positions reaches the same bounds without
-% the variables.
+% Keep circuit propagation native so NuCS uses its global alldifferent + circuit_chains propagators instead
+% of MiniZinc's auxiliary position-variable decomposition.
 %
 % A FlatZinc circuit's successor values are node labels drawn from the array's index set, which may be
 % non-1-based, and whose declared variable domains may be wider than the node set (e.g. var -100..100 over

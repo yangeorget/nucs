@@ -29,7 +29,7 @@ from nucs.propagators.propagators import (
     ALG_ALLDIFFERENT,
     ALG_AND_EQ,
     ALG_BIN_PACKING_LOAD,
-    ALG_CIRCUIT_POSITIONS,
+    ALG_CIRCUIT_CHAINS,
     ALG_COUNT_EQ,
     ALG_COUNT_EQ_C,
     ALG_COUNT_GEQ_C,
@@ -884,14 +884,13 @@ def _circuit(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``nucs_circuit(x, offset)``: the successor array x, whose values are the node labels
     ``offset``, ``offset + 1``, ..., forms a single Hamiltonian circuit. A permutation (alldifferent) plus
-    CIRCUIT_POSITIONS enforce the circuit: besides forbidding sub-cycles, the latter bounds the position of each
-    node on the tour and prunes the successors those positions rule out -- the pruning MiniZinc's order-variable
-    decomposition gets, without its variables. The node numbering is passed straight to it, which is why no
-    rebased copy of x is needed.
+    CIRCUIT_CHAINS enforce the circuit: the latter rules out, whenever a bound moves, the successors the fixed
+    ones forbid -- a self-loop, a node whose predecessor is fixed to another, a chain's own start. The node
+    numbering is passed straight to it, which is why no rebased copy of x is needed.
     """
     succ = model.var_list_of(args[0])
     model.problem.add_propagator(ALG_ALLDIFFERENT, succ)
-    model.problem.add_propagator(ALG_CIRCUIT_POSITIONS, succ, [model.const_of(args[1])])
+    model.problem.add_propagator(ALG_CIRCUIT_CHAINS, succ, [model.const_of(args[1])])
 
 
 def _subcircuit(model: "FznModel", args: list[Term]) -> None:

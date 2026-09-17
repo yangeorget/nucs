@@ -16,7 +16,7 @@ NuCS currently provides the following highly-optimized propagators.
 .. autofunction:: nucs.propagators.alldifferent_propagator.compute_domains_alldifferent
 .. autofunction:: nucs.propagators.and_eq_propagator.compute_domains_and_eq
 .. autofunction:: nucs.propagators.bin_packing_load_propagator.compute_domains_bin_packing_load
-.. autofunction:: nucs.propagators.circuit_positions_propagator.compute_domains_circuit_positions
+.. autofunction:: nucs.propagators.circuit_chains_propagator.compute_domains_circuit_chains
 .. autofunction:: nucs.propagators.count_eq_c_propagator.compute_domains_count_eq_c
 .. autofunction:: nucs.propagators.count_eq_propagator.compute_domains_count_eq
 .. autofunction:: nucs.propagators.count_geq_c_propagator.compute_domains_count_geq_c
