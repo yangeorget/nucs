@@ -89,6 +89,7 @@ from nucs.propagators.diffn_propagator import (
 from nucs.propagators.disjunctive_propagator import (
     compute_domains_disjunctive,
     get_complexity_disjunctive,
+    get_state_disjunctive,
     get_triggers_disjunctive,
 )
 from nucs.propagators.div_c_eq_propagator import (
@@ -592,7 +593,11 @@ ALG_CUMULATIVE_VAR = register_propagator(
 )
 ALG_DIFFN = register_propagator(get_triggers_diffn, get_complexity_diffn, compute_domains_diffn, idempotent=False)
 ALG_DISJUNCTIVE = register_propagator(
-    get_triggers_disjunctive, get_complexity_disjunctive, compute_domains_disjunctive, idempotent=False
+    get_triggers_disjunctive,
+    get_complexity_disjunctive,
+    compute_domains_disjunctive,
+    idempotent=False,
+    get_state_fct=get_state_disjunctive,
 )
 ALG_DIV_C_EQ = register_propagator(get_triggers_div_c_eq, get_complexity_div_c_eq, compute_domains_div_c_eq)
 ALG_DUMMY = register_propagator(get_triggers_dummy, get_complexity_dummy, compute_domains_dummy)

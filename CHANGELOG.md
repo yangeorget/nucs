@@ -8,6 +8,19 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+### Changed
+
+- **`disjunctive` prunes as Gecode does, in O(n log n).** Its not-last rule took, for each task t, the tasks
+  completing no later than t; Gecode's, after Vilím, takes the tasks whose latest start is below t's latest
+  completion, and also tests each task it inserts on the way. It catches much that NuCS's missed, and running both
+  gave the same trees as Gecode's alone: with the same input-order search, la05 at makespan 593 and la01 at 666 went from no solution in
+  60 s to Gecode's exact trees, 52 and 83 failures, and minimising la05 now proves 593 in 12 ms. Edge finding,
+  detectable precedences and not-first/not-last now run on Vilím's Theta- and Theta-Lambda trees instead of
+  O(n³) and O(n²) scans, with one allocation per call and sorts warm-started from permutations kept in the state
+  block: per call on recorded jobshop inputs, 2.08 → 1.48 µs at 10 tasks, 8.5 → 3.7 µs at 20 and 34.7 → 6.5 µs at
+  30. In 60 s of minimisation it gets through 22–127% more choices, and la02 reaches Gecode's 679 where it stopped at
+  693.
+
 ### Added
 
 - **Every reified propagator has its half-reified twin, and the FlatZinc adapter uses them.** `ALG_NEQ_C_IMP`

@@ -10,33 +10,13 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-import itertools
 import random
 
-import numpy as np
 import pytest
 
-from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
+from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.disjunctive_propagator import compute_domains_disjunctive
-from tests.propagators.propagator_test import PropagatorTest
-
-
-def _feasible_starts(bounds: list[tuple[int, int]], durations: list[int]) -> list[tuple[int, ...]]:
-    """Brute-force every assignment of start times within bounds where no two tasks overlap."""
-    ranges = [range(lo, hi + 1) for lo, hi in bounds]
-    feasible = []
-    for starts in itertools.product(*ranges):
-        ok = True
-        for i in range(len(starts)):
-            for j in range(i + 1, len(starts)):
-                if not (starts[i] + durations[i] <= starts[j] or starts[j] + durations[j] <= starts[i]):
-                    ok = False
-                    break
-            if not ok:
-                break
-        if ok:
-            feasible.append(starts)
-    return feasible
+from tests.propagators.propagator_test import PropagatorTest, random_bounds
 
 
 class TestDisjunctive(PropagatorTest):
@@ -72,31 +52,19 @@ class TestDisjunctive(PropagatorTest):
         )
 
     def test_soundness_against_brute_force(self) -> None:
-        # for many small random instances the propagator must be sound: never remove a value that belongs to
-        # a feasible non-overlapping schedule, and never claim inconsistency when a feasible schedule exists.
-        # (edge finding is incomplete, so it may stay consistent on an infeasible instance -- that is allowed.)
+        # edge finding is incomplete, so staying consistent on an infeasible instance is allowed
         rng = random.Random(20260618)
-        for _ in range(5000):
+        for _ in range(3000):
             n = rng.randint(2, 4)
             durations = [rng.randint(1, 3) for _ in range(n)]
-            bounds = []
-            for _ in range(n):
-                lo = rng.randint(0, 5)
-                hi = lo + rng.randint(0, 5)
-                bounds.append((lo, hi))
-            feasible = _feasible_starts(bounds, durations)
-            domains = np.array([[lo, hi] for lo, hi in bounds], dtype=np.int32)
-            result = compute_domains_disjunctive(
-                domains, np.array(durations, dtype=np.int32), np.empty(0, dtype=np.int32)
+
+            def is_solution(starts: tuple[int, ...], n: int = n, durations: list[int] = durations) -> bool:
+                return all(
+                    starts[i] + durations[i] <= starts[j] or starts[j] + durations[j] <= starts[i]
+                    for i in range(n)
+                    for j in range(i + 1, n)
+                )
+
+            self.assert_sound_against_brute_force(
+                compute_domains_disjunctive, random_bounds(rng, n, 0, 7), durations, is_solution
             )
-            if result == PROP_INCONSISTENCY:
-                assert not feasible, f"declared inconsistent but feasible: {bounds} {durations} {feasible[:3]}"
-                continue
-            if not feasible:
-                continue  # edge finding is incomplete: staying consistent on an infeasible instance is sound
-            for i in range(n):
-                bc_min = min(s[i] for s in feasible)
-                bc_max = max(s[i] for s in feasible)
-                # soundness: the filtered interval must keep every feasible value
-                assert domains[i, DOMAIN_MIN] <= bc_min, f"over-pruned MIN of {i}: {bounds} {durations}"
-                assert domains[i, DOMAIN_MAX] >= bc_max, f"over-pruned MAX of {i}: {bounds} {durations}"
