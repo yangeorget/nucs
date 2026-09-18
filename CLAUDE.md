@@ -11,6 +11,7 @@ Each convention lives in a skill under `.claude/skills/`, loaded on demand — i
 - Running or debugging tests, with or without the JIT: `run-tests`.
 - Creating a Python file: `add-header`, since every one starts with the `header.txt` banner.
 - Writing or editing a docstring: `write-docstring`.
+- Writing or editing a test: `write-tests`.
 
 ## FlatZinc adapter
 
