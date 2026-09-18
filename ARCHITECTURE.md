@@ -257,20 +257,17 @@ event and schedules nobody".
   second parameter through `SIGN_CONSISTENCY_ALG`, and so a breaking change to every custom consistency algorithm,
   for one bit. Six bits are left.
 
-Twenty-two propagators report today: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`,
-`count_eq`/`leq_c`/`geq_c`, `alldifferent`, `gcc`, `lexleq`, `inverse`, `regular`, `scc`, `relation`, and the four
+Twenty-one propagators report today: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`,
+`count_eq`/`leq_c`/`geq_c`, `alldifferent`, `gcc`, `lexleq`, `inverse`, `regular`, `relation`, and the four
 `element_l_eq`/`_c`/`_alldifferent`/`_c_alldifferent`. All of them are n-ary: `abs_eq` and `leq_c` reported for a
 while and were taken back out, because a propagator holding two variables has at most two write-back iterations
 to skip and pays the report on every call to do it. The reporting set is meant to stay tight.
 
 Four ways of answering, picked by shape:
 
-- **Nothing at all.** `scc` writes no domain *ever* — it is a feasibility check, answering only whether the
-  digraph is still strongly connected — so it reports unconditionally and never pays a write-back scan again.
-  `count_geq_c` and `linear_neq_c` are the weaker version of the same thing: every write they make is in a
-  branch that returns entailment, so reaching `PROP_CONSISTENCY` already means nothing was written. Worth
-  checking for before writing any of the three below; `scc` and `dummy` are the only propagators that never
-  write at all, and `dummy` holds no variables.
+- **Nothing at all.** In `count_geq_c` and `linear_neq_c` every write is in a branch that returns entailment,
+  so reaching `PROP_CONSISTENCY` already means nothing was written and they report unconditionally. Worth
+  checking for before writing any of the three below.
 
 - **A `changed` local**, raised at each write and read at the single `PROP_CONSISTENCY` return — the linear and
   sum family, where the filtering is one flat loop.

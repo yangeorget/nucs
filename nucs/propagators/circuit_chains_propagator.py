@@ -93,7 +93,7 @@ def compute_domains_circuit_chains(domains: NDArray, parameters: NDArray, prop_s
     A fixed cycle over fewer than all the nodes fails the propagator. Only a newly fixed successor changes what the
     rules rule out, so they are repeated until a pass fixes none, which makes the propagator idempotent.
 
-    Unlike NO_SUB_CYCLE it wakes on any bound change, not only on a fixed successor: a chain's start or a node with
+    It wakes on any bound change, not only on a fixed successor: a chain's start or a node with
     a fixed predecessor can become a bound without anything being fixed. Bounding each node's position on the tour
     by its distance from node 0, as MiniZinc's order-variable decomposition does, was measured to prune beyond these
     rules in at most 0.5% of calls on real inputs, for several times the cost, and is not done.

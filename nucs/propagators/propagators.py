@@ -251,11 +251,6 @@ from nucs.propagators.neq_reif_propagator import (
     get_complexity_neq_reif,
     get_triggers_neq_reif,
 )
-from nucs.propagators.no_sub_cycle_propagator import (
-    compute_domains_no_sub_cycle,
-    get_complexity_no_sub_cycle,
-    get_triggers_no_sub_cycle,
-)
 from nucs.propagators.nvalue_propagator import (
     compute_domains_nvalue,
     get_complexity_nvalue,
@@ -274,12 +269,6 @@ from nucs.propagators.relation_propagator import (
     get_complexity_relation,
     get_state_relation,
     get_triggers_relation,
-)
-from nucs.propagators.scc_propagator import (
-    compute_domains_scc,
-    get_complexity_scc,
-    get_state_scc,
-    get_triggers_scc,
 )
 from nucs.propagators.strictly_increasing_propagator import (
     compute_domains_strictly_increasing,
@@ -672,9 +661,6 @@ ALG_NEQ = register_propagator(get_triggers_neq, get_complexity_neq, compute_doma
 ALG_NEQ_IMP = register_propagator(get_triggers_neq_imp, get_complexity_neq_imp, compute_domains_neq_imp)
 ALG_NEQ_C_REIF = register_propagator(get_triggers_neq_c_reif, get_complexity_neq_c_reif, compute_domains_neq_c_reif)
 ALG_NEQ_REIF = register_propagator(get_triggers_neq_reif, get_complexity_neq_reif, compute_domains_neq_reif)
-ALG_NO_SUB_CYCLE = register_propagator(
-    get_triggers_no_sub_cycle, get_complexity_no_sub_cycle, compute_domains_no_sub_cycle, idempotent=False
-)
 ALG_NVALUE = register_propagator(
     get_triggers_nvalue,
     get_complexity_nvalue,
@@ -696,13 +682,6 @@ ALG_RELATION = register_propagator(
     get_complexity_relation,
     compute_domains_relation,
     get_state_fct=get_state_relation,
-    reports_changes=True,
-)
-ALG_SCC = register_propagator(
-    get_triggers_scc,
-    get_complexity_scc,
-    compute_domains_scc,
-    get_state_fct=get_state_scc,
     reports_changes=True,
 )
 ALG_STRICTLY_INCREASING = register_propagator(

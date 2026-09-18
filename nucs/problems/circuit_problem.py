@@ -35,5 +35,3 @@ class CircuitProblem(PermutationProblem):
         self.domains[2 * n - 1] = (0, n - 2)
         self.add_propagator(ALG_CIRCUIT_CHAINS, range(n), [0])
         self.add_propagator(ALG_CIRCUIT_CHAINS, range(n, 2 * n), [0])
-        # self.add_propagator((list(range(n)), ALG_SCC, []))  # not worth the cost
-        # self.add_propagator((list(range(n, 2*n)), ALG_SCC, []))  # not worth the cost

@@ -8,6 +8,12 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+### Removed
+
+- **`ALG_SCC` and `ALG_NO_SUB_CYCLE`.** Nothing posted either one any more: `CircuitProblem` and the FlatZinc
+  `circuit` use `ALG_CIRCUIT_CHAINS`, which rules out every successor `no_sub_cycle` did and wakes on more
+  events, and `scc` had been commented out of `CircuitProblem` as not worth its cost.
+
 ### Changed
 
 - **The propagation loop is 1.23–1.36× faster: it is compiled without Numba's reference-counting runtime.** With
@@ -60,9 +66,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   most calls give it nothing to find (96% of `sum_leq_c`'s calls on schur_lemma, 93.7% of `count_eq`'s on
   magic_sequence, 31.6% of `alldifferent`'s on queens). A propagator that declares `reports_changes=True` answers, in
   the first cell of its state block's hint suffix, whether it wrote any domain; a `0` lets the solver skip the write
-  back entirely. Twenty-two propagators do: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`,
+  back entirely. Twenty-one propagators do: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`,
   `sum_eq`/`eq_c`/`leq_c`/`geq_c`, `count_eq`/`leq_c`/`geq_c`, `alldifferent`, `gcc`, `lexleq`, `inverse`,
-  `regular`, `scc`, `relation`, and the four `element_l_eq` variants — all of them n-ary, since a propagator holding two variables has at most two
+  `regular`, `relation`, and the four `element_l_eq` variants — all of them n-ary, since a propagator holding two variables has at most two
   write-back iterations to skip and pays the report on every call to do it.
 
   The search is unchanged — every statistic of the benchmark models is identical, counter for counter. Measured,
