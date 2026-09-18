@@ -94,6 +94,8 @@ def compute_domains_element_l_eq_c_alldifferent(domains: NDArray, parameters: ND
     old_i_max = i[DOMAIN_MAX]
     i[DOMAIN_MIN] = max(i[DOMAIN_MIN], 0)
     i[DOMAIN_MAX] = min(i[DOMAIN_MAX], len(l) - 1)
+    if i[DOMAIN_MIN] > i[DOMAIN_MAX]:
+        return PROP_INCONSISTENCY  # no index of l left
     non_intersecting_idx = -1
     for idx in range(i[DOMAIN_MIN], i[DOMAIN_MAX] + 1):
         if c < l[idx, DOMAIN_MIN] or c > l[idx, DOMAIN_MAX]:  # no intersection

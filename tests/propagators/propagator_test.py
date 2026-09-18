@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+import itertools
+import random
 from collections.abc import Callable
 
 import numpy as np
@@ -18,8 +20,10 @@ from nucs.constants import (
     DOMAIN_MAX,
     DOMAIN_MIN,
     PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
     PROP_FLAG_IDEMPOTENT,
     PROP_FLAG_REPORTS_CHANGES,
+    PROP_INCONSISTENCY,
 )
 from nucs.propagators.propagators import ALGORITHM_FLAGS, COMPUTE_DOMAINS_FCTS, GET_STATE_FCTS
 
@@ -177,6 +181,105 @@ class PropagatorTest:
             narrow(node_domains)
             if step(node_domains) != PROP_CONSISTENCY:
                 return
+
+    def assert_sound_against_brute_force(
+        self,
+        compute_domains_fct: Callable,
+        bounds: list[tuple[int, int]],
+        parameters: list[int],
+        is_solution: Callable[[tuple[int, ...]], bool],
+        assumption: Callable[[tuple[int, ...]], bool] | None = None,
+    ) -> None:
+        """
+        Holds one call of a propagator, from a fresh state block, to what enumerating the box says.
+
+        The propagator must never prune a value of some solution, never fail while a solution exists, never leave
+        a domain empty without failing, and only claim entailment when every point left in the narrowed box is a solution. When it declares itself
+        idempotent, a second call with the same state block must narrow nothing, since the engine never wakes
+        it on its own changes; otherwise it is run to its fixpoint, as the engine would. The change report is
+        checked on every call.
+
+        A propagator that relies on another constraint being posted alongside (element_l_eq_alldifferent on an
+        alldifferent, say) is held to the conjunction: only the points satisfying the assumption count, and a box
+        without any is skipped, since the other constraint fails it.
+
+        :param compute_domains_fct: the compute_domains function under test
+        :type compute_domains_fct: Callable
+        :param bounds: the domains, small enough to enumerate
+        :type bounds: list[tuple[int, int]]
+        :param parameters: the propagator parameters
+        :type parameters: list[int]
+        :param is_solution: whether a point of the box satisfies the constraint
+        :type is_solution: Callable[[tuple[int, ...]], bool]
+        :param assumption: whether a point satisfies the constraints the propagator relies on, None for none
+        :type assumption: Callable[[tuple[int, ...]], bool] | None
+        """
+        points = [
+            point
+            for point in itertools.product(*[range(lo, hi + 1) for lo, hi in bounds])
+            if assumption is None or assumption(point)
+        ]
+        if not points:
+            return
+        solutions = [point for point in points if is_solution(point)]
+        domains = np.array(bounds, dtype=np.int32)
+        parameters_arr = np.array(parameters, dtype=np.int32)
+        trailed_nb, hint_nb = _get_state_size(compute_domains_fct, domains, parameters)
+        state = np.zeros(trailed_nb + hint_nb, dtype=np.int32)
+        report_idx = trailed_nb if _reports_changes(compute_domains_fct) else -1
+        status = self._call(compute_domains_fct, domains, parameters_arr, state, report_idx)
+        idempotent = _is_idempotent(compute_domains_fct)
+        if not idempotent:
+            while status == PROP_CONSISTENCY:
+                previous = domains.copy()
+                status = self._call(compute_domains_fct, domains, parameters_arr, state, report_idx)
+                if np.array_equal(previous, domains):
+                    break
+        if status == PROP_INCONSISTENCY:
+            assert not solutions, f"declared inconsistent but {solutions[0]} is a solution: {bounds} {parameters}"
+            return
+        assert np.all(domains[:, DOMAIN_MIN] <= domains[:, DOMAIN_MAX]), (
+            f"left a domain empty without failing: {bounds} {parameters} -> {domains.tolist()}"
+        )
+        for solution in solutions:
+            for i, value in enumerate(solution):
+                assert domains[i, DOMAIN_MIN] <= value <= domains[i, DOMAIN_MAX], (
+                    f"pruned x[{i}]={value} of {solution}: {bounds} {parameters} -> {domains.tolist()}"
+                )
+        if status == PROP_ENTAILMENT:
+            for point in itertools.product(*[range(lo, hi + 1) for lo, hi in domains.tolist()]):
+                assert (assumption is not None and not assumption(point)) or is_solution(point), (
+                    f"declared entailed but {point} is not a solution: {bounds} {parameters}"
+                )
+        elif idempotent:
+            fixpoint = domains.copy()
+            status = self._call(compute_domains_fct, domains, parameters_arr, state, report_idx)
+            assert status != PROP_INCONSISTENCY and np.array_equal(domains, fixpoint), (
+                f"not idempotent: {bounds} {parameters} -> {fixpoint.tolist()} -> {domains.tolist()}"
+            )
+
+
+def random_bounds(rng: random.Random, k: int, lo: int, hi: int) -> list[tuple[int, int]]:
+    """
+    Returns k random intervals within [lo, hi], for brute-force tests.
+
+    :param rng: the source of the intervals
+    :type rng: random.Random
+    :param k: the number of intervals
+    :type k: int
+    :param lo: the smallest value
+    :type lo: int
+    :param hi: the largest value
+    :type hi: int
+
+    :return: the intervals
+    :rtype: list[tuple[int, int]]
+    """
+    bounds = []
+    for _ in range(k):
+        a = rng.randint(lo, hi)
+        bounds.append((a, rng.randint(a, hi)))
+    return bounds
 
 
 def _is_idempotent(compute_domains_fct: Callable) -> bool:

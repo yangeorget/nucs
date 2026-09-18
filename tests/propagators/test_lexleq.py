@@ -11,6 +11,8 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 
+import random
+
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
@@ -19,7 +21,7 @@ from nucs.propagators.lexleq_propagator import compute_domains_lexleq
 from nucs.propagators.propagators import ALG_LEXLEQ
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_IDX_SOLUTION_NB
-from tests.propagators.propagator_test import PropagatorTest
+from tests.propagators.propagator_test import PropagatorTest, random_bounds
 
 
 class TestLexleq(PropagatorTest):
@@ -103,3 +105,15 @@ class TestLexleq(PropagatorTest):
         solver = BacktrackSolver(problem)
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == 3
+
+    def test_soundness_against_brute_force(self) -> None:
+        rng = random.Random(20260918)
+        for _ in range(1000):
+            n = rng.randint(1, 3)
+
+            def is_solution(p: tuple[int, ...], n: int = n) -> bool:
+                return p[:n] <= p[n:]
+
+            self.assert_sound_against_brute_force(
+                compute_domains_lexleq, random_bounds(rng, 2 * n, 0, 3), [], is_solution
+            )

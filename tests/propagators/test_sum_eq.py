@@ -11,11 +11,13 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 
+import random
+
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.sum_eq_propagator import compute_domains_sum_eq
-from tests.propagators.propagator_test import PropagatorTest
+from tests.propagators.propagator_test import PropagatorTest, random_bounds
 
 
 class TestSumEq(PropagatorTest):
@@ -45,3 +47,10 @@ class TestSumEq(PropagatorTest):
         expected_domains: list[list[int]] | None,
     ) -> None:
         self.assert_compute_domains(compute_domains_sum_eq, domains, [], consistency_result, expected_domains)
+
+    def test_soundness_against_brute_force(self) -> None:
+        rng = random.Random(20260918)
+        for _ in range(1000):
+            n = rng.randint(2, 4)
+            bounds = random_bounds(rng, n - 1, -2, 3) + random_bounds(rng, 1, -3, 6)
+            self.assert_sound_against_brute_force(compute_domains_sum_eq, bounds, [], lambda p: sum(p[:-1]) == p[-1])

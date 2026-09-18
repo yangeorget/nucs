@@ -11,11 +11,13 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 
+import random
+
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.relation_propagator import compute_domains_relation
-from tests.propagators.propagator_test import PropagatorTest
+from tests.propagators.propagator_test import PropagatorTest, random_bounds
 
 
 class TestRelation(PropagatorTest):
@@ -84,3 +86,17 @@ class TestRelation(PropagatorTest):
         expected_domains: list[list[int]] | None,
     ) -> None:
         self.assert_compute_domains(compute_domains_relation, domains, parameters, consistency_result, expected_domains)
+
+    def test_soundness_against_brute_force(self) -> None:
+        rng = random.Random(20260918)
+        for _ in range(1000):
+            n = rng.randint(1, 3)
+            tuples = {tuple(rng.randint(0, 3) for _ in range(n)) for _ in range(rng.randint(1, 8))}
+            parameters = [value for t in sorted(tuples) for value in t]
+
+            def is_solution(p: tuple[int, ...], tuples: set[tuple[int, ...]] = tuples) -> bool:
+                return p in tuples
+
+            self.assert_sound_against_brute_force(
+                compute_domains_relation, random_bounds(rng, n, 0, 3), parameters, is_solution
+            )

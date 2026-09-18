@@ -61,7 +61,10 @@ A case that exercises one branch or one rule gets a one-line comment naming it.
 - **A brute-force oracle**, for anything whose bugs hide in corners nobody wrote down: pruning, cascading rules,
   index offsets. Generate small instances, enumerate their solutions, and assert the code never loses one
   (soundness), fails only when there is none, and, when it claims idempotence, narrows nothing on a second call.
-  See `tests/propagators/test_circuit_chains.py::test_soundness_against_brute_force`.
+  For a propagator, `PropagatorTest.assert_sound_against_brute_force` does all of it, plus the entailment claim, the
+  change report and empty domains, from a box and an `is_solution` predicate; `random_bounds` draws the box. See
+  `tests/propagators/test_lexleq.py::test_soundness_against_brute_force`, and `test_element_l_eq_alldifferent.py`
+  for a propagator that relies on another constraint (`assumption`).
   - Enumerate every instance when the space is small (`itertools.product`, as in `test_mul_eq.py::test_idempotent`);
     sample it with a seeded `random.Random(<date>)` or `np.random.default_rng(seed)` when it is not. Never leave a
     test unseeded: a failure must replay.

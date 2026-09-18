@@ -11,11 +11,13 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 
+import random
+
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.element_l_eq_propagator import compute_domains_element_l_eq
-from tests.propagators.propagator_test import PropagatorTest
+from tests.propagators.propagator_test import PropagatorTest, random_bounds
 
 
 class TestElementLEq(PropagatorTest):
@@ -43,3 +45,19 @@ class TestElementLEq(PropagatorTest):
         self.assert_compute_domains(
             compute_domains_element_l_eq, domains, parameters, consistency_result, expected_domains
         )
+
+    def test_soundness_against_brute_force(self) -> None:
+        # l holds m values, i ranges one past each end of l
+        rng = random.Random(20260918)
+        for _ in range(1000):
+            m = rng.randint(1, 3)
+
+            def is_solution(p: tuple[int, ...], m: int = m) -> bool:
+                return 0 <= p[m] < m and p[p[m]] == p[m + 1]
+
+            self.assert_sound_against_brute_force(
+                compute_domains_element_l_eq,
+                random_bounds(rng, m, 0, 3) + random_bounds(rng, 1, -1, m) + random_bounds(rng, 1, 0, 4),
+                [],
+                is_solution,
+            )

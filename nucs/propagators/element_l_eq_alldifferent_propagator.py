@@ -91,57 +91,65 @@ def compute_domains_element_l_eq_alldifferent(domains: NDArray, parameters: NDAr
     l = domains[:-2]
     i = domains[-2]
     v = domains[-1]
-    # i and v are the only two domains this can narrow, and old_v_min/old_v_max below already snapshot v,
-    # so snapshotting i too is what the change report costs -- against a dozen write sites, several of
-    # them inside the two scanning loops. The one write to l is tested where it happens.
+    # i and v are the only two domains this can narrow, so snapshotting them is what the change report costs --
+    # against a dozen write sites, several of them inside the two scanning loops. The one write to l is tested
+    # where it happens.
     old_i_min = i[DOMAIN_MIN]
     old_i_max = i[DOMAIN_MAX]
-    l_changed = False
-    # i could be updated only once
-    i[DOMAIN_MIN] = max(i[DOMAIN_MIN], 0)
-    i[DOMAIN_MAX] = min(i[DOMAIN_MAX], len(l) - 1)
-    l_v_min = sys.maxsize
-    l_v_max = -sys.maxsize
     old_v_min = v[DOMAIN_MIN]
     old_v_max = v[DOMAIN_MAX]
-    non_intersecting_idx = -1
-    if old_v_min == old_v_max:
-        for idx in range(i[DOMAIN_MIN], i[DOMAIN_MAX] + 1):
-            l_idx_min = l[idx, DOMAIN_MIN]
-            l_idx_max = l[idx, DOMAIN_MAX]
-            if old_v_max < l_idx_min or old_v_min > l_idx_max:  # no intersection
-                if non_intersecting_idx == -1:
-                    non_intersecting_idx = idx
-                if idx == i[DOMAIN_MIN]:
-                    i[DOMAIN_MIN] += 1
-            else:  # intersection
-                if l_idx_min == l_idx_max and old_v_min == l_idx_min:
-                    i[:] = idx
-                    return PROP_ENTAILMENT
-                non_intersecting_idx = -1
-                l_v_min = min(l_v_min, l_idx_min)
-                l_v_max = max(l_v_max, l_idx_max)
-    else:
-        for idx in range(i[DOMAIN_MIN], i[DOMAIN_MAX] + 1):
-            l_idx_min = l[idx, DOMAIN_MIN]
-            l_idx_max = l[idx, DOMAIN_MAX]
-            if old_v_max < l_idx_min or old_v_min > l_idx_max:  # no intersection
-                if non_intersecting_idx == -1:
-                    non_intersecting_idx = idx
-                if idx == i[DOMAIN_MIN]:
-                    i[DOMAIN_MIN] += 1
-            else:  # intersection
-                non_intersecting_idx = -1
-                l_v_min = min(l_v_min, l_idx_min)
-                l_v_max = max(l_v_max, l_idx_max)
-    if non_intersecting_idx >= 0:
-        i[DOMAIN_MAX] = non_intersecting_idx - 1
-        if i[DOMAIN_MAX] < i[DOMAIN_MIN]:
-            return PROP_INCONSISTENCY
-    if l_v_min > old_v_min:
-        v[DOMAIN_MIN] = l_v_min
-    if l_v_max < old_v_max:
-        v[DOMAIN_MAX] = l_v_max
+    l_changed = False
+    i[DOMAIN_MIN] = max(i[DOMAIN_MIN], 0)
+    i[DOMAIN_MAX] = min(i[DOMAIN_MAX], len(l) - 1)
+    if i[DOMAIN_MIN] > i[DOMAIN_MAX]:
+        return PROP_INCONSISTENCY  # no index of l left: the scan below would not narrow v, it would empty it
+    # A pass narrows v to the hull of the l[idx] it can still equal. Only a fixed v lets alldifferent pin i to the
+    # l[idx] fixed to it, so a pass that fixes v is followed by one more, which makes the propagator idempotent.
+    while True:
+        v_min = v[DOMAIN_MIN]
+        v_max = v[DOMAIN_MAX]
+        l_v_min = sys.maxsize
+        l_v_max = -sys.maxsize
+        non_intersecting_idx = -1
+        if v_min == v_max:
+            for idx in range(i[DOMAIN_MIN], i[DOMAIN_MAX] + 1):
+                l_idx_min = l[idx, DOMAIN_MIN]
+                l_idx_max = l[idx, DOMAIN_MAX]
+                if v_max < l_idx_min or v_min > l_idx_max:  # no intersection
+                    if non_intersecting_idx == -1:
+                        non_intersecting_idx = idx
+                    if idx == i[DOMAIN_MIN]:
+                        i[DOMAIN_MIN] += 1
+                else:  # intersection
+                    if l_idx_min == l_idx_max and v_min == l_idx_min:
+                        i[:] = idx
+                        return PROP_ENTAILMENT
+                    non_intersecting_idx = -1
+                    l_v_min = min(l_v_min, l_idx_min)
+                    l_v_max = max(l_v_max, l_idx_max)
+        else:
+            for idx in range(i[DOMAIN_MIN], i[DOMAIN_MAX] + 1):
+                l_idx_min = l[idx, DOMAIN_MIN]
+                l_idx_max = l[idx, DOMAIN_MAX]
+                if v_max < l_idx_min or v_min > l_idx_max:  # no intersection
+                    if non_intersecting_idx == -1:
+                        non_intersecting_idx = idx
+                    if idx == i[DOMAIN_MIN]:
+                        i[DOMAIN_MIN] += 1
+                else:  # intersection
+                    non_intersecting_idx = -1
+                    l_v_min = min(l_v_min, l_idx_min)
+                    l_v_max = max(l_v_max, l_idx_max)
+        if non_intersecting_idx >= 0:
+            i[DOMAIN_MAX] = non_intersecting_idx - 1
+            if i[DOMAIN_MAX] < i[DOMAIN_MIN]:
+                return PROP_INCONSISTENCY
+        if l_v_min > v_min:
+            v[DOMAIN_MIN] = l_v_min
+        if l_v_max < v_max:
+            v[DOMAIN_MAX] = l_v_max
+        if v_min == v_max or v[DOMAIN_MIN] != v[DOMAIN_MAX]:
+            break
     if i[DOMAIN_MIN] == i[DOMAIN_MAX]:
         idx = i[DOMAIN_MIN]
         if l[idx, DOMAIN_MIN] != v[DOMAIN_MIN] or l[idx, DOMAIN_MAX] != v[DOMAIN_MAX]:

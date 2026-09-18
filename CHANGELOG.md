@@ -22,6 +22,13 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Fixed
 
+- **`element_l_eq_alldifferent` claimed an idempotence it did not have.** Only a fixed v lets it pin i to the l[idx]
+  fixed to v, and when a call fixed v itself that rule waited for a second call the engine never makes: about 0.25%
+  of random small inputs narrowed further on a second call. A pass that fixes v is now followed by one more.
+- **The four `element_l_eq` propagators accepted an index with no position left in l.** An i entirely outside l's
+  indices was trimmed to an empty domain and the propagator went on: `element_l_eq` and
+  `element_l_eq_alldifferent` then narrowed v to the hull of no element, a `sys.maxsize` sentinel that wraps to
+  arbitrary int32 bounds under the JIT, and all four returned consistency on the empty domain. They now fail.
 - **`subcircuit` claimed an idempotence it did not have.** It was registered idempotent, so the engine never woke
   it on its own changes, but a second call narrowed further on about 1.5% of random small inputs — the class of
   bug behind the diffn soundness fix. It now repeats its rules until a pass fixes no successor and commits no node,
