@@ -10,19 +10,20 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-import os
 from collections.abc import Callable, Sequence
 from typing import Any
 
 import numpy as np
 from numba import njit, types  # type: ignore
-from numba.core import cgutils
+from numba.core import cgutils, config
 from numba.experimental.function_type import _get_wrapper_address
 from numba.extending import intrinsic
 from numba.typed import List as NumbaList  # type: ignore
 from numpy.typing import NDArray
 
-NUMBA_DISABLE_JIT = os.getenv("NUMBA_DISABLE_JIT")
+# Numba's own parse of the setting (an int, so NUMBA_DISABLE_JIT=0 means the JIT is on): reading the raw
+# variable instead would take the string "0" as true and run the no-JIT paths under the JIT.
+NUMBA_DISABLE_JIT = bool(config.DISABLE_JIT)  # type: ignore[attr-defined]  # set dynamically by Numba
 
 # These function tables are Numba typed lists under the JIT and plain Python lists under
 # NUMBA_DISABLE_JIT; both are indexed and measured the same way, so they are typed structurally as
