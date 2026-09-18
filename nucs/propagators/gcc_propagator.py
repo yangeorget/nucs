@@ -16,7 +16,14 @@ from collections.abc import Sequence
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_MIN_MAX, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
 from nucs.propagators.alldifferent_propagator import argsort_into, argsort_into_warm, path_max, path_min, path_set
 
 
@@ -46,20 +53,21 @@ def get_state_gcc(n: int, parameters: Sequence[int]) -> tuple[int, int]:
     before it is read (bounds, t, d, h, ranks), explicitly re-zeroed by compute_domains_gcc itself
     (stable_intervals, stable_sets, new_mins, which used to come from a fresh np.zeros) or a stale
     permutation, which is still a permutation (the sort permutations, warm-started like alldifferent's).
-    So the whole block is an untrailed hint: staleness costs time, never correctness.
+    The entailment test's value counts come last. So the whole block is an untrailed hint: staleness costs time,
+    never correctness.
 
     :param n: the number of variables
     :type n: int
     :param parameters: the domain offset, then the lower capacities, then the upper capacities
     :type parameters: Sequence[int]
 
-    :return: (trailed_nb, hint_nb) = (0, 1 + 4 * (m + 6) + 6 * bounds_nb + 5n)
+    :return: (trailed_nb, hint_nb) = (0, 2 + 4 * (m + 6) + 6 * bounds_nb + 5n + 2m + 1)
     :rtype: tuple[int, int]
     """
     bounds_nb = 2 * (n + 1)
     m = (len(parameters) - 1) >> 1  # number of values
     psum_nb = 2 * (m + 6)  # cells of one (2, m + 6) partial_sum table, as laid out by init_partial_sum_into
-    return 0, 2 + 2 * psum_nb + 6 * bounds_nb + 5 * n
+    return 0, 2 + 2 * psum_nb + 6 * bounds_nb + 5 * n + 2 * m + 1
 
 
 @njit(cache=True)
@@ -498,6 +506,62 @@ def is_vacuous_gcc(n: int, parameters: Sequence[int], domains: Sequence[tuple[in
 
 
 @njit(cache=True)
+def _is_entailed(domains: NDArray, parameters: NDArray, m: int, possible: NDArray, fixed: NDArray) -> bool:
+    """
+    Returns whether every assignment within the domains satisfies the constraint: for each value, the variables
+    that can take it are within its upper capacity and those fixed to it already meet its lower one. Both counts
+    only move the safe way as domains shrink, so entailment holds for the rest of the subtree. Values outside
+    the cover are not constrained, and are not counted.
+
+    :param domains: the domains of the variables
+    :type domains: NDArray
+    :param parameters: the first value, then the m lower capacities, then the m upper capacities
+    :type parameters: NDArray
+    :param m: the number of values
+    :type m: int
+    :param possible: scratch of m + 1 cells, a difference array of the variables that can take each value
+    :type possible: NDArray
+    :param fixed: scratch of m cells, the variables fixed to each value
+    :type fixed: NDArray
+
+    :return: True when the constraint is entailed
+    :rtype: bool
+    """
+    first_value = parameters[0]
+    # the counts add up to the domains' total width in the cover, so a total above the summed upper capacities rules
+    # entailment out: a read-only pass that spares the counting when, as usual, the capacities are tight
+    width = 0
+    for i in range(len(domains)):
+        lo = max(domains[i, DOMAIN_MIN], first_value)
+        hi = min(domains[i, DOMAIN_MAX], first_value + m - 1)
+        if lo <= hi:
+            width += hi - lo + 1
+    capacity = 0
+    for v in range(m):
+        capacity += parameters[1 + m + v]
+    if width > capacity:
+        return False
+    for v in range(m + 1):
+        possible[v] = 0
+    for v in range(m):
+        fixed[v] = 0
+    for i in range(len(domains)):
+        lo = max(domains[i, DOMAIN_MIN], first_value) - first_value
+        hi = min(domains[i, DOMAIN_MAX], first_value + m - 1) - first_value
+        if lo <= hi:
+            possible[lo] += 1
+            possible[hi + 1] -= 1
+            if domains[i, DOMAIN_MIN] == domains[i, DOMAIN_MAX]:
+                fixed[lo] += 1
+    count = 0
+    for v in range(m):
+        count += possible[v]
+        if count > parameters[1 + m + v] or fixed[v] < parameters[1 + v]:
+            return False
+    return True
+
+
+@njit(cache=True)
 def compute_domains_gcc(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
     r"""
     This propagator (Global Cardinality Constraint) enforces that
@@ -535,7 +599,10 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray, prop_state: NDArr
     zero_start = 4 * bounds_nb + 4 * n
     stable_intervals = scratch[zero_start : zero_start + bounds_nb]
     stable_sets = scratch[zero_start + bounds_nb : zero_start + 2 * bounds_nb]
-    new_mins = scratch[zero_start + 2 * bounds_nb :]
+    new_mins = scratch[zero_start + 2 * bounds_nb : zero_start + 2 * bounds_nb + n]
+    counts_start = zero_start + 2 * bounds_nb + n
+    possible = scratch[counts_start : counts_start + m + 1]
+    fixed = scratch[counts_start + m + 1 :]
     # these three used to come from a fresh np.zeros every call; the persistent block needs the same
     # re-zeroing done explicitly, since it is no longer implied by a fresh allocation.
     #
@@ -557,6 +624,8 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray, prop_state: NDArr
     # alone rather than landed: it trades a fill that is correct whatever the index ranges do for a
     # reachability argument that nothing checks, and buys nothing for it.
     prop_state[0] = 0  # raised at each write below: the engine skips the write-back scan while it stays 0
+    if _is_entailed(domains, parameters, m, possible, fixed):
+        return PROP_ENTAILMENT
     cold = prop_state[1] == 0  # the block is zeroed at solver init, so 0 means never called on this block
     if cold:
         prop_state[1] = 1

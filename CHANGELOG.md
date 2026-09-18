@@ -10,6 +10,13 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Changed
 
+- **`gcc` recognises when it is entailed.** Every assignment within the domains satisfies it once, for every
+  value, the variables that can take it fit its upper capacity and those fixed to it meet its lower one; it now
+  says so, and the engine stops calling it for the rest of the subtree. On gbac, whose gcc caps each period at 6
+  courses, its calls fall from 10.8M to 153 in 30 s -- 10,834,329 of the 10,834,337 had narrowed nothing -- and
+  the same search makes 23% more decisions. A read-only pass skips the test when the domains' total width exceeds
+  the summed capacities, so a gcc whose capacities add up to its arity, as on gcc-benchmark, pays about 3%.
+
 - **`disjunctive` prunes as Gecode does, in O(n log n).** Its not-last rule took, for each task t, the tasks
   completing no later than t; Gecode's, after Vilím, takes the tasks whose latest start is below t's latest
   completion, and also tests each task it inserts on the way. It catches much that NuCS's missed, and running both

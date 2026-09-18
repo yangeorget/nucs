@@ -16,7 +16,7 @@ import random
 import numpy as np
 import pytest
 
-from nucs.constants import PROP_CONSISTENCY
+from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT
 from nucs.problems.problem import Problem
 from nucs.propagators.alldifferent_propagator import SORT_MAX_N
 from nucs.propagators.gcc_propagator import compute_domains_gcc, get_state_gcc, is_vacuous_gcc
@@ -28,8 +28,13 @@ class TestGCC(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
         [
-            ([0], [0, 1, 1], PROP_CONSISTENCY, [[0, 0]]),
-            ([0, 1], [0, 1, 1, 1, 1], PROP_CONSISTENCY, [[0, 0], [1, 1]]),
+            # every variable fixed and every count within its capacities: entailed
+            ([0], [0, 1, 1], PROP_ENTAILMENT, [[0, 0]]),
+            ([0, 1], [0, 1, 1, 1, 1], PROP_ENTAILMENT, [[0, 0], [1, 1]]),
+            # undecided but entailed: no value can be taken more than its capacity, and no lower capacity
+            ([(0, 1), (1, 2)], [0, 0, 0, 0, 1, 2, 1], PROP_ENTAILMENT, [[0, 1], [1, 2]]),
+            # not entailed: the upper capacities hold whatever happens, but value 0 still needs a variable
+            ([(0, 1), (1, 2)], [0, 1, 0, 0, 1, 2, 1], PROP_CONSISTENCY, [[0, 0], [1, 2]]),
             ([0, (0, 1)], [0, 1, 1, 1, 1], PROP_CONSISTENCY, [[0, 0], [1, 1]]),
             ([0, 2, (1, 2)], [0] + [1] * 6, PROP_CONSISTENCY, [[0, 0], [2, 2], [1, 1]]),
             (
