@@ -1,0 +1,102 @@
+###############################################################################
+# __   _            _____    _____
+# | \ | |          / ____|  / ____|
+# |  \| |  _   _  | |      | (___
+# | . ` | | | | | | |       \___ \
+# | |\  | | |_| | | |____   ____) |
+# |_| \_|  \__,_|  \_____| |_____/
+#
+# Fast constraint solving in Python  - https://github.com/yangeorget/nucs
+#
+# Copyright 2024-2026 - Yan Georget
+###############################################################################
+from numba import njit  # type: ignore
+from numpy.typing import NDArray
+
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_MIN,
+    EVENT_MASK_MIN_MAX,
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_INCONSISTENCY,
+)
+
+
+def get_complexity_neq_c_imp(n: int, parameters: NDArray) -> int:
+    """
+    Returns the time complexity of the propagator as an int.
+
+    :param n: the number of variables
+    :type n: int
+    :param parameters: the parameters, unused here
+    :type parameters: NDArray
+
+    :return: an int
+    :rtype: int
+    """
+    return 1
+
+
+@njit(cache=True)
+def get_triggers_neq_c_imp(n: int, variable: int, parameters: NDArray) -> int:
+    """
+    Returns the triggers for this propagator.
+
+    :param n: the number of variables
+    :type n: int
+    :param variable: the variable index
+    :type variable: int
+    :param parameters: the parameters, unused here
+    :type parameters: NDArray
+
+    :return: an event mask
+    :rtype: int
+    """
+    # b (variable 0) only needs to wake when it becomes true (b_min rises to 1): b becoming false makes the
+    # implication vacuous, so there is nothing to deduce. x still needs both bounds.
+    return EVENT_MASK_MIN if variable == 0 else EVENT_MASK_MIN_MAX
+
+
+@njit(cache=True)
+def compute_domains_neq_c_imp(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
+    """
+    Implements the half-reified (implied) constraint :math:`b \\rightarrow x \\neq c` for a constant c.
+
+    Unlike the fully-reified :math:`b \\Leftrightarrow x \\neq c`, this only enforces the disequality when b is
+    true and the contrapositive (b becomes false when x = c is forced); it never forces b true on entailment nor
+    fixes x to c when b is false.
+
+    :param domains: the domains of the variables, b is the first domain, x the second
+    :type domains: NDArray
+    :param parameters: c is the first parameter
+    :type parameters: NDArray
+    :param prop_state: this propagator's state block (unused)
+    :type prop_state: NDArray
+
+    :return: the status of the propagation (consistency, inconsistency or entailment) as an int
+    :rtype: int
+    """
+    b = domains[0]
+    x = domains[1]
+    c = int(parameters[0])
+    if b[DOMAIN_MAX] == 0:  # b is false: the implication is vacuously satisfied
+        return PROP_ENTAILMENT
+    if x[DOMAIN_MIN] > c or x[DOMAIN_MAX] < c:  # x != c is entailed -> the implication holds for any b
+        return PROP_ENTAILMENT
+    if b[DOMAIN_MIN] == 1:  # b is true: x != c (bounds can only drop c when it sits on a bound)
+        if x[DOMAIN_MIN] == c:
+            x[DOMAIN_MIN] = c + 1
+        if x[DOMAIN_MAX] == c:
+            x[DOMAIN_MAX] = c - 1
+        if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
+            return PROP_INCONSISTENCY
+        if x[DOMAIN_MIN] > c or x[DOMAIN_MAX] < c:
+            return PROP_ENTAILMENT
+        return PROP_CONSISTENCY
+    # b is free: only the contrapositive can fire
+    if x[DOMAIN_MIN] == c and x[DOMAIN_MAX] == c:  # x = c is forced -> b must be false
+        b[:] = 0
+        return PROP_ENTAILMENT
+    return PROP_CONSISTENCY

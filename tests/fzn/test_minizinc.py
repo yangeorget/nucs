@@ -172,6 +172,11 @@ KEPT_GLOBALS = {
         "nucs_member_int",
         "fzn_member_int.mzn",
     ),
+    "member_int_imp": (
+        'include "member.mzn"; var 0..600: x; var bool: b; constraint member([3, 5, 7, 23, 507], x) \\/ b;',
+        "nucs_member_int_imp",
+        "fzn_member_int_imp.mzn",
+    ),
     "member_int_reif": (
         'include "member.mzn"; var 0..600: x; var bool: b; constraint b <-> member([3, 5, 7, 23, 507], x);',
         "nucs_member_int_reif",
@@ -301,6 +306,19 @@ def test_inverse_non_one_based_index_with_wide_domain(tmp_path) -> None:  # type
     )
     assert "f = [2: 3, 3: 4, 4: 2];" in out
     assert "g = [2: 4, 3: 2, 4: 3];" in out  # the inverse permutation, on nodes 2..4
+
+
+def test_positive_context_is_half_reified(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Comparisons and memberships used only positively -- here as disjuncts -- flatten to the half-reified
+    builtins, not to the fully-reified ones."""
+    fzn = _compile_to_fzn(
+        "var 0..9: x; var 0..9: y;\n"
+        "constraint (x < y) \\/ (x != 3) \\/ (x + 2 * y != 7) \\/ (x in {1, 3, 5}) \\/ (y in 2..6);",
+        tmp_path,
+    )
+    for builtin in ("int_lin_le_imp", "int_ne_imp", "int_lin_ne_imp", "set_in_imp"):
+        assert f"constraint {builtin}(" in fzn, f"{builtin} missing:\n{fzn}"
+    assert "_reif(" not in fzn, fzn
 
 
 def test_every_redefinition_file_is_covered() -> None:

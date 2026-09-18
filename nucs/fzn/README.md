@@ -21,8 +21,9 @@ propagators instead of being decomposed into reified primitives:
 all_different_int, at_least_int, at_most_int, bin_packing, bin_packing_capa, bin_packing_load, circuit,
 count_eq, count_geq, count_leq, cumulative, diffn, disjunctive, disjunctive_strict, exactly_int,
 global_cardinality_low_up, if_then_else_bool, if_then_else_int, if_then_else_var_bool, if_then_else_var_int,
-increasing_int, inverse, lex_less_int, lex_lesseq_int, member_int, member_int_reif, nvalue, regular,
-strictly_increasing_int, subcircuit, table_bool, table_int, value_precede_chain_int, value_precede_int
+increasing_int, inverse, lex_less_int, lex_lesseq_int, member_int, member_int_imp, member_int_reif, nvalue,
+regular, strictly_increasing_int, subcircuit, table_bool, table_int, value_precede_chain_int,
+value_precede_int
 ```
 
 A global not listed there still works: MiniZinc decomposes it into builtins NuCS supports. Linear and
@@ -44,26 +45,28 @@ absolute path to `share/minizinc/nucs`).
 
 ## Supported builtins
 
-The `BUILTINS` registry in `builtins.py` dispatches these 102 FlatZinc builtins (the list is
+The `BUILTINS` registry in `builtins.py` dispatches these 119 FlatZinc builtins (the list is
 checked against the registry by `tests/fzn/test_readme.py`, so it cannot drift):
 
 ```
-all_different_int, array_bool_and, array_bool_element, array_bool_or, array_int_element, array_int_maximum,
-array_int_minimum, array_var_bool_element, array_var_int_element, bool2int, bool_and, bool_clause, bool_eq,
-bool_eq_reif, bool_ge_reif, bool_gt_reif, bool_le, bool_le_reif, bool_lin_eq, bool_lin_le, bool_lt,
-bool_lt_reif, bool_not, bool_or, bool_xor, count_eq, count_geq, count_leq, decreasing_int,
-fzn_all_different_int, fzn_count_eq, fzn_count_geq, fzn_count_leq, fzn_decreasing_int,
-fzn_global_cardinality_low_up, fzn_increasing_int, fzn_lex_less_int, fzn_lex_lesseq_int, fzn_nvalue,
-fzn_strictly_decreasing_int, fzn_strictly_increasing_int, fzn_value_precede_chain_int, fzn_value_precede_int,
-global_cardinality_low_up, increasing_int, int_abs, int_div, int_eq, int_eq_imp, int_eq_reif, int_ge,
-int_ge_reif, int_gt, int_gt_reif, int_le, int_le_imp, int_le_reif, int_lin_eq, int_lin_eq_imp,
-int_lin_eq_reif, int_lin_ge, int_lin_ge_reif, int_lin_le, int_lin_le_imp, int_lin_le_reif, int_lin_ne,
-int_lin_ne_reif, int_lt, int_lt_reif, int_max, int_min, int_mod, int_ne, int_ne_imp, int_ne_reif, int_plus,
-int_times, lex_less_int, lex_lesseq_int, nucs_bin_packing_load, nucs_circuit, nucs_cumulative,
-nucs_cumulative_var, nucs_diffn, nucs_disjunctive, nucs_if_then_else_bool, nucs_if_then_else_int,
-nucs_if_then_else_var_bool, nucs_if_then_else_var_int, nucs_inverse, nucs_member_int, nucs_member_int_reif, nucs_regular,
-nucs_subcircuit, nucs_table_int, nvalue, set_in, set_in_reif, strictly_decreasing_int, strictly_increasing_int,
-value_precede_chain_int, value_precede_int
+all_different_int, array_bool_and, array_bool_and_imp, array_bool_element, array_bool_or, array_bool_or_imp,
+array_int_element, array_int_maximum, array_int_minimum, array_var_bool_element, array_var_int_element,
+bool2int, bool_and, bool_and_imp, bool_clause, bool_clause_imp, bool_eq, bool_eq_imp, bool_eq_reif,
+bool_ge_imp, bool_ge_reif, bool_gt_imp, bool_gt_reif, bool_le, bool_le_imp, bool_le_reif, bool_lin_eq,
+bool_lin_le, bool_lt, bool_lt_imp, bool_lt_reif, bool_not, bool_or, bool_or_imp, bool_xor, bool_xor_imp,
+count_eq, count_geq, count_leq, decreasing_int, fzn_all_different_int, fzn_count_eq, fzn_count_geq,
+fzn_count_leq, fzn_decreasing_int, fzn_global_cardinality_low_up, fzn_increasing_int, fzn_lex_less_int,
+fzn_lex_lesseq_int, fzn_nvalue, fzn_strictly_decreasing_int, fzn_strictly_increasing_int,
+fzn_value_precede_chain_int, fzn_value_precede_int, global_cardinality_low_up, increasing_int, int_abs,
+int_div, int_eq, int_eq_imp, int_eq_reif, int_ge, int_ge_imp, int_ge_reif, int_gt, int_gt_imp, int_gt_reif,
+int_le, int_le_imp, int_le_reif, int_lin_eq, int_lin_eq_imp, int_lin_eq_reif, int_lin_ge, int_lin_ge_reif,
+int_lin_le, int_lin_le_imp, int_lin_le_reif, int_lin_ne, int_lin_ne_imp, int_lin_ne_reif, int_lt, int_lt_imp,
+int_lt_reif, int_max, int_min, int_mod, int_ne, int_ne_imp, int_ne_reif, int_plus, int_times, lex_less_int,
+lex_lesseq_int, nucs_bin_packing_load, nucs_circuit, nucs_cumulative, nucs_cumulative_var, nucs_diffn,
+nucs_disjunctive, nucs_if_then_else_bool, nucs_if_then_else_int, nucs_if_then_else_var_bool,
+nucs_if_then_else_var_int, nucs_inverse, nucs_member_int, nucs_member_int_imp, nucs_member_int_reif,
+nucs_regular, nucs_subcircuit, nucs_table_int, nvalue, set_in, set_in_imp, set_in_reif,
+strictly_decreasing_int, strictly_increasing_int, value_precede_chain_int, value_precede_int
 ```
 
 Anything else raises a clear `FznUnsupportedError` naming the constraint. Coverage grows by adding one

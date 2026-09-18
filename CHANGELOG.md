@@ -8,6 +8,18 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+### Added
+
+- **Every reified propagator has its half-reified twin, and the FlatZinc adapter uses them.** `ALG_NEQ_C_IMP`
+  (b → x ≠ c) and `ALG_MEMBER_IMP` (b → x ∈ S) join the existing `_imp` propagators. The NuCS MiniZinc library
+  now declares 22 half-reified builtins instead of 5 — `int_lt/ge/gt_imp`, `int_lin_ne_imp`, the `bool_*_imp`
+  comparisons, `bool_xor/and/or_imp`, `bool_clause_imp`, `array_bool_and/or_imp`, `set_in_imp` and
+  `fzn_member_int_imp` — so MiniZinc emits `r → C` wherever r is only used positively. The boolean connectives
+  need no new propagator: r → (a ∧ b) is r ≤ a, r ≤ b and r → (a ∨ b) is the clause a ∨ b ∨ ¬r. `int_eq_imp` and
+  `int_ne_imp` also use the constant-operand propagators when either side is a constant. On a paired 60 s A/B over
+  42 instances of the 2025–2026 MiniZinc Challenge problems whose translation changes (13 of 40), no outcome changed
+  and node rates stayed within 0.99–1.01× (one instance 1.12×): the gain is parity with Gecode and Choco, not speed.
+
 ### Removed
 
 - **`ALG_SCC` and `ALG_NO_SUB_CYCLE`.** Nothing posted either one any more: `CircuitProblem` and the FlatZinc

@@ -21,6 +21,8 @@ from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_ENTAIL
 from nucs.propagators.eq_c_imp_propagator import compute_domains_eq_c_imp
 from nucs.propagators.eq_imp_propagator import compute_domains_eq_imp
 from nucs.propagators.leq_c_imp_propagator import compute_domains_leq_c_imp
+from nucs.propagators.member_imp_propagator import compute_domains_member_imp
+from nucs.propagators.neq_c_imp_propagator import compute_domains_neq_c_imp
 from nucs.propagators.neq_imp_propagator import compute_domains_neq_imp
 from tests.propagators.propagator_test import PropagatorTest
 
@@ -42,6 +44,14 @@ def _pred_neq(r: int, ops: list[int], params: list[int]) -> bool:
     return r == 0 or ops[0] != ops[1]
 
 
+def _pred_neq_c(r: int, ops: list[int], params: list[int]) -> bool:
+    return r == 0 or ops[0] != params[0]
+
+
+def _pred_member(r: int, ops: list[int], params: list[int]) -> bool:
+    return r == 0 or ops[0] in params
+
+
 class TestImp(PropagatorTest):
     @pytest.mark.parametrize(
         "compute_fn,pred,n_ops,params",
@@ -51,6 +61,12 @@ class TestImp(PropagatorTest):
             (compute_domains_leq_c_imp, _pred_leq_c, 2, [0]),
             (compute_domains_leq_c_imp, _pred_leq_c, 2, [1]),
             (compute_domains_neq_imp, _pred_neq, 2, []),
+            (compute_domains_neq_c_imp, _pred_neq_c, 1, [0]),
+            (compute_domains_neq_c_imp, _pred_neq_c, 1, [2]),
+            (compute_domains_member_imp, _pred_member, 1, [-2, 0, 2]),
+            (compute_domains_member_imp, _pred_member, 1, [-1, 0, 1]),
+            (compute_domains_member_imp, _pred_member, 1, [-1, 2]),
+            (compute_domains_member_imp, _pred_member, 1, [0]),
         ],
     )
     def test_bound_consistency_against_brute_force(
@@ -78,6 +94,10 @@ class TestImp(PropagatorTest):
                     assert domains[i, DOMAIN_MIN] == min(vals) and domains[i, DOMAIN_MAX] == max(vals), (
                         f"var {i} for b={b_dom} ops={op_dom} p={params}: got {list(domains[i])} exp [{min(vals)},{max(vals)}]"
                     )
+                # idempotence: a second call on the projection changes nothing
+                again = domains.copy()
+                compute_fn(again, p, np.empty(0, dtype=np.int32))
+                assert np.array_equal(again, domains), f"not idempotent for b={b_dom} ops={op_dom} p={params}"
 
     @pytest.mark.parametrize(
         "compute_fn,domains,parameters,consistency_result,expected_domains",
@@ -102,6 +122,24 @@ class TestImp(PropagatorTest):
             (compute_domains_neq_imp, [(1, 1), (5, 5), (3, 5)], [], PROP_ENTAILMENT, [[1, 1], [5, 5], [3, 4]]),
             # r free, x=y forced -> r=0
             (compute_domains_neq_imp, [(0, 1), (5, 5), (5, 5)], [], PROP_ENTAILMENT, [[0, 0], [5, 5], [5, 5]]),
+            # r=1 steps x off c sitting on its lower bound
+            (compute_domains_neq_c_imp, [(1, 1), (4, 9)], [4], PROP_ENTAILMENT, [[1, 1], [5, 9]]),
+            # r=1, c strictly inside x -> no pruning (a hole cannot be represented)
+            (compute_domains_neq_c_imp, [(1, 1), (0, 9)], [4], PROP_CONSISTENCY, [[1, 1], [0, 9]]),
+            # r=1, x=c -> inconsistency
+            (compute_domains_neq_c_imp, [(1, 1), (4, 4)], [4], PROP_INCONSISTENCY, None),
+            # r free, x=c forced -> r=0
+            (compute_domains_neq_c_imp, [(0, 1), (4, 4)], [4], PROP_ENTAILMENT, [[0, 0], [4, 4]]),
+            # r free, c outside x -> entailed, r untouched (unlike full reif, r is NOT forced true)
+            (compute_domains_neq_c_imp, [(0, 1), (5, 9)], [4], PROP_ENTAILMENT, [[0, 1], [5, 9]]),
+            # r=1 snaps x onto the allowed values in range
+            (compute_domains_member_imp, [(1, 1), (1, 9)], [0, 3, 6, 10], PROP_CONSISTENCY, [[1, 1], [3, 6]]),
+            # r free, no allowed value in range -> r=0
+            (compute_domains_member_imp, [(0, 1), (4, 5)], [0, 3, 6], PROP_ENTAILMENT, [[0, 0], [4, 5]]),
+            # r free, x always in the set -> entailed, r untouched
+            (compute_domains_member_imp, [(0, 1), (3, 4)], [0, 3, 4, 6], PROP_ENTAILMENT, [[0, 1], [3, 4]]),
+            # r=0 -> vacuous, x keeps the allowed values
+            (compute_domains_member_imp, [(0, 0), (0, 9)], [3], PROP_ENTAILMENT, [[0, 0], [0, 9]]),
         ],
     )
     def test_compute_domains(

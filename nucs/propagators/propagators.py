@@ -216,6 +216,11 @@ from nucs.propagators.linear_neq_c_propagator import (
     get_triggers_linear_neq_c,
 )
 from nucs.propagators.max_eq_propagator import compute_domains_max_eq, get_complexity_max_eq, get_triggers_max_eq
+from nucs.propagators.member_imp_propagator import (
+    compute_domains_member_imp,
+    get_complexity_member_imp,
+    get_triggers_member_imp,
+)
 from nucs.propagators.member_propagator import compute_domains_member, get_complexity_member, get_triggers_member
 from nucs.propagators.member_reif_propagator import (
     compute_domains_member_reif,
@@ -235,6 +240,11 @@ from nucs.propagators.mul_c_eq_propagator import (
     get_triggers_mul_c_eq,
 )
 from nucs.propagators.mul_eq_propagator import compute_domains_mul_eq, get_complexity_mul_eq, get_triggers_mul_eq
+from nucs.propagators.neq_c_imp_propagator import (
+    compute_domains_neq_c_imp,
+    get_complexity_neq_c_imp,
+    get_triggers_neq_c_imp,
+)
 from nucs.propagators.neq_c_reif_propagator import (
     compute_domains_neq_c_reif,
     get_complexity_neq_c_reif,
@@ -651,6 +661,7 @@ ALG_LEXLEQ = register_propagator(
 )
 ALG_MAX_EQ = register_propagator(get_triggers_max_eq, get_complexity_max_eq, compute_domains_max_eq)
 ALG_MEMBER = register_propagator(get_triggers_member, get_complexity_member, compute_domains_member)
+ALG_MEMBER_IMP = register_propagator(get_triggers_member_imp, get_complexity_member_imp, compute_domains_member_imp)
 ALG_MEMBER_REIF = register_propagator(get_triggers_member_reif, get_complexity_member_reif, compute_domains_member_reif)
 ALG_MIN_EQ = register_propagator(get_triggers_min_eq, get_complexity_min_eq, compute_domains_min_eq)
 ALG_MOD_C_EQ = register_propagator(get_triggers_mod_c_eq, get_complexity_mod_c_eq, compute_domains_mod_c_eq)
@@ -659,6 +670,7 @@ ALG_MUL_C_EQ = register_propagator(get_triggers_mul_c_eq, get_complexity_mul_c_e
 ALG_MUL_EQ = register_propagator(get_triggers_mul_eq, get_complexity_mul_eq, compute_domains_mul_eq)
 ALG_NEQ = register_propagator(get_triggers_neq, get_complexity_neq, compute_domains_neq)
 ALG_NEQ_IMP = register_propagator(get_triggers_neq_imp, get_complexity_neq_imp, compute_domains_neq_imp)
+ALG_NEQ_C_IMP = register_propagator(get_triggers_neq_c_imp, get_complexity_neq_c_imp, compute_domains_neq_c_imp)
 ALG_NEQ_C_REIF = register_propagator(get_triggers_neq_c_reif, get_complexity_neq_c_reif, compute_domains_neq_c_reif)
 ALG_NEQ_REIF = register_propagator(get_triggers_neq_reif, get_complexity_neq_reif, compute_domains_neq_reif)
 ALG_NVALUE = register_propagator(

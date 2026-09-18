@@ -11,6 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import io
+import itertools
 import json
 import logging
 import os
@@ -18,6 +19,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 
 import pytest
 
@@ -57,9 +59,12 @@ from nucs.propagators.propagators import (
     ALG_LEQ_C_REIF,
     ALG_LEXLEQ,
     ALG_LINEAR_EQ_C,
+    ALG_LINEAR_GEQ_C,
+    ALG_MEMBER_IMP,
     ALG_MEMBER_REIF,
     ALG_MOD_C_EQ,
     ALG_MOD_EQ,
+    ALG_NEQ_C_IMP,
     ALG_NEQ_C_REIF,
     ALG_NVALUE,
     ALG_STRICTLY_INCREASING,
@@ -69,6 +74,39 @@ from nucs.propagators.propagators import (
     ALG_SUM_LEQ_C,
     ALG_VALUE_PRECEDE,
 )
+
+# The half-reified builtins over x, y in 0..3 and booleans a, b, each with the constraint C it implies.
+HALF_REIFIED_BUILTINS = [
+    ("int_eq_imp(2, x, r)", lambda v: v["x"] == 2),
+    ("int_ne_imp(x, 2, r)", lambda v: v["x"] != 2),
+    ("int_ne_imp(2, x, r)", lambda v: v["x"] != 2),
+    ("int_ne_imp(x, y, r)", lambda v: v["x"] != v["y"]),
+    ("int_lt_imp(x, y, r)", lambda v: v["x"] < v["y"]),
+    ("int_ge_imp(x, y, r)", lambda v: v["x"] >= v["y"]),
+    ("int_gt_imp(x, y, r)", lambda v: v["x"] > v["y"]),
+    ("int_lin_ne_imp([2, 1], [x, y], 4, r)", lambda v: 2 * v["x"] + v["y"] != 4),
+    ("int_lin_ne_imp([-1], [x], -2, r)", lambda v: v["x"] != 2),
+    ("bool_eq_imp(a, b, r)", lambda v: v["a"] == v["b"]),
+    ("bool_le_imp(a, b, r)", lambda v: v["a"] <= v["b"]),
+    ("bool_lt_imp(a, b, r)", lambda v: v["a"] < v["b"]),
+    ("bool_ge_imp(a, b, r)", lambda v: v["a"] >= v["b"]),
+    ("bool_gt_imp(a, b, r)", lambda v: v["a"] > v["b"]),
+    ("bool_xor_imp(a, b, r)", lambda v: v["a"] != v["b"]),
+    ("bool_and_imp(a, b, r)", lambda v: v["a"] and v["b"]),
+    ("bool_or_imp(a, b, r)", lambda v: v["a"] or v["b"]),
+    ("array_bool_and_imp([a, b], r)", lambda v: v["a"] and v["b"]),
+    ("array_bool_or_imp([a, b], r)", lambda v: v["a"] or v["b"]),
+    ("bool_clause_imp([a], [b], r)", lambda v: v["a"] or not v["b"]),
+    ("bool_clause_imp([], [a, b], r)", lambda v: not (v["a"] and v["b"])),
+    ("set_in_imp(x, {0, 2}, r)", lambda v: v["x"] in (0, 2)),
+    ("set_in_imp(x, {2}, r)", lambda v: v["x"] == 2),
+    ("set_in_imp(x, {7}, r)", lambda v: False),
+    ("set_in_imp(x, 1..2, r)", lambda v: 1 <= v["x"] <= 2),
+    ("set_in_imp(x, 0..1, r)", lambda v: v["x"] <= 1),
+    ("set_in_imp(x, 2..5, r)", lambda v: v["x"] >= 2),
+    ("set_in_imp(x, -1..5, r)", lambda v: True),
+    ("nucs_member_int_imp([3, 0, 3], x, r)", lambda v: v["x"] in (0, 3)),
+]
 
 
 def solve_fzn(
@@ -1857,3 +1895,51 @@ class TestBuiltins:
             "solve :: int_search([x], input_order, indomain_min, complete) satisfy;"
         )
         assert "x = 3;" in out  # smallest non-negative x with x mod 7 = 3
+
+    @pytest.mark.parametrize("constraint,implied", HALF_REIFIED_BUILTINS)
+    def test_solve_fzn_half_reified_builtin_semantics(self, constraint: str, implied: Callable) -> None:
+        # the solutions are exactly the assignments satisfying r -> C: C when r is true, anything when r is false
+        out = solve_fzn(
+            "var 0..3: x :: output_var;\nvar 0..3: y :: output_var;\n"
+            "var bool: a :: output_var;\nvar bool: b :: output_var;\nvar bool: r :: output_var;\n"
+            f"constraint {constraint};\nsolve satisfy;",
+            all_solutions=True,
+        )
+        found = set()
+        for block in out.split("----------")[:-1]:
+            values = dict(line.rstrip(";").split(" = ") for line in block.split("\n") if " = " in line)
+            found.add(tuple(int({"true": "1", "false": "0"}.get(values[k], values[k])) for k in "xyabr"))
+        expected = {
+            (x, y, a, b, r)
+            for x, y, a, b, r in itertools.product(range(4), range(4), range(2), range(2), range(2))
+            if not r or implied({"x": x, "y": y, "a": a, "b": b})
+        }
+        assert found == expected
+
+    def test_build_model_half_reified_constant_disequality_uses_neq_c_imp(self) -> None:
+        model = build_model(parse("var 0..9: x;\nvar bool: r;\nconstraint int_ne_imp(x, 4, r);\nsolve satisfy;"))
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_NEQ_C_IMP]
+        assert model.problem.propagators[0][2] == [4]
+
+    def test_build_model_set_in_imp_encodings(self) -> None:
+        def algorithms(domain: str, values: str) -> list[int]:
+            model = build_model(
+                parse(f"var {domain}: x;\nvar bool: r;\nconstraint set_in_imp(x, {values}, r);\nsolve satisfy;")
+            )
+            assert len(model.problem.domains) <= 4  # x, r and at most two constants: no auxiliary booleans
+            return [prop[1] for prop in model.problem.propagators]
+
+        assert algorithms("0..9", "2..5") == [ALG_LEQ_C_IMP, ALG_LEQ_C_IMP]  # two-sided range
+        assert algorithms("0..9", "0..5") == [ALG_LEQ_C_IMP]  # anchored on x's lower bound
+        assert algorithms("0..9", "-3..12") == []  # x is always in the set: nothing to post
+        assert algorithms("0..9", "{1, 4, 6}") == [ALG_MEMBER_IMP]
+
+    def test_build_model_bool_connective_imps_need_no_reified_propagator(self) -> None:
+        # r -> (a and b) is r <= a, r <= b and r -> (a or b) the clause a or b or not r
+        model = build_model(
+            parse(
+                "var bool: a;\nvar bool: b;\nvar bool: r;\nvar bool: s;\n"
+                "constraint bool_and_imp(a, b, r);\nconstraint array_bool_or_imp([a, b], s);\nsolve satisfy;"
+            )
+        )
+        assert [prop[1] for prop in model.problem.propagators] == [ALG_LEQ_C, ALG_LEQ_C, ALG_LINEAR_GEQ_C]

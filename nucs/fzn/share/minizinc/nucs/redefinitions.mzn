@@ -25,10 +25,32 @@ predicate strictly_decreasing(array [$X] of var int: x) = fzn_strictly_increasin
 % Declaring the half-reified (implied) builtins as natively supported lets MiniZinc emit `r -> C`
 % (implication) instead of the fully-reified `r <-> C` wherever the reified boolean is used monotonically.
 % Half-reification propagates one direction only, so it is strictly cheaper per node -- a large win on
-% reification-heavy flattenings (scheduling/objective encodings). NuCS backs each with a dedicated
-% half-reified propagator (see nucs/fzn/builtins.py: int_eq_imp / int_lin_eq_imp / int_le_imp / int_ne_imp).
+% reification-heavy flattenings (scheduling/objective encodings). Every builtin NuCS reifies natively has its
+% half-reified counterpart here (see the *_imp handlers in nucs/fzn/builtins.py): the comparisons map onto the
+% half-reified propagators, while the boolean connectives need none -- r -> (a or b) is the clause
+% (a or b or not r) and r -> (a and b) is r <= a, r <= b.
 predicate int_eq_imp(var int: a, var int: b, var bool: r);
 predicate int_ne_imp(var int: a, var int: b, var bool: r);
 predicate int_le_imp(var int: a, var int: b, var bool: r);
+predicate int_lt_imp(var int: a, var int: b, var bool: r);
+predicate int_ge_imp(var int: a, var int: b, var bool: r);
+predicate int_gt_imp(var int: a, var int: b, var bool: r);
 predicate int_lin_eq_imp(array [int] of int: as, array [int] of var int: bs, int: c, var bool: r);
 predicate int_lin_le_imp(array [int] of int: as, array [int] of var int: bs, int: c, var bool: r);
+predicate int_lin_ne_imp(array [int] of int: as, array [int] of var int: bs, int: c, var bool: r);
+predicate bool_eq_imp(var bool: a, var bool: b, var bool: r);
+predicate bool_le_imp(var bool: a, var bool: b, var bool: r);
+predicate bool_lt_imp(var bool: a, var bool: b, var bool: r);
+predicate bool_ge_imp(var bool: a, var bool: b, var bool: r);
+predicate bool_gt_imp(var bool: a, var bool: b, var bool: r);
+predicate bool_xor_imp(var bool: a, var bool: b, var bool: r);
+predicate bool_and_imp(var bool: a, var bool: b, var bool: r);
+predicate bool_or_imp(var bool: a, var bool: b, var bool: r);
+predicate bool_clause_imp(array [int] of var bool: as, array [int] of var bool: bs, var bool: r);
+predicate array_bool_and_imp(array [int] of var bool: as, var bool: r);
+predicate array_bool_or_imp(array [int] of var bool: as, var bool: r);
+predicate set_in_imp(var int: x, set of int: S, var bool: r);
+
+% The standard member_int.mzn only includes fzn_member_int_reif.mzn, and MiniZinc half-reifies a call only when
+% its _imp predicate is visible, so the half-reified membership has to be included here.
+include "fzn_member_int_imp.mzn";

@@ -61,6 +61,7 @@ from nucs.propagators.propagators import (
     ALG_LINEAR_NEQ_C,
     ALG_MAX_EQ,
     ALG_MEMBER,
+    ALG_MEMBER_IMP,
     ALG_MEMBER_REIF,
     ALG_MIN_EQ,
     ALG_MOD_C_EQ,
@@ -68,6 +69,7 @@ from nucs.propagators.propagators import (
     ALG_MUL_C_EQ,
     ALG_MUL_EQ,
     ALG_NEQ,
+    ALG_NEQ_C_IMP,
     ALG_NEQ_C_REIF,
     ALG_NEQ_IMP,
     ALG_NEQ_REIF,
@@ -411,16 +413,9 @@ def _bool_or(model: "FznModel", args: list[Term]) -> None:
 
 def _bool_clause(model: "FznModel", args: list[Term]) -> None:
     """
-    Handles ``bool_clause(pos, neg)`` as the clause (or of pos) or (or of not neg), modelled as the linear
-    inequality sum(pos) - sum(neg) >= 1 - len(neg).
-
-    Routed through ``_post_linear`` so that a single-polarity clause -- a purely positive one being by far the
-    most common shape -- drops to the unit-coefficient sum propagator instead of the general linear one.
+    Handles ``bool_clause(pos, neg)`` as the clause (or of pos) or (or of not neg).
     """
-    pos = model.var_list_of(args[0])
-    neg = model.var_list_of(args[1])
-    coeffs = [1] * len(pos) + [-1] * len(neg)
-    _post_linear(model, coeffs, pos + neg, 1 - len(neg), ALG_LINEAR_GEQ_C, ALG_SUM_GEQ_C, ALG_SUM_LEQ_C)
+    _post_clause(model, model.var_list_of(args[0]), model.var_list_of(args[1]))
 
 
 def _bool_and(model: "FznModel", args: list[Term]) -> None:
@@ -496,15 +491,16 @@ def _ne_reif(model: "FznModel", args: list[Term]) -> None:
 
 def _int_eq_imp(model: "FznModel", args: list[Term]) -> None:
     """
-    Handles ``int_eq_imp(a, b, r)`` as the half-reification r -> (a = b), mapping onto r -> x = c when b is a
-    constant and onto r -> x = y otherwise.
+    Handles ``int_eq_imp(a, b, r)`` / ``bool_eq_imp(a, b, r)`` as the half-reification r -> (a = b), mapping
+    onto r -> x = c when either operand is a constant and onto r -> x = y otherwise.
     """
     reif = model.var_index_of(args[2])
-    x = model.var_index_of(args[0])
     if _is_const(model, args[1]):
-        model.problem.add_propagator(ALG_EQ_C_IMP, [reif, x], [model.const_of(args[1])])
+        model.problem.add_propagator(ALG_EQ_C_IMP, [reif, model.var_index_of(args[0])], [model.const_of(args[1])])
+    elif _is_const(model, args[0]):
+        model.problem.add_propagator(ALG_EQ_C_IMP, [reif, model.var_index_of(args[1])], [model.const_of(args[0])])
     else:
-        model.problem.add_propagator(ALG_EQ_IMP, [reif, x, model.var_index_of(args[1])])
+        model.problem.add_propagator(ALG_EQ_IMP, [reif, model.var_index_of(args[0]), model.var_index_of(args[1])])
 
 
 def _int_lin_eq_imp(model: "FznModel", args: list[Term]) -> None:
@@ -560,10 +556,129 @@ def _le_imp(model: "FznModel", args: list[Term]) -> None:
 
 def _ne_imp(model: "FznModel", args: list[Term]) -> None:
     """
-    Handles ``int_ne_imp(x, y, r)`` as r -> (x != y).
+    Handles ``int_ne_imp(x, y, r)`` / ``bool_xor_imp(x, y, r)`` as r -> (x != y), using the constant-operand
+    propagator r -> x != c when one operand is constant and the general var != var propagator otherwise.
     """
     r = model.var_index_of(args[2])
-    model.problem.add_propagator(ALG_NEQ_IMP, [r, model.var_index_of(args[0]), model.var_index_of(args[1])])
+    if _is_const(model, args[1]):
+        model.problem.add_propagator(ALG_NEQ_C_IMP, [r, model.var_index_of(args[0])], [model.const_of(args[1])])
+    elif _is_const(model, args[0]):
+        model.problem.add_propagator(ALG_NEQ_C_IMP, [r, model.var_index_of(args[1])], [model.const_of(args[0])])
+    else:
+        model.problem.add_propagator(ALG_NEQ_IMP, [r, model.var_index_of(args[0]), model.var_index_of(args[1])])
+
+
+def _lt_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``int_lt_imp(x, y, r)`` / ``bool_lt_imp(x, y, r)`` as r -> (x <= y - 1).
+    """
+    r = model.var_index_of(args[2])
+    model.problem.add_propagator(ALG_LEQ_C_IMP, [r, model.var_index_of(args[0]), model.var_index_of(args[1])], [-1])
+
+
+def _ge_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``int_ge_imp(x, y, r)`` / ``bool_ge_imp(x, y, r)`` as r -> (y <= x).
+    """
+    r = model.var_index_of(args[2])
+    model.problem.add_propagator(ALG_LEQ_C_IMP, [r, model.var_index_of(args[1]), model.var_index_of(args[0])], [0])
+
+
+def _gt_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``int_gt_imp(x, y, r)`` / ``bool_gt_imp(x, y, r)`` as r -> (y <= x - 1).
+    """
+    r = model.var_index_of(args[2])
+    model.problem.add_propagator(ALG_LEQ_C_IMP, [r, model.var_index_of(args[1]), model.var_index_of(args[0])], [-1])
+
+
+def _int_lin_ne_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``int_lin_ne_imp(a, x, c, r)`` as r -> (sum(a_i * x_i) != c).
+
+    Mirrors ``int_lin_ne_reif`` but posts the one-directional ALG_NEQ_C_IMP: a unit-coefficient singleton is
+    posted directly as r -> x != c with no auxiliary sum variable; other shapes go through one.
+    """
+    coeffs = model.int_list_of(args[0])
+    variables = model.var_list_of(args[1])
+    c = model.const_of(args[2])
+    r = model.var_index_of(args[3])
+    rhs = _unit_rhs(coeffs, c)
+    if rhs is not None:
+        model.problem.add_propagator(ALG_NEQ_C_IMP, [r, variables[0]], [rhs])
+    else:
+        model.problem.add_propagator(ALG_NEQ_C_IMP, [r, _aux_lin_sum(model, coeffs, variables)], [c])
+
+
+def _post_clause(model: "FznModel", pos: list[int], neg: list[int]) -> None:
+    """
+    Posts the clause (or of pos) or (or of not neg) as the linear inequality sum(pos) - sum(neg) >= 1 - len(neg).
+
+    Routed through ``_post_linear`` so that a single-polarity clause drops to the unit-coefficient sum
+    propagator instead of the general linear one.
+
+    :param model: the model
+    :type model: FznModel
+    :param pos: the positive literals
+    :type pos: list[int]
+    :param neg: the negative literals
+    :type neg: list[int]
+    """
+    coeffs = [1] * len(pos) + [-1] * len(neg)
+    _post_linear(model, coeffs, pos + neg, 1 - len(neg), ALG_LINEAR_GEQ_C, ALG_SUM_GEQ_C, ALG_SUM_LEQ_C)
+
+
+def _bool_clause_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``bool_clause_imp(pos, neg, r)`` as r -> clause, i.e. the plain clause with not r added to neg: the
+    half-reification of a disjunction is itself a disjunction, so it needs neither an auxiliary variable nor a
+    reified propagator.
+    """
+    _post_clause(model, model.var_list_of(args[0]), model.var_list_of(args[1]) + [model.var_index_of(args[2])])
+
+
+def _array_bool_or_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``array_bool_or_imp(as, r)`` as r -> (or of as), i.e. the clause (or of as) or not r.
+    """
+    _post_clause(model, model.var_list_of(args[0]), [model.var_index_of(args[1])])
+
+
+def _bool_or_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``bool_or_imp(a, b, r)`` as r -> (a or b), i.e. the clause a or b or not r.
+    """
+    _post_clause(model, [model.var_index_of(args[0]), model.var_index_of(args[1])], [model.var_index_of(args[2])])
+
+
+def _post_and_imp(model: "FznModel", variables: list[int], r: int) -> None:
+    """
+    Posts r -> (and of variables) as one r <= v per variable: the half-reification of a conjunction splits into
+    one binary implication per conjunct, which is as strong as a dedicated propagator.
+
+    :param model: the model
+    :type model: FznModel
+    :param variables: the conjuncts
+    :type variables: list[int]
+    :param r: the implying boolean
+    :type r: int
+    """
+    for variable in variables:
+        model.problem.add_propagator(ALG_LEQ_C, [r, variable], [0])
+
+
+def _array_bool_and_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``array_bool_and_imp(as, r)`` as r -> (and of as).
+    """
+    _post_and_imp(model, model.var_list_of(args[0]), model.var_index_of(args[1]))
+
+
+def _bool_and_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``bool_and_imp(a, b, r)`` as r -> (a and b).
+    """
+    _post_and_imp(model, [model.var_index_of(args[0]), model.var_index_of(args[1])], model.var_index_of(args[2]))
 
 
 def _int_ge(model: "FznModel", args: list[Term]) -> None:
@@ -1056,6 +1171,62 @@ def _post_member_reif(model: "FznModel", x: int, values: list[int], b: int) -> N
     model.problem.add_propagator(ALG_MEMBER_REIF, [b, x], values)  # non-contiguous set
 
 
+def _set_in_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``set_in_imp(x, S, b)`` as b -> (x in S), where S is a constant set, with the encodings of
+    ``set_in_reif`` made one-directional.
+    """
+    _post_member_imp(model, model.var_index_of(args[0]), model.set_values_of(args[1]), model.var_index_of(args[2]))
+
+
+def _member_int_imp(model: "FznModel", args: list[Term]) -> None:
+    """
+    Handles ``member_int_imp(A, y, b)`` as b -> (y in A), where A is an array of constants, exactly as
+    ``set_in_imp`` handles the set of A's values.
+    """
+    _post_member_imp(
+        model,
+        model.var_index_of(args[1]),
+        sorted(set(model.int_list_of(args[0]))),
+        model.var_index_of(args[2]),
+    )
+
+
+def _post_member_imp(model: "FznModel", x: int, values: list[int], b: int) -> None:
+    """
+    Posts b -> (x in values) with the cheapest encoding, the half-reified counterpart of ``_post_member_reif``.
+
+    Two cases are cheaper than their fully-reified versions: when x is always in the set the implication holds
+    for any b and nothing is posted, and a two-sided range needs no auxiliary booleans since
+    b -> (lo <= x and x <= hi) is (b -> lo <= x) and (b -> x <= hi).
+
+    :param model: the model
+    :type model: FznModel
+    :param x: the variable
+    :type x: int
+    :param values: the allowed values, sorted and without duplicates
+    :type values: list[int]
+    :param b: the implying boolean
+    :type b: int
+    """
+    x_min, x_max = model.problem.domains[x]
+    values = [value for value in values if x_min <= value <= x_max]
+    if not values:  # x is never in the set, so b is false
+        model.problem.add_propagator(ALG_LEQ_C, [b, model.var_index_of(0)], [0])
+        return
+    if len(values) == 1:  # b -> x == v
+        model.problem.add_propagator(ALG_EQ_C_IMP, [b, x], [values[0]])
+        return
+    lo, hi = values[0], values[-1]
+    if hi - lo + 1 == len(values):  # contiguous range: b -> lo <= x, b -> x <= hi
+        if lo > x_min:
+            model.problem.add_propagator(ALG_LEQ_C_IMP, [b, model.var_index_of(lo), x], [0])
+        if x_max > hi:
+            model.problem.add_propagator(ALG_LEQ_C_IMP, [b, x, model.var_index_of(hi)], [0])
+        return
+    model.problem.add_propagator(ALG_MEMBER_IMP, [b, x], values)  # non-contiguous set
+
+
 def _is_one_based(model: "FznModel", index: int) -> bool:
     """
     Returns whether a FlatZinc element index can be used to address a padded array directly.
@@ -1164,8 +1335,10 @@ def _global_cardinality_low_up(model: "FznModel", args: list[Term]) -> None:
 BUILTINS: dict[str, Handler] = {
     "all_different_int": _all_different,
     "array_bool_and": _array_bool_and,
+    "array_bool_and_imp": _array_bool_and_imp,
     "array_bool_element": _array_int_element,
     "array_bool_or": _array_bool_or,
+    "array_bool_or_imp": _array_bool_or_imp,
     "array_int_element": _array_int_element,
     "array_int_maximum": _array_int_maximum,
     "array_int_minimum": _array_int_minimum,
@@ -1173,20 +1346,29 @@ BUILTINS: dict[str, Handler] = {
     "array_var_int_element": _array_var_int_element,
     "bool2int": _bool2int,
     "bool_and": _bool_and,
+    "bool_and_imp": _bool_and_imp,
     "bool_clause": _bool_clause,
+    "bool_clause_imp": _bool_clause_imp,
     "bool_eq": _bool_eq,
+    "bool_eq_imp": _int_eq_imp,
     "bool_eq_reif": _int_eq_reif,
+    "bool_ge_imp": _ge_imp,
     "bool_ge_reif": _ge_reif,
+    "bool_gt_imp": _gt_imp,
     "bool_gt_reif": _gt_reif,
     "bool_le": _int_le,
+    "bool_le_imp": _le_imp,
     "bool_le_reif": _le_reif,
     "bool_lin_eq": _bool_lin_eq,
     "bool_lin_le": _int_lin_le,
     "bool_lt": _int_lt,
+    "bool_lt_imp": _lt_imp,
     "bool_lt_reif": _lt_reif,
     "bool_not": _bool_not,
     "bool_or": _bool_or,
+    "bool_or_imp": _bool_or_imp,
     "bool_xor": _bool_xor,
+    "bool_xor_imp": _ne_imp,
     "count_eq": _count_eq,
     "count_geq": _count_geq,
     "count_leq": _count_leq,
@@ -1226,8 +1408,10 @@ BUILTINS: dict[str, Handler] = {
     "int_eq_imp": _int_eq_imp,
     "int_eq_reif": _int_eq_reif,
     "int_ge": _int_ge,
+    "int_ge_imp": _ge_imp,
     "int_ge_reif": _ge_reif,
     "int_gt": _int_gt,
+    "int_gt_imp": _gt_imp,
     "int_gt_reif": _gt_reif,
     "int_le": _int_le,
     "int_le_imp": _le_imp,
@@ -1241,8 +1425,10 @@ BUILTINS: dict[str, Handler] = {
     "int_lin_le_imp": _int_lin_le_imp,
     "int_lin_le_reif": _int_lin_le_reif,
     "int_lin_ne": _int_lin_ne,
+    "int_lin_ne_imp": _int_lin_ne_imp,
     "int_lin_ne_reif": _int_lin_ne_reif,
     "int_lt": _int_lt,
+    "int_lt_imp": _lt_imp,
     "int_lt_reif": _lt_reif,
     "int_max": _int_max,
     "int_min": _int_min,
@@ -1257,8 +1443,10 @@ BUILTINS: dict[str, Handler] = {
     "nucs_table_int": _table_int,
     "nvalue": _nvalue,
     "nucs_member_int": _member_int,
+    "nucs_member_int_imp": _member_int_imp,
     "nucs_member_int_reif": _member_int_reif,
     "set_in": _set_in,
+    "set_in_imp": _set_in_imp,
     "set_in_reif": _set_in_reif,
     "strictly_decreasing_int": _strictly_decreasing,
     "strictly_increasing_int": _strictly_increasing,
