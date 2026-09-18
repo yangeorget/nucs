@@ -288,6 +288,7 @@ from nucs.propagators.strictly_increasing_propagator import (
 from nucs.propagators.subcircuit_propagator import (
     compute_domains_subcircuit,
     get_complexity_subcircuit,
+    get_state_subcircuit,
     get_triggers_subcircuit,
 )
 from nucs.propagators.sum_eq_c_propagator import (
@@ -699,7 +700,12 @@ ALG_RELATION = register_propagator(
 ALG_STRICTLY_INCREASING = register_propagator(
     get_triggers_strictly_increasing, get_complexity_strictly_increasing, compute_domains_strictly_increasing
 )
-ALG_SUBCIRCUIT = register_propagator(get_triggers_subcircuit, get_complexity_subcircuit, compute_domains_subcircuit)
+ALG_SUBCIRCUIT = register_propagator(
+    get_triggers_subcircuit,
+    get_complexity_subcircuit,
+    compute_domains_subcircuit,
+    get_state_fct=get_state_subcircuit,
+)
 ALG_SUM_EQ = register_propagator(
     get_triggers_sum_eq,
     get_complexity_sum_eq,

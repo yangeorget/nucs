@@ -20,6 +20,21 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   42 instances of the 2025–2026 MiniZinc Challenge problems whose translation changes (13 of 40), no outcome changed
   and node rates stayed within 0.99–1.01× (one instance 1.12×): the gain is parity with Gecode and Choco, not speed.
 
+### Fixed
+
+- **`subcircuit` claimed an idempotence it did not have.** It was registered idempotent, so the engine never woke
+  it on its own changes, but a second call narrowed further on about 1.5% of random small inputs — the class of
+  bug behind the diffn soundness fix. It now repeats its rules until a pass fixes no successor and commits no node,
+  and takes the fixed-successor rules of `circuit_chains`, adapted to self-loops: a label is ruled out when its
+  node's predecessor is fixed to another node or to itself, which also takes a node's own label once another node
+  is fixed to it; a chain's end cannot close it while a committed node lies outside it, and this is checked
+  whenever a bound moves, not only when a successor is fixed; a fixed cycle makes every other node a self-loop.
+  Each pass is O(n) with no allocation, where the old one was O(n²) with a fresh array per call. Alongside an
+  alldifferent it enumerates every sub-circuit without a single failure (n = 7 to 9), with 10–20% fewer
+  propagator calls. On a prize-collecting TSP (n = 15 to 30, 45 s) the objectives are unchanged, the n = 15 proof
+  takes 2–3% longer with a 0.3% smaller tree, and the search rate is within 3% of the old one. It keeps its n²
+  priority: at n it was queued ahead of the propagators that narrow the successors and called 2.8–3.4× as often.
+
 ### Removed
 
 - **`ALG_SCC` and `ALG_NO_SUB_CYCLE`.** Nothing posted either one any more: `CircuitProblem` and the FlatZinc
