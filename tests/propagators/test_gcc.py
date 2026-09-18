@@ -11,6 +11,8 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 
+import random
+
 import numpy as np
 import pytest
 
@@ -19,7 +21,7 @@ from nucs.problems.problem import Problem
 from nucs.propagators.alldifferent_propagator import SORT_MAX_N
 from nucs.propagators.gcc_propagator import compute_domains_gcc, get_state_gcc, is_vacuous_gcc
 from nucs.propagators.propagators import ALG_GCC
-from tests.propagators.propagator_test import PropagatorTest
+from tests.propagators.propagator_test import PropagatorTest, random_bounds
 
 
 class TestGCC(PropagatorTest):
@@ -125,3 +127,30 @@ class TestGCC(PropagatorTest):
             reused_status = compute_domains_gcc(domains, parameters, reused)
             assert reused_status == fresh_status
             assert np.array_equal(domains, fresh_domains)
+
+    def test_soundness_against_brute_force(self) -> None:
+        # capacities of 0 included: they used to hang the Hall-interval pointers, and to leave a bound the next call
+        # would move
+        rng = random.Random(20260918)
+        for _ in range(1000):
+            n = rng.randint(1, 4)
+            m = rng.randint(1, 3)
+            first_value = rng.randint(0, 1)
+            lows = [rng.randint(0, 2) for _ in range(m)]
+            ups = [low + rng.randint(0, 2) for low in lows]
+
+            def is_solution(
+                p: tuple[int, ...],
+                m: int = m,
+                first_value: int = first_value,
+                lows: list[int] = lows,
+                ups: list[int] = ups,
+            ) -> bool:
+                return all(lows[j] <= p.count(first_value + j) <= ups[j] for j in range(m))
+
+            self.assert_sound_against_brute_force(
+                compute_domains_gcc,
+                random_bounds(rng, n, first_value, first_value + m - 1),
+                [first_value] + lows + ups,
+                is_solution,
+            )

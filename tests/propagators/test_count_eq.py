@@ -11,12 +11,14 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 
+import random
+
 import numpy as np
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.count_eq_propagator import compute_domains_count_eq
-from tests.propagators.propagator_test import PropagatorTest
+from tests.propagators.propagator_test import PropagatorTest, random_bounds
 
 
 class TestCountEq(PropagatorTest):
@@ -94,3 +96,21 @@ class TestCountEq(PropagatorTest):
             domains[i] = (lo, lo + int(rng.integers(0, 5)))
         domains[n] = (0, n)  # the counter
         self.assert_live_set_is_sound(compute_domains_count_eq, domains, [a], rng, backtrack)
+
+    def test_soundness_against_brute_force(self) -> None:
+        # the counter ranges one past each end of what can be counted: a count that cannot reach it used to empty it
+        # without failing, and the search went on to return a wrong solution
+        rng = random.Random(20260918)
+        for _ in range(1000):
+            n = rng.randint(1, 4)
+            a = rng.randint(0, 2)
+
+            def is_solution(p: tuple[int, ...], a: int = a) -> bool:
+                return p[:-1].count(a) == p[-1]
+
+            self.assert_sound_against_brute_force(
+                compute_domains_count_eq,
+                random_bounds(rng, n, 0, 3) + random_bounds(rng, 1, -1, n + 1),
+                [a],
+                is_solution,
+            )

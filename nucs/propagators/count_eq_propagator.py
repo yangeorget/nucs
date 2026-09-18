@@ -131,6 +131,8 @@ def _compute_domains_count_eq_plain(domains: NDArray, parameters: NDArray, prop_
             count_min += 1
             if count_min > counter_max:
                 return PROP_INCONSISTENCY
+    if count_max < counter_min or count_min > counter_max:  # the bail-outs above only test the bound that moved
+        return PROP_INCONSISTENCY
     changed = False
     if count_min > counter_min:
         counter[DOMAIN_MIN] = count_min
@@ -235,6 +237,8 @@ def compute_domains_count_eq(domains: NDArray, parameters: NDArray, prop_state: 
             k += 1
     prop_state[STATE_LIVE_NB] = live_nb + 1
     prop_state[STATE_COUNT_MIN] = count_min
+    if count_max < counter_min or count_min > counter_max:  # the bail-outs above only test the bound that moved
+        return PROP_INCONSISTENCY
     changed = False
     if count_min > counter_min:
         counter[DOMAIN_MIN] = count_min

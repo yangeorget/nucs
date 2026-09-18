@@ -22,6 +22,20 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Fixed
 
+- **`count_eq` could return a wrong solution.** It only compared the count's reachable range with the counter when
+  a variable left the range, so a counter out of reach from the start -- x ∈ [0, 3] with a = 1 and a counter fixed
+  to 2 -- was emptied without failing, and the search returned [1, 2]. Both bounds are now checked once the scan
+  is done, in the live-set and the plain version.
+- **`element_eq` hung the search on an index with no position left in l**, as the `element_l_eq` propagators did
+  below: `find_all` on i = 4 over a list of 4 never returned. It now fails.
+- **`gcc` hung the search on values of capacity 0, and was not idempotent on them.** Quimper's Hall-interval
+  pointers only link an interval of values once a variable fills it; one of capacity 0 was driven below zero
+  instead, which passed the Hall test and closed a cycle in the pointers that `path_set` walked forever. Such
+  intervals now start out linked as full, in both upper-bound passes. The passes could also leave a bound on a
+  value of capacity 0, which only another call moved off; a call now moves it and runs the passes again, which
+  never happens without a capacity of 0.
+- **`gcc` never reported that it wrote nothing.** Its change reporting raised the cell at each write but never
+  cleared it on entry, so the engine always ran the write-back scan. It now clears it.
 - **`element_l_eq_alldifferent` claimed an idempotence it did not have.** Only a fixed v lets it pin i to the l[idx]
   fixed to v, and when a call fixed v itself that rule waited for a second call the engine never makes: about 0.25%
   of random small inputs narrowed further on a second call. A pass that fixes v is now followed by one more.

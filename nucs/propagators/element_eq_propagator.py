@@ -77,6 +77,8 @@ def compute_domains_element_eq(domains: NDArray, parameters: NDArray, prop_state
     # i could be updated only once
     i[DOMAIN_MIN] = max(i[DOMAIN_MIN], 0)
     i[DOMAIN_MAX] = min(i[DOMAIN_MAX], len(l) - 1)
+    if i[DOMAIN_MIN] > i[DOMAIN_MAX]:
+        return PROP_INCONSISTENCY  # no index of l left: the scan below would not narrow v, it would empty it
     l_v_min = sys.maxsize
     l_v_max = -sys.maxsize
     old_v_min = v[DOMAIN_MIN]

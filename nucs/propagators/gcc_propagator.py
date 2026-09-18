@@ -218,6 +218,10 @@ def filter_lower_max(
         i1 = i - 1
         t[i] = h[i] = i1
         d[i] = get_sum(u, bounds[i1], bounds[i] - 1)
+        if d[i] == 0:
+            # an interval of values with no capacity is full from the start: linked as the loop below links
+            # one it fills, it is skipped rather than driven below zero, which breaks the Hall test
+            t[i] = i + 1
     for i in range(len(max_sorted_vars)):
         x = ranks[max_sorted_vars[i], DOMAIN_MIN]
         y = ranks[max_sorted_vars[i], DOMAIN_MAX]
@@ -265,6 +269,8 @@ def filter_upper_max(
         i1 = i + 1
         t[i] = h[i] = i1
         d[i] = get_sum(u, bounds[i], bounds[i1] - 1)
+        if d[i] == 0:
+            t[i] = i - 1  # full from the start, as in filter_lower_max
     for i in range(n - 1, -1, -1):
         x = ranks[min_sorted_vars[i], DOMAIN_MAX]
         y = ranks[min_sorted_vars[i], DOMAIN_MIN]
@@ -550,10 +556,9 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray, prop_state: NDArr
     # filled -- the same reason every array merge and shrink tried here has measured zero. It was left
     # alone rather than landed: it trades a fill that is correct whatever the index ranges do for a
     # reachability argument that nothing checks, and buys nothing for it.
-    stable_intervals.fill(0)
-    stable_sets.fill(0)
-    new_mins.fill(0)
-    if prop_state[1] == 0:  # cold: the block is zeroed at solver init, so 0 means never called on this block
+    prop_state[0] = 0  # raised at each write below: the engine skips the write-back scan while it stays 0
+    cold = prop_state[1] == 0  # the block is zeroed at solver init, so 0 means never called on this block
+    if cold:
         prop_state[1] = 1
         # l and u are a function of parameters, which the engine never writes, so they are built once here
         # rather than on every call. init_partial_sum_into walks the ds row instead of filling it, so the
@@ -561,43 +566,91 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray, prop_state: NDArr
         psum_buffer.fill(0)
         init_partial_sum_into(l, parameters[0], m, parameters[1 : 1 + m])
         init_partial_sum_into(u, parameters[0], m, parameters[1 + m :])
-        argsort_into(min_sorted_vars, domains, DOMAIN_MIN)
-        argsort_into(max_sorted_vars, domains, DOMAIN_MAX)
-    else:
-        argsort_into_warm(min_sorted_vars, domains, DOMAIN_MIN)
-        argsort_into_warm(max_sorted_vars, domains, DOMAIN_MAX)
-    nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
-    # assert get_min_value(l) == get_min_value(u)
-    # assert get_max_value(l) == get_max_value(u)
-    # assert get_min_value(l) <= domains[min_sorted_vars[0], DOMAIN_MIN]
-    # assert domains[max_sorted_vars[n - 1], DOMAIN_MAX] <= get_max_value(u)
-    if get_sum(l, get_min_value(l), domains[min_sorted_vars[0], DOMAIN_MIN] - 1) > 0:
-        return PROP_INCONSISTENCY
-    if get_sum(l, domains[max_sorted_vars[n - 1], DOMAIN_MAX] + 1, get_max_value(l)) > 0:
-        return PROP_INCONSISTENCY
-    if not filter_lower_max(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars, u, prop_state):
-        return PROP_INCONSISTENCY
-    if not filter_lower_min(
-        n,
-        nb,
-        t,
-        d,
-        h,
-        bounds,
-        domains,
-        ranks,
-        max_sorted_vars,
-        l,
-        stable_intervals,
-        stable_sets,
-        new_mins,
-        prop_state,
-    ):
-        return PROP_INCONSISTENCY
-    if not filter_upper_max(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, u, prop_state):
-        return PROP_INCONSISTENCY
-    if not filter_upper_min(
-        n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, l, stable_intervals, new_mins, prop_state
-    ):
-        return PROP_INCONSISTENCY
-    return PROP_CONSISTENCY
+    while True:
+        stable_intervals.fill(0)
+        stable_sets.fill(0)
+        new_mins.fill(0)
+        if cold:
+            argsort_into(min_sorted_vars, domains, DOMAIN_MIN)
+            argsort_into(max_sorted_vars, domains, DOMAIN_MAX)
+            cold = False
+        else:
+            argsort_into_warm(min_sorted_vars, domains, DOMAIN_MIN)
+            argsort_into_warm(max_sorted_vars, domains, DOMAIN_MAX)
+        nb = update_bounds(bounds, n, domains, ranks, min_sorted_vars, max_sorted_vars, l, u)
+        # assert get_min_value(l) == get_min_value(u)
+        # assert get_max_value(l) == get_max_value(u)
+        # assert get_min_value(l) <= domains[min_sorted_vars[0], DOMAIN_MIN]
+        # assert domains[max_sorted_vars[n - 1], DOMAIN_MAX] <= get_max_value(u)
+        if get_sum(l, get_min_value(l), domains[min_sorted_vars[0], DOMAIN_MIN] - 1) > 0:
+            return PROP_INCONSISTENCY
+        if get_sum(l, domains[max_sorted_vars[n - 1], DOMAIN_MAX] + 1, get_max_value(l)) > 0:
+            return PROP_INCONSISTENCY
+        if not filter_lower_max(n, nb, t, d, h, bounds, domains, ranks, max_sorted_vars, u, prop_state):
+            return PROP_INCONSISTENCY
+        if not filter_lower_min(
+            n,
+            nb,
+            t,
+            d,
+            h,
+            bounds,
+            domains,
+            ranks,
+            max_sorted_vars,
+            l,
+            stable_intervals,
+            stable_sets,
+            new_mins,
+            prop_state,
+        ):
+            return PROP_INCONSISTENCY
+        if not filter_upper_max(n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, u, prop_state):
+            return PROP_INCONSISTENCY
+        if not filter_upper_min(
+            n, nb, t, d, h, bounds, domains, ranks, min_sorted_vars, l, stable_intervals, new_mins, prop_state
+        ):
+            return PROP_INCONSISTENCY
+        # The passes can leave a bound on a value of capacity 0, which only the Hall reasoning of another call
+        # would move off: move it here, and run the passes again when that moved one, so that a call is its own
+        # fixpoint. Without a capacity of 0 this never moves anything.
+        moved = skip_zero_capacities(domains, parameters, m)
+        if moved < 0:
+            return PROP_INCONSISTENCY
+        if moved == 0:
+            return PROP_CONSISTENCY
+        prop_state[0] = 1
+
+
+@njit(cache=True)
+def skip_zero_capacities(domains: NDArray, parameters: NDArray, m: int) -> int:
+    """
+    Moves every bound off the values whose capacity (upper bound) is 0.
+
+    :param domains: the domains of the variables
+    :type domains: NDArray
+    :param parameters: the first value, then the m lower bounds, then the m capacities
+    :type parameters: NDArray
+    :param m: the number of values
+    :type m: int
+
+    :return: -1 when a domain is left empty, 1 when a bound moved, 0 otherwise
+    :rtype: int
+    """
+    first_value = parameters[0]
+    capacities = parameters[1 + m :]
+    moved = 0
+    for i in range(len(domains)):
+        lo = domains[i, DOMAIN_MIN]
+        hi = domains[i, DOMAIN_MAX]
+        while lo <= hi and first_value <= lo < first_value + m and capacities[lo - first_value] == 0:
+            lo += 1
+        while lo <= hi and first_value <= hi < first_value + m and capacities[hi - first_value] == 0:
+            hi -= 1
+        if lo > hi:
+            return -1
+        if lo != domains[i, DOMAIN_MIN] or hi != domains[i, DOMAIN_MAX]:
+            domains[i, DOMAIN_MIN] = lo
+            domains[i, DOMAIN_MAX] = hi
+            moved = 1
+    return moved
