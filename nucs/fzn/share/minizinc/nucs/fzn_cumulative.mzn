@@ -1,7 +1,9 @@
 % Keep cumulative native so NuCS uses its global cumulative (timetabling + energetic reasoning) propagator
 % instead of the time-indexed decomposition. NuCS's propagator takes constant durations, demands and capacity,
 % so the global is kept native only when all of them are fixed; otherwise it falls back to the standard
-% time-resource decomposition.
+% decompositions -- time-indexed over a short horizon and task-indexed beyond 5000 time units, as the standard
+% library chooses. Without that guard, test-scheduling (0/1 demands over a long horizon) did not flatten in
+% 600 s, where Gecode and Choco take 0.3 s.
 predicate nucs_cumulative(
   array [int] of var int: s,
   array [int] of int: d,
@@ -47,8 +49,19 @@ predicate fzn_cumulative(
     if card(tasks) == 0 then
       true
     else
-      forall (t in min([lb(s[i]) | i in tasks])..max([ub(s[i]) + ub(d[i]) | i in tasks]) - 1) (
-        b >= sum (i in tasks) (r[i] * bool2int(s[i] <= t /\ t < s[i] + d[i]))
-      )
+      let {
+        int: early = min([lb(s[i]) | i in tasks]),
+        int: late = max([ub(s[i]) + ub(d[i]) | i in tasks]),
+      } in
+      if late - early > 5000 then
+        % one resource check per task start: a task j's start meets the tasks running then
+        forall (j in tasks) (
+          b >= sum (i in tasks) (r[i] * bool2int(s[i] <= s[j] /\ s[j] < s[i] + d[i]))
+        )
+      else
+        forall (t in early..late - 1) (
+          b >= sum (i in tasks) (r[i] * bool2int(s[i] <= t /\ t < s[i] + d[i]))
+        )
+      endif
     endif
   endif;

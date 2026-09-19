@@ -8,6 +8,14 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+### Fixed
+
+- **test-scheduling and yumi-dynamic flatten again.** NuCS's `fzn_cumulative` falls back to a decomposition when
+  demands are variables, and that fallback was always time-indexed: one sum over the tasks per time unit of the
+  whole horizon. The standard library switches to the task-indexed decomposition beyond a horizon of 5000, and the
+  override had dropped that guard. test-scheduling (0/1 demands per machine) and yumi-dynamic did not flatten in
+  600 s, where Gecode and Choco take 0.3 and 1.4 s; they now take 3-8 s.
+
 ### Changed
 
 - **`seq_precede_chain` and fixed-count `global_cardinality` reach native propagators from MiniZinc.**

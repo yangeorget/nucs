@@ -461,6 +461,38 @@ def test_bin_packing_load_non_one_based_bins(tmp_path) -> None:  # type: ignore[
     assert "bin = [0, 0, 1, 2];" in out
 
 
+def test_cumulative_variable_demands_over_long_horizon(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """cumulative with variable demands falls back to a decomposition. Over a horizon beyond 5000 it must be the
+    task-indexed one, as in the standard library: the time-indexed one posts a sum per time unit, which kept
+    test-scheduling from flattening in 600 s."""
+    model = "array[1..3] of var 0..9000: s; array[1..3] of var 0..1: r;\nconstraint cumulative(s, [5, 5, 5], r, 1);\n"
+    fzn = _compile_to_fzn(model, tmp_path)
+    assert fzn.count("constraint ") < 60, f"a per-time-unit decomposition was posted:\n{fzn[:2000]}"
+
+
+def test_cumulative_variable_demands_counts_solutions(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """The task-indexed decomposition keeps exactly the solutions of cumulative: two unit-duration tasks on a
+    capacity-1 resource overlap only when one of them has demand 0."""
+    model = "array[1..2] of var 0..2: s; array[1..2] of var 0..1: r;\nconstraint cumulative(s, [1, 1], r, 1);"
+    count = sum(
+        1 for s0, s1, r0, r1 in itertools.product(range(3), range(3), range(2), range(2)) if s0 != s1 or r0 + r1 <= 1
+    )
+    assert _count_solutions(model, tmp_path) == count
+
+
+@pytest.mark.parametrize("second_start, count", [(7000, 3), (7010, 4)])
+def test_cumulative_variable_demands_over_long_horizon_counts_solutions(  # type: ignore[no-untyped-def]
+    second_start, count, tmp_path
+) -> None:
+    """The task-indexed decomposition keeps exactly the solutions of cumulative: tasks starting together share
+    the capacity-1 resource only when one has demand 0, and tasks that do not overlap never compete."""
+    model = (
+        "array[1..2] of var 0..9000: s; array[1..2] of var 0..1: r;\n"
+        f"constraint cumulative(s, [5, 5], r, 1);\nconstraint s[1] = 7000 /\\ s[2] = {second_start};"
+    )
+    assert _count_solutions(model, tmp_path) == count
+
+
 def test_diffn_non_one_based_index(tmp_path) -> None:  # type: ignore[no-untyped-def]
     """diffn over an index set that does not start at 1: the fixed-size arrays the library builds are read at
     that index set, so they must be coerced to it -- an array comprehension is 1-based, and indexing it out of
