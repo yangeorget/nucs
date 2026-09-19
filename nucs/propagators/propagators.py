@@ -316,6 +316,12 @@ from nucs.propagators.sum_leq_c_propagator import (
     get_state_sum_leq_c,
     get_triggers_sum_leq_c,
 )
+from nucs.propagators.value_precede_chain_propagator import (
+    compute_domains_value_precede_chain,
+    get_complexity_value_precede_chain,
+    get_state_value_precede_chain,
+    get_triggers_value_precede_chain,
+)
 from nucs.propagators.value_precede_propagator import (
     compute_domains_value_precede,
     get_complexity_value_precede,
@@ -741,6 +747,13 @@ ALG_SUM_LEQ_C = register_propagator(
 )
 ALG_VALUE_PRECEDE = register_propagator(
     get_triggers_value_precede, get_complexity_value_precede, compute_domains_value_precede
+)
+ALG_VALUE_PRECEDE_CHAIN = register_propagator(
+    get_triggers_value_precede_chain,
+    get_complexity_value_precede_chain,
+    compute_domains_value_precede_chain,
+    get_state_fct=get_state_value_precede_chain,
+    reports_changes=True,
 )
 
 

@@ -83,7 +83,9 @@ from nucs.propagators.propagators import (
     ALG_SUM_GEQ_C,
     ALG_SUM_LEQ_C,
     ALG_VALUE_PRECEDE,
+    ALG_VALUE_PRECEDE_CHAIN,
 )
+from nucs.propagators.value_precede_chain_propagator import value_precede_chain_parameters
 
 if TYPE_CHECKING:
     from nucs.fzn.model import FznModel
@@ -938,12 +940,19 @@ def _value_precede(model: "FznModel", args: list[Term]) -> None:
 def _value_precede_chain(model: "FznModel", args: list[Term]) -> None:
     """
     Handles ``value_precede_chain_int(c, x)``: the values c[0], c[1], ... must first occur in that order in
-    x, which is exactly the conjunction of value_precede(c[i], c[i+1], x) over consecutive values.
+    x. One chain propagator filters all the pairs in a single pass, where one value_precede propagator per
+    consecutive pair would each rescan x.
     """
     chain = model.int_list_of(args[0])
     variables = model.var_list_of(args[1])
-    for i in range(len(chain) - 1):
-        model.problem.add_propagator(ALG_VALUE_PRECEDE, variables, [chain[i], chain[i + 1]])
+    if len(chain) < 2:
+        return
+    if len(set(chain)) < len(chain) or max(chain) - min(chain) >= 4 * len(chain):
+        # repeated values, or a value table too sparse to index: one value_precede per consecutive pair
+        for i in range(len(chain) - 1):
+            model.problem.add_propagator(ALG_VALUE_PRECEDE, variables, [chain[i], chain[i + 1]])
+        return
+    model.problem.add_propagator(ALG_VALUE_PRECEDE_CHAIN, variables, value_precede_chain_parameters(chain))
 
 
 def _all_different(model: "FznModel", args: list[Term]) -> None:

@@ -1,5 +1,5 @@
 % seq_precede_chain(X): each value v >= 2 in X first occurs after v - 1 does, values below 1 being free. That is
-% value_precede_chain over 1..ub(X), which NuCS keeps native as consecutive value_precede propagators, instead of
+% value_precede_chain over 1..ub(X), which NuCS keeps native as one value_precede_chain propagator, instead of
 % the standard decomposition's running maximum H and its 2n element-wise constraints.
 %
 % The parameter name matches the standard library's declaration (X): MiniZinc is rolling out named arguments for

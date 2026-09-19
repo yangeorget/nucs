@@ -73,6 +73,7 @@ from nucs.propagators.propagators import (
     ALG_SUM_GEQ_C,
     ALG_SUM_LEQ_C,
     ALG_VALUE_PRECEDE,
+    ALG_VALUE_PRECEDE_CHAIN,
 )
 
 # The half-reified builtins over x, y in 0..3 and booleans a, b, each with the constraint C it implies.
@@ -1187,14 +1188,23 @@ class TestBuiltins:
         assert out.count("----------") == 5
         assert "a = 2;" not in out
 
-    def test_build_model_value_precede_chain_maps_to_pairwise(self) -> None:
-        # a 3-value chain posts one value_precede propagator per consecutive pair
+    def test_build_model_value_precede_chain_maps_to_one_chain(self) -> None:
+        # a 3-value chain posts a single chain propagator: k, the smallest value, the chain, the index table
         model = build_model(
             parse("array [1..4] of var 0..3: x;\nconstraint fzn_value_precede_chain_int([1, 2, 3], x);\nsolve satisfy;")
         )
         propagators = model.problem.propagators
+        assert [p[1] for p in propagators] == [ALG_VALUE_PRECEDE_CHAIN]
+        assert propagators[0][2] == [3, 1, 1, 2, 3, 0, 1, 2]
+
+    def test_build_model_value_precede_chain_repeated_value_maps_to_pairwise(self) -> None:
+        # a repeated value has no single chain index, so each consecutive pair gets its own value_precede
+        model = build_model(
+            parse("array [1..4] of var 0..3: x;\nconstraint fzn_value_precede_chain_int([1, 2, 1], x);\nsolve satisfy;")
+        )
+        propagators = model.problem.propagators
         assert [p[1] for p in propagators] == [ALG_VALUE_PRECEDE, ALG_VALUE_PRECEDE]
-        assert [p[2] for p in propagators] == [[1, 2], [2, 3]]  # (1 before 2), (2 before 3)
+        assert [p[2] for p in propagators] == [[1, 2], [2, 1]]
 
     def test_solve_fzn_value_precede_chain_solves(self) -> None:
         # chain [0, 1, 2] over 3 vars: enumerate and compare with the brute-force chain semantics

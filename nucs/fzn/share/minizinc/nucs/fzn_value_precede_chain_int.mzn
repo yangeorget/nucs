@@ -1,4 +1,4 @@
-% Keep value_precede_chain native so NuCS decomposes it into pairwise value_precede propagators
+% Keep value_precede_chain native so NuCS posts one value_precede_chain propagator
 % instead of MiniZinc's seq_precede_chain decomposition.
 %
 % The parameter names match the standard library's declaration (T, X): MiniZinc is rolling out named
