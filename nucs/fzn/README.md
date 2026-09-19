@@ -20,11 +20,15 @@ propagators instead of being decomposed into reified primitives:
 ```
 all_different_int, at_least_int, at_most_int, bin_packing, bin_packing_capa, bin_packing_load, circuit,
 count_eq, count_geq, count_leq, cumulative, diffn, disjunctive, disjunctive_strict, exactly_int,
-global_cardinality_low_up, if_then_else_bool, if_then_else_int, if_then_else_var_bool, if_then_else_var_int,
-increasing_int, inverse, lex_less_int, lex_lesseq_int, member_int, member_int_imp, member_int_reif, nvalue,
-regular, strictly_increasing_int, subcircuit, table_bool, table_int, value_precede_chain_int,
-value_precede_int
+global_cardinality, global_cardinality_low_up, if_then_else_bool, if_then_else_int, if_then_else_var_bool,
+if_then_else_var_int, increasing_int, inverse, lex_less_int, lex_lesseq_int, member_int, member_int_imp,
+member_int_reif, nvalue, regular, seq_precede_chain_int, strictly_increasing_int, subcircuit, table_bool,
+table_int, value_precede_chain_int, value_precede_int
 ```
+
+`global_cardinality` keeps its native propagator only when its counts are fixed (then it is
+`global_cardinality_low_up` with equal bounds, which also serves `global_cardinality_closed`), and
+`seq_precede_chain_int` is redirected onto `value_precede_chain_int` over `1..ub(x)`.
 
 A global not listed there still works: MiniZinc decomposes it into builtins NuCS supports. Linear and
 `element` constraints are standard FlatZinc builtins and are emitted natively by MiniZinc.

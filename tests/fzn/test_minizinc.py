@@ -17,6 +17,7 @@ These are skipped unless ``minizinc`` is on PATH (or pointed to by the ``MINIZIN
 first-milestone gate and are meant to be run on a machine with MiniZinc installed.
 """
 
+import itertools
 import os
 import shutil
 import subprocess
@@ -197,6 +198,16 @@ KEPT_GLOBALS = {
         "fzn_strictly_increasing_int",
         "fzn_strictly_increasing_int.mzn",
     ),
+    "global_cardinality_fixed_counts": (
+        "array[1..4] of var 0..9: x; constraint global_cardinality(x, [0, 9], [1, 2]);",
+        "fzn_global_cardinality_low_up",
+        "fzn_global_cardinality.mzn",
+    ),
+    "seq_precede_chain": (
+        "array[1..5] of var -1..4: x; constraint seq_precede_chain(x);",
+        "fzn_value_precede_chain_int",
+        "fzn_seq_precede_chain_int.mzn",
+    ),
     "subcircuit": (
         "array[1..4] of var 1..4: x; constraint subcircuit(x);",
         "nucs_subcircuit",
@@ -259,6 +270,68 @@ def _solve(model: str, tmp_path) -> str:  # type: ignore[no-untyped-def]
     )
     assert result.returncode == 0, result.stderr
     return result.stdout
+
+
+def _count_solutions(model: str, tmp_path) -> int:  # type: ignore[no-untyped-def]
+    """Counts every solution of a MiniZinc model with the NuCS solver."""
+    assert MINIZINC is not None
+    model_path = tmp_path / "model.mzn"
+    model_path.write_text(f'include "globals.mzn";\n{model}\nsolve satisfy;\n')
+    env = dict(os.environ, MZN_SOLVER_PATH=SHARE_DIR)
+    result = subprocess.run(
+        [MINIZINC, "--solver", "nucs", "-a", str(model_path)],
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=120,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return result.stdout.count("----------")
+
+
+def _seq_precede_chain(x: tuple[int, ...]) -> bool:
+    """Each value v >= 2 first occurs after v - 1 does."""
+    seen = 0
+    for value in x:
+        if value > seen + 1:
+            return False
+        seen = max(seen, value)
+    return True
+
+
+@pytest.mark.parametrize(
+    "model, count",
+    [
+        # values below 1 are free, so -1 and 0 may appear anywhere
+        (
+            "array[1..5] of var -1..4: x; constraint seq_precede_chain(x);",
+            sum(1 for x in itertools.product(range(-1, 5), repeat=5) if _seq_precede_chain(x)),
+        ),
+        # a non-contiguous cover with fixed counts: 0 once, 9 twice, anything else in the remaining place
+        (
+            "array[1..4] of var 0..9: x; constraint global_cardinality(x, [0, 9], [1, 2]);",
+            sum(1 for x in itertools.product(range(10), repeat=4) if x.count(0) == 1 and x.count(9) == 2),
+        ),
+        # closed: every variable takes a covered value
+        (
+            "array[1..4] of var 0..9: x; constraint global_cardinality_closed(x, [0, 5, 9], [1, 2, 1]);",
+            sum(
+                1
+                for x in itertools.product((0, 5, 9), repeat=4)
+                if x.count(0) == 1 and x.count(5) == 2 and x.count(9) == 1
+            ),
+        ),
+        # variable counts keep the standard decomposition
+        (
+            "array[1..3] of var 0..3: x; array[1..2] of var 0..3: c; constraint global_cardinality(x, [1, 2], c);",
+            4**3,
+        ),
+    ],
+)
+def test_redirected_global_counts_solutions(model, count, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """A global the library redirects onto a native propagator keeps exactly its solutions."""
+    assert _count_solutions(model, tmp_path) == count
 
 
 @pytest.mark.parametrize("name", sorted(KEPT_GLOBALS))

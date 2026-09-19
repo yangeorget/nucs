@@ -10,6 +10,14 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Changed
 
+- **`seq_precede_chain` and fixed-count `global_cardinality` reach native propagators from MiniZinc.**
+  `seq_precede_chain(x)` is `value_precede_chain` over `1..ub(x)`, so the NuCS globals library now redirects it
+  there instead of letting MiniZinc post a running maximum of about 2n constraints: on community-detection-2021,
+  100 `int_max` and 98 `int_lin_le` become one chain. `global_cardinality` with fixed counts -- the usual case, and
+  the one `global_cardinality_closed` reaches -- is `global_cardinality_low_up` with equal bounds and now uses the
+  native GCC instead of one `count` per value; variable counts keep the standard decomposition. Neither changes a
+  60 s result on the challenge models that use them (community-detection-2021, elitserien).
+
 - **`gcc` recognises when it is entailed.** Every assignment within the domains satisfies it once, for every
   value, the variables that can take it fit its upper capacity and those fixed to it meet its lower one; it now
   says so, and the engine stops calling it for the rest of the subtree. On gbac, whose gcc caps each period at 6
