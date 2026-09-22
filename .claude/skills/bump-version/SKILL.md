@@ -47,6 +47,6 @@ user's program break silently. Say which level and which single entry forced it 
 
 ## 3. Leave the diff
 
-Stop there, unstaged, and report the level with its reason. Committing, tagging and releasing are separate asks —
-`publish.yml` fires on GitHub **release creation**, not on the tag, and pushes to PyPI and Docker Hub, so it is not
-undoable. When asked for the release: one commit named `release X.Y.Z` whose body argues the level, then `vX.Y.Z`.
+Stop there, unstaged, and report the level with its reason. Committing, tagging and releasing are a separate ask,
+and `publish-release` handles them: `publish.yml` fires on GitHub **release creation**, not on the tag, and pushes
+to PyPI and Docker Hub, so that step is not undoable.
