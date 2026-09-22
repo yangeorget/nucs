@@ -3,6 +3,15 @@
 Guidance for Claude Code working in this repository.
 For repository layout and core concepts: see `ARCHITECTURE.md`.
 
+## How to answer
+
+Use ASD-STE100 Simplified Technical English for all the text that you write. This rule applies to:
+
+- your answers to me,
+- code comments and docstrings,
+- commit messages, the changelog and release notes,
+- documentation, skills and memory files.
+
 ## Conventions
 
 Each convention lives in a skill under `.claude/skills/`, loaded on demand — invoke it at the moment below:
