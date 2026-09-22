@@ -8,7 +8,7 @@
 ![numpy version](https://img.shields.io/badge/numpy-v2.5.3-blue)
 
 ![tests](https://github.com/yangeorget/nucs/actions/workflows/test.yml/badge.svg)
-![coverage](https://img.shields.io/badge/coverage-85-brightgreen)
+![coverage](https://coveralls.io/repos/github/yangeorget/nucs/badge.svg?branch=main)
 ![doc](https://img.shields.io/readthedocs/nucs)
 ![license](https://img.shields.io/github/license/yangeorget/nucs)
 
