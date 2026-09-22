@@ -12,6 +12,7 @@ Each convention lives in a skill under `.claude/skills/`, loaded on demand — i
 - Creating a Python file: `add-header`, since every one starts with the `header.txt` banner.
 - Writing or editing a docstring: `write-docstring`.
 - Writing or editing a test: `write-tests`.
+- Raising the version in `pyproject.toml`, or judging whether the pending changes are a major: `bump-version`.
 
 ## FlatZinc adapter
 
