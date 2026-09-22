@@ -4,8 +4,8 @@
 ![pypi downloads](https://img.shields.io/pypi/dm/NUCS)
 
 ![python version](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fyangeorget%2Fnucs%2Fmain%2Fpyproject.toml)
-![numba version](https://img.shields.io/badge/numba-v0.65-blue)
-![numpy version](https://img.shields.io/badge/numpy-v2.4.2-blue)
+![numba version](https://img.shields.io/badge/numba-v0.68-blue)
+![numpy version](https://img.shields.io/badge/numpy-v2.5.3-blue)
 
 ![tests](https://github.com/yangeorget/nucs/actions/workflows/test.yml/badge.svg)
 ![coverage](https://img.shields.io/badge/coverage-85-brightgreen)

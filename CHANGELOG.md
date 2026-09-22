@@ -8,6 +8,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+## 16.1.0
+
 ### Fixed
 
 - **test-scheduling and yumi-dynamic flatten again.** NuCS's `fzn_cumulative` falls back to a decomposition when
@@ -15,48 +17,6 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   whole horizon. The standard library switches to the task-indexed decomposition beyond a horizon of 5000, and the
   override had dropped that guard. test-scheduling (0/1 demands per machine) and yumi-dynamic did not flatten in
   600 s, where Gecode and Choco take 0.3 and 1.4 s; they now take 3-8 s.
-
-### Changed
-
-- **`seq_precede_chain` and fixed-count `global_cardinality` reach native propagators from MiniZinc.**
-  `seq_precede_chain(x)` is `value_precede_chain` over `1..ub(x)`, so the NuCS globals library now redirects it
-  there instead of letting MiniZinc post a running maximum of about 2n constraints: on community-detection-2021,
-  100 `int_max` and 98 `int_lin_le` become one chain. `global_cardinality` with fixed counts -- the usual case, and
-  the one `global_cardinality_closed` reaches -- is `global_cardinality_low_up` with equal bounds and now uses the
-  native GCC instead of one `count` per value; variable counts keep the standard decomposition. Neither changes a
-  60 s result on the challenge models that use them (community-detection-2021, elitserien).
-
-- **`gcc` recognises when it is entailed.** Every assignment within the domains satisfies it once, for every
-  value, the variables that can take it fit its upper capacity and those fixed to it meet its lower one; it now
-  says so, and the engine stops calling it for the rest of the subtree. On gbac, whose gcc caps each period at 6
-  courses, its calls fall from 10.8M to 153 in 30 s -- 10,834,329 of the 10,834,337 had narrowed nothing -- and
-  the same search makes 23% more decisions. A read-only pass skips the test when the domains' total width exceeds
-  the summed capacities, so a gcc whose capacities add up to its arity, as on gcc-benchmark, pays about 3%.
-
-- **`disjunctive` prunes as Gecode does, in O(n log n).** Its not-last rule took, for each task t, the tasks
-  completing no later than t; Gecode's, after Vilím, takes the tasks whose latest start is below t's latest
-  completion, and also tests each task it inserts on the way. It catches much that NuCS's missed, and running both
-  gave the same trees as Gecode's alone: with the same input-order search, la05 at makespan 593 and la01 at 666 went from no solution in
-  60 s to Gecode's exact trees, 52 and 83 failures, and minimising la05 now proves 593 in 12 ms. Edge finding,
-  detectable precedences and not-first/not-last now run on Vilím's Theta- and Theta-Lambda trees instead of
-  O(n³) and O(n²) scans, with one allocation per call and sorts warm-started from permutations kept in the state
-  block: per call on recorded jobshop inputs, 2.08 → 1.48 µs at 10 tasks, 8.5 → 3.7 µs at 20 and 34.7 → 6.5 µs at
-  30. In 60 s of minimisation it gets through 22–127% more choices, and la02 reaches Gecode's 679 where it stopped at
-  693.
-
-### Added
-
-- **Every reified propagator has its half-reified twin, and the FlatZinc adapter uses them.** `ALG_NEQ_C_IMP`
-  (b → x ≠ c) and `ALG_MEMBER_IMP` (b → x ∈ S) join the existing `_imp` propagators. The NuCS MiniZinc library
-  now declares 22 half-reified builtins instead of 5 — `int_lt/ge/gt_imp`, `int_lin_ne_imp`, the `bool_*_imp`
-  comparisons, `bool_xor/and/or_imp`, `bool_clause_imp`, `array_bool_and/or_imp`, `set_in_imp` and
-  `fzn_member_int_imp` — so MiniZinc emits `r → C` wherever r is only used positively. The boolean connectives
-  need no new propagator: r → (a ∧ b) is r ≤ a, r ≤ b and r → (a ∨ b) is the clause a ∨ b ∨ ¬r. `int_eq_imp` and
-  `int_ne_imp` also use the constant-operand propagators when either side is a constant. On a paired 60 s A/B over
-  42 instances of the 2025–2026 MiniZinc Challenge problems whose translation changes (13 of 40), no outcome changed
-  and node rates stayed within 0.99–1.01× (one instance 1.12×): the gain is parity with Gecode and Choco, not speed.
-
-### Fixed
 
 - **`count_eq` could return a wrong solution.** It only compared the count's reachable range with the counter when
   a variable left the range, so a counter out of reach from the start -- x ∈ [0, 3] with a = 1 and a counter fixed
@@ -92,13 +52,33 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   takes 2–3% longer with a 0.3% smaller tree, and the search rate is within 3% of the old one. It keeps its n²
   priority: at n it was queued ahead of the propagators that narrow the successors and called 2.8–3.4× as often.
 
-### Removed
-
-- **`ALG_SCC` and `ALG_NO_SUB_CYCLE`.** Nothing posted either one any more: `CircuitProblem` and the FlatZinc
-  `circuit` use `ALG_CIRCUIT_CHAINS`, which rules out every successor `no_sub_cycle` did and wakes on more
-  events, and `scc` had been commented out of `CircuitProblem` as not worth its cost.
-
 ### Changed
+
+- **`seq_precede_chain` and fixed-count `global_cardinality` reach native propagators from MiniZinc.**
+  `seq_precede_chain(x)` is `value_precede_chain` over `1..ub(x)`, so the NuCS globals library now redirects it
+  there instead of letting MiniZinc post a running maximum of about 2n constraints: on community-detection-2021,
+  100 `int_max` and 98 `int_lin_le` become one chain. `global_cardinality` with fixed counts -- the usual case, and
+  the one `global_cardinality_closed` reaches -- is `global_cardinality_low_up` with equal bounds and now uses the
+  native GCC instead of one `count` per value; variable counts keep the standard decomposition. Neither changes a
+  60 s result on the challenge models that use them (community-detection-2021, elitserien).
+
+- **`gcc` recognises when it is entailed.** Every assignment within the domains satisfies it once, for every
+  value, the variables that can take it fit its upper capacity and those fixed to it meet its lower one; it now
+  says so, and the engine stops calling it for the rest of the subtree. On gbac, whose gcc caps each period at 6
+  courses, its calls fall from 10.8M to 153 in 30 s -- 10,834,329 of the 10,834,337 had narrowed nothing -- and
+  the same search makes 23% more decisions. A read-only pass skips the test when the domains' total width exceeds
+  the summed capacities, so a gcc whose capacities add up to its arity, as on gcc-benchmark, pays about 3%.
+
+- **`disjunctive` prunes as Gecode does, in O(n log n).** Its not-last rule took, for each task t, the tasks
+  completing no later than t; Gecode's, after Vilím, takes the tasks whose latest start is below t's latest
+  completion, and also tests each task it inserts on the way. It catches much that NuCS's missed, and running both
+  gave the same trees as Gecode's alone: with the same input-order search, la05 at makespan 593 and la01 at 666 went from no solution in
+  60 s to Gecode's exact trees, 52 and 83 failures, and minimising la05 now proves 593 in 12 ms. Edge finding,
+  detectable precedences and not-first/not-last now run on Vilím's Theta- and Theta-Lambda trees instead of
+  O(n³) and O(n²) scans, with one allocation per call and sorts warm-started from permutations kept in the state
+  block: per call on recorded jobshop inputs, 2.08 → 1.48 µs at 10 tasks, 8.5 → 3.7 µs at 20 and 34.7 → 6.5 µs at
+  30. In 60 s of minimisation it gets through 22–127% more choices, and la02 reaches Gecode's 679 where it stopped at
+  693.
 
 - **The propagation loop is 1.23–1.36× faster: it is compiled without Numba's reference-counting runtime.** With
   the runtime on, every array an `inline="always"` helper takes is increfed on entry and decrefed on exit, and on
@@ -469,6 +449,24 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   ```python
   from nucs.solvers.backtrack_solver import solve_one_step  # was solve_one
   ```
+
+### Added
+
+- **Every reified propagator has its half-reified twin, and the FlatZinc adapter uses them.** `ALG_NEQ_C_IMP`
+  (b → x ≠ c) and `ALG_MEMBER_IMP` (b → x ∈ S) join the existing `_imp` propagators. The NuCS MiniZinc library
+  now declares 22 half-reified builtins instead of 5 — `int_lt/ge/gt_imp`, `int_lin_ne_imp`, the `bool_*_imp`
+  comparisons, `bool_xor/and/or_imp`, `bool_clause_imp`, `array_bool_and/or_imp`, `set_in_imp` and
+  `fzn_member_int_imp` — so MiniZinc emits `r → C` wherever r is only used positively. The boolean connectives
+  need no new propagator: r → (a ∧ b) is r ≤ a, r ≤ b and r → (a ∨ b) is the clause a ∨ b ∨ ¬r. `int_eq_imp` and
+  `int_ne_imp` also use the constant-operand propagators when either side is a constant. On a paired 60 s A/B over
+  42 instances of the 2025–2026 MiniZinc Challenge problems whose translation changes (13 of 40), no outcome changed
+  and node rates stayed within 0.99–1.01× (one instance 1.12×): the gain is parity with Gecode and Choco, not speed.
+
+### Removed
+
+- **`ALG_SCC` and `ALG_NO_SUB_CYCLE`.** Nothing posted either one any more: `CircuitProblem` and the FlatZinc
+  `circuit` use `ALG_CIRCUIT_CHAINS`, which rules out every successor `no_sub_cycle` did and wakes on more
+  events, and `scc` had been commented out of `CircuitProblem` as not worth its cost.
 
 ## 16.0.0
 
