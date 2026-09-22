@@ -48,19 +48,22 @@ The release notes are the version's section, verbatim — never a fresh summary,
 different from what the repository says:
 
 ```bash
-awk -v v="X.Y.Z" '$0 == "## " v {f=1; next} f && /^## / {exit} f' CHANGELOG.md > <scratch>/notes.md
+{ awk -v v="X.Y.Z" '$0 == "## " v {f=1; next} f && /^## / {exit} f' CHANGELOG.md
+  echo '**Full Changelog**: https://github.com/yangeorget/nucs/compare/vPREV...vX.Y.Z'
+} > <scratch>/notes.md
 ```
 
-Read it back: it must start at the first `###` subsection and stop before the previous version's heading.
+Read it back: it must start at the first `###` subsection and stop before the previous version's heading. The
+compare link is the line GitHub generates for itself, and `--notes-file` replaces the body whole, so put it back or
+it is lost.
 
 ## 4. Create the release — the step that publishes
 
-`gh` is not installed on this machine, no `GITHUB_TOKEN` is set, and `origin` is an SSH remote, which cannot create
-a release. So either hand it to the user, or install the tool once:
+Give the notes at creation, whichever way it is done. A release published with an empty body tends to keep one, and
+on 16.1.0 — cut only so that a published version's notes would match its contents — it did.
 
-- **User, in the UI**: *Draft a new release* → **choose the existing tag `vX.Y.Z` from the dropdown**, and leave the
-  target field alone → title `X.Y.Z` → paste `notes.md`.
-- **Here**, after `brew install gh` and an interactive `! gh auth login`:
+- **Here**, with `gh` (installed 2026-09-22; `gh auth status` should show `yangeorget`, and `! gh auth login` from
+  the user restores it):
 
   ```bash
   gh release create vX.Y.Z --title "X.Y.Z" --notes-file <scratch>/notes.md --verify-tag
@@ -68,7 +71,19 @@ a release. So either hand it to the user, or install the tool once:
 
   `--verify-tag` makes it fail rather than invent a tag — the command-line form of the same footgun.
 
+- **User, in the UI**: *Draft a new release* → **choose the existing tag `vX.Y.Z` from the dropdown** → title
+  `X.Y.Z` → paste `notes.md`. The *target* field can be left on `main`: once the tag exists, GitHub attaches the
+  release to it and does not move it, which is what step 2 buys.
+
 Ask for a go-ahead before running it, even mid-release: this is where PyPI and Docker Hub become involved.
+
+A body that did go out empty is repairable, and this is the one part of a release that stays mutable —
+`publish.yml` listens for `release: [created]`, not `edited`, so nothing re-runs and PyPI is never asked to take
+the version twice:
+
+```bash
+gh release edit vX.Y.Z --notes-file <scratch>/notes.md
+```
 
 ## 5. Verify what went out
 
