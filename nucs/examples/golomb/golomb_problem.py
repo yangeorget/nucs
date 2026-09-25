@@ -126,6 +126,7 @@ class GolombProblem(Problem):
 @njit(cache=True)
 def golomb_consistency_algorithm(
     statistics: NDArray,
+    propagator_weights: NDArray,
     algorithm_flags: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
@@ -151,6 +152,8 @@ def golomb_consistency_algorithm(
 
     :param statistics: the statistics array
     :type statistics: NDArray
+    :param propagator_weights: the propagator weights, forwarded to bc_algorithm
+    :type propagator_weights: NDArray
     :param algorithm_flags: the PROP_FLAG_* properties of each algorithm, packed into one word and indexed by
                           algorithm rather than by propagator
     :type algorithm_flags: NDArray
@@ -217,6 +220,7 @@ def golomb_consistency_algorithm(
     trail_top[0] = trail_size
     return bc_algorithm(
         statistics,
+        propagator_weights,
         algorithm_flags,
         algorithms,
         priorities,

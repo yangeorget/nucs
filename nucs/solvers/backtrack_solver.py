@@ -59,6 +59,7 @@ from nucs.solvers.choice_points import CHOICE_POINT_WIDTH, backtrack, branch, ch
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
 from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_RESET, Solver, get_solution
+from nucs.solvers.weights import weights_init
 from nucs.statistics import (
     STATS_IDX_SOLUTION_NB,
     STATS_IDX_SOLVER_CHOICE_DEPTH,
@@ -132,6 +133,7 @@ class BacktrackSolver(Solver):
         choice_point_max_height: int | None = None,
         trail_max_size: int | None = None,
         log_level: str = LOG_LEVEL_INFO,
+        weight_decay: float = 1.0,
     ):
         """
         Initializes the solver.
@@ -167,6 +169,10 @@ class BacktrackSolver(Solver):
         :param log_level: the log level,
                           defaults to INFO
         :type log_level: str
+        :param weight_decay: in (0, 1], how much the failure weight of a propagator keeps of a failure after each
+                             later failure; 1 counts all the failures the same (dom/wdeg), less than 1 prefers the
+                             recent ones (AFC), defaults to 1
+        :type weight_decay: float
         """
         super().__init__(problem, log_level)
         if var_heuristic_params is None:
@@ -273,6 +279,9 @@ class BacktrackSolver(Solver):
         logger.debug("Choice points initialized")
         logger.debug("Initializing statistics")
         self.statistics = statistics_init(get_algorithm_nb())
+        # the failure weight of each propagator: global, never trailed and never reset, so that what one solve
+        # learns about the constraints serves the next one too
+        self.propagator_weights = weights_init(problem.propagator_nb, weight_decay)
         logger.debug("Statistics initialized")
         # resolving only the algorithms used by the problem keeps the init cost proportional to the problem instead
         # of the whole propagator library; without the JIT this is a placeholder that call_compute_domains ignores
@@ -452,6 +461,9 @@ class BacktrackSolver(Solver):
             self.objective,
             self.trail_headroom,
             self.interruption,
+            self.propagator_weights,
+            self.problem.variable_propagators_offsets,
+            self.problem.variable_propagators,
         )
 
     def interrupt(self) -> None:
@@ -613,6 +625,9 @@ def solve_one_step(
     objective: NDArray,
     trail_headroom: int,
     interruption: NDArray,
+    propagator_weights: NDArray,
+    variable_propagators_offsets: NDArray,
+    variable_propagators: NDArray,
 ) -> tuple[int, NDArray | None]:
     """
     Searches for one solution, stopping early when an array it cannot grow runs out of room.
@@ -702,6 +717,13 @@ def solve_one_step(
     :type trail_headroom: int
     :param interruption: a one-cell array, non-zero once the search is asked to stop
     :type interruption: NDArray
+    :param propagator_weights: the failure weight of each propagator, followed by the increment and its growth
+                               (see nucs.solvers.weights)
+    :type propagator_weights: NDArray
+    :param variable_propagators_offsets: the offsets of the propagators of each variable
+    :type variable_propagators_offsets: NDArray
+    :param variable_propagators: the propagators of the variables, each one once per variable
+    :type variable_propagators: NDArray
 
     :return: why the step returned, and the solution when it found one
     :rtype: Tuple[int, Optional[NDArray]]
@@ -721,6 +743,7 @@ def solve_one_step(
             return SOLVER_CHOICE_POINTS_FULL, None
         problem_status = consistency_alg_fct(
             statistics,
+            propagator_weights,
             algorithm_flags,
             algorithms,
             priorities,
@@ -754,6 +777,12 @@ def solve_one_step(
                         decision_variables_offsets[search_idx] : decision_variables_offsets[search_idx + 1]
                     ],
                     domains,
+                    entailed,
+                    offsets,
+                    propagator_variables,
+                    variable_propagators_offsets,
+                    variable_propagators,
+                    propagator_weights,
                     var_heuristic_params[
                         var_heuristic_params_offsets[search_idx] : var_heuristic_params_offsets[search_idx + 1]
                     ].reshape(var_heuristic_params_shapes[search_idx, 0], var_heuristic_params_shapes[search_idx, 1]),

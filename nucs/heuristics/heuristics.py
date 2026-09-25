@@ -12,9 +12,10 @@
 ###############################################################################
 from collections.abc import Callable
 
-from numba import int32, int64, types, uint32
+from numba import float64, int32, int64, types, uint32
 
 from nucs.heuristics.critical_resource_var_heuristic import critical_resource_var_heuristic
+from nucs.heuristics.dom_wdeg_var_heuristic import dom_wdeg_var_heuristic
 from nucs.heuristics.first_not_instantiated_var_heuristic import first_not_instantiated_var_heuristic
 from nucs.heuristics.greatest_domain_var_heuristic import greatest_domain_var_heuristic
 from nucs.heuristics.largest_maximal_value_var_heuristic import largest_maximal_value_var_heuristic
@@ -52,9 +53,18 @@ SIGN_DOM_HEURISTIC = types.UniTuple(int32, 2)(
 )
 TYPE_DOM_HEURISTIC = types.FunctionType(SIGN_DOM_HEURISTIC)
 
+# A variable heuristic sees the constraint network as well as the domains -- which propagators are entailed, the
+# variables of each propagator, the propagators of each variable -- and the failure weight of each propagator. Most
+# heuristics read only the domains; the dom/wdeg heuristic reads all of it.
 SIGN_VAR_HEURISTIC = int64(
     uint32[::1],  # decision_variables
     int32[:, ::1],  # domains
+    int32[::1],  # entailed
+    uint32[:, ::1],  # offsets
+    uint32[::1],  # propagator_variables
+    uint32[::1],  # variable_propagators_offsets
+    uint32[::1],  # variable_propagators
+    float64[::1],  # propagator_weights
     int64[:, :],  # var_heuristic_params
 )
 TYPE_VAR_HEURISTIC = types.FunctionType(SIGN_VAR_HEURISTIC)
@@ -99,6 +109,7 @@ def register_dom_heuristic(dom_heuristic_fct: Callable, name: str | None = None)
 
 
 VAR_HEURISTIC_CRITICAL_RESOURCE = register_var_heuristic(critical_resource_var_heuristic)
+VAR_HEURISTIC_DOM_WDEG = register_var_heuristic(dom_wdeg_var_heuristic)
 VAR_HEURISTIC_FIRST_NOT_INSTANTIATED = register_var_heuristic(first_not_instantiated_var_heuristic)
 VAR_HEURISTIC_GREATEST_DOMAIN = register_var_heuristic(greatest_domain_var_heuristic)
 VAR_HEURISTIC_LARGEST_MAXIMAL_VALUE = register_var_heuristic(largest_maximal_value_var_heuristic)

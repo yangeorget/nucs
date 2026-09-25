@@ -38,6 +38,7 @@ from nucs.problems.problem import (
 from nucs.propagators.propagators import call_compute_domains
 from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
 from nucs.solvers.state import tighten_at, trail_push, trail_set, unbound_index
+from nucs.solvers.weights import weights_bump
 from nucs.statistics import (
     STATS_ALG_IDX_FILTER_NB,
     STATS_ALG_IDX_FILTER_NO_CHANGE_NB,
@@ -63,6 +64,7 @@ from nucs.statistics import (
 @njit(cache=True, _nrt=False)  # type: ignore[call-overload]
 def bc_algorithm(
     statistics: NDArray,
+    propagator_weights: NDArray,
     algorithm_flags: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
@@ -88,6 +90,9 @@ def bc_algorithm(
 
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
+    :param propagator_weights: the failure weight of each propagator, followed by the increment and its growth
+                               (see nucs.solvers.weights)
+    :type propagator_weights: NDArray
     :param algorithm_flags: the PROP_FLAG_* properties of each algorithm, packed into one word and indexed
                             by algorithm rather than by propagator
     :type algorithm_flags: NDArray
@@ -199,6 +204,7 @@ def bc_algorithm(
         )
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
+            weights_bump(propagator_weights, prop_idx)
             trail_top[0] = trail_size
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:

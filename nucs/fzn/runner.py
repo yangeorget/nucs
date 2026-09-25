@@ -34,6 +34,7 @@ from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_RANDOM_VALUE,
     DOM_HEURISTIC_SPLIT_HIGH,
     DOM_HEURISTIC_SPLIT_LOW,
+    VAR_HEURISTIC_DOM_WDEG,
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
     VAR_HEURISTIC_GREATEST_DOMAIN,
     VAR_HEURISTIC_LARGEST_MAXIMAL_VALUE,
@@ -48,11 +49,12 @@ from nucs.solvers.solver import OPTIM_PRUNE
 logger = logging.getLogger(__name__)
 
 # FlatZinc variable-selection annotations mapped to NuCS variable heuristics; unlisted ones
-# (dom_w_deg, occurrence, most_constrained, ...) fall back to the default, with a warning -- silently
+# (occurrence, most_constrained, ...) fall back to the default, with a warning -- silently
 # solving a different search than the model asked for reads as slowness rather than as a missing feature.
 _VAR_HEURISTICS = {
     "input_order": VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
     "first_fail": VAR_HEURISTIC_SMALLEST_DOMAIN,
+    "dom_w_deg": VAR_HEURISTIC_DOM_WDEG,
     "anti_first_fail": VAR_HEURISTIC_GREATEST_DOMAIN,
     "max_regret": VAR_HEURISTIC_MAX_REGRET,
     "smallest": VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE,

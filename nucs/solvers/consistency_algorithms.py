@@ -12,7 +12,7 @@
 ###############################################################################
 from collections.abc import Callable
 
-from numba import int32, int64, types, uint8, uint32
+from numba import float64, int32, int64, types, uint8, uint32
 
 from nucs.solvers.bc_algorithm import bc_algorithm
 
@@ -21,6 +21,7 @@ CONSISTENCY_ALGS: dict[str, int] = {}  # algorithm name to index, for name-based
 
 SIGN_CONSISTENCY_ALG = int64(
     int64[::1],  # statistics
+    float64[::1],  # propagator_weights
     uint8[::1],  # algorithm_flags
     uint8[::1],  # algorithms
     uint32[::1],  # priorities

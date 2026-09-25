@@ -139,9 +139,33 @@ CSR-style: an `offsets` array delimits, for each propagator, its slice of the fl
 | `propagator_parameters` | `(Σ params,)` int32 | flat (CSR) | every propagator's parameters, concatenated |
 | `triggers` | `(Σ triggers,)` int32 | flat (CSR) | propagators to wake, grouped by `(variable, event)` |
 | `triggers_offsets` | `(domain_nb · 8 + 1,)` int32 | `variable · 8 + event` | row offsets into `triggers` |
+| `variable_propagators` | `(Σ distinct (variable, propagator) pairs,)` uint32 | flat (CSR) | the propagators of each variable, each once, in increasing order |
+| `variable_propagators_offsets` | `(domain_nb + 1,)` uint32 | variable | row offsets into `variable_propagators` |
+| `propagator_weights` | `(P + 2,)` float64 | propagator | the failure weight of each propagator, then the increment of the next failure and its growth (see *Failure weights*) |
 
 `P` = `propagator_nb`. A dense `(domain_nb, 8, propagator_nb)` trigger table would be mostly empty, so the propagators
 watching `(variable, event)` are the slice `triggers[triggers_offsets[variable·8 + event] : … + 1]`.
+
+### Failure weights — learned, global, never trailed
+
+`bc_algorithm` knows which propagator failed, and records it in `propagator_weights` (`nucs/solvers/weights.py`).
+The dom/wdeg variable heuristic reads these weights: it chooses the unbound variable with the smallest ratio of
+domain size to *weighted degree*, the sum of the weights of its live propagators. A propagator is live for `x` when
+it is not entailed and has an unbound variable other than `x`.
+
+- **The weights are not backtracked.** A failure says that a constraint is hard, and that stays true in every
+  part of the tree. So the weights are not in `state`, the trail never sees them, and `choice_point_init` does not
+  clear them: an `OPTIM_RESET` restart keeps what the previous descents learned. Choco and Gecode do the same.
+- **Decay costs one cell, not a pass.** Each propagator starts at 1 and a failure adds the current increment.
+  With `weight_decay < 1` (Gecode's AFC), each failure makes the increment larger by `1 / weight_decay`, which is
+  the same as making all the older weights smaller. When the increment passes `1e100`, one pass divides all the
+  cells by the same factor, which keeps every ratio. With the default decay of 1 the weights are 1 plus the
+  number of failures, which is Choco's dom/wdeg.
+- **The heuristic sees the network, and every variable heuristic pays nothing for it.** `SIGN_VAR_HEURISTIC` gives
+  every variable heuristic the entailment flags, the propagator tables and the weights. Passing six more array
+  arguments at each decision did not change the solve time of queens, golomb and magic sequence.
+- **A failure that no propagator reports gets no weight.** When `backtrack` re-applies the objective bound and a
+  domain becomes empty, no propagator failed.
 
 ### Backtrackable state is trailed, not copied
 

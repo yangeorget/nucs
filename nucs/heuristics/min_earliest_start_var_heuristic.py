@@ -19,7 +19,17 @@ from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 
 
 @njit(cache=True)
-def min_earliest_start_var_heuristic(decision_variables: NDArray, domains: NDArray, params: NDArray) -> int:
+def min_earliest_start_var_heuristic(
+    decision_variables: NDArray,
+    domains: NDArray,
+    entailed: NDArray,
+    offsets: NDArray,
+    propagator_variables: NDArray,
+    variable_propagators_offsets: NDArray,
+    variable_propagators: NDArray,
+    propagator_weights: NDArray,
+    params: NDArray,
+) -> int:
     """
     Chooses the unbound task with the smallest earliest start time, the selection rule of the Set Times search.
 
@@ -35,6 +45,18 @@ def min_earliest_start_var_heuristic(decision_variables: NDArray, domains: NDArr
     :type decision_variables: NDArray
     :param domains: the domains
     :type domains: NDArray
+    :param entailed: whether each propagator is entailed, unused here
+    :type entailed: NDArray
+    :param offsets: the offsets of the propagators, unused here
+    :type offsets: NDArray
+    :param propagator_variables: the variables of the propagators, unused here
+    :type propagator_variables: NDArray
+    :param variable_propagators_offsets: the offsets of the propagators of each variable, unused here
+    :type variable_propagators_offsets: NDArray
+    :param variable_propagators: the propagators of the variables, unused here
+    :type variable_propagators: NDArray
+    :param propagator_weights: the failure weights of the propagators, unused here
+    :type propagator_weights: NDArray
     :param params: a two-dimensional parameter array, unused here
     :type params: NDArray
 

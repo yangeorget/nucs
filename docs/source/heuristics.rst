@@ -29,7 +29,17 @@ A variable heuristic chooses the variable to branch on, and returns :code:`-1` w
    :linenos:
 
    @njit(cache=True)
-   def my_var_heuristic(decision_variables: NDArray, domains: NDArray, params: NDArray) -> int:
+   def my_var_heuristic(
+       decision_variables: NDArray,
+       domains: NDArray,
+       entailed: NDArray,
+       offsets: NDArray,
+       propagator_variables: NDArray,
+       variable_propagators_offsets: NDArray,
+       variable_propagators: NDArray,
+       propagator_weights: NDArray,
+       params: NDArray,
+   ) -> int:
        for variable in decision_variables:
            if domains[variable, DOMAIN_MIN] < domains[variable, DOMAIN_MAX]:
                return variable
@@ -37,6 +47,37 @@ A variable heuristic chooses the variable to branch on, and returns :code:`-1` w
 
 :code:`domains` is the current domains as a :code:`(domain_nb, 2)` array indexed by variable then by
 :code:`DOMAIN_MIN` / :code:`DOMAIN_MAX`.
+
+The six arguments between :code:`domains` and :code:`params` describe the constraint network and its failures, for a heuristic
+that needs it:
+
+- :code:`entailed[p]` is not zero when propagator :code:`p` is entailed,
+- the variables of propagator :code:`p` are
+  :code:`propagator_variables[offsets[p, OFFSETS_VARIABLE]:offsets[p + 1, OFFSETS_VARIABLE]]`,
+- the propagators of variable :code:`x` are
+  :code:`variable_propagators[variable_propagators_offsets[x]:variable_propagators_offsets[x + 1]]`,
+- :code:`propagator_weights[p]` is the failure weight of propagator :code:`p`, as the dom/wdeg heuristic reads it.
+
+A heuristic must only read them.
+
+Failure-count search
+####################
+
+:code:`VAR_HEURISTIC_DOM_WDEG` is dom/wdeg (Choco's :code:`domOverWDeg`): it chooses the variable with the
+smallest ratio of domain size to the sum of the failure weights of its live propagators. The weights are learned
+during the search and are never backtracked. The FlatZinc selector :code:`dom_w_deg` uses it.
+
+.. code-block:: python
+   :linenos:
+
+   solver = BacktrackSolver(problem, var_heuristic=VAR_HEURISTIC_DOM_WDEG)
+
+With :code:`weight_decay` below 1, the recent failures count more than the old ones, as in Gecode's AFC:
+
+.. code-block:: python
+   :linenos:
+
+   solver = BacktrackSolver(problem, var_heuristic=VAR_HEURISTIC_DOM_WDEG, weight_decay=0.95)
 
 
 Domain heuristics
@@ -71,3 +112,9 @@ it, so a split is always a partition of the domain and the enumeration stays com
    domains and the index of its top; it now receives the current domains directly. A domain heuristic used
    to receive the stacks and write both branches itself; it is now a pure function of the domains. A
    heuristic written against the old signatures will fail to compile against the new ones.
+
+.. warning::
+
+   The variable heuristic signature changed again in NuCS 17: six arguments that describe the constraint network
+   and the failure weights come between :code:`domains` and :code:`params`. A variable heuristic written against
+   the old signature will fail to compile. Add the six arguments; a heuristic that does not need them ignores them.

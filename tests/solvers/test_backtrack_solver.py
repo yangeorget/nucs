@@ -18,14 +18,17 @@ import pytest
 
 from nucs.buckets import buckets_empty
 from nucs.constants import DECISION_EQ, DOMAIN_MAX, DOMAIN_MIN, OBJECTIVE_BOUND, OBJECTIVE_VALUE, OBJECTIVE_VARIABLE
+from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
     DOM_HEURISTIC_MID_VALUE,
     DOM_HEURISTIC_MIN_VALUE,
     DOM_HEURISTIC_SPLIT_HIGH,
     DOM_HEURISTIC_SPLIT_LOW,
+    VAR_HEURISTIC_DOM_WDEG,
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
     VAR_HEURISTIC_GREATEST_DOMAIN,
+    VAR_HEURISTIC_SMALLEST_DOMAIN,
 )
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
@@ -34,6 +37,8 @@ from nucs.propagators.propagators import (
     ALG_LINEAR_NEQ_C,
     ALG_NEQ,
     ALG_RELATION,
+    ALG_SUM_EQ,
+    ALG_SUM_LEQ_C,
 )
 from nucs.solvers.backtrack_solver import (
     SOLVER_RUNNING,
@@ -47,6 +52,9 @@ from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
 from nucs.solvers.state import tighten
 from nucs.statistics import (
+    STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_IDX_SOLUTION_NB,
+    STATS_IDX_SOLVER_CHOICE_NB,
     STATS_LBL_PROPAGATOR_FILTER_NB,
     STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_LBL_SOLUTION_NB,
@@ -229,6 +237,9 @@ class TestBacktrackSolver:
             solver.objective,
             solver.trail_headroom,
             solver.interruption,
+            solver.propagator_weights,
+            problem.variable_propagators_offsets,
+            problem.variable_propagators,
         )
         assert status == SOLVER_RUNNING
         assert solution is not None
@@ -430,6 +441,68 @@ class TestBacktrackSolver:
         )
         solution = next(solver.solve())
         assert solution.tolist() == [0, 0, 9]  # variable 2 grounded to 9 first, then 0 and 1 to their min
+
+    @staticmethod
+    def _unsatisfiable_core(easy_nb: int) -> Problem:
+        """
+        Easy binary variables under windows x_i + x_{i+1} + x_{i+2} <= 2, which stay live and never fail, then 4
+        variables in [0, 2] which are pairwise different: an unsatisfiable core which bound consistency cannot
+        refute before the search reaches it. Initially the easy variables have the smaller ratio of domain size to
+        degree (2/3 against 3/3), so only the failures can send dom/wdeg to the core.
+        """
+        problem = Problem([(0, 1)] * easy_nb + [(0, 2)] * 4)
+        for i in range(easy_nb - 2):
+            problem.add_propagator(ALG_SUM_LEQ_C, [i, i + 1, i + 2], [2])
+        for a in range(4):
+            for b in range(a + 1, 4):
+                problem.add_propagator(ALG_NEQ, [easy_nb + a, easy_nb + b])
+        return problem
+
+    def test_find_all_propagator_weights_count_the_failures(self) -> None:
+        problem = self._unsatisfiable_core(6)
+        solver = BacktrackSolver(problem)
+        assert solver.find_all() == []
+        failures = solver.propagator_weights[: problem.propagator_nb] - 1  # every weight starts at 1
+        # the windows never fail, the core does under each assignment of the easy variables
+        assert failures[:4].tolist() == [0, 0, 0, 0]
+        assert failures.sum() == solver.statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB]
+
+    @pytest.mark.parametrize(
+        "var_heuristic,weight_decay,choice_nb",
+        [
+            # the easy variables have the smaller domains, so first_fail refutes the core once per assignment
+            (VAR_HEURISTIC_SMALLEST_DOMAIN, 1.0, 395),
+            # the failures weigh the core down, and the search goes there after a few of them
+            (VAR_HEURISTIC_DOM_WDEG, 1.0, 28),
+            # with a decay, the recent failures count more and the search goes there sooner
+            (VAR_HEURISTIC_DOM_WDEG, 0.5, 21),
+        ],
+    )
+    def test_find_all_dom_wdeg_learns_the_failing_core(
+        self, var_heuristic: int, weight_decay: float, choice_nb: int
+    ) -> None:
+        solver = BacktrackSolver(self._unsatisfiable_core(6), var_heuristic=var_heuristic, weight_decay=weight_decay)
+        assert solver.find_all() == []
+        assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == choice_nb
+
+    def test_find_best_reset_keeps_the_propagator_weights(self) -> None:
+        # OPTIM_RESET restarts from the root at each improving solution: the weights must survive it, or each
+        # descent would forget what the previous ones learned. Maximize the number of ones, no three in a row: at
+        # this size the search fails once before its last restart, then 3 times after it.
+        problem = Problem([(0, 1)] * 8 + [(0, 8)])
+        for i in range(6):
+            problem.add_propagator(ALG_SUM_LEQ_C, [i, i + 1, i + 2], [2])
+        problem.add_propagator(ALG_SUM_EQ, range(9))
+        solver = BacktrackSolver(problem, decision_variables=range(8), var_heuristic=VAR_HEURISTIC_DOM_WDEG)
+        solution = solver.find_best(8, DOMAIN_MAX, mode=OPTIM_RESET)
+        assert solution is not None
+        assert solution[8] == 6
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 7  # six restarts
+        failures = solver.propagator_weights[: problem.propagator_nb] - 1
+        assert failures.sum() == solver.statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] == 4
+
+    def test_find_all_dom_wdeg(self) -> None:
+        assert len(BacktrackSolver(QueensProblem(8), var_heuristic=VAR_HEURISTIC_DOM_WDEG).find_all()) == 92
 
     def test_find_all_split_grounding_wakes_ground_triggered_propagator(self) -> None:
         # A split heuristic that grounds a variable in its current branch must report a ground event,

@@ -31,7 +31,15 @@ A custom consistency algorithm is compiled against :code:`SIGN_CONSISTENCY_ALG` 
 :mod:`nucs.solvers.consistency_algorithms`, so it takes the same arguments as
 :func:`nucs.solvers.bc_algorithm.bc_algorithm`. One of them, :code:`compute_domains_addrs`, holds the compiled
 address of each propagator algorithm's :code:`compute_domains` function: pass it on unchanged, to
-:code:`bc_algorithm` or to :func:`~nucs.propagators.propagators.call_compute_domains`.
+:code:`bc_algorithm` or to :func:`~nucs.propagators.propagators.call_compute_domains`. Another one,
+:code:`propagator_weights`, holds the failure weight of each propagator: pass it on unchanged to
+:code:`bc_algorithm`, which records the failures in it, or record them yourself with
+:func:`nucs.solvers.weights.weights_bump`.
+
+.. warning::
+
+   In NuCS 17 :code:`propagator_weights` became the second argument of a consistency algorithm, after
+   :code:`statistics`. A consistency algorithm written against the old signature will fail to compile.
 
 
 

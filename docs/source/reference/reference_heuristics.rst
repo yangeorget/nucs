@@ -12,6 +12,7 @@ Heuristics for selecting a variable
 NUCS provides the following functions for selecting a variable
 
 .. autofunction:: nucs.heuristics.critical_resource_var_heuristic.critical_resource_var_heuristic
+.. autofunction:: nucs.heuristics.dom_wdeg_var_heuristic.dom_wdeg_var_heuristic
 .. autofunction:: nucs.heuristics.first_not_instantiated_var_heuristic.first_not_instantiated_var_heuristic
 .. autofunction:: nucs.heuristics.greatest_domain_var_heuristic.greatest_domain_var_heuristic
 .. autofunction:: nucs.heuristics.largest_maximal_value_var_heuristic.largest_maximal_value_var_heuristic

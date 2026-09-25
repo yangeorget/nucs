@@ -8,6 +8,26 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+### Breaking
+
+- **Two signatures changed.** A variable heuristic now takes six more arguments between `domains` and `params`:
+  `entailed`, `offsets`, `propagator_variables`, `variable_propagators_offsets`, `variable_propagators` and
+  `propagator_weights` (the constraint network and the failure weights). A consistency algorithm takes
+  `propagator_weights` after `statistics`. A heuristic or a consistency algorithm written against the old
+  signatures fails to compile; see the heuristics and consistency pages.
+
+### Added
+
+- **The dom/wdeg variable heuristic, `VAR_HEURISTIC_DOM_WDEG`** (Choco's `domOverWDeg`). It chooses the unbound
+  variable with the smallest ratio of domain size to weighted degree: the sum of the failure weights of its live
+  propagators, those that are not entailed and have another unbound variable. The weights are global and are never
+  backtracked, so an `OPTIM_RESET` restart keeps them. The FlatZinc selector `dom_w_deg` now uses it: before, it
+  fell back to `input_order`. On an unsatisfiable core behind 6 easy variables it makes 28 choices, where
+  `first_fail` makes 395.
+- **`BacktrackSolver(weight_decay=...)`**: below 1, the recent failures count more than the old ones, as in
+  Gecode's AFC. The default of 1 is plain dom/wdeg.
+- **`Problem.variable_propagators`**, the propagators of each variable, the transpose of `propagator_variables`.
+
 ## 16.1.0
 
 ### Fixed

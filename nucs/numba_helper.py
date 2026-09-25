@@ -27,9 +27,11 @@ NUMBA_DISABLE_JIT = bool(config.DISABLE_JIT)  # type: ignore[attr-defined]  # se
 
 # These function tables are Numba typed lists under the JIT and plain Python lists under
 # NUMBA_DISABLE_JIT; both are indexed and measured the same way, so they are typed structurally as
-# read-only sequences. The Callable element signatures mirror the matching SIGN_* in nucs.constants
-# (under the JIT the element is actually a Numba FunctionType, which has no Python type).
-VariableHeuristicFunctions = Sequence[Callable[[NDArray, NDArray, NDArray], int]]
+# read-only sequences. The Callable element signatures mirror SIGN_VAR_HEURISTIC and SIGN_DOM_HEURISTIC in
+# nucs.heuristics.heuristics (under the JIT the element is actually a Numba FunctionType, which has no Python type).
+VariableHeuristicFunctions = Sequence[
+    Callable[[NDArray, NDArray, NDArray, NDArray, NDArray, NDArray, NDArray, NDArray, NDArray], int]
+]
 DomainHeuristicFunctions = Sequence[Callable[[NDArray, int, NDArray], tuple[int, int]]]
 ConsistencyAlgorithmFunctions = Sequence[Callable[..., int]]
 
