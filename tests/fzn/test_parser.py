@@ -14,6 +14,7 @@ import pytest
 
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.parser import (
+    Ann,
     ArrayAccess,
     ArrayDecl,
     Constraint,
@@ -114,6 +115,19 @@ class TestParser:
         # '.' only starts a float when a digit follows, so 'lo..hi' must still parse
         statements = parse("array [1..3] of var -10..-1: a;")
         assert statements[0] == ArrayDecl("a", [], [], True, -10, -1, 3)
+
+    def test_parse_float_in_an_annotation(self) -> None:
+        # an annotation can take a float, such as the base of restart_geometric; the model still has no float
+        solve = parse("solve :: restart_geometric(1.5, 100) :: seq_search([foo(-2.5e1)]) satisfy;")[0]
+        assert isinstance(solve, Solve)
+        assert solve.annotations[0].args == [1.5, 100]
+        assert solve.annotations[1].args == [[Ann("foo", [-25.0])]]
+
+    def test_parse_float_after_an_annotation_is_rejected(self) -> None:
+        # the annotation ends at its closing parenthesis, and a float after it is outside it
+        with pytest.raises(FznUnsupportedError) as exc:
+            parse("var 0..3: x :: foo(1.5);\nconstraint float_lt(1.0, x);")
+        assert "float literal '1.0'" in str(exc.value)
 
     def test_parse_unsupported_set_domain_hints_at_variable_bounded_comprehension(self) -> None:
         # a var set typically comes from a comprehension over a variable-bounded range; the error should

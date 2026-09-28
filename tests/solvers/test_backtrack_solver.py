@@ -33,6 +33,7 @@ from nucs.heuristics.heuristics import (
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import (
     ALG_ALLDIFFERENT,
+    ALG_LEQ_C,
     ALG_LINEAR_LEQ_C,
     ALG_LINEAR_NEQ_C,
     ALG_NEQ,
@@ -48,6 +49,7 @@ from nucs.solvers.backtrack_solver import (
     solve_one_step,
 )
 from nucs.solvers.choice_points import CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_VARIABLE, backtrack, branch
+from nucs.solvers.restarts import RESTART_LUBY
 from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
 from nucs.solvers.state import tighten
@@ -55,6 +57,7 @@ from nucs.statistics import (
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
     STATS_IDX_SOLUTION_NB,
     STATS_IDX_SOLVER_CHOICE_NB,
+    STATS_IDX_SOLVER_RESTART_NB,
     STATS_LBL_PROPAGATOR_FILTER_NB,
     STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB,
     STATS_LBL_SOLUTION_NB,
@@ -240,6 +243,8 @@ class TestBacktrackSolver:
             solver.propagator_weights,
             problem.variable_propagators_offsets,
             problem.variable_propagators,
+            solver.search_control,
+            solver.variable_searches,
         )
         assert status == SOLVER_RUNNING
         assert solution is not None
@@ -500,6 +505,72 @@ class TestBacktrackSolver:
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == 7  # six restarts
         failures = solver.propagator_weights[: problem.propagator_nb] - 1
         assert failures.sum() == solver.statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] == 4
+
+    def test_find_all_with_restarts_finds_each_solution_once(self) -> None:
+        # a restart after a solution would find it again: the restarts stop at the first solution
+        solver = BacktrackSolver(QueensProblem(8), restart_policy=RESTART_LUBY, restart_scale=1)
+        solutions = [tuple(solution) for solution in solver.find_all()]
+        assert solver.statistics[STATS_IDX_SOLVER_RESTART_NB] > 0
+        assert len(solutions) == len(set(solutions)) == 92
+
+    def test_find_all_with_restarts_proves_unsatisfiability(self) -> None:
+        # the Luby limits have no upper bound, so a descent eventually gets long enough to finish the proof
+        solver = BacktrackSolver(
+            self._unsatisfiable_core(6),
+            var_heuristic=VAR_HEURISTIC_DOM_WDEG,
+            restart_policy=RESTART_LUBY,
+            restart_scale=1,
+        )
+        assert solver.find_all() == []
+        assert solver.statistics[STATS_IDX_SOLVER_RESTART_NB] > 0
+
+    @pytest.mark.parametrize("mode", [OPTIM_PRUNE, OPTIM_RESET])
+    def test_optimize_with_restarts_improves_at_each_solution(self, mode: str) -> None:
+        # a restart re-applies the best solution so far at the root: without it, the descent after a restart finds
+        # worse solutions again (0, 1, 2, 0, 1, 2, 0, ...). Maximize the number of ones, no three in a row.
+        problem = Problem([(0, 1)] * 10 + [(0, 10)])
+        for i in range(8):
+            problem.add_propagator(ALG_SUM_LEQ_C, [i, i + 1, i + 2], [2])
+        problem.add_propagator(ALG_SUM_EQ, range(11))
+        solver = BacktrackSolver(problem, decision_variables=range(10), restart_policy=RESTART_LUBY, restart_scale=1)
+        assert [solution[10] for solution in solver.optimize(10, DOMAIN_MAX, mode)] == [0, 1, 2, 3, 4, 5, 6, 7]
+        assert solver.statistics[STATS_IDX_SOLVER_RESTART_NB] > 0
+
+    @pytest.mark.parametrize(
+        "last_conflict,choice_nb",
+        [
+            (False, 1340),
+            # after the core fails on x, the search refutes the easy variables above it one by one, and tries x
+            # first after each of them: the core fails at once and the easy variables are not explored again
+            (True, 234),
+        ],
+    )
+    def test_find_all_last_conflict_tries_the_conflict_variable_first(
+        self, last_conflict: bool, choice_nb: int
+    ) -> None:
+        solver = BacktrackSolver(self._unsatisfiable_core(8), last_conflict=last_conflict)
+        assert solver.find_all() == []
+        assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == choice_nb
+
+    def test_solve_last_conflict_keeps_the_order_of_the_searches(self) -> None:
+        # a in [0, 3] is searched first, x, y, z <= a are pairwise different and searched second. With a = 1, a
+        # decision on x fails; its refutation leaves a unbound in [2, 3], so the first search still owns the next
+        # decision: x must wait, and then take the value heuristic of its own search. Taking x at once gives
+        # [2, 0, 2, 1].
+        problem = Problem([(0, 3), (0, 2), (0, 2), (0, 2)])
+        for variable in (1, 2, 3):
+            problem.add_propagator(ALG_LEQ_C, [variable, 0], [0])
+        for x, y in ((1, 2), (1, 3), (2, 3)):
+            problem.add_propagator(ALG_NEQ, [x, y])
+        solver = BacktrackSolver(
+            problem,
+            searches=[
+                Search([0], dom_heuristic=DOM_HEURISTIC_MIN_VALUE),
+                Search([1, 2, 3], dom_heuristic=DOM_HEURISTIC_MAX_VALUE),
+            ],
+            last_conflict=True,
+        )
+        assert next(solver.solve()).tolist() == [2, 2, 1, 0]
 
     def test_find_all_dom_wdeg(self) -> None:
         assert len(BacktrackSolver(QueensProblem(8), var_heuristic=VAR_HEURISTIC_DOM_WDEG).find_all()) == 92

@@ -58,6 +58,14 @@ Solve a model
    The first invocation is a few seconds slower while Numba compiles the propagators.
    With :code:`NUMBA_CACHE_DIR` set, later runs reuse the cache.
 
+The MiniZinc restart annotations on the solve item are followed: :code:`restart_luby`, :code:`restart_geometric`,
+:code:`restart_linear`, :code:`restart_constant` and :code:`restart_none`. A restart limit counts failures. Last-conflict
+has no annotation, so it has its own flag:
+
+.. code-block:: bash
+
+   minizinc --solver nucs --last-conflict model.mzn
+
 A model that uses a builtin the adapter does not yet support exits with a clear
 :code:`constraint '<name>' is not supported` message.
 

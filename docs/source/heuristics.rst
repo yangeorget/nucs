@@ -80,6 +80,46 @@ With :code:`weight_decay` below 1, the recent failures count more than the old o
    solver = BacktrackSolver(problem, var_heuristic=VAR_HEURISTIC_DOM_WDEG, weight_decay=0.95)
 
 
+Restarts and last-conflict
+##########################
+
+dom/wdeg learns which constraints fail, but without restarts it can only change the order of the decisions below the
+first bad ones. A restart stops the descent after a number of failures and starts again from the root, where the
+learned weights choose better first decisions:
+
+.. code-block:: python
+   :linenos:
+
+   solver = BacktrackSolver(
+       problem, var_heuristic=VAR_HEURISTIC_DOM_WDEG, restart_policy=RESTART_LUBY, restart_scale=100
+   )
+
+The policies of :mod:`nucs.solvers.restarts` are those of MiniZinc: :code:`RESTART_LUBY` (the scale times the
+Luby sequence 1, 1, 2, 1, 1, 2, 4, ...), :code:`RESTART_GEOMETRIC` (the scale times :code:`restart_base` to the
+power of the restart number), :code:`RESTART_LINEAR`, :code:`RESTART_CONSTANT` and :code:`RESTART_NONE`, the default.
+A limit counts failures.
+
+- A restart keeps the search sound. When optimizing, the best solution so far is applied again at the root, so the
+  search finds only better ones. When enumerating, the restarts stop at the first solution, so that no solution is
+  found twice.
+- The Luby, geometric and linear limits have no upper bound, so the search stays complete: it still proves that a
+  problem has no solution, or that a solution is optimal. A constant limit does not.
+- Restarts help only a search that learns. With :code:`VAR_HEURISTIC_FIRST_NOT_INSTANTIATED` or
+  :code:`VAR_HEURISTIC_SMALLEST_DOMAIN`, each descent starts with the same decisions again.
+
+Last-conflict (Lecoutre et al. 2009) is independent of the restarts and of the heuristic. After a decision leads to a
+failure, the search branches on the variable of that decision first, as long as it is unbound. When this variable
+then fails on all its values, the search refutes an earlier decision and tries the conflict variable again at once,
+which tells quickly if the earlier decision was the cause:
+
+.. code-block:: python
+   :linenos:
+
+   solver = BacktrackSolver(problem, var_heuristic=VAR_HEURISTIC_DOM_WDEG, last_conflict=True)
+
+In a sequential search, the conflict variable waits until the search that owns it has the decision.
+
+
 Domain heuristics
 #################
 

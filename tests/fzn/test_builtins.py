@@ -23,10 +23,11 @@ from collections.abc import Callable
 
 import pytest
 
+from nucs.fzn.__main__ import build_arg_parser
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import build_model
 from nucs.fzn.parser import parse
-from nucs.fzn.runner import run, search_heuristics
+from nucs.fzn.runner import restart_policy_of, run, search_heuristics
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
     DOM_HEURISTIC_MID_VALUE,
@@ -76,6 +77,7 @@ from nucs.propagators.propagators import (
     ALG_VALUE_PRECEDE,
     ALG_VALUE_PRECEDE_CHAIN,
 )
+from nucs.solvers.restarts import RESTART_CONSTANT, RESTART_GEOMETRIC, RESTART_LINEAR, RESTART_LUBY, RESTART_NONE
 
 # The half-reified builtins over x, y in 0..3 and booleans a, b, each with the constraint C it implies.
 HALF_REIFIED_BUILTINS = [
@@ -1747,6 +1749,52 @@ class TestBuiltins:
         assert result[0].dom_heuristic == DOM_HEURISTIC_MIN_VALUE
         assert "occurrence" in caplog.text and "input_order" in caplog.text
         assert "outdomain_min" in caplog.text and "indomain_min" in caplog.text
+
+    @pytest.mark.parametrize(
+        "annotation,policy",
+        [
+            ("", (RESTART_NONE, 1, 2.0)),
+            (":: restart_none", (RESTART_NONE, 1, 2.0)),
+            (":: restart_luby(50)", (RESTART_LUBY, 50, 2.0)),
+            (":: restart_geometric(1.5, 100)", (RESTART_GEOMETRIC, 100, 1.5)),
+            (":: restart_geometric(2, 100)", (RESTART_GEOMETRIC, 100, 2.0)),  # an int base
+            (":: restart_linear(10)", (RESTART_LINEAR, 10, 2.0)),
+            (":: restart_constant(10)", (RESTART_CONSTANT, 10, 2.0)),
+            # the restart annotation comes before the search annotation, as MiniZinc writes them
+            (":: restart_luby(5) :: int_search([x], dom_w_deg, indomain_min, complete)", (RESTART_LUBY, 5, 2.0)),
+        ],
+    )
+    def test_restart_policy_of(self, annotation: str, policy: tuple[str, int, float]) -> None:
+        model = build_model(parse(f"var 0..3: x;\nsolve {annotation} satisfy;"))
+        assert restart_policy_of(model) == policy
+
+    @pytest.mark.parametrize(
+        "annotation", [":: restart_luby(0)", ":: restart_geometric(0.5, 10)", ":: restart_fibonacci(3)"]
+    )
+    def test_restart_policy_of_falls_back_to_no_restart(
+        self, annotation: str, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        model = build_model(parse(f"var 0..3: x;\nsolve {annotation} satisfy;"))
+        with caplog.at_level(logging.WARNING, logger="nucs.fzn.runner"):
+            assert restart_policy_of(model) == (RESTART_NONE, 1, 2.0)
+        assert "without restarts" in caplog.text
+
+    @pytest.mark.parametrize("last_conflict", [False, True])
+    def test_run_restarts_and_last_conflict(self, last_conflict: bool) -> None:
+        # 4 pigeons in 3 holes behind a restart annotation: the proof must still end, with or without last-conflict
+        text = (
+            "array [1..4] of var 0..2: x;\n"
+            + "".join(f"constraint int_ne(x[{i}], x[{j}]);\n" for i in range(1, 5) for j in range(i + 1, 5))
+            + "solve :: restart_luby(1) :: int_search(x, dom_w_deg, indomain_min, complete) satisfy;\n"
+        )
+        out = io.StringIO()
+        run(build_model(parse(text)), out, statistics=True, last_conflict=last_conflict)
+        assert "=====UNSATISFIABLE=====" in out.getvalue()
+        assert "SOLVER_RESTART_NB=0" not in out.getvalue()
+
+    def test_main_last_conflict_flag(self) -> None:
+        assert build_arg_parser().parse_args(["--last-conflict", "model.fzn"]).last_conflict
+        assert not build_arg_parser().parse_args(["model.fzn"]).last_conflict
 
     def test_build_model_search_heuristics_dom_w_deg(self, caplog: pytest.LogCaptureFixture) -> None:
         model = build_model(parse("var 0..3: x;\nsolve :: int_search([x], dom_w_deg, indomain_min, complete) satisfy;"))

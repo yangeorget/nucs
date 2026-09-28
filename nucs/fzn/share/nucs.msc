@@ -7,6 +7,9 @@
   "executable": "fzn-nucs",
   "tags": ["cp", "int"],
   "stdFlags": ["-a", "-i", "-n", "-s", "-t"],
+  "extraFlags": [
+    ["--last-conflict", "branch first on the variable of the last refuted decision", "bool", "false"]
+  ],
   "supportsMzn": false,
   "supportsFzn": true,
   "needsSolns2Out": true,

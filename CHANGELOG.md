@@ -27,6 +27,21 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 - **`BacktrackSolver(weight_decay=...)`**: below 1, the recent failures count more than the old ones, as in
   Gecode's AFC. The default of 1 is plain dom/wdeg.
 - **`Problem.variable_propagators`**, the propagators of each variable, the transpose of `propagator_variables`.
+- **Restarts**: `BacktrackSolver(restart_policy=..., restart_scale=..., restart_base=...)` with the MiniZinc
+  policies (Luby, geometric, linear, constant, none), which count failures. The weights of dom/wdeg stay across a
+  restart. When optimizing, the best solution is applied again at the root; when enumerating, the restarts stop at
+  the first solution. The FlatZinc runner follows the `restart_*` annotations of the solve item. A new statistic,
+  `SOLVER_RESTART_NB`, counts them.
+- **Last-conflict**: `BacktrackSolver(last_conflict=True)`, or `fzn-nucs --last-conflict` (also declared to
+  MiniZinc). After a decision leads to a failure, the search branches on its variable first, as long as it is
+  unbound. On an unsatisfiable core behind 8 easy variables with input order, it makes 234 choices instead of 1340.
+
+### Fixed
+
+- **A second solver on the same `Problem` found no solution.** `Problem.init` added to the count of unbound variables
+  instead of counting them again, so the second solver never saw every variable bound.
+- **A model with `restart_geometric` was rejected**, because its base is a float and the FlatZinc tokenizer refused
+  every float literal. A float is now accepted in the arguments of an annotation, and still rejected everywhere else.
 
 ## 16.1.0
 

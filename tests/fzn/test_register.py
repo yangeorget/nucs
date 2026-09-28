@@ -28,3 +28,7 @@ class TestRegister:
         assert os.path.isabs(config["mznlib"])
         assert os.path.isdir(config["mznlib"])
         assert config["id"] == "org.nucs.nucs"
+        # MiniZinc passes a solver-specific flag only when the configuration declares it
+        assert ["--last-conflict", "branch first on the variable of the last refuted decision", "bool", "false"] in (
+            config["extraFlags"]
+        )

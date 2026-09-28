@@ -26,6 +26,7 @@ counters, restricted to the propagator algorithms that actually ran:
        'SOLVER_BACKTRACK_NB': 11077,
        'SOLVER_CHOICE_NB': 11142,
        'SOLVER_CHOICE_DEPTH': 9,
+       'SOLVER_RESTART_NB': 0,
        'SOLUTION_NB': 10,
        'SOLVER_ELAPSED_TIME_MS': 197,
        'PROPAGATOR_FILTER_NB_ALLDIFFERENT': 44683,

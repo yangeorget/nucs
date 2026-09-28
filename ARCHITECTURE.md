@@ -96,7 +96,7 @@ Two distinct code sets share the values `0/1/2`:
 
 ### Statistics
 
-`nucs/statistics.py` owns the array: `STATS_IDX_*` index a single `int64` array of `STATS_MAX = 10` counters
+`nucs/statistics.py` owns the array: `STATS_IDX_*` index a single `int64` array of `STATS_MAX = 11` counters
 (`statistics`), `statistics_init` allocates it and `statistics_as_dictionary` reads it back under the `STATS_LBL_*`
 labels. It is a leaf module — it takes the algorithm count and the algorithm names as arguments rather than importing
 the propagator registry, so a jitted module can import a counter index without pulling the registry in behind it.
@@ -113,6 +113,7 @@ the propagator registry, so a jitted module can import a counter index without p
 | 7 | `SOLVER_CHOICE_DEPTH` | current choice-point depth |
 | 8 | `SOLVER_CHOICE_NB` | choices (branches) made |
 | 9 | `SOLVER_ELAPSED_TIME` | solve time (accumulated in ns, reported in ms) |
+| 10 | `SOLVER_RESTART_NB` | restarts from the root |
 
 ## Important decisions
 
@@ -166,6 +167,32 @@ it is not entailed and has an unbound variable other than `x`.
   arguments at each decision did not change the solve time of queens, golomb and magic sequence.
 - **A failure that no propagator reports gets no weight.** When `backtrack` re-applies the objective bound and a
   domain becomes empty, no propagator failed.
+
+### Restarts and last-conflict — solver state, not choice-point state
+
+Both live in `search_control`, a small `int64` array that `solve_one_step` reads and writes, and that nothing trails:
+the failure limit of the current descent, the failures since the last start from the root, whether last-conflict is
+on, the conflict variable and the variable of the last decision.
+
+- **A restart is `OPTIM_RESET`'s reset, triggered by a failure limit.** At the top of its loop, `solve_one_step`
+  returns `SOLVER_RESTART` once the failures reach the limit, before it starts a filtering, so the state it leaves is
+  not a half-done one. `_restart` goes back to the root with `choice_point_init`, empties and fills the queue again,
+  and takes the next limit of the policy (`nucs/solvers/restarts.py`). The propagator weights stay.
+- **The incumbent is re-applied at the root.** In `OPTIM_RESET` the bound of the best solution is written once, at
+  the root, and a restart undoes it; in `OPTIM_PRUNE` the bound is armed but `backtrack` only applies it to the choice
+  points it resumes. So the solver keeps the incumbent itself and re-applies it after each restart, with a mark of
+  0. Without that, the search finds worse solutions again after each restart.
+- **Enumeration stops restarting at its first solution**, because a restart would find the solutions emitted so far
+  again. Before the first solution a restart loses nothing.
+- **The conflict variable is that of the last *decision* that led to a failure**, not that of the choice point the
+  backtrack resumes. A branch records its variable; a failure moves it to the conflict cell; a refutation clears the
+  record, so a failure that follows a refutation keeps the conflict variable. That is what makes last-conflict
+  useful: after `x` fails on all its values, the search refutes an earlier decision on `y` and tries `x` again
+  first, which tests at once if `y` was the cause. Taking the resumed choice point's variable instead replaces `x`
+  by `y`, and measured no gain at all.
+- **The conflict variable keeps the order of the searches.** `variable_searches` gives the search that owns each
+  variable, and the conflict variable only takes the decision of that search. The searches before it have no unbound
+  variable left when the loop reaches it, so the sequential order holds.
 
 ### Backtrackable state is trailed, not copied
 

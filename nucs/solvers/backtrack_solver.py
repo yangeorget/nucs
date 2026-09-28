@@ -55,8 +55,15 @@ from nucs.propagators.propagators import (
     get_algorithm_nb,
     update_propagators,
 )
-from nucs.solvers.choice_points import CHOICE_POINT_WIDTH, backtrack, branch, choice_point_init, tighten_objective
+from nucs.solvers.choice_points import (
+    CHOICE_POINT_WIDTH,
+    backtrack,
+    branch,
+    choice_point_init,
+    tighten_objective,
+)
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
+from nucs.solvers.restarts import RESTART_NONE, restart_limits
 from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_RESET, Solver, get_solution
 from nucs.solvers.weights import weights_init
@@ -65,6 +72,7 @@ from nucs.statistics import (
     STATS_IDX_SOLVER_CHOICE_DEPTH,
     STATS_IDX_SOLVER_CHOICE_NB,
     STATS_IDX_SOLVER_ELAPSED_TIME,
+    STATS_IDX_SOLVER_RESTART_NB,
     statistics_as_dictionary,
     statistics_init,
 )
@@ -81,6 +89,16 @@ SOLVER_RUNNING = 0  # nothing filled up: the search returned a solution or exhau
 SOLVER_TRAIL_FULL = 1  # the search stopped because the trail needs more room, not because it is over
 SOLVER_CHOICE_POINTS_FULL = 2  # likewise for the stack of choice points
 SOLVER_INTERRUPTED = 3  # the search stopped because interrupt() asked it to, from outside the compiled loop
+SOLVER_RESTART = 4  # the descent reached its failure limit: the solver restarts from the root and resumes
+
+# The cells of search_control, the state of the restarts and of last-conflict that the compiled loop reads and writes.
+# It is solver state, not choice-point state: nothing about it is trailed.
+SEARCH_CONTROL_RESTART_LIMIT = 0  # the failures after which the descent restarts, -1 for no restart
+SEARCH_CONTROL_FAILURE_NB = 1  # the failures since the search last started from the root
+SEARCH_CONTROL_LAST_CONFLICT = 2  # 1 when last-conflict is on, 0 otherwise
+SEARCH_CONTROL_CONFLICT_VARIABLE = 3  # the variable of the last decision that led to a failure, -1 when none
+SEARCH_CONTROL_DECISION_VARIABLE = 4  # the variable of the last decision, -1 once a refutation follows it
+SEARCH_CONTROL_WIDTH = 5
 
 # what the interruption cell holds; the compiled loop stops on anything non-zero
 INTERRUPTION_NONE = 0
@@ -134,6 +152,10 @@ class BacktrackSolver(Solver):
         trail_max_size: int | None = None,
         log_level: str = LOG_LEVEL_INFO,
         weight_decay: float = 1.0,
+        restart_policy: str = RESTART_NONE,
+        restart_scale: int = 100,
+        restart_base: float = 1.5,
+        last_conflict: bool = False,
     ):
         """
         Initializes the solver.
@@ -173,6 +195,17 @@ class BacktrackSolver(Solver):
                              later failure; 1 counts all the failures the same (dom/wdeg), less than 1 prefers the
                              recent ones (AFC), defaults to 1
         :type weight_decay: float
+        :param restart_policy: one of RESTART_POLICIES (nucs.solvers.restarts): after how many failures each descent
+                               restarts from the root, defaults to RESTART_NONE. When enumerating, the restarts stop
+                               at the first solution, so that no solution is found twice.
+        :type restart_policy: str
+        :param restart_scale: the number of failures the restart policy multiplies, defaults to 100
+        :type restart_scale: int
+        :param restart_base: the ratio of the geometric restart policy, defaults to 1.5
+        :type restart_base: float
+        :param last_conflict: whether the search branches first on the variable of the last refuted decision, as long
+                              as it is unbound (last-conflict reasoning), defaults to False
+        :type last_conflict: bool
         """
         super().__init__(problem, log_level)
         if var_heuristic_params is None:
@@ -282,6 +315,19 @@ class BacktrackSolver(Solver):
         # the failure weight of each propagator: global, never trailed and never reset, so that what one solve
         # learns about the constraints serves the next one too
         self.propagator_weights = weights_init(problem.propagator_nb, weight_decay)
+        # checked here, so that a wrong policy fails at construction rather than at the first solve
+        restart_limits(restart_policy, restart_scale, restart_base)
+        self.restart_policy = (restart_policy, restart_scale, restart_base)
+        self.restart_limits: Iterator[int] = iter(())
+        self.search_control = np.full(SEARCH_CONTROL_WIDTH, -1, dtype=np.int64)
+        self.search_control[SEARCH_CONTROL_LAST_CONFLICT] = int(last_conflict)
+        # the search that owns each variable, -1 for a variable no search branches on: last-conflict may only take
+        # over the decision of the search that owns the conflict variable
+        self.variable_searches = np.full(problem.domain_nb, -1, dtype=np.int32)
+        for search_idx in reversed(range(len(decision_variables_per_search))):  # the first search listing it wins
+            self.variable_searches[decision_variables_per_search[search_idx]] = search_idx
+        # the best solution so far as (variable, value, bound), which a restart re-applies at the root
+        self.incumbent: tuple[int, int, int] | None = None
         logger.debug("Statistics initialized")
         # resolving only the algorithms used by the problem keeps the init cost proportional to the problem instead
         # of the whole propagator library; without the JIT this is a placeholder that call_compute_domains ignores
@@ -306,9 +352,20 @@ class BacktrackSolver(Solver):
 
     def solve(self, timeout: float | None = None) -> Iterator[NDArray]:
         logger.info("Solving and iterating over the solutions")
-        for solution in self._iterate_solutions(lambda _: self._backtrack(), timeout):
+        for solution in self._iterate_solutions(lambda _: self._backtrack_after_solution(), timeout):
             logger.debug("Found a solution")
             yield solution
+
+    def _backtrack_after_solution(self) -> bool:
+        """
+        Moves the enumeration on from a solution, and stops the restarts: a restart would find the solutions
+        emitted so far again.
+
+        :return: whether the search can continue
+        :rtype: bool
+        """
+        self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = -1
+        return self._backtrack()
 
     def optimize(self, variable: int, bound: int, mode: str, timeout: float | None = None) -> Iterator[NDArray]:
         logger.info("Optimizing and iterating over the solutions")
@@ -351,6 +408,12 @@ class BacktrackSolver(Solver):
             # no incumbent yet, so the first descent runs unbounded; _advance_after_optimum arms the objective.
             # An enumeration disarms it here too: the solver may have been optimized with before.
             self.objective[OBJECTIVE_VARIABLE] = -1
+            self.incumbent = None
+            self.restart_limits = restart_limits(*self.restart_policy)
+            self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
+            self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
+            self.search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = -1
+            self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
             while (solution := self._solve_one()) is not None:
                 self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
                 yield solution
@@ -417,7 +480,42 @@ class BacktrackSolver(Solver):
                 logger.info("Interrupted, stopping the search")
                 self.timed_out = True
                 return None
+            if status == SOLVER_RESTART:
+                if not self._restart():
+                    return None
+                continue
             self._grow(status)
+
+    def _restart(self) -> bool:
+        """
+        Restarts the search from the root, with the next failure limit of the restart policy.
+
+        What the search learned stays: the propagator weights are not reset. The best solution so far is re-applied
+        at the root, with a mark of 0 as OPTIM_RESET does, since the reset undoes every tightening above it.
+
+        :return: false when the root cannot hold a better solution, which proves the incumbent optimal
+        :rtype: bool
+        """
+        logger.debug("Restarting")
+        self.statistics[STATS_IDX_SOLVER_RESTART_NB] += 1
+        self._choice_point_init()
+        self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
+        self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
+        self.search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = -1
+        self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
+        if self.incumbent is not None:
+            variable, value, bound = self.incumbent
+            if (
+                tighten_objective(
+                    self.state, self.trail_log, self.trail_top, self.trail_indices, 0, variable, value, bound
+                )
+                < 0
+            ):
+                return False
+        # the descent stopped in the middle of a filtering, so the queue is not empty
+        buckets_empty(self.triggered_propagators, self.problem.priorities)
+        buckets_init(self.triggered_propagators, self.problem.priorities)
+        return True
 
     def _solve_one_step(self) -> tuple[int, NDArray | None]:
         """
@@ -464,6 +562,8 @@ class BacktrackSolver(Solver):
             self.propagator_weights,
             self.problem.variable_propagators_offsets,
             self.problem.variable_propagators,
+            self.search_control,
+            self.variable_searches,
         )
 
     def interrupt(self) -> None:
@@ -494,9 +594,14 @@ class BacktrackSolver(Solver):
         :return: whether the search can continue
         :rtype: bool
         """
+        self.incumbent = (variable, value, bound)
         if mode == OPTIM_RESET:
             logger.debug("Resetting solver")
             self._choice_point_init()
+            # a root reset, as a restart is: the failures count from here and the conflict variable is forgotten
+            self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
+            self.search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = -1
+            self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
             # at the root, so with a mark of 0: what this tightening writes is undone only by the next reset
             if (
                 tighten_objective(
@@ -563,6 +668,8 @@ class BacktrackSolver(Solver):
         :return: true iff it was possible to backtrack
         :rtype: bool
         """
+        # the search resumes on a refutation, and a failure that follows one does not name a conflict variable
+        self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
         return backtrack(
             self.statistics,
             self.state,
@@ -628,6 +735,8 @@ def solve_one_step(
     propagator_weights: NDArray,
     variable_propagators_offsets: NDArray,
     variable_propagators: NDArray,
+    search_control: NDArray,
+    variable_searches: NDArray,
 ) -> tuple[int, NDArray | None]:
     """
     Searches for one solution, stopping early when an array it cannot grow runs out of room.
@@ -724,6 +833,10 @@ def solve_one_step(
     :type variable_propagators_offsets: NDArray
     :param variable_propagators: the propagators of the variables, each one once per variable
     :type variable_propagators: NDArray
+    :param search_control: the state of the restarts and of last-conflict, see SEARCH_CONTROL_*
+    :type search_control: NDArray
+    :param variable_searches: the search that owns each variable, -1 for a variable no search branches on
+    :type variable_searches: NDArray
 
     :return: why the step returned, and the solution when it found one
     :rtype: Tuple[int, Optional[NDArray]]
@@ -735,6 +848,10 @@ def solve_one_step(
         # checked at every node and before the state is touched, like the two checks below
         if interruption[0] != 0:
             return SOLVER_INTERRUPTED, None
+        # checked before the filtering, so that the state the solver restarts from is not a half-done one
+        restart_limit = search_control[SEARCH_CONTROL_RESTART_LIMIT]
+        if 0 <= restart_limit <= search_control[SEARCH_CONTROL_FAILURE_NB]:
+            return SOLVER_RESTART, None
         # the arrays are caller-allocated, so the search stops for the solver to grow one rather than
         # overrun it silently -- with boundscheck off, the overrun is what would otherwise happen
         if trail_top[0] + trail_headroom > len(trail):
@@ -771,22 +888,35 @@ def solve_one_step(
         if problem_status == PROBLEM_UNBOUND:
             # sequential search: the first search that still has an unbound decision variable owns the
             # decision and branches with its own variable and domain heuristics
+            conflict_variable = search_control[SEARCH_CONTROL_CONFLICT_VARIABLE]
             for search_idx in range(nb_searches):
-                variable = var_heuristic_fcts[search_idx](
-                    decision_variables[
-                        decision_variables_offsets[search_idx] : decision_variables_offsets[search_idx + 1]
-                    ],
-                    domains,
-                    entailed,
-                    offsets,
-                    propagator_variables,
-                    variable_propagators_offsets,
-                    variable_propagators,
-                    propagator_weights,
-                    var_heuristic_params[
-                        var_heuristic_params_offsets[search_idx] : var_heuristic_params_offsets[search_idx + 1]
-                    ].reshape(var_heuristic_params_shapes[search_idx, 0], var_heuristic_params_shapes[search_idx, 1]),
-                )
+                # last-conflict: the variable of the last refuted decision, while it is unbound, takes the decision
+                # from the heuristic of the search that owns it. The searches before this one have no unbound
+                # variable left, or the loop would not be here, so this keeps the order of the searches.
+                if (
+                    conflict_variable >= 0
+                    and variable_searches[conflict_variable] == search_idx
+                    and domains[conflict_variable, DOMAIN_MIN] < domains[conflict_variable, DOMAIN_MAX]
+                ):
+                    variable = conflict_variable
+                else:
+                    variable = var_heuristic_fcts[search_idx](
+                        decision_variables[
+                            decision_variables_offsets[search_idx] : decision_variables_offsets[search_idx + 1]
+                        ],
+                        domains,
+                        entailed,
+                        offsets,
+                        propagator_variables,
+                        variable_propagators_offsets,
+                        variable_propagators,
+                        propagator_weights,
+                        var_heuristic_params[
+                            var_heuristic_params_offsets[search_idx] : var_heuristic_params_offsets[search_idx + 1]
+                        ].reshape(
+                            var_heuristic_params_shapes[search_idx, 0], var_heuristic_params_shapes[search_idx, 1]
+                        ),
+                    )
                 if variable != -1:
                     # the heuristic only says where to split; branch owns the two choice points it takes to do so
                     kind, value = dom_heuristic_fcts[search_idx](
@@ -814,6 +944,8 @@ def solve_one_step(
                         triggered_propagators, entailed, triggers, triggers_offsets, priorities, variable, events
                     )
                     statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
+                    if search_control[SEARCH_CONTROL_LAST_CONFLICT]:
+                        search_control[SEARCH_CONTROL_DECISION_VARIABLE] = variable
                     statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = max(
                         statistics[STATS_IDX_SOLVER_CHOICE_DEPTH], choice_point
                     )
@@ -821,22 +953,30 @@ def solve_one_step(
                     break
         # either the problem is inconsistent, or no search can claim a variable although variables remain
         # unbound -- a choice point whose domains admit no assignment. Both are dead ends: backtrack.
-        if not branched and not backtrack(
-            statistics,
-            state,
-            trail,
-            trail_top,
-            trail_indices,
-            choice_point_stk,
-            choice_point_top,
-            entailed,
-            triggered_propagators,
-            triggers,
-            triggers_offsets,
-            priorities,
-            objective,
-        ):
-            return SOLVER_RUNNING, None
+        if not branched:
+            search_control[SEARCH_CONTROL_FAILURE_NB] += 1
+            # last-conflict (Lecoutre et al. 2009): the conflict variable is that of the last decision that led to a
+            # failure. A failure that follows a refutation keeps the conflict variable: after x fails on all its
+            # values the search refutes an earlier decision on y, and x must then be tried first, to test y.
+            if search_control[SEARCH_CONTROL_DECISION_VARIABLE] >= 0:
+                search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = search_control[SEARCH_CONTROL_DECISION_VARIABLE]
+                search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
+            if not backtrack(
+                statistics,
+                state,
+                trail,
+                trail_top,
+                trail_indices,
+                choice_point_stk,
+                choice_point_top,
+                entailed,
+                triggered_propagators,
+                triggers,
+                triggers_offsets,
+                priorities,
+                objective,
+            ):
+                return SOLVER_RUNNING, None
 
 
 def get_domain_buffer(offsets: NDArray) -> NDArray:

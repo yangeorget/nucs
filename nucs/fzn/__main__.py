@@ -71,6 +71,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=None,
         help="stop after this many milliseconds and report the best solution found so far",
     )
+    parser.add_argument(
+        "--last-conflict",
+        action="store_true",
+        help="branch first on the variable of the last refuted decision, as long as it is unbound",
+    )
     # Accepted and ignored for compatibility with the FlatZinc solver interface.
     parser.add_argument("-f", "--free-search", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("-p", "--parallel", type=int, default=None, help=argparse.SUPPRESS)
@@ -115,6 +120,7 @@ def main(argv: list[str] | None = None) -> int:
             intermediate_solutions=args.intermediate_solutions,
             time_limit_ms=args.time_limit,
             stop_on_sigterm=True,
+            last_conflict=args.last_conflict,
         )
     except FznError as e:
         sys.stderr.write(f"fzn-nucs: {e}\n")

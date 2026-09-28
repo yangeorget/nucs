@@ -22,7 +22,7 @@ from collections.abc import Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-STATS_MAX = 10
+STATS_MAX = 11
 (
     STATS_IDX_ALG_BC_NB,
     STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
@@ -34,6 +34,7 @@ STATS_MAX = 10
     STATS_IDX_SOLVER_CHOICE_DEPTH,
     STATS_IDX_SOLVER_CHOICE_NB,
     STATS_IDX_SOLVER_ELAPSED_TIME,
+    STATS_IDX_SOLVER_RESTART_NB,
 ) = tuple(range(STATS_MAX))
 
 # The statistics array carries a per-algorithm tail after the STATS_MAX global counters: two counters per
@@ -53,6 +54,7 @@ STATS_LBL_SOLVER_BACKTRACK_NB = "SOLVER_BACKTRACK_NB"
 STATS_LBL_SOLVER_CHOICE_DEPTH = "SOLVER_CHOICE_DEPTH"
 STATS_LBL_SOLVER_CHOICE_NB = "SOLVER_CHOICE_NB"
 STATS_LBL_SOLVER_ELAPSED_TIME = "SOLVER_ELAPSED_TIME_MS"
+STATS_LBL_SOLVER_RESTART_NB = "SOLVER_RESTART_NB"
 
 
 def statistics_init(algorithm_nb: int) -> NDArray:
@@ -97,6 +99,7 @@ def statistics_as_dictionary(statistics: NDArray, algorithm_names: Sequence[str]
         STATS_LBL_SOLVER_BACKTRACK_NB: int(statistics[STATS_IDX_SOLVER_BACKTRACK_NB]),
         STATS_LBL_SOLVER_CHOICE_NB: int(statistics[STATS_IDX_SOLVER_CHOICE_NB]),
         STATS_LBL_SOLVER_CHOICE_DEPTH: int(statistics[STATS_IDX_SOLVER_CHOICE_DEPTH]),
+        STATS_LBL_SOLVER_RESTART_NB: int(statistics[STATS_IDX_SOLVER_RESTART_NB]),
         STATS_LBL_SOLUTION_NB: int(statistics[STATS_IDX_SOLUTION_NB]),
         # the statistics array accumulates nanoseconds, the reported statistic is in milliseconds
         STATS_LBL_SOLVER_ELAPSED_TIME: int(statistics[STATS_IDX_SOLVER_ELAPSED_TIME]) // 1_000_000,

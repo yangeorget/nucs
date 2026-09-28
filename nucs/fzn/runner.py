@@ -43,6 +43,14 @@ from nucs.heuristics.heuristics import (
     VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE,
 )
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.restarts import (
+    RESTART_CONSTANT,
+    RESTART_GEOMETRIC,
+    RESTART_LINEAR,
+    RESTART_LUBY,
+    RESTART_NONE,
+    restart_limits,
+)
 from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_PRUNE
 
@@ -70,6 +78,54 @@ _DOM_HEURISTICS = {
     "indomain_split": DOM_HEURISTIC_SPLIT_LOW,
     "indomain_reverse_split": DOM_HEURISTIC_SPLIT_HIGH,
 }
+
+
+# the MiniZinc restart annotations whose only argument is the scale
+_SCALED_RESTARTS = {
+    "restart_constant": RESTART_CONSTANT,
+    "restart_linear": RESTART_LINEAR,
+    "restart_luby": RESTART_LUBY,
+}
+
+
+def restart_policy_of(model: FznModel) -> tuple[str, int, float]:
+    """
+    Translates the restart annotation of the solve item into a NuCS restart policy. A restart limit counts failures,
+    as Gecode's do.
+
+    :param model: the built model
+    :type model: FznModel
+
+    :return: the policy, its scale and its base, for BacktrackSolver; no restart when the model asks for none, or
+             asks for one with arguments NuCS cannot use, which is logged as a warning
+    :rtype: Tuple[str, int, float]
+    """
+    no_restart = (RESTART_NONE, 1, 2.0)
+    for annotation in model.solve.annotations:
+        policy: tuple[str, int, float] | None = None
+        args = annotation.args
+        if annotation.name == "restart_none":
+            return no_restart
+        if annotation.name in _SCALED_RESTARTS and len(args) == 1 and isinstance(args[0], int):
+            policy = (_SCALED_RESTARTS[annotation.name], args[0], 2.0)
+        elif (
+            annotation.name == "restart_geometric"
+            and len(args) == 2
+            and isinstance(args[0], (int, float))
+            and isinstance(args[1], int)
+        ):
+            policy = (RESTART_GEOMETRIC, args[1], float(args[0]))
+        elif annotation.name.startswith("restart_"):
+            logger.warning(f"Unsupported restart annotation {annotation.name}{args}, searching without restarts")
+            return no_restart
+        if policy is not None:
+            try:
+                restart_limits(*policy)
+            except ValueError as e:
+                logger.warning(f"{e}, searching without restarts")
+                return no_restart
+            return policy
+    return no_restart
 
 
 def search_heuristics(model: FznModel) -> list[Search] | None:
@@ -195,6 +251,7 @@ def run(
     intermediate_solutions: bool = False,
     time_limit_ms: int | None = None,
     stop_on_sigterm: bool = False,
+    last_conflict: bool = False,
 ) -> None:
     """
     Solves the model and writes the FlatZinc solution stream.
@@ -224,6 +281,8 @@ def run(
     :param stop_on_sigterm: whether SIGTERM stops the search as a time limit would, which installs a process-wide
         signal handler and so is for the executable only
     :type stop_on_sigterm: bool
+    :param last_conflict: whether the search branches first on the variable of the last refuted decision
+    :type last_conflict: bool
     """
     # Resolve the objective before constructing the solver, since the solver snapshots the domains on init.
     objective_var = None
@@ -231,11 +290,16 @@ def run(
         if model.solve.objective is None:
             raise FznUnsupportedError("an optimization objective is required")
         objective_var = model.var_index_of(model.solve.objective)
-    searches = search_heuristics(model)
-    if searches is None:
-        solver = BacktrackSolver(model.problem, log_level="ERROR")
-    else:
-        solver = BacktrackSolver(model.problem, searches=searches, log_level="ERROR")
+    restart_policy, restart_scale, restart_base = restart_policy_of(model)
+    solver = BacktrackSolver(
+        model.problem,
+        searches=search_heuristics(model),
+        log_level="ERROR",
+        restart_policy=restart_policy,
+        restart_scale=restart_scale,
+        restart_base=restart_base,
+        last_conflict=last_conflict,
+    )
     if stop_on_sigterm:
         _interrupt_on_sigterm(solver)
     timeout = None if time_limit_ms is None else time_limit_ms / 1000
