@@ -125,9 +125,9 @@ class Problem:
         Completes the initialization of the problem.
         """
         logger.debug("Initializing problem")
-        for domain_min, domain_max in self.domains:
-            if domain_min != domain_max:
-                self.unbound_variable_nb += 1
+        # counted from zero: each solver calls init, and a count carried over from an earlier solver on the same
+        # problem makes the search never see every variable bound, so that it silently finds no solution
+        self.unbound_variable_nb = sum(1 for domain_min, domain_max in self.domains if domain_min != domain_max)
         # the compiled form of the domains the model was built with. domains stays the list the model API
         # appends to; this is what a search resets to, and it has to survive the search that overwrites the
         # solver's own domains -- those are a view of state. int32 because that is what it is copied into.

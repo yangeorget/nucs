@@ -12,6 +12,7 @@
 ###############################################################################
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_NEQ
+from nucs.solvers.backtrack_solver import BacktrackSolver
 
 
 class TestProblem:
@@ -30,3 +31,13 @@ class TestProblem:
         problem.init()
         assert problem.variable_propagators_offsets.tolist() == [0, 0, 0]
         assert problem.variable_propagators.tolist() == []
+
+    def test_init_twice_two_solvers_on_one_problem(self) -> None:
+        # each solver initializes the problem again, which used to count the unbound variables twice: the second
+        # solver never saw them all bound and found no solution
+        problem = Problem([(0, 1), (0, 1)])
+        problem.add_propagator(ALG_NEQ, [0, 1])
+        assert len(BacktrackSolver(problem).find_all()) == 2
+        assert problem.unbound_variable_nb == 2
+        assert len(BacktrackSolver(problem).find_all()) == 2
+        assert problem.unbound_variable_nb == 2
