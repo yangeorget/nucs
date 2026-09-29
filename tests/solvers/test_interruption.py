@@ -47,6 +47,11 @@ def call_before_bytecode(code: CodeType, position: int, callback: Callable[[], N
     def trace_calls(frame: FrameType, _event: str, _arg: object) -> Callable | None:
         return trace_opcodes if frame.f_code is code else None
 
+    # Python 3.12 turns on opcode events only at a settrace that follows the first f_trace_opcodes of the process:
+    # without this, the first traced frame gets none
+    frame = sys._getframe()
+    frame.f_trace_opcodes = True
+    frame.f_trace_opcodes = False
     previous_trace = sys.gettrace()
     sys.settrace(trace_calls)
     try:
