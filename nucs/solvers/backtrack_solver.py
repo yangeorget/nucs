@@ -319,7 +319,9 @@ class BacktrackSolver(Solver):
         self.propagator_weights = weights_init(problem.propagator_nb, weight_decay)
         # checked here, so that a wrong policy fails at construction rather than at the first solve
         restart_limits(restart_policy, restart_scale, restart_base)
-        self.restart_policy = (restart_policy, restart_scale, restart_base)
+        self.restart_policy = restart_policy
+        self.restart_scale = restart_scale
+        self.restart_base = restart_base
         self.restart_limits: Iterator[int] = iter(())
         self.search_control = np.full(SEARCH_CONTROL_WIDTH, -1, dtype=np.int64)
         self.search_control[SEARCH_CONTROL_LAST_CONFLICT] = int(last_conflict)
@@ -411,7 +413,7 @@ class BacktrackSolver(Solver):
             # An enumeration disarms it here too: the solver may have been optimized with before.
             self.objective[OBJECTIVE_VARIABLE] = -1
             self.incumbent = None
-            self.restart_limits = restart_limits(*self.restart_policy)
+            self.restart_limits = restart_limits(self.restart_policy, self.restart_scale, self.restart_base)
             self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
             self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
             self.search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = -1
