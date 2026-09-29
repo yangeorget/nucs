@@ -241,8 +241,6 @@ class TestBacktrackSolver:
             solver.trail_headroom,
             solver.interruption,
             solver.propagator_weights,
-            problem.variable_propagators_offsets,
-            problem.variable_propagators,
             solver.search_control,
             solver.variable_searches,
         )

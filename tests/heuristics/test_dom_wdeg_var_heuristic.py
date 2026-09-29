@@ -14,6 +14,7 @@ import random
 from collections.abc import Sequence
 
 from nucs.heuristics.dom_wdeg_var_heuristic import dom_wdeg_var_heuristic
+from nucs.propagators.propagators import ALG_DUMMY, ALG_LINEAR_LEQ_C
 from tests.heuristics.var_heuristic_test import call_var_heuristic
 
 
@@ -67,6 +68,17 @@ class TestDomWdegVarHeuristic:
         # p0 lists x0 twice: it still has a single unbound variable, and is not live
         domains = [(0, 1), (4, 4), (0, 5), (0, 5)]
         assert call_var_heuristic(dom_wdeg_var_heuristic, domains, propagators=[[0, 1, 0], [2, 3]]) == 2
+
+    def test_ignores_a_propagator_that_does_not_watch_the_variable(self) -> None:
+        # 0 * x0 + x1 <= 5 failed 9 times, but it cannot fail because of x0: x0 has no weighted degree and comes last,
+        # and x1 (weights 10 + 1) wins over x2 (weight 1)
+        domains = [(0, 1), (0, 5), (0, 5)]
+        propagators = [[0, 1], [1, 2]]
+        algorithms = [(ALG_LINEAR_LEQ_C, [0, 1, 5]), (ALG_DUMMY, [])]
+        chosen = call_var_heuristic(
+            dom_wdeg_var_heuristic, domains, propagators=propagators, weights=[10, 1], algorithms=algorithms
+        )
+        assert chosen == 1
 
     def test_selects_a_variable_without_live_propagator_last(self) -> None:
         # x0 has no propagator, x2 a live one although x1 is not a decision variable

@@ -54,16 +54,16 @@ SIGN_DOM_HEURISTIC = types.UniTuple(int32, 2)(
 TYPE_DOM_HEURISTIC = types.FunctionType(SIGN_DOM_HEURISTIC)
 
 # A variable heuristic sees the constraint network as well as the domains -- which propagators are entailed, the
-# variables of each propagator, the propagators of each variable -- and the failure weight of each propagator. Most
-# heuristics read only the domains; the dom/wdeg heuristic reads all of it.
+# variables of each propagator, the propagators that watch each variable (the trigger table, see watchers) -- and the
+# failure weight of each propagator. Most heuristics read only the domains; the dom/wdeg heuristic reads all of it.
 SIGN_VAR_HEURISTIC = int64(
     uint32[::1],  # decision_variables
     int32[:, ::1],  # domains
     int32[::1],  # entailed
     uint32[:, ::1],  # offsets
     uint32[::1],  # propagator_variables
-    uint32[::1],  # variable_propagators_offsets
-    uint32[::1],  # variable_propagators
+    int32[::1],  # triggers
+    int32[::1],  # triggers_offsets
     float64[::1],  # propagator_weights
     int64[:, :],  # var_heuristic_params
 )

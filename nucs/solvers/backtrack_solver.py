@@ -560,8 +560,6 @@ class BacktrackSolver(Solver):
             self.trail_headroom,
             self.interruption,
             self.propagator_weights,
-            self.problem.variable_propagators_offsets,
-            self.problem.variable_propagators,
             self.search_control,
             self.variable_searches,
         )
@@ -733,8 +731,6 @@ def solve_one_step(
     trail_headroom: int,
     interruption: NDArray,
     propagator_weights: NDArray,
-    variable_propagators_offsets: NDArray,
-    variable_propagators: NDArray,
     search_control: NDArray,
     variable_searches: NDArray,
 ) -> tuple[int, NDArray | None]:
@@ -829,10 +825,6 @@ def solve_one_step(
     :param propagator_weights: the failure weight of each propagator, followed by the increment and its growth
                                (see nucs.solvers.weights)
     :type propagator_weights: NDArray
-    :param variable_propagators_offsets: the offsets of the propagators of each variable
-    :type variable_propagators_offsets: NDArray
-    :param variable_propagators: the propagators of the variables, each one once per variable
-    :type variable_propagators: NDArray
     :param search_control: the state of the restarts and of last-conflict, see SEARCH_CONTROL_*
     :type search_control: NDArray
     :param variable_searches: the search that owns each variable, -1 for a variable no search branches on
@@ -908,8 +900,8 @@ def solve_one_step(
                         entailed,
                         offsets,
                         propagator_variables,
-                        variable_propagators_offsets,
-                        variable_propagators,
+                        triggers,
+                        triggers_offsets,
                         propagator_weights,
                         var_heuristic_params[
                             var_heuristic_params_offsets[search_idx] : var_heuristic_params_offsets[search_idx + 1]

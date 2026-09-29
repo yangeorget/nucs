@@ -23,8 +23,8 @@ def first_not_instantiated_var_heuristic(
     entailed: NDArray,
     offsets: NDArray,
     propagator_variables: NDArray,
-    variable_propagators_offsets: NDArray,
-    variable_propagators: NDArray,
+    triggers: NDArray,
+    triggers_offsets: NDArray,
     propagator_weights: NDArray,
     params: NDArray,
 ) -> int:
@@ -41,10 +41,10 @@ def first_not_instantiated_var_heuristic(
     :type offsets: NDArray
     :param propagator_variables: the variables of the propagators, unused here
     :type propagator_variables: NDArray
-    :param variable_propagators_offsets: the offsets of the propagators of each variable, unused here
-    :type variable_propagators_offsets: NDArray
-    :param variable_propagators: the propagators of the variables, unused here
-    :type variable_propagators: NDArray
+    :param triggers: the propagators to wake, grouped by variable and event, unused here
+    :type triggers: NDArray
+    :param triggers_offsets: the offsets of each (variable, event) slice of triggers, unused here
+    :type triggers_offsets: NDArray
     :param propagator_weights: the failure weights of the propagators, unused here
     :type propagator_weights: NDArray
     :param params: a two-dimensional parameter array, unused here

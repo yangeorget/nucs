@@ -140,7 +140,6 @@ class Problem:
         self.algorithm_flags = np.array(ALGORITHM_FLAGS, dtype=np.uint8)
         self.init_priorities()
         self.init_propagator_arrays()
-        self.init_variable_propagators()
         self.init_triggers()
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.propagator_nb} propagators")
@@ -220,26 +219,6 @@ class Problem:
             )
             self.propagator_variables[var_start:var_end] = propagator[0]
             self.propagator_parameters[param_start:param_end] = propagator[2]
-
-    def init_variable_propagators(self) -> None:
-        """
-        Initializes the propagators of each variable, the transpose of propagator_variables.
-
-        Variable x owns the slice variable_propagators_offsets[x]:variable_propagators_offsets[x + 1] of
-        variable_propagators, which holds each propagator of x once, in increasing order, even when the
-        propagator lists x more than once. Unlike the triggers, it does not depend on events: a heuristic
-        reads it to find the constraints of a variable.
-
-        Requires the offsets and the propagator variables to be initialized.
-        """
-        logger.debug("Initializing variable propagators")
-        arities = np.diff(self.offsets[:, OFFSETS_VARIABLE]).astype(np.int64)
-        propagators = np.repeat(np.arange(self.propagator_nb, dtype=np.uint32), arities)
-        # sorted by variable then by propagator, and without the duplicates
-        pairs = np.unique(np.stack((self.propagator_variables, propagators), axis=1).reshape(-1, 2), axis=0)
-        self.variable_propagators = np.ascontiguousarray(pairs[:, 1], dtype=np.uint32)
-        self.variable_propagators_offsets = np.zeros(self.domain_nb + 1, dtype=np.uint32)
-        np.cumsum(np.bincount(pairs[:, 0], minlength=self.domain_nb), out=self.variable_propagators_offsets[1:])
 
     def init_triggers(self) -> None:
         """

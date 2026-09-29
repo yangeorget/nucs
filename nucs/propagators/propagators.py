@@ -16,7 +16,7 @@ from numba import int32, int64, njit, types, uint64  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.buckets import STORAGE_OFFSET, buckets_add
-from nucs.constants import EVENT_NB, PROP_FLAG_IDEMPOTENT, PROP_FLAG_REPORTS_CHANGES
+from nucs.constants import EVENT_MASK_MIN_MAX_GROUND, EVENT_NB, PROP_FLAG_IDEMPOTENT, PROP_FLAG_REPORTS_CHANGES
 from nucs.numba_helper import NUMBA_DISABLE_JIT, function_ptr_from_address
 from nucs.propagators.abs_eq_propagator import (
     compute_domains_abs_eq,
@@ -755,6 +755,27 @@ ALG_VALUE_PRECEDE_CHAIN = register_propagator(
     get_state_fct=get_state_value_precede_chain,
     reports_changes=True,
 )
+
+
+@njit(cache=True, inline="always")
+def watchers(triggers_offsets: NDArray, variable: int) -> tuple[int, int]:
+    """
+    Returns the slice of triggers that holds every propagator that watches a variable, each once, in increasing order.
+
+    A propagator is listed under each (variable, event mask) that its trigger on the variable intersects, and the mask of
+    all the events intersects every trigger that is not empty. A propagator that never wakes on the variable, such as a
+    linear constraint where its coefficient is 0, is not in the slice.
+
+    :param triggers_offsets: the offsets of each (variable, event mask) slice of triggers
+    :type triggers_offsets: NDArray
+    :param variable: the variable
+    :type variable: int
+
+    :return: the start and the end of the slice
+    :rtype: Tuple[int, int]
+    """
+    offset = (variable << EVENT_NB) | EVENT_MASK_MIN_MAX_GROUND
+    return triggers_offsets[offset], triggers_offsets[offset + 1]
 
 
 @njit(cache=True)

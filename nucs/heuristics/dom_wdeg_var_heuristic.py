@@ -16,6 +16,7 @@ from numpy.typing import NDArray
 
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 from nucs.problems.problem import OFFSETS_VARIABLE
+from nucs.propagators.propagators import watchers
 
 LIVENESS_UNKNOWN = 0
 LIVENESS_LIVE = 1
@@ -29,8 +30,8 @@ def dom_wdeg_var_heuristic(
     entailed: NDArray,
     offsets: NDArray,
     propagator_variables: NDArray,
-    variable_propagators_offsets: NDArray,
-    variable_propagators: NDArray,
+    triggers: NDArray,
+    triggers_offsets: NDArray,
     propagator_weights: NDArray,
     params: NDArray,
 ) -> int:
@@ -38,7 +39,8 @@ def dom_wdeg_var_heuristic(
     Chooses the unbound variable with the smallest ratio of its domain size to its weighted degree
     (dom/wdeg, Boussemart et al. 2004, as in Choco; with a weight decay, Gecode's AFC).
 
-    The weighted degree of a variable is the sum of the weights of its live propagators. A propagator is live when it
+    The weighted degree of a variable is the sum of the weights of the live propagators that watch it (see watchers):
+    a propagator that never wakes on the variable cannot fail because of it. A propagator is live when it
     is not entailed and has an unbound variable other than this one: a propagator that can no longer fail on a
     decision about this variable says nothing about it. A variable with no live propagator is chosen only when no
     other variable is left, by smallest domain. Ties go to the first variable in decision order.
@@ -56,10 +58,10 @@ def dom_wdeg_var_heuristic(
     :type offsets: NDArray
     :param propagator_variables: the variables of the propagators
     :type propagator_variables: NDArray
-    :param variable_propagators_offsets: the offsets of the propagators of each variable
-    :type variable_propagators_offsets: NDArray
-    :param variable_propagators: the propagators of the variables, each one once per variable
-    :type variable_propagators: NDArray
+    :param triggers: the propagators to wake, grouped by variable and event
+    :type triggers: NDArray
+    :param triggers_offsets: the offsets of each (variable, event) slice of triggers
+    :type triggers_offsets: NDArray
     :param propagator_weights: the failure weights of the propagators
     :type propagator_weights: NDArray
     :param params: a two-dimensional parameter array, unused here
@@ -77,8 +79,11 @@ def dom_wdeg_var_heuristic(
         if size == 0:
             continue
         wdeg = 0.0
-        for idx in range(variable_propagators_offsets[variable], variable_propagators_offsets[variable + 1]):
-            propagator = variable_propagators[idx]
+        # the propagators that watch the variable: a failure of a propagator that never wakes on it, such as a linear
+        # constraint where its coefficient is 0, says nothing about it
+        watchers_start, watchers_end = watchers(triggers_offsets, variable)
+        for idx in range(watchers_start, watchers_end):
+            propagator = triggers[idx]
             if liveness[propagator] == LIVENESS_UNKNOWN:
                 liveness[propagator] = (
                     LIVENESS_LIVE

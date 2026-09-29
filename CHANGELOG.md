@@ -11,7 +11,7 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 ### Breaking
 
 - **Two signatures changed.** A variable heuristic now takes six more arguments between `domains` and `params`:
-  `entailed`, `offsets`, `propagator_variables`, `variable_propagators_offsets`, `variable_propagators` and
+  `entailed`, `offsets`, `propagator_variables`, `triggers`, `triggers_offsets` and
   `propagator_weights` (the constraint network and the failure weights). A consistency algorithm takes
   `propagator_weights` after `statistics`. A heuristic or a consistency algorithm written against the old
   signatures fails to compile; see the heuristics and consistency pages.
@@ -26,7 +26,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `first_fail` makes 395.
 - **`BacktrackSolver(weight_decay=...)`**: below 1, the recent failures count more than the old ones, as in
   Gecode's AFC. The default of 1 is plain dom/wdeg.
-- **`Problem.variable_propagators`**, the propagators of each variable, the transpose of `propagator_variables`.
+- **`watchers(triggers_offsets, variable)`** in `nucs.propagators.propagators`: the slice of the trigger table that
+  lists every propagator that watches a variable.
 - **Restarts**: `BacktrackSolver(restart_policy=..., restart_scale=..., restart_base=...)` with the MiniZinc
   policies (Luby, geometric, linear, constant, none), which count failures. The weights of dom/wdeg stay across a
   restart. When optimizing, the best solution is applied again at the root; when enumerating, the restarts stop at

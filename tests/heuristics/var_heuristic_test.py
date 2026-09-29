@@ -25,6 +25,7 @@ def call_var_heuristic(
     propagators: Sequence[Sequence[int]] = (),
     entailed: Sequence[int] | None = None,
     weights: Sequence[float] | None = None,
+    algorithms: Sequence[tuple[int, Sequence[int]]] | None = None,
 ) -> int:
     """
     Calls a variable heuristic on a network built from its description, as the solver would.
@@ -41,13 +42,17 @@ def call_var_heuristic(
     :type entailed: Optional[Sequence[int]]
     :param weights: the failure weight of each propagator, defaults to 1
     :type weights: Optional[Sequence[float]]
+    :param algorithms: the algorithm and the parameters of each propagator, defaults to a dummy propagator, which
+                       watches all its variables
+    :type algorithms: Optional[Sequence[Tuple[int, Sequence[int]]]]
 
     :return: the variable the heuristic chooses
     :rtype: int
     """
     problem = Problem(domains)
-    for variables in propagators:
-        problem.add_propagator(ALG_DUMMY, variables)
+    for idx, variables in enumerate(propagators):
+        algorithm, parameters = algorithms[idx] if algorithms is not None else (ALG_DUMMY, [])
+        problem.add_propagator(algorithm, variables, parameters)
     problem.init()
     propagator_nb = problem.propagator_nb
     if decision_variables is None:
@@ -62,8 +67,8 @@ def call_var_heuristic(
             np.array(entailed if entailed is not None else [0] * propagator_nb, dtype=np.int32),
             problem.offsets,
             problem.propagator_variables,
-            problem.variable_propagators_offsets,
-            problem.variable_propagators,
+            problem.triggers,
+            problem.triggers_offsets,
             propagator_weights,
             np.empty((1, 0), dtype=np.int64),
         )

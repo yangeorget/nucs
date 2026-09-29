@@ -35,8 +35,8 @@ A variable heuristic chooses the variable to branch on, and returns :code:`-1` w
        entailed: NDArray,
        offsets: NDArray,
        propagator_variables: NDArray,
-       variable_propagators_offsets: NDArray,
-       variable_propagators: NDArray,
+       triggers: NDArray,
+       triggers_offsets: NDArray,
        propagator_weights: NDArray,
        params: NDArray,
    ) -> int:
@@ -54,8 +54,9 @@ that needs it:
 - :code:`entailed[p]` is not zero when propagator :code:`p` is entailed,
 - the variables of propagator :code:`p` are
   :code:`propagator_variables[offsets[p, OFFSETS_VARIABLE]:offsets[p + 1, OFFSETS_VARIABLE]]`,
-- the propagators of variable :code:`x` are
-  :code:`variable_propagators[variable_propagators_offsets[x]:variable_propagators_offsets[x + 1]]`,
+- the propagators that watch variable :code:`x` are :code:`triggers[start:end]`, where
+  :code:`start, end = watchers(triggers_offsets, x)` (:mod:`nucs.propagators.propagators`): each once, in increasing
+  order, without the propagators that never wake on :code:`x`,
 - :code:`propagator_weights[p]` is the failure weight of propagator :code:`p`, as the dom/wdeg heuristic reads it.
 
 A heuristic must only read them.

@@ -140,8 +140,6 @@ CSR-style: an `offsets` array delimits, for each propagator, its slice of the fl
 | `propagator_parameters` | `(Σ params,)` int32 | flat (CSR) | every propagator's parameters, concatenated |
 | `triggers` | `(Σ triggers,)` int32 | flat (CSR) | propagators to wake, grouped by `(variable, event)` |
 | `triggers_offsets` | `(domain_nb · 8 + 1,)` int32 | `variable · 8 + event` | row offsets into `triggers` |
-| `variable_propagators` | `(Σ distinct (variable, propagator) pairs,)` uint32 | flat (CSR) | the propagators of each variable, each once, in increasing order |
-| `variable_propagators_offsets` | `(domain_nb + 1,)` uint32 | variable | row offsets into `variable_propagators` |
 | `propagator_weights` | `(P + 2,)` float64 | propagator | the failure weight of each propagator, then the increment of the next failure and its growth (see *Failure weights*) |
 
 `P` = `propagator_nb`. A dense `(domain_nb, 8, propagator_nb)` trigger table would be mostly empty, so the propagators
@@ -163,7 +161,12 @@ it is not entailed and has an unbound variable other than `x`.
   cells by the same factor, which keeps every ratio. With the default decay of 1 the weights are 1 plus the
   number of failures, which is Choco's dom/wdeg.
 - **The heuristic sees the network, and every variable heuristic pays nothing for it.** `SIGN_VAR_HEURISTIC` gives
-  every variable heuristic the entailment flags, the propagator tables and the weights. Passing six more array
+  every variable heuristic the entailment flags, the propagator tables, the trigger table and the weights.
+- **The propagators of a variable come from the trigger table.** A propagator is listed under each `(variable,
+  event mask)` its trigger intersects, so the row of the mask of all events (`watchers`) lists every propagator that
+  watches the variable, each once, in increasing order. A separate variable-to-propagator table was built first and
+  then removed: it held the same rows, plus the propagators that never wake on the variable (a linear constraint
+  where its coefficient is 0), which cannot fail because of it and must not weigh it. Passing six more array
   arguments at each decision did not change the solve time of queens, golomb and magic sequence.
 - **A failure that no propagator reports gets no weight.** When `backtrack` re-applies the objective bound and a
   domain becomes empty, no propagator failed.
