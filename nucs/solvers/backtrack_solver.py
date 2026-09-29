@@ -300,10 +300,12 @@ class BacktrackSolver(Solver):
         # descent runs in compiled code that returns to Python only at a solution, so a flag it reads itself
         # is the only way to stop it in between
         self.interruption = np.zeros((1,), dtype=np.int32)
-        # serializes the writers of the cell -- interrupt(), a deadline timer and the clearing of that
-        # deadline -- since a deadline must neither overwrite nor clear an external interruption. Reentrant
-        # because interrupt() may run as a signal handler on a main thread that already holds it.
-        self.interruption_lock = threading.RLock()
+        # set by interrupt() before it writes the cell, and never cleared: the clearing of a deadline restores
+        # INTERRUPTION_EXTERNAL from it, since interrupt() may run between any two bytecodes of that clearing
+        self.interrupted = False
+        # serializes a deadline timer and the clearing of that deadline, so that the timer cannot write after
+        # the clearing; interrupt() takes no lock, since it may run as a signal handler on a thread that holds it
+        self.deadline_lock = threading.Lock()
         logger.info(
             f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"
         )
@@ -448,7 +450,7 @@ class BacktrackSolver(Solver):
         armed = [True]  # a callback already running when the timer is cancelled must not write after disarm
 
         def expire() -> None:
-            with self.interruption_lock:
+            with self.deadline_lock:
                 if armed[0] and self.interruption[0] == INTERRUPTION_NONE:
                     self.interruption[0] = INTERRUPTION_DEADLINE
 
@@ -458,10 +460,13 @@ class BacktrackSolver(Solver):
 
         def disarm() -> None:
             timer.cancel()
-            with self.interruption_lock:
+            with self.deadline_lock:
                 armed[0] = False
-                if self.interruption[0] == INTERRUPTION_DEADLINE:
-                    self.interruption[0] = INTERRUPTION_NONE
+                # a test of the cell before the clear would erase an interrupt() that runs between the two:
+                # clear it, then restore the external interruption from the flag that interrupt() sets first
+                self.interruption[0] = INTERRUPTION_NONE
+                if self.interrupted:
+                    self.interruption[0] = INTERRUPTION_EXTERNAL
 
         return disarm
 
@@ -569,11 +574,12 @@ class BacktrackSolver(Solver):
         Stops the search at its next node, as if its budget had run out: the iteration ends and
         :attr:`timed_out` is set. The interruption is final, every later search stops at once too.
 
-        Safe to call from another thread or from a signal handler: it only writes a cell that the compiled
-        search reads, and solve_one_step releases the GIL so that such a thread gets to run.
+        Safe to call from another thread or from a signal handler: it takes no lock, it only sets a flag and
+        writes a cell that the compiled search reads, and solve_one_step releases the GIL so that such a thread
+        gets to run.
         """
-        with self.interruption_lock:
-            self.interruption[0] = INTERRUPTION_EXTERNAL
+        self.interrupted = True  # first: the clearing of a deadline restores the cell from it
+        self.interruption[0] = INTERRUPTION_EXTERNAL
 
     def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
         """

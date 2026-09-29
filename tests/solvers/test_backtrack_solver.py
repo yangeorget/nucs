@@ -10,9 +10,11 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+import sys
 import threading
 import time
-from collections.abc import Generator
+from collections.abc import Callable, Generator
+from types import FrameType
 
 import pytest
 
@@ -42,6 +44,9 @@ from nucs.propagators.propagators import (
     ALG_SUM_LEQ_C,
 )
 from nucs.solvers.backtrack_solver import (
+    INTERRUPTION_DEADLINE,
+    INTERRUPTION_EXTERNAL,
+    INTERRUPTION_NONE,
     SOLVER_RUNNING,
     STEP_TIGHTENING_NB,
     TIGHTENING_TRAIL_ENTRY_NB,
@@ -158,6 +163,55 @@ class TestBacktrackSolver:
         assert list(solver.solve(timeout=10)) == []
         assert solver.timed_out
         assert list(solver.solve()) == []
+
+    def test_interrupt_inside_disarm_is_kept(self) -> None:
+        """An interrupt() that runs in the middle of disarm, as a signal handler can, is not lost."""
+        # a signal handler runs on the main thread between two bytecodes, even while that thread holds a lock:
+        # call interrupt() at each bytecode of disarm in turn, the way such a handler can
+        opcode_nb = self.interrupt_inside_disarm(-1)
+        assert opcode_nb > 0
+        for position in range(opcode_nb):
+            self.interrupt_inside_disarm(position)
+
+    def interrupt_inside_disarm(self, position: int) -> int:
+        """
+        Calls interrupt() at one bytecode of the disarm of an expired deadline and checks the interruption stays.
+
+        :param position: the index of the bytecode of disarm before which interrupt() runs, -1 for no interrupt()
+        :type position: int
+
+        :return: the number of bytecodes that disarm ran
+        :rtype: int
+        """
+        solver = BacktrackSolver(Problem([(0, 1)]))
+        disarm = solver._arm_deadline(0.0)
+        start = time.monotonic()
+        while solver.interruption[0] != INTERRUPTION_DEADLINE and time.monotonic() - start < 1:
+            time.sleep(0.001)
+        assert solver.interruption[0] == INTERRUPTION_DEADLINE
+        opcode_nb = 0
+
+        def trace_disarm(frame: FrameType, event: str, _arg: object) -> Callable | None:
+            nonlocal opcode_nb
+            frame.f_trace_opcodes = True  # ignored when set at the call event, from Python 3.14
+            if event == "opcode":
+                if opcode_nb == position:
+                    solver.interrupt()
+                opcode_nb += 1
+            return trace_disarm
+
+        def trace_calls(frame: FrameType, _event: str, _arg: object) -> Callable | None:
+            return trace_disarm if frame.f_code is disarm.__code__ else None
+
+        previous_trace = sys.gettrace()
+        sys.settrace(trace_calls)
+        try:
+            disarm()
+        finally:
+            sys.settrace(previous_trace)
+        expected = INTERRUPTION_NONE if position < 0 else INTERRUPTION_EXTERNAL
+        assert solver.interruption[0] == expected, f"interrupt() at bytecode {position} of disarm"
+        return opcode_nb
 
     def test_abandoned_iteration_disarms_its_deadline(self) -> None:
         """A consumer that stops iterating early does not leave a timer that would stop a later search."""

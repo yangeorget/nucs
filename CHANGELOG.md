@@ -8,6 +8,14 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+### Fixed
+
+- **An `interrupt()` from a signal handler could be lost when a search with a timeout stopped.** The clearing of the
+  deadline tested the interruption cell and then cleared it. A handler that ran between these two steps wrote an
+  external interruption that the clear then erased, so the next search did not stop. Now `interrupt()` sets a flag
+  that is never cleared, and the clearing of the deadline restores the external interruption from it.
+  `interrupt()` takes no lock now, and `BacktrackSolver.interruption_lock` became `deadline_lock`.
+
 ## 17.0.0
 
 The headline is a search that learns from failures: the dom/wdeg variable heuristic, restarts and last-conflict.
