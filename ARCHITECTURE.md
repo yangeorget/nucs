@@ -185,10 +185,10 @@ on, the conflict variable and the variable of the last decision.
   returns `SOLVER_RESTART` once the failures reach the limit, before it starts a filtering, so the state it leaves is
   not a half-done one. `_restart` goes back to the root with `choice_point_init`, empties and fills the queue again,
   and takes the next limit of the policy (`nucs/solvers/restarts.py`). The propagator weights stay.
-- **The incumbent is re-applied at the root.** In `OPTIM_RESET` the bound of the best solution is written once, at
-  the root, and a restart undoes it; in `OPTIM_PRUNE` the bound is armed but `backtrack` only applies it to the choice
-  points it resumes. So the solver keeps the incumbent itself and re-applies it after each restart, with a mark of
-  0. Without that, the search finds worse solutions again after each restart.
+- **The best solution's objective is re-applied at the root.** In `OPTIM_RESET` the bound of the best solution is
+  written once, at the root, and a restart undoes it; in `OPTIM_PRUNE` the bound is armed but `backtrack` only applies
+  it to the choice points it resumes. So the solver keeps that bound itself, in `restart_objective`, and re-applies it
+  after each restart, with a mark of 0. Without that, the search finds worse solutions again after each restart.
 - **Enumeration stops restarting at its first solution**, because a restart would find the solutions emitted so far
   again. Before the first solution a restart loses nothing.
 - **The conflict variable is that of the last *decision* that led to a failure**, not that of the choice point the

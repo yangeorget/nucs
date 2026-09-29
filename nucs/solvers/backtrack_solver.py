@@ -330,8 +330,9 @@ class BacktrackSolver(Solver):
         self.variable_searches = np.full(problem.domain_nb, -1, dtype=np.int32)
         for search_idx in reversed(range(len(decision_variables_per_search))):  # the first search listing it wins
             self.variable_searches[decision_variables_per_search[search_idx]] = search_idx
-        # the best solution so far as (variable, value, bound), which a restart re-applies at the root
-        self.incumbent: tuple[int, int, int] | None = None
+        # the objective of the best solution so far, (variable, value, bound) as in self.objective, which a restart
+        # re-applies at the root
+        self.restart_objective: tuple[int, int, int] | None = None
         logger.debug("Statistics initialized")
         # resolving only the algorithms used by the problem keeps the init cost proportional to the problem instead
         # of the whole propagator library; without the JIT this is a placeholder that call_compute_domains ignores
@@ -409,10 +410,10 @@ class BacktrackSolver(Solver):
             t0 = time.perf_counter_ns()
             buckets_empty(self.triggered_propagators, self.problem.priorities)
             buckets_init(self.triggered_propagators, self.problem.priorities)
-            # no incumbent yet, so the search has no objective bound; _advance_after_optimum arms it.
+            # no solution yet, so the search has no objective bound; _advance_after_optimum arms it.
             # An enumeration disarms it here too: the solver may have been optimized with before.
             self.objective[OBJECTIVE_VARIABLE] = -1
-            self.incumbent = None
+            self.restart_objective = None
             self.restart_limits = restart_limits(self.restart_policy, self.restart_scale, self.restart_base)
             self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
             self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
@@ -500,7 +501,7 @@ class BacktrackSolver(Solver):
         What the search learned stays: the propagator weights are not reset. The best solution so far is re-applied
         at the root, with a mark of 0 as OPTIM_RESET does, since the reset undoes every tightening above it.
 
-        :return: false when the root cannot hold a better solution, which proves the incumbent optimal
+        :return: false when the root cannot hold a better solution, which proves the best solution so far optimal
         :rtype: bool
         """
         logger.debug("Restarting")
@@ -510,8 +511,8 @@ class BacktrackSolver(Solver):
         self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
         self.search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = -1
         self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
-        if self.incumbent is not None:
-            variable, value, bound = self.incumbent
+        if self.restart_objective is not None:
+            variable, value, bound = self.restart_objective
             if (
                 tighten_objective(
                     self.state, self.trail_log, self.trail_top, self.trail_indices, 0, variable, value, bound
@@ -601,7 +602,7 @@ class BacktrackSolver(Solver):
         :return: whether the search can continue
         :rtype: bool
         """
-        self.incumbent = (variable, value, bound)
+        self.restart_objective = (variable, value, bound)
         if mode == OPTIM_RESET:
             logger.debug("Resetting solver")
             self._choice_point_init()
