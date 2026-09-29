@@ -8,6 +8,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+## 17.1.0
+
 ### Added
 
 - **A free search, `fzn-nucs -f`.** Before, `-f` was accepted and ignored. Now NuCS keeps only which variables the
