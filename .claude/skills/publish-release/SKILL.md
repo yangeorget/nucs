@@ -48,12 +48,17 @@ The release notes are the version's section, verbatim — never a fresh summary,
 different from what the repository says:
 
 ```bash
-{ awk -v v="X.Y.Z" '$0 == "## " v {f=1; next} f && /^## / {exit} f' CHANGELOG.md
+{ sed -n '/^## X\.Y\.Z$/,/^## /p' CHANGELOG.md | sed '1d;$d'   # the dots escaped: 17\.0\.0
   echo '**Full Changelog**: https://github.com/yangeorget/nucs/compare/vPREV...vX.Y.Z'
 } > <scratch>/notes.md
 ```
 
-Read it back: it must start at the first `###` subsection and stop before the previous version's heading. The
+Never write this step with a dollar sign followed by a digit, as awk's whole-line field is written: when the skill is
+invoked with the version as its argument, the loader replaces that token with the version, and the command silently
+matches nothing. The `sed` form has no such token.
+
+Read it back: it must start at the section's first line (a headline paragraph, or its first `###` subsection) and
+stop before the previous version's heading. The
 compare link is the line GitHub generates for itself, and `--notes-file` replaces the body whole, so put it back or
 it is lost.
 
