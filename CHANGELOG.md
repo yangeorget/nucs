@@ -8,13 +8,47 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
-### Breaking
+## 17.0.0
 
-- **Two signatures changed.** A variable heuristic now takes six more arguments between `domains` and `params`:
-  `entailed`, `offsets`, `propagator_variables`, `triggers`, `triggers_offsets` and
-  `propagator_weights` (the constraint network and the failure weights). A consistency algorithm takes
-  `propagator_weights` after `statistics`. A heuristic or a consistency algorithm written against the old
-  signatures fails to compile; see the heuristics and consistency pages.
+The headline is a search that learns from failures: the dom/wdeg variable heuristic, restarts and last-conflict.
+Last-conflict gives the largest gain: on MiniZinc challenge models, it proves or solves 4 instances that NuCS did
+not solve in 60 s before, and proves a fifth one 200 times faster. Two extension points changed, so this is a major release.
+
+### Migrating from 16.x
+
+Two things can break a working 16.x program, and both fail at compile time.
+
+#### 1. A variable heuristic takes six more arguments
+
+They describe the constraint network and the failure weights, and come between `domains` and `params`. A heuristic
+that does not need them ignores them.
+
+```python
+# 16.x
+def my_var_heuristic(decision_variables, domains, params) -> int:
+    ...
+
+# 17.0
+def my_var_heuristic(
+    decision_variables, domains, entailed, offsets, propagator_variables, triggers, triggers_offsets,
+    propagator_weights, params,
+) -> int:
+    ...
+```
+
+#### 2. A consistency algorithm takes `propagator_weights` after `statistics`
+
+Pass it on unchanged to `bc_algorithm`, which records the failures in it.
+
+```python
+# 16.x
+def my_consistency_algorithm(statistics, algorithm_flags, ...) -> int:
+    return bc_algorithm(statistics, algorithm_flags, ...)
+
+# 17.0
+def my_consistency_algorithm(statistics, propagator_weights, algorithm_flags, ...) -> int:
+    return bc_algorithm(statistics, propagator_weights, algorithm_flags, ...)
+```
 
 ### Added
 
