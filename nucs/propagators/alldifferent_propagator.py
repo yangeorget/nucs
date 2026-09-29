@@ -323,7 +323,7 @@ def argsort_into_warm(sorted_vars: NDArray, domains: NDArray, bound: int) -> Non
     one -- it pays the O(n log n) fixed cost on every call to insure against a case most calls are not in,
     and so gives up the warm start exactly where n makes it worth most. Instead the sort runs on a budget of
     SORT_WARM_BUDGET_FACTOR shifts per variable and falls back only once it blows it, which is self-tuning:
-    a descent that moved a few bounds finishes far inside the budget, a post-jump permutation blows it after
+    a call after a decision that moved a few bounds finishes far inside the budget, a post-jump permutation blows it after
     a bounded amount of wasted work. Below SORT_MAX_N no budget is applied -- it could never bind there
     (insertion sort shifts at most n(n-1)/2 < n * n times) and testing it is not free.
 

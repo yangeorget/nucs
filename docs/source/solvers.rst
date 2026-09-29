@@ -86,7 +86,7 @@ which is what distinguishes an exhausted search from a truncated one:
        print("best solution found within the budget, not proven optimal")
 
 .. note::
-   The budget is enforced inside a descent too: a timer stops the compiled search at its next node, so
+   The budget is enforced between two solutions too: a timer stops the compiled search at its next node, so
    a long proof of optimality or an infeasible subtree cannot run past it.
    The time the caller spends between two solutions counts towards the budget.
 

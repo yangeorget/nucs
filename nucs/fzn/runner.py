@@ -437,7 +437,7 @@ def _interrupt_on_sigterm(solver: BacktrackSolver) -> None:
 
     That is how MiniZinc enforces its time limit: SIGTERM about a second after the limit, SIGKILL a second
     later. Left to the default action, SIGTERM kills the process with nothing printed. A Python handler alone
-    would not do either: it runs only once the main thread is back in the interpreter, which a descent in
+    would not do either: it runs only once the main thread is back in the interpreter, which a search in
     compiled code may not be before SIGKILL. The wakeup fd is written by the C-level handler as soon as the
     signal arrives, so a thread blocked on it interrupts the solver at once; the Python handler, whenever it
     runs, merely does the same.
@@ -518,7 +518,7 @@ def _run_optimize(
             _print_optimization_solution(model, solution, objective_var, out, output_mode, output_objective)
             printed = True
         else:
-            # The solver yields a view on its own domain stack, which the next descent overwrites.
+            # The solver yields a view on its own domain stack, which the search overwrites when it resumes.
             best = solution.copy()
     # the solver stops the iteration itself when the budget runs out, so a proof is what it did not report
     proven = not solver.timed_out

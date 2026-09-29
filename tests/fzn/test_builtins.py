@@ -1651,7 +1651,7 @@ class TestBuiltins:
     def test_fzn_nucs_prints_its_statistics_on_sigterm(self) -> None:
         # MiniZinc enforces its time limit with SIGTERM, then SIGKILL a second later. The first solution
         # comes at once, but proving that 13 pigeons do not fit in 12 holes does not end, so the signal
-        # lands mid-descent: the run must still conclude its stream with the statistics.
+        # lands inside the compiled search: the run must still conclude its stream with the statistics.
         xs = [f"x{i}" for i in range(13)]
         lines = [f"var 0..12: {x} :: output_var;" for x in xs] + ["var 0..12: m :: output_var;"]
         lines += [f"constraint int_ne({x}, {y});" for i, x in enumerate(xs) for y in xs[i + 1 :]]
@@ -1678,9 +1678,9 @@ class TestBuiltins:
         assert rest.rstrip().endswith("%%%mzn-stat-end")
         assert "%%%mzn-stat: SOLUTION_NB=1" in rest
 
-    def test_fzn_nucs_time_limit_stops_a_descent(self) -> None:
+    def test_fzn_nucs_time_limit_stops_the_compiled_search(self) -> None:
         # run without MiniZinc, nothing but -t stops a proof that 13 pigeons do not fit in 12 holes: the
-        # limit has to stop the descent itself, and the run still concludes its stream
+        # limit has to stop the compiled search itself, and the run still concludes its stream
         xs = [f"x{i}" for i in range(13)]
         lines = [f"var 0..11: {x} :: output_var;" for x in xs]
         lines += [f"constraint int_ne({x}, {y});" for i, x in enumerate(xs) for y in xs[i + 1 :]]

@@ -85,6 +85,6 @@ entry to `nucs/fzn/builtins.py`.
   blows up into a big boolean encoding.
 - Boolean output variables are printed as `true`/`false`.
 - Unbounded `var int` declarations fall back to a wide finite interval.
-- `-t` (time limit) stops the search at its next node once the budget is spent, including in the middle of
-  a descent. MiniZinc enforces its own limit with SIGTERM, which does the same. Either way the run still
+- `-t` (time limit) stops the search at its next node once the budget is spent, including between two
+  solutions. MiniZinc enforces its own limit with SIGTERM, which does the same. Either way the run still
   prints its best solution, `=====UNKNOWN=====` when it has none, and its statistics.

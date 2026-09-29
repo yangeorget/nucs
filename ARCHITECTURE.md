@@ -48,6 +48,10 @@ Between successive `solve_one_step` calls the queue is *not* refilled from scrat
 the propagators affected by the parked alternative, or by the objective bound it re-applies to the choice point it
 resumes.
 
+A **descent** is the search from one start at the root to the next restart. Without restarts, the whole search is
+one descent. A descent is not a call of `solve_one_step`: a call also returns at each solution and each time an
+array must grow, so one descent can take many calls.
+
 ## Constants
 
 `nucs/constants.py` holds what several layers share: the protocols a propagator (`PROP_*`, `EVENT_MASK_*`), a domain

@@ -176,8 +176,8 @@ class Solver(ABC):
         Returns whether the search budget is spent, recording the fact in :attr:`timed_out`.
 
         This is the check made where the search returns to Python, between two solutions, so that time the
-        consumer spends on a solution counts towards the budget. A solver whose descents run in compiled code
-        also has to stop them from inside, as :class:`BacktrackSolver` does with a timer.
+        consumer spends on a solution counts towards the budget. A solver whose search runs in compiled code
+        between two solutions also has to stop it from inside, as :class:`BacktrackSolver` does with a timer.
 
         :param deadline: the monotonic time to stop at, or None for an unbounded search
         :type deadline: Optional[float]

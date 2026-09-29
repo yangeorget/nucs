@@ -296,9 +296,9 @@ class BacktrackSolver(Solver):
         # is found, and nothing about it is trailed. OBJECTIVE_VARIABLE stays -1 outside OPTIM_PRUNE, which is
         # how backtrack knows there is no bound to apply: OPTIM_RESET tightens at the root instead.
         self.objective = np.full(OBJECTIVE_WIDTH, -1, dtype=np.int32)
-        # set by interrupt(), possibly from another thread, and read by solve_one_step at every node: a
-        # descent runs in compiled code that returns to Python only at a solution, so a flag it reads itself
-        # is the only way to stop it in between
+        # set by interrupt(), possibly from another thread, and read by solve_one_step at every node: a call of
+        # solve_one_step runs in compiled code that returns to Python only at a solution, so a flag it reads
+        # itself is the only way to stop it in between
         self.interruption = np.zeros((1,), dtype=np.int32)
         # set by interrupt() before it writes the cell, and never cleared: the clearing of a deadline restores
         # INTERRUPTION_EXTERNAL from it, since interrupt() may run between any two bytecodes of that clearing
@@ -407,7 +407,7 @@ class BacktrackSolver(Solver):
             t0 = time.perf_counter_ns()
             buckets_empty(self.triggered_propagators, self.problem.priorities)
             buckets_init(self.triggered_propagators, self.problem.priorities)
-            # no incumbent yet, so the first descent runs unbounded; _advance_after_optimum arms the objective.
+            # no incumbent yet, so the search has no objective bound; _advance_after_optimum arms it.
             # An enumeration disarms it here too: the solver may have been optimized with before.
             self.objective[OBJECTIVE_VARIABLE] = -1
             self.incumbent = None
@@ -433,9 +433,9 @@ class BacktrackSolver(Solver):
         """
         Starts a timer that stops the search at its next node once the timeout has elapsed.
 
-        Checking the deadline between solutions is not enough: a descent that finds no solution -- a proof of
-        optimality, an infeasible subtree -- never returns to Python, and would run past the budget for as long
-        as it lasts. So the timer writes the same cell interrupt() does, which the compiled search reads at
+        Checking the deadline between solutions is not enough: a call of solve_one_step that finds no solution --
+        a proof of optimality, an infeasible subtree -- never returns to Python, and would run past the budget
+        for as long as it lasts. So the timer writes the same cell interrupt() does, which the compiled search reads at
         every node. Unlike interrupt(), the deadline belongs to one search: the returned function cancels
         the timer and clears what it wrote, leaving an external interruption in place.
 
@@ -517,7 +517,8 @@ class BacktrackSolver(Solver):
                 < 0
             ):
                 return False
-        # the descent stopped in the middle of a filtering, so the queue is not empty
+        # the descent ended at a failure: the failed filtering left propagators in the queue, and backtrack added
+        # more
         buckets_empty(self.triggered_propagators, self.problem.priorities)
         buckets_init(self.triggered_propagators, self.problem.priorities)
         return True

@@ -143,7 +143,7 @@ class TestBacktrackSolver:
     def test_solve_stops_at_the_timeout(self) -> None:
         """A timeout cuts the enumeration short and says so, instead of silently looking exhausted."""
         # loads the compiled search, on a problem of its own since a search narrows its problem's domains:
-        # the budget also bounds the first descent, which would otherwise be spent loading
+        # the budget also bounds the first call of the compiled search, which would otherwise be spent loading
         next(BacktrackSolver(Problem([(0, 299), (0, 299)])).solve())
         problem = Problem([(0, 299), (0, 299)])
         solver = BacktrackSolver(problem)
@@ -151,9 +151,9 @@ class TestBacktrackSolver:
         assert solver.timed_out
         assert 0 < solutions < 90000
 
-    def test_interrupt_stops_a_descent(self) -> None:
+    def test_interrupt_stops_the_compiled_search(self) -> None:
         """An interrupt from another thread stops a search that finds no solution to return to Python at."""
-        # 13 pigeons in 12 holes: the descent never comes back with a solution, so only the compiled loop
+        # 13 pigeons in 12 holes: the search never comes back with a solution, so only the compiled loop
         # itself can notice the interruption
         problem = Problem([(0, 11)] * 13)
         for i in range(13):
@@ -175,7 +175,7 @@ class TestBacktrackSolver:
         assert list(solver.solve()) == []
         assert solver.timed_out
 
-    def test_timeout_stops_a_descent(self) -> None:
+    def test_timeout_stops_the_compiled_search(self) -> None:
         """A timeout stops a search that finds no solution to return to Python at, and does not outlive it."""
         # loads the compiled search first, so that the budget below is spent searching
         warm_up = Problem([(0, 1)] * 2)

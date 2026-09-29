@@ -47,7 +47,7 @@ so `hint_nb >= 1`.
 - **The block is zeroed once, at solver init** — not on backtrack, not on an `OPTIM_RESET` restart. If a call needs
   a cleared block, clear it in `compute_domains`.
 - **Warm-starting does not bound the work.** `argsort_into_warm` costs the inversions since the previous call: small
-  down a descent, O(n²) after a jump. That is why `argsort_into` keeps its `np.argsort` fallback above `SORT_MAX_N`.
+  after a decision, O(n²) after a jump. That is why `argsort_into` keeps its `np.argsort` fallback above `SORT_MAX_N`.
   If a hint pays off only with locality, keep an unconditional fallback.
 - **Justify every cell in the `get_state_<name>` docstring**: why it is trailed, or why being untrailed is safe — see
   `get_state_alldifferent`, `get_state_gcc` and `get_state_sum_eq_c`. A wrong untrailed claim shows up as a
