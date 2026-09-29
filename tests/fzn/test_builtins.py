@@ -26,8 +26,16 @@ import pytest
 from nucs.fzn.__main__ import build_arg_parser
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import build_model
-from nucs.fzn.parser import parse
-from nucs.fzn.runner import restart_policy_of, run, search_heuristics
+from nucs.fzn.parser import Id, parse
+from nucs.fzn.runner import (
+    FREE_SEARCH_RESTART,
+    free_search_heuristics,
+    parse_restart,
+    restart_policy_of,
+    run,
+    search_heuristics,
+    search_options,
+)
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
     DOM_HEURISTIC_MID_VALUE,
@@ -1792,9 +1800,92 @@ class TestBuiltins:
         assert "=====UNSATISFIABLE=====" in out.getvalue()
         assert "SOLVER_RESTART_NB=0" not in out.getvalue()
 
+    def test_free_search_heuristics(self, caplog: pytest.LogCaptureFixture) -> None:
+        # the annotated variables first (y, x), then the rest (z), all with dom/wdeg; the selectors are ignored,
+        # so an unsupported one (occurrence) raises no warning
+        model = build_model(
+            parse(
+                "var 0..3: x;\nvar 0..3: y;\nvar 0..3: z;\n"
+                "solve :: seq_search([int_search([y], occurrence, indomain_max, complete),"
+                " int_search([x, y], input_order, indomain_min, complete)]) satisfy;"
+            )
+        )
+        with caplog.at_level(logging.WARNING, logger="nucs.fzn.runner"):
+            searches = free_search_heuristics(model)
+        assert caplog.text == ""
+        x, y, z = (model.var_index_of(Id(name)) for name in "xyz")
+        assert [list(s.decision_variables or []) for s in searches] == [[y, x], [z]]
+        assert all(s.var_heuristic == VAR_HEURISTIC_DOM_WDEG for s in searches)
+
+    def test_free_search_heuristics_without_annotation(self) -> None:
+        model = build_model(parse("var 0..3: x;\nvar 0..3: y;\nsolve satisfy;"))
+        searches = free_search_heuristics(model)
+        assert len(searches) == 1
+        assert sorted(searches[0].decision_variables or []) == list(range(model.problem.domain_nb))
+
+    @pytest.mark.parametrize(
+        "text,policy",
+        [
+            ("luby", (RESTART_LUBY, 100, 1.5)),
+            ("luby,500", (RESTART_LUBY, 500, 1.5)),
+            ("Geometric,100,2.0", (RESTART_GEOMETRIC, 100, 2.0)),
+            ("none", (RESTART_NONE, 100, 1.5)),
+        ],
+    )
+    def test_parse_restart(self, text: str, policy: tuple[str, int, float]) -> None:
+        assert parse_restart(text) == policy
+
+    @pytest.mark.parametrize("text", ["fibonacci,10", "luby,0", "geometric,10,1.0", "luby,10,2,3"])
+    def test_parse_restart_rejects_a_wrong_policy(self, text: str) -> None:
+        with pytest.raises(ValueError):
+            parse_restart(text)
+
+    def test_main_free_search_and_restart_flags(self) -> None:
+        args = build_arg_parser().parse_args(["-f", "--restart", "luby,500", "model.fzn"])
+        assert args.free_search
+        assert args.restart == (RESTART_LUBY, 500, 1.5)
+        with pytest.raises(SystemExit):  # a wrong policy is a usage error
+            build_arg_parser().parse_args(["--restart", "fibonacci", "model.fzn"])
+
+    @pytest.mark.parametrize("free_search", [False, True])
+    def test_run_free_search_finds_the_optimum(self, free_search: bool) -> None:
+        # the free search ignores the annotation's order and values, and must still prove the optimum
+        text = (
+            "array [1..4] of var 0..3: x;\nvar 0..12: s;\n"
+            + "".join(f"constraint int_ne(x[{i}], x[{j}]);\n" for i in range(1, 5) for j in range(i + 1, 5))
+            + "constraint int_lin_eq([1, 1, 1, 1, -1], [x[1], x[2], x[3], x[4], s], 0);\n"
+            + "solve :: int_search(x, input_order, indomain_max, complete) minimize x[1];\n"
+        )
+        out = io.StringIO()
+        run(build_model(parse(text)), out, free_search=free_search, last_conflict=True, restart=(RESTART_LUBY, 1, 1.5))
+        assert "==========" in out.getvalue()  # the optimum is proven
+
     def test_main_last_conflict_flag(self) -> None:
-        assert build_arg_parser().parse_args(["--last-conflict", "model.fzn"]).last_conflict
-        assert not build_arg_parser().parse_args(["model.fzn"]).last_conflict
+        assert build_arg_parser().parse_args(["--last-conflict", "model.fzn"]).last_conflict is True
+        assert build_arg_parser().parse_args(["--no-last-conflict", "model.fzn"]).last_conflict is False
+        assert build_arg_parser().parse_args(["model.fzn"]).last_conflict is None  # the mode's default
+
+    @pytest.mark.parametrize(
+        "free_search,last_conflict,restart,expected",
+        [
+            # the fixed search: no last-conflict, and the model's restart annotation (restart_luby(7) here)
+            (False, None, None, (False, (RESTART_LUBY, 7, 2.0))),
+            # the free search: its defaults, and the model's restart annotation is ignored
+            (True, None, None, (True, FREE_SEARCH_RESTART)),
+            # what the command line gives wins, in both modes
+            (True, False, (RESTART_NONE, 100, 1.5), (False, (RESTART_NONE, 100, 1.5))),
+            (False, True, (RESTART_LUBY, 50, 1.5), (True, (RESTART_LUBY, 50, 1.5))),
+        ],
+    )
+    def test_search_options(
+        self,
+        free_search: bool,
+        last_conflict: bool | None,
+        restart: tuple[str, int, float] | None,
+        expected: tuple[bool, tuple[str, int, float]],
+    ) -> None:
+        model = build_model(parse("var 0..3: x;\nsolve :: restart_luby(7) satisfy;"))
+        assert search_options(model, free_search, last_conflict, restart) == expected
 
     def test_build_model_search_heuristics_dom_w_deg(self, caplog: pytest.LogCaptureFixture) -> None:
         model = build_model(parse("var 0..3: x;\nsolve :: int_search([x], dom_w_deg, indomain_min, complete) satisfy;"))

@@ -6,9 +6,11 @@
   "mznlib": "./minizinc/nucs",
   "executable": "fzn-nucs",
   "tags": ["cp", "int"],
-  "stdFlags": ["-a", "-i", "-n", "-s", "-t"],
+  "stdFlags": ["-a", "-f", "-i", "-n", "-s", "-t"],
   "extraFlags": [
-    ["--last-conflict", "branch first on the variable of the last refuted decision", "bool", "false"]
+    ["--last-conflict", "branch first on the variable of the last refuted decision (default with -f)", "bool", "false"],
+    ["--no-last-conflict", "do not use last-conflict, even with -f", "bool", "false"],
+    ["--restart", "restart policy POLICY[,SCALE[,BASE]], e.g. luby,500 (default luby,500 with -f)", "string", ""]
   ],
   "supportsMzn": false,
   "supportsFzn": true,

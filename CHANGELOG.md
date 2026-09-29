@@ -8,6 +8,18 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+### Added
+
+- **A free search, `fzn-nucs -f`.** Before, `-f` was accepted and ignored. Now NuCS keeps only which variables the
+  search annotations name: dom/wdeg on them, then on the other variables, with last-conflict and Luby restarts at
+  scale 500. On 41 challenge instances in 60 s, it did better than the models' own searches on 11 and worse on 5,
+  where a hand-tuned annotation knows the model better. On spot5 it finds 184313 where the annotated search finds
+  285509, and on community-detection 204163 instead of 83456; Gecode confirms both solutions. Last-conflict won 9
+  and lost 0 inside the free search; the restarts won 10 and lost 3, the three being proofs that got slower.
+- **`--restart POLICY[,SCALE[,BASE]]`**, which sets the restart policy from the command line (e.g. `luby,500`) and
+  replaces the model's restart annotation, and **`--no-last-conflict`**, which turns off the last-conflict default of
+  `-f`. The solver configuration declares `-f`, `--restart` and `--no-last-conflict` to MiniZinc.
+
 ### Fixed
 
 - **An `interrupt()` from a signal handler could be lost when a search with a timeout stopped.** The clearing of the

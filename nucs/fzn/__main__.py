@@ -22,7 +22,7 @@ from nucs.fzn.errors import FznError
 from nucs.fzn.model import build_model
 from nucs.fzn.parser import parse
 from nucs.fzn.register import register
-from nucs.fzn.runner import run
+from nucs.fzn.runner import parse_restart, run
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -73,14 +73,46 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--last-conflict",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="branch first on the variable of the last refuted decision, as long as it is unbound "
+        "(default: on with -f, off otherwise)",
+    )
+    parser.add_argument(
+        "--restart",
+        type=_restart_arg,
+        default=None,
+        metavar="POLICY[,SCALE[,BASE]]",
+        help="restart after a number of failures (luby, geometric, linear, constant or none), e.g. luby,500 "
+        "(default: luby,500 with -f, the model's restart annotation otherwise)",
+    )
+    parser.add_argument(
+        "-f",
+        "--free-search",
         action="store_true",
-        help="branch first on the variable of the last refuted decision, as long as it is unbound",
+        help="ignore how the search annotations branch: dom/wdeg on the annotated variables, then on the others, "
+        "with last-conflict and Luby restarts unless told otherwise",
     )
     # Accepted and ignored for compatibility with the FlatZinc solver interface.
-    parser.add_argument("-f", "--free-search", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("-p", "--parallel", type=int, default=None, help=argparse.SUPPRESS)
     parser.add_argument("-r", "--random-seed", type=int, default=None, help=argparse.SUPPRESS)
     return parser
+
+
+def _restart_arg(text: str) -> tuple[str, int, float]:
+    """
+    Converts the --restart argument, so that a wrong one is reported as a usage error.
+
+    :param text: the argument
+    :type text: str
+
+    :return: the policy, its scale and its base
+    :rtype: Tuple[str, int, float]
+    """
+    try:
+        return parse_restart(text)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e)) from e
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -121,6 +153,8 @@ def main(argv: list[str] | None = None) -> int:
             time_limit_ms=args.time_limit,
             stop_on_sigterm=True,
             last_conflict=args.last_conflict,
+            free_search=args.free_search,
+            restart=args.restart,
         )
     except FznError as e:
         sys.stderr.write(f"fzn-nucs: {e}\n")

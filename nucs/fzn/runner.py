@@ -128,6 +128,61 @@ def restart_policy_of(model: FznModel) -> tuple[str, int, float]:
     return no_restart
 
 
+# The free search (-f) defaults, measured on 41 challenge instances in 60 s against the models' own searches:
+# last-conflict won 9 and lost 0 against the same free search without it; Luby restarts at scale 500 won 10 and
+# lost 3 (proofs that got slower) against the free search without restarts.
+FREE_SEARCH_LAST_CONFLICT = True
+FREE_SEARCH_RESTART = (RESTART_LUBY, 500, 1.5)
+
+
+def search_options(
+    model: FznModel, free_search: bool, last_conflict: bool | None, restart: tuple[str, int, float] | None
+) -> tuple[bool, tuple[str, int, float]]:
+    """
+    Resolves last-conflict and the restart policy from the mode and the command line. What the command line gives
+    wins. Otherwise the free search takes its defaults and ignores the model's restart annotation, as it ignores the
+    rest of its search annotation; the fixed search takes no last-conflict and follows the restart annotation.
+
+    :param model: the built model
+    :type model: FznModel
+    :param free_search: whether the search is free (-f)
+    :type free_search: bool
+    :param last_conflict: last-conflict as the command line gives it, or None for the mode's default
+    :type last_conflict: Optional[bool]
+    :param restart: the restart policy, scale and base as the command line gives them, or None for the mode's default
+    :type restart: Optional[Tuple[str, int, float]]
+
+    :return: whether to use last-conflict, and the restart policy, scale and base
+    :rtype: Tuple[bool, Tuple[str, int, float]]
+    """
+    if last_conflict is None:
+        last_conflict = FREE_SEARCH_LAST_CONFLICT if free_search else False
+    if restart is None:
+        restart = FREE_SEARCH_RESTART if free_search else restart_policy_of(model)
+    return last_conflict, restart
+
+
+def parse_restart(text: str) -> tuple[str, int, float]:
+    """
+    Parses a restart policy given on the command line as ``POLICY[,SCALE[,BASE]]``, such as ``luby,500`` or
+    ``geometric,100,1.5``. The scale defaults to 100 and the base to 1.5, as in BacktrackSolver.
+
+    :param text: the policy, one of RESTART_POLICIES, then optionally its scale and its base
+    :type text: str
+
+    :return: the policy, its scale and its base
+    :rtype: Tuple[str, int, float]
+    """
+    parts = text.split(",")
+    if not 1 <= len(parts) <= 3:
+        raise ValueError(f"Expected POLICY[,SCALE[,BASE]], not {text!r}")
+    policy = parts[0].strip().lower()
+    scale = int(parts[1]) if len(parts) > 1 else 100
+    base = float(parts[2]) if len(parts) > 2 else 1.5
+    restart_limits(policy, scale, base)  # raises on a wrong policy, scale or base
+    return policy, scale, base
+
+
 def search_heuristics(model: FznModel) -> list[Search] | None:
     """
     Translates the first ``int_search``/``bool_search``/``seq_search`` annotation on the solve item into a
@@ -160,6 +215,50 @@ def search_heuristics(model: FznModel) -> list[Search] | None:
                 searches.append(Search(remaining))
             return searches or None
     return None
+
+
+def free_search_heuristics(model: FznModel) -> list[Search]:
+    """
+    Builds the free search (``-f``): the model's search annotations only say which variables it decides, and both
+    the order and the values are left to NuCS. The variables the annotations name come first, in one dom/wdeg search,
+    since they are the modeller's decisions; the remaining variables follow, in a second one, so that the search
+    grounds the whole problem. A model with no search annotation gets one dom/wdeg search over all its variables.
+
+    :param model: the built model
+    :type model: FznModel
+
+    :return: the ordered list of searches
+    :rtype: List[Search]
+    """
+    annotated: list[int] = []
+    seen: set = set()
+    for annotation in model.solve.annotations:
+        for variable in _annotated_variables(model, annotation):
+            if variable not in seen:
+                seen.add(variable)
+                annotated.append(variable)
+    remaining = [v for v in range(model.problem.domain_nb) if v not in seen]
+    return [Search(variables, VAR_HEURISTIC_DOM_WDEG) for variables in (annotated, remaining) if variables]
+
+
+def _annotated_variables(model: FznModel, annotation: Ann) -> list[int]:
+    """
+    Returns the variables a search annotation branches on, in order, recursing into ``seq_search``. Unlike
+    _single_search it reads no selector, so the selectors a free search ignores raise no warning.
+
+    :param model: the built model
+    :type model: FznModel
+    :param annotation: the search annotation
+    :type annotation: Ann
+
+    :return: the variables, possibly with repetitions
+    :rtype: List[int]
+    """
+    if annotation.name == "seq_search" and annotation.args and isinstance(annotation.args[0], list):
+        return [v for item in annotation.args[0] if isinstance(item, Ann) for v in _annotated_variables(model, item)]
+    if annotation.name in ("int_search", "bool_search") and annotation.args:
+        return model.var_list_of(annotation.args[0])
+    return []
 
 
 def _flatten_searches(model: FznModel, annotation: Ann) -> list[tuple[list[int], int, int]]:
@@ -251,7 +350,9 @@ def run(
     intermediate_solutions: bool = False,
     time_limit_ms: int | None = None,
     stop_on_sigterm: bool = False,
-    last_conflict: bool = False,
+    last_conflict: bool | None = None,
+    free_search: bool = False,
+    restart: tuple[str, int, float] | None = None,
 ) -> None:
     """
     Solves the model and writes the FlatZinc solution stream.
@@ -281,8 +382,14 @@ def run(
     :param stop_on_sigterm: whether SIGTERM stops the search as a time limit would, which installs a process-wide
         signal handler and so is for the executable only
     :type stop_on_sigterm: bool
-    :param last_conflict: whether the search branches first on the variable of the last refuted decision
-    :type last_conflict: bool
+    :param last_conflict: whether the search branches first on the variable of the last refuted decision, or None for
+        the mode's default (see search_options)
+    :type last_conflict: Optional[bool]
+    :param free_search: whether to ignore how the search annotations branch and use dom/wdeg instead
+        (see free_search_heuristics)
+    :type free_search: bool
+    :param restart: the restart policy, scale and base, or None for the mode's default (see search_options)
+    :type restart: Optional[Tuple[str, int, float]]
     """
     # Resolve the objective before constructing the solver, since the solver snapshots the domains on init.
     objective_var = None
@@ -290,10 +397,12 @@ def run(
         if model.solve.objective is None:
             raise FznUnsupportedError("an optimization objective is required")
         objective_var = model.var_index_of(model.solve.objective)
-    restart_policy, restart_scale, restart_base = restart_policy_of(model)
+    last_conflict, (restart_policy, restart_scale, restart_base) = search_options(
+        model, free_search, last_conflict, restart
+    )
     solver = BacktrackSolver(
         model.problem,
-        searches=search_heuristics(model),
+        searches=free_search_heuristics(model) if free_search else search_heuristics(model),
         log_level="ERROR",
         restart_policy=restart_policy,
         restart_scale=restart_scale,
