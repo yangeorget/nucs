@@ -11,7 +11,6 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import logging
-import threading
 import time
 from collections.abc import Callable, Iterable, Iterator
 
@@ -63,6 +62,7 @@ from nucs.solvers.choice_points import (
     tighten_objective,
 )
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
+from nucs.solvers.interruption import Interruption
 from nucs.solvers.restarts import RESTART_NONE, restart_limits
 from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_RESET, Solver, get_solution
@@ -99,11 +99,6 @@ SEARCH_CONTROL_LAST_CONFLICT = 2  # 1 when last-conflict is on, 0 otherwise
 SEARCH_CONTROL_CONFLICT_VARIABLE = 3  # the variable of the last decision that led to a failure, -1 when none
 SEARCH_CONTROL_DECISION_VARIABLE = 4  # the variable of the last decision, -1 once a refutation follows it
 SEARCH_CONTROL_WIDTH = 5
-
-# what the interruption cell holds; the compiled loop stops on anything non-zero
-INTERRUPTION_NONE = 0
-INTERRUPTION_EXTERNAL = 1  # interrupt(): final, every later search stops too
-INTERRUPTION_DEADLINE = 2  # a timeout: cleared once the search it belongs to is over
 
 # Trail entries a step of the search needs beyond one per cell of the backtrackable state.
 # The barrier in trail_set trails each cell at most once per choice point, so a fixpoint cannot need more
@@ -296,16 +291,8 @@ class BacktrackSolver(Solver):
         # is found, and nothing about it is trailed. OBJECTIVE_VARIABLE stays -1 outside OPTIM_PRUNE, which is
         # how backtrack knows there is no bound to apply: OPTIM_RESET tightens at the root instead.
         self.objective = np.full(OBJECTIVE_WIDTH, -1, dtype=np.int32)
-        # set by interrupt(), possibly from another thread, and read by solve_one_step at every node: a call of
-        # solve_one_step runs in compiled code that returns to Python only at a solution, so a flag it reads
-        # itself is the only way to stop it in between
-        self.interruption = np.zeros((1,), dtype=np.int32)
-        # set by interrupt() before it writes the cell, and never cleared: the clearing of a deadline restores
-        # INTERRUPTION_EXTERNAL from it, since interrupt() may run between any two bytecodes of that clearing
-        self.interrupted = False
-        # serializes a deadline timer and the clearing of that deadline, so that the timer cannot write after
-        # the clearing; interrupt() takes no lock, since it may run as a signal handler on a thread that holds it
-        self.deadline_lock = threading.Lock()
+        # read by solve_one_step at every node, and written by interrupt() and by the deadline of a search
+        self.interruption = Interruption()
         logger.info(
             f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"
         )
@@ -405,7 +392,7 @@ class BacktrackSolver(Solver):
         """
         self.timed_out = False
         deadline = None if timeout is None else time.monotonic() + timeout
-        disarm = self._arm_deadline(timeout)
+        disarm = self.interruption.arm_deadline(timeout)
         try:
             t0 = time.perf_counter_ns()
             buckets_empty(self.triggered_propagators, self.problem.priorities)
@@ -431,47 +418,6 @@ class BacktrackSolver(Solver):
         finally:
             # also when the consumer abandons the iteration, so that the timer cannot stop a later search
             disarm()
-
-    def _arm_deadline(self, timeout: float | None) -> Callable[[], None]:
-        """
-        Starts a timer that stops the search at its next node once the timeout has elapsed.
-
-        Checking the deadline between solutions is not enough: a call of solve_one_step that finds no solution --
-        a proof of optimality, an infeasible subtree -- never returns to Python, and would run past the budget
-        for as long as it lasts. So the timer writes the same cell interrupt() does, which the compiled search reads at
-        every node. Unlike interrupt(), the deadline belongs to one search: the returned function cancels
-        the timer and clears what it wrote, leaving an external interruption in place.
-
-        :param timeout: the search budget in seconds, or None for an unbounded search
-        :type timeout: Optional[float]
-
-        :return: the function to call once the search is over
-        :rtype: Callable[[], None]
-        """
-        if timeout is None:
-            return lambda: None
-        armed = [True]  # a callback already running when the timer is cancelled must not write after disarm
-
-        def expire() -> None:
-            with self.deadline_lock:
-                if armed[0] and self.interruption[0] == INTERRUPTION_NONE:
-                    self.interruption[0] = INTERRUPTION_DEADLINE
-
-        timer = threading.Timer(max(timeout, 0.0), expire)
-        timer.daemon = True
-        timer.start()
-
-        def disarm() -> None:
-            timer.cancel()
-            with self.deadline_lock:
-                armed[0] = False
-                # a test of the cell before the clear would erase an interrupt() that runs between the two:
-                # clear it, then restore the external interruption from the flag that interrupt() sets first
-                self.interruption[0] = INTERRUPTION_NONE
-                if self.interrupted:
-                    self.interruption[0] = INTERRUPTION_EXTERNAL
-
-        return disarm
 
     def _solve_one(self) -> NDArray | None:
         """
@@ -567,7 +513,7 @@ class BacktrackSolver(Solver):
             self.problem.algorithm_flags,
             self.objective,
             self.trail_headroom,
-            self.interruption,
+            self.interruption.cell,
             self.propagator_weights,
             self.search_control,
             self.variable_searches,
@@ -582,8 +528,7 @@ class BacktrackSolver(Solver):
         writes a cell that the compiled search reads, and solve_one_step releases the GIL so that such a thread
         gets to run.
         """
-        self.interrupted = True  # first: the clearing of a deadline restores the cell from it
-        self.interruption[0] = INTERRUPTION_EXTERNAL
+        self.interruption.interrupt()
 
     def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
         """
@@ -830,7 +775,7 @@ def solve_one_step(
     :type objective: NDArray
     :param trail_headroom: the trail entries any one step of the search can need
     :type trail_headroom: int
-    :param interruption: a one-cell array, non-zero once the search is asked to stop
+    :param interruption: the one-cell array of an Interruption, non-zero once the search is asked to stop
     :type interruption: NDArray
     :param propagator_weights: the failure weight of each propagator, followed by the increment and its growth
                                (see nucs.solvers.weights)

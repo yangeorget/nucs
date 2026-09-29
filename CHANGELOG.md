@@ -8,6 +8,13 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+### Changed
+
+- **The interruption and the deadline of a search are a class of their own**, `Interruption` in
+  `nucs/solvers/interruption.py`. `BacktrackSolver.interruption` is now an `Interruption`: the one-cell array is
+  `interruption.cell`, and `interrupted` and `deadline_lock` are attributes of the `Interruption`, not of the solver.
+  `BacktrackSolver.interrupt()` does not change.
+
 ## 17.1.0
 
 ### Added
