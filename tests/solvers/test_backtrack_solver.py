@@ -144,7 +144,7 @@ class TestBacktrackSolver:
         """A timeout cuts the enumeration short and says so, instead of silently looking exhausted."""
         # loads the compiled search, on a problem of its own since a search narrows its problem's domains:
         # the budget also bounds the first call of the compiled search, which would otherwise be spent loading
-        next(BacktrackSolver(Problem([(0, 299), (0, 299)])).solve())
+        next(BacktrackSolver(Problem([(0, 299), (0, 299)])).solve())  # warm-up
         problem = Problem([(0, 299), (0, 299)])
         solver = BacktrackSolver(problem)
         solutions = sum(1 for _ in solver.solve(timeout=0.05))
