@@ -13,8 +13,9 @@
 import sys
 import threading
 import time
-from collections.abc import Callable, Generator
-from types import FrameType
+from collections.abc import Callable, Generator, Iterator
+from contextlib import contextmanager
+from types import CodeType, FrameType
 
 import pytest
 
@@ -68,6 +69,42 @@ from nucs.statistics import (
     STATS_LBL_SOLUTION_NB,
     STATS_LBL_SOLVER_CHOICE_DEPTH,
 )
+
+
+@contextmanager
+def call_before_bytecode(code: CodeType, position: int, callback: Callable[[], None]) -> Iterator[list[int]]:
+    """
+    Traces the frames of a code object and calls a function before one of its bytecodes, as a signal handler can run.
+
+    :param code: the code object whose frames are traced
+    :type code: CodeType
+    :param position: the index of the bytecode before which the function is called, -1 for no call
+    :type position: int
+    :param callback: the function to call
+    :type callback: Callable[[], None]
+
+    :return: a one-cell list that holds the number of bytecodes the traced frames ran, once the block is over
+    :rtype: Iterator[list[int]]
+    """
+    opcode_nb = [0]
+
+    def trace_opcodes(frame: FrameType, event: str, _arg: object) -> Callable | None:
+        frame.f_trace_opcodes = True  # ignored when set at the call event, from Python 3.14
+        if event == "opcode":
+            if opcode_nb[0] == position:
+                callback()
+            opcode_nb[0] += 1
+        return trace_opcodes
+
+    def trace_calls(frame: FrameType, _event: str, _arg: object) -> Callable | None:
+        return trace_opcodes if frame.f_code is code else None
+
+    previous_trace = sys.gettrace()
+    sys.settrace(trace_calls)
+    try:
+        yield opcode_nb
+    finally:
+        sys.settrace(previous_trace)
 
 
 class TestBacktrackSolver:
@@ -189,29 +226,11 @@ class TestBacktrackSolver:
         while solver.interruption[0] != INTERRUPTION_DEADLINE and time.monotonic() - start < 1:
             time.sleep(0.001)
         assert solver.interruption[0] == INTERRUPTION_DEADLINE
-        opcode_nb = 0
-
-        def trace_disarm(frame: FrameType, event: str, _arg: object) -> Callable | None:
-            nonlocal opcode_nb
-            frame.f_trace_opcodes = True  # ignored when set at the call event, from Python 3.14
-            if event == "opcode":
-                if opcode_nb == position:
-                    solver.interrupt()
-                opcode_nb += 1
-            return trace_disarm
-
-        def trace_calls(frame: FrameType, _event: str, _arg: object) -> Callable | None:
-            return trace_disarm if frame.f_code is disarm.__code__ else None
-
-        previous_trace = sys.gettrace()
-        sys.settrace(trace_calls)
-        try:
+        with call_before_bytecode(disarm.__code__, position, solver.interrupt) as opcode_nb:
             disarm()
-        finally:
-            sys.settrace(previous_trace)
         expected = INTERRUPTION_NONE if position < 0 else INTERRUPTION_EXTERNAL
         assert solver.interruption[0] == expected, f"interrupt() at bytecode {position} of disarm"
-        return opcode_nb
+        return opcode_nb[0]
 
     def test_abandoned_iteration_disarms_its_deadline(self) -> None:
         """A consumer that stops iterating early does not leave a timer that would stop a later search."""
