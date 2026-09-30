@@ -11,7 +11,6 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import logging
-import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterator
 
@@ -170,26 +169,6 @@ class Solver(ABC):
         for solution in self.optimize(variable, bound, mode, timeout):
             best_solution = solution
         return best_solution
-
-    def _expired(self, deadline: float | None) -> bool:
-        """
-        Returns whether the search budget is spent, recording the fact in :attr:`timed_out`.
-
-        This is the check made where the search returns to Python, between two solutions, so that time the
-        consumer spends on a solution counts towards the budget. A solver whose search runs in compiled code
-        between two solutions also has to stop it from inside, as :class:`BacktrackSolver` does with a timer.
-
-        :param deadline: the monotonic time to stop at, or None for an unbounded search
-        :type deadline: Optional[float]
-
-        :return: True when the deadline has passed
-        :rtype: bool
-        """
-        if deadline is None or time.monotonic() < deadline:
-            return False
-        logger.info("Timeout reached, stopping the search")
-        self.timed_out = True
-        return True
 
     @abstractmethod
     def get_statistics_as_dictionary(self) -> dict[str, int]:

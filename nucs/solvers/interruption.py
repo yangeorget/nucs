@@ -62,9 +62,10 @@ class Interruption:
         """
         Starts a timer that stops the search at its next node once the timeout has elapsed.
 
-        Checking the deadline between solutions is not enough: a call of solve_one_step that finds no solution --
-        a proof of optimality, an infeasible subtree -- never returns to Python, and would run past the budget
-        for as long as it lasts. So the timer writes the same cell as interrupt(). Unlike interrupt(), the deadline
+        A check of the clock between solutions would not be enough: a call of solve_one_step that finds no
+        solution -- a proof of optimality, an infeasible subtree -- never returns to Python, and would run past
+        the budget for as long as it lasts. So the timer writes the same cell as interrupt(), and it is the only
+        check of the budget: a consumer that keeps a solution past it stops the next call at its first node. Unlike interrupt(), the deadline
         belongs to one search: the returned function cancels the timer and clears what it wrote, leaving an
         external interruption in place.
 

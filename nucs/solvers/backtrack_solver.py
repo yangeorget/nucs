@@ -61,7 +61,7 @@ from nucs.solvers.choice_points import (
     tighten_objective,
 )
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
-from nucs.solvers.interruption import Interruption
+from nucs.solvers.interruption import INTERRUPTION_DEADLINE, Interruption
 from nucs.solvers.restarts import RESTART_NONE, restart_limits
 from nucs.solvers.search import Search, flatten_searches
 from nucs.solvers.search_arrays import allocate_search_arrays
@@ -315,7 +315,6 @@ class BacktrackSolver(Solver):
         :rtype: Iterator[NDArray]
         """
         self.timed_out = False
-        deadline = None if timeout is None else time.monotonic() + timeout
         disarm = self.interruption.arm_deadline(timeout)
         try:
             t0 = time.perf_counter_ns()
@@ -334,8 +333,8 @@ class BacktrackSolver(Solver):
                 self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
                 yield solution
                 t0 = time.perf_counter_ns()
-                if self._expired(deadline):
-                    break
+                # no check of the budget here: the timer stops the next call of solve_one_step at its first node,
+                # and a search that advance() finds over has nothing left that a timeout could have cut
                 if not advance(solution):
                     break
             self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
@@ -355,7 +354,10 @@ class BacktrackSolver(Solver):
             if status == SOLVER_RUNNING:
                 return solution
             if status == SOLVER_INTERRUPTED:
-                logger.info("Interrupted, stopping the search")
+                if self.interruption.cell[0] == INTERRUPTION_DEADLINE:
+                    logger.info("Timeout reached, stopping the search")
+                else:
+                    logger.info("Interrupted, stopping the search")
                 self.timed_out = True
                 return None
             if status == SOLVER_RESTART:

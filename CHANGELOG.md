@@ -8,6 +8,14 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+### Fixed
+
+- **`timed_out` was set for a search that had finished.** Between two solutions, the solver checked the clock before
+  it moved on from the solution. So when the consumer kept the last solution past the budget, an enumeration that
+  had found every solution, or an optimization whose optimum was one step from its proof, was reported as cut short.
+  For `fzn-nucs` this could drop the `==========` line. Now the timer of the timeout is the only check of the budget: it
+  stops the next call of the compiled search at its first node, so a search that has nothing left ends normally.
+
 ### Changed
 
 - **The interruption and the deadline of a search are a class of their own**, `Interruption` in

@@ -132,6 +132,18 @@ class TestBacktrackSolver:
         assert list(solver.solve()) == []
         assert solver.timed_out
 
+    @pytest.mark.parametrize("mode", [None, OPTIM_RESET, OPTIM_PRUNE])
+    def test_a_slow_consumer_does_not_make_a_finished_search_look_timed_out(self, mode: str | None) -> None:
+        """A consumer that keeps the last solution past the budget does not make an exhausted search timed out."""
+        # one solution: after it, the enumeration is exhausted and the optimum is proven, both by one advance --
+        # a check of the clock before that advance would report the budget as spent and the result as incomplete
+        next(BacktrackSolver(Problem([(0, 1)])).solve())  # warm-up: the budget must not be spent compiling
+        solver = BacktrackSolver(Problem([(0, 0)]))
+        solutions = solver.solve(timeout=0.05) if mode is None else solver.optimize(0, DOMAIN_MIN, mode, timeout=0.05)
+        for _ in solutions:
+            time.sleep(0.1)  # past the budget
+        assert not solver.timed_out
+
     def test_timeout_stops_the_compiled_search(self) -> None:
         """A timeout stops a search that finds no solution to return to Python at, and does not outlive it."""
         # loads the compiled search first, so that the budget below is spent searching
