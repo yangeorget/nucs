@@ -30,6 +30,11 @@ class TestSearch:
         assert flat.decision_variables.tolist() == [2, 0, 0, 1]
         assert flat.decision_variables_offsets.tolist() == [0, 2, 4]
         assert flat.decision_variables_per_search() == [[2, 0], [0, 1]]
+        assert str(flat) == (
+            f"decision domains [[2, 0], [0, 1]], "
+            f"variable heuristics [{VAR_HEURISTIC_SMALLEST_DOMAIN}, {VAR_HEURISTIC_FIRST_NOT_INSTANTIATED}] "
+            f"and domain heuristics [{DOM_HEURISTIC_MIN_VALUE}, {DOM_HEURISTIC_MAX_VALUE}]"
+        )
         assert flat.var_heuristics == [VAR_HEURISTIC_SMALLEST_DOMAIN, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED]
         assert flat.var_heuristic_params.tolist() == [1, 2]
         assert flat.var_heuristic_params_offsets.tolist() == [0, 2, 2]

@@ -67,6 +67,18 @@ class FlatSearches:
         """
         return [self.decision_variables[a:b].tolist() for a, b in pairwise(self.decision_variables_offsets)]
 
+    def __str__(self) -> str:
+        """
+        Returns the decision variables and the heuristics of the searches, as the solver logs them.
+
+        :return: the description of the searches
+        :rtype: str
+        """
+        return (
+            f"decision domains {self.decision_variables_per_search()}, variable heuristics {self.var_heuristics}"
+            f" and domain heuristics {self.dom_heuristics}"
+        )
+
 
 def flatten_searches(searches: list[Search], domain_nb: int) -> FlatSearches:
     """

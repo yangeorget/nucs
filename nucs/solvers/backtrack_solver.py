@@ -212,9 +212,7 @@ class BacktrackSolver(Solver):
             ]
         # every search keeps its own decision variables, variable and domain heuristics and their parameters
         self.flat_searches = flatten_searches(searches, problem.domain_nb)
-        logger.info(f"BacktrackSolver uses decision domains {self.flat_searches.decision_variables_per_search()}")
-        logger.info(f"BacktrackSolver uses variable heuristics {self.flat_searches.var_heuristics}")
-        logger.info(f"BacktrackSolver uses domain heuristics {self.flat_searches.dom_heuristics}")
+        logger.info(f"BacktrackSolver uses {self.flat_searches}")
         logger.info(f"BacktrackSolver uses consistency algorithm {consistency_algorithm}")
         self.triggered_propagators = buckets_create(problem.propagator_nb)
         self.domain_buffer = get_domain_buffer(problem.offsets)

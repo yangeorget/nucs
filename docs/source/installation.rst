@@ -39,9 +39,7 @@ Produces the following output:
    [ 2026-08-25 09:10:17,042 | MainProcess | INFO ] nucs.solvers.solver.__init__ - Initializing Solver
    [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 3 propagators
    [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 12 variables
-   [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses decision domains [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]]
-   [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses variable heuristics [1]
-   [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses domain heuristics [3]
+   [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses decision domains [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]], variable heuristics [1] and domain heuristics [3]
    [ 2026-08-25 09:10:17,105 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm 0
    [ 2026-08-25 09:10:17,106 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stack of choice points has a maximal height of 8192
    [ 2026-08-25 09:10:17,120 | MainProcess | INFO ] nucs.solvers.solver.find_all - Returning all solutions
@@ -78,9 +76,7 @@ Produces the following output:
    [ 2026-08-25 09:10:18,696 | MainProcess | INFO ] nucs.solvers.solver.__init__ - Initializing Solver
    [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 82 propagators
    [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 45 variables
-   [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses decision domains [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]]
-   [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses variable heuristics [1]
-   [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses domain heuristics [3]
+   [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses decision domains [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]], variable heuristics [1] and domain heuristics [3]
    [ 2026-08-25 09:10:18,705 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm 1
    [ 2026-08-25 09:10:18,706 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stack of choice points has a maximal height of 8192
    [ 2026-08-25 09:10:18,723 | MainProcess | INFO ] nucs.solvers.solver.find_best - Returning the optimal solution
