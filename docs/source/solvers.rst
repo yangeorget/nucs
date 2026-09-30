@@ -33,7 +33,10 @@ A backtracking solver accepts the additional following parameters:
 * an heuristic to select a value (the first value is chosen by default)
 * some parameters for this heuristic (none by default)
 * a list of searches, each with its own decision variables and heuristics (a single search by default)
-* the maximal height for the choice points stack (8192 by default)
+* the initial height of the stack of choice points (the larger of 8192 and 4 times the number of variables by
+  default), which grows as needed
+* the initial size of the trail (the larger of 65536 and 16 times the entries one step of the search can need by
+  default), which grows as needed
 
 
 *******************

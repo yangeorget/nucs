@@ -17,6 +17,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 - **The flattening of the searches is a function of its own**, `flatten_searches` in `nucs/solvers/search.py`. It
   returns a `FlatSearches`, which `BacktrackSolver` keeps as `flat_searches`: `decision_variables`,
   `variable_searches` and the arrays of the heuristic parameters are attributes of it, not of the solver.
+- **The layout of the state and the start sizes of the trail and the stack are a function of their own**,
+  `allocate_search_arrays` in `nucs/solvers/search_arrays.py`. `TIGHTENING_TRAIL_ENTRY_NB` and `STEP_TIGHTENING_NB`
+  moved there from `nucs/solvers/backtrack_solver.py`. The attributes of `BacktrackSolver` do not change.
 
 ## 17.1.0
 

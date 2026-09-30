@@ -16,7 +16,8 @@ path runs in Numba nopython mode with no Python objects.
 - **`nucs/solvers/`** — `BacktrackSolver` (backtracking + propagation). The propagation fixpoint is `bc_algorithm`
   (`bc_algorithm.py`), registered as `CONSISTENCY_ALG_BC`; the search driver is `solve_one_step`. The backtrackable
   state and its trail live in `state.py` — `tighten`/`tighten_at` are the only sanctioned way to write a domain — and
-  the choice-point stack built on them lives in `choice_points.py`. `Interruption` (`interruption.py`) holds the
+  the choice-point stack built on them lives in `choice_points.py`. `allocate_search_arrays` (`search_arrays.py`)
+  lays out the state and sizes the trail and the stack for a problem. `Interruption` (`interruption.py`) holds the
   one-cell array that stops the compiled search at its next node, and its two writers: `interrupt()` and the timer of
   a timeout. Iterate solutions with `solver.solve()`, or optimize with `solver.find_best(var, DOMAIN_MIN)` /
   `solver.find_best(var, DOMAIN_MAX)`.
@@ -58,9 +59,10 @@ array must grow, so one descent can take many calls.
 
 `nucs/constants.py` holds what several layers share: the protocols a propagator (`PROP_*`, `EVENT_MASK_*`), a domain
 heuristic (`DECISION_*`) and the solver (`DOMAIN_*`, `OBJECTIVE_*`) are written against, plus the logging levels. A
-constant owned by one module lives with it instead: `CHOICE_POINT_*` in `nucs/solvers/choice_points.py`, `OFFSETS_*`
-and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` in `nucs/solvers/backtrack_solver.py`, `OPTIM_*` in
-`nucs/solvers/solver.py`, `STATS_*` in `nucs/statistics.py`.
+constant owned by one module lives with it instead: `CHOICE_POINT_*` in `nucs/solvers/choice_points.py`, `OFFSETS_*` and
+`PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` in `nucs/solvers/backtrack_solver.py`, `OPTIM_*` in
+`nucs/solvers/solver.py`, `TIGHTENING_TRAIL_ENTRY_NB` and `STEP_TIGHTENING_NB` in `nucs/solvers/search_arrays.py`,
+`STATS_*` in `nucs/statistics.py`.
 
 The `SIGN_*` signatures — the fixed ABIs through which jitted callables are dispatched (see *Functions are values*
 below) — live with the registry that compiles against them: `SIGN_COMPUTE_DOMAINS` and `SIGN_GET_TRIGGERS` in
