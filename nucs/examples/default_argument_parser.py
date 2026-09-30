@@ -12,6 +12,7 @@
 ###############################################################################
 import argparse
 from argparse import Namespace
+from collections.abc import Sequence
 from dataclasses import replace
 from typing import Any
 
@@ -20,7 +21,7 @@ from numpy.typing import NDArray
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, LOG_LEVELS
 from nucs.heuristics.heuristics import DOM_HEURISTICS, VAR_HEURISTICS
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALGS
-from nucs.solvers.search import Search
+from nucs.solvers.search import DEFAULT_SEARCHES, Search
 from nucs.solvers.solver import OPTIM_MODES, OPTIM_RESET, Solver
 
 
@@ -80,7 +81,9 @@ class DefaultArgumentParser(argparse.ArgumentParser):
         )
 
 
-def solver_kwargs_from_args(args: Namespace, searches: list[Search] | None = None, **defaults: Any) -> dict[str, Any]:
+def solver_kwargs_from_args(
+    args: Namespace, searches: Sequence[Search] = DEFAULT_SEARCHES, **defaults: Any
+) -> dict[str, Any]:
     """
     Builds a dict of BacktrackSolver kwargs, with CLI args overriding the given defaults.
 
@@ -89,15 +92,14 @@ def solver_kwargs_from_args(args: Namespace, searches: list[Search] | None = Non
 
     :param args: the CLI arguments
     :type args: Namespace
-    :param searches: the searches of the example, defaults to one search with the default heuristics
-    :type searches: Optional[List[Search]]
+    :param searches: the searches of the example, defaults to DEFAULT_SEARCHES
+    :type searches: Sequence[Search]
     :param defaults: other kwargs to be passed to BacktrackSolver, overridden by any non-None CLI value
     :type defaults: Any
 
     :return: a dict of kwargs
     :rtype: Dict[str, Any]
     """
-    searches = [Search()] if searches is None else searches
     if args.var_heuristic is not None:
         searches = [replace(search, var_heuristic=VAR_HEURISTICS[args.var_heuristic]) for search in searches]
     if args.dom_heuristic is not None:

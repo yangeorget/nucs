@@ -92,6 +92,7 @@ from nucs.solvers.restarts import (
     RESTART_LUBY,
     Restarts,
 )
+from nucs.solvers.search import DEFAULT_SEARCHES
 
 # The half-reified builtins over x, y in 0..3 and booleans a, b, each with the constraint C it implies.
 HALF_REIFIED_BUILTINS = [
@@ -1742,9 +1743,9 @@ class TestBuiltins:
         covered = [v for search in result for v in (search.decision_variables or [])]
         assert sorted(covered) == list(range(model.problem.domain_nb))  # every variable is branched
 
-    def test_build_model_search_heuristics_none_without_annotation(self) -> None:
+    def test_build_model_search_heuristics_default_without_annotation(self) -> None:
         model = build_model(parse("var 0..3: x;\nsolve satisfy;"))
-        assert search_heuristics(model) is None
+        assert search_heuristics(model) is DEFAULT_SEARCHES
 
     def test_build_model_search_heuristics_unknown_selectors_fall_back(self, caplog: pytest.LogCaptureFixture) -> None:
         """A selector NuCS does not implement is replaced, and says so.

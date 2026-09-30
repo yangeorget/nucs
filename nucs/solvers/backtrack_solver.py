@@ -12,7 +12,7 @@
 ###############################################################################
 import logging
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -61,7 +61,7 @@ from nucs.solvers.choice_points import (
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
 from nucs.solvers.interruption import INTERRUPTION_DEADLINE, Interruption
 from nucs.solvers.restarts import NO_RESTARTS, Restarts
-from nucs.solvers.search import Search, flatten_searches
+from nucs.solvers.search import DEFAULT_SEARCHES, Search, flatten_searches
 from nucs.solvers.search_arrays import allocate_search_arrays
 from nucs.solvers.solver import OPTIM_RESET, Solver, get_solution
 from nucs.solvers.weights import weights_init
@@ -115,7 +115,7 @@ class BacktrackSolver(Solver):
         self,
         problem: Problem,
         consistency_algorithm: int = CONSISTENCY_ALG_BC,
-        searches: list[Search] | None = None,
+        searches: Sequence[Search] = DEFAULT_SEARCHES,
         log_level: str = LOG_LEVEL_INFO,
         weight_decay: float = 1.0,
         restarts: Restarts = NO_RESTARTS,
@@ -128,11 +128,11 @@ class BacktrackSolver(Solver):
         :type problem: Problem
         :param consistency_algorithm: the consistency algorithm, defaults to bound consistency
         :type consistency_algorithm: int
-        :param searches: an ordered list of searches defining a sequential search, each with its decision variables,
-                         its variable and domain heuristics and their parameters; defaults to one search that
-                         branches on every variable with the default heuristics of Search. The union of the
-                         searches' decision variables should cover every branchable variable.
-        :type searches: Optional[List[Search]]
+        :param searches: an ordered sequence of searches defining a sequential search, each with its decision
+                         variables, its variable and domain heuristics and their parameters; defaults to
+                         DEFAULT_SEARCHES, one search that branches on every variable with the default heuristics of
+                         Search. The union of the searches' decision variables should cover every branchable variable.
+        :type searches: Sequence[Search]
         :param log_level: the log level,
                           defaults to INFO
         :type log_level: str
@@ -149,8 +149,6 @@ class BacktrackSolver(Solver):
         :type last_conflict: bool
         """
         super().__init__(problem, log_level)
-        if searches is None:
-            searches = [Search()]
         # every search keeps its own decision variables, variable and domain heuristics and their parameters
         self.flat_searches = flatten_searches(searches, problem.domain_nb)
         logger.info(f"BacktrackSolver uses {self.flat_searches}")

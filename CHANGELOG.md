@@ -34,7 +34,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   )
   ```
 
-  Without `searches`, the solver makes one search on every variable with the default heuristics, as before.
+  Without `searches`, the solver makes one search on every variable with the default heuristics, as before. This
+  default is now `DEFAULT_SEARCHES` from `nucs/solvers/search.py`, not `None`.
 - **The `restart_policy`, `restart_scale` and `restart_base` parameters of `BacktrackSolver`.** They are now one
   `restarts` parameter, a frozen `Restarts` from `nucs/solvers/restarts.py`. It checks its values when it is made,
   and its default, `NO_RESTARTS`, is no restart:
@@ -65,6 +66,11 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 - **The layout of the state and the start sizes of the trail and the stack are a function of their own**,
   `allocate_search_arrays` in `nucs/solvers/search_arrays.py`. `TIGHTENING_TRAIL_ENTRY_NB` and `STEP_TIGHTENING_NB`
   moved there from `nucs/solvers/backtrack_solver.py`. The attributes of `BacktrackSolver` do not change.
+- **`Search` is frozen.** A tuple of frozen searches, `DEFAULT_SEARCHES`, can then be the default of
+  `BacktrackSolver` and of `solver_kwargs_from_args`, as `NO_RESTARTS` is for the restarts. To change a search, make a
+  new one with `dataclasses.replace`. `searches` is now a `Sequence[Search]`, so a tuple is correct too.
+  `search_heuristics` in `nucs/fzn/runner.py` returns `DEFAULT_SEARCHES`, not `None`, for a model without a search
+  annotation.
 
 ## 17.1.0
 

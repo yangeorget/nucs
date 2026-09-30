@@ -135,12 +135,7 @@ def solve(fzn: Path, all_solutions: bool = False) -> dict[str, Any]:
 
     model = build_model(parse(fzn.read_text()))
     problem = model.problem
-    searches = search_heuristics(model)
-    solver = (
-        BacktrackSolver(problem, log_level="ERROR")
-        if searches is None
-        else BacktrackSolver(problem, searches=searches, log_level="ERROR")
-    )
+    solver = BacktrackSolver(problem, searches=search_heuristics(model), log_level="ERROR")
     objective = None if model.solve.objective is None else model.var_index_of(model.solve.objective)
     started = time.perf_counter()
     if model.solve.kind == "satisfy":

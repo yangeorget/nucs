@@ -18,6 +18,7 @@ import logging
 import signal
 import socket
 import threading
+from collections.abc import Sequence
 from typing import TextIO
 
 from numpy.typing import NDArray
@@ -51,7 +52,7 @@ from nucs.solvers.restarts import (
     RESTART_LUBY,
     Restarts,
 )
-from nucs.solvers.search import Search
+from nucs.solvers.search import DEFAULT_SEARCHES, Search
 from nucs.solvers.solver import OPTIM_PRUNE
 
 logger = logging.getLogger(__name__)
@@ -177,7 +178,7 @@ def parse_restart(text: str) -> Restarts:
     return Restarts(policy, scale, base)  # raises on a wrong policy, scale or base
 
 
-def search_heuristics(model: FznModel) -> list[Search] | None:
+def search_heuristics(model: FznModel) -> Sequence[Search]:
     """
     Translates the first ``int_search``/``bool_search``/``seq_search`` annotation on the solve item into a
     NuCS sequential search: one :class:`Search` per nested search, each keeping its own variable and value
@@ -191,8 +192,8 @@ def search_heuristics(model: FznModel) -> list[Search] | None:
     :param model: the built model
     :type model: FznModel
 
-    :return: the ordered list of searches, or None when there is no supported search annotation
-    :rtype: Optional[List[Search]]
+    :return: the ordered searches, or DEFAULT_SEARCHES when there is no supported search annotation
+    :rtype: Sequence[Search]
     """
     for annotation in model.solve.annotations:
         nested = _flatten_searches(model, annotation)
@@ -207,8 +208,8 @@ def search_heuristics(model: FznModel) -> list[Search] | None:
             remaining = [v for v in range(model.problem.domain_nb) if v not in seen]
             if remaining:  # ground every remaining variable with the defaults
                 searches.append(Search(remaining))
-            return searches or None
-    return None
+            return searches or DEFAULT_SEARCHES
+    return DEFAULT_SEARCHES
 
 
 def free_search_heuristics(model: FznModel) -> list[Search]:

@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from itertools import pairwise
 
@@ -21,13 +21,14 @@ from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_FI
 from nucs.numpy_helper import flatten_arrays
 
 
-@dataclass
+@dataclass(frozen=True)
 class Search:
     """
     One search: the decision variables to branch on, the variable heuristic that picks the next of them, and
     the domain heuristic that reduces it (each with optional parameters). A :class:`BacktrackSolver` runs a
     list of these as a sequential search -- the nested searches are explored in order, each search staying
-    active until all of its decision variables are bound.
+    active until all of its decision variables are bound. A search is frozen: to change one, make a new one with
+    :func:`dataclasses.replace`.
     """
 
     decision_variables: Iterable[int] | None = None
@@ -35,6 +36,11 @@ class Search:
     var_heuristic_params: list[list[int]] = field(default_factory=lambda: [[]])
     dom_heuristic: int = DOM_HEURISTIC_MIN_VALUE
     dom_heuristic_params: list[list[int]] = field(default_factory=lambda: [[]])
+
+
+# the default of BacktrackSolver: one search on every variable with the default heuristics; a frozen tuple of frozen
+# searches, so one object serves every solver
+DEFAULT_SEARCHES: tuple[Search, ...] = (Search(),)
 
 
 @dataclass(frozen=True)
@@ -80,14 +86,14 @@ class FlatSearches:
         )
 
 
-def flatten_searches(searches: list[Search], domain_nb: int) -> FlatSearches:
+def flatten_searches(searches: Sequence[Search], domain_nb: int) -> FlatSearches:
     """
-    Flattens a list of searches into the arrays that the compiled search reads.
+    Flattens a sequence of searches into the arrays that the compiled search reads.
 
     A search whose decision variables are None branches on every variable of the problem.
 
     :param searches: the searches, in the order of the sequential search
-    :type searches: List[Search]
+    :type searches: Sequence[Search]
     :param domain_nb: the number of variables of the problem
     :type domain_nb: int
 
