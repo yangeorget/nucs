@@ -51,19 +51,12 @@ class SearchArrays:
     choice_point_top: NDArray  # the height of the stack, as a one-cell array
 
 
-def allocate_search_arrays(
-    problem: Problem, trail_max_size: int | None, choice_point_max_height: int | None
-) -> SearchArrays:
+def allocate_search_arrays(problem: Problem) -> SearchArrays:
     """
     Lays out the backtrackable state of a problem and allocates the trail and the stack of choice points.
 
     :param problem: the problem, already initialized
     :type problem: Problem
-    :param trail_max_size: the initial number of trail entries, or None for the size derived from the problem
-    :type trail_max_size: Optional[int]
-    :param choice_point_max_height: the initial height of the stack of choice points, or None for the height derived
-                                    from the problem
-    :type choice_point_max_height: Optional[int]
 
     :return: the arrays of the search
     :rtype: SearchArrays
@@ -107,12 +100,10 @@ def allocate_search_arrays(
     # enough to matter is bounded by the decisions on the path, which scales with domain_nb. Both bind
     # only past a few thousand variables -- exactly where a doubling copies the most, and where the
     # allocation is small next to the triggers and propagator arrays a model that wide already carries.
-    trail_log = np.empty((trail_max_size or max(1 << 16, 16 * trail_headroom), 2), dtype=np.int32)
+    trail_log = np.empty((max(1 << 16, 16 * trail_headroom), 2), dtype=np.int32)
     trail_top = np.zeros((1,), dtype=np.int32)
     trail_indices = np.full(len(state), -1, dtype=np.int32)
-    choice_point_stk = np.zeros(
-        (choice_point_max_height or max(1 << 13, 4 * domain_nb), CHOICE_POINT_WIDTH), dtype=np.int32
-    )
+    choice_point_stk = np.zeros((max(1 << 13, 4 * domain_nb), CHOICE_POINT_WIDTH), dtype=np.int32)
     choice_point_top = np.ones((1,), dtype=np.uint32)
     return SearchArrays(
         state=state,

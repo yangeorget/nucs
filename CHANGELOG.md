@@ -16,6 +16,13 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   For `fzn-nucs` this could drop the `==========` line. Now the timer of the timeout is the only check of the budget: it
   stops the next call of the compiled search at its first node, so a search that has nothing left ends normally.
 
+### Removed
+
+- **The `choice_point_max_height` and `trail_max_size` parameters of `BacktrackSolver`.** Since 16.0.0 they were only
+  start sizes: the solver grows the stack and the trail when they fill up, and the default sizes come from the
+  problem. No benchmark model grows either array even once, so these parameters only reserved memory that nothing
+  used. A call that passes one of them now raises a `TypeError`: remove the argument.
+
 ### Changed
 
 - **The interruption and the deadline of a search are a class of their own**, `Interruption` in

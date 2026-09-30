@@ -133,8 +133,6 @@ class BacktrackSolver(Solver):
         dom_heuristic: int = DOM_HEURISTIC_MIN_VALUE,
         dom_heuristic_params: list[list[int]] | None = None,
         searches: list[Search] | None = None,
-        choice_point_max_height: int | None = None,
-        trail_max_size: int | None = None,
         log_level: str = LOG_LEVEL_INFO,
         weight_decay: float = 1.0,
         restart_policy: str = RESTART_NONE,
@@ -167,12 +165,6 @@ class BacktrackSolver(Solver):
                          is built from the decision_variables / var_heuristic / dom_heuristic arguments above.
                          The union of the searches' decision variables should cover every branchable variable.
         :type searches: Optional[List[Search]]
-        :param choice_point_max_height: the initial maximal height of the choice point stack, grown as needed,
-                                        defaults to whichever is larger of 8192 and four rows per variable
-        :type choice_point_max_height: Optional[int]
-        :param trail_max_size: the initial maximal number of trail entries, grown as needed,
-                               defaults to whichever is larger of 65536 and sixteen steps' worth of headroom
-        :type trail_max_size: Optional[int]
         :param log_level: the log level,
                           defaults to INFO
         :type log_level: str
@@ -208,7 +200,7 @@ class BacktrackSolver(Solver):
         self.triggered_propagators = buckets_create(problem.propagator_nb)
         self.domain_buffer = get_domain_buffer(problem.offsets)
         logger.debug("Initializing choice points")
-        arrays = allocate_search_arrays(problem, trail_max_size, choice_point_max_height)
+        arrays = allocate_search_arrays(problem)
         self.state, self.domains, self.entailed = arrays.state, arrays.domains, arrays.entailed
         self.trail_headroom, self.trail_log = arrays.trail_headroom, arrays.trail_log
         self.trail_top, self.trail_indices = arrays.trail_top, arrays.trail_indices

@@ -325,10 +325,12 @@ class TestBacktrackSolver:
         reference_solver = BacktrackSolver(build())
         reference = [solution.tolist() for solution in reference_solver.find_all()]
         assert len(reference) == 336
-        trail_max_size = reference_solver.trail_headroom + offset
-        solver = BacktrackSolver(build(), trail_max_size=trail_max_size)
+        trail_size = reference_solver.trail_headroom + offset
+        solver = BacktrackSolver(build())
+        assert solver.trail_top[0] == 0  # nothing is trailed yet, so a shorter trail loses nothing
+        solver.trail_log = solver.trail_log[:trail_size].copy()
         assert [solution.tolist() for solution in solver.find_all()] == reference
-        assert len(solver.trail_log) > trail_max_size  # it did have to grow
+        assert len(solver.trail_log) > trail_size  # it did have to grow
 
     def test_what_the_trail_headroom_is_derived_from(self) -> None:
         """The headroom reserves len(state) + STEP_TIGHTENING_NB x TIGHTENING_TRAIL_ENTRY_NB entries.
@@ -392,7 +394,9 @@ class TestBacktrackSolver:
         """Likewise for a search deeper than the choice point stack: grow, do not corrupt memory."""
         problem = Problem([(0, 5)] * 6)
         reference = BacktrackSolver(problem).find_all()
-        solver = BacktrackSolver(Problem([(0, 5)] * 6), choice_point_max_height=4)
+        solver = BacktrackSolver(Problem([(0, 5)] * 6))
+        assert solver.choice_point_top[0] < 4  # a shorter stack keeps the rows the solver already wrote
+        solver.choice_point_stk = solver.choice_point_stk[:4].copy()
         assert len(solver.find_all()) == len(reference)
         assert len(solver.choice_point_stk) > 4
 

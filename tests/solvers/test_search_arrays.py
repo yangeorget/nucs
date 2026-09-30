@@ -24,7 +24,7 @@ class TestSearchArrays:
         problem = Problem([(0, 7), (0, 7), (0, 7)])
         problem.add_propagator(ALG_ALLDIFFERENT, range(3))
         problem.init()
-        arrays = allocate_search_arrays(problem, None, None)
+        arrays = allocate_search_arrays(problem)
         assert len(arrays.state) == 2 * 3 + 1 + problem.state_width + 1
         arrays.domains[1, 1] = 5  # (variable 1, its max) is the cell (1 << 1) | 1
         assert arrays.state[3] == 5
@@ -38,26 +38,19 @@ class TestSearchArrays:
         assert arrays.choice_point_top.tolist() == [1]
 
     @pytest.mark.parametrize(
-        "domain_nb,trail_max_size,choice_point_max_height,trail_size,stack_height",
+        "domain_nb,trail_size,stack_height",
         [
             # a small problem gets the measured floors
-            (2, None, None, 1 << 16, 1 << 13),
-            # the sizes given override both floors
-            (2, 100, 10, 100, 10),
+            (2, 1 << 16, 1 << 13),
             # a wide problem gets the sizes derived from it: 16 x headroom and 4 x domain_nb
-            (3000, None, None, 16 * (2 * 3000 + 1 + STEP_TIGHTENING_NB * TIGHTENING_TRAIL_ENTRY_NB), 4 * 3000),
+            (3000, 16 * (2 * 3000 + 1 + STEP_TIGHTENING_NB * TIGHTENING_TRAIL_ENTRY_NB), 4 * 3000),
         ],
     )
     def test_allocate_search_arrays_sizes_the_trail_and_the_stack(
-        self,
-        domain_nb: int,
-        trail_max_size: int | None,
-        choice_point_max_height: int | None,
-        trail_size: int,
-        stack_height: int,
+        self, domain_nb: int, trail_size: int, stack_height: int
     ) -> None:
         problem = Problem([(0, 1)] * domain_nb)
         problem.init()
-        arrays = allocate_search_arrays(problem, trail_max_size, choice_point_max_height)
+        arrays = allocate_search_arrays(problem)
         assert arrays.trail_log.shape == (trail_size, 2)
         assert arrays.choice_point_stk.shape == (stack_height, CHOICE_POINT_WIDTH)
