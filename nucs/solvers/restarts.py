@@ -20,6 +20,7 @@ to finish the search: these restarts keep the search complete. A constant limit 
 
 import itertools
 from collections.abc import Iterator
+from dataclasses import dataclass
 
 RESTART_NONE = "none"
 RESTART_CONSTANT = "constant"  # scale, scale, scale, ...
@@ -78,3 +79,34 @@ def restart_limits(policy: str, scale: int, base: float = 2.0) -> Iterator[int]:
             raise ValueError(f"The geometric restart base must be above 1, not {base}")
         return (max(1, round(scale * base**i)) for i in itertools.count())
     return (scale * luby(i) for i in itertools.count(1))
+
+
+@dataclass(frozen=True)
+class Restarts:
+    """
+    A restart policy with its parameters. The default is no restart.
+
+    The values are checked when the object is made, so that a wrong policy fails before any search.
+    """
+
+    policy: str = RESTART_NONE  # one of RESTART_POLICIES
+    scale: int = 100  # the number of failures the policy multiplies, at least 1
+    base: float = 1.5  # the ratio of the geometric policy, above 1
+
+    def __post_init__(self) -> None:
+        """
+        Checks the policy and its parameters.
+        """
+        restart_limits(self.policy, self.scale, self.base)  # raises ValueError on a wrong policy, scale or base
+
+    def limits(self) -> Iterator[int]:
+        """
+        Returns the failure limits of the successive descents of a search, from the first one.
+
+        :return: the limits, -1 for ever when the policy is RESTART_NONE
+        :rtype: Iterator[int]
+        """
+        return restart_limits(self.policy, self.scale, self.base)
+
+
+NO_RESTARTS = Restarts()  # the default of BacktrackSolver; frozen, so one object serves every solver

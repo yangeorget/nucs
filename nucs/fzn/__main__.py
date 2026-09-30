@@ -23,6 +23,7 @@ from nucs.fzn.model import build_model
 from nucs.fzn.parser import parse
 from nucs.fzn.register import register
 from nucs.fzn.runner import parse_restart, run
+from nucs.solvers.restarts import Restarts
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -99,15 +100,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _restart_arg(text: str) -> tuple[str, int, float]:
+def _restart_arg(text: str) -> Restarts:
     """
     Converts the --restart argument, so that a wrong one is reported as a usage error.
 
     :param text: the argument
     :type text: str
 
-    :return: the policy, its scale and its base
-    :rtype: Tuple[str, int, float]
+    :return: the restart policy
+    :rtype: Restarts
     """
     try:
         return parse_restart(text)

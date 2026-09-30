@@ -44,12 +44,12 @@ from nucs.heuristics.heuristics import (
 )
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.restarts import (
+    NO_RESTARTS,
     RESTART_CONSTANT,
     RESTART_GEOMETRIC,
     RESTART_LINEAR,
     RESTART_LUBY,
-    RESTART_NONE,
-    restart_limits,
+    Restarts,
 )
 from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_PRUNE
@@ -88,7 +88,7 @@ _SCALED_RESTARTS = {
 }
 
 
-def restart_policy_of(model: FznModel) -> tuple[str, int, float]:
+def restart_policy_of(model: FznModel) -> Restarts:
     """
     Translates the restart annotation of the solve item into a NuCS restart policy. A restart limit counts failures,
     as Gecode's do.
@@ -96,48 +96,43 @@ def restart_policy_of(model: FznModel) -> tuple[str, int, float]:
     :param model: the built model
     :type model: FznModel
 
-    :return: the policy, its scale and its base, for BacktrackSolver; no restart when the model asks for none, or
-             asks for one with arguments NuCS cannot use, which is logged as a warning
-    :rtype: Tuple[str, int, float]
+    :return: the restart policy, for BacktrackSolver; no restart when the model asks for none, or asks for one with
+             arguments NuCS cannot use, which is logged as a warning
+    :rtype: Restarts
     """
-    no_restart = (RESTART_NONE, 1, 2.0)
     for annotation in model.solve.annotations:
-        policy: tuple[str, int, float] | None = None
         args = annotation.args
-        if annotation.name == "restart_none":
-            return no_restart
-        if annotation.name in _SCALED_RESTARTS and len(args) == 1 and isinstance(args[0], int):
-            policy = (_SCALED_RESTARTS[annotation.name], args[0], 2.0)
-        elif (
-            annotation.name == "restart_geometric"
-            and len(args) == 2
-            and isinstance(args[0], (int, float))
-            and isinstance(args[1], int)
-        ):
-            policy = (RESTART_GEOMETRIC, args[1], float(args[0]))
-        elif annotation.name.startswith("restart_"):
+        try:
+            if annotation.name == "restart_none":
+                return NO_RESTARTS
+            if annotation.name in _SCALED_RESTARTS and len(args) == 1 and isinstance(args[0], int):
+                return Restarts(_SCALED_RESTARTS[annotation.name], args[0])
+            if (
+                annotation.name == "restart_geometric"
+                and len(args) == 2
+                and isinstance(args[0], (int, float))
+                and isinstance(args[1], int)
+            ):
+                return Restarts(RESTART_GEOMETRIC, args[1], float(args[0]))
+        except ValueError as e:
+            logger.warning(f"{e}, searching without restarts")
+            return NO_RESTARTS
+        if annotation.name.startswith("restart_"):
             logger.warning(f"Unsupported restart annotation {annotation.name}{args}, searching without restarts")
-            return no_restart
-        if policy is not None:
-            try:
-                restart_limits(*policy)
-            except ValueError as e:
-                logger.warning(f"{e}, searching without restarts")
-                return no_restart
-            return policy
-    return no_restart
+            return NO_RESTARTS
+    return NO_RESTARTS
 
 
 # The free search (-f) defaults, measured on 41 challenge instances in 60 s against the models' own searches:
 # last-conflict won 9 and lost 0 against the same free search without it; Luby restarts at scale 500 won 10 and
 # lost 3 (proofs that got slower) against the free search without restarts.
 FREE_SEARCH_LAST_CONFLICT = True
-FREE_SEARCH_RESTART = (RESTART_LUBY, 500, 1.5)
+FREE_SEARCH_RESTART = Restarts(RESTART_LUBY, 500)
 
 
 def search_options(
-    model: FznModel, free_search: bool, last_conflict: bool | None, restart: tuple[str, int, float] | None
-) -> tuple[bool, tuple[str, int, float]]:
+    model: FznModel, free_search: bool, last_conflict: bool | None, restart: Restarts | None
+) -> tuple[bool, Restarts]:
     """
     Resolves last-conflict and the restart policy from the mode and the command line. What the command line gives
     wins. Otherwise the free search takes its defaults and ignores the model's restart annotation, as it ignores the
@@ -149,11 +144,11 @@ def search_options(
     :type free_search: bool
     :param last_conflict: last-conflict as the command line gives it, or None for the mode's default
     :type last_conflict: Optional[bool]
-    :param restart: the restart policy, scale and base as the command line gives them, or None for the mode's default
-    :type restart: Optional[Tuple[str, int, float]]
+    :param restart: the restart policy as the command line gives it, or None for the mode's default
+    :type restart: Optional[Restarts]
 
-    :return: whether to use last-conflict, and the restart policy, scale and base
-    :rtype: Tuple[bool, Tuple[str, int, float]]
+    :return: whether to use last-conflict, and the restart policy
+    :rtype: Tuple[bool, Restarts]
     """
     if last_conflict is None:
         last_conflict = FREE_SEARCH_LAST_CONFLICT if free_search else False
@@ -162,7 +157,7 @@ def search_options(
     return last_conflict, restart
 
 
-def parse_restart(text: str) -> tuple[str, int, float]:
+def parse_restart(text: str) -> Restarts:
     """
     Parses a restart policy given on the command line as ``POLICY[,SCALE[,BASE]]``, such as ``luby,500`` or
     ``geometric,100,1.5``. The scale defaults to 100 and the base to 1.5, as in BacktrackSolver.
@@ -170,8 +165,8 @@ def parse_restart(text: str) -> tuple[str, int, float]:
     :param text: the policy, one of RESTART_POLICIES, then optionally its scale and its base
     :type text: str
 
-    :return: the policy, its scale and its base
-    :rtype: Tuple[str, int, float]
+    :return: the restart policy
+    :rtype: Restarts
     """
     parts = text.split(",")
     if not 1 <= len(parts) <= 3:
@@ -179,8 +174,7 @@ def parse_restart(text: str) -> tuple[str, int, float]:
     policy = parts[0].strip().lower()
     scale = int(parts[1]) if len(parts) > 1 else 100
     base = float(parts[2]) if len(parts) > 2 else 1.5
-    restart_limits(policy, scale, base)  # raises on a wrong policy, scale or base
-    return policy, scale, base
+    return Restarts(policy, scale, base)  # raises on a wrong policy, scale or base
 
 
 def search_heuristics(model: FznModel) -> list[Search] | None:
@@ -352,7 +346,7 @@ def run(
     stop_on_sigterm: bool = False,
     last_conflict: bool | None = None,
     free_search: bool = False,
-    restart: tuple[str, int, float] | None = None,
+    restart: Restarts | None = None,
 ) -> None:
     """
     Solves the model and writes the FlatZinc solution stream.
@@ -388,8 +382,8 @@ def run(
     :param free_search: whether to ignore how the search annotations branch and use dom/wdeg instead
         (see free_search_heuristics)
     :type free_search: bool
-    :param restart: the restart policy, scale and base, or None for the mode's default (see search_options)
-    :type restart: Optional[Tuple[str, int, float]]
+    :param restart: the restart policy, or None for the mode's default (see search_options)
+    :type restart: Optional[Restarts]
     """
     # Resolve the objective before constructing the solver, since the solver snapshots the domains on init.
     objective_var = None
@@ -397,16 +391,12 @@ def run(
         if model.solve.objective is None:
             raise FznUnsupportedError("an optimization objective is required")
         objective_var = model.var_index_of(model.solve.objective)
-    last_conflict, (restart_policy, restart_scale, restart_base) = search_options(
-        model, free_search, last_conflict, restart
-    )
+    last_conflict, restarts = search_options(model, free_search, last_conflict, restart)
     solver = BacktrackSolver(
         model.problem,
         searches=free_search_heuristics(model) if free_search else search_heuristics(model),
         log_level="ERROR",
-        restart_policy=restart_policy,
-        restart_scale=restart_scale,
-        restart_base=restart_base,
+        restarts=restarts,
         last_conflict=last_conflict,
     )
     if stop_on_sigterm:

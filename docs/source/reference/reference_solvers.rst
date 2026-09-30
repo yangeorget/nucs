@@ -12,5 +12,7 @@ NuCS comes with the following solver.
 
 The restart policies it accepts:
 
+.. autoclass:: nucs.solvers.restarts.Restarts
+   :members:
 .. autofunction:: nucs.solvers.restarts.restart_limits
 .. autofunction:: nucs.solvers.restarts.luby

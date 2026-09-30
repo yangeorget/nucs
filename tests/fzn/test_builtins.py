@@ -85,7 +85,13 @@ from nucs.propagators.propagators import (
     ALG_VALUE_PRECEDE,
     ALG_VALUE_PRECEDE_CHAIN,
 )
-from nucs.solvers.restarts import RESTART_CONSTANT, RESTART_GEOMETRIC, RESTART_LINEAR, RESTART_LUBY, RESTART_NONE
+from nucs.solvers.restarts import (
+    RESTART_CONSTANT,
+    RESTART_GEOMETRIC,
+    RESTART_LINEAR,
+    RESTART_LUBY,
+    Restarts,
+)
 
 # The half-reified builtins over x, y in 0..3 and booleans a, b, each with the constraint C it implies.
 HALF_REIFIED_BUILTINS = [
@@ -1761,18 +1767,18 @@ class TestBuiltins:
     @pytest.mark.parametrize(
         "annotation,policy",
         [
-            ("", (RESTART_NONE, 1, 2.0)),
-            (":: restart_none", (RESTART_NONE, 1, 2.0)),
-            (":: restart_luby(50)", (RESTART_LUBY, 50, 2.0)),
-            (":: restart_geometric(1.5, 100)", (RESTART_GEOMETRIC, 100, 1.5)),
-            (":: restart_geometric(2, 100)", (RESTART_GEOMETRIC, 100, 2.0)),  # an int base
-            (":: restart_linear(10)", (RESTART_LINEAR, 10, 2.0)),
-            (":: restart_constant(10)", (RESTART_CONSTANT, 10, 2.0)),
+            ("", Restarts()),
+            (":: restart_none", Restarts()),
+            (":: restart_luby(50)", Restarts(RESTART_LUBY, 50)),
+            (":: restart_geometric(1.5, 100)", Restarts(RESTART_GEOMETRIC, 100, 1.5)),
+            (":: restart_geometric(2, 100)", Restarts(RESTART_GEOMETRIC, 100, 2.0)),  # an int base
+            (":: restart_linear(10)", Restarts(RESTART_LINEAR, 10)),
+            (":: restart_constant(10)", Restarts(RESTART_CONSTANT, 10)),
             # the restart annotation comes before the search annotation, as MiniZinc writes them
-            (":: restart_luby(5) :: int_search([x], dom_w_deg, indomain_min, complete)", (RESTART_LUBY, 5, 2.0)),
+            (":: restart_luby(5) :: int_search([x], dom_w_deg, indomain_min, complete)", Restarts(RESTART_LUBY, 5)),
         ],
     )
-    def test_restart_policy_of(self, annotation: str, policy: tuple[str, int, float]) -> None:
+    def test_restart_policy_of(self, annotation: str, policy: Restarts) -> None:
         model = build_model(parse(f"var 0..3: x;\nsolve {annotation} satisfy;"))
         assert restart_policy_of(model) == policy
 
@@ -1784,7 +1790,7 @@ class TestBuiltins:
     ) -> None:
         model = build_model(parse(f"var 0..3: x;\nsolve {annotation} satisfy;"))
         with caplog.at_level(logging.WARNING, logger="nucs.fzn.runner"):
-            assert restart_policy_of(model) == (RESTART_NONE, 1, 2.0)
+            assert restart_policy_of(model) == Restarts()
         assert "without restarts" in caplog.text
 
     @pytest.mark.parametrize("last_conflict", [False, True])
@@ -1826,13 +1832,13 @@ class TestBuiltins:
     @pytest.mark.parametrize(
         "text,policy",
         [
-            ("luby", (RESTART_LUBY, 100, 1.5)),
-            ("luby,500", (RESTART_LUBY, 500, 1.5)),
-            ("Geometric,100,2.0", (RESTART_GEOMETRIC, 100, 2.0)),
-            ("none", (RESTART_NONE, 100, 1.5)),
+            ("luby", Restarts(RESTART_LUBY)),
+            ("luby,500", Restarts(RESTART_LUBY, 500)),
+            ("Geometric,100,2.0", Restarts(RESTART_GEOMETRIC, 100, 2.0)),
+            ("none", Restarts()),
         ],
     )
-    def test_parse_restart(self, text: str, policy: tuple[str, int, float]) -> None:
+    def test_parse_restart(self, text: str, policy: Restarts) -> None:
         assert parse_restart(text) == policy
 
     @pytest.mark.parametrize("text", ["fibonacci,10", "luby,0", "geometric,10,1.0", "luby,10,2,3"])
@@ -1843,7 +1849,7 @@ class TestBuiltins:
     def test_main_free_search_and_restart_flags(self) -> None:
         args = build_arg_parser().parse_args(["-f", "--restart", "luby,500", "model.fzn"])
         assert args.free_search
-        assert args.restart == (RESTART_LUBY, 500, 1.5)
+        assert args.restart == Restarts(RESTART_LUBY, 500)
         with pytest.raises(SystemExit):  # a wrong policy is a usage error
             build_arg_parser().parse_args(["--restart", "fibonacci", "model.fzn"])
 
@@ -1857,7 +1863,13 @@ class TestBuiltins:
             + "solve :: int_search(x, input_order, indomain_max, complete) minimize x[1];\n"
         )
         out = io.StringIO()
-        run(build_model(parse(text)), out, free_search=free_search, last_conflict=True, restart=(RESTART_LUBY, 1, 1.5))
+        run(
+            build_model(parse(text)),
+            out,
+            free_search=free_search,
+            last_conflict=True,
+            restart=Restarts(RESTART_LUBY, 1),
+        )
         assert "==========" in out.getvalue()  # the optimum is proven
 
     def test_main_last_conflict_flag(self) -> None:
@@ -1869,20 +1881,20 @@ class TestBuiltins:
         "free_search,last_conflict,restart,expected",
         [
             # the fixed search: no last-conflict, and the model's restart annotation (restart_luby(7) here)
-            (False, None, None, (False, (RESTART_LUBY, 7, 2.0))),
+            (False, None, None, (False, Restarts(RESTART_LUBY, 7))),
             # the free search: its defaults, and the model's restart annotation is ignored
             (True, None, None, (True, FREE_SEARCH_RESTART)),
             # what the command line gives wins, in both modes
-            (True, False, (RESTART_NONE, 100, 1.5), (False, (RESTART_NONE, 100, 1.5))),
-            (False, True, (RESTART_LUBY, 50, 1.5), (True, (RESTART_LUBY, 50, 1.5))),
+            (True, False, Restarts(), (False, Restarts())),
+            (False, True, Restarts(RESTART_LUBY, 50), (True, Restarts(RESTART_LUBY, 50))),
         ],
     )
     def test_search_options(
         self,
         free_search: bool,
         last_conflict: bool | None,
-        restart: tuple[str, int, float] | None,
-        expected: tuple[bool, tuple[str, int, float]],
+        restart: Restarts | None,
+        expected: tuple[bool, Restarts],
     ) -> None:
         model = build_model(parse("var 0..3: x;\nsolve :: restart_luby(7) satisfy;"))
         assert search_options(model, free_search, last_conflict, restart) == expected

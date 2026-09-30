@@ -94,12 +94,11 @@ learned weights choose better first decisions:
    solver = BacktrackSolver(
        problem,
        searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG)],
-       restart_policy=RESTART_LUBY,
-       restart_scale=100,
+       restarts=Restarts(RESTART_LUBY, scale=100),
    )
 
 The policies of :mod:`nucs.solvers.restarts` are those of MiniZinc: :code:`RESTART_LUBY` (the scale times the
-Luby sequence 1, 1, 2, 1, 1, 2, 4, ...), :code:`RESTART_GEOMETRIC` (the scale times :code:`restart_base` to the
+Luby sequence 1, 1, 2, 1, 1, 2, 4, ...), :code:`RESTART_GEOMETRIC` (the scale times the :code:`base` to the
 power of the restart number), :code:`RESTART_LINEAR`, :code:`RESTART_CONSTANT` and :code:`RESTART_NONE`, the default.
 A limit counts failures.
 

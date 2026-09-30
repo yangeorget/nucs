@@ -60,7 +60,7 @@ from nucs.solvers.choice_points import (
 )
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
 from nucs.solvers.interruption import INTERRUPTION_DEADLINE, Interruption
-from nucs.solvers.restarts import RESTART_NONE, restart_limits
+from nucs.solvers.restarts import NO_RESTARTS, Restarts
 from nucs.solvers.search import Search, flatten_searches
 from nucs.solvers.search_arrays import allocate_search_arrays
 from nucs.solvers.solver import OPTIM_RESET, Solver, get_solution
@@ -118,9 +118,7 @@ class BacktrackSolver(Solver):
         searches: list[Search] | None = None,
         log_level: str = LOG_LEVEL_INFO,
         weight_decay: float = 1.0,
-        restart_policy: str = RESTART_NONE,
-        restart_scale: int = 100,
-        restart_base: float = 1.5,
+        restarts: Restarts = NO_RESTARTS,
         last_conflict: bool = False,
     ):
         """
@@ -142,14 +140,10 @@ class BacktrackSolver(Solver):
                              later failure; 1 counts all the failures the same (dom/wdeg), less than 1 prefers the
                              recent ones (AFC), defaults to 1
         :type weight_decay: float
-        :param restart_policy: one of RESTART_POLICIES (nucs.solvers.restarts): after how many failures each descent
-                               restarts from the root, defaults to RESTART_NONE. When enumerating, the restarts stop
-                               at the first solution, so that no solution is found twice.
-        :type restart_policy: str
-        :param restart_scale: the number of failures the restart policy multiplies, defaults to 100
-        :type restart_scale: int
-        :param restart_base: the ratio of the geometric restart policy, defaults to 1.5
-        :type restart_base: float
+        :param restarts: after how many failures each descent restarts from the root (nucs.solvers.restarts),
+                         defaults to no restart. When enumerating, the restarts stop at the first solution, so that no
+                         solution is found twice.
+        :type restarts: Restarts
         :param last_conflict: whether the search branches first on the variable of the last refuted decision, as long
                               as it is unbound (last-conflict reasoning), defaults to False
         :type last_conflict: bool
@@ -189,11 +183,7 @@ class BacktrackSolver(Solver):
         # the failure weight of each propagator: global, never trailed and never reset, so that what one solve
         # learns about the constraints serves the next one too
         self.propagator_weights = weights_init(problem.propagator_nb, weight_decay)
-        # checked here, so that a wrong policy fails at construction rather than at the first solve
-        restart_limits(restart_policy, restart_scale, restart_base)
-        self.restart_policy = restart_policy
-        self.restart_scale = restart_scale
-        self.restart_base = restart_base
+        self.restarts = restarts
         self.restart_limits: Iterator[int] = iter(())
         self.search_control = np.full(SEARCH_CONTROL_WIDTH, -1, dtype=np.int64)
         self.search_control[SEARCH_CONTROL_LAST_CONFLICT] = int(last_conflict)
@@ -280,7 +270,7 @@ class BacktrackSolver(Solver):
             # An enumeration disarms it here too: the solver may have been optimized with before.
             self.objective[OBJECTIVE_VARIABLE] = -1
             self.restart_objective = None
-            self.restart_limits = restart_limits(self.restart_policy, self.restart_scale, self.restart_base)
+            self.restart_limits = self.restarts.limits()
             self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
             self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
             self.search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = -1

@@ -20,6 +20,7 @@ from nucs.solvers.restarts import (
     RESTART_LINEAR,
     RESTART_LUBY,
     RESTART_NONE,
+    Restarts,
     luby,
     restart_limits,
 )
@@ -49,3 +50,14 @@ class TestRestarts:
     def test_restart_limits_rejects_a_wrong_policy(self, policy: str, scale: int, base: float) -> None:
         with pytest.raises(ValueError):
             restart_limits(policy, scale, base)
+        with pytest.raises(ValueError):  # at creation, before any search
+            Restarts(policy, scale, base)
+
+    def test_restarts_default_to_none(self) -> None:
+        assert list(itertools.islice(Restarts().limits(), 3)) == [-1, -1, -1]
+
+    def test_restarts_limits_start_again_at_each_call(self) -> None:
+        """Each search starts the limits from the first one, so limits() gives a new iterator at each call."""
+        restarts = Restarts(RESTART_LUBY, 10)
+        assert list(itertools.islice(restarts.limits(), 3)) == [10, 10, 20]
+        assert list(itertools.islice(restarts.limits(), 3)) == [10, 10, 20]

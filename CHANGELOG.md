@@ -35,6 +35,19 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   ```
 
   Without `searches`, the solver makes one search on every variable with the default heuristics, as before.
+- **The `restart_policy`, `restart_scale` and `restart_base` parameters of `BacktrackSolver`.** They are now one
+  `restarts` parameter, a frozen `Restarts` from `nucs/solvers/restarts.py`. It checks its values when it is made,
+  and its default, `NO_RESTARTS`, is no restart:
+
+  ```python
+  # 17.x
+  solver = BacktrackSolver(problem, restart_policy=RESTART_LUBY, restart_scale=100)
+  # now
+  solver = BacktrackSolver(problem, restarts=Restarts(RESTART_LUBY, scale=100))
+  ```
+
+  In `nucs/fzn/runner.py`, `restart_policy_of`, `parse_restart`, `search_options` and `FREE_SEARCH_RESTART` give a
+  `Restarts` too, not a `(policy, scale, base)` tuple.
 - **The `choice_point_max_height` and `trail_max_size` parameters of `BacktrackSolver`.** Since 16.0.0 they were only
   start sizes: the solver grows the stack and the trail when they fill up, and the default sizes come from the
   problem. No benchmark model grows either array even once, so these parameters only reserved memory that nothing
