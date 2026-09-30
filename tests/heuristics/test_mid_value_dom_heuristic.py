@@ -13,12 +13,13 @@
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MID_VALUE
 from nucs.problems.problem import Problem
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.search import Search
 
 
 class TestMidValueDomHeuristic:
     def test_find_all(self) -> None:
         problem = Problem([(1, 8)])
-        solver = BacktrackSolver(problem, dom_heuristic=DOM_HEURISTIC_MID_VALUE)
+        solver = BacktrackSolver(problem, searches=[Search(dom_heuristic=DOM_HEURISTIC_MID_VALUE)])
         solutions = solver.find_all()
         assert len(solutions) == 8
         assert solutions == [[4], [2], [1], [3], [6], [5], [7], [8]]
@@ -32,5 +33,5 @@ class TestMidValueDomHeuristic:
         and this pins it -- without a negative domain, the whole suite passes either way.
         """
         problem = Problem([(-5, -1)])
-        solver = BacktrackSolver(problem, dom_heuristic=DOM_HEURISTIC_MID_VALUE)
+        solver = BacktrackSolver(problem, searches=[Search(dom_heuristic=DOM_HEURISTIC_MID_VALUE)])
         assert solver.find_all() == [[-3], [-5], [-4], [-2], [-1]]

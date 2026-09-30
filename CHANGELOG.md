@@ -10,6 +10,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Fixed
 
+- **`--var-heuristic` and `--dom-heuristic` did nothing in the `square` and `jobshop` examples.** These examples give
+  their own searches, and the solver ignored the heuristics when it had searches. The heuristics of the command line
+  now replace those of every search of the example.
 - **`timed_out` was set for a search that had finished.** Between two solutions, the solver checked the clock before
   it moved on from the solution. So when the consumer kept the last solution past the budget, an enumeration that
   had found every solution, or an optimization whose optimum was one step from its proof, was reported as cut short.
@@ -18,6 +21,20 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Removed
 
+- **The `decision_variables`, `var_heuristic`, `var_heuristic_params`, `dom_heuristic` and `dom_heuristic_params`
+  parameters of `BacktrackSolver`.** They said the same thing as `searches`, and when a call gave both, the solver
+  used `searches` and ignored the others. Give a list of `Search` in their place:
+
+  ```python
+  # 17.x
+  solver = BacktrackSolver(problem, var_heuristic=VAR_HEURISTIC_DOM_WDEG, dom_heuristic=DOM_HEURISTIC_MAX_VALUE)
+  # now
+  solver = BacktrackSolver(
+      problem, searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG, dom_heuristic=DOM_HEURISTIC_MAX_VALUE)]
+  )
+  ```
+
+  Without `searches`, the solver makes one search on every variable with the default heuristics, as before.
 - **The `choice_point_max_height` and `trail_max_size` parameters of `BacktrackSolver`.** Since 16.0.0 they were only
   start sizes: the solver grows the stack and the trail when they fill up, and the default sizes come from the
   problem. No benchmark model grows either array even once, so these parameters only reserved memory that nothing

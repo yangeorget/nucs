@@ -16,6 +16,7 @@ from nucs.constants import DOMAIN_MAX
 from nucs.examples.knapsack.knapsack_problem import KnapsackProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.search import Search
 
 
 class TestKnapsack:
@@ -24,7 +25,10 @@ class TestKnapsack:
             dataset = json.load(json_file)
             problem = KnapsackProblem(dataset)
             solver = BacktrackSolver(
-                problem, var_heuristic=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, dom_heuristic=DOM_HEURISTIC_MAX_VALUE
+                problem,
+                searches=[
+                    Search(var_heuristic=VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, dom_heuristic=DOM_HEURISTIC_MAX_VALUE)
+                ],
             )
             solution = solver.find_best(problem.weight, bound=DOMAIN_MAX)
             assert solution is not None

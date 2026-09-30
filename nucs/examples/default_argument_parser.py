@@ -12,6 +12,7 @@
 ###############################################################################
 import argparse
 from argparse import Namespace
+from dataclasses import replace
 from typing import Any
 
 from numpy.typing import NDArray
@@ -19,6 +20,7 @@ from numpy.typing import NDArray
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, LOG_LEVELS
 from nucs.heuristics.heuristics import DOM_HEURISTICS, VAR_HEURISTICS
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALGS
+from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_MODES, OPTIM_RESET, Solver
 
 
@@ -78,27 +80,35 @@ class DefaultArgumentParser(argparse.ArgumentParser):
         )
 
 
-def solver_kwargs_from_args(args: Namespace, **defaults: Any) -> dict[str, Any]:
+def solver_kwargs_from_args(args: Namespace, searches: list[Search] | None = None, **defaults: Any) -> dict[str, Any]:
     """
     Builds a dict of BacktrackSolver kwargs, with CLI args overriding the given defaults.
 
+    A variable or domain heuristic given on the command line replaces that of every search, which keeps its
+    parameters.
+
     :param args: the CLI arguments
     :type args: Namespace
-    :param defaults: kwargs to be passed to BacktrackSolver, overridden by any non-None CLI value
+    :param searches: the searches of the example, defaults to one search with the default heuristics
+    :type searches: Optional[List[Search]]
+    :param defaults: other kwargs to be passed to BacktrackSolver, overridden by any non-None CLI value
     :type defaults: Any
 
     :return: a dict of kwargs
     :rtype: Dict[str, Any]
     """
+    searches = [Search()] if searches is None else searches
+    if args.var_heuristic is not None:
+        searches = [replace(search, var_heuristic=VAR_HEURISTICS[args.var_heuristic]) for search in searches]
+    if args.dom_heuristic is not None:
+        searches = [replace(search, dom_heuristic=DOM_HEURISTICS[args.dom_heuristic]) for search in searches]
     overrides = {
         "consistency_algorithm": None
         if args.consistency_algorithm is None
         else CONSISTENCY_ALGS[args.consistency_algorithm],
-        "var_heuristic": None if args.var_heuristic is None else VAR_HEURISTICS[args.var_heuristic],
-        "dom_heuristic": None if args.dom_heuristic is None else DOM_HEURISTICS[args.dom_heuristic],
         "log_level": args.log_level,
     }
-    return {**defaults, **{k: v for k, v in overrides.items() if v is not None}}
+    return {**defaults, "searches": searches, **{k: v for k, v in overrides.items() if v is not None}}
 
 
 def run_solver(solver: Solver, args: Namespace) -> None:

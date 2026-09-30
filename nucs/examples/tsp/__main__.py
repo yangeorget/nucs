@@ -18,6 +18,7 @@ from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_PRUNE
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -37,11 +38,15 @@ if __name__ == "__main__":
             problem,
             **solver_kwargs_from_args(
                 args,
-                decision_variables=decision_variables,
-                var_heuristic=tsp_var_heuristic_idx,
-                var_heuristic_params=costs,
-                dom_heuristic=DOM_HEURISTIC_MIN_COST,
-                dom_heuristic_params=costs,
+                searches=[
+                    Search(
+                        decision_variables=decision_variables,
+                        var_heuristic=tsp_var_heuristic_idx,
+                        var_heuristic_params=costs,
+                        dom_heuristic=DOM_HEURISTIC_MIN_COST,
+                        dom_heuristic_params=costs,
+                    )
+                ],
             ),
         )
         solution = solver.find_best(problem.total_cost, DOMAIN_MIN, mode=args.optimization_mode or OPTIM_PRUNE)

@@ -16,6 +16,7 @@ from nucs.examples.bacp.bacp_problem import BACPProblem
 from nucs.examples.default_argument_parser import DefaultArgumentParser, run_optimizer, solver_kwargs_from_args
 from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_PRUNE
 
 # Run with the following command (the second run is much faster because the code has been compiled):
@@ -28,7 +29,10 @@ if __name__ == "__main__":
         dataset = json.load(json_file)
         problem = BACPProblem(dataset)
         kwargs = solver_kwargs_from_args(
-            args, decision_variables=range(dataset["n_courses"]), var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN
+            args,
+            searches=[
+                Search(decision_variables=range(dataset["n_courses"]), var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN)
+            ],
         )
         solver = BacktrackSolver(problem, **kwargs)
         run_optimizer(solver, args, problem.max_load, default_mode=OPTIM_PRUNE)

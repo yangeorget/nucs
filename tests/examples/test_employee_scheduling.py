@@ -14,6 +14,7 @@ from nucs.constants import DOMAIN_MAX
 from nucs.examples.employee_scheduling.employee_scheduling_problem import EmployeeSchedulingProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.search import Search
 
 
 class TestEmployeeScheduling:
@@ -32,7 +33,8 @@ class TestEmployeeScheduling:
     def test_find_best(self) -> None:
         problem = EmployeeSchedulingProblem()
         solver = BacktrackSolver(
-            problem, decision_variables=problem.requested_shifts, dom_heuristic=DOM_HEURISTIC_MAX_VALUE
+            problem,
+            searches=[Search(decision_variables=problem.requested_shifts, dom_heuristic=DOM_HEURISTIC_MAX_VALUE)],
         )
         solution = solver.find_best(problem.satisfied_request_nb, bound=DOMAIN_MAX)
         assert solution is not None

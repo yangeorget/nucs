@@ -15,6 +15,7 @@ import pytest
 from nucs.examples.queens.queens_problem import QueensDualProblem, QueensProblem
 from nucs.heuristics.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.search import Search
 from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
@@ -48,6 +49,6 @@ class TestQueens:
     )
     def test_solve_all(self, dual: bool, var_heuristic: int, queen_nb: int, solution_nb: int) -> None:
         problem = QueensDualProblem(queen_nb) if dual else QueensProblem(queen_nb)
-        solver = BacktrackSolver(problem, var_heuristic=var_heuristic)
+        solver = BacktrackSolver(problem, searches=[Search(var_heuristic=var_heuristic)])
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb

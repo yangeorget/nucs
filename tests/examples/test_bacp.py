@@ -18,6 +18,7 @@ from nucs.constants import DOMAIN_MIN
 from nucs.examples.bacp.bacp_problem import BACPProblem
 from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.search import Search
 
 
 class TestBACP:
@@ -75,7 +76,10 @@ class TestBACP:
             dataset = json.load(json_file)
         problem = BACPProblem(dataset)
         solver = BacktrackSolver(
-            problem, decision_variables=range(dataset["n_courses"]), var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN
+            problem,
+            searches=[
+                Search(decision_variables=range(dataset["n_courses"]), var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN)
+            ],
         )
         solution = solver.find_best(problem.max_load, bound=DOMAIN_MIN)
         assert solution is not None

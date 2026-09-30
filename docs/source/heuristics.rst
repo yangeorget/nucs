@@ -71,14 +71,14 @@ during the search and are never backtracked. The FlatZinc selector :code:`dom_w_
 .. code-block:: python
    :linenos:
 
-   solver = BacktrackSolver(problem, var_heuristic=VAR_HEURISTIC_DOM_WDEG)
+   solver = BacktrackSolver(problem, searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG)])
 
 With :code:`weight_decay` below 1, the recent failures count more than the old ones, as in Gecode's AFC:
 
 .. code-block:: python
    :linenos:
 
-   solver = BacktrackSolver(problem, var_heuristic=VAR_HEURISTIC_DOM_WDEG, weight_decay=0.95)
+   solver = BacktrackSolver(problem, searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG)], weight_decay=0.95)
 
 
 Restarts and last-conflict
@@ -92,7 +92,10 @@ learned weights choose better first decisions:
    :linenos:
 
    solver = BacktrackSolver(
-       problem, var_heuristic=VAR_HEURISTIC_DOM_WDEG, restart_policy=RESTART_LUBY, restart_scale=100
+       problem,
+       searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG)],
+       restart_policy=RESTART_LUBY,
+       restart_scale=100,
    )
 
 The policies of :mod:`nucs.solvers.restarts` are those of MiniZinc: :code:`RESTART_LUBY` (the scale times the
@@ -116,7 +119,7 @@ which tells quickly if the earlier decision was the cause:
 .. code-block:: python
    :linenos:
 
-   solver = BacktrackSolver(problem, var_heuristic=VAR_HEURISTIC_DOM_WDEG, last_conflict=True)
+   solver = BacktrackSolver(problem, searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG)], last_conflict=True)
 
 In a sequential search, the conflict variable waits until the search that owns it has the decision.
 

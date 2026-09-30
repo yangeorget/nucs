@@ -15,6 +15,7 @@ import pytest
 from nucs.examples.magic_square.magic_square_problem import MagicSquareProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.search import Search
 from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
@@ -29,7 +30,8 @@ class TestMagicSquare:
     def test_solve_all(self, size: int, solution_nb: int) -> None:
         problem = MagicSquareProblem(size)
         solver = BacktrackSolver(
-            problem, var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MAX_VALUE
+            problem,
+            searches=[Search(var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MAX_VALUE)],
         )
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb

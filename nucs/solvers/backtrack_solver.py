@@ -12,7 +12,7 @@
 ###############################################################################
 import logging
 import time
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterator
 
 import numpy as np
 from numba import njit  # type: ignore
@@ -30,11 +30,9 @@ from nucs.constants import (
 )
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_FCTS,
-    DOM_HEURISTIC_MIN_VALUE,
     SIGN_DOM_HEURISTIC,
     SIGN_VAR_HEURISTIC,
     VAR_HEURISTIC_FCTS,
-    VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
 )
 from nucs.numba_helper import (
     NUMBA_DISABLE_JIT,
@@ -106,16 +104,6 @@ class BacktrackSolver(Solver):
     A solver relying on a backtracking mechanism.
     """
 
-    # the per-search ragged collections threaded into solve_one_step, stored CSR-style: a flat concatenation
-    # plus the offsets delimiting each search's slice (and, for the 2d parameter arrays, their shapes)
-    decision_variables: NDArray
-    decision_variables_offsets: NDArray
-    var_heuristic_params: NDArray
-    var_heuristic_params_offsets: NDArray
-    var_heuristic_params_shapes: NDArray
-    dom_heuristic_params: NDArray
-    dom_heuristic_params_offsets: NDArray
-    dom_heuristic_params_shapes: NDArray
     # the function tables threaded into solve_one_step (Numba typed lists under the JIT, plain Python lists otherwise)
     consistency_alg_fcts: ConsistencyAlgorithmFunctions
     var_heuristic_fcts: VariableHeuristicFunctions
@@ -127,11 +115,6 @@ class BacktrackSolver(Solver):
         self,
         problem: Problem,
         consistency_algorithm: int = CONSISTENCY_ALG_BC,
-        decision_variables: Iterable[int] | None = None,
-        var_heuristic: int = VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
-        var_heuristic_params: list[list[int]] | None = None,
-        dom_heuristic: int = DOM_HEURISTIC_MIN_VALUE,
-        dom_heuristic_params: list[list[int]] | None = None,
         searches: list[Search] | None = None,
         log_level: str = LOG_LEVEL_INFO,
         weight_decay: float = 1.0,
@@ -147,23 +130,10 @@ class BacktrackSolver(Solver):
         :type problem: Problem
         :param consistency_algorithm: the consistency algorithm, defaults to bound consistency
         :type consistency_algorithm: int
-        :param decision_variables: the variables on which decisions will be made, defaults to None
-        :type decision_variables: Optional[Iterable[int]]
-        :param var_heuristic: the heuristic for selecting a variable,
-                              defaults to the first non instantiated
-        :type var_heuristic: int
-        :param var_heuristic_params: a list of lists of parameters,
-                                     usually parameters are costs and there is a list of value costs per variable
-        :type var_heuristic_params: Optional[List[List[int]]]
-        :param dom_heuristic: the heuristic for reducing a domain,
-                              defaults to instantiating the domain to its first value
-        :type dom_heuristic: int
-        :param dom_heuristic_params: a list of lists of parameters,
-                                     usually parameters are costs and there is a list of value costs per variable
-        :type dom_heuristic_params: Optional[List[List[int]]]
-        :param searches: an ordered list of searches defining a sequential search; when None a single search
-                         is built from the decision_variables / var_heuristic / dom_heuristic arguments above.
-                         The union of the searches' decision variables should cover every branchable variable.
+        :param searches: an ordered list of searches defining a sequential search, each with its decision variables,
+                         its variable and domain heuristics and their parameters; defaults to one search that
+                         branches on every variable with the default heuristics of Search. The union of the
+                         searches' decision variables should cover every branchable variable.
         :type searches: Optional[List[Search]]
         :param log_level: the log level,
                           defaults to INFO
@@ -185,14 +155,8 @@ class BacktrackSolver(Solver):
         :type last_conflict: bool
         """
         super().__init__(problem, log_level)
-        if var_heuristic_params is None:
-            var_heuristic_params = [[]]
-        if dom_heuristic_params is None:
-            dom_heuristic_params = [[]]
         if searches is None:
-            searches = [
-                Search(decision_variables, var_heuristic, var_heuristic_params, dom_heuristic, dom_heuristic_params)
-            ]
+            searches = [Search()]
         # every search keeps its own decision variables, variable and domain heuristics and their parameters
         self.flat_searches = flatten_searches(searches, problem.domain_nb)
         logger.info(f"BacktrackSolver uses {self.flat_searches}")

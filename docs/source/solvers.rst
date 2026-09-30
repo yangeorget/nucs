@@ -27,12 +27,22 @@ Backtracking solver arguments
 A backtracking solver accepts the additional following parameters:
 
 * the consistency algorithm to use (bound consistency is used by default)
-* the decision variables(all are used by default)
-* an heuristic to choose a variable (the first non instantiated is chosen by default)
+* a list of searches, explored in order (by default, a single search on all the variables)
+
+Each :code:`Search` (:mod:`nucs.solvers.search`) gives:
+
+* its decision variables (all the variables by default)
+* a heuristic to choose a variable (the first non instantiated is chosen by default)
 * some parameters for this heuristic (none by default)
-* an heuristic to select a value (the first value is chosen by default)
+* a heuristic to select a value (the first value is chosen by default)
 * some parameters for this heuristic (none by default)
-* a list of searches, each with its own decision variables and heuristics (a single search by default)
+
+.. code-block:: python
+   :linenos:
+
+   solver = BacktrackSolver(
+       problem, searches=[Search(var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MAX_VALUE)]
+   )
 
 The stack of choice points and the trail start at sizes taken from the problem, and grow when the search needs more.
 

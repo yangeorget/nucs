@@ -60,6 +60,7 @@ from nucs.heuristics.heuristics import (
 )
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import register_consistency_algorithm
+from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_PRUNE
 from nucs.statistics import (
     STATS_LBL_ALG_BC_NB,
@@ -183,13 +184,17 @@ def _benchmarks() -> dict[str, Callable[[], BenchmarkResult]]:
     def magic_sequence_100() -> BenchmarkResult:
         return solve_all(
             "magic_sequence(100)",
-            BacktrackSolver(MagicSequenceProblem(100), decision_variables=range(99, -1, -1), log_level="WARNING"),
+            BacktrackSolver(
+                MagicSequenceProblem(100), searches=[Search(decision_variables=range(99, -1, -1))], log_level="WARNING"
+            ),
         )
 
     def magic_sequence_200() -> BenchmarkResult:
         return solve_all(
             "magic_sequence(200)",
-            BacktrackSolver(MagicSequenceProblem(200), decision_variables=range(199, -1, -1), log_level="WARNING"),
+            BacktrackSolver(
+                MagicSequenceProblem(200), searches=[Search(decision_variables=range(199, -1, -1))], log_level="WARNING"
+            ),
         )
 
     def magic_square_3() -> BenchmarkResult:
@@ -197,8 +202,7 @@ def _benchmarks() -> dict[str, Callable[[], BenchmarkResult]]:
             "magic_square(3)",
             BacktrackSolver(
                 MagicSquareProblem(3),
-                var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
-                dom_heuristic=DOM_HEURISTIC_MAX_VALUE,
+                searches=[Search(var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MAX_VALUE)],
                 log_level="WARNING",
             ),
         )
@@ -208,8 +212,7 @@ def _benchmarks() -> dict[str, Callable[[], BenchmarkResult]]:
             "magic_square(4)",
             BacktrackSolver(
                 MagicSquareProblem(4),
-                var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
-                dom_heuristic=DOM_HEURISTIC_MAX_VALUE,
+                searches=[Search(var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MAX_VALUE)],
                 log_level="WARNING",
             ),
         )
@@ -246,9 +249,13 @@ def _benchmarks() -> dict[str, Callable[[], BenchmarkResult]]:
             "quasigroup(3,8)",
             BacktrackSolver(
                 QuasigroupProblem(3, 8, True),
-                decision_variables=range(64),
-                var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
-                dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
+                searches=[
+                    Search(
+                        decision_variables=range(64),
+                        var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
+                        dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
+                    )
+                ],
                 log_level="WARNING",
             ),
         )
@@ -258,9 +265,13 @@ def _benchmarks() -> dict[str, Callable[[], BenchmarkResult]]:
             "quasigroup(5,10)",
             BacktrackSolver(
                 QuasigroupProblem(5, 10, True),
-                decision_variables=range(10 * 10),
-                var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
-                dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
+                searches=[
+                    Search(
+                        decision_variables=range(10 * 10),
+                        var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
+                        dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
+                    )
+                ],
                 log_level="WARNING",
             ),
         )
@@ -270,9 +281,13 @@ def _benchmarks() -> dict[str, Callable[[], BenchmarkResult]]:
             "quasigroup(5,11)",
             BacktrackSolver(
                 QuasigroupProblem(5, 11, True),
-                decision_variables=range(11 * 11),
-                var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
-                dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
+                searches=[
+                    Search(
+                        decision_variables=range(11 * 11),
+                        var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
+                        dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
+                    )
+                ],
                 log_level="WARNING",
             ),
         )
@@ -282,9 +297,13 @@ def _benchmarks() -> dict[str, Callable[[], BenchmarkResult]]:
             "quasigroup(5,12)",
             BacktrackSolver(
                 QuasigroupProblem(5, 12, True),
-                decision_variables=range(12 * 12),
-                var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
-                dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
+                searches=[
+                    Search(
+                        decision_variables=range(12 * 12),
+                        var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
+                        dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
+                    )
+                ],
                 log_level="WARNING",
             ),
         )
@@ -300,11 +319,15 @@ def _benchmarks() -> dict[str, Callable[[], BenchmarkResult]]:
             "tsp(gr17)",
             BacktrackSolver(
                 problem,
-                decision_variables=range(2 * n),
-                var_heuristic=tsp_var_heuristic_idx,
-                var_heuristic_params=costs,
-                dom_heuristic=DOM_HEURISTIC_MIN_COST,
-                dom_heuristic_params=costs,
+                searches=[
+                    Search(
+                        decision_variables=range(2 * n),
+                        var_heuristic=tsp_var_heuristic_idx,
+                        var_heuristic_params=costs,
+                        dom_heuristic=DOM_HEURISTIC_MIN_COST,
+                        dom_heuristic_params=costs,
+                    )
+                ],
                 log_level="WARNING",
             ),
             problem.total_cost,
@@ -321,11 +344,15 @@ def _benchmarks() -> dict[str, Callable[[], BenchmarkResult]]:
             "tsp(gr21)",
             BacktrackSolver(
                 problem,
-                decision_variables=range(2 * n),
-                var_heuristic=tsp_var_heuristic_idx,
-                var_heuristic_params=costs,
-                dom_heuristic=DOM_HEURISTIC_MIN_COST,
-                dom_heuristic_params=costs,
+                searches=[
+                    Search(
+                        decision_variables=range(2 * n),
+                        var_heuristic=tsp_var_heuristic_idx,
+                        var_heuristic_params=costs,
+                        dom_heuristic=DOM_HEURISTIC_MIN_COST,
+                        dom_heuristic_params=costs,
+                    )
+                ],
                 log_level="WARNING",
             ),
             problem.total_cost,

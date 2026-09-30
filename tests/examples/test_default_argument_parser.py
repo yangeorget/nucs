@@ -17,6 +17,7 @@ import pytest
 from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC
+from nucs.solvers.search import Search
 
 
 class TestDefaultArgumentParser:
@@ -45,13 +46,26 @@ class TestDefaultArgumentParser:
         args = parser.parse_args(
             ["--consistency-algorithm", "BC", "--var-heuristic", "SMALLEST_DOMAIN", "--dom-heuristic", "MIN_VALUE"]
         )
-        kwargs = solver_kwargs_from_args(args, dom_heuristic=DOM_HEURISTIC_SPLIT_LOW)
+        kwargs = solver_kwargs_from_args(args, searches=[Search(dom_heuristic=DOM_HEURISTIC_SPLIT_LOW)])
         assert kwargs["consistency_algorithm"] == CONSISTENCY_ALG_BC
-        assert kwargs["var_heuristic"] == VAR_HEURISTIC_SMALLEST_DOMAIN
-        assert kwargs["dom_heuristic"] == DOM_HEURISTIC_MIN_VALUE  # the CLI overrides the programmatic default
+        # the CLI overrides the programmatic default
+        assert kwargs["searches"] == [
+            Search(var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MIN_VALUE)
+        ]
+
+    def test_solver_kwargs_from_args_overrides_the_heuristics_of_every_search(self) -> None:
+        """A heuristic given on the command line reaches each search, which keeps its parameters."""
+        parser = DefaultArgumentParser()
+        args = parser.parse_args(["--var-heuristic", "SMALLEST_DOMAIN"])
+        searches = [Search([0], var_heuristic_params=[[1]]), Search([1], dom_heuristic=DOM_HEURISTIC_SPLIT_LOW)]
+        kwargs = solver_kwargs_from_args(args, searches=searches)
+        assert kwargs["searches"] == [
+            Search([0], VAR_HEURISTIC_SMALLEST_DOMAIN, [[1]]),
+            Search([1], VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_SPLIT_LOW),
+        ]
 
     def test_solver_kwargs_from_args_defaults(self) -> None:
         parser = DefaultArgumentParser()
         args = parser.parse_args([])
-        kwargs = solver_kwargs_from_args(args, dom_heuristic=DOM_HEURISTIC_SPLIT_LOW)
-        assert kwargs == {"dom_heuristic": DOM_HEURISTIC_SPLIT_LOW}
+        kwargs = solver_kwargs_from_args(args, searches=[Search(dom_heuristic=DOM_HEURISTIC_SPLIT_LOW)])
+        assert kwargs == {"searches": [Search(dom_heuristic=DOM_HEURISTIC_SPLIT_LOW)]}

@@ -296,7 +296,7 @@ class TestBacktrackSolver:
         dozen entries where the copying representation would have written 30 int32 per node.
         """
         problem = Problem([(0, 9)] * 3)
-        solver = BacktrackSolver(problem, dom_heuristic=DOM_HEURISTIC_SPLIT_LOW)
+        solver = BacktrackSolver(problem, searches=[Search(dom_heuristic=DOM_HEURISTIC_SPLIT_LOW)])
         solutions = solver.find_all()
         assert len(solutions) == 1000
         assert solutions[0].tolist() == [0, 0, 0]
@@ -499,7 +499,9 @@ class TestBacktrackSolver:
     def test_find_all_dom_wdeg_learns_the_failing_core(
         self, var_heuristic: int, weight_decay: float, choice_nb: int
     ) -> None:
-        solver = BacktrackSolver(self._unsatisfiable_core(6), var_heuristic=var_heuristic, weight_decay=weight_decay)
+        solver = BacktrackSolver(
+            self._unsatisfiable_core(6), searches=[Search(var_heuristic=var_heuristic)], weight_decay=weight_decay
+        )
         assert solver.find_all() == []
         assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == choice_nb
 
@@ -511,7 +513,9 @@ class TestBacktrackSolver:
         for i in range(6):
             problem.add_propagator(ALG_SUM_LEQ_C, [i, i + 1, i + 2], [2])
         problem.add_propagator(ALG_SUM_EQ, range(9))
-        solver = BacktrackSolver(problem, decision_variables=range(8), var_heuristic=VAR_HEURISTIC_DOM_WDEG)
+        solver = BacktrackSolver(
+            problem, searches=[Search(decision_variables=range(8), var_heuristic=VAR_HEURISTIC_DOM_WDEG)]
+        )
         solution = solver.find_best(8, DOMAIN_MAX, mode=OPTIM_RESET)
         assert solution is not None
         assert solution[8] == 6
@@ -530,7 +534,7 @@ class TestBacktrackSolver:
         # the Luby limits have no upper bound, so a descent eventually gets long enough to finish the proof
         solver = BacktrackSolver(
             self._unsatisfiable_core(6),
-            var_heuristic=VAR_HEURISTIC_DOM_WDEG,
+            searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG)],
             restart_policy=RESTART_LUBY,
             restart_scale=1,
         )
@@ -545,7 +549,9 @@ class TestBacktrackSolver:
         for i in range(8):
             problem.add_propagator(ALG_SUM_LEQ_C, [i, i + 1, i + 2], [2])
         problem.add_propagator(ALG_SUM_EQ, range(11))
-        solver = BacktrackSolver(problem, decision_variables=range(10), restart_policy=RESTART_LUBY, restart_scale=1)
+        solver = BacktrackSolver(
+            problem, searches=[Search(decision_variables=range(10))], restart_policy=RESTART_LUBY, restart_scale=1
+        )
         assert [solution[10] for solution in solver.optimize(10, DOMAIN_MAX, mode)] == [0, 1, 2, 3, 4, 5, 6, 7]
         assert solver.statistics[STATS_IDX_SOLVER_RESTART_NB] > 0
 
@@ -586,7 +592,10 @@ class TestBacktrackSolver:
         assert next(solver.solve()).tolist() == [2, 2, 1, 0]
 
     def test_find_all_dom_wdeg(self) -> None:
-        assert len(BacktrackSolver(QueensProblem(8), var_heuristic=VAR_HEURISTIC_DOM_WDEG).find_all()) == 92
+        assert (
+            len(BacktrackSolver(QueensProblem(8), searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG)]).find_all())
+            == 92
+        )
 
     def test_find_all_split_grounding_wakes_ground_triggered_propagator(self) -> None:
         # A split heuristic that grounds a variable in its current branch must report a ground event,
@@ -595,7 +604,9 @@ class TestBacktrackSolver:
         for dom_heuristic in (DOM_HEURISTIC_SPLIT_HIGH, DOM_HEURISTIC_SPLIT_LOW):
             problem = Problem([(1, 5), (4, 5)])
             problem.add_propagator(ALG_LINEAR_NEQ_C, [0, 1], [1, -1, 0])  # x != y
-            solver = BacktrackSolver(problem, var_heuristic=VAR_HEURISTIC_GREATEST_DOMAIN, dom_heuristic=dom_heuristic)
+            solver = BacktrackSolver(
+                problem, searches=[Search(var_heuristic=VAR_HEURISTIC_GREATEST_DOMAIN, dom_heuristic=dom_heuristic)]
+            )
             solutions = solver.find_all()
             assert len(solutions) == 8
             assert all(x != y for x, y in (s.tolist() for s in solutions))
@@ -637,7 +648,7 @@ class TestBacktrackSolver:
     )
     def test_find_best(self, mode: str, dom_heuristic: int, solution_nb: int) -> None:
         problem = Problem([(1, 5)])
-        solver = BacktrackSolver(problem, dom_heuristic=dom_heuristic)
+        solver = BacktrackSolver(problem, searches=[Search(dom_heuristic=dom_heuristic)])
         solution = solver.find_best(0, bound=DOMAIN_MAX, mode=mode)
         assert solution is not None
         assert solution.tolist() == [5]
@@ -671,19 +682,21 @@ class TestBacktrackSolver:
         """
         expected = [
             solution.tolist()
-            for solution in BacktrackSolver(Problem([(1, 5)]), dom_heuristic=dom_heuristic, log_level="ERROR").optimize(
-                0, bound, OPTIM_RESET
-            )
+            for solution in BacktrackSolver(
+                Problem([(1, 5)]), searches=[Search(dom_heuristic=dom_heuristic)], log_level="ERROR"
+            ).optimize(0, bound, OPTIM_RESET)
         ]
         actual = [
             solution.tolist()
-            for solution in BacktrackSolver(Problem([(1, 5)]), dom_heuristic=dom_heuristic, log_level="ERROR").optimize(
-                0, bound, OPTIM_PRUNE
-            )
+            for solution in BacktrackSolver(
+                Problem([(1, 5)]), searches=[Search(dom_heuristic=dom_heuristic)], log_level="ERROR"
+            ).optimize(0, bound, OPTIM_PRUNE)
         ]
         assert actual == expected
 
     def test_optimize_prune_terminates_on_a_three_way_split(self) -> None:
         """The minimal reproduction of the hang above, pinned to its exact expected output."""
-        solver = BacktrackSolver(Problem([(1, 5)]), dom_heuristic=DOM_HEURISTIC_MID_VALUE, log_level="ERROR")
+        solver = BacktrackSolver(
+            Problem([(1, 5)]), searches=[Search(dom_heuristic=DOM_HEURISTIC_MID_VALUE)], log_level="ERROR"
+        )
         assert [solution.tolist() for solution in solver.optimize(0, DOMAIN_MIN, OPTIM_PRUNE)] == [[3], [1]]

@@ -16,6 +16,7 @@ from nucs.examples.default_argument_parser import DefaultArgumentParser, run_sol
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.search import Search
 
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.quasigroup -n 10 --symmetry-breaking
@@ -31,8 +32,7 @@ if __name__ == "__main__":
             problem,
             **solver_kwargs_from_args(
                 args,
-                decision_variables=range(args.n * args.n),
-                dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
+                searches=[Search(decision_variables=range(args.n * args.n), dom_heuristic=DOM_HEURISTIC_SPLIT_LOW)],
             ),
         ),
         args,

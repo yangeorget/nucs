@@ -15,6 +15,7 @@ import pytest
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.search import Search
 from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
@@ -60,9 +61,13 @@ class TestQuasigroup:
         problem = QuasigroupProblem(kind, size, idempotent, True)
         solver = BacktrackSolver(
             problem,
-            decision_variables=range(size * size),
-            var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
-            dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
+            searches=[
+                Search(
+                    decision_variables=range(size * size),
+                    var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN,
+                    dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
+                )
+            ],
         )
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb

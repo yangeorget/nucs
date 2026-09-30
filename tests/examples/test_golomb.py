@@ -17,6 +17,7 @@ from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistenc
 from nucs.heuristics.heuristics import VAR_HEURISTIC_DOM_WDEG
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import register_consistency_algorithm
+from nucs.solvers.search import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
 
 
@@ -41,7 +42,9 @@ class TestGolomb:
     def test_find_best_dom_wdeg(self, mode: str, weight_decay: float) -> None:
         # the heuristic changes the tree, never the optimum
         problem = GolombProblem(7)
-        solver = BacktrackSolver(problem, var_heuristic=VAR_HEURISTIC_DOM_WDEG, weight_decay=weight_decay)
+        solver = BacktrackSolver(
+            problem, searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG)], weight_decay=weight_decay
+        )
         solution = solver.find_best(problem.length_idx, DOMAIN_MIN, mode=mode)
         assert solution is not None
         assert solution[problem.length_idx] == 25
