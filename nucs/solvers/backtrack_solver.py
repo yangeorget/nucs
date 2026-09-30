@@ -156,11 +156,17 @@ class BacktrackSolver(Solver):
         self.triggered_propagators = buckets_create(problem.propagator_nb)
         self.domain_buffer = get_domain_buffer(problem.offsets)
         logger.debug("Initializing choice points")
-        arrays = allocate_search_arrays(problem)
-        self.state, self.domains, self.entailed = arrays.state, arrays.domains, arrays.entailed
-        self.trail_headroom, self.trail_log = arrays.trail_headroom, arrays.trail_log
-        self.trail_top, self.trail_indices = arrays.trail_top, arrays.trail_indices
-        self.choice_point_stk, self.choice_point_top = arrays.choice_point_stk, arrays.choice_point_top
+        (
+            self.state,
+            self.domains,
+            self.entailed,
+            self.trail_headroom,
+            self.trail_log,
+            self.trail_top,
+            self.trail_indices,
+            self.choice_point_stk,
+            self.choice_point_top,
+        ) = allocate_search_arrays(problem)
         # the branch-and-bound bound, as OBJECTIVE_VARIABLE, OBJECTIVE_BOUND and OBJECTIVE_VALUE: the variable
         # optimized, the side of its domain to tighten, and the best value found so far. It is solver
         # state, not choice-point state -- the bound holds for the whole remaining search, so backtrack

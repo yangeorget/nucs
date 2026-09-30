@@ -24,18 +24,20 @@ class TestSearchArrays:
         problem = Problem([(0, 7), (0, 7), (0, 7)])
         problem.add_propagator(ALG_ALLDIFFERENT, range(3))
         problem.init()
-        arrays = allocate_search_arrays(problem)
-        assert len(arrays.state) == 2 * 3 + 1 + problem.state_width + 1
-        arrays.domains[1, 1] = 5  # (variable 1, its max) is the cell (1 << 1) | 1
-        assert arrays.state[3] == 5
-        arrays.entailed[0] = 1  # the flag of propagator 0 follows the 2 * domain_nb bounds
-        assert arrays.state[6] == 1
-        assert len(arrays.trail_indices) == len(arrays.state)
-        assert arrays.trail_headroom == (
+        state, domains, entailed, trail_headroom, _, trail_top, trail_indices, _, choice_point_top = (
+            allocate_search_arrays(problem)
+        )
+        assert len(state) == 2 * 3 + 1 + problem.state_width + 1
+        domains[1, 1] = 5  # (variable 1, its max) is the cell (1 << 1) | 1
+        assert state[3] == 5
+        entailed[0] = 1  # the flag of propagator 0 follows the 2 * domain_nb bounds
+        assert state[6] == 1
+        assert len(trail_indices) == len(state)
+        assert trail_headroom == (
             2 * 3 + 1 + problem.state_trailed_width + 1 + STEP_TIGHTENING_NB * TIGHTENING_TRAIL_ENTRY_NB
         )
-        assert arrays.trail_top.tolist() == [0]
-        assert arrays.choice_point_top.tolist() == [1]
+        assert trail_top.tolist() == [0]
+        assert choice_point_top.tolist() == [1]
 
     @pytest.mark.parametrize(
         "domain_nb,trail_size,stack_height",
@@ -51,6 +53,6 @@ class TestSearchArrays:
     ) -> None:
         problem = Problem([(0, 1)] * domain_nb)
         problem.init()
-        arrays = allocate_search_arrays(problem)
-        assert arrays.trail_log.shape == (trail_size, 2)
-        assert arrays.choice_point_stk.shape == (stack_height, CHOICE_POINT_WIDTH)
+        _, _, _, _, trail_log, _, _, choice_point_stk, _ = allocate_search_arrays(problem)
+        assert trail_log.shape == (trail_size, 2)
+        assert choice_point_stk.shape == (stack_height, CHOICE_POINT_WIDTH)

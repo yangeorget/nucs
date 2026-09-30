@@ -15,8 +15,6 @@ The arrays of the search: the backtrackable state and its views, the trail and t
 and sized for a problem.
 """
 
-from dataclasses import dataclass
-
 import numpy as np
 from numpy.typing import NDArray
 
@@ -34,32 +32,21 @@ TIGHTENING_TRAIL_ENTRY_NB = 3  # the two bounds of a domain and the unbound coun
 STEP_TIGHTENING_NB = 2  # an alternative then the objective bound, the longer of the two ways out of a step
 
 
-@dataclass(frozen=True)
-class SearchArrays:
-    """
-    The arrays that the search reads and writes, as allocated for a problem before the first search.
-    """
-
-    state: NDArray  # all the backtrackable state
-    domains: NDArray  # a (domain_nb, 2) view of the head of state
-    entailed: NDArray  # a view of the entailment flags in state
-    trail_headroom: int  # the trail entries any one step of the search can need
-    trail_log: NDArray  # the undo log of (cell index, old value) pairs
-    trail_top: NDArray  # the trail size, as a one-cell array
-    trail_indices: NDArray  # the index of the last trail entry of each cell, -1 for none
-    choice_point_stk: NDArray  # the stack of choice points
-    choice_point_top: NDArray  # the height of the stack, as a one-cell array
-
-
-def allocate_search_arrays(problem: Problem) -> SearchArrays:
+def allocate_search_arrays(
+    problem: Problem,
+) -> tuple[NDArray, NDArray, NDArray, int, NDArray, NDArray, NDArray, NDArray, NDArray]:
     """
     Lays out the backtrackable state of a problem and allocates the trail and the stack of choice points.
 
     :param problem: the problem, already initialized
     :type problem: Problem
 
-    :return: the arrays of the search
-    :rtype: SearchArrays
+    :return: the arrays of the search, in this order: all the backtrackable state; the domains, a (domain_nb, 2) view
+             of its head; the entailment flags, a view of its middle; the trail entries that any one step of the
+             search can need; the undo log of (cell index, old value) pairs; the trail size, as a one-cell array;
+             the index of the last trail entry of each cell, -1 for none; the stack of choice points; the height of
+             the stack, as a one-cell array
+    :rtype: Tuple[NDArray, NDArray, NDArray, int, NDArray, NDArray, NDArray, NDArray, NDArray]
     """
     # all the backtrackable state in one flat int32 array, so that one undo log and one undo loop
     # restore every kind of it:
@@ -105,14 +92,14 @@ def allocate_search_arrays(problem: Problem) -> SearchArrays:
     trail_indices = np.full(len(state), -1, dtype=np.int32)
     choice_point_stk = np.zeros((max(1 << 13, 4 * domain_nb), CHOICE_POINT_WIDTH), dtype=np.int32)
     choice_point_top = np.ones((1,), dtype=np.uint32)
-    return SearchArrays(
-        state=state,
-        domains=domains,
-        entailed=entailed,
-        trail_headroom=trail_headroom,
-        trail_log=trail_log,
-        trail_top=trail_top,
-        trail_indices=trail_indices,
-        choice_point_stk=choice_point_stk,
-        choice_point_top=choice_point_top,
+    return (
+        state,
+        domains,
+        entailed,
+        trail_headroom,
+        trail_log,
+        trail_top,
+        trail_indices,
+        choice_point_stk,
+        choice_point_top,
     )
