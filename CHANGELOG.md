@@ -14,6 +14,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `nucs/solvers/interruption.py`. `BacktrackSolver.interruption` is now an `Interruption`: the one-cell array is
   `interruption.cell`, and `interrupted` and `deadline_lock` are attributes of the `Interruption`, not of the solver.
   `BacktrackSolver.interrupt()` does not change.
+- **The flattening of the searches is a function of its own**, `flatten_searches` in `nucs/solvers/search.py`. It
+  returns a `FlatSearches`, which `BacktrackSolver` keeps as `flat_searches`: `decision_variables`,
+  `variable_searches` and the arrays of the heuristic parameters are attributes of it, not of the solver.
 
 ## 17.1.0
 

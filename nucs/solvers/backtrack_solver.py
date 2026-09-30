@@ -44,7 +44,6 @@ from nucs.numba_helper import (
     addresses_from_functions,
     build_function_ptrs,
 )
-from nucs.numpy_helper import flatten_arrays
 from nucs.problems.problem import OFFSETS_VARIABLE, PROBLEM_BOUND, PROBLEM_UNBOUND, Problem
 from nucs.propagators.propagators import (
     ALG_DUMMY,
@@ -64,7 +63,7 @@ from nucs.solvers.choice_points import (
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
 from nucs.solvers.interruption import Interruption
 from nucs.solvers.restarts import RESTART_NONE, restart_limits
-from nucs.solvers.search import Search
+from nucs.solvers.search import Search, flatten_searches
 from nucs.solvers.solver import OPTIM_RESET, Solver, get_solution
 from nucs.solvers.weights import weights_init
 from nucs.statistics import (
@@ -211,29 +210,11 @@ class BacktrackSolver(Solver):
             searches = [
                 Search(decision_variables, var_heuristic, var_heuristic_params, dom_heuristic, dom_heuristic_params)
             ]
-        # every search keeps its own array of decision variables, variable/domain heuristic and parameters
-        decision_variables_per_search: list[NDArray] = []
-        var_heuristics: list[int] = []
-        dom_heuristics: list[int] = []
-        var_params: list[NDArray] = []
-        dom_params: list[NDArray] = []
-        for search in searches:
-            search_vars = (
-                list(range(problem.domain_nb)) if search.decision_variables is None else list(search.decision_variables)
-            )
-            decision_variables_per_search.append(np.array(search_vars, dtype=np.uint32))
-            var_heuristics.append(search.var_heuristic)
-            dom_heuristics.append(search.dom_heuristic)
-            var_params.append(np.array(search.var_heuristic_params, dtype=np.int64))
-            dom_params.append(np.array(search.dom_heuristic_params, dtype=np.int64))
-        logger.info(f"BacktrackSolver uses decision domains {[dv.tolist() for dv in decision_variables_per_search]}")
-        self.decision_variables, self.decision_variables_offsets = flatten_arrays(decision_variables_per_search)
-        logger.info(f"BacktrackSolver uses variable heuristics {var_heuristics}")
-        self.var_heuristic_params, self.var_heuristic_params_offsets = flatten_arrays(var_params)
-        self.var_heuristic_params_shapes = np.array([params.shape for params in var_params], dtype=np.int64)
-        logger.info(f"BacktrackSolver uses domain heuristics {dom_heuristics}")
-        self.dom_heuristic_params, self.dom_heuristic_params_offsets = flatten_arrays(dom_params)
-        self.dom_heuristic_params_shapes = np.array([params.shape for params in dom_params], dtype=np.int64)
+        # every search keeps its own decision variables, variable and domain heuristics and their parameters
+        self.flat_searches = flatten_searches(searches, problem.domain_nb)
+        logger.info(f"BacktrackSolver uses decision domains {self.flat_searches.decision_variables_per_search()}")
+        logger.info(f"BacktrackSolver uses variable heuristics {self.flat_searches.var_heuristics}")
+        logger.info(f"BacktrackSolver uses domain heuristics {self.flat_searches.dom_heuristics}")
         logger.info(f"BacktrackSolver uses consistency algorithm {consistency_algorithm}")
         self.triggered_propagators = buckets_create(problem.propagator_nb)
         self.domain_buffer = get_domain_buffer(problem.offsets)
@@ -312,11 +293,6 @@ class BacktrackSolver(Solver):
         self.restart_limits: Iterator[int] = iter(())
         self.search_control = np.full(SEARCH_CONTROL_WIDTH, -1, dtype=np.int64)
         self.search_control[SEARCH_CONTROL_LAST_CONFLICT] = int(last_conflict)
-        # the search that owns each variable, -1 for a variable no search branches on: last-conflict may only take
-        # over the decision of the search that owns the conflict variable
-        self.variable_searches = np.full(problem.domain_nb, -1, dtype=np.int32)
-        for search_idx in reversed(range(len(decision_variables_per_search))):  # the first search listing it wins
-            self.variable_searches[decision_variables_per_search[search_idx]] = search_idx
         # the objective of the best solution so far, (variable, value, bound) as in self.objective, which a restart
         # re-applies at the root
         self.restart_objective: tuple[int, int, int] | None = None
@@ -328,17 +304,17 @@ class BacktrackSolver(Solver):
         )
         if NUMBA_DISABLE_JIT:
             self.consistency_alg_fcts = [CONSISTENCY_ALG_FCTS[consistency_algorithm]]
-            self.var_heuristic_fcts = [VAR_HEURISTIC_FCTS[h] for h in var_heuristics]
-            self.dom_heuristic_fcts = [DOM_HEURISTIC_FCTS[h] for h in dom_heuristics]
+            self.var_heuristic_fcts = [VAR_HEURISTIC_FCTS[h] for h in self.flat_searches.var_heuristics]
+            self.dom_heuristic_fcts = [DOM_HEURISTIC_FCTS[h] for h in self.flat_searches.dom_heuristics]
         else:
             self.consistency_alg_fcts = build_function_ptrs(
                 [CONSISTENCY_ALG_FCTS[consistency_algorithm]], SIGN_CONSISTENCY_ALG
             )
             self.var_heuristic_fcts = build_function_ptrs(
-                [VAR_HEURISTIC_FCTS[h] for h in var_heuristics], SIGN_VAR_HEURISTIC
+                [VAR_HEURISTIC_FCTS[h] for h in self.flat_searches.var_heuristics], SIGN_VAR_HEURISTIC
             )
             self.dom_heuristic_fcts = build_function_ptrs(
-                [DOM_HEURISTIC_FCTS[h] for h in dom_heuristics], SIGN_DOM_HEURISTIC
+                [DOM_HEURISTIC_FCTS[h] for h in self.flat_searches.dom_heuristics], SIGN_DOM_HEURISTIC
             )
         logger.debug("BacktrackSolver initialized")
 
@@ -498,16 +474,16 @@ class BacktrackSolver(Solver):
             self.choice_point_top,
             self.triggered_propagators,
             self.consistency_alg_fcts,
-            self.decision_variables,
-            self.decision_variables_offsets,
+            self.flat_searches.decision_variables,
+            self.flat_searches.decision_variables_offsets,
             self.var_heuristic_fcts,
-            self.var_heuristic_params,
-            self.var_heuristic_params_offsets,
-            self.var_heuristic_params_shapes,
+            self.flat_searches.var_heuristic_params,
+            self.flat_searches.var_heuristic_params_offsets,
+            self.flat_searches.var_heuristic_params_shapes,
             self.dom_heuristic_fcts,
-            self.dom_heuristic_params,
-            self.dom_heuristic_params_offsets,
-            self.dom_heuristic_params_shapes,
+            self.flat_searches.dom_heuristic_params,
+            self.flat_searches.dom_heuristic_params_offsets,
+            self.flat_searches.dom_heuristic_params_shapes,
             self.compute_domains_addrs,
             self.domain_buffer,
             self.problem.algorithm_flags,
@@ -516,7 +492,7 @@ class BacktrackSolver(Solver):
             self.interruption.cell,
             self.propagator_weights,
             self.search_control,
-            self.variable_searches,
+            self.flat_searches.variable_searches,
         )
 
     def interrupt(self) -> None:
