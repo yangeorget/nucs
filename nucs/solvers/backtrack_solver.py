@@ -18,7 +18,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import buckets_create, buckets_empty, buckets_init
+from nucs.buckets import buckets_create, buckets_init
 from nucs.constants import (
     DOMAIN_MAX,
     DOMAIN_MIN,
@@ -269,7 +269,6 @@ class BacktrackSolver(Solver):
         disarm = self.interruption.arm_deadline(timeout)
         try:
             t0 = time.perf_counter_ns()
-            buckets_empty(self.triggered_propagators, self.problem.priorities)
             buckets_init(self.triggered_propagators, self.problem.priorities)
             # no solution yet, so the search has no objective bound; _advance_after_optimum arms it.
             # An enumeration disarms it here too: the solver may have been optimized with before.
@@ -344,8 +343,7 @@ class BacktrackSolver(Solver):
             ):
                 return False
         # the descent ended at a failure: the failed filtering left propagators in the queue, and backtrack added
-        # more
-        buckets_empty(self.triggered_propagators, self.problem.priorities)
+        # more, which buckets_init removes before it adds every propagator
         buckets_init(self.triggered_propagators, self.problem.priorities)
         return True
 

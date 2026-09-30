@@ -67,6 +67,18 @@ def buckets_create(capacity: int) -> NDArray:
 
 @njit(cache=True)
 def buckets_init(buckets: NDArray, priorities: NDArray) -> None:
+    """
+    Empties the queue, then adds every propagator to it, in the order of their indices within each bucket.
+
+    The queue can hold anything before: garbage just after buckets_create, or the propagators that a failed descent
+    left behind.
+
+    :param buckets: the queue
+    :type buckets: NDArray
+    :param priorities: the bucket of each propagator
+    :type priorities: NDArray
+    """
+    buckets_empty(buckets, priorities)
     propagator_nb = len(priorities)
     membership_offset = STORAGE_OFFSET + propagator_nb
     for prop_idx in range(propagator_nb):
