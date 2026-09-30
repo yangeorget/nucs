@@ -671,8 +671,7 @@ def solve_one_step(
         if interruption[0] != 0:
             return SOLVER_INTERRUPTED, None
         # checked before the filtering, so that the state the solver restarts from is not a half-done one
-        restart_limit = search_control[SEARCH_CONTROL_RESTART_LIMIT]
-        if 0 <= restart_limit <= search_control[SEARCH_CONTROL_FAILURE_NB]:
+        if 0 <= search_control[SEARCH_CONTROL_RESTART_LIMIT] <= search_control[SEARCH_CONTROL_FAILURE_NB]:
             return SOLVER_RESTART, None
         # the arrays are caller-allocated, so the search stops for the solver to grow one rather than
         # overrun it silently -- with boundscheck off, the overrun is what would otherwise happen
