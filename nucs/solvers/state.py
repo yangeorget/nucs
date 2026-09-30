@@ -16,6 +16,10 @@ from numpy.typing import NDArray
 
 from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MAX, EVENT_MASK_MIN, EVENT_MASK_NONE
 
+# The trail entries that one call of tighten or tighten_at can write: a domain's two bounds and, when it grounds the
+# variable, the unbound count. Keep it in step with these two functions: the solver sizes the trail from it.
+TIGHTENING_TRAIL_ENTRY_NB = 3
+
 
 @njit(cache=True, inline="always")
 def unbound_index(state: NDArray) -> int:

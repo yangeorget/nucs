@@ -20,15 +20,15 @@ from numpy.typing import NDArray
 
 from nucs.problems.problem import Problem
 from nucs.solvers.choice_points import CHOICE_POINT_WIDTH
+from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB
 
 # Trail entries a step of the search needs beyond one per cell of the backtrackable state.
 # The barrier in trail_set trails each cell at most once per choice point, so a fixpoint cannot need more
 # than len(state) entries however long it runs. The tightenings the search applies around it are not
 # covered by that budget: each writes at a mark the trail holds nothing for yet, so every one of their
-# writes is trailed. A tightening writes a domain's two bounds and, when it grounds the variable, the
-# unbound count; a step applies at most two of them -- branch's decision is one, while backtracking a
-# choice point applies its parked alternative and then the branch-and-bound objective bound.
-TIGHTENING_TRAIL_ENTRY_NB = 3  # the two bounds of a domain and the unbound count
+# writes is trailed. A tightening writes at most TIGHTENING_TRAIL_ENTRY_NB entries (see nucs.solvers.state);
+# a step applies at most two of them -- branch's decision is one, while backtracking a choice point applies
+# its parked alternative and then the branch-and-bound objective bound.
 STEP_TIGHTENING_NB = 2  # an alternative then the objective bound, the longer of the two ways out of a step
 
 

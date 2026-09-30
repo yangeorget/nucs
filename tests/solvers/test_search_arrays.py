@@ -15,7 +15,8 @@ import pytest
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT
 from nucs.solvers.choice_points import CHOICE_POINT_WIDTH
-from nucs.solvers.search_arrays import STEP_TIGHTENING_NB, TIGHTENING_TRAIL_ENTRY_NB, allocate_search_arrays
+from nucs.solvers.search_arrays import STEP_TIGHTENING_NB, allocate_search_arrays
+from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB
 
 
 class TestSearchArrays:

@@ -61,8 +61,8 @@ array must grow, so one descent can take many calls.
 heuristic (`DECISION_*`) and the solver (`DOMAIN_*`, `OBJECTIVE_*`) are written against, plus the logging levels. A
 constant owned by one module lives with it instead: `CHOICE_POINT_*` in `nucs/solvers/choice_points.py`, `OFFSETS_*` and
 `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` in `nucs/solvers/backtrack_solver.py`, `OPTIM_*` in
-`nucs/solvers/solver.py`, `TIGHTENING_TRAIL_ENTRY_NB` and `STEP_TIGHTENING_NB` in `nucs/solvers/search_arrays.py`,
-`STATS_*` in `nucs/statistics.py`.
+`nucs/solvers/solver.py`, `TIGHTENING_TRAIL_ENTRY_NB` in `nucs/solvers/state.py`, `STEP_TIGHTENING_NB` in
+`nucs/solvers/search_arrays.py`, `STATS_*` in `nucs/statistics.py`.
 
 The `SIGN_*` signatures — the fixed ABIs through which jitted callables are dispatched (see *Functions are values*
 below) — live with the registry that compiles against them: `SIGN_COMPUTE_DOMAINS` and `SIGN_GET_TRIGGERS` in

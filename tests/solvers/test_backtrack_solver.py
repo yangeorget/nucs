@@ -49,9 +49,9 @@ from nucs.solvers.backtrack_solver import (
 from nucs.solvers.choice_points import CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_VARIABLE, backtrack, branch
 from nucs.solvers.restarts import RESTART_LUBY, Restarts
 from nucs.solvers.search import Search
-from nucs.solvers.search_arrays import STEP_TIGHTENING_NB, TIGHTENING_TRAIL_ENTRY_NB
+from nucs.solvers.search_arrays import STEP_TIGHTENING_NB
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
-from nucs.solvers.state import tighten
+from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB, tighten
 from nucs.statistics import (
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
     STATS_IDX_SOLUTION_NB,
