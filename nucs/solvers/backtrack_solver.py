@@ -188,7 +188,8 @@ class BacktrackSolver(Solver):
         # learns about the constraints serves the next one too
         self.propagator_weights = weights_init(problem.propagator_nb, weight_decay)
         self.restarts = restarts
-        self.restart_limits: Iterator[int] = iter(())
+        # the failure limits of the descents; each search starts them again from the first one (see _iterate_solutions)
+        self.restart_limits = restarts.limits()
         self.search_control = np.full(SEARCH_CONTROL_WIDTH, -1, dtype=np.int64)
         self.search_control[SEARCH_CONTROL_LAST_CONFLICT] = int(last_conflict)
         # the objective of the best solution so far, (variable, value, bound) as in self.objective, which a restart
