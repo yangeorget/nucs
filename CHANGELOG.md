@@ -72,6 +72,10 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   new one with `dataclasses.replace`. `searches` is now a `Sequence[Search]`, so a tuple is correct too.
   `search_heuristics` in `nucs/fzn/runner.py` returns `DEFAULT_SEARCHES`, not `None`, for a model without a search
   annotation.
+- **The `quasigroup` and `sports_tournament_scheduling` examples branch with dom/wdeg** (`VAR_HEURISTIC_DOM_WDEG`),
+  not on the first unbound variable. On quasigroup 5, the search is 14 times faster for n=10 and 30 times faster for
+  n=12. On sports tournament scheduling, it is 190 times faster for n=8, and it finds a solution for n=10 in 0.4 s,
+  where the old order found none in 300 s. `--var-heuristic` still overrides it.
 
 ## 17.1.0
 

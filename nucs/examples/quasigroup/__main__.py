@@ -14,7 +14,7 @@ import argparse
 
 from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
-from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW
+from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_DOM_WDEG
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.search import Search
 
@@ -32,7 +32,13 @@ if __name__ == "__main__":
             problem,
             **solver_kwargs_from_args(
                 args,
-                searches=[Search(decision_variables=range(args.n * args.n), dom_heuristic=DOM_HEURISTIC_SPLIT_LOW)],
+                searches=[
+                    Search(
+                        decision_variables=range(args.n * args.n),
+                        var_heuristic=VAR_HEURISTIC_DOM_WDEG,
+                        dom_heuristic=DOM_HEURISTIC_SPLIT_LOW,
+                    )
+                ],
             ),
         ),
         args,

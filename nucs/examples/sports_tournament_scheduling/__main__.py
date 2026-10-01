@@ -15,7 +15,9 @@ from nucs.examples.default_argument_parser import DefaultArgumentParser, run_sol
 from nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem import (
     SportsTournamentSchedulingProblem,
 )
+from nucs.heuristics.heuristics import VAR_HEURISTIC_DOM_WDEG
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.search import Search
 
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.sports_tournament_scheduling -n 8
@@ -24,4 +26,9 @@ if __name__ == "__main__":
     parser.add_argument("-n", type=int, default=8)
     args = parser.parse_args()
     problem = SportsTournamentSchedulingProblem(args.n, args.symmetry_breaking)
-    run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args)), args)
+    run_solver(
+        BacktrackSolver(
+            problem, **solver_kwargs_from_args(args, searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG)])
+        ),
+        args,
+    )
