@@ -76,6 +76,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   not on the first unbound variable. On quasigroup 5, the search is 14 times faster for n=10 and 30 times faster for
   n=12. On sports tournament scheduling, it is 190 times faster for n=8, and it finds a solution for n=10 in 0.4 s,
   where the old order found none in 300 s. `--var-heuristic` still overrides it.
+- **The `magic_square` example branches with dom/wdeg on random values, and restarts on the Luby policy with a scale
+  of 100.** Its default size is now 6, not 4. It solves n=6 to n=8 in less than 35 ms, where the old search found no
+  solution in 30 s. The values are random, so the solution and the statistics change from one run to the next.
 
 ## 17.1.0
 
