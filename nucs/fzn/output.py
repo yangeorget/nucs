@@ -18,8 +18,6 @@ from typing import TYPE_CHECKING, TextIO
 
 from numpy.typing import NDArray
 
-from nucs.fzn.parser import Id
-
 if TYPE_CHECKING:
     from nucs.fzn.model import FznModel
 
@@ -76,17 +74,18 @@ def _print_solution_dzn(model: "FznModel", solution: NDArray, out: TextIO, objec
     :param objective_value: the objective value to print, or None to omit it
     :type objective_value: Optional[int]
     """
-    for item in model.output_items:
-        if item[0] == "scalar":
-            _, name, is_bool = item
-            out.write(f"{name} = {_fmt(model.value_of(_id(name), solution), is_bool)};\n")
+    plan = model.output_plan
+    values = plan.values(solution)
+    lines = []
+    for item in plan.items:
+        if item.is_array:
+            body = _join(values[item.start : item.end], item.is_bool)
+            lines.append(f"{item.name} = array1d({item.lo}..{item.hi}, [{body}]);\n")
         else:
-            _, name, lo, hi, is_bool = item
-            values = [model.value_of(e, solution) for e in model.elements_of(_id(name))]
-            body = ", ".join(_fmt(v, is_bool) for v in values)
-            out.write(f"{name} = array1d({lo}..{hi}, [{body}]);\n")
+            lines.append(f"{item.name} = {_fmt(values[item.start], item.is_bool)};\n")
     if objective_value is not None:
-        out.write(f"{OUTPUT_OBJECTIVE_NAME} = {objective_value};\n")
+        lines.append(f"{OUTPUT_OBJECTIVE_NAME} = {objective_value};\n")
+    out.write("".join(lines))
 
 
 def _print_solution_json(model: "FznModel", solution: NDArray, out: TextIO, objective_value: int | None) -> None:
@@ -102,16 +101,14 @@ def _print_solution_json(model: "FznModel", solution: NDArray, out: TextIO, obje
     :param objective_value: the objective value to print, or None to omit it
     :type objective_value: Optional[int]
     """
+    plan = model.output_plan
+    values = plan.values(solution)
     entries = []
-    for item in model.output_items:
-        if item[0] == "scalar":
-            _, name, is_bool = item
-            entries.append(f'  "{name}" : {_fmt(model.value_of(_id(name), solution), is_bool)}')
+    for item in plan.items:
+        if item.is_array:
+            entries.append(f'  "{item.name}" : [{_join(values[item.start : item.end], item.is_bool)}]')
         else:
-            _, name, _lo, _hi, is_bool = item
-            values = [model.value_of(e, solution) for e in model.elements_of(_id(name))]
-            body = ", ".join(_fmt(v, is_bool) for v in values)
-            entries.append(f'  "{name}" : [{body}]')
+            entries.append(f'  "{item.name}" : {_fmt(values[item.start], item.is_bool)}')
     if objective_value is not None:
         entries.append(f'  "{OUTPUT_OBJECTIVE_NAME}" : {objective_value}')
     out.write("{\n" + ",\n".join(entries) + "\n}\n")
@@ -132,6 +129,23 @@ def _fmt(value: int, is_bool: bool) -> str:
     if is_bool:
         return "true" if value else "false"
     return str(value)
+
+
+def _join(values: list[int], is_bool: bool) -> str:
+    """
+    Formats the values of an array for the FlatZinc solution stream, separated by commas.
+
+    :param values: the values
+    :type values: list[int]
+    :param is_bool: whether the values belong to boolean variables
+    :type is_bool: bool
+
+    :return: the formatted values
+    :rtype: str
+    """
+    if is_bool:
+        return ", ".join(["true" if value else "false" for value in values])
+    return ", ".join(map(str, values))
 
 
 def print_search_complete(out: TextIO) -> None:
@@ -162,16 +176,3 @@ def print_unsatisfiable(out: TextIO) -> None:
     :type out: TextIO
     """
     out.write(UNSATISFIABLE + "\n")
-
-
-def _id(name: str):  # type: ignore[no-untyped-def]
-    """
-    Wraps an identifier name in an :class:`Id` term.
-
-    :param name: the identifier name
-    :type name: str
-
-    :return: an Id term
-    :rtype: Id
-    """
-    return Id(name)

@@ -509,8 +509,7 @@ def _run_optimize(
             _print_optimization_solution(model, solution, objective_var, out, output_mode, output_objective)
             printed = True
         else:
-            # The solver yields a view on its own domain stack, which the search overwrites when it resumes.
-            best = solution.copy()
+            best = solution  # a copy of the domains (get_solution), which the search does not overwrite
     # the solver stops the iteration itself when the budget runs out, so a proof is what it did not report
     proven = not solver.timed_out
     if best is not None:

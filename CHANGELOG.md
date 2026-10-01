@@ -82,6 +82,10 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 - **The `magic_sequence` and `tsp` examples use last-conflict reasoning**, with their own heuristics. magic_sequence
   is 23 times faster for n=100 and 44 times faster for n=150, and it solves n=300 in 6 s, where the old search found
   no solution in 30 s. tsp is 1.9 to 3.5 times faster on gr17, gr21 and gr24, and it finds the same optimal costs.
+- **`fzn-nucs` formats a solution 3 to 6 times faster.** The model resolves the terms of its output items once, to
+  NuCS variables or constants (`FznModel.output_plan`), so a solution is one NumPy gather and one join for each array,
+  not one lookup in the symbol table for each term. The output does not change. `FznModel.value_of` and
+  `FznModel.elements_of`, which only the formatter used, are removed.
 
 ## 17.1.0
 

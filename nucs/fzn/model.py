@@ -18,6 +18,12 @@ allocates one NuCS variable per class of always-equal FlatZinc variables, and di
 through the builtin registry.
 """
 
+from dataclasses import dataclass
+from functools import cached_property
+
+import numpy as np
+from numpy.typing import NDArray
+
 from nucs.fzn.builtins import BUILTINS
 from nucs.fzn.errors import FznParseError, FznUnsupportedError
 from nucs.fzn.parser import (
@@ -40,6 +46,64 @@ from nucs.propagators.propagators import ALG_MEMBER
 # for free. int_lin_eq states it too, for the shape MiniZinc emits when it cannot alias at flattening
 # time; see _alias_operands.
 _ALIAS_BUILTINS = ("bool2int", "bool_eq", "int_eq")
+
+
+@dataclass(frozen=True)
+class OutputItem:
+    """
+    An output variable or output array, as a slice of the values of the output plan.
+    """
+
+    name: str
+    is_array: bool
+    lo: int  # the bounds of the index set of an array, 0 for a variable
+    hi: int
+    is_bool: bool
+    start: int  # the values of the item are the values of the output plan from start to end
+    end: int
+
+
+class OutputPlan:
+    """
+    The output items of a model, with their terms resolved once.
+
+    Each term of an output item is a NuCS variable or a constant. The plan keeps all the terms in one array, so that the
+    values of a solution come from one gather, not from one lookup in the symbol table for each term.
+    """
+
+    def __init__(self, items: list[OutputItem], terms: list[tuple[int, int]]) -> None:
+        """
+        Inits the plan.
+
+        :param items: the output items, in output order
+        :type items: list[OutputItem]
+        :param terms: for each term of the items, in order, the NuCS variable and 0, or -1 and the constant
+        :type terms: list[tuple[int, int]]
+        """
+        self.items = items
+        variables = np.array([variable for variable, _ in terms], dtype=np.int64)
+        self.is_variable = variables >= 0
+        self.variables = np.where(self.is_variable, variables, 0)  # a constant reads variable 0, then np.where drops it
+        self.constants = np.array([constant for _, constant in terms], dtype=np.int64)
+        self.all_variables = bool(self.is_variable.all())
+        # without a variable term, the solution can be empty: variable 0 does not exist
+        self.constant_values: list[int] | None = None if self.is_variable.any() else self.constants.tolist()
+
+    def values(self, solution: NDArray) -> list[int]:
+        """
+        Returns the values of all the terms of the output items in a solution.
+
+        :param solution: the solution array indexed by NuCS variable
+        :type solution: NDArray
+
+        :return: the values, in the order of the terms
+        :rtype: list[int]
+        """
+        if self.constant_values is not None:
+            return self.constant_values
+        if self.all_variables:
+            return solution[self.variables].tolist()
+        return np.where(self.is_variable, solution[self.variables], self.constants).tolist()
 
 
 class FznModel:
@@ -409,41 +473,49 @@ class FznModel:
             return list(range(term.lo, term.hi + 1))
         raise FznUnsupportedError(f"expected a set, got {term!r}")
 
-    def value_of(self, term: Term, solution) -> int:  # type: ignore[no-untyped-def]
+    @cached_property
+    def output_plan(self) -> OutputPlan:
         """
-        Resolves a term to its concrete value in a solution, without allocating any variable.
+        Returns the output items with their terms resolved. It is built at the first call, when the model is complete.
+
+        :return: the output plan
+        :rtype: OutputPlan
+        """
+        items: list[OutputItem] = []
+        terms: list[tuple[int, int]] = []
+        for item in self.output_items:
+            start = len(terms)
+            if item[0] == "scalar":
+                _, name, is_bool = item
+                terms.append(self._resolve_output_term(Id(name)))
+                items.append(OutputItem(name, False, 0, 0, is_bool, start, start + 1))
+            else:
+                _, name, lo, hi, is_bool = item
+                terms.extend(self._resolve_output_term(term) for term in self._elements_of(Id(name)))
+                items.append(OutputItem(name, True, lo, hi, is_bool, start, len(terms)))
+        return OutputPlan(items, terms)
+
+    def _resolve_output_term(self, term: Term) -> tuple[int, int]:
+        """
+        Resolves a term of an output item to a NuCS variable or to a constant, without allocating any variable.
 
         :param term: the term to resolve
         :type term: Term
-        :param solution: the solution array indexed by NuCS variable
-        :type solution: NDArray
 
-        :return: the value of the term
-        :rtype: int
+        :return: the NuCS variable and 0, or -1 and the value of the constant
+        :rtype: tuple[int, int]
         """
         term = self._deref(term)
         if isinstance(term, bool):
-            return int(term)
+            return -1, int(term)
         if isinstance(term, int):
-            return term
+            return -1, term
         if isinstance(term, Id):
             if term.name in self.vars:
-                return int(solution[self.vars[term.name]])
+                return self.vars[term.name], 0
             if term.name in self.consts and isinstance(self.consts[term.name], int):
-                return int(self.consts[term.name])  # type: ignore[arg-type]
+                return -1, int(self.consts[term.name])  # type: ignore[arg-type]
         raise FznParseError(f"cannot resolve value of {term!r}")
-
-    def elements_of(self, term: Term) -> list[Term]:
-        """
-        Returns the element terms of an array term, public wrapper around the internal resolver.
-
-        :param term: the array term
-        :type term: Term
-
-        :return: the element terms
-        :rtype: List[Term]
-        """
-        return self._elements_of(term)
 
     def _deref(self, term: Term) -> Term:
         """
