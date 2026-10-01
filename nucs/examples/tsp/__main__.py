@@ -47,6 +47,8 @@ if __name__ == "__main__":
                         dom_heuristic_params=costs,
                     )
                 ],
+                # after a failure, the search comes back to the variable of the refuted decision
+                last_conflict=True,
             ),
         )
         solution = solver.find_best(problem.total_cost, DOMAIN_MIN, mode=args.optimization_mode or OPTIM_PRUNE)

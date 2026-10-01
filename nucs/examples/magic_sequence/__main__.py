@@ -25,4 +25,6 @@ if __name__ == "__main__":
     parser.add_argument("--model-r2", action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
     problem = MagicSequenceProblem(args.n, args.model_r1, args.model_r2)
-    run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args)), args)
+    # after a failure, the search comes back to the variable of the refuted decision: a wrong count of a small value
+    # is corrected before the search goes on to the next counts
+    run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args, last_conflict=True)), args)

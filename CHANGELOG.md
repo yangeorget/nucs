@@ -79,6 +79,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 - **The `magic_square` example branches with dom/wdeg on random values, and restarts on the Luby policy with a scale
   of 100.** Its default size is now 6, not 4. It solves n=6 to n=8 in less than 35 ms, where the old search found no
   solution in 30 s. The values are random, so the solution and the statistics change from one run to the next.
+- **The `magic_sequence` and `tsp` examples use last-conflict reasoning**, with their own heuristics. magic_sequence
+  is 23 times faster for n=100 and 44 times faster for n=150, and it solves n=300 in 6 s, where the old search found
+  no solution in 30 s. tsp is 1.9 to 3.5 times faster on gr17, gr21 and gr24, and it finds the same optimal costs.
 
 ## 17.1.0
 
