@@ -267,9 +267,11 @@ Two features do not fit, and the design keeps them out of the LCG mode:
 
 - **Custom consistency algorithms** (`register_consistency_algorithm`). The LCG mode needs its own propagation loop,
   which records reasons. A custom algorithm cannot record them.
-- **Tier B propagator state** (trailed semantic state). No propagator uses it today. The fallback explanation is
-  correct only if the result of a propagator depends on its input bounds alone. A propagator whose result depends on
-  Tier B state must give its own explanation function, or the LCG mode refuses it.
+- **Tier B propagator state** (trailed semantic state). These are state cells that a propagator keeps up to date as
+  a function of the current domains, and that the engine puts on the trail. See
+  [ARCHITECTURE.md](ARCHITECTURE.md#propagator-state-a-solver-owned-block-per-propagator). No propagator uses it
+  today. The fallback explanation is correct only if the result of a propagator depends on its input bounds alone. A
+  propagator whose result depends on Tier B state must give its own explanation function, or the LCG mode refuses it.
 
 ## Part 3 — The data structures
 
