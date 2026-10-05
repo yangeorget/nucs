@@ -8,6 +8,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+## 18.0.0
+
 ### Fixed
 
 - **`--var-heuristic` and `--dom-heuristic` did nothing in the `square` and `jobshop` examples.** These examples give
