@@ -86,6 +86,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   NuCS variables or constants (`FznModel.output_plan`), so a solution is one NumPy gather and one join for each array,
   not one lookup in the symbol table for each term. The output does not change. `FznModel.value_of` and
   `FznModel.elements_of`, which only the formatter used, are removed.
+- **NuCS supports Python 3.15.** The CI tests 3.12 to 3.15. NuCS now requires `numba==0.68.0`, the release, not the
+  release candidate 0.68.0rc1.
 
 ## 17.1.0
 

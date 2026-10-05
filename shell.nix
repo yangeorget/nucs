@@ -8,7 +8,7 @@
 { pkgs ? import <nixpkgs> { } }:
 
 let
-  pythonVersion = "3.14"; # CI tests 3.12, 3.13 and 3.14
+  pythonVersion = "3.15"; # CI tests 3.12 to 3.15
 in
 pkgs.mkShell {
   packages = [
