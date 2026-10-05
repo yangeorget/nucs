@@ -22,7 +22,7 @@ mypy nucs tests scripts              # type-check
 - The first two rewrite files: review the diff they leave.
 - Fix by hand what ruff cannot fix and every mypy error, then rerun until the script passes. It must pass before
   committing.
-- The git pre-commit hook `scripts/git-hooks/pre-commit` runs the same checks without the fixes, as the CI does, and
-  stops a commit that fails them. When it stops a commit, run the script, review and stage its changes, and commit
-  again. Never skip the hook with `--no-verify`. Install the hook once on each clone:
+- The git pre-commit hook `scripts/git-hooks/pre-commit` runs `./scripts/bash/style.sh --check`: the same checks without
+  the fixes, as the CI does. It stops a commit that fails them. When it stops a commit, run the script, review and
+  stage its changes, and commit again. Never skip the hook with `--no-verify`. Install the hook once on each clone:
   `git config core.hooksPath scripts/git-hooks`.

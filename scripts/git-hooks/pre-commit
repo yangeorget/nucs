@@ -9,6 +9,4 @@ if [ -x .venv/bin/ruff ]; then
   PATH="$PWD/.venv/bin:$PATH"
 fi
 
-ruff check nucs tests scripts && \
-ruff format --check nucs tests scripts && \
-mypy nucs tests scripts
+exec scripts/bash/style.sh --check
