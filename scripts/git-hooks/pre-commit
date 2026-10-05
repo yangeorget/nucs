@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Stops a commit when the code is not clean, with the same checks as the CI. It checks and never fixes: git commits
+# the index, so a fix made here would stay out of the commit. To fix, run scripts/bash/style.sh and stage its changes.
+# Install once on each clone: git config core.hooksPath scripts/git-hooks
+
+cd "$(git rev-parse --show-toplevel)" || exit 1
+if [ -x .venv/bin/ruff ]; then
+  PATH="$PWD/.venv/bin:$PATH"
+fi
+
+ruff check nucs tests scripts && \
+ruff format --check nucs tests scripts && \
+mypy nucs tests scripts
