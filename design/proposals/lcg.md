@@ -391,6 +391,35 @@ clause: if the literal is not false yet, the solver goes to the next watch.
 **Growth.** Learned clauses are added during the search. The arrays grow by doubling when full, with a new status
 `SOLVER_CLAUSES_FULL`, as the other arrays do. Deleted clauses (Part 6.4) are compacted when the solver restarts.
 
+**Why the learned clauses are not propagators.** A clause is a constraint, so it could be a propagator, as the model
+clauses of a FlatZinc model are (`_post_clause`). For the learned clauses, the store is better for five reasons:
+
+1. **Wake-up.** The engine wakes a propagator on each `MIN` or `MAX` change of each of its variables. A clause can
+   only become unit or fail when one of its literals becomes false: `[x >= 5]` only when `x.max` goes below 5. With
+   two watched literals, the solver visits a clause only for its two watches, and the `VALUE` of a watch skips the
+   clause with one compare. The events of NuCS have no threshold, so a clause propagator would run on each bound
+   change of each of its variables, and most of these calls would do nothing.
+2. **The cost of a call.** The engine spends about 110 ns around each propagator call: the queue, the statistics,
+   the gather, the dispatch and `update_domains` (`engine-per-call-overhead.md`). A watch visit is a few loads, and a
+   CDCL solver makes millions of them.
+3. **Static tables.** `Problem` builds `propagator_variables`, `offsets`, `triggers` and the state blocks once. The
+   search adds a clause at each conflict, and the reduction (6.4) deletes half of them at a restart. As propagators,
+   each addition and each deletion would rebuild these tables and make the trigger lists longer, and the trigger
+   lists are on the hottest path of the engine. The store grows and is compacted without a change to these tables.
+4. **No work on backtrack.** The two watches of a clause stay correct after a backtrack, so nothing goes on the
+   trail. A clause propagator with trailed state would put its state on the trail at each call.
+5. **The weights of dom/wdeg.** The weights are kept for each propagator. With learned clauses as propagators, the
+   failures of the clauses would go into dom/wdeg, and a variable would get more weight because it is in more
+   learned clauses. The activities of 3.6 are kept separately for this reason.
+
+A middle way is one propagator that holds the whole store, as `PropNogoods` does in Choco. In NuCS, that propagator
+would need to know which bounds changed, to visit only their watches. NuCS gives no delta to a propagator, and a
+delta was measured slower (0.75–0.80× for `count_eq` on magic_sequence, `ARCHITECTURE.md`). The clause queue of
+4.1 is a delta for the clauses only, and the propagators do not pay for it.
+
+The model clauses stay propagators: there are few of them, they do not change, and they wake as the other
+propagators do. Chuffed and CP-SAT divide the clauses in the same way.
+
 ### 3.6 Activities
 
 | array | shape | dtype | holds |
