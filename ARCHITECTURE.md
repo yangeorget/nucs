@@ -275,8 +275,10 @@ Two tiers, by contract:
   costs time, never correctness. Nothing is trailed, nothing is restored, the non-JIT path is untouched, and a fresh
   block's root value is whatever `np.zeros` gives it. `alldifferent`/`gcc` use this tier today (below).
 - **Tier B — semantic state (trailed).** The cells are a function of the current domains, maintained incrementally;
-  the engine trails the block, the propagator keeps it in sync. **Not yet used by any propagator**, but the two
-  pieces it needs are both in place: `bc_algorithm` trails a propagator's `trailed_nb`-wide prefix, unconditionally,
+  the engine trails the block, the propagator keeps it in sync. **Six propagators use it** (since 2026-09-12):
+  `lexleq` trails the two positions where its scan continues (8f2b14e); `relation` trails the size of its sparse set
+  of live tuples (1bcdf98); `count_eq`, `count_eq_c`, `count_geq_c` and `count_leq_c` trail the two counters of their
+  live set, at an arity of `LIVE_SET_MIN_ARITY` or more (6543f92). The engine gives the tier two pieces: `bc_algorithm` trails a propagator's `trailed_nb`-wide prefix, unconditionally,
   through the same `trail_set` a domain write uses, right before calling `compute_domains_*`; and
   `choice_point_init` clears every trailed prefix, so a search restarted from the root does not carry a block
   forward. That second one is not housekeeping but soundness: `OPTIM_RESET` *drops* the trail rather than unwinding
@@ -287,8 +289,8 @@ Two tiers, by contract:
   clearing *is* the restore; a Tier-B block wanting a non-zero root value would still need seeding. The untrailed
   hint suffixes are deliberately left alone: a hint is valid from any node by contract, and clearing them would
   throw away exactly the warm sort permutations an optimization restart most wants to keep.
-  `TestPropagatorStateIsBacktracked` pins this on a test-local Tier-B propagator, so it holds whether or not a
-  shipped propagator uses the tier.
+  `TestPropagatorStateIsBacktracked` pins this on a test-local Tier-B propagator, so the test does not depend on a
+  shipped propagator.
 
 Because the barrier runs before the call, a propagator that returns `PROP_INCONSISTENCY` halfway through may already
 have written its state block, and that is safe — trailed on entry, restored by `trail_undo` like any other cell.

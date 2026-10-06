@@ -271,9 +271,15 @@ Two features do not fit, and the design keeps them out of the LCG mode:
   which records reasons. A custom algorithm cannot record them.
 - **Tier B propagator state** (trailed semantic state). These are state cells that a propagator keeps up to date as
   a function of the current domains, and that the engine puts on the trail. See
-  [ARCHITECTURE.md](../../ARCHITECTURE.md#propagator-state-a-solver-owned-block-per-propagator). No propagator uses it
-  today. The fallback explanation is correct only if the result of a propagator depends on its input bounds alone. A
-  propagator whose result depends on Tier B state must give its own explanation function, or the LCG mode refuses it.
+  [ARCHITECTURE.md](../../ARCHITECTURE.md#propagator-state-a-solver-owned-block-per-propagator). Six propagators use
+  it: `lexleq`, `relation`, and `count_eq`, `count_eq_c`, `count_geq_c` and `count_leq_c` at an arity of
+  `LIVE_SET_MIN_ARITY` or more. The fallback explanation is correct only if the result of a propagator depends on its
+  input bounds alone. During conflict analysis, the block has the values of the current node, not of the node that
+  made the literal. Thus each of these six propagators must give its own explanation function, or the LCG mode
+  refuses it. In all six, the trailed cells are a function of the domains (a resume position, or the size of a live
+  set), so a stateless explanation is possible. The `count_*` propagators are frequent in FlatZinc models, so the LCG
+  mode cannot simply refuse them. Whether a call with the block reset to its root value (zero, as
+  `choice_point_init` clears it) is a correct explanation for each of them is an open question.
 
 ## Part 3 — The data structures
 
@@ -712,7 +718,7 @@ Follow the method of the earlier performance work:
 | the cost per node in the LCG mode | fewer nodes per second | the gate of stage 1; Chuffed shows that a node rate close to the current one is enough |
 | watch lists on large domains | a bound of a large-domain variable can have many watches with different values | sort the watches of a bound by value, or keep a blocking value; measure first |
 | Numba limits | no dynamic lists in nopython code; no recursion for clause minimization | flat arrays with growth statuses, as today; an explicit stack instead of recursion |
-| scope | LCG touches the loop, the search, the optimization and every propagator | the stages; the fallback explanation keeps every propagator working at every stage |
+| scope | LCG touches the loop, the search, the optimization and every propagator | the stages; the fallback explanation keeps every propagator working at every stage, except the six with Tier B state (Part 2) |
 
 ### 8.2 Open questions
 
@@ -727,6 +733,9 @@ Follow the method of the earlier performance work:
    only, or also of the annotated search?
 6. **Clause minimization** (removing the literals that the other literals of the clause already imply) is standard in
    SAT solvers ([minisat]). It is not in the stages above. Add it to stage 4 if the clauses stay long.
+7. **The six propagators with Tier B state** (Part 2): `lexleq`, `relation` and four `count_*`. Is a call with the
+   block reset to zero a correct explanation for each, or does each need an `explain` function from stage 1? The
+   `count_*` propagators decide, because FlatZinc models use them often.
 
 ## Reading list
 
