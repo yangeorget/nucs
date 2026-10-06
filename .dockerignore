@@ -30,11 +30,10 @@ venv*
 .venv
 
 # Large, non-build assets
-articles
 assets
 docs
 papers
-talks
+publications
 datasets
 logs
 tmp
