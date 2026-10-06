@@ -119,7 +119,8 @@ def tests(months: list[str]) -> None:
         for month, sha in month_ends():
             if months and month not in months:
                 continue
-            files = [f for f in git("ls-tree", "-r", "--name-only", sha, "--", "tests").splitlines() if f.endswith(".py")]
+            listing = git("ls-tree", "-r", "--name-only", sha, "--", "tests").splitlines()
+            files = [f for f in listing if f.endswith(".py")]
             functions = sum(len(re.findall(r"^\s*def test_", git("show", f"{sha}:{f}"), re.M)) for f in files)
             path = worktree(sha, root)
             try:

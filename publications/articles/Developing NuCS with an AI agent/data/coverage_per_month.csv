@@ -1,4 +1,5 @@
 month,commit,statements,missed,percent,passed,failed,errors,skipped,env
+2025-02,fc55244,3064,586,81,271,0,0,0,py3.12 numba0.61.0
 2026-03,ec719c5,3246,585,82,291,0,0,0,py3.15 numba0.68.0
 2026-04,22a5741,3538,655,81,317,0,0,0,py3.15 numba0.68.0
 2026-05,06c24fa,3795,538,86,436,0,0,0,py3.15 numba0.68.0
