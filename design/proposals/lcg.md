@@ -1,5 +1,7 @@
 # Lazy clause generation in NuCS — design
 
+> **Status:** proposed, 2026-10-05. Nothing is implemented.
+
 This document is the design of lazy clause generation (LCG) for NuCS. It is written for a reader who knows
 classical constraint programming (propagation, search, Gecode and Choco internals) but not LCG or SAT solving.
 Part 1 explains the concepts, with a worked example and links to read. Parts 2 to 6 give the design. Part 7 gives
@@ -269,7 +271,7 @@ Two features do not fit, and the design keeps them out of the LCG mode:
   which records reasons. A custom algorithm cannot record them.
 - **Tier B propagator state** (trailed semantic state). These are state cells that a propagator keeps up to date as
   a function of the current domains, and that the engine puts on the trail. See
-  [ARCHITECTURE.md](ARCHITECTURE.md#propagator-state-a-solver-owned-block-per-propagator). No propagator uses it
+  [ARCHITECTURE.md](../../ARCHITECTURE.md#propagator-state-a-solver-owned-block-per-propagator). No propagator uses it
   today. The fallback explanation is correct only if the result of a propagator depends on its input bounds alone. A
   propagator whose result depends on Tier B state must give its own explanation function, or the LCG mode refuses it.
 
@@ -337,7 +339,7 @@ Column meanings:
 - `REASON_KIND`, `REASON_DATA`, `REASON_POS`: see 3.4.
 
 **The new trail is not the undo trail.** The undo trail skips a write to a cell that it already saved at the current
-choice point (the write barrier in `CHOICE_POINTS.md`). That is correct for an undo log, but conflict analysis needs
+choice point (the write barrier in `design/choice-points.md`). That is correct for an undo log, but conflict analysis needs
 every change. The undo trail stays as it is, and restores `state` as before.
 
 **Writes.** Each call of `tighten_at` in the LCG loop that moves a bound adds one row. `update_domains` writes the

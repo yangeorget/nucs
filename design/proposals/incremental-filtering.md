@@ -1,5 +1,9 @@
 # Incremental filtering: how Choco, Gecode and OR-Tools do it, and what NuCS should do
 
+> **Status:** closed, 2026-09-11. Stage 1, the per-propagator state block, is implemented (d383b8b..c1c34e0).
+> Stage 2, the two Tier B exhibits, was tried and rejected; only its bug fix stays (4118aa5). The contract that
+> stays true is in `ARCHITECTURE.md`, *Propagator state: a solver-owned block per propagator*.
+
 ## 0. Executive summary
 
 Three solvers, three answers to the same question — *how does a propagator keep a computed invariant

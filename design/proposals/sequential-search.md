@@ -1,3 +1,8 @@
+# Sequential search
+
+> **Status:** implemented, 2026-06-19 (2ad7e3d). The API that this document describes has changed since: in 18.0.0,
+> a search is a `Search` from `nucs/solvers/search.py`, and `BacktrackSolver` takes a list of them as `searches`.
+
 We want to define a meta search that combines several searches.
 This is needed for the Minizinc' sequential search.
 

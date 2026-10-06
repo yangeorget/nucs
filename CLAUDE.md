@@ -2,6 +2,7 @@
 
 Guidance for Claude Code working in this repository.
 For repository layout and core concepts: see `ARCHITECTURE.md`.
+For the design documents and the proposals, with their status: see `design/README.md`.
 
 ## How to answer
 

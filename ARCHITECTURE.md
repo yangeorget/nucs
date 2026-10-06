@@ -245,7 +245,7 @@ The write barrier lives in one place, `tighten`, which is the only site that wri
 the objective clamp, a custom consistency algorithm. Entailment is the exception: it has a semantic guard (a flag is
 only written where it has just been read as clear) so it skips the positional one.
 
-See `CHOICE_POINTS.md` for the mechanism in detail: the exact rule the barrier implements and why each part of it is
+See `design/choice-points.md` for the mechanism in detail: the exact rule the barrier implements and why each part of it is
 load-bearing, what the three decision kinds are, and what the two `OPTIM_*` modes do.
 
 ### Propagators are stateless pure functions on a scratch buffer
