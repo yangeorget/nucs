@@ -1,16 +1,21 @@
 """
-Collects the data of charts 1 and 2 of the article from the git history of NuCS.
+Collects the data of charts 1, 2 and 3 of the article from the git history of NuCS.
 
 Usage, from the root of the repository:
 
     python "publications/articles/Developing NuCS with an AI agent/collect_data.py" commits
     python "publications/articles/Developing NuCS with an AI agent/collect_data.py" tests [2026-03 ...]
     python "publications/articles/Developing NuCS with an AI agent/collect_data.py" coverage 2026-03 2026-04 ...
+    python "publications/articles/Developing NuCS with an AI agent/collect_data.py" speed [--repeats 3] [v18.0.0 ...]
 
 - commits: the commits of each month, all and with the Co-Authored-By: Claude trailer (chart 1).
 - tests: at the last commit of each month, the test functions in tests/ and the tests that pytest collects (chart 2).
 - coverage: at the last commit of each given month, the line coverage of nucs/ by the tests without the JIT, as the CI
   measures it (chart 2). Each month runs in its own git worktree, in parallel, and takes 20 to 50 minutes.
+- speed: for each release tag of SPEED_TAGS, the time to solve the problems of speed_driver.py (chart 3). Each tag has
+  its own worktree and Numba cache in tmp/, and a Python 3.12 venv with the numba and numpy pins of the tag. The tags
+  run one after the other, never in parallel, in an order that alternates at each repetition (design/benchmarking.md).
+  Each run goes to speed_runs.csv, with its statistics, so that a change of the search tree is visible.
 
 The results go to data/*.csv next to this script. Each row records the Python and numba versions that measured it:
 an old commit may need the dependencies of its time (run the script with the Python of a venv that has them). With
@@ -18,7 +23,10 @@ months, tests measures only these months; coverage measures only the months that
 """
 
 import csv
+import hashlib
 import importlib.metadata
+import json
+import tomllib
 import os
 import re
 import subprocess
@@ -169,6 +177,72 @@ def coverage(months: list[str]) -> None:
             write_csv("coverage_per_month.csv", header, [done[m] for m in sorted(done)])
 
 
+SPEED_TAGS = ["v4.8.1", "v6.0.0", "v9.0.0", "v9.1.3", "v10.1.0", "v11.2.0", "v12.4.9", "v14.1.0", "v15.0.0",
+              "v16.1.0", "v17.1.0", "v18.0.0"]
+SPEED_PROBLEMS = {  # the problem, and the file that must exist in the tag
+    "queens_12": "nucs/examples/queens/queens_problem.py",
+    "all_interval_13": "nucs/examples/all_interval_series/all_interval_series_problem.py",
+    "bibd_10": "nucs/examples/bibd/bibd_problem.py",
+}
+SPEED_PYTHON = Path.home() / ".local/bin/python3.12"
+SPEED_ROOT = REPO / "tmp" / "article-speed"
+SPEED_DRIVER = Path(__file__).resolve().parent / "speed_driver.py"
+# Kept from the statistics of a run: the tree and the propagation, to see a change of the search between two tags.
+SPEED_STATS = ["SOLVER_BACKTRACK_NB", "SOLVER_CHOICE_NB", "ALG_BC_NB", "PROPAGATOR_FILTER_NB"]
+
+
+def speed_venv(tag: str) -> Path:
+    """A Python 3.12 venv with the dependencies of the tag, shared by the tags that have the same pins."""
+    deps = tomllib.loads(git("show", f"{tag}:pyproject.toml"))["project"]["dependencies"] + ["enlighten"]
+    path = SPEED_ROOT / ("venv-" + hashlib.sha1(" ".join(sorted(deps)).encode()).hexdigest()[:8])
+    if not (path / "bin" / "python").exists():
+        subprocess.run(["uv", "venv", "-q", "--python", str(SPEED_PYTHON), str(path)], check=True)
+        subprocess.run(["uv", "pip", "install", "-q", "--python", str(path / "bin" / "python"), *deps], check=True)
+    return path / "bin" / "python"
+
+
+def speed_worktree(tag: str) -> Path:
+    path = SPEED_ROOT / tag
+    if not path.exists():
+        git("worktree", "add", "--detach", str(path), tag)
+    return path
+
+
+def speed(args: list[str]) -> None:
+    repeats = 3
+    if args[:1] == ["--repeats"]:
+        repeats, args = int(args[1]), args[2:]
+    tags = args or SPEED_TAGS
+    setups = {tag: (speed_worktree(tag), speed_venv(tag)) for tag in tags}
+    rows = []
+    for repeat in range(repeats):
+        for tag in tags if repeat % 2 == 0 else list(reversed(tags)):
+            worktree, python = setups[tag]
+            env = {**os.environ, "PYTHONPATH": str(worktree), "NUMBA_CACHE_DIR": str(worktree / ".numba-cache")}
+            env.pop("NUMBA_DISABLE_JIT", None)
+            for problem, required in SPEED_PROBLEMS.items():
+                if not (worktree / required).exists():
+                    continue
+                run = subprocess.run([str(python), str(SPEED_DRIVER), problem], cwd=worktree, env=env,
+                                     capture_output=True, text=True, timeout=1800)
+                line = next((x for x in run.stdout.splitlines() if x.startswith("RESULT ")), None)
+                if line is None:
+                    print(f"{tag} {problem}: no result\n{run.stderr[-500:]}", flush=True)
+                    continue
+                result = json.loads(line[len("RESULT "):])
+                # The worktree must be the NuCS that ran (design/benchmarking.md, rule 2).
+                assert result["nucs_file"].startswith(str(worktree)), result["nucs_file"]
+                numba = subprocess.run([str(python), "-c", "import numba; print(numba.__version__)"],
+                                       capture_output=True, text=True).stdout.strip()
+                date = git("log", "-1", "--format=%ad", "--date=short", tag).strip()
+                stats = [result["statistics"].get(k, "") for k in SPEED_STATS]
+                rows.append([tag, date, problem, repeat, result["time_ms"], result["solutions"], *stats,
+                             f"py{result['python']} numba{numba}"])
+                print(rows[-1], flush=True)
+    header = ["tag", "date", "problem", "repeat", "time_ms", "solutions", *[k.lower() for k in SPEED_STATS], "env"]
+    write_csv("speed_runs.csv" if not args else "speed_runs_partial.csv", header, rows)
+
+
 if __name__ == "__main__":
     command = sys.argv[1] if len(sys.argv) > 1 else ""
     if command == "commits":
@@ -177,5 +251,7 @@ if __name__ == "__main__":
         tests(sys.argv[2:])
     elif command == "coverage":
         coverage(sys.argv[2:])
+    elif command == "speed":
+        speed(sys.argv[2:])
     else:
         sys.exit(__doc__)
