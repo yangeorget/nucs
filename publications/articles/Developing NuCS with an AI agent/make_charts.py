@@ -10,6 +10,8 @@ check (worst adjacent CVD delta E 9.2). Aqua is below 3:1 against the surface, s
 """
 
 import csv
+import statistics
+from collections import defaultdict
 from datetime import date
 from pathlib import Path
 
@@ -17,6 +19,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.dates  # noqa: E402
 import matplotlib.ticker  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
@@ -205,7 +208,68 @@ def chart_coverage() -> None:
     save(fig, "coverage_per_month.png")
 
 
+SPEED_BASE = "v9.1.3"  # the last release before the agent (2026-03-07)
+# The problem, its label, its color, and a vertical offset of its end label (points), so that close lines do not
+# put their labels on each other.
+SPEED_PROBLEMS = [("queens_12", "queens(12)", BLUE, -7), ("all_interval_13", "all_interval(13)", ORANGE, 7),
+                  ("bibd_10", "bibd(10,15,6,4,2)", AQUA, 0)]
+
+
+def chart_speed() -> None:
+    with open(DATA / "speed_runs.csv") as f:
+        runs = list(csv.DictReader(f))
+    times: dict[tuple[str, str], list[float]] = defaultdict(list)
+    trees: dict[str, set[tuple[str, str]]] = defaultdict(set)
+    dates = {}
+    for run in runs:
+        times[run["tag"], run["problem"]].append(float(run["time_ms"]))
+        trees[run["problem"]].add((run["solutions"], run["solver_backtrack_nb"]))
+        dates[run["tag"]] = date.fromisoformat(run["date"])
+    # The chart compares costs per node: it is only correct if every tag explores the same tree.
+    assert all(len(t) == 1 for t in trees.values()), trees
+    median = {key: statistics.median(values) for key, values in times.items()}
+    tags = sorted(dates, key=dates.get)
+
+    fig, ax = plt.subplots(figsize=(9, 4.6))
+    ax.axvspan(date(2026, 5, 1), max(dates.values()) + (max(dates.values()) - min(dates.values())) * 0.02,
+               color=BAND, zorder=0, linewidth=0)
+    ax.text(date(2026, 5, 15), 0.97, "with the agent", transform=ax.get_xaxis_transform(), va="top", color=INK_2,
+            fontsize=9)
+    ax.axhline(1, color=INK_2, linewidth=0.8, linestyle=(0, (4, 3)), zorder=1)
+    for problem, label, color, label_offset in SPEED_PROBLEMS:
+        measured = [t for t in tags if (t, problem) in median]
+        speed = [median[SPEED_BASE, problem] / median[t, problem] for t in measured]
+        ax.plot([dates[t] for t in measured], speed, color=color, linewidth=2, marker="o", markersize=5, label=label)
+        ax.annotate(f"{label} {speed[-1]:.1f}x", (dates[measured[-1]], speed[-1]), textcoords="offset points",
+                    xytext=(8, label_offset), va="center", color=INK, fontsize=9)
+    ax.set_yscale("log", base=2)
+    ax.set_yticks([0.25, 0.5, 1, 2, 4], ["0.25x", "0.5x", "1x", "2x", "4x"])
+    ax.yaxis.set_minor_locator(matplotlib.ticker.NullLocator())
+    ax.set_ylim(0.15, 5)
+    ax.set_xlim(min(dates.values()) - (max(dates.values()) - min(dates.values())) * 0.02,
+                max(dates.values()) + (max(dates.values()) - min(dates.values())) * 0.02)
+    for tag in [SPEED_BASE, "v14.1.0", "v16.1.0"]:  # the base, and the two steps of the gain
+        ax.annotate(tag, (dates[tag], 1), textcoords="offset points", xytext=(0, -16), ha="center", color=INK_2,
+                    fontsize=8)
+    # The bibd jump of v4.8.1 -> v6.0.0 is from before the agent: say it on the chart.
+    first = tags[0]
+    ax.annotate(f"{first}: half of the filter calls\nwere removed in Feb 2025",
+                (dates[first], median[SPEED_BASE, "bibd_10"] / median[first, "bibd_10"]), textcoords="offset points",
+                xytext=(10, 0), va="center", color=INK_2, fontsize=8)
+    ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonth=[1, 4, 7, 10]))
+    ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%b %Y"))
+    ax.set_title(f"Solver speed per release, relative to {SPEED_BASE}", loc="left")
+    ax.set_ylabel("speed (higher is faster)")
+    ax.legend(loc="upper left", bbox_to_anchor=(0, 0.9), fontsize=9, labelcolor=INK_2)
+    ax.text(0, -0.17, "Median of 5 runs, each with a random memory layout, Python 3.12, each tag with its own numba "
+            "pin. Every tag explores the\nsame search tree, so the differences are a cost per node. The gains come "
+            "from the code: with the numba of the other side\nof each step, the time changes by 4% or less "
+            "(data/speed_control.csv).", transform=ax.transAxes, color=INK_2, fontsize=8.5, va="top")
+    save(fig, "speed_per_release.png")
+
+
 if __name__ == "__main__":
+    chart_speed()
     chart_commits()
     chart_lines_changed()
     chart_tests()

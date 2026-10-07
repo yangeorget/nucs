@@ -16,6 +16,11 @@ Usage, from the root of the repository:
   its own worktree and Numba cache in tmp/, and a Python 3.12 venv with the numba and numpy pins of the tag. The tags
   run one after the other, never in parallel, in an order that alternates at each repetition (design/benchmarking.md).
   Each run goes to speed_runs.csv, with its statistics, so that a change of the search tree is visible.
+  Each run gets an environment variable of random length (LAYOUT_PAD, 0 to 4088 bytes), recorded in its row. The
+  size of the environment moves the stack of the process, and some stack positions make the same code up to 1.45x
+  slower (v12.4.9 on bibd); with a fixed environment, every repetition of a tag would land on the same position.
+  A tag written A@B runs the code of tag A with the dependencies of tag B: this is the control that separates the
+  effect of the NuCS code from the effect of numba. A run with such tags goes to speed_control.csv.
 
 The results go to data/*.csv next to this script. Each row records the Python and numba versions that measured it:
 an old commit may need the dependencies of its time (run the script with the Python of a venv that has them). With
@@ -28,6 +33,7 @@ import importlib.metadata
 import json
 import tomllib
 import os
+import random
 import re
 import subprocess
 import sys
@@ -209,20 +215,26 @@ def speed_worktree(tag: str) -> Path:
 
 
 def speed(args: list[str]) -> None:
-    repeats = 3
+    repeats = 5
+    layouts = random.Random(20261007)  # seeded, so that a run can be made again with the same layouts
     if args[:1] == ["--repeats"]:
         repeats, args = int(args[1]), args[2:]
     tags = args or SPEED_TAGS
-    setups = {tag: (speed_worktree(tag), speed_venv(tag)) for tag in tags}
+    # "A@B": the code of A, the dependencies of B. A plain tag is its own code with its own dependencies.
+    setups = {tag: (speed_worktree(tag.split("@")[0]), speed_venv(tag.split("@")[-1])) for tag in tags}
     rows = []
     for repeat in range(repeats):
         for tag in tags if repeat % 2 == 0 else list(reversed(tags)):
             worktree, python = setups[tag]
-            env = {**os.environ, "PYTHONPATH": str(worktree), "NUMBA_CACHE_DIR": str(worktree / ".numba-cache")}
-            env.pop("NUMBA_DISABLE_JIT", None)
+            # One Numba cache for each pair of code and dependencies: two numba versions must not share a cache.
+            cache = worktree / (".numba-cache-" + tag.split("@")[-1])
             for problem, required in SPEED_PROBLEMS.items():
                 if not (worktree / required).exists():
                     continue
+                pad = layouts.randrange(0, 4096, 8)
+                env = {**os.environ, "PYTHONPATH": str(worktree), "NUMBA_CACHE_DIR": str(cache),
+                       "LAYOUT_PAD": "x" * pad}
+                env.pop("NUMBA_DISABLE_JIT", None)
                 run = subprocess.run([str(python), str(SPEED_DRIVER), problem], cwd=worktree, env=env,
                                      capture_output=True, text=True, timeout=1800)
                 line = next((x for x in run.stdout.splitlines() if x.startswith("RESULT ")), None)
@@ -234,13 +246,16 @@ def speed(args: list[str]) -> None:
                 assert result["nucs_file"].startswith(str(worktree)), result["nucs_file"]
                 numba = subprocess.run([str(python), "-c", "import numba; print(numba.__version__)"],
                                        capture_output=True, text=True).stdout.strip()
-                date = git("log", "-1", "--format=%ad", "--date=short", tag).strip()
+                code_tag, deps_tag = tag.split("@")[0], tag.split("@")[-1]
+                date = git("log", "-1", "--format=%ad", "--date=short", code_tag).strip()
                 stats = [result["statistics"].get(k, "") for k in SPEED_STATS]
-                rows.append([tag, date, problem, repeat, result["time_ms"], result["solutions"], *stats,
-                             f"py{result['python']} numba{numba}"])
+                rows.append([code_tag, date, problem, repeat, result["time_ms"], result["solutions"], *stats,
+                             f"py{result['python']} numba{numba}", deps_tag, pad])
                 print(rows[-1], flush=True)
-    header = ["tag", "date", "problem", "repeat", "time_ms", "solutions", *[k.lower() for k in SPEED_STATS], "env"]
-    write_csv("speed_runs.csv" if not args else "speed_runs_partial.csv", header, rows)
+    header = ["tag", "date", "problem", "repeat", "time_ms", "solutions", *[k.lower() for k in SPEED_STATS], "env",
+              "deps_tag", "layout_pad"]
+    name = "speed_control.csv" if any("@" in t for t in tags) else "speed_runs.csv" if not args else "speed_partial.csv"
+    write_csv(name, header, rows)
 
 
 if __name__ == "__main__":

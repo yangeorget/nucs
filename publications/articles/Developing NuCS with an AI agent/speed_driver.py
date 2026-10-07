@@ -8,9 +8,13 @@ default search, because the way to give a search changed in 18.0.0.
 The first solve compiles or loads the jitted code and is not timed. Then the problem is solved REPEATS[problem] times,
 and the time of one solve is the total divided by that number: a short problem is repeated so that the timer and the
 noise stay small in front of the measured time.
+
+The logs are turned off: the solver logs during the search, and the cost of a log depends on where the output goes (a
+pipe, a file, a terminal), not on the solver. scripts/benchmark.py does the same with log_level="WARNING".
 """
 
 import json
+import logging
 import sys
 import time
 
@@ -46,6 +50,7 @@ def run(name: str) -> tuple[int, float, dict]:
 
 
 if __name__ == "__main__":
+    logging.disable(logging.CRITICAL)  # every tag logs through the standard logging module
     problem = sys.argv[1]
     run(problem)  # the warm-up
     total_ms = 0.0
