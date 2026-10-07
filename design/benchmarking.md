@@ -51,6 +51,16 @@ miss.
 7. **Compare all the statistics, not only the answer.** Use each counter of all the FlatZinc and Python models,
    and the number of calls of each propagator. A change to the engine that changes the order of the propagation
    shows only there. When the trees are the same (`SOLVER_CHOICE_NB`), a time difference is a cost per node.
+8. **Change the memory layout of the process at each run.** The environment and the arguments are at the top of the
+   stack, so their size moves the stack of the solver, and some stack positions make the same code much slower.
+   v12.4.9 solved `bibd(10,15,6,4,2)` in 67 ms or in 98 ms, with the same code, cache and data: one empty
+   environment variable more or less changed it. Of 32 padding lengths from 0 to 248 bytes, 2 were slow. In the slow
+   process, a few memory instructions of the jitted loop cost 5 to 8 times more. A path of a different length (a
+   worktree, a cache directory, the current directory) is enough, so the two sides of an A/B have different layouts
+   even when nothing else differs. Repetitions with the same environment repeat the same layout and cannot show
+   this. Give each run an environment variable of random length (for example 0 to 4,088 bytes, in steps of 8), and
+   use the median of at least five runs. This is the setup randomization of Mytkowicz et al., *Producing Wrong Data
+   Without Doing Anything Obviously Wrong!*, ASPLOS 2009.
 
 ## Probes by duplication
 
