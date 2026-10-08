@@ -219,11 +219,15 @@ def speed(args: list[str]) -> None:
     repeats = 5
     layouts = random.Random(20261007)  # seeded, so that a run can be made again with the same layouts
     out = None
-    while args[:1] in (["--repeats"], ["--out"]):
+    problems = dict(SPEED_PROBLEMS)
+    while args[:1] in (["--repeats"], ["--out"], ["--problems"]):
         if args[0] == "--repeats":
             repeats = int(args[1])
-        else:
+        elif args[0] == "--out":
             out = args[1]
+        else:  # golomb_N and tsp_N need their example only
+            problems = {p: f"nucs/examples/{p.split('_')[0]}/{p.split('_')[0]}_problem.py" if p not in SPEED_PROBLEMS
+                        else SPEED_PROBLEMS[p] for p in args[1].split(",")}
         args = args[2:]
     tags = args or SPEED_TAGS
     # "A@B": the code of A, the dependencies of B. A plain tag is its own code with its own dependencies.
@@ -234,7 +238,7 @@ def speed(args: list[str]) -> None:
             worktree, python = setups[tag]
             # One Numba cache for each pair of code and dependencies: two numba versions must not share a cache.
             cache = worktree / (".numba-cache-" + tag.split("@")[-1])
-            for problem, required in SPEED_PROBLEMS.items():
+            for problem, required in problems.items():
                 if not (worktree / required).exists():
                     continue
                 pad = layouts.randrange(0, 4096, 8)

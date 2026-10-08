@@ -32,6 +32,7 @@ INK_2 = "#52514e"  # axes, labels, notes
 GRID = "#e4e3df"
 BAND = "#eceae4"  # the agent period
 BLUE, ORANGE, AQUA = "#2a78d6", "#eb6834", "#1baf7a"
+YELLOW, MAGENTA = "#eda100", "#e87ba4"  # slots 4 and 5, only on the panel of the minimizations
 
 COLLECTED = "2026-10-06"  # the day of collect_data.py
 AGENT_START = "2026-05"  # the first commit with the trailer; the trailer is regular from 2026-07
@@ -213,30 +214,33 @@ SPEED_BASE = "v9.1.3"  # the last release before the agent (2026-03-07)
 # put their labels on each other.
 SPEED_PROBLEMS = [("queens_12", "queens(12)", BLUE, -7), ("all_interval_13", "all_interval(13)", ORANGE, 7),
                   ("bibd_10", "bibd(10,15,6,4,2)", AQUA, 0)]
+SPEED_OPTIMIZATION = [("golomb_10", "golomb(10)", YELLOW, -7), ("tsp_14", "tsp(14 cities of gr17)", MAGENTA, 7)]
 
 
-def chart_speed() -> None:
-    with open(DATA / "speed_runs.csv") as f:
+def read_speed(name: str) -> tuple[dict[tuple[str, str], float], dict[tuple[str, str], int], dict[str, set[str]],
+                                   dict[str, date]]:
+    """The median time and the choices of each (tag, problem), the solution counts or optima, and the tag dates."""
+    with open(DATA / name) as f:
         runs = list(csv.DictReader(f))
     times: dict[tuple[str, str], list[float]] = defaultdict(list)
-    trees: dict[str, set[tuple[str, str]]] = defaultdict(set)
-    dates = {}
+    choices, answers, dates = {}, defaultdict(set), {}
     for run in runs:
         times[run["tag"], run["problem"]].append(float(run["time_ms"]))
-        trees[run["problem"]].add((run["solutions"], run["solver_backtrack_nb"]))
+        choices[run["tag"], run["problem"]] = int(run["solver_choice_nb"])
+        answers[run["problem"]].add(run["solutions"])
         dates[run["tag"]] = date.fromisoformat(run["date"])
-    # The chart compares costs per node: it is only correct if every tag explores the same tree.
-    assert all(len(t) == 1 for t in trees.values()), trees
-    median = {key: statistics.median(values) for key, values in times.items()}
-    tags = sorted(dates, key=dates.get)
+    return {k: statistics.median(v) for k, v in times.items()}, choices, answers, dates
 
-    fig, ax = plt.subplots(figsize=(9, 4.6))
-    ax.axvspan(date(2026, 5, 1), max(dates.values()) + (max(dates.values()) - min(dates.values())) * 0.02,
-               color=BAND, zorder=0, linewidth=0)
-    ax.text(date(2026, 5, 15), 0.97, "with the agent", transform=ax.get_xaxis_transform(), va="top", color=INK_2,
-            fontsize=9)
+
+def speed_panel(ax: plt.Axes, median: dict, dates: dict, problems: list, title: str, band_label: bool) -> None:
+    tags = sorted(dates, key=dates.get)
+    span = max(dates.values()) - min(dates.values())
+    ax.axvspan(date(2026, 5, 1), max(dates.values()) + span * 0.02, color=BAND, zorder=0, linewidth=0)
+    if band_label:
+        ax.text(date(2026, 5, 15), 0.95, "with the agent", transform=ax.get_xaxis_transform(), va="top", color=INK_2,
+                fontsize=9)
     ax.axhline(1, color=INK_2, linewidth=0.8, linestyle=(0, (4, 3)), zorder=1)
-    for problem, label, color, label_offset in SPEED_PROBLEMS:
+    for problem, label, color, label_offset in problems:
         measured = [t for t in tags if (t, problem) in median]
         speed = [median[SPEED_BASE, problem] / median[t, problem] for t in measured]
         ax.plot([dates[t] for t in measured], speed, color=color, linewidth=2, marker="o", markersize=5, label=label)
@@ -246,25 +250,42 @@ def chart_speed() -> None:
     ax.set_yticks([0.25, 0.5, 1, 2, 4], ["0.25x", "0.5x", "1x", "2x", "4x"])
     ax.yaxis.set_minor_locator(matplotlib.ticker.NullLocator())
     ax.set_ylim(0.15, 5)
-    ax.set_xlim(min(dates.values()) - (max(dates.values()) - min(dates.values())) * 0.02,
-                max(dates.values()) + (max(dates.values()) - min(dates.values())) * 0.02)
+    ax.set_xlim(min(dates.values()) - span * 0.02, max(dates.values()) + span * 0.02)
     for tag in [SPEED_BASE, "v14.1.0", "v16.1.0"]:  # the base, and the two steps of the gain
         ax.annotate(tag, (dates[tag], 1), textcoords="offset points", xytext=(0, -16), ha="center", color=INK_2,
                     fontsize=8)
-    # The bibd jump of v4.8.1 -> v6.0.0 is from before the agent: say it on the chart.
-    first = tags[0]
-    ax.annotate(f"{first}: half of the filter calls\nwere removed in Feb 2025",
-                (dates[first], median[SPEED_BASE, "bibd_10"] / median[first, "bibd_10"]), textcoords="offset points",
-                xytext=(10, 0), va="center", color=INK_2, fontsize=8)
-    ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonth=[1, 4, 7, 10]))
-    ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%b %Y"))
-    ax.set_title(f"Solver speed per release, relative to {SPEED_BASE}", loc="left")
+    ax.set_title(title, loc="left", fontsize=11)
     ax.set_ylabel("speed (higher is faster)")
-    ax.legend(loc="upper left", bbox_to_anchor=(0, 0.9), fontsize=9, labelcolor=INK_2)
-    ax.text(0, -0.17, "Median of 5 runs, each with a random memory layout, Python 3.12, each tag with its own numba "
-            "pin. Every tag explores the\nsame search tree, so the differences are a cost per node. The gains come "
-            "from the code: with the numba of the other side\nof each step, the time changes by 4% or less "
-            "(data/speed_control.csv).", transform=ax.transAxes, color=INK_2, fontsize=8.5, va="top")
+    ax.legend(loc="upper left", bbox_to_anchor=(0, 0.88), fontsize=9, labelcolor=INK_2)
+
+
+def chart_speed() -> None:
+    median, choices, answers, dates = read_speed("speed_runs.csv")
+    # The top panel compares costs per node: it is only correct if every tag explores the same tree.
+    assert all(len({(choices[t, p]) for t in dates if (t, p) in choices}) == 1 for p, _, _, _ in SPEED_PROBLEMS)
+    opt_median, opt_choices, optima, opt_dates = read_speed("speed_runs_optimization.csv")
+    # A minimization may explore a slightly different tree in another tag, but it must find the same optimum.
+    assert all(len(optima[p]) == 1 for p, _, _, _ in SPEED_OPTIMIZATION), optima
+    tree_change = max(abs(opt_choices[t, p] / opt_choices[SPEED_BASE, p] - 1)
+                      for p, _, _, _ in SPEED_OPTIMIZATION for t in opt_dates if (t, p) in opt_choices)
+
+    fig, (top, bottom) = plt.subplots(2, 1, figsize=(9, 7.4), sharex=True)
+    speed_panel(top, median, dates, SPEED_PROBLEMS, "All the solutions", band_label=True)
+    speed_panel(bottom, opt_median, opt_dates, SPEED_OPTIMIZATION, "Minimization (PRUNE mode)", band_label=False)
+    # The bibd jump of v4.8.1 -> v6.0.0 is from before the agent: say it on the chart.
+    first = sorted(dates, key=dates.get)[0]
+    top.annotate(f"{first}: half of the filter calls\nwere removed in Feb 2025",
+                 (dates[first], median[SPEED_BASE, "bibd_10"] / median[first, "bibd_10"]), textcoords="offset points",
+                 xytext=(10, 0), va="center", color=INK_2, fontsize=8)
+    bottom.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonth=[1, 4, 7, 10]))
+    bottom.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%b %Y"))
+    fig.suptitle(f"Solver speed per release, relative to {SPEED_BASE}", x=0.01, ha="left", fontsize=13,
+                 fontweight="bold")
+    bottom.text(0, -0.2, "Median of 5 runs, each with a random memory layout, Python 3.12, each tag with its own numba "
+                "pin. Top: every tag explores the\nsame search tree. Bottom: every tag finds the same optimum, and the "
+                f"number of nodes changes by {tree_change:.1%} at most. The gains come\nfrom the code: with the numba "
+                "of the other side of each step, the time changes by 4% or less (data/speed_control.csv).",
+                transform=bottom.transAxes, color=INK_2, fontsize=8.5, va="top")
     save(fig, "speed_per_release.png")
 
 
