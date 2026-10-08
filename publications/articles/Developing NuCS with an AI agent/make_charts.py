@@ -209,6 +209,36 @@ def chart_coverage() -> None:
     save(fig, "coverage_per_month.png")
 
 
+def chart_messages() -> None:
+    data = read("commit_messages_per_month.csv")
+    months = all_months(min(data), max(data))
+    fig, (top, bottom) = plt.subplots(2, 1, figsize=(9, 5.8), sharex=True)
+    # A month enters a series only with at least 5 commits of that kind: the median of one commit is noise.
+    series = [("without the Claude trailer", "no_trailer_", BLUE), ("with the Claude trailer", "trailer_", ORANGE)]
+    for ax, column, title in [(top, "subject_chars_median", "Subject line (median characters)"),
+                              (bottom, "body_words_median", "Body (median words, trailers not counted)")]:
+        agent_band(ax, months, label=ax is top)
+        for label, prefix, color in series:
+            points = [(i, float(data[m][prefix + column])) for i, m in enumerate(months)
+                      if m in data and data[m][prefix + "commits"] and int(data[m][prefix + "commits"]) >= 5]
+            xs, ys = [], []
+            for n, (i, v) in enumerate(points):
+                if n and i != points[n - 1][0] + 1:  # no line across months that are not in the series
+                    xs.append(i - 0.5)
+                    ys.append(float("nan"))
+                xs.append(i)
+                ys.append(v)
+            ax.plot(xs, ys, color=color, linewidth=2, marker="o", markersize=4, label=label)
+        ax.set_title(title, loc="left", fontsize=11)
+        ax.set_ylim(bottom=0)
+    top.legend(loc="upper left", bbox_to_anchor=(0, 0.88), fontsize=9, labelcolor=INK_2)
+    month_ticks(bottom, months)
+    fig.suptitle("Commit messages", x=0.01, ha="left", fontsize=13, fontweight="bold")
+    bottom.text(0, -0.3, "Months with at least 5 commits of the kind. Before July 2026, no commit has a body except "
+                "the two with the trailer.", transform=bottom.transAxes, color=INK_2, fontsize=8.5)
+    save(fig, "commit_messages_per_month.png")
+
+
 SPEED_BASE = "v9.1.3"  # the last release before the agent (2026-03-07)
 # The problem, its label, its color, and a vertical offset of its end label (points), so that close lines do not
 # put their labels on each other.
@@ -292,6 +322,7 @@ def chart_speed() -> None:
 if __name__ == "__main__":
     chart_speed()
     chart_commits()
+    chart_messages()
     chart_lines_changed()
     chart_tests()
     chart_coverage()

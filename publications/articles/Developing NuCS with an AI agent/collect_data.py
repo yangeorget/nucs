@@ -4,11 +4,14 @@ Collects the data of charts 1, 2 and 3 of the article from the git history of Nu
 Usage, from the root of the repository:
 
     python "publications/articles/Developing NuCS with an AI agent/collect_data.py" commits
+    python "publications/articles/Developing NuCS with an AI agent/collect_data.py" messages
     python "publications/articles/Developing NuCS with an AI agent/collect_data.py" tests [2026-03 ...]
     python "publications/articles/Developing NuCS with an AI agent/collect_data.py" coverage 2026-03 2026-04 ...
     python "publications/articles/Developing NuCS with an AI agent/collect_data.py" speed [--out x.csv] [v18.0.0 ...]
 
 - commits: the commits of each month, all and with the Co-Authored-By: Claude trailer (chart 1).
+- messages: for each month, the length of the commit messages: the subject in characters, and the body in words
+  without its trailers; all the commits, and those with and without the Co-Authored-By: Claude trailer.
 - tests: at the last commit of each month, the test functions in tests/ and the tests that pytest collects (chart 2).
 - coverage: at the last commit of each given month, the line coverage of nucs/ by the tests without the JIT, as the CI
   measures it (chart 2). Each month runs in its own git worktree, in parallel, and takes 20 to 50 minutes.
@@ -36,6 +39,7 @@ import tomllib
 import os
 import random
 import re
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -111,6 +115,36 @@ def commits() -> None:
             for m in sorted(all_nb)]
     write_csv("commits_per_month.csv", ["month", "commits", "with_trailer", "without_trailer",
                                         "lines_changed_code", "lines_changed_tests", "lines_changed_docs"], rows)
+
+
+def messages() -> None:
+    by_month: dict[str, list[tuple[int, int, bool]]] = {}
+    log = git("log", "--no-merges", "--format=%x1e%ad%x1f%B", "--date=format:%Y-%m", "main")
+    for entry in log.split("\x1e")[1:]:
+        month, _, message = entry.partition("\x1f")
+        lines = message.strip().splitlines()
+        subject = lines[0] if lines else ""
+        # The body without its trailers (Co-Authored-By:, Signed-off-by:, ...): only what a person reads as text.
+        body = [x for x in lines[1:] if not re.match(r"^[A-Za-z-]+: ", x)]
+        agent = any(x.startswith("Co-Authored-By:") and "Claude" in x for x in lines)
+        by_month.setdefault(month, []).append((len(subject), len(" ".join(body).split()), agent))
+
+    def stats(commits: list[tuple[int, int, bool]]) -> list[object]:
+        if not commits:
+            return [0, "", "", "", ""]
+        subjects = [c[0] for c in commits]
+        bodies = [c[1] for c in commits]
+        return [len(commits), statistics.median(subjects), round(sum(b > 0 for b in bodies) / len(commits), 3),
+                statistics.median(bodies), round(statistics.mean(bodies), 1)]
+
+    rows = []
+    for month in sorted(by_month):
+        commits = by_month[month]
+        rows.append([month, *stats(commits), *stats([c for c in commits if c[2]]),
+                     *stats([c for c in commits if not c[2]])])
+    columns = ["commits", "subject_chars_median", "with_body_share", "body_words_median", "body_words_mean"]
+    header = ["month"] + [f"{prefix}{c}" for prefix in ("", "trailer_", "no_trailer_") for c in columns]
+    write_csv("commit_messages_per_month.csv", header, rows)
 
 
 def worktree(sha: str, root: str) -> Path:
@@ -273,6 +307,8 @@ if __name__ == "__main__":
     command = sys.argv[1] if len(sys.argv) > 1 else ""
     if command == "commits":
         commits()
+    elif command == "messages":
+        messages()
     elif command == "tests":
         tests(sys.argv[2:])
     elif command == "coverage":
