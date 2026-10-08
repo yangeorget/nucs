@@ -6,7 +6,7 @@ Usage, from the root of the repository:
     python "publications/articles/Developing NuCS with an AI agent/collect_data.py" commits
     python "publications/articles/Developing NuCS with an AI agent/collect_data.py" tests [2026-03 ...]
     python "publications/articles/Developing NuCS with an AI agent/collect_data.py" coverage 2026-03 2026-04 ...
-    python "publications/articles/Developing NuCS with an AI agent/collect_data.py" speed [--repeats 3] [v18.0.0 ...]
+    python "publications/articles/Developing NuCS with an AI agent/collect_data.py" speed [--out x.csv] [v18.0.0 ...]
 
 - commits: the commits of each month, all and with the Co-Authored-By: Claude trailer (chart 1).
 - tests: at the last commit of each month, the test functions in tests/ and the tests that pytest collects (chart 2).
@@ -20,7 +20,8 @@ Usage, from the root of the repository:
   size of the environment moves the stack of the process, and some stack positions make the same code up to 1.45x
   slower (v12.4.9 on bibd); with a fixed environment, every repetition of a tag would land on the same position.
   A tag written A@B runs the code of tag A with the dependencies of tag B: this is the control that separates the
-  effect of the NuCS code from the effect of numba. A run with such tags goes to speed_control.csv.
+  effect of the NuCS code from the effect of numba. A run with such tags goes to speed_control.csv, unless --out
+  gives another file (for example speed_attribution.csv for the commits inside a step).
 
 The results go to data/*.csv next to this script. Each row records the Python and numba versions that measured it:
 an old commit may need the dependencies of its time (run the script with the Python of a venv that has them). With
@@ -217,8 +218,13 @@ def speed_worktree(tag: str) -> Path:
 def speed(args: list[str]) -> None:
     repeats = 5
     layouts = random.Random(20261007)  # seeded, so that a run can be made again with the same layouts
-    if args[:1] == ["--repeats"]:
-        repeats, args = int(args[1]), args[2:]
+    out = None
+    while args[:1] in (["--repeats"], ["--out"]):
+        if args[0] == "--repeats":
+            repeats = int(args[1])
+        else:
+            out = args[1]
+        args = args[2:]
     tags = args or SPEED_TAGS
     # "A@B": the code of A, the dependencies of B. A plain tag is its own code with its own dependencies.
     setups = {tag: (speed_worktree(tag.split("@")[0]), speed_venv(tag.split("@")[-1])) for tag in tags}
@@ -254,7 +260,8 @@ def speed(args: list[str]) -> None:
                 print(rows[-1], flush=True)
     header = ["tag", "date", "problem", "repeat", "time_ms", "solutions", *[k.lower() for k in SPEED_STATS], "env",
               "deps_tag", "layout_pad"]
-    name = "speed_control.csv" if any("@" in t for t in tags) else "speed_runs.csv" if not args else "speed_partial.csv"
+    name = out or ("speed_control.csv" if any("@" in t for t in tags) else "speed_runs.csv" if not args
+                   else "speed_partial.csv")
     write_csv(name, header, rows)
 
 
