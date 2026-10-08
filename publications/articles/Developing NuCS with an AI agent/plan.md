@@ -2,6 +2,9 @@
 
 > **Status:** plan, 2026-10-06. Not written.
 
+Make not to go to much into what specifics of Constraint Programming. This is more an article about programming with
+agents which is illustrated with the development of Nucs.
+
 ## The idea
 
 NuCS is a constraint solver in Python and Numba. Since mid-2026, most of its development is done with Claude Code,
@@ -52,7 +55,7 @@ software development, but not necessarily constraint solvers. Explain each solve
 ### 4. Quality of the code
 
 - Documentation: lines of docs over time, the docstrings, the changelog with a migration section for each major.
-- Commit messages: before and after (examples side by side).
+- Commit messages: before and after (examples side by side). Show a graph about their lengths.
 - Tests: number of tests and coverage over time (chart 2). The tests run with and without the JIT, on two Python
   versions.
 - Style: ruff and mypy at each commit, now enforced by a git pre-commit hook.
@@ -60,8 +63,8 @@ software development, but not necessarily constraint solvers. Explain each solve
 ### 5. Correctness: the agent writes the oracles, not only the tests
 
 - The brute-force probe of all 60 propagators against a solver that enumerates all the values: it found a wrong
-  answer in `count_eq` and hangs in `element_eq` and `gcc`.
-- Differential testing against Gecode: it found a class of bugs with index sets that do not start at 1 in the
+  answer in propagator `count_eq` and hangs in propagators `element_eq` and `gcc`.
+- Differential testing against solver Gecode: it found a class of bugs with index sets that do not start at 1 in the
   FlatZinc adapter, which made NuCS answer "unsatisfiable" for problems that have a solution.
 - The `diffn` soundness bug in optimization, and how it made idempotence an invariant of the whole solver.
 - The point: exhaustive testing became cheap, so it is now done for each propagator, not only for the difficult ones.
@@ -83,26 +86,10 @@ software development, but not necessarily constraint solvers. Explain each solve
   each side, a warm cache, a control model, nothing under 5%, compare all the statistics.
 - A stop rule set before the measurement, so that a result cannot be explained after the fact.
 
-### 8. Where the agent was wrong, and what found the error
-
-- `ARCHITECTURE.md` said that no propagator used trailed state; the agent repeated it and designed with it. Six
-  propagators use it. Only a read of the code found it: three sources agreed, but they were one source.
-- Measurements that were noise: run-order drift, a stale Numba cache, an A/B that measured the installed copy on
-  both sides.
-- A hook that fixed the code between two partial edits, and deleted an import that the next edit needed.
-- The lesson: check the claims of the agent against the code and against measurements, not against other text.
-
-### 9. Guardrails for actions that cannot be undone
-
-- The release footgun: the tag of 16.0.0 was put 111 commits after its release commit. The lesson is now a skill: the
-  tag first, then the release with `--verify-tag`.
-- The release of 18.0.0: published only after green CI on the release code, with a go-ahead for each push.
-- Permissions: the agent asks before a push; a classifier blocks some commands.
-- Checks, not fixes, at the moment of a commit.
+This is a bit technical, try not to go into the details of CP or NuCS. Explain in generic terms.
 
 ### 10. The role of the human
 
-- The human decides: for example, no thread for the FlatZinc output, after a gain of 3× to 6× was already there.
 - The agent does work that was not asked for. Sometimes it helps (a broken download URL in CI found before the
   push), sometimes it is scope creep. Where is the line?
 - The periodic full code review: why it is necessary, what it finds that the review of each change does not.
@@ -111,7 +98,6 @@ software development, but not necessarily constraint solvers. Explain each solve
 ### 11. Conclusion
 
 - What I would do again, and what I would do differently.
-- What is next: lazy clause generation, designed with the agent (`design/proposals/lcg.md`).
 
 ## Data to collect
 
