@@ -115,15 +115,15 @@ software development, but not necessarily constraint solvers. Explain each solve
 
 ## Data to collect
 
-| data | how | for |
-|---|---|---|
-| commits per month, with and without the agent | `git log` and the `Co-Authored-By: Claude` trailer | chart 1 |
-| tests and coverage over time | the CI runs, or `pytest --collect-only` and `coverage` on one commit per month, in worktrees | chart 2 |
-| lines of documentation over time | `docs/`, `ARCHITECTURE.md`, `design/`, `CHANGELOG.md`, one commit per month | section 4 |
-| solve time per release tag | `scripts/benchmark.py` on each tag, with the protocol of `design/benchmarking.md` | chart 3 |
-| nodes and time against other solvers | the MiniZinc Challenge 2026 results in `mzn-challenge/2026/` | chart 4 |
-| bugs found by probes and differential tests | the commits of the probe sweep and the Gecode tests | section 5 |
-| examples of commit messages | one commit before and one after the agent, for the same kind of change | section 4 |
+| data                                          | how                                                                                          | for       |
+|-----------------------------------------------|----------------------------------------------------------------------------------------------|-----------|
+| commits per month, with and without the agent | `git log` and the `Co-Authored-By: Claude` trailer                                           | chart 1   |
+| tests and coverage over time                  | the CI runs, or `pytest --collect-only` and `coverage` on one commit per month, in worktrees | chart 2   |
+| lines of documentation over time              | `docs/`, `ARCHITECTURE.md`, `design/`, `CHANGELOG.md`, one commit per month                  | section 4 |
+| solve time per release tag                    | `scripts/benchmark.py` on each tag, with the protocol of `design/benchmarking.md`            | chart 3   |
+| nodes and time against other solvers          | the MiniZinc Challenge 2026 results in `mzn-challenge/2026/`                                 | chart 4   |
+| bugs found by probes and differential tests   | the commits of the probe sweep and the Gecode tests                                          | section 5 |
+| examples of commit messages                   | one commit before and one after the agent, for the same kind of change                       | section 4 |
 
 **A limit of the trailer data:** the commits of May and June 2026 have almost no trailer, but the agent was already
 in use. The trailer started in July. Thus it is a lower bound of the work of the agent, not a measure of it. Say this
@@ -135,8 +135,17 @@ trailer): 2026-05 71/1, 2026-06 92/1, 2026-07 38/18, 2026-08 89/81, 2026-09 152/
 ## Questions to decide before writing
 
 1. One article, or two: one on the methods (sections 2, 7, 8, 9, 10), one on the results (sections 3 to 6)?
+   One article.
+
 2. Name the agent and the product (Claude Code), or keep it general?
+   Give the names.
+
 3. Show the exact prompts and skills, or only describe them?
+   Only describe the prompts and skills
+
 4. Where to publish: the same place as the earlier articles?
+   Create the article, I'll take care of the publication.
+
 5. How long was the period before the agent that the comparison uses? The history starts in March 2024, but
    2025 has few commits.
+   Yes, March 2024.
