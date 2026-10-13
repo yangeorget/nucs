@@ -84,18 +84,19 @@ class TestCountEq(PropagatorTest):
     ) -> None:
         self.assert_compute_domains(compute_domains_count_eq, domains, parameters, consistency_result, expected_domains)
 
-    @pytest.mark.parametrize("seed", range(100))
     @pytest.mark.parametrize("backtrack", [False, True])
-    def test_live_set_is_sound(self, seed: int, backtrack: bool) -> None:
-        rng = np.random.default_rng(seed)
-        n = int(rng.integers(3, 40))  # straddles LIVE_SET_MIN_ARITY, so both paths are exercised
-        a = int(rng.integers(0, 5))
-        domains = np.empty((n + 1, 2), dtype=np.int32)
-        for i in range(n):
-            lo = int(rng.integers(0, 5))
-            domains[i] = (lo, lo + int(rng.integers(0, 5)))
-        domains[n] = (0, n)  # the counter
-        self.assert_live_set_is_sound(compute_domains_count_eq, domains, [a], rng, backtrack)
+    def test_live_set_is_sound(self, backtrack: bool) -> None:
+        # 100 seeds: n straddles LIVE_SET_MIN_ARITY, so both the plain scan and the live set are well sampled
+        for seed in range(100):
+            rng = np.random.default_rng(seed)
+            n = int(rng.integers(3, 40))
+            a = int(rng.integers(0, 5))
+            domains = np.empty((n + 1, 2), dtype=np.int32)
+            for i in range(n):
+                lo = int(rng.integers(0, 5))
+                domains[i] = (lo, lo + int(rng.integers(0, 5)))
+            domains[n] = (0, n)  # the counter
+            self.assert_live_set_is_sound(compute_domains_count_eq, domains, [a], rng, backtrack, f"seed {seed}")
 
     def test_soundness_against_brute_force(self) -> None:
         # the counter ranges one past each end of what can be counted: a count that cannot reach it used to empty it

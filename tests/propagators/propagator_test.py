@@ -101,6 +101,7 @@ class PropagatorTest:
         parameters: list[int],
         rng: np.random.Generator,
         backtrack: bool,
+        label: str = "",
     ) -> None:
         """
         Holds a propagator that carries a live set across calls to what a propagator without one concludes.
@@ -128,6 +129,8 @@ class PropagatorTest:
         :type rng: np.random.Generator
         :param backtrack: whether the chain restores a choice point partway through
         :type backtrack: bool
+        :param label: what names the chain in a failure, typically its seed, so that it can be replayed
+        :type label: str
         """
         trailed_nb, hint_nb = _get_state_size(compute_domains_fct, domains, parameters)
         report_idx = trailed_nb if _reports_changes(compute_domains_fct) else -1
@@ -152,10 +155,12 @@ class PropagatorTest:
                 warm_state[report_idx] = cold_state[report_idx] = 1  # what the engine pre-sets
             warm_status = compute_domains_fct(doms, parameters_arr, warm_state)
             cold_status = compute_domains_fct(cold_domains, parameters_arr, cold_state)
-            assert warm_status == cold_status
-            assert np.array_equal(doms, cold_domains)
+            assert warm_status == cold_status, f"{label}: status {warm_status} with a live set, {cold_status} without"
+            assert np.array_equal(doms, cold_domains), (
+                f"{label}: {doms.tolist()} with a live set, {cold_domains.tolist()} without"
+            )
             if report_idx >= 0:
-                assert warm_state[report_idx] == cold_state[report_idx]
+                assert warm_state[report_idx] == cold_state[report_idx], f"{label}: the change reports differ"
             return warm_status
 
         node_domains = domains.copy()
