@@ -523,6 +523,18 @@ class TestBacktrackSolver:
         failures = solver.propagator_weights[: problem.propagator_nb] - 1
         assert failures.sum() == solver.statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] == 4
 
+    def test_find_all_after_find_best_starts_from_the_initial_domains(self) -> None:
+        # OPTIM_RESET tightens the objective at the root, which backtrack never undoes: without a reset at the start
+        # of each search, the enumeration would run under the stale bound x2 >= 5 and find nothing. The bound has to
+        # fit the root for the trap to show -- a bound that wipes the root out writes nothing
+        problem = Problem([(0, 2), (0, 2), (0, 6)])
+        problem.add_propagator(ALG_SUM_EQ, [0, 1, 2])
+        solver = BacktrackSolver(problem)
+        solution = solver.find_best(2, DOMAIN_MAX, mode=OPTIM_RESET)
+        assert solution is not None
+        assert solution[2] == 4
+        assert len(solver.find_all()) == 9
+
     def test_find_all_with_restarts_finds_each_solution_once(self) -> None:
         # a restart after a solution would find it again: the restarts stop at the first solution
         solver = BacktrackSolver(QueensProblem(8), restarts=Restarts(RESTART_LUBY, 1))

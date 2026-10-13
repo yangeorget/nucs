@@ -110,6 +110,8 @@ class BacktrackSolver(Solver):
     dom_heuristic_fcts: DomainHeuristicFunctions
     # the compiled compute_domains address of each algorithm, which the consistency algorithm calls a propagator through
     compute_domains_addrs: NDArray
+    # the failure limits of the descents; each search draws its own, from the first one (see _iterate_solutions)
+    restart_limits: Iterator[int]
 
     def __init__(
         self,
@@ -176,6 +178,13 @@ class BacktrackSolver(Solver):
         self.objective = np.full(OBJECTIVE_WIDTH, -1, dtype=np.int32)
         # read by solve_one_step at every node, and written by interrupt() and by the deadline of a search
         self.interruption = Interruption()
+        self.restarts = restarts
+        # the restart limit is drawn by each search, the other cells are reset with the root by _choice_point_init
+        self.search_control = np.full(SEARCH_CONTROL_WIDTH, -1, dtype=np.int64)
+        self.search_control[SEARCH_CONTROL_LAST_CONFLICT] = int(last_conflict)
+        # the objective of the best solution so far, (variable, value, bound) as in self.objective, which a return
+        # to the root re-applies there
+        self.restart_objective: tuple[int, int, int] | None = None
         logger.info(
             f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"
         )
@@ -187,14 +196,6 @@ class BacktrackSolver(Solver):
         # the failure weight of each propagator: global, never trailed and never reset, so that what one solve
         # learns about the constraints serves the next one too
         self.propagator_weights = weights_init(problem.propagator_nb, weight_decay)
-        self.restarts = restarts
-        # the failure limits of the descents; each search starts them again from the first one (see _iterate_solutions)
-        self.restart_limits = restarts.limits()
-        self.search_control = np.full(SEARCH_CONTROL_WIDTH, -1, dtype=np.int64)
-        self.search_control[SEARCH_CONTROL_LAST_CONFLICT] = int(last_conflict)
-        # the objective of the best solution so far, (variable, value, bound) as in self.objective, which a restart
-        # re-applies at the root
-        self.restart_objective: tuple[int, int, int] | None = None
         logger.debug("Statistics initialized")
         # resolving only the algorithms used by the problem keeps the init cost proportional to the problem instead
         # of the whole propagator library; without the JIT this is a placeholder that call_compute_domains ignores
@@ -269,16 +270,15 @@ class BacktrackSolver(Solver):
         disarm = self.interruption.arm_deadline(timeout)
         try:
             t0 = time.perf_counter_ns()
-            buckets_init(self.triggered_propagators, self.problem.priorities)
             # no solution yet, so the search has no objective bound; _advance_after_optimum arms it.
             # An enumeration disarms it here too: the solver may have been optimized with before.
             self.objective[OBJECTIVE_VARIABLE] = -1
             self.restart_objective = None
             self.restart_limits = self.restarts.limits()
             self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
-            self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
-            self.search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = -1
-            self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
+            # a previous search may have left the root tightened by its objective, or wiped out: start from the
+            # initial domains, keeping what the propagator weights learned
+            self._reset_to_root()
             while (solution := self._solve_one()) is not None:
                 self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
                 yield solution
@@ -320,19 +320,25 @@ class BacktrackSolver(Solver):
         """
         Restarts the search from the root, with the next failure limit of the restart policy.
 
-        What the search learned stays: the propagator weights are not reset. The best solution so far is re-applied
-        at the root, with a mark of 0 as OPTIM_RESET does, since the reset undoes every tightening above it.
-
         :return: false when the root cannot hold a better solution, which proves the best solution so far optimal
         :rtype: bool
         """
         logger.debug("Restarting")
         self.statistics[STATS_IDX_SOLVER_RESTART_NB] += 1
-        self._choice_point_init()
         self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
-        self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
-        self.search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = -1
-        self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
+        return self._reset_to_root()
+
+    def _reset_to_root(self) -> bool:
+        """
+        Resets the search to the root and re-applies the best solution so far there.
+
+        What the search learned stays: the propagator weights are not reset. The objective is tightened with a mark
+        of 0, since the reset undoes every tightening above it: what this writes is undone only by the next reset.
+
+        :return: false when the root cannot hold a better solution, which proves the best solution so far optimal
+        :rtype: bool
+        """
+        self._choice_point_init()
         if self.restart_objective is not None:
             variable, value, bound = self.restart_objective
             if (
@@ -342,8 +348,8 @@ class BacktrackSolver(Solver):
                 < 0
             ):
                 return False
-        # the descent ended at a failure: the failed filtering left propagators in the queue, and backtrack added
-        # more, which buckets_init removes before it adds every propagator
+        # the search may have stopped at a failure: the failed filtering left propagators in the queue, and backtrack
+        # added more, which buckets_init removes before it adds every propagator
         buckets_init(self.triggered_propagators, self.problem.priorities)
         return True
 
@@ -425,35 +431,23 @@ class BacktrackSolver(Solver):
         self.restart_objective = (variable, value, bound)
         if mode == OPTIM_RESET:
             logger.debug("Resetting solver")
-            self._choice_point_init()
-            # a root reset, as a restart is: the failures count from here and the conflict variable is forgotten
-            self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
-            self.search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = -1
-            self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
-            # at the root, so with a mark of 0: what this tightening writes is undone only by the next reset
-            if (
-                tighten_objective(
-                    self.state, self.trail_log, self.trail_top, self.trail_indices, 0, variable, value, bound
-                )
-                < 0
-            ):
-                return False
-            buckets_init(self.triggered_propagators, self.problem.priorities)
-        else:
-            logger.debug("Pruning choice points")
-            # arm the objective and let backtrack apply it: the bound is re-applied to each choice point the
-            # search resumes, so the choice points it kills are dropped as they are reached rather than up front
-            self.objective[OBJECTIVE_VARIABLE] = variable
-            self.objective[OBJECTIVE_BOUND] = bound
-            self.objective[OBJECTIVE_VALUE] = value
-            if not self._backtrack():
-                return False
-        return True
+            return self._reset_to_root()
+        logger.debug("Pruning choice points")
+        # arm the objective and let backtrack apply it: the bound is re-applied to each choice point the
+        # search resumes, so the choice points it kills are dropped as they are reached rather than up front
+        self.objective[OBJECTIVE_VARIABLE] = variable
+        self.objective[OBJECTIVE_BOUND] = bound
+        self.objective[OBJECTIVE_VALUE] = value
+        return self._backtrack()
 
     def _choice_point_init(self) -> None:
         """
-        Resets the search to the root.
+        Resets the search to the root: the choice points, and the search control that counts from the root --
+        the failures of the descent, and the conflict variable, which is forgotten.
         """
+        self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
+        self.search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = -1
+        self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
         choice_point_init(
             self.state,
             self.entailed,

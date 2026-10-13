@@ -8,6 +8,13 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+### Fixed
+
+- **A second search on a solver that had optimized started from a stale root.** `OPTIM_RESET` tightens the
+  objective at the root, and backtracking never undoes that. A `solve()` or `optimize()` after an optimization that
+  ran to its proof searched under the old bound and could find nothing. Each search now starts with the same reset to
+  the root that a restart does, keeping the propagator weights.
+
 ## 18.0.0
 
 ### Fixed
