@@ -65,4 +65,19 @@ def register_consistency_algorithm(consistency_algorithm_fct: Callable, name: st
     return len(CONSISTENCY_ALG_FCTS) - 1
 
 
+def get_consistency_algorithm_name(consistency_algorithm: int) -> str:
+    """
+    Returns the name of a consistency algorithm, as the CLI selects it.
+
+    :param consistency_algorithm: the index of the consistency algorithm
+    :type consistency_algorithm: int
+
+    :return: the name of the algorithm, or its index when no name refers to it
+    :rtype: str
+    """
+    return next(
+        (name for name, idx in CONSISTENCY_ALGS.items() if idx == consistency_algorithm), str(consistency_algorithm)
+    )
+
+
 CONSISTENCY_ALG_BC = register_consistency_algorithm(bc_algorithm, "BC")

@@ -11,6 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import logging
+from collections import Counter
 from collections.abc import Iterable, Sequence
 from typing import Any
 
@@ -31,6 +32,7 @@ from nucs.propagators.propagators import (
     IS_VACUOUS_FCTS,
     SIGN_GET_TRIGGERS,
     TYPE_GET_TRIGGERS,
+    get_algorithm_names,
 )
 
 logger = logging.getLogger(__name__)
@@ -142,8 +144,13 @@ class Problem:
         self.init_propagator_arrays()
         self.init_triggers()
         logger.debug("Problem initialized")
-        logger.info(f"Problem has {self.propagator_nb} propagators")
-        logger.info(f"Problem has {self.domain_nb} variables")
+        logger.info(f"Problem has {self.domain_nb} variables, {self.unbound_variable_nb} of them unbound")
+        algorithm_names = get_algorithm_names()
+        algorithm_counts = Counter(algorithm_names[algorithm] for algorithm in self.algorithms)
+        logger.info(
+            f"Problem has {self.propagator_nb} propagators: "
+            + ", ".join(f"{count} {name}" for name, count in sorted(algorithm_counts.items()))
+        )
 
     def init_priorities(self) -> None:
         """

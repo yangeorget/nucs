@@ -108,6 +108,32 @@ def register_dom_heuristic(dom_heuristic_fct: Callable, name: str | None = None)
     return len(DOM_HEURISTIC_FCTS) - 1
 
 
+def get_var_heuristic_name(var_heuristic: int) -> str:
+    """
+    Returns the name of a variable heuristic, as the CLI selects it.
+
+    :param var_heuristic: the index of the variable heuristic
+    :type var_heuristic: int
+
+    :return: the name of the heuristic, or its index when no name refers to it
+    :rtype: str
+    """
+    return next((name for name, idx in VAR_HEURISTICS.items() if idx == var_heuristic), str(var_heuristic))
+
+
+def get_dom_heuristic_name(dom_heuristic: int) -> str:
+    """
+    Returns the name of a domain heuristic, as the CLI selects it.
+
+    :param dom_heuristic: the index of the domain heuristic
+    :type dom_heuristic: int
+
+    :return: the name of the heuristic, or its index when no name refers to it
+    :rtype: str
+    """
+    return next((name for name, idx in DOM_HEURISTICS.items() if idx == dom_heuristic), str(dom_heuristic))
+
+
 VAR_HEURISTIC_CRITICAL_RESOURCE = register_var_heuristic(critical_resource_var_heuristic)
 VAR_HEURISTIC_DOM_WDEG = register_var_heuristic(dom_wdeg_var_heuristic)
 VAR_HEURISTIC_FIRST_NOT_INSTANTIATED = register_var_heuristic(first_not_instantiated_var_heuristic)

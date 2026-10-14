@@ -187,6 +187,19 @@ class Solver(ABC):
         print(self.get_statistics_as_dictionary())
 
 
+def format_timeout(timeout: float | None) -> str:
+    """
+    Returns the search budget, as the solver logs it.
+
+    :param timeout: the search budget in seconds, or None for an unbounded search
+    :type timeout: Optional[float]
+
+    :return: the description of the budget
+    :rtype: str
+    """
+    return "with no timeout" if timeout is None else f"with a timeout of {timeout} s"
+
+
 @njit(cache=True)
 def get_solution(domains: NDArray) -> NDArray:
     """

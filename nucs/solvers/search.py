@@ -17,7 +17,12 @@ from itertools import pairwise
 import numpy as np
 from numpy.typing import NDArray
 
-from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
+from nucs.heuristics.heuristics import (
+    DOM_HEURISTIC_MIN_VALUE,
+    VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
+    get_dom_heuristic_name,
+    get_var_heuristic_name,
+)
 from nucs.numpy_helper import flatten_arrays
 
 
@@ -73,17 +78,62 @@ class FlatSearches:
         """
         return [self.decision_variables[a:b].tolist() for a, b in pairwise(self.decision_variables_offsets)]
 
+    def searches_as_printable(self) -> list[str]:
+        """
+        Returns, for each search, its decision variables and its heuristics by name, as the solver logs them.
+
+        :return: one description per search
+        :rtype: List[str]
+        """
+        return [
+            f"search {search_idx + 1} on variables {format_variables(variables)}, "
+            f"variable heuristic {get_var_heuristic_name(self.var_heuristics[search_idx])}"
+            f"{format_params_shape(self.var_heuristic_params_shapes[search_idx])} "
+            f"and domain heuristic {get_dom_heuristic_name(self.dom_heuristics[search_idx])}"
+            f"{format_params_shape(self.dom_heuristic_params_shapes[search_idx])}"
+            for search_idx, variables in enumerate(self.decision_variables_per_search())
+        ]
+
     def __str__(self) -> str:
         """
-        Returns the decision variables and the heuristics of the searches, as the solver logs them.
+        Returns the descriptions of the searches, in the order of the sequential search.
 
         :return: the description of the searches
         :rtype: str
         """
-        return (
-            f"decision domains {self.decision_variables_per_search()}, variable heuristics {self.var_heuristics}"
-            f" and domain heuristics {self.dom_heuristics}"
-        )
+        return "; ".join(self.searches_as_printable())
+
+
+def format_variables(variables: list[int]) -> str:
+    """
+    Returns a list of variables with each run of consecutive variables written as first..last.
+
+    :param variables: the variables, in the order of the search
+    :type variables: List[int]
+
+    :return: the variables, for example "0..33, 40, 38"
+    :rtype: str
+    """
+    runs: list[list[int]] = []
+    for variable in variables:
+        if runs and variable == runs[-1][1] + 1:
+            runs[-1][1] = variable
+        else:
+            runs.append([variable, variable])
+    return ", ".join(str(first) if first == last else f"{first}..{last}" for first, last in runs) or "none"
+
+
+def format_params_shape(shape: NDArray) -> str:
+    """
+    Returns the shape of the parameters of a heuristic, or nothing when the heuristic has no parameters.
+
+    :param shape: the (rows, columns) shape of the parameters
+    :type shape: NDArray
+
+    :return: the shape, for example " with 34x17 parameters"
+    :rtype: str
+    """
+    return f" with {'x'.join(str(dim) for dim in shape)} parameters" if shape.prod() > 0 else ""
 
 
 def flatten_searches(searches: Sequence[Search], domain_nb: int) -> FlatSearches:

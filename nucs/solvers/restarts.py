@@ -108,5 +108,18 @@ class Restarts:
         """
         return restart_limits(self.policy, self.scale, self.base)
 
+    def __str__(self) -> str:
+        """
+        Returns the policy with the parameters it uses, as the solver logs it.
+
+        :return: the description of the policy
+        :rtype: str
+        """
+        if self.policy == RESTART_NONE:
+            return "no restarts"
+        if self.policy == RESTART_GEOMETRIC:
+            return f"{self.policy} restarts with scale {self.scale} and base {self.base}"
+        return f"{self.policy} restarts with scale {self.scale}"
+
 
 NO_RESTARTS = Restarts()  # the default of BacktrackSolver; frozen, so one object serves every solver

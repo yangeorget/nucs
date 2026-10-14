@@ -21,6 +21,11 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   had its own two copies of the trigger walk, one that skipped the idempotent propagator whose writes it was
   scheduling and one that did not; it now calls `update_propagators` with that propagator or -1. A custom consistency
   algorithm passes -1.
+- **The solver logs its settings by name.** At INFO, the problem gives its unbound variables and its propagators by
+  type, and the solver gives each search with its variables as runs (`0..33`) and its heuristics by name, the
+  consistency algorithm by name, the restarts, last-conflict, the weight decay, and, when a search starts, the
+  objective, the optimization mode and the timeout. `str(FlatSearches)` changes with it;
+  `FlatSearches.searches_as_printable()` gives one line for each search.
 
 ### Fixed
 

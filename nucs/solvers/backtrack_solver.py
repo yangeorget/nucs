@@ -58,12 +58,17 @@ from nucs.solvers.choice_points import (
     choice_point_init,
     tighten_objective,
 )
-from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC, CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
+from nucs.solvers.consistency_algorithms import (
+    CONSISTENCY_ALG_BC,
+    CONSISTENCY_ALG_FCTS,
+    SIGN_CONSISTENCY_ALG,
+    get_consistency_algorithm_name,
+)
 from nucs.solvers.interruption import INTERRUPTION_DEADLINE, Interruption
 from nucs.solvers.restarts import NO_RESTARTS, Restarts
 from nucs.solvers.search import DEFAULT_SEARCHES, Search, flatten_searches
 from nucs.solvers.search_arrays import allocate_search_arrays
-from nucs.solvers.solver import OPTIM_RESET, Solver, get_solution
+from nucs.solvers.solver import OPTIM_RESET, Solver, format_timeout, get_solution
 from nucs.solvers.weights import weights_init
 from nucs.statistics import (
     STATS_IDX_SOLUTION_NB,
@@ -153,8 +158,14 @@ class BacktrackSolver(Solver):
         super().__init__(problem, log_level)
         # every search keeps its own decision variables, variable and domain heuristics and their parameters
         self.flat_searches = flatten_searches(searches, problem.domain_nb)
-        logger.info(f"BacktrackSolver uses {self.flat_searches}")
-        logger.info(f"BacktrackSolver uses consistency algorithm {consistency_algorithm}")
+        for description in self.flat_searches.searches_as_printable():
+            logger.info(f"BacktrackSolver uses {description}")
+        logger.info(
+            f"BacktrackSolver uses consistency algorithm {get_consistency_algorithm_name(consistency_algorithm)}"
+        )
+        logger.info(f"BacktrackSolver uses {restarts}")
+        logger.info(f"BacktrackSolver uses last-conflict: {'yes' if last_conflict else 'no'}")
+        logger.info(f"BacktrackSolver uses a weight decay of {weight_decay}")
         self.triggered_propagators = buckets_create(problem.propagator_nb)
         self.domain_buffer = get_domain_buffer(problem.offsets)
         logger.debug("Initializing choice points")
@@ -219,7 +230,7 @@ class BacktrackSolver(Solver):
         logger.debug("BacktrackSolver initialized")
 
     def solve(self, timeout: float | None = None) -> Iterator[NDArray]:
-        logger.info("Solving and iterating over the solutions")
+        logger.info(f"Solving and iterating over the solutions, {format_timeout(timeout)}")
         for solution in self._iterate_solutions(lambda _: self._backtrack_after_solution(), timeout):
             logger.debug("Found a solution")
             yield solution
@@ -236,7 +247,10 @@ class BacktrackSolver(Solver):
         return self._backtrack()
 
     def optimize(self, variable: int, bound: int, mode: str, timeout: float | None = None) -> Iterator[NDArray]:
-        logger.info("Optimizing and iterating over the solutions")
+        logger.info(
+            f"Optimizing and iterating over the solutions: {'minimizing' if bound == DOMAIN_MIN else 'maximizing'} "
+            f"variable {variable} in {mode} mode, {format_timeout(timeout)}"
+        )
         # minimizing a variable means tightening the DOMAIN_MAX side of its domain, and vice versa
         objective_bound = DOMAIN_MAX if bound == DOMAIN_MIN else DOMAIN_MIN
         for solution in self._iterate_solutions(

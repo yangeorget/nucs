@@ -61,3 +61,15 @@ class TestRestarts:
         restarts = Restarts(RESTART_LUBY, 10)
         assert list(itertools.islice(restarts.limits(), 3)) == [10, 10, 20]
         assert list(itertools.islice(restarts.limits(), 3)) == [10, 10, 20]
+
+    @pytest.mark.parametrize(
+        "restarts,expected",
+        [
+            (Restarts(), "no restarts"),
+            (Restarts(RESTART_LUBY, 500), "luby restarts with scale 500"),
+            # only the geometric policy reads the base
+            (Restarts(RESTART_GEOMETRIC, 100, 1.5), "geometric restarts with scale 100 and base 1.5"),
+        ],
+    )
+    def test_restarts_str(self, restarts: Restarts, expected: str) -> None:
+        assert str(restarts) == expected

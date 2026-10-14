@@ -37,15 +37,18 @@ Produces the following output:
 .. code-block:: bash
 
    [ 2026-09-30 21:51:36,753 | MainProcess | INFO ] nucs.solvers.solver.__init__ - Initializing Solver
-   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 3 propagators
-   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 12 variables
-   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses decision domains [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]], variable heuristics [2] and domain heuristics [3]
-   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm 0
+   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 12 variables, 12 of them unbound
+   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 3 propagators: 3 ALLDIFFERENT
+   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses search 1 on variables 0..11, variable heuristic FIRST_NOT_INSTANTIATED and domain heuristic MIN_VALUE
+   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm BC
+   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses no restarts
+   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses last-conflict: no
+   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses a weight decay of 1.0
    [ 2026-09-30 21:51:36,800 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stack of choice points starts at 8192 rows and grows when it runs out
    [ 2026-09-30 21:51:36,800 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The trail starts at 65536 entries and grows when it runs out
    [ 2026-09-30 21:51:36,809 | MainProcess | INFO ] nucs.solvers.solver.find_all - Returning all solutions
    [ 2026-09-30 21:51:36,809 | MainProcess | INFO ] nucs.solvers.solver.solve_all - Iterating over the solutions
-   [ 2026-09-30 21:51:36,809 | MainProcess | INFO ] nucs.solvers.backtrack_solver.solve - Solving and iterating over the solutions
+   [ 2026-09-30 21:51:36,809 | MainProcess | INFO ] nucs.solvers.backtrack_solver.solve - Solving and iterating over the solutions, with no timeout
    {
        'ALG_BC_NB': 262011,
        'PROPAGATOR_ENTAILMENT_NB': 39047,
@@ -76,14 +79,17 @@ Produces the following output:
 .. code-block:: bash
 
    [ 2026-09-30 21:51:38,022 | MainProcess | INFO ] nucs.solvers.solver.__init__ - Initializing Solver
-   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 82 propagators
-   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 45 variables
-   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses decision domains [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]], variable heuristics [2] and domain heuristics [3]
-   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm 1
+   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 45 variables, 45 of them unbound
+   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 82 propagators: 1 ALLDIFFERENT, 45 LEQ_C, 36 SUM_EQ
+   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses search 1 on variables 0..44, variable heuristic FIRST_NOT_INSTANTIATED and domain heuristic MIN_VALUE
+   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm GOLOMB
+   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses no restarts
+   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses last-conflict: no
+   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses a weight decay of 1.0
    [ 2026-09-30 21:51:38,029 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stack of choice points starts at 8192 rows and grows when it runs out
    [ 2026-09-30 21:51:38,029 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The trail starts at 65536 entries and grows when it runs out
    [ 2026-09-30 21:51:38,039 | MainProcess | INFO ] nucs.solvers.solver.find_best - Returning the optimal solution
-   [ 2026-09-30 21:51:38,039 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Optimizing and iterating over the solutions
+   [ 2026-09-30 21:51:38,039 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Optimizing and iterating over the solutions: minimizing variable 8 in RESET mode, with no timeout
    [ 2026-09-30 21:51:38,043 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 80
    [ 2026-09-30 21:51:38,044 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 75
    [ 2026-09-30 21:51:38,044 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 73
