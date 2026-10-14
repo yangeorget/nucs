@@ -10,9 +10,11 @@ path runs in Numba nopython mode with no Python objects.
   list of propagators added via `add_propagator(ALG_*, *variable_index_iterables, parameters=...)`. `Problem.init()`
   flattens everything into the arrays the solver consumes (see *Data-oriented state* below).
 - **`nucs/propagators/`** — one file per constraint, plus `propagators.py` which registers each as a numeric `ALG_*` id.
-  Each propagator is three functions: `compute_domains_*` (filtering, returns `PROP_INCONSISTENCY` /
-  `PROP_CONSISTENCY` / `PROP_ENTAILMENT`), `get_triggers_*` (when to re-wake), `get_complexity_*` (queue ordering). See
-  `nucs/propagators/abs_eq_propagator.py` for the minimal template.
+  Each propagator is three required functions: `compute_domains_*` (filtering, returns `PROP_INCONSISTENCY` /
+  `PROP_CONSISTENCY` / `PROP_ENTAILMENT`), `get_triggers_*` (when to re-wake), `get_complexity_*` (queue ordering);
+  and two optional ones with defaults in `register_propagator`: `get_state_*` (the size of its state block, see
+  *Propagator state* below) and `is_vacuous_*` (whether the parameters and the initial domains make the constraint
+  unviolable, so that it is not posted). See `nucs/propagators/abs_eq_propagator.py` for the minimal template.
 - **`nucs/solvers/`** — `BacktrackSolver` (backtracking + propagation). The propagation fixpoint is `bc_algorithm`
   (`bc_algorithm.py`), registered as `CONSISTENCY_ALG_BC`; the search driver is `solve_one_step`. The backtrackable
   state and its trail live in `state.py` — `tighten_at` is the only sanctioned way to write a domain — and
