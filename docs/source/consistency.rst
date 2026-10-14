@@ -49,27 +49,32 @@ Writing a domain
 .. warning::
 
    In NuCS 15 a consistency algorithm receives the current domains rather than a stack of them, and
-   **must** write them through :func:`nucs.solvers.state.tighten` (or
-   :func:`~nucs.solvers.state.tighten_at`, which threads the trail size through a loop). Assigning
+   **must** write them through :func:`nucs.solvers.state.tighten_at`. Assigning
    a domain directly still compiles and still looks right, but the write is not recorded on the trail:
    it is never undone, and it survives the backtrack into sibling subtrees. That is silent unsoundness,
    with no error to point at.
 
-:code:`tighten` also owns the groundness test and the unbound-variable count, so routing through it is
+:code:`tighten_at` also owns the groundness test and the unbound-variable count, so routing through it is
 what keeps the solver's "is this problem solved?" test correct. It returns the events the write raises,
 :code:`EVENT_MASK_NONE` when it changed nothing, which is what to pass to
-:func:`~nucs.propagators.propagators.update_propagators`. Scheduling stays with the caller.
+:func:`~nucs.propagators.propagators.update_propagators`, and the new trail size. Scheduling stays with
+the caller, and so does the trail size: load it from :code:`trail_top` once, thread it through the
+writes, and store it back once.
 
 .. code-block:: python
    :linenos:
 
-   events = tighten(state, trail_log, trail_top, trail_indices, mark, variable, new_min, new_max)
+   trail_size = trail_top[0]
+   events, trail_size = tighten_at(state, trail_log, trail_indices, mark, trail_size, variable, new_min, new_max)
    if events:
        update_propagators(triggered_propagators, entailed, triggers, triggers_offsets,
-                          priorities, variable, events)
+                          priorities, variable, events, -1)
+   trail_top[0] = trail_size
 
 where :code:`mark` is :code:`choice_point_stk[choice_point_top[0], CHOICE_POINT_TRAIL_MARK]`, the trail position the current
-choice point branched at. :mod:`nucs.examples.golomb.golomb_problem` is the in-tree example.
+choice point branched at, and the last argument of :code:`update_propagators` is a propagator not to wake,
+which the propagation loop uses for an idempotent propagator's own writes: pass -1.
+:mod:`nucs.examples.golomb.golomb_problem` is the in-tree example.
 
 Propagators need no such care and are unchanged: a :code:`compute_domains_*` function receives a gathered
 copy of only its own variables' domains and mutates that copy, and the scatter back through the barrier

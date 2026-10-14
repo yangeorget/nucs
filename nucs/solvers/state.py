@@ -16,8 +16,8 @@ from numpy.typing import NDArray
 
 from nucs.constants import EVENT_MASK_GROUND, EVENT_MASK_MAX, EVENT_MASK_MIN, EVENT_MASK_NONE
 
-# The trail entries that one call of tighten or tighten_at can write: a domain's two bounds and, when it grounds the
-# variable, the unbound count. Keep it in step with these two functions: the solver sizes the trail from it.
+# The trail entries that one call of tighten_at can write: a domain's two bounds and, when it grounds the
+# variable, the unbound count. Keep it in step with the function: the solver sizes the trail from it.
 TIGHTENING_TRAIL_ENTRY_NB = 3
 
 
@@ -171,62 +171,6 @@ def trail_undo(state: NDArray, trail_log: NDArray, trail_indices: NDArray, trail
 
 
 @njit(cache=True, inline="always")
-def tighten(
-    state: NDArray,
-    trail_log: NDArray,
-    trail_top: NDArray,
-    trail_indices: NDArray,
-    mark: int,
-    variable: int,
-    new_min: int,
-    new_max: int,
-) -> int:
-    """
-    Writes a variable's domain and returns the events the write triggers.
-
-    This is the form to call from anywhere but the propagation loop, which uses tighten_at so as to keep
-    the trail size in a register across a whole filtering rather than round-tripping it through memory
-    on every bound it narrows.
-
-    This is the only place a backtrackable domain is written. Every other kind of domain write -- a
-    propagator's filtering, a branching decision, the branch-and-bound clamp, a custom consistency
-    algorithm's pruning -- routes through here, so the groundness test, the unbound-variable count and
-    the write barrier stay consistent by construction rather than by convention.
-
-    Scheduling is deliberately left to the caller. The propagation loop schedules with a self-skip and a
-    membership pre-test that update_propagators does not have, so folding the two loops together would
-    either lose that specialization or drag six more parameters into the hottest function in the solver.
-
-    The caller owns the wipeout test too: it is one comparison on values the caller is already holding,
-    and the propagation loop can never wipe out (a propagator reports the inconsistency instead), so
-    charging it for the check would be paying on the hot path for the cold callers.
-
-    :param state: all the backtrackable state
-    :type state: NDArray
-    :param trail_log: the undo log of (cell index, old value) pairs
-    :type trail_log: NDArray
-    :param trail_top: the trail size as a Numpy array
-    :type trail_top: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
-    :param mark: the trail size when the current choice point branched
-    :type mark: int
-    :param variable: the variable
-    :type variable: int
-    :param new_min: the new min of the domain
-    :type new_min: int
-    :param new_max: the new max of the domain
-    :type new_max: int
-
-    :return: the events triggered by the write, EVENT_MASK_NONE when it changed nothing
-    :rtype: int
-    """
-    events, trail_size = tighten_at(state, trail_log, trail_indices, mark, trail_top[0], variable, new_min, new_max)
-    trail_top[0] = trail_size
-    return events
-
-
-@njit(cache=True, inline="always")
 def tighten_at(
     state: NDArray,
     trail_log: NDArray,
@@ -238,12 +182,26 @@ def tighten_at(
     new_max: int,
 ) -> tuple[int, int]:
     """
-    Writes a variable's domain, taking and returning the trail size rather than reading it out of memory.
+    Writes a variable's domain and returns the events the write triggers, taking and returning the trail size
+    rather than reading it out of memory.
+
+    This is the only place a backtrackable domain is written. Every kind of domain write -- a propagator's
+    filtering, a branching decision, the branch-and-bound clamp, a custom consistency algorithm's pruning --
+    routes through here, so the groundness test, the unbound-variable count and the write barrier stay
+    consistent by construction rather than by convention.
 
     A filtering narrows several bounds in a row, and the propagation loop calls this for each variable of
     each propagator -- the hottest loop in the solver. Threading the trail size through keeps it in a
     register for the whole filtering: without that, every narrowed bound loads and stores the same cell,
-    and each store is a memory dependency the next iteration has to wait on.
+    and each store is a memory dependency the next iteration has to wait on. A caller off that loop loads
+    the size from trail_top before and stores it back after.
+
+    Scheduling is deliberately left to the caller: update_propagators does it from the events this returns,
+    and only the propagation loop knows which propagator not to wake on its own writes.
+
+    The caller owns the wipeout test too: it is one comparison on values the caller is already holding,
+    and the propagation loop can never wipe out (a propagator reports the inconsistency instead), so
+    charging it for the check would be paying on the hot path for the cold callers.
 
     :param state: all the backtrackable state
     :type state: NDArray

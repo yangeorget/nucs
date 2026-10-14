@@ -8,6 +8,20 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+### Removed
+
+- **`nucs.solvers.state.tighten`.** It was `tighten_at` with the trail size loaded from `trail_top` before and
+  stored back after, kept for the callers off the propagation loop. Those callers now do the load and the store
+  themselves, so there is one write barrier. A custom consistency algorithm that called `tighten` calls `tighten_at`
+  as `docs/source/consistency.rst` shows.
+
+### Changed
+
+- **`update_propagators` takes a propagator not to wake, `skip_prop_idx`, as its last argument.** The propagation loop
+  had its own two copies of the trigger walk, one that skipped the idempotent propagator whose writes it was
+  scheduling and one that did not; it now calls `update_propagators` with that propagator or -1. A custom consistency
+  algorithm passes -1.
+
 ### Fixed
 
 - **A second search on a solver that had optimized started from a stale root.** `OPTIM_RESET` tightens the

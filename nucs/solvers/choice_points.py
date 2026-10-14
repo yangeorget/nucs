@@ -27,7 +27,7 @@ from nucs.constants import (
 )
 from nucs.problems.problem import OFFSETS_STATE, OFFSETS_STATE_HINT
 from nucs.propagators.propagators import update_propagators
-from nucs.solvers.state import tighten, trail_undo, unbound_index
+from nucs.solvers.state import tighten_at, trail_undo, unbound_index
 from nucs.statistics import STATS_IDX_SOLVER_BACKTRACK_NB
 
 # Choice point metadata columns.
@@ -202,18 +202,23 @@ def branch(
         park_alternative(choice_point_stk, choice_point, mark, variable, DOMAIN_MIN, value + 1)
         choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark
         choice_point_top[0] = choice_point + 1
-        return tighten(state, trail_log, trail_top, trail_indices, mark, variable, domain_min, value)
-    if kind == DECISION_GT:
+        new_min, new_max = domain_min, value
+    elif kind == DECISION_GT:
         park_alternative(choice_point_stk, choice_point, mark, variable, DOMAIN_MAX, value)
         choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark
         choice_point_top[0] = choice_point + 1
-        return tighten(state, trail_log, trail_top, trail_indices, mark, variable, value + 1, domain_max)
-    # the shallower alternative is resumed last
-    park_alternative(choice_point_stk, choice_point, mark, variable, DOMAIN_MIN, value + 1)
-    park_alternative(choice_point_stk, choice_point + 1, mark, variable, DOMAIN_MAX, value - 1)
-    choice_point_stk[choice_point + 2, CHOICE_POINT_TRAIL_MARK] = mark
-    choice_point_top[0] = choice_point + 2
-    return tighten(state, trail_log, trail_top, trail_indices, mark, variable, value, value)
+        new_min, new_max = value + 1, domain_max
+    else:
+        # the shallower alternative is resumed last
+        park_alternative(choice_point_stk, choice_point, mark, variable, DOMAIN_MIN, value + 1)
+        park_alternative(choice_point_stk, choice_point + 1, mark, variable, DOMAIN_MAX, value - 1)
+        choice_point_stk[choice_point + 2, CHOICE_POINT_TRAIL_MARK] = mark
+        choice_point_top[0] = choice_point + 2
+        new_min, new_max = value, value
+    # the trail size is the mark: the choice point has just been pushed at it
+    events, trail_size = tighten_at(state, trail_log, trail_indices, mark, mark, variable, new_min, new_max)
+    trail_top[0] = trail_size
+    return events
 
 
 @njit(cache=True, inline="always")
@@ -269,7 +274,9 @@ def tighten_objective(
         new_max = min(value - 1, state[cell_idx | 1])
     if new_min > new_max:
         return -1
-    return tighten(state, trail_log, trail_top, trail_indices, mark, variable, new_min, new_max)
+    events, trail_size = tighten_at(state, trail_log, trail_indices, mark, trail_top[0], variable, new_min, new_max)
+    trail_top[0] = trail_size
+    return events
 
 
 @njit(cache=True)
@@ -348,7 +355,8 @@ def backtrack(
         else:
             new_min = state[cell_idx]
             new_max = min(choice_point_stk[choice_point, CHOICE_POINT_VALUE], state[cell_idx | 1])
-        events = tighten(state, trail_log, trail_top, trail_indices, mark, variable, new_min, new_max)
+        events, trail_size = tighten_at(state, trail_log, trail_indices, mark, trail_top[0], variable, new_min, new_max)
+        trail_top[0] = trail_size
         if events != EVENT_MASK_NONE:
             update_propagators(
                 triggered_propagators,
@@ -358,6 +366,7 @@ def backtrack(
                 priorities,
                 variable,
                 events,
+                -1,
             )
         if optimized_variable < 0:
             return True
@@ -382,6 +391,7 @@ def backtrack(
                 priorities,
                 optimized_variable,
                 events,
+                -1,
             )
         return True
     return False

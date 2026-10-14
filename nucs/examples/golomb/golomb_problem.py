@@ -216,6 +216,7 @@ def golomb_consistency_algorithm(
                         priorities,
                         var,
                         events,
+                        -1,
                     )
     trail_top[0] = trail_size
     return bc_algorithm(
