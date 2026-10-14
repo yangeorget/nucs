@@ -164,32 +164,18 @@ def bc_algorithm(
         statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NB] += 1
         prop_var_start = offsets[prop_idx, OFFSETS_VARIABLE]
         prop_var_end = offsets[prop_idx + 1, OFFSETS_VARIABLE]
-        prop_arity = prop_var_end - prop_var_start
-        prop_domains = domain_buffer[:prop_arity]
-        # gather the propagator's domains as scalars. What this replaces is the row assignment
-        # prop_domains[var_idx] = domains[variable], and it is that assignment, not the row view it reads,
-        # that costs: it lowers to a generic array copy whose setup dwarfs the eight bytes it moves at the
-        # arity of a magic sequence's count constraints. Two scalar stores through the domains view are
-        # already most of the win there (90ms -> 59ms); reading the pair out of state takes it to 55ms.
-        for var_idx in range(prop_arity):
-            cell_idx = propagator_variables[prop_var_start + var_idx] << 1
-            prop_domains[var_idx, DOMAIN_MIN] = state[cell_idx]
-            prop_domains[var_idx, DOMAIN_MAX] = state[cell_idx | 1]
-        # the entry barrier for this propagator's state block: trail its trailed prefix unconditionally
-        # (trail_set no-ops if this choice point already holds a live entry for a cell), so the propagator
-        # itself can write prop_state directly with no trail bookkeeping of its own. Cost is trailed_nb L1
-        # loads per call -- zero for every propagator with no trailed state, which today is all of them.
-        # The prefix bound comes out of the same offsets row as the block itself, so an empty prefix costs
-        # no load the slicing was not making anyway.
+        prop_domains = domain_buffer[: prop_var_end - prop_var_start]
+        gather_domains(prop_domains, propagator_variables, prop_var_start, prop_var_end, state)
         flags = algorithm_flags[algorithm]
         reports_changes = flags & PROP_FLAG_REPORTS_CHANGES
         prop_state_start = offsets[prop_idx, OFFSETS_STATE]
         prop_state_end = offsets[prop_idx + 1, OFFSETS_STATE]
-        # where the untrailed hint suffix starts: the end of the trailed prefix the loop below saves, and
-        # the cell a reporting propagator answers in
+        # where the untrailed hint suffix starts: the end of the trailed prefix, and the cell a reporting
+        # propagator answers in
         prop_state_hint = offsets[prop_idx, OFFSETS_STATE_HINT]
-        for cell in range(prop_state_start, prop_state_hint):
-            trail_size = trail_set(state, trail_log, trail_indices, mark, trail_size, cell, state[cell], state[cell])
+        trail_size = trail_state_prefix(
+            state, trail_log, trail_indices, mark, trail_size, prop_state_start, prop_state_hint
+        )
         if reports_changes:
             # pre-set to "changed", so that the fast path below is taken only on a propagator that has
             # positively said it wrote nothing -- one that forgets simply gets the scan it gets today
@@ -208,16 +194,11 @@ def bc_algorithm(
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
-            if not entailed[prop_idx]:
-                # entailment needs no positional guard: it is monotonic within a branch and this test
-                # has just established the flag is still clear, so it cannot be trailed twice in a choice point
-                trail_size = trail_push(trail_log, trail_indices, trail_size, entailed_index + prop_idx, 0)
-                entailed[prop_idx] = 1
+            trail_size = record_entailment(entailed, trail_log, trail_indices, trail_size, entailed_index, prop_idx)
         if reports_changes and status == PROP_CONSISTENCY and state[prop_state_hint] == 0:
             # the propagator wrote no domain, so update_domains would scan every variable only to find
             # no event and schedule nobody: skip it outright
-            statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
-            statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NO_CHANGE_NB] += 1
+            count_no_change(statistics, algorithm_stats)
             continue
         no_change, trail_size = update_domains(
             prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
@@ -237,8 +218,129 @@ def bc_algorithm(
             priorities,
         )
         if no_change:
-            statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
-            statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NO_CHANGE_NB] += 1
+            count_no_change(statistics, algorithm_stats)
+
+
+# The steps of one propagator call, as the loop above names them. Each is always inlined: the loop is compiled
+# without the reference-counting runtime, and a callee compiled on its own would bring the refcounts of whichever
+# context first compiled it (see bc_algorithm).
+
+
+@njit(cache=True, inline="always")
+def gather_domains(
+    prop_domains: NDArray, propagator_variables: NDArray, prop_var_start: int, prop_var_end: int, state: NDArray
+) -> None:
+    """
+    Copies the domains of a propagator's variables into its scratch buffer, as scalars.
+
+    What this replaces is the row assignment prop_domains[var_idx] = domains[variable], and it is that assignment,
+    not the row view it reads, that costs: it lowers to a generic array copy whose setup dwarfs the eight bytes it
+    moves at the arity of a magic sequence's count constraints. Two scalar stores through the domains view are
+    already most of the win there (90ms -> 59ms); reading the pair out of state takes it to 55ms.
+
+    :param prop_domains: the scratch buffer, sized to the propagator's arity
+    :type prop_domains: NDArray
+    :param propagator_variables: the variables of every propagator, concatenated
+    :type propagator_variables: NDArray
+    :param prop_var_start: where the propagator's variables start in propagator_variables
+    :type prop_var_start: int
+    :param prop_var_end: where they end
+    :type prop_var_end: int
+    :param state: all the backtrackable state
+    :type state: NDArray
+    """
+    for var_idx in range(prop_var_end - prop_var_start):
+        cell_idx = propagator_variables[prop_var_start + var_idx] << 1
+        prop_domains[var_idx, DOMAIN_MIN] = state[cell_idx]
+        prop_domains[var_idx, DOMAIN_MAX] = state[cell_idx | 1]
+
+
+@njit(cache=True, inline="always")
+def trail_state_prefix(
+    state: NDArray,
+    trail_log: NDArray,
+    trail_indices: NDArray,
+    mark: int,
+    trail_size: int,
+    prop_state_start: int,
+    prop_state_hint: int,
+) -> int:
+    """
+    Trails the trailed prefix of a propagator's state block before the propagator runs: its entry barrier.
+
+    The prefix is trailed unconditionally (trail_set no-ops if this choice point already holds a live entry for a
+    cell), so the propagator itself can write its block directly with no trail bookkeeping of its own. The cost is
+    one L1 load per trailed cell per call -- zero for a propagator with no trailed state, which today is all of
+    them. The prefix bound comes out of the same offsets row as the block itself, so an empty prefix costs no load
+    the slicing was not making anyway.
+
+    :param state: all the backtrackable state
+    :type state: NDArray
+    :param trail_log: the undo log of (cell index, old value) pairs
+    :type trail_log: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
+    :param mark: the trail size when the current choice point branched
+    :type mark: int
+    :param trail_size: the number of entries currently on the trail
+    :type trail_size: int
+    :param prop_state_start: where the block starts in state
+    :type prop_state_start: int
+    :param prop_state_hint: where its untrailed hint suffix starts, the end of the prefix
+    :type prop_state_hint: int
+
+    :return: the new trail size
+    :rtype: int
+    """
+    for cell in range(prop_state_start, prop_state_hint):
+        trail_size = trail_set(state, trail_log, trail_indices, mark, trail_size, cell, state[cell], state[cell])
+    return trail_size
+
+
+@njit(cache=True, inline="always")
+def record_entailment(
+    entailed: NDArray, trail_log: NDArray, trail_indices: NDArray, trail_size: int, entailed_index: int, prop_idx: int
+) -> int:
+    """
+    Sets a propagator's entailment flag, trailing it on the first time only.
+
+    Entailment needs no positional guard: it is monotonic within a branch, and the test here has just established
+    that the flag is still clear, so it cannot be trailed twice in a choice point.
+
+    :param entailed: whether each propagator is entailed, a view of state
+    :type entailed: NDArray
+    :param trail_log: the undo log of (cell index, old value) pairs
+    :type trail_log: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
+    :param trail_size: the number of entries currently on the trail
+    :type trail_size: int
+    :param entailed_index: where the entailment flags start in state
+    :type entailed_index: int
+    :param prop_idx: the propagator
+    :type prop_idx: int
+
+    :return: the new trail size
+    :rtype: int
+    """
+    if not entailed[prop_idx]:
+        trail_size = trail_push(trail_log, trail_indices, trail_size, entailed_index + prop_idx, 0)
+        entailed[prop_idx] = 1
+    return trail_size
+
+
+@njit(cache=True, inline="always")
+def count_no_change(statistics: NDArray, algorithm_stats: int) -> None:
+    """
+    Counts a call that changed no domain, globally and for its algorithm.
+
+    :param statistics: the statistics array
+    :type statistics: NDArray
+    :param algorithm_stats: where the algorithm's tail of the statistics array starts
+    :type algorithm_stats: int
+    """
+    statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
+    statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NO_CHANGE_NB] += 1
 
 
 # always inlined: LLVM's cost model declines to inline a function this size, but the caller is the
