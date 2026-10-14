@@ -15,7 +15,7 @@ path runs in Numba nopython mode with no Python objects.
   `nucs/propagators/abs_eq_propagator.py` for the minimal template.
 - **`nucs/solvers/`** — `BacktrackSolver` (backtracking + propagation). The propagation fixpoint is `bc_algorithm`
   (`bc_algorithm.py`), registered as `CONSISTENCY_ALG_BC`; the search driver is `solve_one_step`. The backtrackable
-  state and its trail live in `state.py` — `tighten`/`tighten_at` are the only sanctioned way to write a domain — and
+  state and its trail live in `state.py` — `tighten_at` is the only sanctioned way to write a domain — and
   the choice-point stack built on them lives in `choice_points.py`. `allocate_search_arrays` (`search_arrays.py`)
   lays out the state and sizes the trail and the stack for a problem. `Interruption` (`interruption.py`) holds the
   one-cell array that stops the compiled search at its next node, and its two writers: `interrupt()` and the timer of
@@ -241,7 +241,7 @@ cells per push plus the undo, against one contiguous 72-cell memcpy — copying 
 are in it. `H` and `T` are starting sizes rather than ceilings; `solve_one_step` stops when either fills and the solver
 doubles it, losing nothing of the search.
 
-The write barrier lives in one place, `tighten`, which is the only site that writes a domain — propagation, branching,
+The write barrier lives in one place, `tighten_at`, which is the only site that writes a domain — propagation, branching,
 the objective clamp, a custom consistency algorithm. Entailment is the exception: it has a semantic guard (a flag is
 only written where it has just been read as clear) so it skips the positional one.
 

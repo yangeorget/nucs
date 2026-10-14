@@ -8,6 +8,13 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+### Removed
+
+- **`nucs.solvers.state.tighten`.** It was `tighten_at` with the trail size loaded from `trail_top` before and
+  stored back after, kept for the callers off the propagation loop. Those callers now do the load and the store
+  themselves, so there is one write barrier. A custom consistency algorithm that called `tighten` calls `tighten_at`
+  as `docs/source/consistency.rst` shows.
+
 ### Fixed
 
 - **A second search on a solver that had optimized started from a stale root.** `OPTIM_RESET` tightens the

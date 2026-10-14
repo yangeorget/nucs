@@ -282,7 +282,7 @@ def update_domains(
     for var_idx in range(prop_var_end - prop_var_start):
         variable = propagator_variables[prop_var_start + var_idx]
         # read the bounds out of state rather than out of the domains view of it: they are the same two
-        # int32, but only this way can the compiler see that tighten is about to reload them
+        # int32, but only this way can the compiler see that tighten_at is about to reload them
         cell_idx = variable << 1
         if state[cell_idx] != state[cell_idx | 1]:
             events, trail_size = tighten_at(

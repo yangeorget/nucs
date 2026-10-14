@@ -113,7 +113,7 @@ entailed, and it is only written where the caller has just read it as clear, so 
 in a choice point and needs no positional guard. Its position is still recorded, so `trail_undo` can clear it like
 any other.
 
-`tighten` is the only place a domain is written — a propagator's filtering, a branching decision, the
+`tighten_at` is the only place a domain is written — a propagator's filtering, a branching decision, the
 branch-and-bound clamp, a custom consistency algorithm's pruning — so the groundness test, the unbound
 count and the barrier stay consistent by construction. Scheduling is deliberately *not* part of it: the
 propagation loop schedules with a self-skip and a membership pre-test that `update_propagators` does not
@@ -139,7 +139,7 @@ mark = trail_top[0]
 park(choice_point_stk, choice_point, mark, variable, MIN, value + 1)      # the alternative, for later
 choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark       # the one about to be worked at
 choice_point_top[0] = choice_point + 1
-return tighten(..., mark, variable, domain_min, value)                   # the branch explored now
+events, trail_size = tighten_at(..., mark, mark, variable, domain_min, value)  # the branch explored now
 ```
 
 A push copies nothing. The alternatives are not materialised anywhere until the search reaches them —
@@ -166,7 +166,7 @@ stay complete.
 2. `choice_point_top[0] -= 1`;
 3. `trail_undo(...)` back to `choice_point_stk[top, CHOICE_POINT_TRAIL_MARK]` — this restores the domains *and*
    reactivates the propagators entailed below this choice point, in one loop;
-4. apply `choice_point_stk[top]`'s alternative through `tighten` — so the refutation is itself undone when the
+4. apply `choice_point_stk[top]`'s alternative through `tighten_at` — so the refutation is itself undone when the
    search later backtracks past this choice point — and `update_propagators` for the events it raises.
 
 Step 4 is why the queue needs no rebuild: the only unpropagated change at this choice point is the one just
@@ -218,7 +218,7 @@ address the same entries.
 ## Where the counters are maintained
 
 `state[-1]` is the solved test — `bc_algorithm` returns `PROBLEM_BOUND` when the queue drains and the
-count is 0 — and it is maintained incrementally by `tighten`, never recomputed. Since `tighten` is the
+count is 0 — and it is maintained incrementally by `tighten_at`, never recomputed. Since `tighten_at` is the
 only domain write site, propagation, branching, the objective clamp and a custom consistency algorithm
 all maintain it by construction.
 

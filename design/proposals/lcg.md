@@ -257,7 +257,7 @@ Several decisions that NuCS made for other reasons fit LCG well:
 | what NuCS has | why it helps LCG |
 |---|---|
 | interval domains only | only bound literals are necessary; no equality literals and no lazy creation of Boolean variables |
-| `tighten` / `tighten_at` are the only functions that write a domain | one place records each new literal with its reason |
+| `tighten_at` is the only function that writes a domain | one place records each new literal with its reason |
 | `bc_algorithm` knows which propagator it runs | the reason of a change is the propagator in the loop at that moment |
 | propagators are pure functions on a gathered buffer | a propagator can be called again later on the domains of an earlier node, which is what a lazy explanation needs |
 | the failure weights in `weights.py`, with increment growth and rescale | the same mechanism gives the decay of the activities |

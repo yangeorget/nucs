@@ -51,7 +51,7 @@ from nucs.solvers.restarts import RESTART_LUBY, Restarts
 from nucs.solvers.search import Search
 from nucs.solvers.search_arrays import STEP_TIGHTENING_NB
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
-from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB, tighten
+from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB, tighten_at
 from nucs.statistics import (
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
     STATS_IDX_SOLUTION_NB,
@@ -336,7 +336,7 @@ class TestBacktrackSolver:
         """The headroom reserves len(state) + STEP_TIGHTENING_NB x TIGHTENING_TRAIL_ENTRY_NB entries.
 
         The first term is the write barrier's doing and is checked by the search itself; these two are
-        properties of tighten and backtrack, which nothing else would catch going stale. A tightening
+        properties of tighten_at and backtrack, which nothing else would catch going stale. A tightening
         that gains a fourth trailed cell, or a backtrack that gains a third tightening, has to raise the
         constant it no longer fits in -- silently overrunning the trail is what the reserve exists to
         prevent, and with boundscheck off it does not raise.
@@ -344,8 +344,8 @@ class TestBacktrackSolver:
         solver = BacktrackSolver(Problem([(0, 9), (0, 9)]))
         mark = int(solver.trail_top[0])
         # the widest single tightening: it moves both bounds and grounds the variable
-        tighten(solver.state, solver.trail_log, solver.trail_top, solver.trail_indices, mark, 0, 5, 5)
-        assert int(solver.trail_top[0]) - mark == TIGHTENING_TRAIL_ENTRY_NB
+        _, trail_size = tighten_at(solver.state, solver.trail_log, solver.trail_indices, mark, mark, 0, 5, 5)
+        assert trail_size - mark == TIGHTENING_TRAIL_ENTRY_NB
 
         # a step that ends in a backtrack applies two tightenings -- the choice point's alternative, then
         # the objective bound -- at a mark the trail holds nothing for, so each trails every cell it
