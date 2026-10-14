@@ -196,9 +196,8 @@ def tighten_at(
     and each store is a memory dependency the next iteration has to wait on. A caller off that loop loads
     the size from trail_top before and stores it back after.
 
-    Scheduling is deliberately left to the caller. The propagation loop schedules with a self-skip and a
-    membership pre-test that update_propagators does not have, so folding the two loops together would
-    either lose that specialization or drag six more parameters into the hottest function in the solver.
+    Scheduling is deliberately left to the caller: update_propagators does it from the events this returns,
+    and only the propagation loop knows which propagator not to wake on its own writes.
 
     The caller owns the wipeout test too: it is one comparison on values the caller is already holding,
     and the propagation loop can never wipe out (a propagator reports the inconsistency instead), so

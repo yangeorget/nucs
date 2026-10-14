@@ -68,11 +68,13 @@ writes, and store it back once.
    events, trail_size = tighten_at(state, trail_log, trail_indices, mark, trail_size, variable, new_min, new_max)
    if events:
        update_propagators(triggered_propagators, entailed, triggers, triggers_offsets,
-                          priorities, variable, events)
+                          priorities, variable, events, -1)
    trail_top[0] = trail_size
 
 where :code:`mark` is :code:`choice_point_stk[choice_point_top[0], CHOICE_POINT_TRAIL_MARK]`, the trail position the current
-choice point branched at. :mod:`nucs.examples.golomb.golomb_problem` is the in-tree example.
+choice point branched at, and the last argument of :code:`update_propagators` is a propagator not to wake,
+which the propagation loop uses for an idempotent propagator's own writes: pass -1.
+:mod:`nucs.examples.golomb.golomb_problem` is the in-tree example.
 
 Propagators need no such care and are unchanged: a :code:`compute_domains_*` function receives a gathered
 copy of only its own variables' domains and mutates that copy, and the scatter back through the barrier

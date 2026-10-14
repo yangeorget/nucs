@@ -366,6 +366,7 @@ def backtrack(
                 priorities,
                 variable,
                 events,
+                -1,
             )
         if optimized_variable < 0:
             return True
@@ -390,6 +391,7 @@ def backtrack(
                 priorities,
                 optimized_variable,
                 events,
+                -1,
             )
         return True
     return False

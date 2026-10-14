@@ -756,7 +756,7 @@ def solve_one_step(
                     )
                     choice_point = choice_point_top[0]
                     update_propagators(
-                        triggered_propagators, entailed, triggers, triggers_offsets, priorities, variable, events
+                        triggered_propagators, entailed, triggers, triggers_offsets, priorities, variable, events, -1
                     )
                     statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
                     if search_control[SEARCH_CONTROL_LAST_CONFLICT]:

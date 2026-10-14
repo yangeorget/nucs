@@ -115,10 +115,11 @@ any other.
 
 `tighten_at` is the only place a domain is written — a propagator's filtering, a branching decision, the
 branch-and-bound clamp, a custom consistency algorithm's pruning — so the groundness test, the unbound
-count and the barrier stay consistent by construction. Scheduling is deliberately *not* part of it: the
-propagation loop schedules with a self-skip and a membership pre-test that `update_propagators` does not
-have. The propagation loop calls `tighten_at`, which takes and returns the trail size rather than reading
-it out of memory, so a filtering keeps it in a register across every bound it narrows.
+count and the barrier stay consistent by construction. Scheduling is deliberately *not* part of it:
+`update_propagators` does it from the events, and only the propagation loop knows which propagator not to
+wake on its own writes (an idempotent one, which it passes as `skip_prop_idx`). `tighten_at` takes and returns
+the trail size rather than reading it out of memory, so a filtering keeps it in a register across every bound
+it narrows.
 
 ## What `choice_point_top` means
 

@@ -778,7 +778,9 @@ def watchers(triggers_offsets: NDArray, variable: int) -> tuple[int, int]:
     return triggers_offsets[offset], triggers_offsets[offset + 1]
 
 
-@njit(cache=True)
+# always inlined: the propagation loop calls this for every variable a filtering narrows, and it is compiled
+# without the reference-counting runtime, which every callee of it has to be inlined into (see bc_algorithm)
+@njit(cache=True, inline="always")
 def update_propagators(
     triggered_propagators: NDArray,
     entailed: NDArray,
@@ -787,9 +789,34 @@ def update_propagators(
     priorities: NDArray,
     variable: int,
     events: int,
+    skip_prop_idx: int,
 ) -> None:
+    """
+    Schedules the propagators that the events on a variable trigger.
+
+    A propagator that is entailed, or already in the queue, is not scheduled. Neither is skip_prop_idx: the
+    propagation loop passes the idempotent propagator whose filtering raised the events, since running it again
+    on its own output would change nothing. Every other caller passes -1.
+
+    :param triggered_propagators: the propagation queue
+    :type triggered_propagators: NDArray
+    :param entailed: whether each propagator is entailed
+    :type entailed: NDArray
+    :param triggers: the propagators to wake, grouped by (variable, event mask)
+    :type triggers: NDArray
+    :param triggers_offsets: the offsets of each (variable, event mask) slice of triggers
+    :type triggers_offsets: NDArray
+    :param priorities: the queue bucket of each propagator
+    :type priorities: NDArray
+    :param variable: the variable whose domain changed
+    :type variable: int
+    :param events: the events of the change, a mask of EVENT_MASK_*
+    :type events: int
+    :param skip_prop_idx: a propagator not to schedule, -1 for none
+    :type skip_prop_idx: int
+    """
     offset = (variable << EVENT_NB) | events
     membership_offset = STORAGE_OFFSET + len(priorities)
     for prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
-        if not entailed[prop_idx]:
+        if not (triggered_propagators[membership_offset + prop_idx] or prop_idx == skip_prop_idx or entailed[prop_idx]):
             buckets_add(triggered_propagators, priorities, prop_idx, membership_offset)

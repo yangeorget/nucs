@@ -15,11 +15,10 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import STORAGE_OFFSET, buckets_add, buckets_pop
+from nucs.buckets import STORAGE_OFFSET, buckets_pop
 from nucs.constants import (
     DOMAIN_MAX,
     DOMAIN_MIN,
-    EVENT_NB,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_FLAG_IDEMPOTENT,
@@ -35,7 +34,7 @@ from nucs.problems.problem import (
     PROBLEM_INCONSISTENT,
     PROBLEM_UNBOUND,
 )
-from nucs.propagators.propagators import call_compute_domains
+from nucs.propagators.propagators import call_compute_domains, update_propagators
 from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
 from nucs.solvers.state import tighten_at, trail_push, trail_set, unbound_index
 from nucs.solvers.weights import weights_bump
@@ -221,10 +220,9 @@ def bc_algorithm(
             statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NO_CHANGE_NB] += 1
             continue
         no_change, trail_size = update_domains(
-            prop_idx,
+            prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
             prop_var_start,
             prop_var_end,
-            membership_offset,
             prop_domains,
             propagator_variables,
             state,
@@ -237,7 +235,6 @@ def bc_algorithm(
             triggers,
             triggers_offsets,
             priorities,
-            flags & PROP_FLAG_IDEMPOTENT,
         )
         if no_change:
             statistics[STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB] += 1
@@ -248,10 +245,9 @@ def bc_algorithm(
 # per-propagator-call hot path and inlining it measurably speeds up propagator-cheap models
 @njit(cache=True, inline="always")
 def update_domains(
-    prop_idx: int,
+    skip_prop_idx: int,
     prop_var_start: int,
     prop_var_end: int,
-    membership_offset: int,
     prop_domains: NDArray,
     propagator_variables: NDArray,
     state: NDArray,
@@ -264,16 +260,15 @@ def update_domains(
     triggers: NDArray,
     triggers_offsets: NDArray,
     priorities: NDArray,
-    is_idempotent: bool,
 ) -> tuple[bool, int]:
     """
     Applies a propagator's computed prop_domains and schedules the propagators triggered by the changes.
 
+    :param skip_prop_idx: the propagator whose domains these are when it is idempotent, so that its own writes do
+                          not schedule it again; -1 when it is not, so that it is rescheduled like any other
+    :type skip_prop_idx: int
     :param prop_domains: the domains computed by the propagator
     :type prop_domains: NDArray
-    :param is_idempotent: whether this propagator reaches its own fixpoint in a single call; when it does
-                          not, it is left in its own trigger scan so it is rescheduled like any other
-    :type is_idempotent: bool
 
     :return: true iff no domain was changed, and the new trail size
     :rtype: Tuple[bool, int]
@@ -296,18 +291,15 @@ def update_domains(
                 prop_domains[var_idx, DOMAIN_MAX],
             )
             if events:
-                idx = (variable << EVENT_NB) | events
-                if is_idempotent:
-                    for other_prop_idx in triggers[triggers_offsets[idx] : triggers_offsets[idx + 1]]:
-                        if not (
-                            triggered_propagators[membership_offset + other_prop_idx]
-                            or other_prop_idx == prop_idx
-                            or entailed[other_prop_idx]
-                        ):
-                            buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
-                else:
-                    for other_prop_idx in triggers[triggers_offsets[idx] : triggers_offsets[idx + 1]]:
-                        if not (triggered_propagators[membership_offset + other_prop_idx] or entailed[other_prop_idx]):
-                            buckets_add(triggered_propagators, priorities, other_prop_idx, membership_offset)
+                update_propagators(
+                    triggered_propagators,
+                    entailed,
+                    triggers,
+                    triggers_offsets,
+                    priorities,
+                    variable,
+                    events,
+                    skip_prop_idx,
+                )
                 no_changes = False
     return no_changes, trail_size
