@@ -37,8 +37,9 @@ for contributors are in `design/`; the user documentation is in `docs/`.
 - **`nucs/fzn/`** — the **FlatZinc adapter**. You write a model in MiniZinc and solve it with NuCS through
   `minizinc --solver nucs`. The pipeline is: `parser.py` (FlatZinc text → an intermediate representation) → `model.py`
   (`FznModel` builds a `Problem`) → `builtins.py` (the `BUILTINS` dispatch table, from a FlatZinc builtin name to
-  `add_propagator` calls) → `runner.py` (the solve) → `output.py` (the stream of FlatZinc solutions). `fzn-nucs` is the
-  console script that MiniZinc runs; `fzn-nucs --register` writes the solver configuration into `~/.minizinc/solvers`.
+  `add_propagator` calls) → `search_annotations.py` (the search annotations and the search options → the searches,
+  the restarts and last-conflict) → `runner.py` (the solve) → `output.py` (the stream of FlatZinc solutions).
+  `fzn-nucs` is the console script that MiniZinc runs; `fzn-nucs --register` writes the solver configuration into `~/.minizinc/solvers`.
   `share/minizinc/nucs/` is the globals library: it keeps selected global constraints (alldifferent, gcc, lex, table)
   native, where MiniZinc would otherwise decompose them into many small constraints. To support one more builtin, add
   one entry to `BUILTINS` and, for a global that must stay native, one predicate file under `share/minizinc/nucs/`.

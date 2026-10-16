@@ -127,7 +127,7 @@ def solve(fzn: Path, all_solutions: bool = False) -> dict[str, Any]:
     """
     from nucs.fzn.model import build_model
     from nucs.fzn.parser import parse
-    from nucs.fzn.runner import search_heuristics
+    from nucs.fzn.search_annotations import search_heuristics
     from nucs.problems.problem import OFFSETS_VARIABLE
     from nucs.propagators.propagators import get_algorithm_names
     from nucs.solvers.backtrack_solver import BacktrackSolver

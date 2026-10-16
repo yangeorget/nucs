@@ -27,12 +27,12 @@ from nucs.fzn.__main__ import build_arg_parser
 from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import build_model
 from nucs.fzn.parser import Id, parse
-from nucs.fzn.runner import (
+from nucs.fzn.runner import run
+from nucs.fzn.search_annotations import (
     FREE_SEARCH_RESTART,
     free_search_heuristics,
     parse_restart,
     restart_policy_of,
-    run,
     search_heuristics,
     search_options,
 )
@@ -1757,7 +1757,7 @@ class TestBuiltins:
         model = build_model(
             parse("var 0..3: x;\nsolve :: int_search([x], occurrence, outdomain_min, complete) satisfy;")
         )
-        with caplog.at_level(logging.WARNING, logger="nucs.fzn.runner"):
+        with caplog.at_level(logging.WARNING, logger="nucs.fzn.search_annotations"):
             result = search_heuristics(model)
         assert result
         assert result[0].var_heuristic == VAR_HEURISTIC_FIRST_NOT_INSTANTIATED  # 'occurrence' has no NuCS equivalent
@@ -1790,7 +1790,7 @@ class TestBuiltins:
         self, annotation: str, caplog: pytest.LogCaptureFixture
     ) -> None:
         model = build_model(parse(f"var 0..3: x;\nsolve {annotation} satisfy;"))
-        with caplog.at_level(logging.WARNING, logger="nucs.fzn.runner"):
+        with caplog.at_level(logging.WARNING, logger="nucs.fzn.search_annotations"):
             assert restart_policy_of(model) == Restarts()
         assert "without restarts" in caplog.text
 
@@ -1817,7 +1817,7 @@ class TestBuiltins:
                 " int_search([x, y], input_order, indomain_min, complete)]) satisfy;"
             )
         )
-        with caplog.at_level(logging.WARNING, logger="nucs.fzn.runner"):
+        with caplog.at_level(logging.WARNING, logger="nucs.fzn.search_annotations"):
             searches = free_search_heuristics(model)
         assert caplog.text == ""
         x, y, z = (model.var_index_of(Id(name)) for name in "xyz")
@@ -1902,7 +1902,7 @@ class TestBuiltins:
 
     def test_build_model_search_heuristics_dom_w_deg(self, caplog: pytest.LogCaptureFixture) -> None:
         model = build_model(parse("var 0..3: x;\nsolve :: int_search([x], dom_w_deg, indomain_min, complete) satisfy;"))
-        with caplog.at_level(logging.WARNING, logger="nucs.fzn.runner"):
+        with caplog.at_level(logging.WARNING, logger="nucs.fzn.search_annotations"):
             result = search_heuristics(model)
         assert result
         assert result[0].var_heuristic == VAR_HEURISTIC_DOM_WDEG
@@ -1914,7 +1914,7 @@ class TestBuiltins:
         model = build_model(
             parse("var 0..3: x;\nsolve :: int_search([x], first_fail, indomain_median, complete) satisfy;")
         )
-        with caplog.at_level(logging.WARNING, logger="nucs.fzn.runner"):
+        with caplog.at_level(logging.WARNING, logger="nucs.fzn.search_annotations"):
             result = search_heuristics(model)
         assert result
         assert result[0].dom_heuristic == DOM_HEURISTIC_MID_VALUE

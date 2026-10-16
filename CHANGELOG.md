@@ -26,6 +26,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   consistency algorithm by name, the restarts, last-conflict, the weight decay, and, when a search starts, the
   objective, the optimization mode and the timeout. `str(FlatSearches)` changes with it;
   `FlatSearches.searches_as_printable()` gives one line for each search.
+- **The search annotations of the FlatZinc adapter have their own module, `nucs.fzn.search_annotations`.**
+  `restart_policy_of`, `parse_restart`, `search_options`, `search_heuristics`, `free_search_heuristics` and
+  `FREE_SEARCH_RESTART` move there from `nucs.fzn.runner`, which keeps the solve and the printing.
 
 ### Fixed
 
