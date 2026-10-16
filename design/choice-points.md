@@ -3,7 +3,7 @@
 How NuCS saves and restores search state. Companion to the *Backtrackable state is trailed, not copied*
 section of `ARCHITECTURE.md`, which gives the summary; this document gives the mechanism. Code lives in
 `nucs/solvers/choice_points.py`, with the search loop in `solve_one_step`
-(`nucs/solvers/backtrack_solver.py`).
+(`nucs/solvers/search_loop.py`).
 
 ## One mechanism
 

@@ -25,9 +25,10 @@ for contributors are in `design/`; the user documentation is in `docs/`.
   case it is not posted). See `nucs/propagators/abs_eq_propagator.py` for the minimal template.
 - **`nucs/solvers/`** — `BacktrackSolver`, which does the search (backtracking) and the propagation. The propagation
   to a fixpoint is `bc_algorithm` (`bc_algorithm.py`), registered as `CONSISTENCY_ALG_BC`. The search driver is
-  `solve_one_step`. The backtrackable state and its trail live in `state.py`; `tighten_at` is the only permitted way to
-  write a domain. The stack of choice points, built on them, lives in `choice_points.py`. `allocate_search_arrays`
-  (`search_arrays.py`) lays out the state and sizes the trail and the stack for a problem. `Interruption`
+  `solve_one_step` (`search_loop.py`), the compiled loop that `BacktrackSolver` calls. The backtrackable state and
+  its trail live in `state.py`; `tighten_at` is the only permitted way to write a domain. The stack of choice
+  points, built on them, lives in `choice_points.py`. `allocate_search_arrays` (`search_arrays.py`) lays out the
+  state and sizes the trail and the stack for a problem. `Interruption`
   (`interruption.py`) holds the one-cell array that stops the compiled search at its next node, and its two writers:
   `interrupt()` and the timer of a timeout. To iterate over the solutions, call `solver.solve()`. To optimize, call
   `solver.find_best(var, DOMAIN_MIN)` or `solver.find_best(var, DOMAIN_MAX)`.
@@ -75,9 +76,10 @@ must grow, so one descent can take many calls.
 `nucs/constants.py` holds the constants that several layers share: the protocols that a propagator (`PROP_*`,
 `EVENT_MASK_*`), a domain heuristic (`DECISION_*`) and the solver (`DOMAIN_*`, `OBJECTIVE_*`) are written against, and
 the logging levels. A constant that belongs to one module lives in that module: `CHOICE_POINT_*` in
-`nucs/solvers/choice_points.py`, `OFFSETS_*` and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` in
-`nucs/solvers/backtrack_solver.py`, `OPTIM_*` in `nucs/solvers/solver.py`, `TIGHTENING_TRAIL_ENTRY_NB` in
-`nucs/solvers/state.py`, `STEP_TIGHTENING_NB` in `nucs/solvers/search_arrays.py`, `STATS_*` in `nucs/statistics.py`.
+`nucs/solvers/choice_points.py`, `OFFSETS_*` and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` and
+`SEARCH_CONTROL_*` in `nucs/solvers/search_loop.py`, `OPTIM_*` in `nucs/solvers/solver.py`,
+`TIGHTENING_TRAIL_ENTRY_NB` in `nucs/solvers/state.py`, `STEP_TIGHTENING_NB` in `nucs/solvers/search_arrays.py`,
+`STATS_*` in `nucs/statistics.py`.
 
 The `SIGN_*` signatures are the fixed function types through which the compiled code calls a function by id (see
 *Functions are values* below). Each lives with the registry that compiles against it: `SIGN_COMPUTE_DOMAINS` and

@@ -31,6 +31,10 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `FREE_SEARCH_RESTART` move there from `nucs.fzn.runner`, which keeps the solve and the printing. The tests of
   `tests/fzn/test_builtins.py` that were about other modules move to `test_model.py`, `test_runner.py`,
   `test_main.py`, `test_search_annotations.py` and `test_output.py`.
+- **The compiled search loop has its own module, `nucs.solvers.search_loop`.** `solve_one_step`, the `SOLVER_*`
+  statuses and the `SEARCH_CONTROL_*` cells move there from `nucs.solvers.backtrack_solver`, which keeps the
+  Python driver, `BacktrackSolver`. `get_domain_buffer` moves to `nucs.solvers.search_arrays`. The old import of
+  `solve_one_step` from `nucs.solvers.backtrack_solver` still works.
 
 ### Fixed
 

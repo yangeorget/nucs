@@ -18,7 +18,7 @@ and sized for a problem.
 import numpy as np
 from numpy.typing import NDArray
 
-from nucs.problems.problem import Problem
+from nucs.problems.problem import OFFSETS_VARIABLE, Problem
 from nucs.solvers.choice_points import CHOICE_POINT_WIDTH
 from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB
 
@@ -103,3 +103,24 @@ def allocate_search_arrays(
         choice_point_stk,
         choice_point_top,
     )
+
+
+def get_domain_buffer(offsets: NDArray) -> NDArray:
+    """
+    Allocates a reusable scratch buffer for prop_domains to avoid one allocation per propagator call.
+
+    Sized to the largest propagator arity (which can exceed domain_nb when a propagator
+    references the same variable twice, e.g. count_eq).
+    Allocated once at solver init and threaded through the consistency algorithms.
+
+    :param offsets: the CSR offsets delimiting each propagator's slice of propagator_variables
+    :type offsets: NDArray
+
+    :return: a scratch buffer sized to the maximal propagator arity
+    :rtype: NDArray
+    """
+    max_arity = np.int64(0)
+    for propagator_idx in range(len(offsets) - 1):
+        arity = np.int64(offsets[propagator_idx + 1, OFFSETS_VARIABLE] - offsets[propagator_idx, OFFSETS_VARIABLE])
+        max_arity = max(max_arity, arity)
+    return np.empty((max_arity, 2), dtype=np.int32)
