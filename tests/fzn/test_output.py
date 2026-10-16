@@ -11,6 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import io
+import json
 
 import numpy as np
 import pytest
@@ -18,6 +19,7 @@ import pytest
 from nucs.fzn.model import build_model
 from nucs.fzn.output import print_solution
 from nucs.fzn.parser import parse
+from tests.fzn.fzn_test import solve_fzn
 
 
 class TestOutput:
@@ -71,3 +73,46 @@ class TestOutput:
         out = io.StringIO()
         print_solution(model, solution, out, output_mode)
         assert out.getvalue() == expected
+
+    def test_solve_fzn_output_mode_dzn_matches_item(self) -> None:
+        fzn = "var 1..3: x :: output_var;\nvar 1..3: y :: output_var;\nconstraint int_lt(x, y);\nsolve satisfy;"
+        assert solve_fzn(fzn, output_mode="dzn") == solve_fzn(fzn, output_mode="item")
+
+    def test_solve_fzn_output_mode_json(self) -> None:
+        out = solve_fzn(
+            "var 2..2: x :: output_var;\nvar bool: b :: output_var;\n"
+            "array [1..2] of var int: a :: output_array([1..2]) = [x, x];\n"
+            "constraint bool_eq(b, true);\nsolve satisfy;",
+            output_mode="json",
+        )
+        # json mode parses to a proper object with bools as true/false and arrays as json arrays
+        body = out[: out.index("----------")].strip()
+        assert json.loads(body) == {"x": 2, "b": True, "a": [2, 2]}
+
+    def test_solve_fzn_output_objective_dzn(self) -> None:
+        # maximize x + y under x + y <= 7 -> objective 7
+        out = solve_fzn(
+            "var 0..9: x :: output_var;\nvar 0..9: y :: output_var;\nvar 0..18: z;\n"
+            "constraint int_plus(x, y, z);\nconstraint int_le(z, 7);\n"
+            "solve maximize z;",
+            output_objective=True,
+        )
+        assert "_objective = 7;" in out
+
+    def test_solve_fzn_output_objective_omitted_by_default(self) -> None:
+        out = solve_fzn(
+            "var 0..9: x :: output_var;\nvar 0..18: z;\n"
+            "constraint int_le(x, z);\nconstraint int_le(z, 4);\nsolve maximize z;"
+        )
+        assert "_objective" not in out
+
+    def test_solve_fzn_output_objective_json(self) -> None:
+        out = solve_fzn(
+            "var 0..9: x :: output_var;\nvar 0..18: z;\n"
+            "constraint int_eq(x, z);\nconstraint int_le(z, 4);\nsolve maximize z;",
+            output_mode="json",
+            output_objective=True,
+        )
+        # optimization streams improving solutions; the optimum is the last one before the search-complete marker
+        json_blocks = [block.strip() for block in out.split("----------") if block.strip().startswith("{")]
+        assert json.loads(json_blocks[-1]) == {"x": 4, "_objective": 4}

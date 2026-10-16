@@ -28,7 +28,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `FlatSearches.searches_as_printable()` gives one line for each search.
 - **The search annotations of the FlatZinc adapter have their own module, `nucs.fzn.search_annotations`.**
   `restart_policy_of`, `parse_restart`, `search_options`, `search_heuristics`, `free_search_heuristics` and
-  `FREE_SEARCH_RESTART` move there from `nucs.fzn.runner`, which keeps the solve and the printing.
+  `FREE_SEARCH_RESTART` move there from `nucs.fzn.runner`, which keeps the solve and the printing. The tests of
+  `tests/fzn/test_builtins.py` that were about other modules move to `test_model.py`, `test_runner.py`,
+  `test_main.py`, `test_search_annotations.py` and `test_output.py`.
 
 ### Fixed
 
