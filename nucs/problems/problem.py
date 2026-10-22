@@ -46,6 +46,7 @@ OFFSETS_VARIABLE = 0  # column of offsets holding the propagator variable offset
 OFFSETS_PARAM = 1  # column of offsets holding the propagator parameter offsets
 OFFSETS_STATE = 2  # column of offsets holding the propagator state offsets, absolute into state (see below)
 OFFSETS_STATE_HINT = 3  # column of offsets holding where each state block's untrailed hint suffix starts
+OFFSETS_WIDTH = 4  # number of columns of offsets
 
 
 class Problem:
@@ -192,7 +193,7 @@ class Problem:
         cache line on the per-call path. It would also add a fourth argument to SIGN_CONSISTENCY_ALG.
         """
         logger.debug("Initializing offsets")
-        self.offsets = np.zeros((self.propagator_nb + 1, 4), dtype=np.uint32)
+        self.offsets = np.zeros((self.propagator_nb + 1, OFFSETS_WIDTH), dtype=np.uint32)
         state_base = 2 * self.domain_nb + self.propagator_nb
         self.offsets[0, OFFSETS_STATE] = self.offsets[0, OFFSETS_STATE_HINT] = state_base
         self.state_trailed_width = 0
