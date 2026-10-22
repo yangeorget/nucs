@@ -177,19 +177,19 @@ class Problem:
         offsets[p, col]:offsets[p + 1, col] of each. The slices are contiguous, so one offset per propagator
         suffices: one row per propagator plus a closing row holding the totals.
 
-        The OFFSETS_STATE column is filled the same way but, unlike the other two, holds absolute indices
-        into the solver's state array rather than 0-based ones: propagator state starts right after the
-        domains and entailment flags, at a base this method can already compute (2 * domain_nb +
-        propagator_nb), so bc_algorithm can slice state[offsets[p, OFFSETS_STATE]:offsets[p+1,
-        OFFSETS_STATE]] directly, exactly like propagator_variables/propagator_parameters, with no extra
-        argument threaded through for the base.
+        The OFFSETS_STATE column is filled the same way. But unlike the other two columns, it holds absolute
+        indices into the solver's state array, not 0-based indices. Propagator state starts after the domains
+        and the entailment flags, at 2 * domain_nb + propagator_nb. This method can compute that base, so it
+        starts the column at it. Thus bc_algorithm slices state[offsets[p, OFFSETS_STATE]:offsets[p + 1,
+        OFFSETS_STATE]] directly, as it does for propagator_variables and propagator_parameters. No extra
+        argument for the base is necessary.
 
-        OFFSETS_STATE_HINT splits that block in two: it holds the absolute index where propagator p's
-        untrailed hint suffix begins, so its trailed prefix is [offsets[p, OFFSETS_STATE], offsets[p,
-        OFFSETS_STATE_HINT]) and bc_algorithm's trailing loop reads both bounds out of the offsets row it
-        has already loaded. It is a column rather than an array of its own because a per-propagator width
-        is exactly what this table is for, and one indexed by propagator sitting outside it would be a
-        second cache line on the per-call path and a fourth argument through SIGN_CONSISTENCY_ALG.
+        The OFFSETS_STATE_HINT column splits the state block of each propagator in two. It holds the absolute
+        index where the untrailed hint suffix of propagator p starts. Thus the trailed prefix of p is
+        [offsets[p, OFFSETS_STATE], offsets[p, OFFSETS_STATE_HINT]). The trailing loop of bc_algorithm reads
+        both bounds from the offsets row that it has already loaded. This value is a column, not an array of
+        its own, because this table is for per-propagator widths. An array of its own would add a second
+        cache line on the per-call path. It would also add a fourth argument to SIGN_CONSISTENCY_ALG.
         """
         logger.debug("Initializing offsets")
         self.offsets = np.zeros((self.propagator_nb + 1, 4), dtype=np.uint32)
