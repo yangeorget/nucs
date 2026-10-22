@@ -30,9 +30,6 @@ from nucs.constants import (
 from nucs.heuristics.heuristics import DOM_HEURISTIC_FCTS, SIGN_DOM_HEURISTIC, SIGN_VAR_HEURISTIC, VAR_HEURISTIC_FCTS
 from nucs.numba_helper import (
     NUMBA_DISABLE_JIT,
-    ConsistencyAlgorithmFunctions,
-    DomainHeuristicFunctions,
-    VariableHeuristicFunctions,
     addresses_from_functions,
     build_function_ptrs,
 )
@@ -85,12 +82,6 @@ class BacktrackSolver(Solver):
     A solver relying on a backtracking mechanism.
     """
 
-    # the function tables threaded into solve_one_step (Numba typed lists under the JIT, plain Python lists otherwise)
-    consistency_alg_fcts: ConsistencyAlgorithmFunctions
-    var_heuristic_fcts: VariableHeuristicFunctions
-    dom_heuristic_fcts: DomainHeuristicFunctions
-    # the compiled compute_domains address of each algorithm, which the consistency algorithm calls a propagator through
-    compute_domains_addrs: NDArray
     # the failure limits of the descents; each search draws its own, from the first one (see _iterate_solutions)
     restart_limits: Iterator[int]
 
@@ -184,11 +175,15 @@ class BacktrackSolver(Solver):
         # learns about the constraints serves the next one too
         self.propagator_weights = weights_init(problem.propagator_nb, weight_decay)
         logger.debug("Statistics initialized")
-        # resolving only the algorithms used by the problem keeps the init cost proportional to the problem instead
-        # of the whole propagator library; without the JIT this is a placeholder that call_compute_domains ignores
+        # the compiled compute_domains address of each algorithm, which the consistency algorithm calls a propagator
+        # through; resolving only the algorithms used by the problem keeps the init cost proportional to the problem
+        # instead of the whole propagator library; without the JIT this is a placeholder that call_compute_domains
+        # ignores
         self.compute_domains_addrs = addresses_from_functions(
             COMPUTE_DOMAINS_FCTS, SIGN_COMPUTE_DOMAINS, np.unique(self.problem.algorithms), ALG_DUMMY
         )
+        # the function tables threaded into solve_one_step: Numba typed lists under the JIT, plain Python lists
+        # otherwise
         if NUMBA_DISABLE_JIT:
             self.consistency_alg_fcts = [CONSISTENCY_ALG_FCTS[consistency_algorithm]]
             self.var_heuristic_fcts = [VAR_HEURISTIC_FCTS[h] for h in self.flat_searches.var_heuristics]

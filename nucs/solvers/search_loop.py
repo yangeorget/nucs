@@ -140,13 +140,13 @@ def solve_one_step(
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param consistency_alg_fcts: a 1-element list holding the consistency algorithm function
-    :type consistency_alg_fcts: ConsistencyAlgFcts
+    :type consistency_alg_fcts: ConsistencyAlgorithmFunctions
     :param decision_variables: the concatenation of the per-search decision variable arrays
     :type decision_variables: NDArray
     :param decision_variables_offsets: the CSR offsets delimiting each search's slice of decision_variables
     :type decision_variables_offsets: NDArray
     :param var_heuristic_fcts: the typed list of variable heuristic functions, one per search
-    :type var_heuristic_fcts: VarHeuristicFcts
+    :type var_heuristic_fcts: VariableHeuristicFunctions
     :param var_heuristic_params: the flattened concatenation of the per-search variable heuristic parameter arrays
     :type var_heuristic_params: NDArray
     :param var_heuristic_params_offsets: the CSR offsets delimiting each search's slice of var_heuristic_params
@@ -154,7 +154,7 @@ def solve_one_step(
     :param var_heuristic_params_shapes: the 2d shape of each search's variable heuristic parameter array
     :type var_heuristic_params_shapes: NDArray
     :param dom_heuristic_fcts: the typed list of domain heuristic functions, one per search
-    :type dom_heuristic_fcts: DomHeuristicFcts
+    :type dom_heuristic_fcts: DomainHeuristicFunctions
     :param dom_heuristic_params: the flattened concatenation of the per-search domain heuristic parameter arrays
     :type dom_heuristic_params: NDArray
     :param dom_heuristic_params_offsets: the CSR offsets delimiting each search's slice of dom_heuristic_params
