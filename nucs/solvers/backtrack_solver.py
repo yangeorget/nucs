@@ -59,6 +59,7 @@ from nucs.solvers.search_loop import (
     SEARCH_CONTROL_LAST_CONFLICT,
     SEARCH_CONTROL_RESTART_LIMIT,
     SEARCH_CONTROL_WIDTH,
+    SOLVER_CHOICE_POINTS_FULL,
     SOLVER_INTERRUPTED,
     SOLVER_RESTART,
     SOLVER_RUNNING,
@@ -289,18 +290,24 @@ class BacktrackSolver(Solver):
             status, solution = self._solve_one_step()
             if status == SOLVER_RUNNING:
                 return solution
-            if status == SOLVER_INTERRUPTED:
+            if status == SOLVER_TRAIL_FULL:
+                self._grow_trail()
+            elif status == SOLVER_CHOICE_POINTS_FULL:
+                self._grow_choice_points()
+            elif status == SOLVER_RESTART:
+                if not self._restart():
+                    return None
+            elif status == SOLVER_INTERRUPTED:
+                # a timeout and interrupt() both cut the search: what it found is not proven, which is what
+                # timed_out says
+                self.timed_out = True
                 if self.interruption.cell[0] == INTERRUPTION_DEADLINE:
                     logger.info("Timeout reached, stopping the search")
                 else:
                     logger.info("Interrupted, stopping the search")
-                self.timed_out = True
                 return None
-            if status == SOLVER_RESTART:
-                if not self._restart():
-                    return None
-                continue
-            self._grow(status)
+            else:
+                raise AssertionError(f"Unknown solver status {status}")
 
     def _restart(self) -> bool:
         """
@@ -448,28 +455,30 @@ class BacktrackSolver(Solver):
             self.problem.offsets,
         )
 
-    def _grow(self, status: int) -> None:
+    def _grow_trail(self) -> None:
         """
-        Doubles whichever caller-allocated array the search ran out of, and lets it continue.
-
-        :param status: SOLVER_TRAIL_FULL or SOLVER_CHOICE_POINTS_FULL, the array that filled up
-        :type status: int
+        Doubles the trail, which the search ran out of, and lets the search continue.
 
         Nothing of the search is lost. The trail keeps its contents, so every mark and every position in
-        trail_indices still addresses the same entry; the choice point stack keeps its rows. Sizing either array for its
-        worst case instead -- depth x (2 x domain_nb + 1) trail entries -- would hand back the memory
-        this representation wins, and a hard failure would end a long optimization run for no reason.
+        trail_indices still addresses the same entry. Sizing the trail for its worst case instead -- depth x
+        (2 x domain_nb + 1) entries -- would hand back the memory this representation wins, and a hard failure
+        would end a long optimization run for no reason.
         """
-        if status == SOLVER_TRAIL_FULL:
-            trail = np.empty((2 * len(self.trail_log), 2), dtype=np.int32)
-            trail[: len(self.trail_log)] = self.trail_log
-            self.trail_log = trail
-            logger.info(f"The trail grew to {len(self.trail_log)} entries")
-        else:
-            choice_point_stk = np.zeros((2 * len(self.choice_point_stk), CHOICE_POINT_WIDTH), dtype=np.int32)
-            choice_point_stk[: len(self.choice_point_stk)] = self.choice_point_stk
-            self.choice_point_stk = choice_point_stk
-            logger.info(f"The stack of choice points grew to a maximal height of {len(self.choice_point_stk)}")
+        trail = np.empty((2 * len(self.trail_log), 2), dtype=np.int32)
+        trail[: len(self.trail_log)] = self.trail_log
+        self.trail_log = trail
+        logger.info(f"The trail grew to {len(self.trail_log)} entries")
+
+    def _grow_choice_points(self) -> None:
+        """
+        Doubles the stack of choice points, which the search ran out of, and lets the search continue.
+
+        Nothing of the search is lost: the stack keeps its rows.
+        """
+        choice_point_stk = np.zeros((2 * len(self.choice_point_stk), CHOICE_POINT_WIDTH), dtype=np.int32)
+        choice_point_stk[: len(self.choice_point_stk)] = self.choice_point_stk
+        self.choice_point_stk = choice_point_stk
+        logger.info(f"The stack of choice points grew to a maximal height of {len(self.choice_point_stk)}")
 
     def _backtrack(self) -> bool:
         """

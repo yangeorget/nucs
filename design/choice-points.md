@@ -210,8 +210,8 @@ that; a three-way split does not, and the mismatch discarded a surviving choice 
 `trail_log` and `choice_point_stk` are caller-allocated, so they cannot grow inside `@njit`. Sizing them for their
 worst case — depth × (2·`domain_nb` + 1) trail entries — would hand back the memory this representation
 wins, and a hard failure would end a long optimization run for nothing. So `solve_one_step` checks for room
-before each step, stops with `SOLVER_TRAIL_FULL` or `SOLVER_CHOICE_POINTS_FULL`, and `BacktrackSolver._grow`
-doubles the array and resumes.
+before each step, stops with `SOLVER_TRAIL_FULL` or `SOLVER_CHOICE_POINTS_FULL`, and
+`BacktrackSolver._grow_trail` or `BacktrackSolver._grow_choice_points` doubles the array and resumes.
 
 Nothing of the search is lost across the reallocation: `state`, the marks and the positions all still
 address the same entries.
