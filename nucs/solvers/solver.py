@@ -46,7 +46,7 @@ class Solver(ABC):
         logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, log_level))
         logging.getLogger("numba").setLevel(logging.WARNING)
         logger.info("Initializing Solver")
-        self.timed_out = False
+        self.interrupted = False
         if problem is not None:
             self.problem = problem
             problem.init()
@@ -100,7 +100,8 @@ class Solver(ABC):
 
         Each yielded solution improves on the previous one; the last yielded solution is the optimum.
         Nothing is yielded when the problem is unsatisfiable. Under a timeout the last yielded solution
-        is the best one found within the budget, which is not necessarily optimal: check :attr:`timed_out`.
+        is the best one found within the budget, which is not necessarily optimal: check :attr:`interrupted`, which
+        a timeout and interrupt() both set.
 
         :param variable: the variable
         :type variable: int
@@ -150,7 +151,7 @@ class Solver(ABC):
         Finds, if it exists, the solution to the problem that optimizes a given variable.
 
         Under a timeout the returned solution is the best one found within the budget, which is not
-        necessarily optimal: check :attr:`timed_out`.
+        necessarily optimal: check :attr:`interrupted`, which a timeout and interrupt() both set.
 
         :param variable: the variable
         :type variable: int

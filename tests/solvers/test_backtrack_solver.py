@@ -102,7 +102,7 @@ class TestBacktrackSolver:
         problem = Problem([(0, 299), (0, 299)])
         solver = BacktrackSolver(problem)
         solutions = sum(1 for _ in solver.solve(timeout=0.05))
-        assert solver.timed_out
+        assert solver.interrupted
         assert 0 < solutions < 90000
 
     def test_interrupt_stops_the_compiled_search(self) -> None:
@@ -120,18 +120,18 @@ class TestBacktrackSolver:
             assert next(solver.solve(), None) is None
         finally:
             timer.cancel()
-        assert solver.timed_out
+        assert solver.interrupted
 
     def test_interrupt_before_the_search_is_kept(self) -> None:
         """An interruption that arrives before the search starts is not lost: the search stops at once."""
         solver = BacktrackSolver(Problem([(0, 99), (0, 99)]))
         solver.interrupt()
         assert list(solver.solve()) == []
-        assert solver.timed_out
+        assert solver.interrupted
 
     @pytest.mark.parametrize("mode", [None, OPTIM_RESET, OPTIM_PRUNE])
-    def test_a_slow_consumer_does_not_make_a_finished_search_look_timed_out(self, mode: str | None) -> None:
-        """A consumer that keeps the last solution past the budget does not make an exhausted search timed out."""
+    def test_a_slow_consumer_does_not_make_a_finished_search_look_interrupted(self, mode: str | None) -> None:
+        """A consumer that keeps the last solution past the budget does not make an exhausted search interrupted."""
         # one solution: after it, the enumeration is exhausted and the optimum is proven, both by one advance --
         # a check of the clock before that advance would report the budget as spent and the result as incomplete
         next(BacktrackSolver(Problem([(0, 1)])).solve())  # warm-up: the budget must not be spent compiling
@@ -139,7 +139,7 @@ class TestBacktrackSolver:
         solutions = solver.solve(timeout=0.05) if mode is None else solver.optimize(0, DOMAIN_MIN, mode, timeout=0.05)
         for _ in solutions:
             time.sleep(0.1)  # past the budget
-        assert not solver.timed_out
+        assert not solver.interrupted
 
     def test_timeout_stops_the_compiled_search(self) -> None:
         """A timeout stops a search that finds no solution to return to Python at, and does not outlive it."""
@@ -156,7 +156,7 @@ class TestBacktrackSolver:
         start = time.monotonic()
         assert next(solver.solve(timeout=0.1), None) is None
         assert time.monotonic() - start < 5
-        assert solver.timed_out
+        assert solver.interrupted
         assert solver.interruption.cell[0] == 0  # the deadline belonged to that search only
 
     def test_deadline_keeps_an_external_interruption(self) -> None:
@@ -164,7 +164,7 @@ class TestBacktrackSolver:
         solver = BacktrackSolver(Problem([(0, 99), (0, 99)]))
         solver.interrupt()
         assert list(solver.solve(timeout=10)) == []
-        assert solver.timed_out
+        assert solver.interrupted
         assert list(solver.solve()) == []
 
     def test_abandoned_iteration_disarms_its_deadline(self) -> None:
@@ -181,7 +181,7 @@ class TestBacktrackSolver:
         problem = Problem([(0, 99), (0, 99)])
         solver = BacktrackSolver(problem)
         assert sum(1 for _ in solver.solve()) == 10000
-        assert not solver.timed_out
+        assert not solver.interrupted
 
     def test_optimize_returns_the_best_found_within_the_timeout(self) -> None:
         """Under a timeout find_best still returns a solution -- just not a proven optimum."""
@@ -191,7 +191,7 @@ class TestBacktrackSolver:
         best = None
         for best in solver.optimize(0, DOMAIN_MAX, OPTIM_RESET, timeout=0.10):
             time.sleep(0.02)
-        assert solver.timed_out
+        assert solver.interrupted
         assert best is not None
         assert best[0] < 500
 

@@ -254,7 +254,7 @@ class BacktrackSolver(Solver):
         :return: an iterator over the solutions
         :rtype: Iterator[NDArray]
         """
-        self.timed_out = False
+        self.interrupted = False
         disarm = self.interruption.arm_deadline(timeout)
         try:
             t0 = time.perf_counter_ns()
@@ -298,9 +298,8 @@ class BacktrackSolver(Solver):
                 if not self._restart():
                     return None
             elif status == SOLVER_INTERRUPTED:
-                # a timeout and interrupt() both cut the search: what it found is not proven, which is what
-                # timed_out says
-                self.timed_out = True
+                # a timeout and interrupt() both cut the search: what it found is not proven
+                self.interrupted = True
                 if self.interruption.cell[0] == INTERRUPTION_DEADLINE:
                     logger.info("Timeout reached, stopping the search")
                 else:
@@ -398,7 +397,7 @@ class BacktrackSolver(Solver):
     def interrupt(self) -> None:
         """
         Stops the search at its next node, as if its budget had run out: the iteration ends and
-        :attr:`timed_out` is set. The interruption is final, every later search stops at once too.
+        :attr:`interrupted` is set. The interruption is final, every later search stops at once too.
 
         Safe to call from another thread or from a signal handler: it takes no lock, it only sets a flag and
         writes a cell that the compiled search reads, and solve_one_step releases the GIL so that such a thread

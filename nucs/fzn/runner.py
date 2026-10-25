@@ -211,7 +211,7 @@ def _run_optimize(
         else:
             best = solution  # a copy of the domains (get_solution), which the search does not overwrite
     # the solver stops the iteration itself when the budget runs out, so a proof is what it did not report
-    proven = not solver.timed_out
+    proven = not solver.interrupted
     if best is not None:
         _print_optimization_solution(model, best, objective_var, out, output_mode, output_objective)
         printed = True
@@ -291,10 +291,10 @@ def _run_satisfy(
             break
     else:
         # the iteration ran out on its own: the space is exhausted unless the budget stopped it first
-        exhausted = not solver.timed_out
+        exhausted = not solver.interrupted
     if not found:
         # Nothing found and the space was not exhausted is precisely what the unknown marker reports.
-        print_unknown(out) if solver.timed_out else print_unsatisfiable(out)
+        print_unknown(out) if solver.interrupted else print_unsatisfiable(out)
     elif exhausted:
         print_search_complete(out)
     out.flush()

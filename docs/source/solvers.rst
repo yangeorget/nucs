@@ -86,15 +86,18 @@ Timeout
 *******
 
 Every search method accepts an optional :code:`timeout`, a wall-clock budget in seconds.
-When it is exhausted the search stops and the solver's :code:`timed_out` attribute is set,
+When it is exhausted the search stops and the solver's :code:`interrupted` attribute is set,
 which is what distinguishes an exhausted search from a truncated one:
 
 .. code-block:: python
    :linenos:
 
    solution = solver.find_best(problem.total_cost, DOMAIN_MIN, timeout=60)
-   if solver.timed_out:
+   if solver.interrupted:
        print("best solution found within the budget, not proven optimal")
+
+:code:`solver.interrupt()`, for example from a signal handler, stops the search at its next node and sets
+:code:`interrupted` too.
 
 .. note::
    The budget is enforced between two solutions too: a timer stops the compiled search at its next node, so

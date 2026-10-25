@@ -8,6 +8,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+## 19.0.0
+
 ### Removed
 
 - **`nucs.solvers.state.tighten`.** It was `tighten_at` with the trail size loaded from `trail_top` before and
@@ -17,6 +19,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Changed
 
+- **`Solver.timed_out` is now `Solver.interrupted`.** A timeout and `interrupt()` both set it, so the old name said
+  less than the attribute means: the search was cut, and what it found is not proven. Replace `solver.timed_out` with
+  `solver.interrupted`.
 - **`update_propagators` takes a propagator not to wake, `skip_prop_idx`, as its last argument.** The propagation loop
   had its own two copies of the trigger walk, one that skipped the idempotent propagator whose writes it was
   scheduling and one that did not; it now calls `update_propagators` with that propagator or -1. A custom consistency
