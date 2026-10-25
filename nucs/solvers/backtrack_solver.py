@@ -201,14 +201,17 @@ class BacktrackSolver(Solver):
 
     def solve(self, timeout: float | None = None) -> Iterator[NDArray]:
         logger.info(f"Solving and iterating over the solutions, {format_timeout(timeout)}")
-        for solution in self._iterate_solutions(lambda _: self._backtrack_after_solution(), timeout):
+        for solution in self._iterate_solutions(self._backtrack_after_solution, timeout):
             logger.debug("Found a solution")
             yield solution
 
-    def _backtrack_after_solution(self) -> bool:
+    def _backtrack_after_solution(self, _solution: NDArray) -> bool:
         """
         Moves the enumeration on from a solution, and stops the restarts: a restart would find the solutions
         emitted so far again.
+
+        :param _solution: the solution just found, unused here
+        :type _solution: NDArray
 
         :return: whether the search can continue
         :rtype: bool
