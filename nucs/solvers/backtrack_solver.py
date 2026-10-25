@@ -151,8 +151,10 @@ class BacktrackSolver(Solver):
         # optimized, the side of its domain to tighten, and the best value found so far. It is solver
         # state, not choice-point state -- the bound holds for the whole remaining search, so backtrack
         # re-applies it to each choice point it resumes rather than it being written into them all when it
-        # is found, and nothing about it is trailed. OBJECTIVE_VARIABLE stays -1 outside OPTIM_PRUNE, which is
-        # how backtrack knows there is no bound to apply: OPTIM_RESET tightens at the root instead.
+        # is found, and nothing about it is trailed. A return to the root applies it there too, with a mark of 0.
+        # OBJECTIVE_VARIABLE stays -1 until the first solution of an optimization, which is how backtrack and
+        # _reset_to_root know there is no bound to apply. In OPTIM_RESET, the root already holds the bound, so
+        # backtrack finds it applied and changes nothing.
         self.objective = np.full(OBJECTIVE_WIDTH, -1, dtype=np.int32)
         # read by solve_one_step at every node, and written by interrupt() and by the deadline of a search
         self.interruption = Interruption()
@@ -160,9 +162,6 @@ class BacktrackSolver(Solver):
         # the restart limit is drawn by each search, the other cells are reset with the root by _choice_point_init
         self.search_control = np.full(SEARCH_CONTROL_WIDTH, -1, dtype=np.int64)
         self.search_control[SEARCH_CONTROL_LAST_CONFLICT] = int(last_conflict)
-        # the objective of the best solution so far, (variable, value, bound) as in self.objective, which a return
-        # to the root re-applies there
-        self.restart_objective: tuple[int, int, int] | None = None
         logger.info(
             f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"
         )
@@ -258,7 +257,6 @@ class BacktrackSolver(Solver):
             # no solution yet, so the search has no objective bound; _advance_after_optimum arms it.
             # An enumeration disarms it here too: the solver may have been optimized with before.
             self.objective[OBJECTIVE_VARIABLE] = -1
-            self.restart_objective = None
             self.restart_limits = self.restarts.limits()
             self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
             # a previous search may have left the root tightened by its objective, or wiped out: start from the
@@ -324,8 +322,10 @@ class BacktrackSolver(Solver):
         :rtype: bool
         """
         self._choice_point_init()
-        if self.restart_objective is not None:
-            variable, value, bound = self.restart_objective
+        variable = int(self.objective[OBJECTIVE_VARIABLE])
+        if variable >= 0:
+            value = int(self.objective[OBJECTIVE_VALUE])
+            bound = int(self.objective[OBJECTIVE_BOUND])
             if (
                 tighten_objective(
                     self.state, self.trail_log, self.trail_top, self.trail_indices, 0, variable, value, bound
@@ -413,16 +413,16 @@ class BacktrackSolver(Solver):
         :return: whether the search can continue
         :rtype: bool
         """
-        self.restart_objective = (variable, value, bound)
+        # arm the objective in both modes: OPTIM_RESET applies it at the root, and OPTIM_PRUNE lets backtrack
+        # apply it to each choice point the search resumes, so the choice points it kills are dropped as they are
+        # reached rather than up front
+        self.objective[OBJECTIVE_VARIABLE] = variable
+        self.objective[OBJECTIVE_BOUND] = bound
+        self.objective[OBJECTIVE_VALUE] = value
         if mode == OPTIM_RESET:
             logger.debug("Resetting solver")
             return self._reset_to_root()
         logger.debug("Pruning choice points")
-        # arm the objective and let backtrack apply it: the bound is re-applied to each choice point the
-        # search resumes, so the choice points it kills are dropped as they are reached rather than up front
-        self.objective[OBJECTIVE_VARIABLE] = variable
-        self.objective[OBJECTIVE_BOUND] = bound
-        self.objective[OBJECTIVE_VALUE] = value
         return self._backtrack()
 
     def _choice_point_init(self) -> None:

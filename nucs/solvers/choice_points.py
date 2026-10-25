@@ -235,7 +235,7 @@ def tighten_objective(
     """
     Applies a branch-and-bound bound to one choice point, wiping it out when nothing improving is left.
 
-    The bound is not backtrackable: it holds for the whole remaining search, so OPTIM_PRUNE re-applies it to
+    The bound is not backtrackable: it holds for the whole remaining search, so backtrack re-applies it to
     each choice point as the search resumes it rather than writing it into them all when it is found. The
     tightening is monotone and idempotent, so re-applying it to an already-tightened choice point is a no-op.
 
