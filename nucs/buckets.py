@@ -56,13 +56,13 @@ def buckets_create(capacity: int) -> NDArray:
     Creates a bucketed FIFO queue with set semantics over integers in [0, capacity).
 
     Layout (single int32 array):
-      [0 : BUCKET_NB]                                          head per bucket (-1 = empty)
-      [BUCKET_NB : 2*BUCKET_NB]                               tail per bucket (-1 = empty)
-      [2*BUCKET_NB : 2*BUCKET_NB + capacity]                  next-pointer per element (-1 = tail)
-      [2*BUCKET_NB + capacity : 2*BUCKET_NB + 2*capacity]     membership flag per element (0/1)
-      [-1]                                                      cached min bucket index
+      [0 : BUCKET_NB]                                              head per bucket (-1 = empty)
+      [BUCKET_NB : STORAGE_OFFSET]                                 tail per bucket (-1 = empty)
+      [STORAGE_OFFSET : STORAGE_OFFSET + capacity]                 next-pointer per element (-1 = tail)
+      [STORAGE_OFFSET + capacity : STORAGE_OFFSET + 2*capacity]    membership flag per element (0/1)
+      [-1]                                                         cached min bucket index
     """
-    return np.empty(2 * BUCKET_NB + 2 * capacity + 1, dtype=np.int32)
+    return np.empty(STORAGE_OFFSET + 2 * capacity + 1, dtype=np.int32)
 
 
 @njit(cache=True)
@@ -91,8 +91,8 @@ def buckets_empty(buckets: NDArray, priorities: NDArray) -> None:
     Empty the bucket FIFO queue.
     """
     propagator_nb = len(priorities)
-    buckets[: 2 * BUCKET_NB + propagator_nb] = -1
-    buckets[2 * BUCKET_NB + propagator_nb : 2 * BUCKET_NB + 2 * propagator_nb] = 0
+    buckets[: STORAGE_OFFSET + propagator_nb] = -1
+    buckets[STORAGE_OFFSET + propagator_nb : STORAGE_OFFSET + 2 * propagator_nb] = 0
     buckets[-1] = BUCKET_NB
 
 
