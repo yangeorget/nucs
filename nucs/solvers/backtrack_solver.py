@@ -331,10 +331,10 @@ class BacktrackSolver(Solver):
         :rtype: bool
         """
         self._choice_point_init()
-        variable = int(self.objective[OBJECTIVE_VARIABLE])
+        variable = self.objective[OBJECTIVE_VARIABLE]
         if variable >= 0:
-            value = int(self.objective[OBJECTIVE_VALUE])
-            bound = int(self.objective[OBJECTIVE_BOUND])
+            value = self.objective[OBJECTIVE_VALUE]
+            bound = self.objective[OBJECTIVE_BOUND]
             if (
                 tighten_objective(
                     self.state, self.trail_log, self.trail_top, self.trail_indices, 0, variable, value, bound
