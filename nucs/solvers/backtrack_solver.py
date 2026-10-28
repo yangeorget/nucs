@@ -154,8 +154,8 @@ class BacktrackSolver(Solver):
         # re-applies it to each choice point it resumes rather than it being written into them all when it
         # is found, and nothing about it is trailed. A return to the root applies it there too, with a mark of 0.
         # OBJECTIVE_VARIABLE stays -1 until the first solution of an optimization, which is how backtrack and
-        # _tighten_objective_at_root know there is no bound to apply. In OPTIM_RESET, the root already holds the bound, so
-        # backtrack finds it applied and changes nothing.
+        # _tighten_objective_at_root know there is no bound to apply. In OPTIM_RESET, the root already holds the
+        # bound, so backtrack finds it applied and changes nothing.
         self.objective = np.full(OBJECTIVE_WIDTH, -1, dtype=np.int32)
         # read by solve_one_step at every node, and written by interrupt() and by the deadline of a search
         self.interruption = Interruption()
@@ -261,13 +261,13 @@ class BacktrackSolver(Solver):
             # An enumeration disarms it here too: the solver may have been optimized with before.
             self.objective[OBJECTIVE_VARIABLE] = -1
             # the failure limits of the descents: each search draws its own, from the first one, and each restart
-            # takes the next one (see _solve_one)
+            # takes the next one (see _next_solution)
             self.restart_limits = self.restart_policy.limits()
             self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
             # a previous search may have left the root tightened by its objective, or wiped out: start from the
             # initial domains, keeping what the propagator weights learned
             self._reset_to_root()
-            while (solution := self._solve_one()) is not None:
+            while (solution := self._next_solution()) is not None:
                 self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
                 yield solution
                 t0 = time.perf_counter_ns()
@@ -280,7 +280,7 @@ class BacktrackSolver(Solver):
             # also when the consumer abandons the iteration, so that the timer cannot stop a later search
             disarm()
 
-    def _solve_one(self) -> NDArray | None:
+    def _next_solution(self) -> NDArray | None:
         """
         Searches for the next solution, growing whichever caller-allocated array runs out and resuming.
 

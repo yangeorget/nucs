@@ -212,7 +212,7 @@ root, whether last-conflict is on, the conflict variable, and the variable of th
 
 - **A restart is the reset of `OPTIM_RESET`, triggered by a failure limit.** At the top of its loop, `solve_one_step`
   returns `SOLVER_RESTART` when the failures reach the limit. It does this before it starts a filtering, so the state
-  it leaves is not a half-done one. `_solve_one` takes the next limit of the policy
+  it leaves is not a half-done one. `_next_solution` takes the next limit of the policy
   (`nucs/solvers/restart_policies.py`), and `_reset_to_root` goes back to the root with `choice_point_init`, empties
   the queue and fills it again. The propagator weights stay.
 - **The objective of the best solution is applied again at the root.** In `OPTIM_RESET`, the bound of the best

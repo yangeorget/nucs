@@ -92,7 +92,7 @@ def solve_one_step(
     Searches for one solution, stopping early when an array it cannot grow runs out of room.
 
     It is a step rather than the whole search because the trail and the choice point stack belong to the
-    caller: when either fills up, the returned status names it and no solution comes back, for _solve_one
+    caller: when either fills up, the returned status names it and no solution comes back, for _next_solution
     to grow that array and call again. Nothing of the search is lost in between.
 
     The status is returned rather than written into a one-cell array because nothing inside @njit reads
