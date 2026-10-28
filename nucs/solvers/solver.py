@@ -14,11 +14,10 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterator
 
-from numba import njit  # type: ignore
 from numpy.typing import NDArray
 from rich import print
 
-from nucs.constants import DOMAIN_MIN, LOG_FORMAT, LOG_LEVEL_INFO
+from nucs.constants import LOG_FORMAT, LOG_LEVEL_INFO
 from nucs.problems.problem import Problem
 
 logger = logging.getLogger(__name__)
@@ -199,17 +198,3 @@ def format_timeout(timeout: float | None) -> str:
     :rtype: str
     """
     return "with no timeout" if timeout is None else f"with a timeout of {timeout} s"
-
-
-@njit(cache=True)
-def get_solution(domains: NDArray) -> NDArray:
-    """
-    Returns the solution to the problem.
-
-    :param domains: the domains, every one of them ground
-    :type domains: NDArray
-
-    :return: a Numpy array
-    :rtype: NDArray
-    """
-    return domains[:, DOMAIN_MIN].copy()

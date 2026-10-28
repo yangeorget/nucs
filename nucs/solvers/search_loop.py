@@ -24,7 +24,6 @@ from nucs.problems.problem import PROBLEM_BOUND, PROBLEM_UNBOUND
 from nucs.propagators.propagators import update_propagators
 from nucs.solvers.choice_points import backtrack, branch
 from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, INTERRUPTION_EXTERNAL
-from nucs.solvers.solver import get_solution
 from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_DEPTH, STATS_IDX_SOLVER_CHOICE_NB
 
 # Why run_search_loop returned.
@@ -47,6 +46,20 @@ SEARCH_CONTROL_LAST_CONFLICT = 2  # 1 when last-conflict is on, 0 otherwise
 SEARCH_CONTROL_CONFLICT_VARIABLE = 3  # the variable of the last decision that led to a failure, -1 when none
 SEARCH_CONTROL_DECISION_VARIABLE = 4  # the variable of the last decision, -1 once a refutation follows it
 SEARCH_CONTROL_WIDTH = 5
+
+
+@njit(cache=True)
+def get_solution(domains: NDArray) -> NDArray:
+    """
+    Returns the solution to the problem.
+
+    :param domains: the domains, every one of them ground
+    :type domains: NDArray
+
+    :return: a Numpy array
+    :rtype: NDArray
+    """
+    return domains[:, DOMAIN_MIN].copy()
 
 
 @njit(cache=True, nogil=True)

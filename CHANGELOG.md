@@ -41,6 +41,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   end before it writes, so the lock `Interrupter.deadline_lock` is gone too.
 - **`get_domain_buffer` is now `allocate_domain_buffer`**, in `nucs.solvers.search_arrays`. Like
   `allocate_search_arrays`, it allocates a new array on each call.
+- **`get_solution` moves from `nucs.solvers.solver` to `nucs.solvers.search_loop`**, its only caller. The compiled
+  search no longer imports the module of the abstract `Solver`.
 
 ## 19.0.0
 
