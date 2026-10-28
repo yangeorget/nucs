@@ -27,5 +27,5 @@ if __name__ == "__main__":
     # dom/wdeg alone can stay in a subtree without a solution: the restarts take it back to the root with the weights
     # that it learned, and the random values make each descent explore a different part of the tree
     searches = [Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG, dom_heuristic=DOM_HEURISTIC_RANDOM_VALUE)]
-    kwargs = solver_kwargs_from_args(args, searches=searches, restarts=RestartPolicy(RESTART_LUBY, 100))
+    kwargs = solver_kwargs_from_args(args, searches=searches, restart_policy=RestartPolicy(RESTART_LUBY, 100))
     run_solver(BacktrackSolver(problem, **kwargs), args)

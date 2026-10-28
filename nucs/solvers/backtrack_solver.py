@@ -90,7 +90,7 @@ class BacktrackSolver(Solver):
         searches: Sequence[Search] = DEFAULT_SEARCHES,
         log_level: str = LOG_LEVEL_INFO,
         weight_decay: float = 1.0,
-        restarts: RestartPolicy = RESTART_POLICY_NEVER,
+        restart_policy: RestartPolicy = RESTART_POLICY_NEVER,
         last_conflict: bool = False,
     ):
         """
@@ -112,10 +112,10 @@ class BacktrackSolver(Solver):
                              later failure; 1 counts all the failures the same (dom/wdeg), less than 1 prefers the
                              recent ones (AFC), defaults to 1
         :type weight_decay: float
-        :param restarts: after how many failures each descent restarts from the root (nucs.solvers.restart_policies),
-                         defaults to no restart. When enumerating, the restarts stop at the first solution, so that no
-                         solution is found twice.
-        :type restarts: RestartPolicy
+        :param restart_policy: after how many failures each descent restarts from the root
+                               (nucs.solvers.restart_policies), defaults to no restart. When enumerating, the restarts
+                               stop at the first solution, so that no solution is found twice.
+        :type restart_policy: RestartPolicy
         :param last_conflict: whether the search branches first on the variable of the last refuted decision, as long
                               as it is unbound (last-conflict reasoning), defaults to False
         :type last_conflict: bool
@@ -128,7 +128,7 @@ class BacktrackSolver(Solver):
         logger.info(
             f"BacktrackSolver uses consistency algorithm {get_consistency_algorithm_name(consistency_algorithm)}"
         )
-        logger.info(f"BacktrackSolver uses {restarts}")
+        logger.info(f"BacktrackSolver uses {restart_policy}")
         logger.info(f"BacktrackSolver uses last-conflict: {'yes' if last_conflict else 'no'}")
         logger.info(f"BacktrackSolver uses a weight decay of {weight_decay}")
         self.triggered_propagators = buckets_create(problem.propagator_nb)
@@ -156,7 +156,7 @@ class BacktrackSolver(Solver):
         self.objective = np.full(OBJECTIVE_WIDTH, -1, dtype=np.int32)
         # read by solve_one_step at every node, and written by interrupt() and by the deadline of a search
         self.interruption = Interruption()
-        self.restarts = restarts
+        self.restart_policy = restart_policy
         # the restart limit is drawn by each search, the other cells are reset with the root by _choice_point_init
         self.search_control = np.full(SEARCH_CONTROL_WIDTH, -1, dtype=np.int64)
         self.search_control[SEARCH_CONTROL_LAST_CONFLICT] = last_conflict
@@ -260,7 +260,7 @@ class BacktrackSolver(Solver):
             self.objective[OBJECTIVE_VARIABLE] = -1
             # the failure limits of the descents: each search draws its own, from the first one, and _restart takes
             # the next one
-            self.restart_limits = self.restarts.limits()
+            self.restart_limits = self.restart_policy.limits()
             self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
             # a previous search may have left the root tightened by its objective, or wiped out: start from the
             # initial domains, keeping what the propagator weights learned

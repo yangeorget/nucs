@@ -534,7 +534,7 @@ class TestBacktrackSolver:
 
     def test_find_all_with_restarts_finds_each_solution_once(self) -> None:
         # a restart after a solution would find it again: the restarts stop at the first solution
-        solver = BacktrackSolver(QueensProblem(8), restarts=RestartPolicy(RESTART_LUBY, 1))
+        solver = BacktrackSolver(QueensProblem(8), restart_policy=RestartPolicy(RESTART_LUBY, 1))
         solutions = [tuple(solution) for solution in solver.find_all()]
         assert solver.statistics[STATS_IDX_SOLVER_RESTART_NB] > 0
         assert len(solutions) == len(set(solutions)) == 92
@@ -544,7 +544,7 @@ class TestBacktrackSolver:
         solver = BacktrackSolver(
             self._unsatisfiable_core(6),
             searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG)],
-            restarts=RestartPolicy(RESTART_LUBY, 1),
+            restart_policy=RestartPolicy(RESTART_LUBY, 1),
         )
         assert solver.find_all() == []
         assert solver.statistics[STATS_IDX_SOLVER_RESTART_NB] > 0
@@ -558,7 +558,7 @@ class TestBacktrackSolver:
             problem.add_propagator(ALG_SUM_LEQ_C, [i, i + 1, i + 2], [2])
         problem.add_propagator(ALG_SUM_EQ, range(11))
         solver = BacktrackSolver(
-            problem, searches=[Search(decision_variables=range(10))], restarts=RestartPolicy(RESTART_LUBY, 1)
+            problem, searches=[Search(decision_variables=range(10))], restart_policy=RestartPolicy(RESTART_LUBY, 1)
         )
         assert [solution[10] for solution in solver.optimize(10, DOMAIN_MAX, mode)] == [0, 1, 2, 3, 4, 5, 6, 7]
         assert solver.statistics[STATS_IDX_SOLVER_RESTART_NB] > 0

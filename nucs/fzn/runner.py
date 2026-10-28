@@ -92,12 +92,12 @@ def run(
         if model.solve.objective is None:
             raise FznUnsupportedError("an optimization objective is required")
         objective_var = model.var_index_of(model.solve.objective)
-    last_conflict, restarts = search_options(model, free_search, last_conflict, restart)
+    last_conflict, restart_policy = search_options(model, free_search, last_conflict, restart)
     solver = BacktrackSolver(
         model.problem,
         searches=free_search_heuristics(model) if free_search else search_heuristics(model),
         log_level="ERROR",
-        restarts=restarts,
+        restart_policy=restart_policy,
         last_conflict=last_conflict,
     )
     if stop_on_sigterm:
