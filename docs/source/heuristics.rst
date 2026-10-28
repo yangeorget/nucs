@@ -97,9 +97,9 @@ learned weights choose better first decisions:
        restarts=RestartPolicy(RESTART_LUBY, scale=100),
    )
 
-The policies of :mod:`nucs.solvers.restarts` are those of MiniZinc: :code:`RESTART_LUBY` (the scale times the
+The policies of :mod:`nucs.solvers.restart_policies` are those of MiniZinc: :code:`RESTART_LUBY` (the scale times the
 Luby sequence 1, 1, 2, 1, 1, 2, 4, ...), :code:`RESTART_GEOMETRIC` (the scale times the :code:`base` to the
-power of the restart number), :code:`RESTART_LINEAR`, :code:`RESTART_CONSTANT` and :code:`RESTART_NONE`, the default.
+power of the restart number), :code:`RESTART_LINEAR`, :code:`RESTART_CONSTANT` and :code:`RESTART_NEVER`, the default.
 A limit counts failures.
 
 - A restart keeps the search sound. When optimizing, the best solution so far is applied again at the root, so the

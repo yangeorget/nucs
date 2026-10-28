@@ -14,7 +14,7 @@ from nucs.examples.default_argument_parser import DefaultArgumentParser, run_sol
 from nucs.examples.magic_square.magic_square_problem import MagicSquareProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_RANDOM_VALUE, VAR_HEURISTIC_DOM_WDEG
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.restarts import RESTART_LUBY, RestartPolicy
+from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
 from nucs.solvers.search import Search
 
 # Run with the following command (the second run is much faster because the code has been compiled):

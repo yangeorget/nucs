@@ -36,7 +36,13 @@ from nucs.heuristics.heuristics import (
     VAR_HEURISTIC_SMALLEST_DOMAIN,
     VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE,
 )
-from nucs.solvers.restarts import RESTART_CONSTANT, RESTART_GEOMETRIC, RESTART_LINEAR, RESTART_LUBY, RestartPolicy
+from nucs.solvers.restart_policies import (
+    RESTART_CONSTANT,
+    RESTART_GEOMETRIC,
+    RESTART_LINEAR,
+    RESTART_LUBY,
+    RestartPolicy,
+)
 from nucs.solvers.search import DEFAULT_SEARCHES
 from tests.fzn.fzn_test import solve_fzn
 

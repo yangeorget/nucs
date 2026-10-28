@@ -22,12 +22,12 @@ import itertools
 from collections.abc import Iterator
 from dataclasses import dataclass
 
-RESTART_NONE = "none"
+RESTART_NEVER = "none"
 RESTART_CONSTANT = "constant"  # scale, scale, scale, ...
 RESTART_LINEAR = "linear"  # scale, 2 scale, 3 scale, ...
 RESTART_GEOMETRIC = "geometric"  # scale, scale base, scale base^2, ...
 RESTART_LUBY = "luby"  # scale times the Luby sequence 1, 1, 2, 1, 1, 2, 4, ...
-RESTART_POLICIES = (RESTART_NONE, RESTART_CONSTANT, RESTART_LINEAR, RESTART_GEOMETRIC, RESTART_LUBY)
+RESTART_POLICIES = (RESTART_NEVER, RESTART_CONSTANT, RESTART_LINEAR, RESTART_GEOMETRIC, RESTART_LUBY)
 
 
 def luby(i: int) -> int:
@@ -61,12 +61,12 @@ def restart_limits(policy: str, scale: int, base: float = 2.0) -> Iterator[int]:
     :param base: the ratio of the geometric policy, above 1
     :type base: float
 
-    :return: the limits, -1 for ever when the policy is RESTART_NONE
+    :return: the limits, -1 for ever when the policy is RESTART_NEVER
     :rtype: Iterator[int]
     """
     if policy not in RESTART_POLICIES:
         raise ValueError(f"Unknown restart policy {policy}, expected one of {RESTART_POLICIES}")
-    if policy == RESTART_NONE:
+    if policy == RESTART_NEVER:
         return itertools.repeat(-1)
     if scale < 1:
         raise ValueError(f"The restart scale must be at least 1, not {scale}")
@@ -89,7 +89,7 @@ class RestartPolicy:
     The values are checked when the object is made, so that a wrong policy fails before any search.
     """
 
-    policy: str = RESTART_NONE  # one of RESTART_POLICIES
+    policy: str = RESTART_NEVER  # one of RESTART_POLICIES
     scale: int = 100  # the number of failures the policy multiplies, at least 1
     base: float = 1.5  # the ratio of the geometric policy, above 1
 
@@ -103,7 +103,7 @@ class RestartPolicy:
         """
         Returns the failure limits of the successive descents of a search, from the first one.
 
-        :return: the limits, -1 for ever when the policy is RESTART_NONE
+        :return: the limits, -1 for ever when the policy is RESTART_NEVER
         :rtype: Iterator[int]
         """
         return restart_limits(self.policy, self.scale, self.base)
@@ -115,11 +115,11 @@ class RestartPolicy:
         :return: the description of the policy
         :rtype: str
         """
-        if self.policy == RESTART_NONE:
+        if self.policy == RESTART_NEVER:
             return "no restarts"
         if self.policy == RESTART_GEOMETRIC:
             return f"{self.policy} restarts with scale {self.scale} and base {self.base}"
         return f"{self.policy} restarts with scale {self.scale}"
 
 
-NO_RESTARTS = RestartPolicy()  # the default of BacktrackSolver; frozen, so one object serves every solver
+RESTART_POLICY_NEVER = RestartPolicy()  # the default of BacktrackSolver; frozen, so one object serves every solver

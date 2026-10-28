@@ -22,7 +22,7 @@ import pytest
 from nucs.fzn.model import build_model
 from nucs.fzn.parser import parse
 from nucs.fzn.runner import run
-from nucs.solvers.restarts import RESTART_LUBY, RestartPolicy
+from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
 from tests.fzn.fzn_test import solve_fzn
 
 

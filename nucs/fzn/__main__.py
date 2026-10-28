@@ -24,7 +24,7 @@ from nucs.fzn.parser import parse
 from nucs.fzn.register import register
 from nucs.fzn.runner import run
 from nucs.fzn.search_annotations import parse_restart
-from nucs.solvers.restarts import RestartPolicy
+from nucs.solvers.restart_policies import RestartPolicy
 
 
 def build_arg_parser() -> argparse.ArgumentParser:

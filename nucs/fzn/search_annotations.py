@@ -35,12 +35,12 @@ from nucs.heuristics.heuristics import (
     VAR_HEURISTIC_SMALLEST_DOMAIN,
     VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE,
 )
-from nucs.solvers.restarts import (
-    NO_RESTARTS,
+from nucs.solvers.restart_policies import (
     RESTART_CONSTANT,
     RESTART_GEOMETRIC,
     RESTART_LINEAR,
     RESTART_LUBY,
+    RESTART_POLICY_NEVER,
     RestartPolicy,
 )
 from nucs.solvers.search import DEFAULT_SEARCHES, Search
@@ -95,7 +95,7 @@ def restart_policy_of(model: FznModel) -> RestartPolicy:
         args = annotation.args
         try:
             if annotation.name == "restart_none":
-                return NO_RESTARTS
+                return RESTART_POLICY_NEVER
             if annotation.name in _SCALED_RESTARTS and len(args) == 1 and isinstance(args[0], int):
                 return RestartPolicy(_SCALED_RESTARTS[annotation.name], args[0])
             if (
@@ -107,11 +107,11 @@ def restart_policy_of(model: FznModel) -> RestartPolicy:
                 return RestartPolicy(RESTART_GEOMETRIC, args[1], float(args[0]))
         except ValueError as e:
             logger.warning(f"{e}, searching without restarts")
-            return NO_RESTARTS
+            return RESTART_POLICY_NEVER
         if annotation.name.startswith("restart_"):
             logger.warning(f"Unsupported restart annotation {annotation.name}{args}, searching without restarts")
-            return NO_RESTARTS
-    return NO_RESTARTS
+            return RESTART_POLICY_NEVER
+    return RESTART_POLICY_NEVER
 
 
 # The free search (-f) defaults, measured on 41 challenge instances in 60 s against the models' own searches:

@@ -14,26 +14,26 @@ import itertools
 
 import pytest
 
-from nucs.solvers.restarts import (
+from nucs.solvers.restart_policies import (
     RESTART_CONSTANT,
     RESTART_GEOMETRIC,
     RESTART_LINEAR,
     RESTART_LUBY,
-    RESTART_NONE,
+    RESTART_NEVER,
     RestartPolicy,
     luby,
     restart_limits,
 )
 
 
-class TestRestarts:
+class TestRestartPolicies:
     def test_luby(self) -> None:
         assert [luby(i) for i in range(1, 16)] == [1, 1, 2, 1, 1, 2, 4, 1, 1, 2, 1, 1, 2, 4, 8]
 
     @pytest.mark.parametrize(
         "policy,scale,base,limits",
         [
-            (RESTART_NONE, 1, 2.0, [-1, -1, -1, -1]),
+            (RESTART_NEVER, 1, 2.0, [-1, -1, -1, -1]),
             (RESTART_CONSTANT, 10, 2.0, [10, 10, 10, 10]),
             (RESTART_LINEAR, 10, 2.0, [10, 20, 30, 40]),
             (RESTART_GEOMETRIC, 10, 1.5, [10, 15, 22, 34]),
@@ -53,10 +53,10 @@ class TestRestarts:
         with pytest.raises(ValueError):  # at creation, before any search
             RestartPolicy(policy, scale, base)
 
-    def test_restarts_default_to_none(self) -> None:
+    def test_restart_policy_defaults_to_never(self) -> None:
         assert list(itertools.islice(RestartPolicy().limits(), 3)) == [-1, -1, -1]
 
-    def test_restarts_limits_start_again_at_each_call(self) -> None:
+    def test_restart_policy_limits_start_again_at_each_call(self) -> None:
         """Each search starts the limits from the first one, so limits() gives a new iterator at each call."""
         restarts = RestartPolicy(RESTART_LUBY, 10)
         assert list(itertools.islice(restarts.limits(), 3)) == [10, 10, 20]

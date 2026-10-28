@@ -28,7 +28,7 @@ from nucs.fzn.model import FznModel
 from nucs.fzn.output import print_search_complete, print_solution, print_unknown, print_unsatisfiable
 from nucs.fzn.search_annotations import free_search_heuristics, search_heuristics, search_options
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.restarts import RestartPolicy
+from nucs.solvers.restart_policies import RestartPolicy
 from nucs.solvers.solver import OPTIM_PRUNE
 
 logger = logging.getLogger(__name__)

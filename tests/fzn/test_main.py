@@ -14,7 +14,7 @@
 import pytest
 
 from nucs.fzn.__main__ import build_arg_parser
-from nucs.solvers.restarts import RESTART_LUBY, RestartPolicy
+from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
 
 
 class TestMain:
