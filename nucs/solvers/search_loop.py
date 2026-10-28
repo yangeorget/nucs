@@ -243,7 +243,10 @@ def run_search_loop(
         if problem_status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLUTION_NB] += 1
             return SOLVER_RUNNING, get_solution(domains)
-        branched = False
+        # the variable to branch on, -1 when there is none, and the search that owns it; search_idx is set before
+        # the loop so that it has a value on every path
+        search_idx = 0
+        variable = -1
         if problem_status == PROBLEM_UNBOUND:
             # sequential search: the first search that still has an unbound decision variable owns the
             # decision and branches with its own variable and domain heuristics
@@ -277,42 +280,10 @@ def run_search_loop(
                         ),
                     )
                 if variable != -1:
-                    # the heuristic only says where to split; branch owns the two choice points it takes to do so
-                    kind, value = dom_heuristic_fcts[search_idx](
-                        domains,
-                        variable,
-                        dom_heuristic_params[
-                            dom_heuristic_params_offsets[search_idx] : dom_heuristic_params_offsets[search_idx + 1]
-                        ].reshape(
-                            dom_heuristic_params_shapes[search_idx, 0], dom_heuristic_params_shapes[search_idx, 1]
-                        ),
-                    )
-                    events = branch(
-                        state,
-                        trail,
-                        trail_top,
-                        trail_indices,
-                        choice_point_stk,
-                        choice_point_top,
-                        variable,
-                        kind,
-                        value,
-                    )
-                    choice_point = choice_point_top[0]
-                    update_propagators(
-                        triggered_propagators, entailed, triggers, triggers_offsets, priorities, variable, events, -1
-                    )
-                    statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
-                    if search_control[SEARCH_CONTROL_LAST_CONFLICT]:
-                        search_control[SEARCH_CONTROL_DECISION_VARIABLE] = variable
-                    statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = max(
-                        statistics[STATS_IDX_SOLVER_CHOICE_DEPTH], choice_point
-                    )
-                    branched = True
                     break
         # either the problem is inconsistent, or no search can claim a variable although variables remain
         # unbound -- a choice point whose domains admit no assignment. Both are dead ends: backtrack.
-        if not branched:
+        if variable == -1:
             search_control[SEARCH_CONTROL_FAILURE_NB] += 1
             # last-conflict (Lecoutre et al. 2009): the conflict variable is that of the last decision that led to a
             # failure. A failure that follows a refutation keeps the conflict variable: after x fails on all its
@@ -336,3 +307,31 @@ def run_search_loop(
                 bb,
             ):
                 return SOLVER_RUNNING, None
+            continue
+        # the heuristic only says where to split; branch owns the two choice points it takes to do so
+        kind, value = dom_heuristic_fcts[search_idx](
+            domains,
+            variable,
+            dom_heuristic_params[
+                dom_heuristic_params_offsets[search_idx] : dom_heuristic_params_offsets[search_idx + 1]
+            ].reshape(dom_heuristic_params_shapes[search_idx, 0], dom_heuristic_params_shapes[search_idx, 1]),
+        )
+        events = branch(
+            state,
+            trail,
+            trail_top,
+            trail_indices,
+            choice_point_stk,
+            choice_point_top,
+            variable,
+            kind,
+            value,
+        )
+        choice_point = choice_point_top[0]
+        update_propagators(
+            triggered_propagators, entailed, triggers, triggers_offsets, priorities, variable, events, -1
+        )
+        statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
+        if search_control[SEARCH_CONTROL_LAST_CONFLICT]:
+            search_control[SEARCH_CONTROL_DECISION_VARIABLE] = variable
+        statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = max(statistics[STATS_IDX_SOLVER_CHOICE_DEPTH], choice_point)
