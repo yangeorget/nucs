@@ -37,7 +37,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 - **An `Interrupter` holds two cells, one for each writer**: `Interrupter.cell` is now `Interrupter.cells`,
   indexed by `INTERRUPTION_EXTERNAL` and `INTERRUPTION_DEADLINE`, and `run_search_loop` stops when either cell is
   1. The clearing of a deadline writes only its own cell, so it cannot erase an `interrupt()`, and the flag
-  `Interrupter.interrupted` and the value `INTERRUPTION_NONE` are gone.
+  `Interrupter.interrupted` and the value `INTERRUPTION_NONE` are gone. The clearing waits for the timer to end
+  before it writes, so the lock `Interrupter.deadline_lock` is gone too.
 
 ## 19.0.0
 

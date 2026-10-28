@@ -11,11 +11,15 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import sys
+import threading
 import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from types import CodeType, FrameType
+from types import CodeType, FrameType, SimpleNamespace
 
+import pytest
+
+from nucs.solvers import interrupter as interrupter_module
 from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, Interrupter
 
 
@@ -67,6 +71,28 @@ class TestInterrupter:
         disarm = interrupter.arm_deadline(0.05)
         disarm()
         time.sleep(0.1)  # past the timeout: a timer still armed would have written its cell by now
+        assert interrupter.cells.tolist() == [0, 0]
+
+    def test_disarm_while_the_timer_writes_leaves_no_deadline(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """A deadline disarmed while its timer is writing leaves its cell clear: disarm waits for the timer to end."""
+        writing = threading.Event()
+
+        class SlowTimer(threading.Timer):
+            # holds the callback between its start and its write: the window in which disarm runs below
+            def __init__(self, interval: float, function: Callable[[], None]) -> None:
+                def slow() -> None:
+                    writing.set()
+                    time.sleep(0.02)
+                    function()
+
+                super().__init__(interval, slow)
+
+        monkeypatch.setattr(interrupter_module, "threading", SimpleNamespace(Timer=SlowTimer))
+        interrupter = Interrupter()
+        disarm = interrupter.arm_deadline(0.0)
+        assert writing.wait(1)
+        disarm()
+        time.sleep(0.04)  # past the write of a timer that disarm did not wait for
         assert interrupter.cells.tolist() == [0, 0]
 
     def test_interrupt_inside_disarm_is_kept(self) -> None:

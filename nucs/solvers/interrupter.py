@@ -41,9 +41,6 @@ class Interrupter:
         """
         # read by run_search_loop at every node, and written possibly from another thread
         self.cells = np.zeros(INTERRUPTION_WIDTH, dtype=np.int32)
-        # serializes a deadline timer and the clearing of that deadline, so that the timer cannot write after
-        # the clearing; interrupt() takes no lock, since it may run as a signal handler on a thread that holds it
-        self.deadline_lock = threading.Lock()
 
     def interrupt(self) -> None:
         """
@@ -72,12 +69,9 @@ class Interrupter:
         """
         if timeout is None:
             return lambda: None
-        armed = [True]  # a callback already running when the timer is cancelled must not write after disarm
 
         def expire() -> None:
-            with self.deadline_lock:
-                if armed[0]:
-                    self.cells[INTERRUPTION_DEADLINE] = 1
+            self.cells[INTERRUPTION_DEADLINE] = 1
 
         timer = threading.Timer(max(timeout, 0.0), expire)
         timer.daemon = True
@@ -85,8 +79,9 @@ class Interrupter:
 
         def disarm() -> None:
             timer.cancel()
-            with self.deadline_lock:
-                armed[0] = False
-                self.cells[INTERRUPTION_DEADLINE] = 0
+            # a timer that fired before the cancel may still be writing: once it has ended, its cell can only be
+            # written by the clear below
+            timer.join()
+            self.cells[INTERRUPTION_DEADLINE] = 0
 
         return disarm
