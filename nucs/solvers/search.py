@@ -45,7 +45,7 @@ class Search:
 
 # the default of BacktrackSolver: one search on every variable with the default heuristics; a frozen tuple of frozen
 # searches, so one object serves every solver
-DEFAULT_SEARCHES: tuple[Search, ...] = (Search(),)
+SEARCHES_DEFAULT: tuple[Search, ...] = (Search(),)
 
 
 @dataclass(frozen=True)

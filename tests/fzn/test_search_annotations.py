@@ -17,7 +17,7 @@ import pytest
 from nucs.fzn.model import build_model
 from nucs.fzn.parser import Id, parse
 from nucs.fzn.search_annotations import (
-    FREE_SEARCH_RESTART,
+    RESTART_POLICY_FREE_SEARCH,
     free_search_heuristics,
     parse_restart,
     restart_policy_of,
@@ -43,7 +43,7 @@ from nucs.solvers.restart_policies import (
     RESTART_LUBY,
     RestartPolicy,
 )
-from nucs.solvers.search import DEFAULT_SEARCHES
+from nucs.solvers.search import SEARCHES_DEFAULT
 from tests.fzn.fzn_test import solve_fzn
 
 
@@ -78,7 +78,7 @@ class TestSearchAnnotations:
 
     def test_build_model_search_heuristics_default_without_annotation(self) -> None:
         model = build_model(parse("var 0..3: x;\nsolve satisfy;"))
-        assert search_heuristics(model) is DEFAULT_SEARCHES
+        assert search_heuristics(model) is SEARCHES_DEFAULT
 
     def test_build_model_search_heuristics_unknown_selectors_fall_back(self, caplog: pytest.LogCaptureFixture) -> None:
         """A selector NuCS does not implement is replaced, and says so.
@@ -176,7 +176,7 @@ class TestSearchAnnotations:
             # the fixed search: no last-conflict, and the model's restart annotation (restart_luby(7) here)
             (False, None, None, (False, RestartPolicy(RESTART_LUBY, 7))),
             # the free search: its defaults, and the model's restart annotation is ignored
-            (True, None, None, (True, FREE_SEARCH_RESTART)),
+            (True, None, None, (True, RESTART_POLICY_FREE_SEARCH)),
             # what the command line gives wins, in both modes
             (True, False, RestartPolicy(), (False, RestartPolicy())),
             (False, True, RestartPolicy(RESTART_LUBY, 50), (True, RestartPolicy(RESTART_LUBY, 50))),

@@ -21,7 +21,7 @@ from numpy.typing import NDArray
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, LOG_LEVELS
 from nucs.heuristics.heuristics import DOM_HEURISTICS, VAR_HEURISTICS
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALGS
-from nucs.solvers.search import DEFAULT_SEARCHES, Search
+from nucs.solvers.search import SEARCHES_DEFAULT, Search
 from nucs.solvers.solver import OPTIM_MODES, OPTIM_RESET, Solver
 
 
@@ -82,7 +82,7 @@ class DefaultArgumentParser(argparse.ArgumentParser):
 
 
 def solver_kwargs_from_args(
-    args: Namespace, searches: Sequence[Search] = DEFAULT_SEARCHES, **defaults: Any
+    args: Namespace, searches: Sequence[Search] = SEARCHES_DEFAULT, **defaults: Any
 ) -> dict[str, Any]:
     """
     Builds a dict of BacktrackSolver kwargs, with CLI args overriding the given defaults.
@@ -92,7 +92,7 @@ def solver_kwargs_from_args(
 
     :param args: the CLI arguments
     :type args: Namespace
-    :param searches: the searches of the example, defaults to DEFAULT_SEARCHES
+    :param searches: the searches of the example, defaults to SEARCHES_DEFAULT
     :type searches: Sequence[Search]
     :param defaults: other kwargs to be passed to BacktrackSolver, overridden by any non-None CLI value
     :type defaults: Any

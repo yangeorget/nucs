@@ -43,7 +43,7 @@ from nucs.solvers.restart_policies import (
     RESTART_POLICY_NEVER,
     RestartPolicy,
 )
-from nucs.solvers.search import DEFAULT_SEARCHES, Search
+from nucs.solvers.search import SEARCHES_DEFAULT, Search
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +118,7 @@ def restart_policy_of(model: FznModel) -> RestartPolicy:
 # last-conflict won 9 and lost 0 against the same free search without it; Luby restarts at scale 500 won 10 and
 # lost 3 (proofs that got slower) against the free search without restarts.
 FREE_SEARCH_LAST_CONFLICT = True
-FREE_SEARCH_RESTART = RestartPolicy(RESTART_LUBY, 500)
+RESTART_POLICY_FREE_SEARCH = RestartPolicy(RESTART_LUBY, 500)
 
 
 def search_options(
@@ -144,7 +144,7 @@ def search_options(
     if last_conflict is None:
         last_conflict = FREE_SEARCH_LAST_CONFLICT if free_search else False
     if restart is None:
-        restart = FREE_SEARCH_RESTART if free_search else restart_policy_of(model)
+        restart = RESTART_POLICY_FREE_SEARCH if free_search else restart_policy_of(model)
     return last_conflict, restart
 
 
@@ -182,7 +182,7 @@ def search_heuristics(model: FznModel) -> Sequence[Search]:
     :param model: the built model
     :type model: FznModel
 
-    :return: the ordered searches, or DEFAULT_SEARCHES when there is no supported search annotation
+    :return: the ordered searches, or SEARCHES_DEFAULT when there is no supported search annotation
     :rtype: Sequence[Search]
     """
     for annotation in model.solve.annotations:
@@ -198,8 +198,8 @@ def search_heuristics(model: FznModel) -> Sequence[Search]:
             remaining = [v for v in range(model.problem.domain_nb) if v not in seen]
             if remaining:  # ground every remaining variable with the defaults
                 searches.append(Search(remaining))
-            return searches or DEFAULT_SEARCHES
-    return DEFAULT_SEARCHES
+            return searches or SEARCHES_DEFAULT
+    return SEARCHES_DEFAULT
 
 
 def free_search_heuristics(model: FznModel) -> list[Search]:

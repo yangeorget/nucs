@@ -50,7 +50,7 @@ from nucs.solvers.consistency_algorithms import (
 )
 from nucs.solvers.interruption import INTERRUPTION_DEADLINE, Interruption
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
-from nucs.solvers.search import DEFAULT_SEARCHES, Search, flatten_searches
+from nucs.solvers.search import SEARCHES_DEFAULT, Search, flatten_searches
 from nucs.solvers.search_arrays import allocate_search_arrays, get_domain_buffer
 from nucs.solvers.search_loop import (
     SEARCH_CONTROL_CONFLICT_VARIABLE,
@@ -87,7 +87,7 @@ class BacktrackSolver(Solver):
         self,
         problem: Problem,
         consistency_algorithm: int = CONSISTENCY_ALG_BC,
-        searches: Sequence[Search] = DEFAULT_SEARCHES,
+        searches: Sequence[Search] = SEARCHES_DEFAULT,
         log_level: str = LOG_LEVEL_INFO,
         weight_decay: float = 1.0,
         restart_policy: RestartPolicy = RESTART_POLICY_NEVER,
@@ -102,7 +102,7 @@ class BacktrackSolver(Solver):
         :type consistency_algorithm: int
         :param searches: an ordered sequence of searches defining a sequential search, each with its decision
                          variables, its variable and domain heuristics and their parameters; defaults to
-                         DEFAULT_SEARCHES, one search that branches on every variable with the default heuristics of
+                         SEARCHES_DEFAULT, one search that branches on every variable with the default heuristics of
                          Search. The union of the searches' decision variables should cover every branchable variable.
         :type searches: Sequence[Search]
         :param log_level: the log level,
