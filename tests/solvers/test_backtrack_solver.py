@@ -157,7 +157,7 @@ class TestBacktrackSolver:
         assert next(solver.solve(timeout=0.1), None) is None
         assert time.monotonic() - start < 5
         assert solver.interrupted
-        assert solver.interrupter.cells.tolist() == [0, 0]  # the deadline belonged to that search only
+        assert solver.interrupter.cells.tolist() == [False, False]  # the deadline belonged to that search only
 
     def test_deadline_keeps_an_external_interruption(self) -> None:
         """Clearing a deadline once its search is over leaves an interrupt() in place: that one is final."""
@@ -175,7 +175,7 @@ class TestBacktrackSolver:
         next(solutions)
         solutions.close()  # abandoned before the deadline
         time.sleep(0.1)  # past it: a timer still armed would have written its cell by now
-        assert solver.interrupter.cells.tolist() == [0, 0]
+        assert solver.interrupter.cells.tolist() == [False, False]
 
     def test_solve_without_timeout_is_exhaustive(self) -> None:
         problem = Problem([(0, 99), (0, 99)])

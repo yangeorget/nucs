@@ -20,7 +20,7 @@ from collections.abc import Callable
 
 import numpy as np
 
-# the cells of the array, one for each writer, which writes 1 there; the compiled search stops when either is 1
+# the cells of the array, one flag for each writer, which sets it; the compiled search stops when either is set
 INTERRUPTION_EXTERNAL = 0  # interrupt(): final, every later search stops too
 INTERRUPTION_DEADLINE = 1  # a timeout: cleared once the search it belongs to is over
 INTERRUPTION_WIDTH = 2  # the number of cells
@@ -40,7 +40,7 @@ class Interrupter:
         Initializes an interrupter that asks nothing yet.
         """
         # read by run_search_loop at every node, and written possibly from another thread
-        self.cells = np.zeros(INTERRUPTION_WIDTH, dtype=np.int32)
+        self.cells = np.zeros(INTERRUPTION_WIDTH, dtype=np.bool)
 
     def interrupt(self) -> None:
         """
@@ -48,7 +48,7 @@ class Interrupter:
 
         Safe to call from another thread or from a signal handler: it takes no lock, it only writes its cell.
         """
-        self.cells[INTERRUPTION_EXTERNAL] = 1
+        self.cells[INTERRUPTION_EXTERNAL] = True
 
     def arm_deadline(self, timeout: float | None) -> Callable[[], None]:
         """
@@ -71,7 +71,7 @@ class Interrupter:
             return lambda: None
 
         def expire() -> None:
-            self.cells[INTERRUPTION_DEADLINE] = 1
+            self.cells[INTERRUPTION_DEADLINE] = True
 
         timer = threading.Timer(max(timeout, 0.0), expire)
         timer.daemon = True
@@ -82,6 +82,6 @@ class Interrupter:
             # a timer that fired before the cancel may still be writing: once it has ended, its cell can only be
             # written by the clear below
             timer.join()
-            self.cells[INTERRUPTION_DEADLINE] = 0
+            self.cells[INTERRUPTION_DEADLINE] = False
 
         return disarm

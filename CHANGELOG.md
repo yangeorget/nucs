@@ -34,11 +34,11 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 - **`Interruption` is now `Interrupter`, in the module `nucs.solvers.interrupter`** (it was
   `nucs.solvers.interruption`), and the attribute `BacktrackSolver.interruption` is now `BacktrackSolver.interrupter`.
   The object asks the search to stop.
-- **An `Interrupter` holds two cells, one for each writer**: `Interrupter.cell` is now `Interrupter.cells`,
-  indexed by `INTERRUPTION_EXTERNAL` and `INTERRUPTION_DEADLINE`, and `run_search_loop` stops when either cell is
-  1. The clearing of a deadline writes only its own cell, so it cannot erase an `interrupt()`, and the flag
-  `Interrupter.interrupted` and the value `INTERRUPTION_NONE` are gone. The clearing waits for the timer to end
-  before it writes, so the lock `Interrupter.deadline_lock` is gone too.
+- **An `Interrupter` holds two cells, one for each writer**: `Interrupter.cell` is now `Interrupter.cells`, two
+  `bool` flags indexed by `INTERRUPTION_EXTERNAL` and `INTERRUPTION_DEADLINE`, and `run_search_loop` stops when
+  either flag is set. The clearing of a deadline writes only its own cell, so it cannot erase an `interrupt()`, and
+  the flag `Interrupter.interrupted` and the value `INTERRUPTION_NONE` are gone. The clearing waits for the timer to
+  end before it writes, so the lock `Interrupter.deadline_lock` is gone too.
 - **`get_domain_buffer` is now `allocate_domain_buffer`**, in `nucs.solvers.search_arrays`. Like
   `allocate_search_arrays`, it allocates a new array on each call.
 

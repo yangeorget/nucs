@@ -71,7 +71,7 @@ class TestInterrupter:
         disarm = interrupter.arm_deadline(0.05)
         disarm()
         time.sleep(0.1)  # past the timeout: a timer still armed would have written its cell by now
-        assert interrupter.cells.tolist() == [0, 0]
+        assert interrupter.cells.tolist() == [False, False]
 
     def test_disarm_while_the_timer_writes_leaves_no_deadline(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """A deadline disarmed while its timer is writing leaves its cell clear: disarm waits for the timer to end."""
@@ -93,7 +93,7 @@ class TestInterrupter:
         assert writing.wait(1)
         disarm()
         time.sleep(0.04)  # past the write of a timer that disarm did not wait for
-        assert interrupter.cells.tolist() == [0, 0]
+        assert interrupter.cells.tolist() == [False, False]
 
     def test_interrupt_inside_disarm_is_kept(self) -> None:
         """An interrupt() that runs in the middle of disarm, as a signal handler can, is not lost."""
@@ -119,9 +119,9 @@ class TestInterrupter:
         start = time.monotonic()
         while not interrupter.cells[INTERRUPTION_DEADLINE] and time.monotonic() - start < 1:
             time.sleep(0.001)
-        assert interrupter.cells.tolist() == [0, 1]
+        assert interrupter.cells.tolist() == [False, True]
         with call_before_bytecode(disarm.__code__, position, interrupter.interrupt) as opcode_nb:
             disarm()
-        expected = [0, 0] if position < 0 else [1, 0]
+        expected = [False, False] if position < 0 else [True, False]
         assert interrupter.cells.tolist() == expected, f"interrupt() at bytecode {position} of disarm"
         return opcode_nb[0]
