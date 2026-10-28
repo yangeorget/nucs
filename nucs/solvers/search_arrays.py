@@ -105,7 +105,7 @@ def allocate_search_arrays(
     )
 
 
-def get_domain_buffer(offsets: NDArray) -> NDArray:
+def allocate_domain_buffer(offsets: NDArray) -> NDArray:
     """
     Allocates a reusable scratch buffer for prop_domains to avoid one allocation per propagator call.
 

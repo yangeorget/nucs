@@ -50,7 +50,7 @@ from nucs.solvers.consistency_algorithms import (
 )
 from nucs.solvers.interrupter import INTERRUPTION_EXTERNAL, Interrupter
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
-from nucs.solvers.search_arrays import allocate_search_arrays, get_domain_buffer
+from nucs.solvers.search_arrays import allocate_domain_buffer, allocate_search_arrays
 from nucs.solvers.search_loop import (
     SEARCH_CONTROL_CONFLICT_VARIABLE,
     SEARCH_CONTROL_DECISION_VARIABLE,
@@ -132,7 +132,7 @@ class BacktrackSolver(Solver):
         logger.info(f"BacktrackSolver uses last-conflict: {'yes' if last_conflict else 'no'}")
         logger.info(f"BacktrackSolver uses a weight decay of {weight_decay}")
         self.triggered_propagators = buckets_create(problem.propagator_nb)
-        self.domain_buffer = get_domain_buffer(problem.offsets)
+        self.domain_buffer = allocate_domain_buffer(problem.offsets)
         (
             self.state,
             self.domains,
@@ -352,10 +352,17 @@ class BacktrackSolver(Solver):
         variable = self.bb[BB_VARIABLE]
         if variable < 0:
             return True
-        value = self.bb[BB_VALUE]
-        bound = self.bb[BB_BOUND]
         return (
-            tighten_objective(self.state, self.trail_log, self.trail_top, self.trail_indices, 0, variable, value, bound)
+            tighten_objective(
+                self.state,
+                self.trail_log,
+                self.trail_top,
+                self.trail_indices,
+                0,
+                variable,
+                self.bb[BB_VALUE],
+                self.bb[BB_BOUND],
+            )
             >= 0
         )
 

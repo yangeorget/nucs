@@ -39,6 +39,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   1. The clearing of a deadline writes only its own cell, so it cannot erase an `interrupt()`, and the flag
   `Interrupter.interrupted` and the value `INTERRUPTION_NONE` are gone. The clearing waits for the timer to end
   before it writes, so the lock `Interrupter.deadline_lock` is gone too.
+- **`get_domain_buffer` is now `allocate_domain_buffer`**, in `nucs.solvers.search_arrays`. Like
+  `allocate_search_arrays`, it allocates a new array on each call.
 
 ## 19.0.0
 
