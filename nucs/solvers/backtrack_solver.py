@@ -219,9 +219,9 @@ class BacktrackSolver(Solver):
             f"variable {variable} in {mode} mode, {format_timeout(timeout)}"
         )
         # minimizing a variable means tightening the DOMAIN_MAX side of its domain, and vice versa
-        objective_bound = DOMAIN_MAX if bound == DOMAIN_MIN else DOMAIN_MIN
+        tightened_bound = DOMAIN_MAX if bound == DOMAIN_MIN else DOMAIN_MIN
         for solution in self._iterate_solutions(
-            lambda found: self._advance_after_optimum(variable, found[variable], objective_bound, mode),
+            lambda found: self._advance_after_optimum(variable, found[variable], tightened_bound, mode),
             timeout,
         ):
             logger.info(f"Found a local optimum: {solution[variable]}")
