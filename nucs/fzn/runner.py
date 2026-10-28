@@ -28,7 +28,7 @@ from nucs.fzn.model import FznModel
 from nucs.fzn.output import print_search_complete, print_solution, print_unknown, print_unsatisfiable
 from nucs.fzn.search_annotations import free_search_heuristics, search_heuristics, search_options
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.restarts import Restarts
+from nucs.solvers.restarts import RestartPolicy
 from nucs.solvers.solver import OPTIM_PRUNE
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ def run(
     stop_on_sigterm: bool = False,
     last_conflict: bool | None = None,
     free_search: bool = False,
-    restart: Restarts | None = None,
+    restart: RestartPolicy | None = None,
 ) -> None:
     """
     Solves the model and writes the FlatZinc solution stream.
@@ -84,7 +84,7 @@ def run(
         (see free_search_heuristics)
     :type free_search: bool
     :param restart: the restart policy, or None for the mode's default (see search_options)
-    :type restart: Optional[Restarts]
+    :type restart: Optional[RestartPolicy]
     """
     # Resolve the objective before constructing the solver, since the solver snapshots the domains on init.
     objective_var = None

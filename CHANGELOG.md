@@ -8,6 +8,12 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+### Changed
+
+- **`Restarts` is now `RestartPolicy`.** The class gives one policy and its parameters, not a set of restarts.
+  Replace `Restarts(...)` with `RestartPolicy(...)`, imported from the same module, `nucs.solvers.restarts`. The
+  `restarts` parameter of `BacktrackSolver` and `NO_RESTARTS` keep their names.
+
 ## 19.0.0
 
 ### Removed

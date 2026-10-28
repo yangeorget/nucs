@@ -20,7 +20,7 @@ from nucs.solvers.restarts import (
     RESTART_LINEAR,
     RESTART_LUBY,
     RESTART_NONE,
-    Restarts,
+    RestartPolicy,
     luby,
     restart_limits,
 )
@@ -51,25 +51,25 @@ class TestRestarts:
         with pytest.raises(ValueError):
             restart_limits(policy, scale, base)
         with pytest.raises(ValueError):  # at creation, before any search
-            Restarts(policy, scale, base)
+            RestartPolicy(policy, scale, base)
 
     def test_restarts_default_to_none(self) -> None:
-        assert list(itertools.islice(Restarts().limits(), 3)) == [-1, -1, -1]
+        assert list(itertools.islice(RestartPolicy().limits(), 3)) == [-1, -1, -1]
 
     def test_restarts_limits_start_again_at_each_call(self) -> None:
         """Each search starts the limits from the first one, so limits() gives a new iterator at each call."""
-        restarts = Restarts(RESTART_LUBY, 10)
+        restarts = RestartPolicy(RESTART_LUBY, 10)
         assert list(itertools.islice(restarts.limits(), 3)) == [10, 10, 20]
         assert list(itertools.islice(restarts.limits(), 3)) == [10, 10, 20]
 
     @pytest.mark.parametrize(
         "restarts,expected",
         [
-            (Restarts(), "no restarts"),
-            (Restarts(RESTART_LUBY, 500), "luby restarts with scale 500"),
+            (RestartPolicy(), "no restarts"),
+            (RestartPolicy(RESTART_LUBY, 500), "luby restarts with scale 500"),
             # only the geometric policy reads the base
-            (Restarts(RESTART_GEOMETRIC, 100, 1.5), "geometric restarts with scale 100 and base 1.5"),
+            (RestartPolicy(RESTART_GEOMETRIC, 100, 1.5), "geometric restarts with scale 100 and base 1.5"),
         ],
     )
-    def test_restarts_str(self, restarts: Restarts, expected: str) -> None:
+    def test_restart_policy_str(self, restarts: RestartPolicy, expected: str) -> None:
         assert str(restarts) == expected

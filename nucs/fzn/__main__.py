@@ -24,7 +24,7 @@ from nucs.fzn.parser import parse
 from nucs.fzn.register import register
 from nucs.fzn.runner import run
 from nucs.fzn.search_annotations import parse_restart
-from nucs.solvers.restarts import Restarts
+from nucs.solvers.restarts import RestartPolicy
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -101,7 +101,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _restart_arg(text: str) -> Restarts:
+def _restart_arg(text: str) -> RestartPolicy:
     """
     Converts the --restart argument, so that a wrong one is reported as a usage error.
 
@@ -109,7 +109,7 @@ def _restart_arg(text: str) -> Restarts:
     :type text: str
 
     :return: the restart policy
-    :rtype: Restarts
+    :rtype: RestartPolicy
     """
     try:
         return parse_restart(text)

@@ -41,7 +41,7 @@ from nucs.solvers.restarts import (
     RESTART_GEOMETRIC,
     RESTART_LINEAR,
     RESTART_LUBY,
-    Restarts,
+    RestartPolicy,
 )
 from nucs.solvers.search import DEFAULT_SEARCHES, Search
 
@@ -79,7 +79,7 @@ _SCALED_RESTARTS = {
 }
 
 
-def restart_policy_of(model: FznModel) -> Restarts:
+def restart_policy_of(model: FznModel) -> RestartPolicy:
     """
     Translates the restart annotation of the solve item into a NuCS restart policy. A restart limit counts failures,
     as Gecode's do.
@@ -89,7 +89,7 @@ def restart_policy_of(model: FznModel) -> Restarts:
 
     :return: the restart policy, for BacktrackSolver; no restart when the model asks for none, or asks for one with
              arguments NuCS cannot use, which is logged as a warning
-    :rtype: Restarts
+    :rtype: RestartPolicy
     """
     for annotation in model.solve.annotations:
         args = annotation.args
@@ -97,14 +97,14 @@ def restart_policy_of(model: FznModel) -> Restarts:
             if annotation.name == "restart_none":
                 return NO_RESTARTS
             if annotation.name in _SCALED_RESTARTS and len(args) == 1 and isinstance(args[0], int):
-                return Restarts(_SCALED_RESTARTS[annotation.name], args[0])
+                return RestartPolicy(_SCALED_RESTARTS[annotation.name], args[0])
             if (
                 annotation.name == "restart_geometric"
                 and len(args) == 2
                 and isinstance(args[0], (int, float))
                 and isinstance(args[1], int)
             ):
-                return Restarts(RESTART_GEOMETRIC, args[1], float(args[0]))
+                return RestartPolicy(RESTART_GEOMETRIC, args[1], float(args[0]))
         except ValueError as e:
             logger.warning(f"{e}, searching without restarts")
             return NO_RESTARTS
@@ -118,12 +118,12 @@ def restart_policy_of(model: FznModel) -> Restarts:
 # last-conflict won 9 and lost 0 against the same free search without it; Luby restarts at scale 500 won 10 and
 # lost 3 (proofs that got slower) against the free search without restarts.
 FREE_SEARCH_LAST_CONFLICT = True
-FREE_SEARCH_RESTART = Restarts(RESTART_LUBY, 500)
+FREE_SEARCH_RESTART = RestartPolicy(RESTART_LUBY, 500)
 
 
 def search_options(
-    model: FznModel, free_search: bool, last_conflict: bool | None, restart: Restarts | None
-) -> tuple[bool, Restarts]:
+    model: FznModel, free_search: bool, last_conflict: bool | None, restart: RestartPolicy | None
+) -> tuple[bool, RestartPolicy]:
     """
     Resolves last-conflict and the restart policy from the mode and the command line. What the command line gives
     wins. Otherwise the free search takes its defaults and ignores the model's restart annotation, as it ignores the
@@ -136,10 +136,10 @@ def search_options(
     :param last_conflict: last-conflict as the command line gives it, or None for the mode's default
     :type last_conflict: Optional[bool]
     :param restart: the restart policy as the command line gives it, or None for the mode's default
-    :type restart: Optional[Restarts]
+    :type restart: Optional[RestartPolicy]
 
     :return: whether to use last-conflict, and the restart policy
-    :rtype: Tuple[bool, Restarts]
+    :rtype: Tuple[bool, RestartPolicy]
     """
     if last_conflict is None:
         last_conflict = FREE_SEARCH_LAST_CONFLICT if free_search else False
@@ -148,7 +148,7 @@ def search_options(
     return last_conflict, restart
 
 
-def parse_restart(text: str) -> Restarts:
+def parse_restart(text: str) -> RestartPolicy:
     """
     Parses a restart policy given on the command line as ``POLICY[,SCALE[,BASE]]``, such as ``luby,500`` or
     ``geometric,100,1.5``. The scale defaults to 100 and the base to 1.5, as in BacktrackSolver.
@@ -157,7 +157,7 @@ def parse_restart(text: str) -> Restarts:
     :type text: str
 
     :return: the restart policy
-    :rtype: Restarts
+    :rtype: RestartPolicy
     """
     parts = text.split(",")
     if not 1 <= len(parts) <= 3:
@@ -165,7 +165,7 @@ def parse_restart(text: str) -> Restarts:
     policy = parts[0].strip().lower()
     scale = int(parts[1]) if len(parts) > 1 else 100
     base = float(parts[2]) if len(parts) > 2 else 1.5
-    return Restarts(policy, scale, base)  # raises on a wrong policy, scale or base
+    return RestartPolicy(policy, scale, base)  # raises on a wrong policy, scale or base
 
 
 def search_heuristics(model: FznModel) -> Sequence[Search]:

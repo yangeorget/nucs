@@ -82,7 +82,7 @@ def restart_limits(policy: str, scale: int, base: float = 2.0) -> Iterator[int]:
 
 
 @dataclass(frozen=True)
-class Restarts:
+class RestartPolicy:
     """
     A restart policy with its parameters. The default is no restart.
 
@@ -122,4 +122,4 @@ class Restarts:
         return f"{self.policy} restarts with scale {self.scale}"
 
 
-NO_RESTARTS = Restarts()  # the default of BacktrackSolver; frozen, so one object serves every solver
+NO_RESTARTS = RestartPolicy()  # the default of BacktrackSolver; frozen, so one object serves every solver

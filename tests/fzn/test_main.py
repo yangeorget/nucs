@@ -14,7 +14,7 @@
 import pytest
 
 from nucs.fzn.__main__ import build_arg_parser
-from nucs.solvers.restarts import RESTART_LUBY, Restarts
+from nucs.solvers.restarts import RESTART_LUBY, RestartPolicy
 
 
 class TestMain:
@@ -47,7 +47,7 @@ class TestMain:
     def test_main_free_search_and_restart_flags(self) -> None:
         args = build_arg_parser().parse_args(["-f", "--restart", "luby,500", "model.fzn"])
         assert args.free_search
-        assert args.restart == Restarts(RESTART_LUBY, 500)
+        assert args.restart == RestartPolicy(RESTART_LUBY, 500)
         with pytest.raises(SystemExit):  # a wrong policy is a usage error
             build_arg_parser().parse_args(["--restart", "fibonacci", "model.fzn"])
 

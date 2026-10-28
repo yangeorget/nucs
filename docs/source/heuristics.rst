@@ -94,7 +94,7 @@ learned weights choose better first decisions:
    solver = BacktrackSolver(
        problem,
        searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG)],
-       restarts=Restarts(RESTART_LUBY, scale=100),
+       restarts=RestartPolicy(RESTART_LUBY, scale=100),
    )
 
 The policies of :mod:`nucs.solvers.restarts` are those of MiniZinc: :code:`RESTART_LUBY` (the scale times the

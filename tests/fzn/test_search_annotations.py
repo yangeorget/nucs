@@ -36,7 +36,7 @@ from nucs.heuristics.heuristics import (
     VAR_HEURISTIC_SMALLEST_DOMAIN,
     VAR_HEURISTIC_SMALLEST_MINIMAL_VALUE,
 )
-from nucs.solvers.restarts import RESTART_CONSTANT, RESTART_GEOMETRIC, RESTART_LINEAR, RESTART_LUBY, Restarts
+from nucs.solvers.restarts import RESTART_CONSTANT, RESTART_GEOMETRIC, RESTART_LINEAR, RESTART_LUBY, RestartPolicy
 from nucs.solvers.search import DEFAULT_SEARCHES
 from tests.fzn.fzn_test import solve_fzn
 
@@ -95,18 +95,21 @@ class TestSearchAnnotations:
     @pytest.mark.parametrize(
         "annotation,policy",
         [
-            ("", Restarts()),
-            (":: restart_none", Restarts()),
-            (":: restart_luby(50)", Restarts(RESTART_LUBY, 50)),
-            (":: restart_geometric(1.5, 100)", Restarts(RESTART_GEOMETRIC, 100, 1.5)),
-            (":: restart_geometric(2, 100)", Restarts(RESTART_GEOMETRIC, 100, 2.0)),  # an int base
-            (":: restart_linear(10)", Restarts(RESTART_LINEAR, 10)),
-            (":: restart_constant(10)", Restarts(RESTART_CONSTANT, 10)),
+            ("", RestartPolicy()),
+            (":: restart_none", RestartPolicy()),
+            (":: restart_luby(50)", RestartPolicy(RESTART_LUBY, 50)),
+            (":: restart_geometric(1.5, 100)", RestartPolicy(RESTART_GEOMETRIC, 100, 1.5)),
+            (":: restart_geometric(2, 100)", RestartPolicy(RESTART_GEOMETRIC, 100, 2.0)),  # an int base
+            (":: restart_linear(10)", RestartPolicy(RESTART_LINEAR, 10)),
+            (":: restart_constant(10)", RestartPolicy(RESTART_CONSTANT, 10)),
             # the restart annotation comes before the search annotation, as MiniZinc writes them
-            (":: restart_luby(5) :: int_search([x], dom_w_deg, indomain_min, complete)", Restarts(RESTART_LUBY, 5)),
+            (
+                ":: restart_luby(5) :: int_search([x], dom_w_deg, indomain_min, complete)",
+                RestartPolicy(RESTART_LUBY, 5),
+            ),
         ],
     )
-    def test_restart_policy_of(self, annotation: str, policy: Restarts) -> None:
+    def test_restart_policy_of(self, annotation: str, policy: RestartPolicy) -> None:
         model = build_model(parse(f"var 0..3: x;\nsolve {annotation} satisfy;"))
         assert restart_policy_of(model) == policy
 
@@ -118,7 +121,7 @@ class TestSearchAnnotations:
     ) -> None:
         model = build_model(parse(f"var 0..3: x;\nsolve {annotation} satisfy;"))
         with caplog.at_level(logging.WARNING, logger="nucs.fzn.search_annotations"):
-            assert restart_policy_of(model) == Restarts()
+            assert restart_policy_of(model) == RestartPolicy()
         assert "without restarts" in caplog.text
 
     def test_free_search_heuristics(self, caplog: pytest.LogCaptureFixture) -> None:
@@ -147,13 +150,13 @@ class TestSearchAnnotations:
     @pytest.mark.parametrize(
         "text,policy",
         [
-            ("luby", Restarts(RESTART_LUBY)),
-            ("luby,500", Restarts(RESTART_LUBY, 500)),
-            ("Geometric,100,2.0", Restarts(RESTART_GEOMETRIC, 100, 2.0)),
-            ("none", Restarts()),
+            ("luby", RestartPolicy(RESTART_LUBY)),
+            ("luby,500", RestartPolicy(RESTART_LUBY, 500)),
+            ("Geometric,100,2.0", RestartPolicy(RESTART_GEOMETRIC, 100, 2.0)),
+            ("none", RestartPolicy()),
         ],
     )
-    def test_parse_restart(self, text: str, policy: Restarts) -> None:
+    def test_parse_restart(self, text: str, policy: RestartPolicy) -> None:
         assert parse_restart(text) == policy
 
     @pytest.mark.parametrize("text", ["fibonacci,10", "luby,0", "geometric,10,1.0", "luby,10,2,3"])
@@ -165,20 +168,20 @@ class TestSearchAnnotations:
         "free_search,last_conflict,restart,expected",
         [
             # the fixed search: no last-conflict, and the model's restart annotation (restart_luby(7) here)
-            (False, None, None, (False, Restarts(RESTART_LUBY, 7))),
+            (False, None, None, (False, RestartPolicy(RESTART_LUBY, 7))),
             # the free search: its defaults, and the model's restart annotation is ignored
             (True, None, None, (True, FREE_SEARCH_RESTART)),
             # what the command line gives wins, in both modes
-            (True, False, Restarts(), (False, Restarts())),
-            (False, True, Restarts(RESTART_LUBY, 50), (True, Restarts(RESTART_LUBY, 50))),
+            (True, False, RestartPolicy(), (False, RestartPolicy())),
+            (False, True, RestartPolicy(RESTART_LUBY, 50), (True, RestartPolicy(RESTART_LUBY, 50))),
         ],
     )
     def test_search_options(
         self,
         free_search: bool,
         last_conflict: bool | None,
-        restart: Restarts | None,
-        expected: tuple[bool, Restarts],
+        restart: RestartPolicy | None,
+        expected: tuple[bool, RestartPolicy],
     ) -> None:
         model = build_model(parse("var 0..3: x;\nsolve :: restart_luby(7) satisfy;"))
         assert search_options(model, free_search, last_conflict, restart) == expected

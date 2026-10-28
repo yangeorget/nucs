@@ -49,7 +49,7 @@ from nucs.solvers.consistency_algorithms import (
     get_consistency_algorithm_name,
 )
 from nucs.solvers.interruption import INTERRUPTION_DEADLINE, Interruption
-from nucs.solvers.restarts import NO_RESTARTS, Restarts
+from nucs.solvers.restarts import NO_RESTARTS, RestartPolicy
 from nucs.solvers.search import DEFAULT_SEARCHES, Search, flatten_searches
 from nucs.solvers.search_arrays import allocate_search_arrays, get_domain_buffer
 from nucs.solvers.search_loop import (
@@ -90,7 +90,7 @@ class BacktrackSolver(Solver):
         searches: Sequence[Search] = DEFAULT_SEARCHES,
         log_level: str = LOG_LEVEL_INFO,
         weight_decay: float = 1.0,
-        restarts: Restarts = NO_RESTARTS,
+        restarts: RestartPolicy = NO_RESTARTS,
         last_conflict: bool = False,
     ):
         """
@@ -115,7 +115,7 @@ class BacktrackSolver(Solver):
         :param restarts: after how many failures each descent restarts from the root (nucs.solvers.restarts),
                          defaults to no restart. When enumerating, the restarts stop at the first solution, so that no
                          solution is found twice.
-        :type restarts: Restarts
+        :type restarts: RestartPolicy
         :param last_conflict: whether the search branches first on the variable of the last refuted decision, as long
                               as it is unbound (last-conflict reasoning), defaults to False
         :type last_conflict: bool

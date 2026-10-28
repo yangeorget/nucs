@@ -22,7 +22,7 @@ import pytest
 from nucs.fzn.model import build_model
 from nucs.fzn.parser import parse
 from nucs.fzn.runner import run
-from nucs.solvers.restarts import RESTART_LUBY, Restarts
+from nucs.solvers.restarts import RESTART_LUBY, RestartPolicy
 from tests.fzn.fzn_test import solve_fzn
 
 
@@ -176,7 +176,7 @@ class TestRunner:
             out,
             free_search=free_search,
             last_conflict=True,
-            restart=Restarts(RESTART_LUBY, 1),
+            restart=RestartPolicy(RESTART_LUBY, 1),
         )
         assert "==========" in out.getvalue()  # the optimum is proven
 
