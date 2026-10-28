@@ -42,10 +42,10 @@ from nucs.propagators.propagators import (
     ALG_SUM_LEQ_C,
 )
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.choice_points import CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_VARIABLE, backtrack, branch
+from nucs.solvers.choice_points import CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_VARIABLE, branch
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
 from nucs.solvers.search_arrays import STEP_TIGHTENING_NB
-from nucs.solvers.search_loop import SOLVER_RUNNING, run_search_loop
+from nucs.solvers.search_loop import SOLVER_RUNNING
 from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
 from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB, tighten_at
@@ -213,45 +213,7 @@ class TestBacktrackSolver:
         problem = Problem([(0, 1), (0, 1)])
         solver = BacktrackSolver(problem)
         buckets_empty(solver.triggered_propagators, problem.priorities)
-        status, solution = run_search_loop(
-            solver.statistics,
-            problem.algorithms,
-            problem.priorities,
-            problem.offsets,
-            problem.propagator_variables,
-            problem.propagator_parameters,
-            problem.triggers,
-            problem.triggers_offsets,
-            solver.state,
-            solver.domains,
-            solver.entailed,
-            solver.trail_log,
-            solver.trail_top,
-            solver.trail_indices,
-            solver.choice_point_stk,
-            solver.choice_point_top,
-            solver.triggered_propagators,
-            solver.consistency_alg_fcts,
-            solver.flat_searches.decision_variables,
-            solver.flat_searches.decision_variables_offsets,
-            solver.var_heuristic_fcts,
-            solver.flat_searches.var_heuristic_params,
-            solver.flat_searches.var_heuristic_params_offsets,
-            solver.flat_searches.var_heuristic_params_shapes,
-            solver.dom_heuristic_fcts,
-            solver.flat_searches.dom_heuristic_params,
-            solver.flat_searches.dom_heuristic_params_offsets,
-            solver.flat_searches.dom_heuristic_params_shapes,
-            solver.compute_domains_addrs,
-            solver.domain_buffer,
-            problem.algorithm_flags,
-            solver.bb,
-            solver.trail_headroom,
-            solver.interrupter.cells,
-            solver.propagator_weights,
-            solver.search_control,
-            solver.flat_searches.variable_searches,
-        )
+        status, solution = solver._run_search_loop()
         assert status == SOLVER_RUNNING
         assert solution is not None
         assert solution.tolist() == [0, 0]
@@ -266,21 +228,7 @@ class TestBacktrackSolver:
         assert solver.choice_point_stk[1, CHOICE_POINT_VARIABLE] == 1
         assert solver.choice_point_stk[1, CHOICE_POINT_BOUND] == DOMAIN_MIN
         assert solver.choice_point_stk[1, CHOICE_POINT_VALUE] == 1
-        assert backtrack(
-            solver.statistics,
-            solver.state,
-            solver.trail_log,
-            solver.trail_top,
-            solver.trail_indices,
-            solver.choice_point_stk,
-            solver.choice_point_top,
-            solver.entailed,
-            solver.triggered_propagators,
-            problem.triggers,
-            problem.triggers_offsets,
-            problem.priorities,
-            solver.bb,
-        )
+        assert solver._backtrack()
         # back at choice point 1, with variable 1's alternative applied: variable 0 stays at its decision
         assert solver.choice_point_top == 1
         assert solver.domains[0].tolist() == [0, 0]
@@ -363,29 +311,11 @@ class TestBacktrackSolver:
         solver.bb[BB_VARIABLE] = 1
         solver.bb[BB_BOUND] = DOMAIN_MAX
         solver.bb[BB_VALUE] = 1
-        assert self._backtrack(solver)
+        assert solver._backtrack()
         assert solver.domains.tolist() == [[0, 0], [0, 0]]  # both refuted down to their min
         # the reserve is an upper bound, not a tight one: a tightening moving one bound writes less than
         # one moving two, and the unbound count is shared -- the second grounding finds it already trailed
         assert int(solver.trail_top[0]) - mark <= STEP_TIGHTENING_NB * TIGHTENING_TRAIL_ENTRY_NB
-
-    @staticmethod
-    def _backtrack(solver: BacktrackSolver) -> bool:
-        return backtrack(
-            solver.statistics,
-            solver.state,
-            solver.trail_log,
-            solver.trail_top,
-            solver.trail_indices,
-            solver.choice_point_stk,
-            solver.choice_point_top,
-            solver.entailed,
-            solver.triggered_propagators,
-            solver.problem.triggers,
-            solver.problem.triggers_offsets,
-            solver.problem.priorities,
-            solver.bb,
-        )
 
     def test_find_all_the_level_stack_grows_rather_than_overruns(self) -> None:
         """Likewise for a search deeper than the choice point stack: grow, do not corrupt memory."""
