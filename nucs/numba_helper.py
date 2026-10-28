@@ -94,7 +94,10 @@ def build_function_ptrs(
     done here in plain Python; the jitted :func:`_build_fcts` then rebuilds the first-class function pointers
     from those addresses. Built once at solver init so the inner loops avoid rebuilding it on every call.
     When used is provided, only those indices are resolved (see :func:`addresses_from_functions`).
+    Under NUMBA_DISABLE_JIT, the functions are plain Python functions, and the table is a plain list of them.
     """
+    if NUMBA_DISABLE_JIT:
+        return list(functions)
     return build_function_ptrs_from_addresses(
         addresses_from_functions(functions, signature, used, filler_index), types.FunctionType(signature)
     )

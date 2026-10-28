@@ -29,7 +29,6 @@ from nucs.constants import (
 )
 from nucs.heuristics.heuristics import DOM_HEURISTIC_FCTS, SIGN_DOM_HEURISTIC, SIGN_VAR_HEURISTIC, VAR_HEURISTIC_FCTS
 from nucs.numba_helper import (
-    NUMBA_DISABLE_JIT,
     addresses_from_functions,
     build_function_ptrs,
 )
@@ -180,21 +179,16 @@ class BacktrackSolver(Solver):
             COMPUTE_DOMAINS_FCTS, SIGN_COMPUTE_DOMAINS, np.unique(self.problem.algorithms), ALG_DUMMY
         )
         # the function tables threaded into run_search_loop: Numba typed lists under the JIT, plain Python lists
-        # otherwise
-        if NUMBA_DISABLE_JIT:
-            self.consistency_alg_fcts = [CONSISTENCY_ALG_FCTS[consistency_algorithm]]
-            self.var_heuristic_fcts = [VAR_HEURISTIC_FCTS[h] for h in self.flat_searches.var_heuristics]
-            self.dom_heuristic_fcts = [DOM_HEURISTIC_FCTS[h] for h in self.flat_searches.dom_heuristics]
-        else:
-            self.consistency_alg_fcts = build_function_ptrs(
-                [CONSISTENCY_ALG_FCTS[consistency_algorithm]], SIGN_CONSISTENCY_ALG
-            )
-            self.var_heuristic_fcts = build_function_ptrs(
-                [VAR_HEURISTIC_FCTS[h] for h in self.flat_searches.var_heuristics], SIGN_VAR_HEURISTIC
-            )
-            self.dom_heuristic_fcts = build_function_ptrs(
-                [DOM_HEURISTIC_FCTS[h] for h in self.flat_searches.dom_heuristics], SIGN_DOM_HEURISTIC
-            )
+        # otherwise (see build_function_ptrs)
+        self.consistency_alg_fcts = build_function_ptrs(
+            [CONSISTENCY_ALG_FCTS[consistency_algorithm]], SIGN_CONSISTENCY_ALG
+        )
+        self.var_heuristic_fcts = build_function_ptrs(
+            [VAR_HEURISTIC_FCTS[h] for h in self.flat_searches.var_heuristics], SIGN_VAR_HEURISTIC
+        )
+        self.dom_heuristic_fcts = build_function_ptrs(
+            [DOM_HEURISTIC_FCTS[h] for h in self.flat_searches.dom_heuristics], SIGN_DOM_HEURISTIC
+        )
         logger.debug("BacktrackSolver initialized")
 
     def solve(self, timeout: float | None = None) -> Iterator[NDArray]:
