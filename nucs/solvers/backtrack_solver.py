@@ -162,7 +162,7 @@ class BacktrackSolver(Solver):
         self.restarts = restarts
         # the restart limit is drawn by each search, the other cells are reset with the root by _choice_point_init
         self.search_control = np.full(SEARCH_CONTROL_WIDTH, -1, dtype=np.int64)
-        self.search_control[SEARCH_CONTROL_LAST_CONFLICT] = int(last_conflict)
+        self.search_control[SEARCH_CONTROL_LAST_CONFLICT] = last_conflict
         logger.info(
             f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"
         )
