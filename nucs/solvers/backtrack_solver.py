@@ -133,7 +133,6 @@ class BacktrackSolver(Solver):
         logger.info(f"BacktrackSolver uses a weight decay of {weight_decay}")
         self.triggered_propagators = buckets_create(problem.propagator_nb)
         self.domain_buffer = get_domain_buffer(problem.offsets)
-        logger.debug("Initializing choice points")
         (
             self.state,
             self.domains,
@@ -165,6 +164,7 @@ class BacktrackSolver(Solver):
         self.search_control = np.full(SEARCH_CONTROL_WIDTH, -1, dtype=np.int64)
         self.search_control[SEARCH_CONTROL_LAST_CONFLICT] = last_conflict
         self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
+        logger.debug("Initializing choice points")
         choice_point_init(
             self.state,
             self.entailed,
@@ -179,10 +179,10 @@ class BacktrackSolver(Solver):
         logger.debug("Choice points initialized")
         logger.debug("Initializing statistics")
         self.statistics = statistics_init(get_algorithm_nb())
+        logger.debug("Statistics initialized")
         # the failure weight of each propagator: global, never trailed and never reset, so that what one solve
         # learns about the constraints serves the next one too
         self.propagator_weights = weights_init(problem.propagator_nb, weight_decay)
-        logger.debug("Statistics initialized")
         # the compiled compute_domains address of each algorithm, which the consistency algorithm calls a propagator
         # through; resolving only the algorithms used by the problem keeps the init cost proportional to the problem
         # instead of the whole propagator library; without the JIT this is a placeholder that call_compute_domains
@@ -226,6 +226,8 @@ class BacktrackSolver(Solver):
         :rtype: bool
         """
         self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = -1
+        # the search resumes on a refutation, and a failure that follows one does not name a conflict variable
+        self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
         return self._backtrack()
 
     def optimize(self, variable: int, bound: int, mode: str, timeout: float | None = None) -> Iterator[NDArray]:
@@ -447,6 +449,8 @@ class BacktrackSolver(Solver):
             logger.debug("Resetting solver")
             return self._reset_to_root()
         logger.debug("Pruning choice points")
+        # the search resumes on a refutation, and a failure that follows one does not name a conflict variable
+        self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
         return self._backtrack()
 
     def _grow_trail(self) -> None:
@@ -481,8 +485,6 @@ class BacktrackSolver(Solver):
         :return: true iff it was possible to backtrack
         :rtype: bool
         """
-        # the search resumes on a refutation, and a failure that follows one does not name a conflict variable
-        self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
         return backtrack(
             self.statistics,
             self.state,
