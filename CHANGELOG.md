@@ -43,6 +43,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `allocate_search_arrays`, it allocates a new array on each call.
 - **`get_solution` moves from `nucs.solvers.solver` to `nucs.solvers.search_loop`**, its only caller. The compiled
   search no longer imports the module of the abstract `Solver`.
+- **The `problem` of `Solver.__init__` is required.** It was `Problem | None`, but no solver passed `None`, and a
+  solver without a problem had no `problem` attribute.
 
 ## 19.0.0
 

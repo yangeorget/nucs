@@ -33,12 +33,12 @@ class Solver(ABC):
     A solver.
     """
 
-    def __init__(self, problem: Problem | None, log_level: str = LOG_LEVEL_INFO):
+    def __init__(self, problem: Problem, log_level: str = LOG_LEVEL_INFO):
         """
         Initializes the solver.
 
-        :param problem: a problem or None
-        :type problem: Optional[Problem]
+        :param problem: the problem to be solved, which this initializes
+        :type problem: Problem
         :param log_level: the log level as a string
         :type log_level: str
         """
@@ -46,9 +46,8 @@ class Solver(ABC):
         logging.getLogger("numba").setLevel(logging.WARNING)
         logger.info("Initializing Solver")
         self.interrupted = False
-        if problem is not None:
-            self.problem = problem
-            problem.init()
+        self.problem = problem
+        problem.init()
 
     @abstractmethod
     def solve(self, timeout: float | None = None) -> Iterator[NDArray]:
