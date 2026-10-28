@@ -19,13 +19,13 @@ from numpy.typing import NDArray
 
 from nucs.buckets import buckets_create, buckets_init
 from nucs.constants import (
+    BB_BOUND,
+    BB_VALUE,
+    BB_VARIABLE,
+    BB_WIDTH,
     DOMAIN_MAX,
     DOMAIN_MIN,
     LOG_LEVEL_INFO,
-    OBJECTIVE_BOUND,
-    OBJECTIVE_VALUE,
-    OBJECTIVE_VARIABLE,
-    OBJECTIVE_WIDTH,
 )
 from nucs.heuristics.heuristics import DOM_HEURISTIC_FCTS, SIGN_DOM_HEURISTIC, SIGN_VAR_HEURISTIC, VAR_HEURISTIC_FCTS
 from nucs.numba_helper import (
@@ -148,15 +148,15 @@ class BacktrackSolver(Solver):
             f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"
         )
         logger.info(f"The trail starts at {len(self.trail_log)} entries and grows when it runs out")
-        # the branch-and-bound bound, as OBJECTIVE_VARIABLE, OBJECTIVE_BOUND and OBJECTIVE_VALUE: the variable
-        # optimized, the side of its domain to tighten, and the best value found so far. It is solver
-        # state, not choice-point state -- the bound holds for the whole remaining search, so backtrack
-        # re-applies it to each choice point it resumes rather than it being written into them all when it
-        # is found, and nothing about it is trailed. A return to the root applies it there too, with a mark of 0.
-        # OBJECTIVE_VARIABLE stays -1 until the first solution of an optimization, which is how backtrack and
+        # the branch-and-bound bound, as BB_VARIABLE, BB_BOUND and BB_VALUE: the variable optimized, the side of
+        # its domain to tighten, and the best value found so far. It is solver state, not choice-point state --
+        # the bound holds for the whole remaining search, so backtrack re-applies it to each choice point it
+        # resumes rather than it being written into them all when it is found, and nothing about it is trailed.
+        # A return to the root applies it there too, with a mark of 0.
+        # BB_VARIABLE stays -1 until the first solution of an optimization, which is how backtrack and
         # _tighten_objective_at_root know there is no bound to apply. In OPTIM_RESET, the root already holds the
         # bound, so backtrack finds it applied and changes nothing.
-        self.objective = np.full(OBJECTIVE_WIDTH, -1, dtype=np.int32)
+        self.bb = np.full(BB_WIDTH, -1, dtype=np.int32)
         # read by run_search_loop at every node, and written by interrupt() and by the deadline of a search
         self.interruption = Interruption()
         self.restart_policy = restart_policy
@@ -259,7 +259,7 @@ class BacktrackSolver(Solver):
             t0 = time.perf_counter_ns()
             # no solution yet, so the search has no objective bound; _advance_after_optimum arms it.
             # An enumeration disarms it here too: the solver may have been optimized with before.
-            self.objective[OBJECTIVE_VARIABLE] = -1
+            self.bb[BB_VARIABLE] = -1
             # the failure limits of the descents: each search draws its own, from the first one, and each restart
             # takes the next one (see _next_solution)
             self.restart_limits = self.restart_policy.limits()
@@ -349,11 +349,11 @@ class BacktrackSolver(Solver):
         :return: false when the root cannot hold a better solution, which proves the best solution so far optimal
         :rtype: bool
         """
-        variable = self.objective[OBJECTIVE_VARIABLE]
+        variable = self.bb[BB_VARIABLE]
         if variable < 0:
             return True
-        value = self.objective[OBJECTIVE_VALUE]
-        bound = self.objective[OBJECTIVE_BOUND]
+        value = self.bb[BB_VALUE]
+        bound = self.bb[BB_BOUND]
         return (
             tighten_objective(self.state, self.trail_log, self.trail_top, self.trail_indices, 0, variable, value, bound)
             >= 0
@@ -398,7 +398,7 @@ class BacktrackSolver(Solver):
             self.compute_domains_addrs,
             self.domain_buffer,
             self.problem.algorithm_flags,
-            self.objective,
+            self.bb,
             self.trail_headroom,
             self.interruption.cell,
             self.propagator_weights,
@@ -437,9 +437,9 @@ class BacktrackSolver(Solver):
         # arm the objective in both modes: OPTIM_RESET applies it at the root, and OPTIM_PRUNE lets backtrack
         # apply it to each choice point the search resumes, so the choice points it kills are dropped as they are
         # reached rather than up front
-        self.objective[OBJECTIVE_VARIABLE] = variable
-        self.objective[OBJECTIVE_BOUND] = bound
-        self.objective[OBJECTIVE_VALUE] = value
+        self.bb[BB_VARIABLE] = variable
+        self.bb[BB_BOUND] = bound
+        self.bb[BB_VALUE] = value
         if mode == OPTIM_RESET:
             logger.debug("Resetting solver")
             self._reset_to_root()
@@ -494,7 +494,7 @@ class BacktrackSolver(Solver):
             self.problem.triggers,
             self.problem.triggers_offsets,
             self.problem.priorities,
-            self.objective,
+            self.bb,
         )
 
     def get_statistics_as_dictionary(self) -> dict[str, int]:

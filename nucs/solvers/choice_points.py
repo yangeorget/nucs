@@ -15,15 +15,15 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
+    BB_BOUND,
+    BB_VALUE,
+    BB_VARIABLE,
     DECISION_EQ,
     DECISION_GT,
     DECISION_LE,
     DOMAIN_MAX,
     DOMAIN_MIN,
     EVENT_MASK_NONE,
-    OBJECTIVE_BOUND,
-    OBJECTIVE_VALUE,
-    OBJECTIVE_VARIABLE,
 )
 from nucs.problems.problem import OFFSETS_STATE, OFFSETS_STATE_HINT
 from nucs.propagators.propagators import update_propagators
@@ -293,7 +293,7 @@ def backtrack(
     triggers: NDArray,
     triggers_offsets: NDArray,
     priorities: NDArray,
-    objective: NDArray,
+    bb: NDArray,
 ) -> bool:
     """
     Backtracks to the deepest choice point that can still hold a solution.
@@ -333,14 +333,14 @@ def backtrack(
     :type triggers_offsets: NDArray
     :param priorities: the propagation queue bucket priorities indexed by propagators
     :type priorities: NDArray
-    :param objective: the objective as a Numpy array of variable, bound and value,
-                      whose variable is -1 when not optimizing
-    :type objective: NDArray
+    :param bb: the branch-and-bound bound as a Numpy array of variable, bound and value,
+               whose variable is -1 when not optimizing
+    :type bb: NDArray
 
     :return: true iff it is possible to backtrack
     :rtype: bool
     """
-    optimized_variable = objective[OBJECTIVE_VARIABLE]
+    optimized_variable = bb[BB_VARIABLE]
     while choice_point_top[0] > 0:
         choice_point_top[0] -= 1
         choice_point = choice_point_top[0]
@@ -377,8 +377,8 @@ def backtrack(
             trail_indices,
             mark,
             optimized_variable,
-            objective[OBJECTIVE_VALUE],
-            objective[OBJECTIVE_BOUND],
+            bb[BB_VALUE],
+            bb[BB_BOUND],
         )
         if events < 0:  # the choice point cannot hold an improving solution, keep popping
             continue

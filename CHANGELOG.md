@@ -27,6 +27,10 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 - **`DEFAULT_SEARCHES` is now `SEARCHES_DEFAULT`**, in `nucs.solvers.searches`, and `FREE_SEARCH_RESTART` is now
   `RESTART_POLICY_FREE_SEARCH`, in `nucs.fzn.search_annotations`. Like `RESTART_POLICY_NEVER`, the names give the kind
   of value first, then which one.
+- **`OBJECTIVE_VARIABLE`, `OBJECTIVE_BOUND`, `OBJECTIVE_VALUE` and `OBJECTIVE_WIDTH` are now `BB_VARIABLE`,
+  `BB_BOUND`, `BB_VALUE` and `BB_WIDTH`**, in `nucs.constants`. They index the branch-and-bound bound, which
+  is now the attribute `BacktrackSolver.bb` (it was `BacktrackSolver.objective`) and the parameter `bb` of
+  `backtrack` and `run_search_loop` (it was `objective`).
 
 ## 19.0.0
 

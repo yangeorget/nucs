@@ -81,7 +81,7 @@ def run_search_loop(
     compute_domains_addrs: NDArray,
     domain_buffer: NDArray,
     algorithm_flags: NDArray,
-    objective: NDArray,
+    bb: NDArray,
     trail_headroom: int,
     interruption: NDArray,
     propagator_weights: NDArray,
@@ -169,9 +169,9 @@ def run_search_loop(
     :param algorithm_flags: the PROP_FLAG_* properties of each algorithm, packed into one word and indexed by
                           algorithm rather than by propagator
     :type algorithm_flags: NDArray
-    :param objective: the objective as a Numpy array of variable, bound and value,
-                      whose variable is -1 when not optimizing
-    :type objective: NDArray
+    :param bb: the branch-and-bound bound as a Numpy array of variable, bound and value,
+               whose variable is -1 when not optimizing
+    :type bb: NDArray
     :param trail_headroom: the trail entries any one node of the search can need
     :type trail_headroom: int
     :param interruption: the one-cell array of an Interruption, non-zero once the search is asked to stop
@@ -319,6 +319,6 @@ def run_search_loop(
                 triggers,
                 triggers_offsets,
                 priorities,
-                objective,
+                bb,
             ):
                 return SOLVER_RUNNING, None

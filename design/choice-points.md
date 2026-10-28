@@ -178,7 +178,7 @@ choice point (see *Optimization*), and if that wipes it out the search pops agai
 
 `solve()` also calls `backtrack` after yielding each solution, which is how iteration resumes: a solution
 is a fully bound choice point, and forcing a backtrack drops to the next pending alternative. `optimize()` does
-the same, having first armed `objective` with the bound the solution establishes.
+the same, having first armed `bb` with the bound the solution establishes.
 
 ## Optimization
 
@@ -188,12 +188,12 @@ what they do to the choice points (`BacktrackSolver._advance_after_optimum`):
 | mode | function | effect |
 |------|----------|--------|
 | `OPTIM_RESET` | `choice_point_init` + `tighten_objective_at_root` | throws the choice points away, restarts from the initial domains with the objective bound tightened at the root |
-| `OPTIM_PRUNE` | arms `objective`, then `backtrack` | keeps the choice points; the bound is re-applied by `backtrack` to each one as it is resumed |
+| `OPTIM_PRUNE` | arms `bb`, then `backtrack` | keeps the choice points; the bound is re-applied by `backtrack` to each one as it is resumed |
 
 `OPTIM_PRUNE` rests on the observation that **the branch-and-bound bound is not backtrackable**. It holds
 for the whole remaining search, so it is solver state rather than choice-point state:
-`_advance_after_optimum` writes it into `objective` (`[OBJ_VARIABLE, OBJ_BOUND, OBJ_VALUE]`, with
-`OBJ_VARIABLE == -1` when not optimizing) and then simply backtracks.
+`_advance_after_optimum` writes it into `bb` (`[BB_VARIABLE, BB_BOUND, BB_VALUE]`, with
+`BB_VARIABLE == -1` when not optimizing) and then simply backtracks.
 
 `backtrack` is what applies it, through `tighten_objective`, to whichever choice point it lands on. The tightening
 is monotone and idempotent, so a choice point resumed twice is tightened once in effect, and one the

@@ -17,7 +17,7 @@ from collections.abc import Generator
 import pytest
 
 from nucs.buckets import buckets_empty
-from nucs.constants import DECISION_EQ, DOMAIN_MAX, DOMAIN_MIN, OBJECTIVE_BOUND, OBJECTIVE_VALUE, OBJECTIVE_VARIABLE
+from nucs.constants import BB_BOUND, BB_VALUE, BB_VARIABLE, DECISION_EQ, DOMAIN_MAX, DOMAIN_MIN
 from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.heuristics.heuristics import (
     DOM_HEURISTIC_MAX_VALUE,
@@ -245,7 +245,7 @@ class TestBacktrackSolver:
             solver.compute_domains_addrs,
             solver.domain_buffer,
             problem.algorithm_flags,
-            solver.objective,
+            solver.bb,
             solver.trail_headroom,
             solver.interruption.cell,
             solver.propagator_weights,
@@ -279,7 +279,7 @@ class TestBacktrackSolver:
             problem.triggers,
             problem.triggers_offsets,
             problem.priorities,
-            solver.objective,
+            solver.bb,
         )
         # back at choice point 1, with variable 1's alternative applied: variable 0 stays at its decision
         assert solver.choice_point_top == 1
@@ -360,9 +360,9 @@ class TestBacktrackSolver:
             DECISION_EQ,
             1,
         )
-        solver.objective[OBJECTIVE_VARIABLE] = 1
-        solver.objective[OBJECTIVE_BOUND] = DOMAIN_MAX
-        solver.objective[OBJECTIVE_VALUE] = 1
+        solver.bb[BB_VARIABLE] = 1
+        solver.bb[BB_BOUND] = DOMAIN_MAX
+        solver.bb[BB_VALUE] = 1
         assert self._backtrack(solver)
         assert solver.domains.tolist() == [[0, 0], [0, 0]]  # both refuted down to their min
         # the reserve is an upper bound, not a tight one: a tightening moving one bound writes less than
@@ -384,7 +384,7 @@ class TestBacktrackSolver:
             solver.problem.triggers,
             solver.problem.triggers_offsets,
             solver.problem.priorities,
-            solver.objective,
+            solver.bb,
         )
 
     def test_find_all_the_level_stack_grows_rather_than_overruns(self) -> None:

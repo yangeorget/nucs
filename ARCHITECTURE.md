@@ -74,7 +74,7 @@ must grow, so one descent can take many calls.
 ## Constants
 
 `nucs/constants.py` holds the constants that several layers share: the protocols that a propagator (`PROP_*`,
-`EVENT_MASK_*`), a domain heuristic (`DECISION_*`) and the solver (`DOMAIN_*`, `OBJECTIVE_*`) are written against, and
+`EVENT_MASK_*`), a domain heuristic (`DECISION_*`) and the solver (`DOMAIN_*`, `BB_*`) are written against, and
 the logging levels. A constant that belongs to one module lives in that module: `CHOICE_POINT_*` in
 `nucs/solvers/choice_points.py`, `OFFSETS_*` and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` and
 `SEARCH_CONTROL_*` in `nucs/solvers/search_loop.py`, `OPTIM_*` in `nucs/solvers/solver.py`,
@@ -218,8 +218,8 @@ root, whether last-conflict is on, the conflict variable, and the variable of th
 - **The objective of the best solution is applied again at the root.** In `OPTIM_RESET`, the bound of the best
   solution is written once, at the root, and a restart undoes it. In `OPTIM_PRUNE`, the bound is armed, but
   `backtrack` only applies it to the choice points that it resumes. So after each restart, `_tighten_objective_at_root`
-  reads the armed bound in `objective` and applies it again, with a mark of 0. Without this, the search would find worse
-  solutions again after each restart. `objective` is armed in both modes: in `OPTIM_RESET`, the root already holds the
+  reads the armed bound in `bb` and applies it again, with a mark of 0. Without this, the search would find worse
+  solutions again after each restart. `bb` is armed in both modes: in `OPTIM_RESET`, the root already holds the
   bound, so `backtrack` finds it applied and changes nothing.
 - **An enumeration stops restarting at its first solution**, because a restart would find the solutions emitted so
   far a second time. Before the first solution, a restart loses nothing.

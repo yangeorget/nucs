@@ -16,7 +16,7 @@
 # problems/problem.py, SOLVER_* in solvers/backtrack_solver.py, OPTIM_* in solvers/solver.py, STATS_* in
 # statistics.py, and each Numba signature with the registry that compiles against it.
 #
-# Index constants are prefixed with the array they index -- DOMAIN_, OBJECTIVE_, CHOICE_POINT_, OFFSETS_,
+# Index constants are prefixed with the array they index -- DOMAIN_, BB_, CHOICE_POINT_, OFFSETS_,
 # STATS_IDX_ -- so that a bare index constant never has to be traced back to find out what it indexes.
 
 # Domain bounds
@@ -54,13 +54,13 @@ PROP_FLAG_REPORTS_CHANGES = 2
 # count_leq_c of arity 3 measured 5-8% slower with one, which is the cost showing up undiluted.
 LIVE_SET_MIN_ARITY = 16
 
-# Objective indices.
+# Branch-and-bound indices, into the bb array of the solver.
 # The branch-and-bound bound is solver state, not choice-point state: it is not backtrackable, so it is
 # re-applied to each choice point as the search resumes it rather than written into them all up front.
-OBJECTIVE_VARIABLE = 0  # index for the variable being optimized, -1 when not optimizing
-OBJECTIVE_BOUND = 1  # index for the side of the optimized domain to tighten
-OBJECTIVE_VALUE = 2  # index for the best value found so far
-OBJECTIVE_WIDTH = 3  # the number of cells of the objective array
+BB_VARIABLE = 0  # index for the variable being optimized, -1 when not optimizing
+BB_BOUND = 1  # index for the side of the optimized domain to tighten
+BB_VALUE = 2  # index for the best value found so far
+BB_WIDTH = 3  # the number of cells of the bb array
 
 # Events
 EVENT_NB = 3
