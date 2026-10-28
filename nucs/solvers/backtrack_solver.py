@@ -145,6 +145,10 @@ class BacktrackSolver(Solver):
             self.choice_point_stk,
             self.choice_point_top,
         ) = allocate_search_arrays(problem)
+        logger.info(
+            f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"
+        )
+        logger.info(f"The trail starts at {len(self.trail_log)} entries and grows when it runs out")
         # the branch-and-bound bound, as OBJECTIVE_VARIABLE, OBJECTIVE_BOUND and OBJECTIVE_VALUE: the variable
         # optimized, the side of its domain to tighten, and the best value found so far. It is solver
         # state, not choice-point state -- the bound holds for the whole remaining search, so backtrack
@@ -157,14 +161,21 @@ class BacktrackSolver(Solver):
         # read by solve_one_step at every node, and written by interrupt() and by the deadline of a search
         self.interruption = Interruption()
         self.restart_policy = restart_policy
-        # the restart limit is drawn by each search, the other cells are reset with the root by _choice_point_init
+        # the restart limit is drawn by each search, the other cells are reset with the root by _reset_to_root
         self.search_control = np.full(SEARCH_CONTROL_WIDTH, -1, dtype=np.int64)
         self.search_control[SEARCH_CONTROL_LAST_CONFLICT] = last_conflict
-        logger.info(
-            f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"
+        self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
+        choice_point_init(
+            self.state,
+            self.entailed,
+            self.trail_top,
+            self.trail_indices,
+            self.choice_point_stk,
+            self.choice_point_top,
+            self.problem.initial_domains,
+            self.problem.unbound_variable_nb,
+            self.problem.offsets,
         )
-        logger.info(f"The trail starts at {len(self.trail_log)} entries and grows when it runs out")
-        self._choice_point_init()
         logger.debug("Choice points initialized")
         logger.debug("Initializing statistics")
         self.statistics = statistics_init(get_algorithm_nb())
@@ -258,8 +269,8 @@ class BacktrackSolver(Solver):
             # no solution yet, so the search has no objective bound; _advance_after_optimum arms it.
             # An enumeration disarms it here too: the solver may have been optimized with before.
             self.objective[OBJECTIVE_VARIABLE] = -1
-            # the failure limits of the descents: each search draws its own, from the first one, and _restart takes
-            # the next one
+            # the failure limits of the descents: each search draws its own, from the first one, and each restart
+            # takes the next one (see _solve_one)
             self.restart_limits = self.restart_policy.limits()
             self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
             # a previous search may have left the root tightened by its objective, or wiped out: start from the
@@ -294,7 +305,11 @@ class BacktrackSolver(Solver):
             elif status == SOLVER_CHOICE_POINTS_FULL:
                 self._grow_choice_points()
             elif status == SOLVER_RESTART:
-                if not self._restart():
+                logger.debug("Restarting")
+                self.statistics[STATS_IDX_SOLVER_RESTART_NB] += 1
+                self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
+                if not self._reset_to_root():
+                    # the root cannot hold a better solution: the best solution so far is proven optimal
                     return None
             elif status == SOLVER_INTERRUPTED:
                 # a timeout and interrupt() both cut the search: what it found is not proven
@@ -307,18 +322,6 @@ class BacktrackSolver(Solver):
             else:
                 raise AssertionError(f"Unknown solver status {status}")
 
-    def _restart(self) -> bool:
-        """
-        Restarts the search from the root, with the next failure limit of the restart policy.
-
-        :return: false when the root cannot hold a better solution, which proves the best solution so far optimal
-        :rtype: bool
-        """
-        logger.debug("Restarting")
-        self.statistics[STATS_IDX_SOLVER_RESTART_NB] += 1
-        self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
-        return self._reset_to_root()
-
     def _reset_to_root(self) -> bool:
         """
         Resets the search to the root and re-applies the best solution so far there.
@@ -329,7 +332,20 @@ class BacktrackSolver(Solver):
         :return: false when the root cannot hold a better solution, which proves the best solution so far optimal
         :rtype: bool
         """
-        self._choice_point_init()
+        self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
+        self.search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = -1
+        self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
+        choice_point_init(
+            self.state,
+            self.entailed,
+            self.trail_top,
+            self.trail_indices,
+            self.choice_point_stk,
+            self.choice_point_top,
+            self.problem.initial_domains,
+            self.problem.unbound_variable_nb,
+            self.problem.offsets,
+        )
         variable = self.objective[OBJECTIVE_VARIABLE]
         if variable >= 0:
             value = self.objective[OBJECTIVE_VALUE]
@@ -432,26 +448,6 @@ class BacktrackSolver(Solver):
             return self._reset_to_root()
         logger.debug("Pruning choice points")
         return self._backtrack()
-
-    def _choice_point_init(self) -> None:
-        """
-        Resets the search to the root: the choice points, and the search control that counts from the root --
-        the failures of the descent, and the conflict variable, which is forgotten.
-        """
-        self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
-        self.search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = -1
-        self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
-        choice_point_init(
-            self.state,
-            self.entailed,
-            self.trail_top,
-            self.trail_indices,
-            self.choice_point_stk,
-            self.choice_point_top,
-            self.problem.initial_domains,
-            self.problem.unbound_variable_nb,
-            self.problem.offsets,
-        )
 
     def _grow_trail(self) -> None:
         """

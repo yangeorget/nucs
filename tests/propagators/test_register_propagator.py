@@ -115,7 +115,7 @@ class TestPropagatorStateIsBacktracked:
         assert solver.state[block] == 0  # allocated cold
         assert len(list(solver.find_all())) == 6
         assert solver.state[block] > 0  # the search left the block written, and the trail is not unwound
-        solver._choice_point_init()  # what OPTIM_RESET does before restarting from the root
+        solver._reset_to_root()  # what OPTIM_RESET and a restart do before they search from the root again
         assert solver.state[block] == 0
 
 
