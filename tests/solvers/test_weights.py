@@ -12,7 +12,7 @@
 ###############################################################################
 import pytest
 
-from nucs.solvers.weights import WEIGHTS_RESCALE_LIMIT, weights_bump, weights_init
+from nucs.solvers.weights import WEIGHTS_INCREMENT, WEIGHTS_RESCALE_LIMIT, weights_bump, weights_init
 
 
 class TestWeights:
@@ -41,11 +41,11 @@ class TestWeights:
 
     def test_weights_bump_rescales_and_keeps_the_ratios(self) -> None:
         weights = weights_init(2, 0.5)
-        weights[2] = WEIGHTS_RESCALE_LIMIT / 3  # the next increment passes the limit
+        weights[WEIGHTS_INCREMENT] = WEIGHTS_RESCALE_LIMIT / 3  # the next increment passes the limit
         weights_bump(weights, 0)
-        assert weights[2] < WEIGHTS_RESCALE_LIMIT
+        assert weights[WEIGHTS_INCREMENT] < WEIGHTS_RESCALE_LIMIT
         # before the rescale: weight 0 = 1 + limit/3, weight 1 = 1, increment = 2 * limit/3
-        assert weights[0] / weights[2] == pytest.approx(
+        assert weights[0] / weights[WEIGHTS_INCREMENT] == pytest.approx(
             (1 + WEIGHTS_RESCALE_LIMIT / 3) / (2 * WEIGHTS_RESCALE_LIMIT / 3)
         )
-        assert weights[1] / weights[2] == pytest.approx(1 / (2 * WEIGHTS_RESCALE_LIMIT / 3))
+        assert weights[1] / weights[WEIGHTS_INCREMENT] == pytest.approx(1 / (2 * WEIGHTS_RESCALE_LIMIT / 3))

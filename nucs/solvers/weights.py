@@ -30,6 +30,10 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
+# the cells after the weights, as indices from the end of the array, so that they do not depend on the number of
+# propagators
+WEIGHTS_INCREMENT = -2  # the increment that the next failure adds
+WEIGHTS_GROWTH = -1  # the factor by which each failure multiplies the increment
 WEIGHTS_RESCALE_LIMIT = 1e100  # the increment above which the weights and the increment are rescaled
 WEIGHTS_RESCALE_FACTOR = 1e-100
 
@@ -50,7 +54,7 @@ def weights_init(propagator_nb: int, decay: float = 1.0) -> NDArray:
     if not 0.0 < decay <= 1.0:
         raise ValueError(f"The weight decay must be in (0, 1], not {decay}")
     weights = np.ones(propagator_nb + 2, dtype=np.float64)
-    weights[propagator_nb + 1] = 1.0 / decay
+    weights[WEIGHTS_GROWTH] = 1.0 / decay
     return weights
 
 
@@ -65,12 +69,11 @@ def weights_bump(propagator_weights: NDArray, propagator: int) -> None:
     :param propagator: the propagator that failed
     :type propagator: int
     """
-    increment_idx = len(propagator_weights) - 2
-    increment = propagator_weights[increment_idx]
+    increment = propagator_weights[WEIGHTS_INCREMENT]
     propagator_weights[propagator] += increment
-    increment *= propagator_weights[increment_idx + 1]
+    increment *= propagator_weights[WEIGHTS_GROWTH]
     if increment > WEIGHTS_RESCALE_LIMIT:
-        for idx in range(increment_idx):
+        for idx in range(len(propagator_weights) + WEIGHTS_INCREMENT):  # the weights, the cells before the increment
             propagator_weights[idx] *= WEIGHTS_RESCALE_FACTOR
         increment *= WEIGHTS_RESCALE_FACTOR
-    propagator_weights[increment_idx] = increment
+    propagator_weights[WEIGHTS_INCREMENT] = increment
