@@ -28,9 +28,9 @@ for contributors are in `design/`; the user documentation is in `docs/`.
   `run_search_loop` (`search_loop.py`), the compiled loop that `BacktrackSolver` calls. The backtrackable state and
   its trail live in `state.py`; `tighten_at` is the only permitted way to write a domain. The stack of choice
   points, built on them, lives in `choice_points.py`. `allocate_search_arrays` (`search_arrays.py`) lays out the
-  state and sizes the trail and the stack for a problem. `Interrupter` (`interrupter.py`) holds the one-cell array
-  that stops the compiled search at its next node, and its two writers:
-  `interrupt()` and the timer of a timeout. To iterate over the solutions, call `solver.solve()`. To optimize, call
+  state and sizes the trail and the stack for a problem. `Interrupter` (`interrupter.py`) holds the two cells that
+  stop the compiled search at its next node, one for each of its two writers: `interrupt()` and the timer of a
+  timeout. To iterate over the solutions, call `solver.solve()`. To optimize, call
   `solver.find_best(var, DOMAIN_MIN)` or `solver.find_best(var, DOMAIN_MAX)`.
 - **`nucs/heuristics/`** — a variable heuristic picks the next unbound decision variable; a domain heuristic picks how
   to split its domain. Both are compiled by Numba against the fixed signatures `SIGN_VAR_HEURISTIC` and

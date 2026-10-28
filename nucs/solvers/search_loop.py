@@ -23,6 +23,7 @@ from nucs.numba_helper import ConsistencyAlgorithmFunctions, DomainHeuristicFunc
 from nucs.problems.problem import PROBLEM_BOUND, PROBLEM_UNBOUND
 from nucs.propagators.propagators import update_propagators
 from nucs.solvers.choice_points import backtrack, branch
+from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, INTERRUPTION_EXTERNAL
 from nucs.solvers.solver import get_solution
 from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_DEPTH, STATS_IDX_SOLVER_CHOICE_NB
 
@@ -174,7 +175,7 @@ def run_search_loop(
     :type bb: NDArray
     :param trail_headroom: the trail entries any one node of the search can need
     :type trail_headroom: int
-    :param interruption: the one-cell array of an Interrupter, non-zero once the search is asked to stop
+    :param interruption: the two cells of an Interrupter, one of them 1 once the search is asked to stop
     :type interruption: NDArray
     :param propagator_weights: the failure weight of each propagator, followed by the increment and its growth
                                (see nucs.solvers.weights)
@@ -192,7 +193,7 @@ def run_search_loop(
     max_choice_point = len(choice_point_stk) - 3  # a ternary split pushes two choice points and marks a third
     while True:
         # checked at every node and before the state is touched, like the two checks below
-        if interruption[0] != 0:
+        if interruption[INTERRUPTION_EXTERNAL] | interruption[INTERRUPTION_DEADLINE]:
             return SOLVER_INTERRUPTED, None
         # checked before the filtering, so that the state the solver restarts from is not a half-done one
         if 0 <= search_control[SEARCH_CONTROL_RESTART_LIMIT] <= search_control[SEARCH_CONTROL_FAILURE_NB]:

@@ -48,7 +48,7 @@ from nucs.solvers.consistency_algorithms import (
     SIGN_CONSISTENCY_ALG,
     get_consistency_algorithm_name,
 )
-from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, Interrupter
+from nucs.solvers.interrupter import INTERRUPTION_EXTERNAL, Interrupter
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
 from nucs.solvers.search_arrays import allocate_search_arrays, get_domain_buffer
 from nucs.solvers.search_loop import (
@@ -306,10 +306,10 @@ class BacktrackSolver(Solver):
             elif status == SOLVER_INTERRUPTED:
                 # a timeout and interrupt() both cut the search: what it found is not proven
                 self.interrupted = True
-                if self.interrupter.cell[0] == INTERRUPTION_DEADLINE:
-                    logger.info("Timeout reached, stopping the search")
-                else:
+                if self.interrupter.cells[INTERRUPTION_EXTERNAL]:
                     logger.info("Interrupted, stopping the search")
+                else:
+                    logger.info("Timeout reached, stopping the search")
                 return None
             else:
                 raise AssertionError(f"Unknown solver status {status}")
@@ -400,7 +400,7 @@ class BacktrackSolver(Solver):
             self.problem.algorithm_flags,
             self.bb,
             self.trail_headroom,
-            self.interrupter.cell,
+            self.interrupter.cells,
             self.propagator_weights,
             self.search_control,
             self.flat_searches.variable_searches,
@@ -411,9 +411,8 @@ class BacktrackSolver(Solver):
         Stops the search at its next node, as if its budget had run out: the iteration ends and
         :attr:`interrupted` is set. The interruption is final, every later search stops at once too.
 
-        Safe to call from another thread or from a signal handler: it takes no lock, it only sets a flag and
-        writes a cell that the compiled search reads, and run_search_loop releases the GIL so that such a thread
-        gets to run.
+        Safe to call from another thread or from a signal handler: it takes no lock, it only writes a cell that
+        the compiled search reads, and run_search_loop releases the GIL so that such a thread gets to run.
         """
         self.interrupter.interrupt()
 

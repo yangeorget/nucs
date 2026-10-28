@@ -11,8 +11,8 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 """
-The interruption of a search: a one-cell array that the compiled search reads at every node, and its two writers,
-interrupt() and a deadline.
+The interruption of a search: a two-cell array that the compiled search reads at every node, one cell for each of
+its two writers, interrupt() and a deadline.
 """
 
 import threading
@@ -20,19 +20,19 @@ from collections.abc import Callable
 
 import numpy as np
 
-# what the cell holds; the compiled search stops on anything non-zero
-INTERRUPTION_NONE = 0
-INTERRUPTION_EXTERNAL = 1  # interrupt(): final, every later search stops too
-INTERRUPTION_DEADLINE = 2  # a timeout: cleared once the search it belongs to is over
+# the cells of the array, one for each writer, which writes 1 there; the compiled search stops when either is 1
+INTERRUPTION_EXTERNAL = 0  # interrupt(): final, every later search stops too
+INTERRUPTION_DEADLINE = 1  # a timeout: cleared once the search it belongs to is over
+INTERRUPTION_WIDTH = 2  # the number of cells
 
 
 class Interrupter:
     """
     Asks a search that runs in compiled code to stop at its next node.
 
-    A call of run_search_loop returns to Python only at a solution, so a cell that it reads itself at every node is
-    the only way to stop it in between. interrupt() writes the cell for good, and a deadline writes it for one
-    search only.
+    A call of run_search_loop returns to Python only at a solution, so cells that it reads itself at every node are
+    the only way to stop it in between. interrupt() writes its cell for good, and a deadline writes its own cell for
+    one search only. Since each writer has its own cell, the clearing of a deadline cannot erase an interrupt().
     """
 
     def __init__(self) -> None:
@@ -40,10 +40,7 @@ class Interrupter:
         Initializes an interrupter that asks nothing yet.
         """
         # read by run_search_loop at every node, and written possibly from another thread
-        self.cell = np.zeros((1,), dtype=np.int32)
-        # set by interrupt() before it writes the cell, and never cleared: the clearing of a deadline restores
-        # INTERRUPTION_EXTERNAL from it, since interrupt() may run between any two bytecodes of that clearing
-        self.interrupted = False
+        self.cells = np.zeros(INTERRUPTION_WIDTH, dtype=np.int32)
         # serializes a deadline timer and the clearing of that deadline, so that the timer cannot write after
         # the clearing; interrupt() takes no lock, since it may run as a signal handler on a thread that holds it
         self.deadline_lock = threading.Lock()
@@ -52,11 +49,9 @@ class Interrupter:
         """
         Asks the search to stop at its next node, and every later search to stop at once.
 
-        Safe to call from another thread or from a signal handler: it takes no lock, it only sets a flag and writes
-        the cell.
+        Safe to call from another thread or from a signal handler: it takes no lock, it only writes its cell.
         """
-        self.interrupted = True  # first: the clearing of a deadline restores the cell from it
-        self.cell[0] = INTERRUPTION_EXTERNAL
+        self.cells[INTERRUPTION_EXTERNAL] = 1
 
     def arm_deadline(self, timeout: float | None) -> Callable[[], None]:
         """
@@ -64,10 +59,10 @@ class Interrupter:
 
         A check of the clock between solutions would not be enough: a call of run_search_loop that finds no
         solution -- a proof of optimality, an infeasible subtree -- never returns to Python, and would run past
-        the budget for as long as it lasts. So the timer writes the same cell as interrupt(), and it is the only
-        check of the budget: a consumer that keeps a solution past it stops the next call at its first node.
-        Unlike interrupt(), the deadline belongs to one search: the returned function cancels the timer and clears
-        what it wrote, leaving an external interruption in place.
+        the budget for as long as it lasts. So the timer writes a cell that the compiled search reads, and it is
+        the only check of the budget: a consumer that keeps a solution past it stops the next call at its first
+        node. Unlike interrupt(), the deadline belongs to one search: the returned function cancels the timer and
+        clears its cell, which leaves the cell of interrupt() as it is.
 
         :param timeout: the search budget in seconds, or None for an unbounded search
         :type timeout: Optional[float]
@@ -81,8 +76,8 @@ class Interrupter:
 
         def expire() -> None:
             with self.deadline_lock:
-                if armed[0] and self.cell[0] == INTERRUPTION_NONE:
-                    self.cell[0] = INTERRUPTION_DEADLINE
+                if armed[0]:
+                    self.cells[INTERRUPTION_DEADLINE] = 1
 
         timer = threading.Timer(max(timeout, 0.0), expire)
         timer.daemon = True
@@ -92,10 +87,6 @@ class Interrupter:
             timer.cancel()
             with self.deadline_lock:
                 armed[0] = False
-                # a test of the cell before the clear would erase an interrupt() that runs between the two:
-                # clear it, then restore the external interruption from the flag that interrupt() sets first
-                self.cell[0] = INTERRUPTION_NONE
-                if self.interrupted:
-                    self.cell[0] = INTERRUPTION_EXTERNAL
+                self.cells[INTERRUPTION_DEADLINE] = 0
 
         return disarm

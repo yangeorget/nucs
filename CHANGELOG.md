@@ -33,7 +33,11 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `backtrack` and `run_search_loop` (it was `objective`).
 - **`Interruption` is now `Interrupter`, in the module `nucs.solvers.interrupter`** (it was
   `nucs.solvers.interruption`), and the attribute `BacktrackSolver.interruption` is now `BacktrackSolver.interrupter`.
-  The object asks the search to stop. The `INTERRUPTION_*` values of its cell do not change.
+  The object asks the search to stop.
+- **An `Interrupter` holds two cells, one for each writer**: `Interrupter.cell` is now `Interrupter.cells`,
+  indexed by `INTERRUPTION_EXTERNAL` and `INTERRUPTION_DEADLINE`, and `run_search_loop` stops when either cell is
+  1. The clearing of a deadline writes only its own cell, so it cannot erase an `interrupt()`, and the flag
+  `Interrupter.interrupted` and the value `INTERRUPTION_NONE` are gone.
 
 ## 19.0.0
 

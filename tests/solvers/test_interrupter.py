@@ -16,7 +16,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from types import CodeType, FrameType
 
-from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, INTERRUPTION_EXTERNAL, INTERRUPTION_NONE, Interrupter
+from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, Interrupter
 
 
 @contextmanager
@@ -62,12 +62,12 @@ def call_before_bytecode(code: CodeType, position: int, callback: Callable[[], N
 
 class TestInterrupter:
     def test_disarm_before_the_timeout_cancels_the_deadline(self) -> None:
-        """A deadline disarmed before it expires never writes the cell, so it cannot stop a later search."""
+        """A deadline disarmed before it expires never writes its cell, so it cannot stop a later search."""
         interrupter = Interrupter()
         disarm = interrupter.arm_deadline(0.05)
         disarm()
-        time.sleep(0.1)  # past the timeout: a timer still armed would have written the cell by now
-        assert interrupter.cell[0] == INTERRUPTION_NONE
+        time.sleep(0.1)  # past the timeout: a timer still armed would have written its cell by now
+        assert interrupter.cells.tolist() == [0, 0]
 
     def test_interrupt_inside_disarm_is_kept(self) -> None:
         """An interrupt() that runs in the middle of disarm, as a signal handler can, is not lost."""
@@ -91,11 +91,11 @@ class TestInterrupter:
         interrupter = Interrupter()
         disarm = interrupter.arm_deadline(0.0)
         start = time.monotonic()
-        while interrupter.cell[0] != INTERRUPTION_DEADLINE and time.monotonic() - start < 1:
+        while not interrupter.cells[INTERRUPTION_DEADLINE] and time.monotonic() - start < 1:
             time.sleep(0.001)
-        assert interrupter.cell[0] == INTERRUPTION_DEADLINE
+        assert interrupter.cells.tolist() == [0, 1]
         with call_before_bytecode(disarm.__code__, position, interrupter.interrupt) as opcode_nb:
             disarm()
-        expected = INTERRUPTION_NONE if position < 0 else INTERRUPTION_EXTERNAL
-        assert interrupter.cell[0] == expected, f"interrupt() at bytecode {position} of disarm"
+        expected = [0, 0] if position < 0 else [1, 0]
+        assert interrupter.cells.tolist() == expected, f"interrupt() at bytecode {position} of disarm"
         return opcode_nb[0]
