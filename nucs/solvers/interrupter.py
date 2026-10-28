@@ -26,7 +26,7 @@ INTERRUPTION_EXTERNAL = 1  # interrupt(): final, every later search stops too
 INTERRUPTION_DEADLINE = 2  # a timeout: cleared once the search it belongs to is over
 
 
-class Interruption:
+class Interrupter:
     """
     Asks a search that runs in compiled code to stop at its next node.
 
@@ -37,7 +37,7 @@ class Interruption:
 
     def __init__(self) -> None:
         """
-        Initializes an interruption that asks nothing yet.
+        Initializes an interrupter that asks nothing yet.
         """
         # read by run_search_loop at every node, and written possibly from another thread
         self.cell = np.zeros((1,), dtype=np.int32)

@@ -174,7 +174,7 @@ def run_search_loop(
     :type bb: NDArray
     :param trail_headroom: the trail entries any one node of the search can need
     :type trail_headroom: int
-    :param interruption: the one-cell array of an Interruption, non-zero once the search is asked to stop
+    :param interruption: the one-cell array of an Interrupter, non-zero once the search is asked to stop
     :type interruption: NDArray
     :param propagator_weights: the failure weight of each propagator, followed by the increment and its growth
                                (see nucs.solvers.weights)

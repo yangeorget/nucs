@@ -48,7 +48,7 @@ from nucs.solvers.consistency_algorithms import (
     SIGN_CONSISTENCY_ALG,
     get_consistency_algorithm_name,
 )
-from nucs.solvers.interruption import INTERRUPTION_DEADLINE, Interruption
+from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, Interrupter
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
 from nucs.solvers.search_arrays import allocate_search_arrays, get_domain_buffer
 from nucs.solvers.search_loop import (
@@ -158,7 +158,7 @@ class BacktrackSolver(Solver):
         # bound, so backtrack finds it applied and changes nothing.
         self.bb = np.full(BB_WIDTH, -1, dtype=np.int32)
         # read by run_search_loop at every node, and written by interrupt() and by the deadline of a search
-        self.interruption = Interruption()
+        self.interrupter = Interrupter()
         self.restart_policy = restart_policy
         # the restart limit is drawn by each search, the other cells are reset with the root by _reset_to_root
         self.search_control = np.full(SEARCH_CONTROL_WIDTH, -1, dtype=np.int64)
@@ -254,7 +254,7 @@ class BacktrackSolver(Solver):
         :rtype: Iterator[NDArray]
         """
         self.interrupted = False
-        disarm = self.interruption.arm_deadline(timeout)
+        disarm = self.interrupter.arm_deadline(timeout)
         try:
             t0 = time.perf_counter_ns()
             # no solution yet, so the search has no objective bound; _advance_after_optimum arms it.
@@ -306,7 +306,7 @@ class BacktrackSolver(Solver):
             elif status == SOLVER_INTERRUPTED:
                 # a timeout and interrupt() both cut the search: what it found is not proven
                 self.interrupted = True
-                if self.interruption.cell[0] == INTERRUPTION_DEADLINE:
+                if self.interrupter.cell[0] == INTERRUPTION_DEADLINE:
                     logger.info("Timeout reached, stopping the search")
                 else:
                     logger.info("Interrupted, stopping the search")
@@ -400,7 +400,7 @@ class BacktrackSolver(Solver):
             self.problem.algorithm_flags,
             self.bb,
             self.trail_headroom,
-            self.interruption.cell,
+            self.interrupter.cell,
             self.propagator_weights,
             self.search_control,
             self.flat_searches.variable_searches,
@@ -415,7 +415,7 @@ class BacktrackSolver(Solver):
         writes a cell that the compiled search reads, and run_search_loop releases the GIL so that such a thread
         gets to run.
         """
-        self.interruption.interrupt()
+        self.interrupter.interrupt()
 
     def _advance_after_optimum(self, variable: int, value: int, bound: int, mode: str) -> bool:
         """

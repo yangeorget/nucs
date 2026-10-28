@@ -31,6 +31,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `BB_BOUND`, `BB_VALUE` and `BB_WIDTH`**, in `nucs.constants`. They index the branch-and-bound bound, which
   is now the attribute `BacktrackSolver.bb` (it was `BacktrackSolver.objective`) and the parameter `bb` of
   `backtrack` and `run_search_loop` (it was `objective`).
+- **`Interruption` is now `Interrupter`, in the module `nucs.solvers.interrupter`** (it was
+  `nucs.solvers.interruption`), and the attribute `BacktrackSolver.interruption` is now `BacktrackSolver.interrupter`.
+  The object asks the search to stop. The `INTERRUPTION_*` values of its cell do not change.
 
 ## 19.0.0
 
