@@ -154,7 +154,7 @@ class BacktrackSolver(Solver):
         # re-applies it to each choice point it resumes rather than it being written into them all when it
         # is found, and nothing about it is trailed. A return to the root applies it there too, with a mark of 0.
         # OBJECTIVE_VARIABLE stays -1 until the first solution of an optimization, which is how backtrack and
-        # _reset_to_root know there is no bound to apply. In OPTIM_RESET, the root already holds the bound, so
+        # _tighten_objective_at_root know there is no bound to apply. In OPTIM_RESET, the root already holds the bound, so
         # backtrack finds it applied and changes nothing.
         self.objective = np.full(OBJECTIVE_WIDTH, -1, dtype=np.int32)
         # read by solve_one_step at every node, and written by interrupt() and by the deadline of a search
@@ -163,19 +163,8 @@ class BacktrackSolver(Solver):
         # the restart limit is drawn by each search, the other cells are reset with the root by _reset_to_root
         self.search_control = np.full(SEARCH_CONTROL_WIDTH, -1, dtype=np.int64)
         self.search_control[SEARCH_CONTROL_LAST_CONFLICT] = last_conflict
-        self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
         logger.debug("Initializing choice points")
-        choice_point_init(
-            self.state,
-            self.entailed,
-            self.trail_top,
-            self.trail_indices,
-            self.choice_point_stk,
-            self.choice_point_top,
-            self.problem.initial_domains,
-            self.problem.unbound_variable_nb,
-            self.problem.offsets,
-        )
+        self._reset_to_root()
         logger.debug("Choice points initialized")
         logger.debug("Initializing statistics")
         self.statistics = statistics_init(get_algorithm_nb())
@@ -310,7 +299,8 @@ class BacktrackSolver(Solver):
                 logger.debug("Restarting")
                 self.statistics[STATS_IDX_SOLVER_RESTART_NB] += 1
                 self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
-                if not self._reset_to_root():
+                self._reset_to_root()
+                if not self._tighten_objective_at_root():
                     # the root cannot hold a better solution: the best solution so far is proven optimal
                     return None
             elif status == SOLVER_INTERRUPTED:
@@ -324,15 +314,12 @@ class BacktrackSolver(Solver):
             else:
                 raise AssertionError(f"Unknown solver status {status}")
 
-    def _reset_to_root(self) -> bool:
+    def _reset_to_root(self) -> None:
         """
-        Resets the search to the root and re-applies the best solution so far there.
+        Resets the search to the root: the initial domains, no choice point, every propagator in the queue, and the
+        search control that counts from the root -- the failures of the descent and the conflict variable.
 
-        What the search learned stays: the propagator weights are not reset. The objective is tightened with a mark
-        of 0, since the reset undoes every tightening above it: what this writes is undone only by the next reset.
-
-        :return: false when the root cannot hold a better solution, which proves the best solution so far optimal
-        :rtype: bool
+        What the search learned stays: the propagator weights are not reset.
         """
         self.search_control[SEARCH_CONTROL_FAILURE_NB] = 0
         self.search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = -1
@@ -348,21 +335,29 @@ class BacktrackSolver(Solver):
             self.problem.unbound_variable_nb,
             self.problem.offsets,
         )
-        variable = self.objective[OBJECTIVE_VARIABLE]
-        if variable >= 0:
-            value = self.objective[OBJECTIVE_VALUE]
-            bound = self.objective[OBJECTIVE_BOUND]
-            if (
-                tighten_objective(
-                    self.state, self.trail_log, self.trail_top, self.trail_indices, 0, variable, value, bound
-                )
-                < 0
-            ):
-                return False
         # the search may have stopped at a failure: the failed filtering left propagators in the queue, and backtrack
         # added more, which buckets_init removes before it adds every propagator
         buckets_init(self.triggered_propagators, self.problem.priorities)
-        return True
+
+    def _tighten_objective_at_root(self) -> bool:
+        """
+        Applies the bound of the best solution so far at the root, after _reset_to_root, when the objective is armed.
+
+        The objective is tightened with a mark of 0, since the reset undoes every tightening above it: what this
+        writes is undone only by the next reset. Its events schedule nobody, since every propagator is in the queue.
+
+        :return: false when the root cannot hold a better solution, which proves the best solution so far optimal
+        :rtype: bool
+        """
+        variable = self.objective[OBJECTIVE_VARIABLE]
+        if variable < 0:
+            return True
+        value = self.objective[OBJECTIVE_VALUE]
+        bound = self.objective[OBJECTIVE_BOUND]
+        return (
+            tighten_objective(self.state, self.trail_log, self.trail_top, self.trail_indices, 0, variable, value, bound)
+            >= 0
+        )
 
     def _solve_one_step(self) -> tuple[int, NDArray | None]:
         """
@@ -447,7 +442,8 @@ class BacktrackSolver(Solver):
         self.objective[OBJECTIVE_VALUE] = value
         if mode == OPTIM_RESET:
             logger.debug("Resetting solver")
-            return self._reset_to_root()
+            self._reset_to_root()
+            return self._tighten_objective_at_root()
         logger.debug("Pruning choice points")
         # the search resumes on a refutation, and a failure that follows one does not name a conflict variable
         self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
