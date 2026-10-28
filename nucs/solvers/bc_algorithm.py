@@ -143,19 +143,19 @@ def bc_algorithm(
     # the choice point's mark is loaded once: choice_point_top does not move during a filtering, and neither does the
     # mark of the choice point it is filtering
     mark = choice_point_stk[choice_point, CHOICE_POINT_TRAIL_MARK]
-    unbound = unbound_index(state)
+    unbound_idx = unbound_index(state)
     # the trail size lives in a local for the whole filtering and is published on the way out. Nothing
     # outside this function reads it before then, and keeping it out of memory takes a load and a store
     # off every bound the propagation narrows.
     trail_size = trail_top[0]
-    entailed_index = len(domains) << 1  # the entailment flags follow the domain bounds in state
+    entailed_idx = len(domains) << 1  # the entailment flags follow the domain bounds in state
     statistics[STATS_IDX_ALG_BC_NB] += 1
     membership_offset = STORAGE_OFFSET + len(priorities)
     while True:
         prop_idx = buckets_pop(triggered_propagators, membership_offset)
         if prop_idx == -1:
             trail_top[0] = trail_size
-            return PROBLEM_BOUND if state[unbound] == 0 else PROBLEM_UNBOUND
+            return PROBLEM_BOUND if state[unbound_idx] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         algorithm = algorithms[prop_idx]
         # the per-algorithm tail of the statistics array: which algorithms the calls (and, below, the
@@ -194,7 +194,7 @@ def bc_algorithm(
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
-            trail_size = record_entailment(entailed, trail_log, trail_indices, trail_size, entailed_index, prop_idx)
+            trail_size = record_entailment(entailed, trail_log, trail_indices, trail_size, entailed_idx, prop_idx)
         if reports_changes and status == PROP_CONSISTENCY and state[prop_state_hint] == 0:
             # the propagator wrote no domain, so update_domains would scan every variable only to find
             # no event and schedule nobody: skip it outright
@@ -299,7 +299,7 @@ def trail_state_prefix(
 
 @njit(cache=True, inline="always")
 def record_entailment(
-    entailed: NDArray, trail_log: NDArray, trail_indices: NDArray, trail_size: int, entailed_index: int, prop_idx: int
+    entailed: NDArray, trail_log: NDArray, trail_indices: NDArray, trail_size: int, entailed_idx: int, prop_idx: int
 ) -> int:
     """
     Sets a propagator's entailment flag, trailing it on the first time only.
@@ -315,8 +315,8 @@ def record_entailment(
     :type trail_indices: NDArray
     :param trail_size: the number of entries currently on the trail
     :type trail_size: int
-    :param entailed_index: where the entailment flags start in state
-    :type entailed_index: int
+    :param entailed_idx: where the entailment flags start in state
+    :type entailed_idx: int
     :param prop_idx: the propagator
     :type prop_idx: int
 
@@ -324,7 +324,7 @@ def record_entailment(
     :rtype: int
     """
     if not entailed[prop_idx]:
-        trail_size = trail_push(trail_log, trail_indices, trail_size, entailed_index + prop_idx, 0)
+        trail_size = trail_push(trail_log, trail_indices, trail_size, entailed_idx + prop_idx, 0)
         entailed[prop_idx] = 1
     return trail_size
 

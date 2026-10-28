@@ -238,7 +238,9 @@ def tighten_at(
         events |= EVENT_MASK_MAX
     if events != EVENT_MASK_NONE and old_min != old_max and new_min == new_max:
         events |= EVENT_MASK_GROUND
-        unbound = unbound_index(state)
-        old_unbound = state[unbound]
-        trail_size = trail_set(state, trail_log, trail_indices, mark, trail_size, unbound, old_unbound, old_unbound - 1)
+        unbound_idx = unbound_index(state)
+        old_unbound = state[unbound_idx]
+        trail_size = trail_set(
+            state, trail_log, trail_indices, mark, trail_size, unbound_idx, old_unbound, old_unbound - 1
+        )
     return events, trail_size
