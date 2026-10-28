@@ -83,9 +83,6 @@ class BacktrackSolver(Solver):
     A solver relying on a backtracking mechanism.
     """
 
-    # the failure limits of the descents; each search draws its own, from the first one (see _iterate_solutions)
-    restart_limits: Iterator[int]
-
     def __init__(
         self,
         problem: Problem,
@@ -261,6 +258,8 @@ class BacktrackSolver(Solver):
             # no solution yet, so the search has no objective bound; _advance_after_optimum arms it.
             # An enumeration disarms it here too: the solver may have been optimized with before.
             self.objective[OBJECTIVE_VARIABLE] = -1
+            # the failure limits of the descents: each search draws its own, from the first one, and _restart takes
+            # the next one
             self.restart_limits = self.restarts.limits()
             self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
             # a previous search may have left the root tightened by its objective, or wiped out: start from the
