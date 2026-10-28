@@ -10,12 +10,13 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+import numpy as np
 import pytest
 
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT
 from nucs.solvers.choice_points import CHOICE_POINT_WIDTH
-from nucs.solvers.search_arrays import STEP_TIGHTENING_NB, allocate_search_arrays
+from nucs.solvers.search_arrays import STEP_TIGHTENING_NB, allocate_search_arrays, double_rows
 from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB
 
 
@@ -57,3 +58,11 @@ class TestSearchArrays:
         _, _, _, _, trail_log, _, _, choice_point_stk, _ = allocate_search_arrays(problem)
         assert trail_log.shape == (trail_size, 2)
         assert choice_point_stk.shape == (stack_height, CHOICE_POINT_WIDTH)
+
+    @pytest.mark.parametrize("width", [2, CHOICE_POINT_WIDTH])  # a row of the trail, a row of the stack
+    def test_double_rows_keeps_the_rows(self, width: int) -> None:
+        array = np.arange(3 * width, dtype=np.int32).reshape(3, width)
+        grown = double_rows(array)
+        assert grown.shape == (6, width)
+        assert grown.dtype == np.int32
+        assert grown[:3].tolist() == array.tolist()

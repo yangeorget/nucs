@@ -40,7 +40,7 @@ from nucs.propagators.propagators import (
     get_algorithm_names,
     get_algorithm_nb,
 )
-from nucs.solvers.choice_points import CHOICE_POINT_WIDTH, backtrack, choice_point_init, tighten_objective
+from nucs.solvers.choice_points import backtrack, choice_point_init, tighten_objective
 from nucs.solvers.consistency_algorithms import (
     CONSISTENCY_ALG_BC,
     CONSISTENCY_ALG_FCTS,
@@ -49,7 +49,7 @@ from nucs.solvers.consistency_algorithms import (
 )
 from nucs.solvers.interrupter import INTERRUPTION_EXTERNAL, Interrupter
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
-from nucs.solvers.search_arrays import allocate_domain_buffer, allocate_search_arrays
+from nucs.solvers.search_arrays import allocate_domain_buffer, allocate_search_arrays, double_rows
 from nucs.solvers.search_loop import (
     SEARCH_CONTROL_CONFLICT_VARIABLE,
     SEARCH_CONTROL_DECISION_VARIABLE,
@@ -458,9 +458,7 @@ class BacktrackSolver(Solver):
         (2 x domain_nb + 1) entries -- would hand back the memory this representation wins, and a hard failure
         would end a long optimization run for no reason.
         """
-        trail = np.empty((2 * len(self.trail_log), 2), dtype=np.int32)
-        trail[: len(self.trail_log)] = self.trail_log
-        self.trail_log = trail
+        self.trail_log = double_rows(self.trail_log)
         logger.info(f"The trail grew to {len(self.trail_log)} entries")
 
     def _grow_choice_points(self) -> None:
@@ -469,9 +467,7 @@ class BacktrackSolver(Solver):
 
         Nothing of the search is lost: the stack keeps its rows.
         """
-        choice_point_stk = np.zeros((2 * len(self.choice_point_stk), CHOICE_POINT_WIDTH), dtype=np.int32)
-        choice_point_stk[: len(self.choice_point_stk)] = self.choice_point_stk
-        self.choice_point_stk = choice_point_stk
+        self.choice_point_stk = double_rows(self.choice_point_stk)
         logger.info(f"The stack of choice points grew to a maximal height of {len(self.choice_point_stk)}")
 
     def _backtrack(self) -> bool:

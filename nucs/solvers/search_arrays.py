@@ -105,6 +105,24 @@ def allocate_search_arrays(
     )
 
 
+def double_rows(array: NDArray) -> NDArray:
+    """
+    Returns a copy of an array with twice its rows, for the trail or the stack of choice points when it is full.
+
+    The rows that follow the copy are not initialized: the search writes each row of these arrays before it reads
+    it, and the rows it has written are all in the copy.
+
+    :param array: the array, which keeps its type and the shape of its rows
+    :type array: NDArray
+
+    :return: the larger array
+    :rtype: NDArray
+    """
+    grown = np.empty((2 * len(array), *array.shape[1:]), dtype=array.dtype)
+    grown[: len(array)] = array
+    return grown
+
+
 def allocate_domain_buffer(offsets: NDArray) -> NDArray:
     """
     Allocates a reusable scratch buffer for prop_domains to avoid one allocation per propagator call.
