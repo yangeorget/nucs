@@ -63,7 +63,7 @@ from nucs.solvers.search_loop import (
     SOLVER_RESTART,
     SOLVER_RUNNING,
     SOLVER_TRAIL_FULL,
-    solve_one_step,
+    run_search_loop,
 )
 from nucs.solvers.searches import SEARCHES_DEFAULT, Search, flatten_searches
 from nucs.solvers.solver import OPTIM_RESET, Solver, format_timeout
@@ -157,7 +157,7 @@ class BacktrackSolver(Solver):
         # _tighten_objective_at_root know there is no bound to apply. In OPTIM_RESET, the root already holds the
         # bound, so backtrack finds it applied and changes nothing.
         self.objective = np.full(OBJECTIVE_WIDTH, -1, dtype=np.int32)
-        # read by solve_one_step at every node, and written by interrupt() and by the deadline of a search
+        # read by run_search_loop at every node, and written by interrupt() and by the deadline of a search
         self.interruption = Interruption()
         self.restart_policy = restart_policy
         # the restart limit is drawn by each search, the other cells are reset with the root by _reset_to_root
@@ -179,7 +179,7 @@ class BacktrackSolver(Solver):
         self.compute_domains_addrs = addresses_from_functions(
             COMPUTE_DOMAINS_FCTS, SIGN_COMPUTE_DOMAINS, np.unique(self.problem.algorithms), ALG_DUMMY
         )
-        # the function tables threaded into solve_one_step: Numba typed lists under the JIT, plain Python lists
+        # the function tables threaded into run_search_loop: Numba typed lists under the JIT, plain Python lists
         # otherwise
         if NUMBA_DISABLE_JIT:
             self.consistency_alg_fcts = [CONSISTENCY_ALG_FCTS[consistency_algorithm]]
@@ -271,7 +271,7 @@ class BacktrackSolver(Solver):
                 self.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] += time.perf_counter_ns() - t0
                 yield solution
                 t0 = time.perf_counter_ns()
-                # no check of the budget here: the timer stops the next call of solve_one_step at its first node,
+                # no check of the budget here: the timer stops the next call of run_search_loop at its first node,
                 # and a search that advance() finds over has nothing left that a timeout could have cut
                 if not advance(solution):
                     break
@@ -288,7 +288,7 @@ class BacktrackSolver(Solver):
         :rtype: Optional[NDArray]
         """
         while True:
-            status, solution = self._solve_one_step()
+            status, solution = self._run_search_loop()
             if status == SOLVER_RUNNING:
                 return solution
             if status == SOLVER_TRAIL_FULL:
@@ -359,14 +359,14 @@ class BacktrackSolver(Solver):
             >= 0
         )
 
-    def _solve_one_step(self) -> tuple[int, NDArray | None]:
+    def _run_search_loop(self) -> tuple[int, NDArray | None]:
         """
-        Runs one step of the search by forwarding the solver state to the jitted solve_one_step.
+        Runs the compiled search loop until it returns, by forwarding the solver state to the jitted run_search_loop.
 
-        :return: why the step returned, and the solution when it found one
+        :return: why the loop returned, and the solution when it found one
         :rtype: Tuple[int, Optional[NDArray]]
         """
-        return solve_one_step(
+        return run_search_loop(
             self.statistics,
             self.problem.algorithms,
             self.problem.priorities,
@@ -412,7 +412,7 @@ class BacktrackSolver(Solver):
         :attr:`interrupted` is set. The interruption is final, every later search stops at once too.
 
         Safe to call from another thread or from a signal handler: it takes no lock, it only sets a flag and
-        writes a cell that the compiled search reads, and solve_one_step releases the GIL so that such a thread
+        writes a cell that the compiled search reads, and run_search_loop releases the GIL so that such a thread
         gets to run.
         """
         self.interruption.interrupt()

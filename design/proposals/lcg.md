@@ -285,7 +285,7 @@ Two features do not fit, and the design keeps them out of the LCG mode:
 
 ### 3.1 A separate solver path
 
-The LCG mode is a separate solver class, `LcgSolver`, with its own compiled step (`solve_one_step_lcg`) and its own
+The LCG mode is a separate solver class, `LcgSolver`, with its own compiled step (`run_search_loop_lcg`) and its own
 propagation loop (`lcg_algorithm`). It shares the propagators, the heuristics, the state, the undo trail, the
 choice-point stack and the restarts with `BacktrackSolver`.
 

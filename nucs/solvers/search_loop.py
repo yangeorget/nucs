@@ -26,7 +26,7 @@ from nucs.solvers.choice_points import backtrack, branch
 from nucs.solvers.solver import get_solution
 from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_DEPTH, STATS_IDX_SOLVER_CHOICE_NB
 
-# Capacity outcomes of a search step.
+# Why run_search_loop returned.
 # The trail and the choice point stack are caller-allocated, so they cannot grow inside @njit. Rather than
 # sizing them for a worst case that never happens -- depth x (2 x domain_nb + 1) entries, which would
 # give back the memory this representation wins -- the search stops and says which one is full, and the
@@ -49,7 +49,7 @@ SEARCH_CONTROL_WIDTH = 5
 
 
 @njit(cache=True, nogil=True)
-def solve_one_step(
+def run_search_loop(
     statistics: NDArray,
     algorithms: NDArray,
     priorities: NDArray,
@@ -91,12 +91,12 @@ def solve_one_step(
     """
     Searches for one solution, stopping early when an array it cannot grow runs out of room.
 
-    It is a step rather than the whole search because the trail and the choice point stack belong to the
+    It returns before the end of the search because the trail and the choice point stack belong to the
     caller: when either fills up, the returned status names it and no solution comes back, for _next_solution
     to grow that array and call again. Nothing of the search is lost in between.
 
     The status is returned rather than written into a one-cell array because nothing inside @njit reads
-    it -- it is the reason the step stopped, and only the Python caller acts on it. A solution alone
+    it -- it is the reason the loop stopped, and only the Python caller acts on it. A solution alone
     cannot carry that reason: None means both "the search is over" and "grow an array and call me again".
 
     Expects the propagation queue to already hold the propagators that need to run: the callers enqueue
@@ -172,7 +172,7 @@ def solve_one_step(
     :param objective: the objective as a Numpy array of variable, bound and value,
                       whose variable is -1 when not optimizing
     :type objective: NDArray
-    :param trail_headroom: the trail entries any one step of the search can need
+    :param trail_headroom: the trail entries any one node of the search can need
     :type trail_headroom: int
     :param interruption: the one-cell array of an Interruption, non-zero once the search is asked to stop
     :type interruption: NDArray
@@ -184,7 +184,7 @@ def solve_one_step(
     :param variable_searches: the search that owns each variable, -1 for a variable no search branches on
     :type variable_searches: NDArray
 
-    :return: why the step returned, and the solution when it found one
+    :return: why the loop returned, and the solution when it found one
     :rtype: Tuple[int, Optional[NDArray]]
     """
     consistency_alg_fct = consistency_alg_fcts[0]

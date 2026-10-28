@@ -30,7 +30,7 @@ class Interruption:
     """
     Asks a search that runs in compiled code to stop at its next node.
 
-    A call of solve_one_step returns to Python only at a solution, so a cell that it reads itself at every node is
+    A call of run_search_loop returns to Python only at a solution, so a cell that it reads itself at every node is
     the only way to stop it in between. interrupt() writes the cell for good, and a deadline writes it for one
     search only.
     """
@@ -39,7 +39,7 @@ class Interruption:
         """
         Initializes an interruption that asks nothing yet.
         """
-        # read by solve_one_step at every node, and written possibly from another thread
+        # read by run_search_loop at every node, and written possibly from another thread
         self.cell = np.zeros((1,), dtype=np.int32)
         # set by interrupt() before it writes the cell, and never cleared: the clearing of a deadline restores
         # INTERRUPTION_EXTERNAL from it, since interrupt() may run between any two bytecodes of that clearing
@@ -62,7 +62,7 @@ class Interruption:
         """
         Starts a timer that stops the search at its next node once the timeout has elapsed.
 
-        A check of the clock between solutions would not be enough: a call of solve_one_step that finds no
+        A check of the clock between solutions would not be enough: a call of run_search_loop that finds no
         solution -- a proof of optimality, an infeasible subtree -- never returns to Python, and would run past
         the budget for as long as it lasts. So the timer writes the same cell as interrupt(), and it is the only
         check of the budget: a consumer that keeps a solution past it stops the next call at its first node.

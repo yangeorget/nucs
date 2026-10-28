@@ -45,7 +45,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.choice_points import CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_VARIABLE, backtrack, branch
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
 from nucs.solvers.search_arrays import STEP_TIGHTENING_NB
-from nucs.solvers.search_loop import SOLVER_RUNNING, solve_one_step
+from nucs.solvers.search_loop import SOLVER_RUNNING, run_search_loop
 from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
 from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB, tighten_at
@@ -203,7 +203,7 @@ class TestBacktrackSolver:
         assert statistics[STATS_LBL_SOLUTION_NB] == 10000
         assert statistics[STATS_LBL_SOLVER_CHOICE_DEPTH] == 2
 
-    def test_solve_one_step(self) -> None:
+    def test_run_search_loop(self) -> None:
         """The state a solution leaves behind, and what backtracking restores of it.
 
         This used to assert the opposite property: that every choice point kept its own snapshot and that
@@ -213,7 +213,7 @@ class TestBacktrackSolver:
         problem = Problem([(0, 1), (0, 1)])
         solver = BacktrackSolver(problem)
         buckets_empty(solver.triggered_propagators, problem.priorities)
-        status, solution = solve_one_step(
+        status, solution = run_search_loop(
             solver.statistics,
             problem.algorithms,
             problem.priorities,
@@ -685,7 +685,7 @@ class TestBacktrackSolver:
         A three-way split (DOM_HEURISTIC_MID_VALUE, a DECISION_EQ) makes two choice points siblings
         holding disjoint objective ranges, so minimizing wiped the shallower one and the count-based drop
         discarded the survivor. The resulting choice point had an empty domain that no variable heuristic could
-        claim and no propagator noticed, and solve_one_step span forever on an empty queue.
+        claim and no propagator noticed, and run_search_loop span forever on an empty queue.
         Only maximization was covered before, which wipes the deeper choice point first and so never hit it.
         """
         expected = [
