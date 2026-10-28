@@ -15,7 +15,7 @@ import pytest
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.search import Search
+from nucs.solvers.searches import Search
 from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 

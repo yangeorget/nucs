@@ -20,7 +20,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 - **`RESTART_NONE` is now `RESTART_NEVER`, and `NO_RESTARTS` is now `RESTART_POLICY_NEVER`.** The first is the name of
   the policy, the second the policy object that `BacktrackSolver` uses by default. The value of `RESTART_NEVER` stays
   `"none"`, so `fzn-nucs --restart none` does not change.
-- **`DEFAULT_SEARCHES` is now `SEARCHES_DEFAULT`**, in `nucs.solvers.search`, and `FREE_SEARCH_RESTART` is now
+- **The module `nucs.solvers.search` is now `nucs.solvers.searches`.** Replace
+  `from nucs.solvers.search import Search` with `from nucs.solvers.searches import Search`.
+- **`DEFAULT_SEARCHES` is now `SEARCHES_DEFAULT`**, in `nucs.solvers.searches`, and `FREE_SEARCH_RESTART` is now
   `RESTART_POLICY_FREE_SEARCH`, in `nucs.fzn.search_annotations`. Like `RESTART_POLICY_NEVER`, the names give the kind
   of value first, then which one.
 

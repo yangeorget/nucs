@@ -43,7 +43,7 @@ from nucs.solvers.restart_policies import (
     RESTART_POLICY_NEVER,
     RestartPolicy,
 )
-from nucs.solvers.search import SEARCHES_DEFAULT, Search
+from nucs.solvers.searches import SEARCHES_DEFAULT, Search
 
 logger = logging.getLogger(__name__)
 

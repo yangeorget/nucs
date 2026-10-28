@@ -43,7 +43,7 @@ from nucs.solvers.restart_policies import (
     RESTART_LUBY,
     RestartPolicy,
 )
-from nucs.solvers.search import SEARCHES_DEFAULT
+from nucs.solvers.searches import SEARCHES_DEFAULT
 from tests.fzn.fzn_test import solve_fzn
 
 

@@ -17,7 +17,7 @@ from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistenc
 from nucs.heuristics.heuristics import VAR_HEURISTIC_DOM_WDEG
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import register_consistency_algorithm
-from nucs.solvers.search import Search
+from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
 
 

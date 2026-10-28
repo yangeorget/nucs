@@ -16,7 +16,7 @@ from nucs.constants import DOMAIN_MAX
 from nucs.examples.knapsack.knapsack_problem import KnapsackProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.search import Search
+from nucs.solvers.searches import Search
 
 
 class TestKnapsack:

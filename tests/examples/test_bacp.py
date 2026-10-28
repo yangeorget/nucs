@@ -18,7 +18,7 @@ from nucs.constants import DOMAIN_MIN
 from nucs.examples.bacp.bacp_problem import BACPProblem
 from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.search import Search
+from nucs.solvers.searches import Search
 
 
 class TestBACP:

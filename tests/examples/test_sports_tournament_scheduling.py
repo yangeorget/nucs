@@ -15,7 +15,7 @@ from nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_pro
 )
 from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.search import Search
+from nucs.solvers.searches import Search
 
 
 class TestSportsTournamentScheduling:

@@ -17,7 +17,7 @@ import pytest
 from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC
-from nucs.solvers.search import Search
+from nucs.solvers.searches import Search
 
 
 class TestDefaultArgumentParser:

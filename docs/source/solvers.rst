@@ -29,7 +29,7 @@ A backtracking solver accepts the additional following parameters:
 * the consistency algorithm to use (bound consistency is used by default)
 * a list of searches, explored in order (by default, a single search on all the variables)
 
-Each :code:`Search` (:mod:`nucs.solvers.search`) gives:
+Each :code:`Search` (:mod:`nucs.solvers.searches`) gives:
 
 * its decision variables (all the variables by default)
 * a heuristic to choose a variable (the first non instantiated is chosen by default)

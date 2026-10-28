@@ -15,7 +15,7 @@ from nucs.examples.magic_square.magic_square_problem import MagicSquareProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_RANDOM_VALUE, VAR_HEURISTIC_DOM_WDEG
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
-from nucs.solvers.search import Search
+from nucs.solvers.searches import Search
 
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.magic_square -n 6 --symmetry-breaking

@@ -14,7 +14,7 @@
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_CRITICAL_RESOURCE
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ADD_C_EQ, ALG_DISJUNCTIVE, ALG_LINEAR_LEQ_C, ALG_MAX_EQ
-from nucs.solvers.search import Search
+from nucs.solvers.searches import Search
 
 
 class JobShopProblem(Problem):

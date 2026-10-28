@@ -14,7 +14,7 @@ from nucs.constants import DOMAIN_MAX
 from nucs.examples.employee_scheduling.employee_scheduling_problem import EmployeeSchedulingProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.search import Search
+from nucs.solvers.searches import Search
 
 
 class TestEmployeeScheduling:

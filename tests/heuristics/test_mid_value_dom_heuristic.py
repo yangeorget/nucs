@@ -13,7 +13,7 @@
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MID_VALUE
 from nucs.problems.problem import Problem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.search import Search
+from nucs.solvers.searches import Search
 
 
 class TestMidValueDomHeuristic:

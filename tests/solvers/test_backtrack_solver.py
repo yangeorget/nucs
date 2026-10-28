@@ -44,9 +44,9 @@ from nucs.propagators.propagators import (
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.choice_points import CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_VARIABLE, backtrack, branch
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
-from nucs.solvers.search import Search
 from nucs.solvers.search_arrays import STEP_TIGHTENING_NB
 from nucs.solvers.search_loop import SOLVER_RUNNING, solve_one_step
+from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
 from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB, tighten_at
 from nucs.statistics import (

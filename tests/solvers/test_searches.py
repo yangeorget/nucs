@@ -18,10 +18,10 @@ from nucs.heuristics.heuristics import (
     VAR_HEURISTIC_FIRST_NOT_INSTANTIATED,
     VAR_HEURISTIC_SMALLEST_DOMAIN,
 )
-from nucs.solvers.search import Search, flatten_searches, format_variables
+from nucs.solvers.searches import Search, flatten_searches, format_variables
 
 
-class TestSearch:
+class TestSearches:
     def test_flatten_searches(self) -> None:
         """Each search is one part of every flat array, and a variable belongs to the first search that lists it."""
         searches = [

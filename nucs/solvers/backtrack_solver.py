@@ -50,7 +50,6 @@ from nucs.solvers.consistency_algorithms import (
 )
 from nucs.solvers.interruption import INTERRUPTION_DEADLINE, Interruption
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
-from nucs.solvers.search import SEARCHES_DEFAULT, Search, flatten_searches
 from nucs.solvers.search_arrays import allocate_search_arrays, get_domain_buffer
 from nucs.solvers.search_loop import (
     SEARCH_CONTROL_CONFLICT_VARIABLE,
@@ -66,6 +65,7 @@ from nucs.solvers.search_loop import (
     SOLVER_TRAIL_FULL,
     solve_one_step,
 )
+from nucs.solvers.searches import SEARCHES_DEFAULT, Search, flatten_searches
 from nucs.solvers.solver import OPTIM_RESET, Solver, format_timeout
 from nucs.solvers.weights import weights_init
 from nucs.statistics import (
