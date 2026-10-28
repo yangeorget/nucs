@@ -130,6 +130,31 @@ def park_alternative(
     choice_point_stk[choice_point, CHOICE_POINT_VALUE] = value
 
 
+@njit(cache=True, inline="always")
+def bounds_after_tightening(domain_min: int, domain_max: int, bound: int, value: int) -> tuple[int, int]:
+    """
+    Returns a domain once one of its bounds is tightened to a value.
+
+    A value that does not tighten the bound leaves it as it is. The domain that this returns can be empty: the
+    caller decides what an empty domain means.
+
+    :param domain_min: the min of the domain
+    :type domain_min: int
+    :param domain_max: the max of the domain
+    :type domain_max: int
+    :param bound: the side of the domain to tighten, DOMAIN_MIN or DOMAIN_MAX
+    :type bound: int
+    :param value: the value to tighten that side to
+    :type value: int
+
+    :return: the new min and the new max of the domain
+    :rtype: Tuple[int, int]
+    """
+    if bound == DOMAIN_MIN:
+        return max(value, domain_min), domain_max
+    return domain_min, min(value, domain_max)
+
+
 @njit(cache=True)
 def branch(
     state: NDArray,
@@ -266,12 +291,9 @@ def tighten_objective(
     :rtype: int
     """
     cell_idx = variable << 1
-    if bound == DOMAIN_MIN:
-        new_min = max(value + 1, state[cell_idx])
-        new_max = state[cell_idx | 1]
-    else:
-        new_min = state[cell_idx]
-        new_max = min(value - 1, state[cell_idx | 1])
+    # strictly better than the best value so far
+    better = value + 1 if bound == DOMAIN_MIN else value - 1
+    new_min, new_max = bounds_after_tightening(state[cell_idx], state[cell_idx | 1], bound, better)
     if new_min > new_max:
         return -1
     events, trail_size = tighten_at(state, trail_log, trail_indices, mark, trail_top[0], variable, new_min, new_max)
@@ -349,12 +371,12 @@ def backtrack(
         trail_undo(state, trail_log, trail_indices, trail_top, mark)
         variable = choice_point_stk[choice_point, CHOICE_POINT_VARIABLE]
         cell_idx = variable << 1
-        if choice_point_stk[choice_point, CHOICE_POINT_BOUND] == DOMAIN_MIN:
-            new_min = max(choice_point_stk[choice_point, CHOICE_POINT_VALUE], state[cell_idx])
-            new_max = state[cell_idx | 1]
-        else:
-            new_min = state[cell_idx]
-            new_max = min(choice_point_stk[choice_point, CHOICE_POINT_VALUE], state[cell_idx | 1])
+        new_min, new_max = bounds_after_tightening(
+            state[cell_idx],
+            state[cell_idx | 1],
+            choice_point_stk[choice_point, CHOICE_POINT_BOUND],
+            choice_point_stk[choice_point, CHOICE_POINT_VALUE],
+        )
         events, trail_size = tighten_at(state, trail_log, trail_indices, mark, trail_top[0], variable, new_min, new_max)
         trail_top[0] = trail_size
         if events != EVENT_MASK_NONE:
