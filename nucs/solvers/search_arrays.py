@@ -119,8 +119,5 @@ def allocate_domain_buffer(offsets: NDArray) -> NDArray:
     :return: a scratch buffer sized to the maximal propagator arity
     :rtype: NDArray
     """
-    max_arity = np.int64(0)
-    for propagator_idx in range(len(offsets) - 1):
-        arity = np.int64(offsets[propagator_idx + 1, OFFSETS_VARIABLE] - offsets[propagator_idx, OFFSETS_VARIABLE])
-        max_arity = max(max_arity, arity)
+    max_arity = int(np.diff(offsets[:, OFFSETS_VARIABLE]).max(initial=0))
     return np.empty((max_arity, 2), dtype=np.int32)
