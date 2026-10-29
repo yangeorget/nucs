@@ -286,9 +286,11 @@ class BacktrackSolver(Solver):
             if status == SOLVER_RUNNING:
                 return solution
             if status == SOLVER_TRAIL_FULL:
-                self._grow_trail()
+                self.trail_log = double_rows(self.trail_log)
+                logger.info(f"The trail grew to {len(self.trail_log)} entries")
             elif status == SOLVER_CHOICE_POINTS_FULL:
-                self._grow_choice_points()
+                self.choice_point_stk = double_rows(self.choice_point_stk)
+                logger.info(f"The stack of choice points grew to a maximal height of {len(self.choice_point_stk)}")
             elif status == SOLVER_RESTART:
                 logger.debug("Restarting")
                 self.statistics[STATS_IDX_SOLVER_RESTART_NB] += 1
@@ -448,27 +450,6 @@ class BacktrackSolver(Solver):
         # the search resumes on a refutation, and a failure that follows one does not name a conflict variable
         self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
         return self._backtrack()
-
-    def _grow_trail(self) -> None:
-        """
-        Doubles the trail, which the search ran out of, and lets the search continue.
-
-        Nothing of the search is lost. The trail keeps its contents, so every mark and every position in
-        trail_indices still addresses the same entry. Sizing the trail for its worst case instead -- depth x
-        (2 x domain_nb + 1) entries -- would hand back the memory this representation wins, and a hard failure
-        would end a long optimization run for no reason.
-        """
-        self.trail_log = double_rows(self.trail_log)
-        logger.info(f"The trail grew to {len(self.trail_log)} entries")
-
-    def _grow_choice_points(self) -> None:
-        """
-        Doubles the stack of choice points, which the search ran out of, and lets the search continue.
-
-        Nothing of the search is lost: the stack keeps its rows.
-        """
-        self.choice_point_stk = double_rows(self.choice_point_stk)
-        logger.info(f"The stack of choice points grew to a maximal height of {len(self.choice_point_stk)}")
 
     def _backtrack(self) -> bool:
         """
