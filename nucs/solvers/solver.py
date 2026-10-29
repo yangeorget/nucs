@@ -115,6 +115,14 @@ class Solver(ABC):
         """
         ...
 
+    @abstractmethod
+    def interrupt(self) -> None:
+        """
+        Stops the search at its next node, as if its budget had run out: the iteration ends and
+        :attr:`interrupted` is set. The interruption is final, every later search stops at once too.
+        """
+        ...
+
     def optimize_all(
         self,
         variable: int,
