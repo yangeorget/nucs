@@ -113,8 +113,10 @@ form.
 
 ### 1.4 Decision levels and the implication trail
 
-Each decision opens a new **decision level**. The root is level 0, the first decision is level 1, and so on. In NuCS,
-the decision level is the depth of the choice-point stack (`choice_point_top`).
+Each decision opens a new **decision level**. The root is level 0, the first decision is level 1, and so on. In the
+LCG mode of NuCS, the decision level is the depth of the choice-point stack (`choice_point_top`), because each level
+has one choice point (4.2). This is not true in `BacktrackSolver`: there, an `EQ` decision inside the domain parks
+two alternatives and pushes two choice points (`branch` in `choice_points.py`).
 
 The **implication trail** is the list of all the literals that became true, in the order in which they became true.
 Each entry records:
@@ -263,7 +265,7 @@ Several decisions that NuCS made for other reasons fit LCG well:
 | the failure weights in `weights.py`, with increment growth and rescale | the same mechanism gives the decay of the activities |
 | restarts (`restarts.py`) and the restart of the objective bound | CDCL needs restarts; they exist |
 | arrays that grow when full (`SOLVER_TRAIL_FULL`, `SOLVER_CHOICE_POINTS_FULL`) | the clause store and the new trail grow in the same way |
-| FlatZinc clauses are `SUM_GEQ_C` / `LINEAR_GEQ_C` over 0/1 variables (`_post_clause`) | the explanation of the linear propagators also explains all the clauses of a model |
+| FlatZinc clauses are `SUM_GEQ_C`, `SUM_LEQ_C` or `LINEAR_GEQ_C` over 0/1 variables (`_post_clause`; `SUM_LEQ_C` when all the literals are negative) | the explanation of the linear propagators also explains all the clauses of a model |
 
 Two features do not fit, and the design keeps them out of the LCG mode:
 
@@ -348,9 +350,9 @@ Column meanings:
 choice point (the write barrier in `design/choice-points.md`). That is correct for an undo log, but conflict analysis needs
 every change. The undo trail stays as it is, and restores `state` as before.
 
-**Writes.** Each call of `tighten_at` in the LCG loop that moves a bound adds one row. `update_domains` writes the
-final bounds of one propagator call, so a call that moves a bound several times internally adds only one row for
-it.
+**Writes.** Each call of `tighten_at` in the LCG loop adds one row for each bound that it moves: zero, one or two
+rows, because `tighten_at` writes `new_min` and `new_max` together. `update_domains` writes the final bounds of one
+propagator call, so a call that moves a bound several times internally adds only one row for it.
 
 **Backjumping to level `L`.** The solver pops the rows from `lit_top - 1` down to `level_start[L + 1]`. For each popped
 row, it sets `lit_last[VAR_SIDE] = PREV`. The cost is one step for each popped row, the same as for the undo trail.
@@ -365,7 +367,7 @@ along one branch. It grows by doubling when full, as the undo trail does (a new 
 | `REASON_DECISION` | — | — | a decision of the search |
 | `REASON_PROPAGATOR` | the propagator | the first row of the propagator call | a propagator made the change |
 | `REASON_CLAUSE` | the clause | — | a learned clause made the change |
-| `REASON_ROOT` | — | — | a fact at level 0, for example the bound of the best objective; never explained |
+| `REASON_ROOT` | — | — | a fact that holds for the rest of the search, for example the bound of the best objective (4.7); never explained |
 
 `REASON_POS` is what makes lazy explanations possible. To explain a change, the solver needs the bounds that the
 propagator *read* when it made the change. These are the bounds of its variables at row `REASON_POS`. The solver
@@ -382,6 +384,7 @@ The clauses are in flat arrays, CSR style, as the propagator tables are:
 | `clause_info` | `(C, CLAUSE_WIDTH)` | int32 | `[LBD, ACTIVITY_BUCKET, DELETED]` |
 | `watch_head` | `(2 * domain_nb,)` | int32 | for each `var_side`, the first watch of the literals that a change of this bound can make false |
 | `watches` | `(W, WATCH_WIDTH)` | int32 | linked watch entries: `[CLAUSE, VALUE, NEXT]` |
+| `unit_lits` | `(U, 2)` | int32 | the learned clauses with one literal: `[var_side, value]`; they have no watches (4.7) |
 
 **Which bound wakes which watch.** A literal `[x >= v]` becomes false when the *upper* bound of `x` goes below `v`.
 Thus its watch is in the list of `(x, MAX)`. A literal `[x <= v]` becomes false when the lower bound goes above `v`;
@@ -484,7 +487,10 @@ Rules:
   `[x >= 4]` when the propagator set `[x >= 6]`. A weaker literal often has a shorter explanation.
 - The literals of the explanation must be true in `domains`. The engine checks this in the debug mode (7.3).
 - With `var_idx == -1`, the function explains a failure: the literals in `out` must not all hold.
-- The function does not need the propagator state (`prop_state`): the hints do not change the result by contract.
+- The explanation can use only the bounds at `REASON_POS`, never a bound that the same call set. A propagator that
+  loops inside one call must take this into account (5.2).
+- The function does not get the hint suffix of the propagator state: the hints do not change the result by
+  contract. The trailed prefix (Tier B) is different: see Part 2 and question 7 of 8.2.
 
 **The fallback explanation.** A propagator without `explain` gets `explain_naive`. For each of its variables, it
 writes `[x >= min]` if `min` is above the root minimum, and `[x <= max]` if `max` is below the root maximum. This is
@@ -539,6 +545,11 @@ Two points are specific to bound literals:
   nothing to do with `[x >= 3]`. Using the wrong row gives wrong levels, and wrong assertion levels.
 - **Several literals on one bound merge into one.** In a nogood, `[x >= 2]` and `[x >= 3]` together mean `[x >= 3]`.
 
+**A conflict can have no literal of the current level.** Example: the nogood `{[obj >= f]}` of 4.7, when `obj`
+became fixed at a lower level. The 1UIP walk above needs at least one literal of the current level. Thus the
+solver first backjumps to the highest level among the literals of the nogood, and then does the analysis at that
+level. If all the literals of the nogood are at level 0, the problem has no (more) solutions.
+
 The analysis also bumps the activity of every variable that it marks (Part 6).
 
 ### 4.6 Backjumping
@@ -548,7 +559,8 @@ After the analysis, with assertion level `L`:
 1. `trail_undo` to the mark of the choice point at level `L`. This restores `state`, as a backtrack does.
 2. Pop the rows of `lit_trail` above `level_start[L + 1]`, and fix `lit_last` (3.3).
 3. Set `choice_point_top` to `L`.
-4. Add the learned clause to the store, with watches on the asserting literal and on the literal of level `L`.
+4. Add the learned clause to the store, with watches on the asserting literal and on the literal of level `L`. A
+   clause with one literal goes into `unit_lits` instead (4.7).
 5. Set the asserting literal (the negation of the UIP) with `tighten_at`, with `REASON_CLAUSE`.
 6. Propagate.
 
@@ -557,14 +569,27 @@ If the learned clause is empty, or its asserting literal fails at level 0, the p
 ### 4.7 Optimization and enumeration
 
 - **Optimization.** When a solution with objective `f` is found (minimization), the bound `[obj <= f - 1]` holds for
-  the rest of the search. The LCG mode adds it as a level-0 fact (`REASON_ROOT`). The current node violates it, which
-  is a conflict with the nogood `{[obj >= f]}`. The normal analysis then learns why `obj` was so large, and jumps
-  back. This replaces both `OPTIM_RESET` and `OPTIM_PRUNE`: the bound is a fact, and the analysis decides how far to
-  go back.
+  the rest of the search. It cannot be a row of level 0. A write made deep in the tree is on the undo trail, and a
+  backtrack removes it. For this reason, `backtrack` today applies the bound again at each choice point that the
+  search resumes (`tighten_objective` in `choice_points.py`). The LCG mode resumes no alternative. Thus it applies
+  the bound again after each backjump, and after each restart (as `_tighten_objective_at_root` does). Each
+  application adds a row with `REASON_ROOT` at the current level. The analysis drops such a row as it drops a
+  level-0 fact (4.5), and a backjump below it removes it.
+
+  The current node violates the bound: this is a conflict with the nogood `{[obj >= f]}`. This nogood can have no
+  literal of the current level; 4.5 gives the rule for that case. The normal analysis then learns why `obj` was so
+  large, and jumps back. This replaces both `OPTIM_RESET` and `OPTIM_PRUNE`: the bound is a fact, and the analysis
+  decides how far to go back.
 - **Enumeration.** After a solution, the solver adds the nogood of the decision literals of the current path, and
   analyses it as a conflict. Enumeration stays complete, and no solution comes twice. Restarts stop at the first
   solution, as today.
-- **Restarts.** A restart is a backjump to level 0. The learned clauses and the activities stay.
+- **Restarts.** A restart is a backjump to level 0. The learned clauses and the activities stay. But the level-0
+  facts that the search learned do not stay. `_reset_to_root` (`backtrack_solver.py`) calls `choice_point_init`,
+  which writes `problem.initial_domains` back into `state`. The propagation at the root finds again the facts that
+  come from the propagators and from the clauses with two or more literals. It does not find the clauses with one
+  literal: they have no second watch, and nothing wakes them. Thus the LCG mode keeps them in `unit_lits` (3.5), and
+  applies them again after each reset, before the root propagation. Without this, the solver of 1.11 forgets
+  `v = 0` at the first restart.
 
 ## Part 5 — Explanations, propagator by propagator
 
@@ -577,7 +602,7 @@ each problem weighs 1):
 | 2 | `LEQ_C_IMP` (`b -> x <= c`) | 1.19 | rect-euler (81%), saeling (37%) | trivial |
 | 3 | `REGULAR` | 1.00 | nonogram (100%) | hard; fallback first, then an MDD-style explanation ([gange-mdd]) or a decomposition |
 | 4 | `LINEAR_NEQ_C` | 0.67 | gcc-benchmark (67%) | simple on bounds |
-| 5 | `LINEAR_EQ_C`, `LINEAR_GEQ_C`, `SUM_GEQ_C`, `LINEAR_LEQ_C` | 0.9 together | saeling, mcm, rect-euler, and every clause of a model | standard linear explanation |
+| 5 | `LINEAR_EQ_C`, `LINEAR_GEQ_C`, `SUM_GEQ_C`, `LINEAR_LEQ_C` (and `SUM_LEQ_C`, not in the share) | 0.9 together | saeling, mcm, rect-euler, and every clause of a model | standard linear explanation |
 | 6 | `ELEMENT_L_EQ`, `ELEMENT_EQ` | 0.43 | orthorio (39%) | no dedicated paper; derive it from the decomposition |
 | 7 | `MEMBER` | 0.24 | gcc-benchmark | trivial |
 | 8 | `EQ_C_REIF`, `LEQ_C_REIF`, `NEQ_C_IMP` | 0.39 together | orthorio, saeling | trivial |
@@ -624,8 +649,23 @@ solvers uses the same idea ([achterberg]).
 weaker, more general explanation. That is the *finesse* option of Chuffed. The first version does not lift; a later
 stage can measure it.
 
-`LINEAR_EQ_C` is two inequalities. `SUM_GEQ_C` and the clauses of FlatZinc (`_post_clause`) are the case with all
-`a_i = 1` over 0/1 variables. For a clause, the explanation is exactly the other literals of the clause.
+`SUM_GEQ_C`, `SUM_LEQ_C` and the clauses of FlatZinc (`_post_clause`) are the case with all `a_i = 1` over 0/1
+variables. For a clause, the explanation is exactly the other literals of the clause.
+
+**`LINEAR_EQ_C` and the propagators that loop inside one call.** `LINEAR_EQ_C` is two inequalities, but its
+propagator does not apply them one after the other. It loops inside one call (`linear_eq_c_propagator.py`) until
+neither side changes a bound. Thus it can raise `min_k` with the `>=` side, and then use the new `min_k` in the
+`<=` side to lower `max_j`. The trail gets one row for each bound at the end of the call, and an explanation can
+use only the bounds at `REASON_POS` (4.3). The new `min_k` is not true at `REASON_POS`. Thus the rule above, with
+one bound for each other term, is **not correct** for `LINEAR_EQ_C`: the explanation of `[x_j <= v]` must also
+contain the literals that raised `min_k`, which are upper bounds of the other terms. There are two options:
+
+- explain from the box at `REASON_POS`, with both bounds of each term that the loop used: correct, but longer;
+- record a row for each step of the loop, each with its own `REASON_POS` inside the call: shorter explanations,
+  but more rows and a change to `update_domains`.
+
+Stage 2 starts with the first option, and measures the mean length of the clauses before it tries the second. The
+same problem applies to every propagator that loops inside one call. The brute-force test of 7.2 finds this error.
 
 ### 5.3 The other propagators of the list
 
@@ -711,7 +751,12 @@ The tests follow the `write-tests` skill: oracles where bugs hide in corners, an
   literal. For a failure, check that no tuple satisfies the constraint. This extends
   `PropagatorTest.assert_sound_against_brute_force`.
 - **Learned clauses are valid.** On small models whose solutions can be enumerated without LCG, run the LCG search
-  and check that every solution satisfies every learned clause.
+  and check each learned clause against the solutions that it must keep:
+  - in a search for the first solution, every solution;
+  - during enumeration, only the solutions not found yet when the clause was learned, because the clauses that come
+    from the blocking nogoods (4.7) remove the solutions found before;
+  - during optimization, only the solutions better than the best one when the clause was learned, because the
+    clauses that come from the objective bound remove the others.
 - **Same answers.** The number of solutions with and without LCG is the same on the examples (queens, magic_square,
   langford, and so on). The optimum with and without LCG is the same (golomb, knapsack, tsp gr17, jobshop mt06).
 - **Without the JIT.** The suite runs with `NUMBA_DISABLE_JIT=1` (the CI does it on each push).
@@ -722,9 +767,17 @@ The tests follow the `write-tests` skill: oracles where bugs hide in corners, an
 A wrong explanation gives a wrong learned clause, and a wrong learned clause removes solutions. The answer is then
 wrong, and nothing shows it. This is the largest risk of LCG.
 
-The debug mode checks each explanation when the analysis asks for it: it rebuilds the box of the explanation, calls
-the propagator on it, and checks that the propagator sets the literal (or fails). The tests run with this mode on.
-The production runs run with it off.
+The debug mode checks each explanation when the analysis asks for it. It rebuilds the box of the explanation, and
+calls the propagator on it until nothing changes. One call is not sufficient, for two reasons: some propagators are
+not idempotent (`idempotent=False` in `register_propagator`), and the box of an explanation is larger than the box at
+`REASON_POS`, so one call can set a weaker literal.
+
+- If the propagator sets the literal (or fails), the explanation is correct.
+- If it does not, the explanation can still be correct: an exact explanation can use reasoning that the propagator
+  does not do. On a small box, the debug mode then enumerates the tuples, as the brute-force test of 7.2 does, and
+  decides. On a large box, it reports the explanation as suspicious, not as wrong.
+
+The tests run with this mode on. The production runs run with it off.
 
 ### 7.4 Measurements
 
