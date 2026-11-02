@@ -466,6 +466,18 @@ Their results map to literals:
 The choice point keeps its trail mark (`CHOICE_POINT_TRAIL_MARK`). It parks **no alternative**: the learned clause
 replaces the refutation (1.7).
 
+**The second literal of an interior `EQ`.** The propagation of `[x >= v]` can change `x` before the solver opens the
+next level. Then:
+
+- if `[x <= v]` is already true (`x` is fixed to `v`), the solver opens no second level;
+- if `[x <= v]` is false (the propagation raised `x.min` above `v`), the solver opens no second level, and asks the
+  heuristics for a new decision.
+
+**The refutation of an interior `EQ`.** A conflict under the second level, with the decision `[x <= v]` as UIP,
+gives a clause that asserts `[x >= v + 1]` at the first level. The other side, `[x <= v - 1]`, is not a single bound
+literal, so no clause asserts it at once. The search stays complete: a later conflict refutes `[x >= v]` itself.
+But the search does not visit the values in the same order as `BacktrackSolver` (question 3 of 8.2).
+
 ### 4.3 Explanations
 
 A propagator can give an `explain` function to `register_propagator`:
@@ -499,8 +511,21 @@ correct for every sound propagator. The reason: the propagator removed no soluti
 naive explanation needs no monotonicity and no idempotence. It is only long.
 
 **The cost of a lazy explanation.** To explain a row, the engine rebuilds the bounds of the propagator's variables
-at `REASON_POS`, from the chains of `lit_trail`, and calls `explain`. This happens only during conflict analysis, and
-only for the rows that the analysis visits.
+at `REASON_POS`, and calls `explain`. This happens only during conflict analysis, and only for the rows that the
+analysis visits.
+
+A walk on the `PREV` chains to rebuild these bounds costs the length of each chain, for each variable of the
+propagator. For a large linear constraint, or for the objective, whose chain is long, the analysis can then cost
+more than the search. The analysis walks `lit_trail` down (4.5), so a cheaper method is possible:
+
+- keep a scratch copy of the bounds, equal to `state` when the analysis starts;
+- each time that the walk passes a row, write back into the copy the value that the bound had before the row: the
+  `VALUE` of its `PREV` row, or the root value if `PREV` is `-1`;
+- to explain a row, also undo in the copy the rows of the same call that are below it (they start at its
+  `REASON_POS`), call `explain`, then apply these rows again.
+
+Each row of the trail then costs O(1) for the walk, and each explanation costs the number of rows of its own call.
+The first version can use the chains. Change to the scratch copy if the analysis time shows the need.
 
 ### 4.4 Clause propagation
 
@@ -556,7 +581,9 @@ The analysis also bumps the activity of every variable that it marks (Part 6).
 
 After the analysis, with assertion level `L`:
 
-1. `trail_undo` to the mark of the choice point at level `L`. This restores `state`, as a backtrack does.
+1. `trail_undo` to `choice_point_stk[L, CHOICE_POINT_TRAIL_MARK]`: the trail size just before the decision of
+   level `L + 1`. This restores `state` to the end of level `L`, as a backtrack does. The mark of the choice point
+   that opened level `L` (index `L - 1`) is one level too low: it would also undo the decision of level `L`.
 2. Pop the rows of `lit_trail` above `level_start[L + 1]`, and fix `lit_last` (3.3).
 3. Set `choice_point_top` to `L`.
 4. Add the learned clause to the store, with watches on the asserting literal and on the literal of level `L`. A
@@ -673,7 +700,9 @@ same problem applies to every propagator that loops inside one call. The brute-f
   the forbidden value is at a bound of the last one. The explanation: the fixed values of the others (two literals
   each), and the bound of the last variable that touches the forbidden value.
 - **`MEMBER`**, `x in S`: it moves a bound of `x` past the values that are not in `S`. The explanation of
-  `[x >= v']` is `[x >= v]`, where `v` is the bound before the move.
+  `[x >= w]` is `[x >= s + 1]`, where `s` is the largest value of `S` below `w`. If no value of `S` is below `w`,
+  the constraint alone forces the literal, and the explanation is empty. The bound before the move would also be
+  correct, but it is stronger, so the learned clause would be less general. The same rule explains the upper bound.
 - **`ELEMENT_EQ` / `ELEMENT_L_EQ`**, `z = a[i]`: the bounds of `z` come from the bounds of the elements in the range
   of `i`, and the bounds of `i` come from the elements that cannot equal `z`. The explanation: the bounds of `i`, and
   the bounds of the elements that the inference used. There is no dedicated paper; write the explanation from the
@@ -718,8 +747,10 @@ that the earlier descents learned. `fzn-nucs -f` uses dom/wdeg, last-conflict an
 ### 6.4 Clause database reduction
 
 At each restart, if the store holds more than a limit of clauses, the solver deletes half of the clauses with the
-highest LBD, except the clauses that are the reason of a row of the trail. The limit grows slowly with the number of
-conflicts ([glucose]). The first version can keep all the clauses, and add the reduction when memory or propagation
+highest LBD. The limit grows slowly with the number of conflicts ([glucose]). SAT solvers keep the clauses that are
+the reason of a row of the trail. At a restart, only the rows of level 0 are left, and the analysis never explains
+them (4.5). Thus no clause is a reason at a restart, and the reduction needs no such test. A reduction at another
+time would need it. The first version can keep all the clauses, and add the reduction when memory or propagation
 time shows the need.
 
 ## Part 7 — Stages, tests and measurements
@@ -731,7 +762,7 @@ instances (120 s), with the same harness as the benchmark above (`rerun_arm.py`)
 
 | stage | content | gate |
 |---|---|---|
-| 1. Infrastructure | `LcgSolver`, `lit_trail` and reasons, decisions as literals, fallback explanations only, 1UIP analysis, backjumping, clause store with two watched literals. The search heuristics stay as they are. | all the tests of 7.2 pass; the search tree is smaller than without LCG on most of the 16 instances; the number of nodes per second stays above half of the current rate |
+| 1. Infrastructure | `LcgSolver`, `lit_trail` and reasons, decisions as literals, fallback explanations only, 1UIP analysis, backjumping, clause store with two watched literals. The search heuristics stay as they are. | all the tests of 7.2 pass; on most of the instances that both runs solve, the search tree is smaller than without LCG; on the other instances, the best objective or the time to the first solution is better; the number of nodes per second stays above half of the current rate |
 | 2. Exact explanations | the propagators of Part 5, in the order of the table | the learned clauses are shorter (mean length); the results move toward Chuffed with annotations (8 / 4 / 4 against NuCS) |
 | 3. Search | activity, saved values, restarts; `fzn-nucs -f` in the LCG mode | the results move toward Chuffed `-f` (13 / 1 / 2 against NuCS) |
 | 4. Scale | clause database reduction; explanations for `circuit_chains`, `disjunctive`, `cumulative` | no loss on atp-stage2 and tdtsp; the memory stays bounded on long runs |
@@ -809,7 +840,9 @@ Follow the method of the earlier performance work:
 2. **Activities in the weights array, or a new argument?** (6.1). The first keeps `SIGN_VAR_HEURISTIC`; the second is
    clearer but is a major version.
 3. **`EQ` decisions as two levels** (4.2). Chuffed uses equality literals for this. Two bound literals on two levels
-   is correct, but it doubles the levels for value-by-value searches. Measure on sdn-chain and mcm.
+   is correct, but it doubles the levels for value-by-value searches. Also, a learned clause can refute only one
+   side of `x = v` at once (4.2), so the search visits the values in a different order. Measure on sdn-chain and
+   mcm.
 4. **`regular`: explanation or decomposition?** (5.3). nonogram decides.
 5. **Should the LCG mode become the default of `fzn-nucs`** when it wins on the 16 medium instances? And of `-f`
    only, or also of the annotated search?
