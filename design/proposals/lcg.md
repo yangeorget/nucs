@@ -696,6 +696,43 @@ contain the literals that raised `min_k`, which are upper bounds of the other te
 Stage 2 starts with the first option, and measures the mean length of the clauses before it tries the second. The
 same problem applies to every propagator that loops inside one call. The brute-force test of 7.2 finds this error.
 
+**A third option: remove the loop.** Six propagators are idempotent because they loop inside one call:
+`linear_eq_c`, `mul_eq`, `element_l_eq_alldifferent`, `gcc`, `circuit_chains` and `subcircuit`. Without the loop, a
+propagator does one pass and is registered with `idempotent=False`, so the engine calls it again after each call
+that changed a bound. Each call then reads only the bounds at its `REASON_POS`, and a one-step explanation is
+correct. The cost of this change was measured on 2026-11-02 (base `7bf10c7`), with the protocol of
+`design/benchmarking.md`: each variant against the base, 5 to 10 repetitions in random order, a random-length
+environment variable for each run, and `queens` as the control. Each FlatZinc model ran for a fixed budget of
+failures, so both builds did the same work. All the trees were the same in both builds.
+
+| propagator | subject | calls of the propagator | time, without / with the loop |
+|---|---|---|---|
+| `linear_eq_c` | kitchen | +78% | **1.30** |
+| `linear_eq_c` | atp-stage2 | +66% | **1.13** |
+| `linear_eq_c` | gbac | +8% | **1.08** |
+| `linear_eq_c` | tdtsp | +21% | 1.00 |
+| `gcc` | sports `-n 10`, `SMALLEST_DOMAIN` | +16% | **1.08** |
+| `gcc` | gcc-benchmark | +0.3% | 0.98 |
+| `mul_eq` | nside | +0.1% | 0.98 |
+| `mul_eq` | gbac | +1% | 0.97 |
+| `mul_eq` | multiple-constant-multiplication | +77% | 1.01 |
+| `element_l_eq_alldifferent` | quasigroup `-n 12`, `SMALLEST_DOMAIN` | +2% | 0.99 |
+| `circuit_chains` | tsp gr24 | +15% | 0.98 |
+| `circuit_chains` | atp-stage2 | +0.3% | 1.00 |
+| `subcircuit` | orthorio | +4% | 1.00 |
+
+The loop pays when the propagator often changes a bound, because the engine round trip of the extra call costs
+more than one more pass inside the call. Thus:
+
+- `linear_eq_c` and `gcc` keep their loop, and use the first option above.
+- `mul_eq`, `element_l_eq_alldifferent`, `circuit_chains` and `subcircuit` can do one pass in the LCG mode: no
+  difference is above the 5% floor of `design/benchmarking.md`. Their explanations then explain one pass only.
+  For `circuit_chains`, this keeps the one-rule explanations of [francis-circuit].
+
+With dom/wdeg, the trees were not the same: the order of the propagation decides which propagator gets the failure
+weight. On quasigroup and sports with their default dom/wdeg search, the trees without the loop were 2 and 3 times
+smaller. This is an effect of the heuristic, not of the cost of the loop, and the table does not use these runs.
+
 ### 5.3 The other propagators of the list
 
 - **`LINEAR_NEQ_C`**, `sum(a_i * x_i) != c`: on bounds, it infers only when all the variables but one are fixed and
