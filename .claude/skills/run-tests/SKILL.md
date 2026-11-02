@@ -29,5 +29,6 @@ NUMBA_DISABLE_JIT=1 PYTHONPATH=. coverage run --source=nucs,tests -m pytest && c
   Outside Claude Code, set it yourself.
 - `NUMBA_DISABLE_JIT=1` runs interpreted Python: slow, but tracebacks land on real source lines. Use it when a failure
   inside jitted code is unreadable.
-- `tests/fzn/test_minizinc.py` runs the *installed* `fzn-nucs` through MiniZinc, not the working tree. After changing
-  `nucs/`, reinstall before trusting it: `rm -rf build && pip install --no-deps .`.
+- `tests/fzn/test_minizinc.py` runs the *installed* `fzn-nucs` through MiniZinc. The dev venv installs NuCS in
+  editable mode, so `fzn-nucs` runs the working tree. Reinstall only after a change to `pyproject.toml`:
+  `uv pip install --no-deps -e .`. The venv has no `pip`: always use `uv pip`.

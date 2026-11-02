@@ -157,5 +157,5 @@ pytest tests/fzn  # if step 6 applied
 ```
 
 Fix and rerun until everything passes. For a cryptic Numba error, rerun with `NUMBA_DISABLE_JIT=1` to get a traceback
-on the real source line. `tests/fzn/test_minizinc.py` runs the *installed* `fzn-nucs` through MiniZinc, so reinstall
-first: `rm -rf build && pip install --no-deps .`.
+on the real source line. `tests/fzn/test_minizinc.py` runs the *installed* `fzn-nucs` through MiniZinc. The dev venv
+installs NuCS in editable mode, so it runs the working tree; if not, reinstall first: `uv pip install --no-deps -e .`.
