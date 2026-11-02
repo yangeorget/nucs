@@ -26,8 +26,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dependencies = [
-    "numba==0.68.0",
-    "numpy==2.5.3",
+    "numba==0.68.1",
+    "numpy==2.5.4",
     "rich==15.0.0"
 ]
 [project.optional-dependencies]
@@ -35,7 +35,7 @@ dev = [
     "addheader",
     "build",
     "mypy",
-    "ruff==0.16.3",
+    "ruff==0.17.3",
     "sphinx",
     "alabaster",
     "twine"
