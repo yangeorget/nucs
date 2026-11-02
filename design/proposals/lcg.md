@@ -621,15 +621,17 @@ If the learned clause is empty, or its asserting literal fails at level 0, the p
 ## Part 5 — Explanations, propagator by propagator
 
 The order comes from the calls that NuCS makes on the 7 problems that need learning (`stats_medium_nucs.json`, f3fd7dd;
-each problem weighs 1):
+each problem weighs 1), with one exception: the linear group is at rank 3, above `REGULAR`. One explanation covers
+the whole group and every clause of a model (`_post_clause`), and it is the explanation that the literature
+documents best:
 
 | rank | propagator | share | used by | explanation |
 |---|---|---|---|---|
 | 1 | `EQ_C_IMP` (`b -> x = c`) | 1.40 | sdn-chain (97%), mcm (42%) | trivial |
 | 2 | `LEQ_C_IMP` (`b -> x <= c`) | 1.19 | rect-euler (81%), saeling (37%) | trivial |
-| 3 | `REGULAR` | 1.00 | nonogram (100%) | hard; fallback first, then an MDD-style explanation ([gange-mdd]) or a decomposition |
-| 4 | `LINEAR_NEQ_C` | 0.67 | gcc-benchmark (67%) | simple on bounds |
-| 5 | `LINEAR_EQ_C`, `LINEAR_GEQ_C`, `SUM_GEQ_C`, `LINEAR_LEQ_C` (and `SUM_LEQ_C`, not in the share) | 0.9 together | saeling, mcm, rect-euler, and every clause of a model | standard linear explanation |
+| 3 | `LINEAR_EQ_C`, `LINEAR_GEQ_C`, `SUM_GEQ_C`, `LINEAR_LEQ_C` (and `SUM_LEQ_C`, not in the share) | 0.9 together | saeling, mcm, rect-euler, and every clause of a model | standard linear explanation; `LINEAR_EQ_C` needs both bounds of each term (5.2) |
+| 4 | `REGULAR` | 1.00 | nonogram (100%) | hard; fallback first, then an MDD-style explanation ([gange-mdd]) or a decomposition |
+| 5 | `LINEAR_NEQ_C` | 0.67 | gcc-benchmark (67%) | simple on bounds |
 | 6 | `ELEMENT_L_EQ`, `ELEMENT_EQ` | 0.43 | orthorio (39%) | no dedicated paper; derive it from the decomposition |
 | 7 | `MEMBER` | 0.24 | gcc-benchmark | trivial |
 | 8 | `EQ_C_REIF`, `LEQ_C_REIF`, `NEQ_C_IMP` | 0.39 together | orthorio, saeling | trivial |
