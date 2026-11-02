@@ -121,9 +121,11 @@ def compute_domains_mul_eq(domains: NDArray, parameters: NDArray, prop_state: ND
     y = domains[1]
     z = domains[2]
     # One pass is not always a fixpoint -- z re-tightened from the narrowed factors can narrow a factor again -- so
-    # the pass repeats until no bound moves. Real inputs almost never need more than one narrowing pass, and a
-    # repeat here is far cheaper than the engine calling a non-idempotent propagator back, domains gathered and
-    # written again, only to confirm that nothing changes.
+    # the pass repeats until no bound moves, which makes the propagator idempotent. The loop is for idempotence, not
+    # for speed: a one-pass version registered with idempotent=False measured within noise of this one (0.97-1.01,
+    # 2026-11-02, design/proposals/lcg.md 5.2). On nside and gbac, almost no call changes a bound, so the engine
+    # seldom calls the propagator back; on multiple-constant-multiplication, it calls it back often (+77% calls),
+    # but a call is cheap and this propagator has a small share of the time.
     while True:
         x_min0, x_max0 = x[DOMAIN_MIN], x[DOMAIN_MAX]
         y_min0, y_max0 = y[DOMAIN_MIN], y[DOMAIN_MAX]
