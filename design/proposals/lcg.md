@@ -50,8 +50,10 @@ Two more facts from the same run set the direction of this design:
 - **Learning gives a part of the gain, and the search that uses the learning gives the rest.** Chuffed with the
   model's search annotations wins 8 problems against NuCS. Chuffed with its activity-based search (`-f`) wins 13.
 
-The data is in `mzn-challenge/2026/results_medium_*.csv` (the Chuffed arms are `results_medium_chuffed_i.csv` and
-`results_medium_chuffed_fi.csv`).
+The data is not in the repository. It is in `~/dev/mzn-challenge/2026/` on the author's machine, next to the
+models and the instances: the results are `results_medium_*.csv` (the Chuffed arms are `results_medium_chuffed_i.csv`
+and `results_medium_chuffed_fi.csv`), the statistics are `stats_medium_*.json`, and the harness is `rerun_arm.py`.
+This document gives the other files by name only; they are all in that directory.
 
 ## Part 1 — The concepts
 
@@ -267,7 +269,7 @@ Several decisions that NuCS made for other reasons fit LCG well:
 | arrays that grow when full (`SOLVER_TRAIL_FULL`, `SOLVER_CHOICE_POINTS_FULL`) | the clause store and the new trail grow in the same way |
 | FlatZinc clauses are `SUM_GEQ_C`, `SUM_LEQ_C` or `LINEAR_GEQ_C` over 0/1 variables (`_post_clause`; `SUM_LEQ_C` when all the literals are negative) | the explanation of the linear propagators also explains all the clauses of a model |
 
-Two features do not fit, and the design keeps them out of the LCG mode:
+Two features need care. The design keeps the first out of the LCG mode; the second fits, for the reasons below:
 
 - **Custom consistency algorithms** (`register_consistency_algorithm`). The LCG mode needs its own propagation loop,
   which records reasons. A custom algorithm cannot record them.
@@ -275,13 +277,19 @@ Two features do not fit, and the design keeps them out of the LCG mode:
   a function of the current domains, and that the engine puts on the trail. See
   [ARCHITECTURE.md](../../ARCHITECTURE.md#propagator-state-a-solver-owned-block-per-propagator). Six propagators use
   it: `lexleq`, `relation`, and `count_eq`, `count_eq_c`, `count_geq_c` and `count_leq_c` at an arity of
-  `LIVE_SET_MIN_ARITY` or more. The fallback explanation is correct only if the result of a propagator depends on its
-  input bounds alone. During conflict analysis, the block has the values of the current node, not of the node that
-  made the literal. Thus each of these six propagators must give its own explanation function, or the LCG mode
-  refuses it. In all six, the trailed cells are a function of the domains (a resume position, or the size of a live
-  set), so a stateless explanation is possible. The `count_*` propagators are frequent in FlatZinc models, so the LCG
-  mode cannot simply refuse them. Whether a call with the block reset to its root value (zero, as
-  `choice_point_init` clears it) is a correct explanation for each of them is an open question.
+  `LIVE_SET_MIN_ARITY` or more. During conflict analysis, the block has the values of the current node, not of the
+  node that made the literal. This does not stop the LCG mode from using them (question 7 of 8.2, answered on
+  2026-11-02):
+  - **The fallback explanation does not call the propagator.** It needs only that the call deduced nothing that the
+    box at `REASON_POS` does not imply. The trailed cells hold only facts that the domains of the path made true: a
+    variable left the live set, a tuple is dead, a prefix is fixed and equal. The domains only shrink along a path,
+    so these facts are still true in the box at the time of the call.
+  - **A call with the trailed prefix at zero is correct on any box.** Zero is the root value: the solver allocates
+    the block at zero, and `choice_point_init` clears it at each restart. A root call must be correct on any
+    initial domains, and the box at `REASON_POS` is only another box. For `count_*` and `relation`, zero selects an
+    explicit cold path that builds the live set again from the domains. For `lexleq`, `Q = R = 0` starts the
+    automaton at position 0, as the first call does. The debug mode (7.3), the brute-force test (7.2) and an exact
+    `explain` function call these propagators on a scratch copy of the block, with the trailed prefix at zero.
 
 ## Part 3 — The data structures
 
@@ -502,7 +510,8 @@ Rules:
 - The explanation can use only the bounds at `REASON_POS`, never a bound that the same call set. A propagator that
   loops inside one call must take this into account (5.2).
 - The function does not get the hint suffix of the propagator state: the hints do not change the result by
-  contract. The trailed prefix (Tier B) is different: see Part 2 and question 7 of 8.2.
+  contract. A function that calls the propagator logic uses a scratch copy of the block, with the trailed prefix
+  (Tier B) at zero: Part 2 explains why that call is correct on any box.
 
 **The fallback explanation.** A propagator without `explain` gets `explain_naive`. For each of its variables, it
 writes `[x >= min]` if `min` is above the root minimum, and `[x <= max]` if `max` is below the root maximum. This is
@@ -805,9 +814,10 @@ explanations, the analysis and the store already have their tests.
 
 #### Phase 0 — Preparation
 
-1. **Answer the open questions that block the work.** Question 7 of 8.2 (Tier B) is necessary before step 7.
-   Question 2 (the activities) can wait until Phase 4. Write down where the benchmark data of
-   [Why LCG](#why-lcg) is kept: it is not in the repository.
+1. **Answer the open questions that block the work.** All are answered except question 2 of 8.2 (the activities),
+   which waits until Phase 4. The benchmark data is in `~/dev/mzn-challenge/2026/` ([Why LCG](#why-lcg)). Before
+   a run of `rerun_arm.py`, check that `minizinc --solvers` lists the current NuCS version: the harness calls
+   `minizinc --solver nucs`, so a registration that points to an old install measures old code.
 2. **Record a baseline.** Run the current `BacktrackSolver` on the 16 medium instances and on the examples. Record
    the nodes, the time and the results. Choose a control model for the A/B runs (7.4).
 
@@ -831,8 +841,8 @@ explanations, the analysis and the store already have their tests.
    *Check:* the solution counts and the optima are the same as with `BacktrackSolver`.
 7. **Add the explanations** (4.3). The signature `SIGN_EXPLAIN`, and the optional `explain` argument of
    `register_propagator`. `explain_naive`, and the rebuild of the bounds at `REASON_POS` from the chains.
-   `LcgSolver` refuses the custom consistency algorithms, and refuses the Tier B propagators according to the answer
-   of step 1.
+   `LcgSolver` refuses the custom consistency algorithms. It accepts the Tier B propagators (Part 2): the debug mode
+   and the tests call them on a scratch copy of the block, with the trailed prefix at zero.
    *Check:* the brute-force explanation test of 7.2, run on `explain_naive` for every propagator. The debug mode of
    7.3.
 
@@ -894,8 +904,8 @@ explanations, the analysis and the store already have their tests.
 
 25. **Write the documentation.** `ARCHITECTURE.md`, an `explain` step in the `add-propagator` skill, and the
     changelog.
-26. **Release.** Run `bump-version` (a minor version if no signature changed). Answer question 5 of 8.2: should LCG
-    be the default of `fzn-nucs`?
+26. **Release.** Run `bump-version` (a minor version if no signature changed). If gate 3 passed, make LCG the
+    default of `fzn-nucs -f` (question 5 of 8.2); the annotated search keeps `BacktrackSolver`.
 
 ### 7.1 Stages
 
@@ -973,26 +983,39 @@ Follow the method of the earlier performance work:
 | the cost per node in the LCG mode | fewer nodes per second | the gate of stage 1; Chuffed shows that a node rate close to the current one is enough |
 | watch lists on large domains | a bound of a large-domain variable can have many watches with different values | sort the watches of a bound by value, or keep a blocking value; measure first |
 | Numba limits | no dynamic lists in nopython code; no recursion for clause minimization | flat arrays with growth statuses, as today; an explicit stack instead of recursion |
-| scope | LCG touches the loop, the search, the optimization and every propagator | the stages; the fallback explanation keeps every propagator working at every stage, except the six with Tier B state (Part 2) |
+| scope | LCG touches the loop, the search, the optimization and every propagator | the stages; the fallback explanation keeps every propagator working at every stage, also the six with Tier B state (Part 2) |
 
-### 8.2 Open questions
+### 8.2 Questions and decisions
+
+The decisions below were taken on 2026-11-02. Only question 2 is still open.
 
 1. **A separate solver class, or a mode of `BacktrackSolver`?** This design proposes a separate class (3.1), for a
    default path with no cost and no API break.
+   **Decision:** a separate class, `LcgSolver`.
 2. **Activities in the weights array, or a new argument?** (6.1). The first keeps `SIGN_VAR_HEURISTIC`; the second is
    clearer but is a major version.
+   **Open:** decide in stage 3, when step 17 of 7.0 writes the activity heuristic.
 3. **`EQ` decisions as two levels** (4.2). Chuffed uses equality literals for this. Two bound literals on two levels
    is correct, but it doubles the levels for value-by-value searches. Also, a learned clause can refute only one
-   side of `x = v` at once (4.2), so the search visits the values in a different order. Measure on sdn-chain and
-   mcm.
-4. **`regular`: explanation or decomposition?** (5.3). nonogram decides.
+   side of `x = v` at once (4.2), so the search visits the values in a different order.
+   **Decision:** stage 1 uses two levels. Gate 1 measures sdn-chain and mcm, the value-by-value searches, and
+   compares the levels and the conflicts with Chuffed. The design changes only if they show a problem.
+4. **`regular`: explanation or decomposition?** (5.3).
+   **Decision:** the fallback explanation first. Stage 2 measures nonogram. If its clauses stay long, compare the
+   MDD-style explanation ([gange-mdd]) with a decomposition into clauses at model build.
 5. **Should the LCG mode become the default of `fzn-nucs`** when it wins on the 16 medium instances? And of `-f`
    only, or also of the annotated search?
+   **Decision:** the default of `-f` only (6.3). The annotated search keeps `BacktrackSolver`, so it still follows
+   the search of the model exactly. A flag of `fzn-nucs` selects LCG for the annotated search.
 6. **Clause minimization** (removing the literals that the other literals of the clause already imply) is standard in
-   SAT solvers ([minisat]). It is not in the stages above. Add it to stage 4 if the clauses stay long.
+   SAT solvers ([minisat]). It is not in the stages above.
+   **Decision:** stage 4, and only if the mean length of the clauses stays high after the exact explanations of
+   stage 2.
 7. **The six propagators with Tier B state** (Part 2): `lexleq`, `relation` and four `count_*`. Is a call with the
-   block reset to zero a correct explanation for each, or does each need an `explain` function from stage 1? The
-   `count_*` propagators decide, because FlatZinc models use them often.
+   block reset to zero a correct explanation for each, or does each need an `explain` function from stage 1?
+   **Answer:** a call with the trailed prefix at zero is correct for all six, and the fallback explanation does not
+   need that call at all (Part 2 gives the reasons). The LCG mode accepts them from stage 1, and none of them needs
+   an `explain` function to be correct.
 
 ## Reading list
 
