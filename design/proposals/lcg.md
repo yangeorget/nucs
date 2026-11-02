@@ -5,7 +5,7 @@
 This document is the design of lazy clause generation (LCG) for NuCS. It is written for a reader who knows
 classical constraint programming (propagation, search, Gecode and Choco internals) but not LCG or SAT solving.
 Part 1 explains the concepts, with a worked example and links to read. Parts 2 to 6 give the design. Part 7 gives
-the stages, the tests and the measurements that decide if each stage continues.
+the implementation steps, the stages, the tests and the measurements that decide if each stage continues.
 
 Nothing in this document is implemented. The names of the new arrays and functions are proposals.
 
@@ -756,6 +756,109 @@ time would need it. The first version can keep all the clauses, and add the redu
 time shows the need.
 
 ## Part 7 — Stages, tests and measurements
+
+### 7.0 Implementation steps
+
+The steps below divide the stages of 7.1 into commits or PRs. Each step has a check that must pass before the next
+step starts. `BacktrackSolver` does not change at any step.
+
+Steps 4 to 9 do not change the search. While the tree stays the same, the best test of a new mode is that it gives
+*the same* counters as the old mode. Step 10 is the first step that changes the tree. At that step, the trail, the
+explanations, the analysis and the store already have their tests.
+
+#### Phase 0 — Preparation
+
+1. **Answer the open questions that block the work.** Question 7 of 8.2 (Tier B) is necessary before step 7.
+   Question 2 (the activities) can wait until Phase 4. Write down where the benchmark data of
+   [Why LCG](#why-lcg) is kept: it is not in the repository.
+2. **Record a baseline.** Run the current `BacktrackSolver` on the 16 medium instances and on the examples. Record
+   the nodes, the time and the results. Choose a control model for the A/B runs (7.4).
+
+#### Phase 1 — Record the reasons, with the search unchanged
+
+3. **Add the literals module.** It holds the encoding `(var_side, value)`, the negation, and the tests "true" and
+   "false" on `state` (3.2).
+   *Check:* unit tests.
+4. **Add an `LcgSolver` that is a copy of `BacktrackSolver`.** It gets its own `run_search_loop_lcg` and its own
+   `lcg_algorithm`, which are exact copies of the current code at this step.
+   *Check:* on all the examples, every counter is the same as with `BacktrackSolver`. Each later step then shows as
+   a small diff against this copy.
+5. **Add the implication trail** (3.3, 3.4). The arrays `lit_trail`, `lit_top`, `lit_last` and `level_start`. The
+   status `SOLVER_LIT_TRAIL_FULL`, with the array doubled when full. The write-back of `lcg_algorithm`, the
+   decisions and the objective bound write the rows, and a backtrack pops them. The search still uses the parked
+   alternatives.
+   *Check:* a debug function replays `lit_trail` from the root and compares the result with `state` at each node.
+   The counters stay the same as in step 4. Measure the drop in nodes per second.
+6. **Add the decisions as literals** (4.2). Each level has one literal and one choice point. An interior `EQ` uses
+   two levels, with the rules of 4.2. The alternatives stay parked.
+   *Check:* the solution counts and the optima are the same as with `BacktrackSolver`.
+7. **Add the explanations** (4.3). The signature `SIGN_EXPLAIN`, and the optional `explain` argument of
+   `register_propagator`. `explain_naive`, and the rebuild of the bounds at `REASON_POS` from the chains.
+   `LcgSolver` refuses the custom consistency algorithms, and refuses the Tier B propagators according to the answer
+   of step 1.
+   *Check:* the brute-force explanation test of 7.2, run on `explain_naive` for every propagator. The debug mode of
+   7.3.
+
+#### Phase 2 — Learn the clauses (stage 1)
+
+8. **Run the 1UIP analysis in shadow mode** (4.5): the first-row lookup, the merge of literals on the same bound,
+   the case with no literal of the current level, and an explicit stack instead of recursion. The classical search
+   calls the analysis at each failure, but does not use its result.
+   *Check:* the hand-built trail of 1.11 gives `[v <= 0]` at level 0. On small models, each clause that the shadow
+   analysis learns is valid against the solutions that brute force finds. In shadow mode, a clause can be checked
+   while it has no effect on the search, so an error in the analysis shows before it can remove a solution.
+9. **Add the clause store** (3.5, 4.4). The arrays `clause_lits`, `clause_start`, `clause_info`, `watch_head`,
+   `watches` and `unit_lits`. The status `SOLVER_CLAUSES_FULL`. The clause queue, which `lcg_algorithm` empties
+   before it pops the next propagator. The `REASON_CLAUSE` rows, and the explanation of a row that a clause set.
+   *Check:* unit tests on clauses that the test adds by hand. In shadow mode, the learned clauses are stored and
+   propagated, but the search still backtracks in the classical way.
+10. **Add the backjumps** (4.6). This step changes the search. The learned clause replaces the parked alternatives,
+    with the mark at index `L`. An empty clause means that there is no (more) solution.
+    *Check:* the solution counts and the optima are the same as with `BacktrackSolver`, with the JIT on and with the
+    JIT off. The learned clauses are valid.
+11. **Add enumeration, optimization and restarts** (4.7). Enumeration: the blocking nogoods. Optimization: the
+    objective bound is applied again after each backjump. Restarts: `lit_trail` is reset, and `unit_lits` is applied
+    again after each `_reset_to_root`.
+    *Check:* the clause test of 7.2, with its three cases. The examples with restarts.
+12. **Add the statistics.** The conflicts, the mean length of the learned clauses, the mean LBD, and, for each
+    propagator, the number of rows that the analysis explains.
+13. **Make the mode available in FlatZinc.** An option of `fzn-nucs` selects `LcgSolver`. Run the differential tests
+    against Gecode and Chuffed on small random instances (7.2).
+14. **Gate 1** (7.1).
+
+#### Phase 3 — Exact explanations (stage 2)
+
+15. **Write one `explain` function for each line of the Part 5 table, in its order.** First `EQ_C_IMP` and
+    `LEQ_C_IMP`. Then the linear group, with both bounds of each term for `LINEAR_EQ_C` (5.2). Then `REGULAR`
+    (measure the fallback on nonogram first), `LINEAR_NEQ_C` and the rest of the table. Each function has its own
+    brute-force test and its own measurement of the clause length. The count of explained rows from step 12 can
+    change the order: a propagator that runs often but seldom sets a literal that the analysis visits gains little
+    from an exact explanation.
+16. **Gate 2** (7.1).
+
+#### Phase 4 — Search (stage 3)
+
+17. **Add the activities** (3.6, 6.1). The array `variable_activity` (answer question 2 of 8.2 first), the bump in
+    the analysis, and the decay. Then `VAR_HEURISTIC_ACTIVITY`.
+18. **Add the saved values** (6.2): `DOM_HEURISTIC_SAVED_VALUE`.
+19. **Change the free search** (6.3). `fzn-nucs -f` in the LCG mode uses activity, saved values and Luby restarts.
+    Measure the scale of the restarts.
+20. **Gate 3** (7.1).
+
+#### Phase 5 — Scale (stage 4)
+
+21. **Reduce the clause store** (6.4): delete the clauses by LBD at a restart, then compact the store.
+22. **Explain the strong globals** (5.3): `circuit_chains`, `disjunctive` and `cumulative`.
+23. **Do the optional work only if the measurements show the need:** clause minimization (question 6 of 8.2), the
+    scratch copy of the bounds for the explanations (4.3), and the sorted watches for large domains (8.1).
+24. **Gate 4** (7.1). Also measure the memory on long runs.
+
+#### Phase 6 — Release (stage 5)
+
+25. **Write the documentation.** `ARCHITECTURE.md`, an `explain` step in the `add-propagator` skill, and the
+    changelog.
+26. **Release.** Run `bump-version` (a minor version if no signature changed). Answer question 5 of 8.2: should LCG
+    be the default of `fzn-nucs`?
 
 ### 7.1 Stages
 
