@@ -36,10 +36,14 @@ def get_triggers_dummy(n: int, variable: int, parameters: NDArray) -> int:
     """
     This propagator is triggered whenever there is a change in the domain of a variable.
 
+    :param n: the number of variables
+    :type n: int
+    :param variable: the variable index
+    :type variable: int
     :param parameters: the parameters, unused here
     :type parameters: NDArray
 
-    :return: an array of triggers
+    :return: an event mask
     :rtype: int
     """
     return EVENT_MASK_MIN_MAX
@@ -50,8 +54,13 @@ def compute_domains_dummy(domains: NDArray, parameters: NDArray, prop_state: NDA
     """
     A propagator that does nothing.
 
-    :param prop_state: this propagator's state block (unused)
+    :param domains: the domains of the variables, unused here
+    :type domains: NDArray
+    :param parameters: the parameters, unused here
+    :type parameters: NDArray
+    :param prop_state: this propagator's state block, unused here
     :type prop_state: NDArray
+
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
     :rtype: int
     """

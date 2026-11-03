@@ -139,11 +139,11 @@ def get_sum(psum: NDArray, start: int, end: int) -> int:
     sum = psum[0, :-1]
     if start <= end:
         # assert fv <= start
-        # assert end <= get_last_value(psum)
+        # assert end <= psum[1, -1]
         return sum[end - fv] - sum[start - fv - 1]
     else:
         # assert fv <= end
-        # assert start <= get_last_value(psum)
+        # assert start <= psum[1, -1]
         return sum[end - fv - 1] - sum[start - fv]
 
 
@@ -442,7 +442,7 @@ def filter_upper_min(
         z = path_min(tl, x - 1)
         j = tl[z]
         # If the variable is not in a discovered stable set
-        # Possible optimization: use the array stbl_intervals to perform this test
+        # Possible optimization: use the array stable_intervals to perform this test
         if c[z] > get_sum(l, bounds[z], bounds[y] - 1):
             c[z] -= 1
             if c[z] == 0:
@@ -607,7 +607,7 @@ def compute_domains_gcc(domains: NDArray, parameters: NDArray, prop_state: NDArr
     # re-zeroing done explicitly, since it is no longer implied by a fresh allocation.
     #
     # Two of the three are wider than they have to be, and the third is not, which is worth writing down
-    # because the asymmetry is not visible from here. filter_lower_gcc writes stable_intervals and
+    # because the asymmetry is not visible from here. filter_lower_min writes stable_intervals and
     # stable_sets over [1, nb + 1] before it reads either, and nothing in the algorithm reaches above
     # nb + 1: every value the two hold is a bound index no greater than that, path_max only ascends
     # through them, and path_set only walks where path_max can reach. Index 0 is the one cell that is

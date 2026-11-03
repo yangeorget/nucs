@@ -24,9 +24,6 @@ SUBSET_SUM_CAP = 4096  # maximum total candidate weight for which the reachabili
 ITEM_SUBSET_CAP = 48  # maximum number of candidates for which per-item no-sum pruning is run
 
 
-STATE_SUF = 0  # the suffix reachability table, (nc_cap + 2) rows of (total_cap + 1)
-
-
 def _table_shape(parameters: Sequence[int]) -> tuple[int, int]:
     """
     Returns the (rows, columns) of the suffix reachability table this propagator can need.
@@ -173,29 +170,6 @@ def _any_split(prefix: NDArray, counts: NDArray, lo: int, hi: int, total: int, w
                 continue
             if counts[b_hi] - (counts[b_lo - 1] if b_lo > 0 else 0) > 0:
                 return True
-    return False
-
-
-@njit(cache=True)
-def _any_reachable(reach: NDArray, lo: int, hi: int) -> bool:
-    """
-    Returns whether any value in ``[lo, hi]`` (clamped to the array) is reachable.
-
-    :param reach: a reachability array
-    :type reach: NDArray
-    :param lo: the lower bound
-    :type lo: int
-    :param hi: the upper bound
-    :type hi: int
-
-    :return: whether some value in the range is reachable
-    :rtype: bool
-    """
-    lo = max(lo, 0)
-    hi = min(hi, len(reach) - 1)
-    for s in range(lo, hi + 1):
-        if reach[s]:
-            return True
     return False
 
 

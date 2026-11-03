@@ -27,6 +27,10 @@ class MagicSequenceProblem(Problem):
 
         :param n: the size of the sequence
         :type n: int
+        :param model_r1: whether to add the redundant constraint that the x_i sum to n, defaults to True
+        :type model_r1: bool
+        :param model_r2: whether to add the redundant constraint that the i * x_i sum to n, defaults to True
+        :type model_r2: bool
         """
         super().__init__([(0, n - 1)] * n)
         for i in range(n):

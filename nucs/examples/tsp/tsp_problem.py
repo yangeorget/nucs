@@ -36,9 +36,3 @@ class TSPProblem(CircuitProblem):
             self.add_propagator(ALG_ELEMENT_EQ, [n + i, self.pred_costs + i], costs[i])
         self.add_propagator(ALG_SUM_EQ, list(range(self.succ_costs, self.succ_costs + n)) + [self.total_cost])
         self.add_propagator(ALG_SUM_EQ, list(range(self.pred_costs, self.pred_costs + n)) + [self.total_cost])
-        # total_cost_prop_idx = register_propagator(
-        #     get_triggers_total_cost, get_complexity_total_cost, compute_domains_total_cost
-        # )
-        # costs = [cost for cost_row in costs for cost in cost_row]
-        # self.add_propagator((list(range(n)) + [self.total_cost], total_cost_prop_idx, costs))
-        # self.add_propagator((list(range(n, 2 * n)) + [self.total_cost], total_cost_prop_idx, costs))

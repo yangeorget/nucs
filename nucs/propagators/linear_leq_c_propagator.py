@@ -66,10 +66,14 @@ def get_triggers_linear_leq_c(n: int, variable: int, parameters: NDArray) -> int
     """
     Returns the triggers for this propagator.
 
+    :param n: the number of variables
+    :type n: int
+    :param variable: the variable index
+    :type variable: int
     :param parameters: the parameters
     :type parameters: NDArray
 
-    :return: an array of triggers
+    :return: an event mask
     :rtype: int
     """
     if parameters[variable] == 0:

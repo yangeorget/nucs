@@ -23,6 +23,8 @@ class QuasigroupProblem(LatinSquareRCProblem):
         """
         Initializes the problem.
 
+        :param kind: the identity that the quasigroup satisfies, QG3 to QG7 of CSPLib, from 3 to 7
+        :type kind: int
         :param n: the size of the quasigroup
         :type n: int
         :param idempotent: a boolean indicating if the quasigroup is idempotent

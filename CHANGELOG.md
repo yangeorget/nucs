@@ -21,6 +21,14 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
     returns the best solution that it found. `timeout_from_args` gives the budget in seconds, for an example that
     calls the solver itself.
 
+### Removed
+
+- **`TYPE_DOM_HEURISTIC`, `TYPE_VAR_HEURISTIC` and `TYPE_CONSISTENCY_ALG`.** Nothing used these Numba function types,
+  and no document gave them. The signatures `SIGN_DOM_HEURISTIC`, `SIGN_VAR_HEURISTIC` and `SIGN_CONSISTENCY_ALG`
+  stay.
+- **The module `nucs.examples.tsp.total_cost_propagator`.** Nothing imported it; the only reference was code
+  commented out in `tsp_problem.py`, which goes too.
+
 ### Changed
 
 - **Last-conflict is on by default in four more examples.** A sweep of all the examples, with and without

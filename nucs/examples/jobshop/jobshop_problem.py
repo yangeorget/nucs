@@ -42,6 +42,8 @@ class JobShopProblem(Problem):
 
         :param jobs: for each job, the list of [machine, duration] operations in processing order
         :type jobs: List[List[List[int]]]
+        :param horizon: the latest end of any operation, defaults to the sum of all the durations
+        :type horizon: Optional[int]
         """
         self.jobs = jobs
         self.job_nb = len(jobs)

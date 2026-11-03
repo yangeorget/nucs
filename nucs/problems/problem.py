@@ -158,7 +158,7 @@ class Problem:
         Initializes the priorities of the propagators.
 
         The propagation queue is a bucketed (priority) queue: priorities here store the bucket index =
-        floor(log2(complexity)), clamped to [0, NB_BUCKETS-1]. Higher-complexity propagators land in higher
+        floor(log2(complexity)), clamped to [0, BUCKET_NB - 1]. Higher-complexity propagators land in higher
         buckets and run after cheaper ones at fixpoint computation.
         """
         logger.debug("Initializing priorities")

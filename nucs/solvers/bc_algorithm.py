@@ -369,8 +369,35 @@ def update_domains(
     :param skip_prop_idx: the propagator whose domains these are when it is idempotent, so that its own writes do
                           not schedule it again; -1 when it is not, so that it is rescheduled like any other
     :type skip_prop_idx: int
+    :param prop_var_start: where the propagator's variables start in propagator_variables
+    :type prop_var_start: int
+    :param prop_var_end: where they end
+    :type prop_var_end: int
     :param prop_domains: the domains computed by the propagator
     :type prop_domains: NDArray
+    :param propagator_variables: the variables by propagators
+    :type propagator_variables: NDArray
+    :param state: all the backtrackable state: the domain bounds, the unbound-variable count and,
+                  from there on, whatever else is trailed
+    :type state: NDArray
+    :param trail_log: the undo log of (cell index, old value) pairs
+    :type trail_log: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
+    :param mark: the trail size when the current choice point branched
+    :type mark: int
+    :param trail_size: the number of entries currently on the trail
+    :type trail_size: int
+    :param triggered_propagators: the Numpy array of triggered propagators
+    :type triggered_propagators: NDArray
+    :param entailed: whether each propagator is entailed, a view of state
+    :type entailed: NDArray
+    :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :type triggers: NDArray
+    :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
+    :type triggers_offsets: NDArray
+    :param priorities: the propagation queue bucket priorities indexed by propagators
+    :type priorities: NDArray
 
     :return: true iff no domain was changed, and the new trail size
     :rtype: Tuple[bool, int]

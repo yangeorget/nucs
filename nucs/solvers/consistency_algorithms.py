@@ -12,7 +12,7 @@
 ###############################################################################
 from collections.abc import Callable
 
-from numba import float64, int32, int64, types, uint8, uint32
+from numba import float64, int32, int64, uint8, uint32
 
 from nucs.solvers.bc_algorithm import bc_algorithm
 
@@ -42,7 +42,6 @@ SIGN_CONSISTENCY_ALG = int64(
     int64[::1],  # compute_domains_addrs
     int32[:, ::1],  # domain_buffer
 )
-TYPE_CONSISTENCY_ALG = types.FunctionType(SIGN_CONSISTENCY_ALG)
 
 
 def register_consistency_algorithm(consistency_algorithm_fct: Callable, name: str | None = None) -> int:

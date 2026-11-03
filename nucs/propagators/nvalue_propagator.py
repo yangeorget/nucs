@@ -72,10 +72,12 @@ def get_triggers_nvalue(n: int, variable: int, parameters: NDArray) -> int:
 
     :param n: the number of variables
     :type n: int
+    :param variable: the variable index
+    :type variable: int
     :param parameters: the parameters, unused here
     :type parameters: NDArray
 
-    :return: an array of triggers
+    :return: an event mask
     :rtype: int
     """
     return EVENT_MASK_MIN_MAX

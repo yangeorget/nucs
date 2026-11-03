@@ -91,7 +91,7 @@ def build_function_ptrs(
     Materializes a typed list of function pointers of the given Numba FunctionType.
 
     Resolving a function object to its compiled-wrapper address is an interpreter-side operation, so it is
-    done here in plain Python; the jitted :func:`_build_fcts` then rebuilds the first-class function pointers
+    done here in plain Python; the jitted :func:`build_function_ptrs_from_addresses` then rebuilds the first-class function pointers
     from those addresses. Built once at solver init so the inner loops avoid rebuilding it on every call.
     When used is provided, only those indices are resolved (see :func:`addresses_from_functions`).
     Under NUMBA_DISABLE_JIT, the functions are plain Python functions, and the table is a plain list of them.

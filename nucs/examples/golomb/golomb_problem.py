@@ -157,6 +157,46 @@ def golomb_consistency_algorithm(
     :param algorithm_flags: the PROP_FLAG_* properties of each algorithm, packed into one word and indexed by
                           algorithm rather than by propagator
     :type algorithm_flags: NDArray
+    :param algorithms: the algorithms indexed by propagators
+    :type algorithms: NDArray
+    :param priorities: the propagation queue bucket priorities indexed by propagators
+    :type priorities: NDArray
+    :param offsets: the CSR offsets delimiting each propagator's slice of propagator_variables,
+                    propagator_parameters and its own state block, whose trailed prefix ends at
+                    OFFSETS_STATE_HINT (see OFFSETS_STATE)
+    :type offsets: NDArray
+    :param propagator_variables: the variables by propagators
+    :type propagator_variables: NDArray
+    :param propagator_parameters: the parameters by propagators
+    :type propagator_parameters: NDArray
+    :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :type triggers: NDArray
+    :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
+    :type triggers_offsets: NDArray
+    :param state: all the backtrackable state: the domain bounds, the unbound-variable count and,
+                  from there on, whatever else is trailed
+    :type state: NDArray
+    :param domains: the current domains, a (domain_nb, 2) view of the head of state
+    :type domains: NDArray
+    :param entailed: whether each propagator is entailed, a view of state
+    :type entailed: NDArray
+    :param trail_log: the undo log of (cell index, old value) pairs
+    :type trail_log: NDArray
+    :param trail_top: the trail size as a Numpy array
+    :type trail_top: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
+    :param choice_point_stk: the per-choice-point metadata
+    :type choice_point_stk: NDArray
+    :param choice_point_top: the index of the top of the choice points as a Numpy array
+    :type choice_point_top: NDArray
+    :param triggered_propagators: the Numpy array of triggered propagators
+    :type triggered_propagators: NDArray
+    :param compute_domains_addrs: the compiled compute_domains address of each algorithm, resolved once at solver init
+    :type compute_domains_addrs: NDArray
+    :param domain_buffer: a scratch buffer for prop_domains,
+                          sized to max propagator arity, allocated once at solver init
+    :type domain_buffer: NDArray
 
     :return: the status as an int
     :rtype: int

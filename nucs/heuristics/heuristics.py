@@ -51,7 +51,6 @@ SIGN_DOM_HEURISTIC = types.UniTuple(int32, 2)(
     int64,  # variable
     int64[:, :],  # dom_heuristic_params
 )
-TYPE_DOM_HEURISTIC = types.FunctionType(SIGN_DOM_HEURISTIC)
 
 # A variable heuristic sees the constraint network as well as the domains -- which propagators are entailed, the
 # variables of each propagator, the propagators that watch each variable (the trigger table, see watchers) -- and the
@@ -67,7 +66,6 @@ SIGN_VAR_HEURISTIC = int64(
     float64[::1],  # propagator_weights
     int64[:, :],  # var_heuristic_params
 )
-TYPE_VAR_HEURISTIC = types.FunctionType(SIGN_VAR_HEURISTIC)
 
 
 def register_var_heuristic(var_heuristic_fct: Callable, name: str | None = None) -> int:

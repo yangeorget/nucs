@@ -44,10 +44,14 @@ def get_triggers_leq_c(n: int, variable: int, parameters: NDArray) -> int:
     """
     Returns the triggers for this propagator.
 
+    :param n: the number of variables
+    :type n: int
+    :param variable: the variable index
+    :type variable: int
     :param parameters: the parameters
     :type parameters: NDArray
 
-    :return: an array of triggers
+    :return: an event mask
     :rtype: int
     """
     return EVENT_MASK_MIN if variable == 0 else EVENT_MASK_MAX
