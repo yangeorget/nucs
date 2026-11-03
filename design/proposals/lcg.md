@@ -820,6 +820,7 @@ explanations, the analysis and the store already have their tests.
    `minizinc --solver nucs`, so a registration that points to an old install measures old code.
 2. **Record a baseline.** Run the current `BacktrackSolver` on the 16 medium instances and on the examples. Record
    the nodes, the time and the results. Choose a control model for the A/B runs (7.4).
+   *Done on 2026-11-03, at commit 613c74d:* the files and the control are in 7.4.
 
 #### Phase 1 — Record the reasons, with the search unchanged
 
@@ -967,10 +968,61 @@ The tests run with this mode on. The production runs run with it off.
 Follow the method of the earlier performance work:
 
 - Measure the solve time and the wall time separately (the Numba compile cost is per process).
-- Use a control model that the change cannot affect. The order of runs moves the results by about 5%.
+- Use `BacktrackSolver` on the same instance as the control (see below). The order of runs moves the results by
+  about 5%.
 - Count the nodes, the conflicts, the mean length of the learned clauses and the mean LBD. The time alone does not
   show why a stage helps or not.
 - Compare with Chuffed with the same flags (`MZN_SOLVER_PATH` must point to the solvers of the MiniZinc IDE bundle).
+
+**The control.** Rule 5 of `design/benchmarking.md` asks for a control model that the change cannot affect, and says
+that no model is safe for a change to the engine. LCG is a change to the engine, but `BacktrackSolver` does not
+change at any step of 7.0. Thus the control is the same instance, solved by `BacktrackSolver`, in the same session,
+with the two solvers in alternate order:
+
+```
+BacktrackSolver  instance    control
+LcgSolver        instance    subject
+LcgSolver        instance    subject
+BacktrackSolver  instance    control
+```
+
+- **The same shape.** The control has the same propagators, domains and memory use as the subject. A different
+  model can drift in a different way, for example under cache pressure. The same instance cannot.
+- **The ratio is the result.** The gates of 7.1 compare LCG with `BacktrackSolver` (for example, the nodes per
+  second). When the two run in the same session, the drift of the machine goes out of the ratio. If the control moves
+  as much as the subject between two builds, discard the comparison (rule 6 of `design/benchmarking.md`).
+
+Some steps change code that the two solvers share: for example, step 7 adds `SIGN_EXPLAIN` and the `explain` argument
+of `register_propagator`. At these steps, the control is also a regression test:
+
+- Its counters must be *the same* as in the baseline of step 2. The counters do not change from run to run: the
+  baseline gave the same choice counts as the run of 2026-09-19 on the two medium instances whose search ends
+  (atp-stage2: 8,775,827; tdtsp: 2,109,982).
+- Its time must stay inside the drift of the order of runs. If it moves more, the shared change has a cost for
+  `BacktrackSolver`, which stays the default solver.
+- Clear the Numba cache before such a run. The cache keys on the date of the file of the function only (rule 4 of
+  `design/benchmarking.md`), so a stale cache can show an unchanged control.
+
+**The baseline of step 2** (commit 613c74d, 2026-11-03). The files are in `~/dev/mzn-challenge/2026/`:
+
+| file | content |
+|---|---|
+| `results_medium_nucs_613c74d.csv`, `stats_medium_nucs_613c74d.json` | the 16 medium instances, 120 s, annotated search: the reference of gates 1 and 2 |
+| `results_medium_nucs_613c74d_f.csv`, `stats_medium_nucs_613c74d_f.json` | the same with `-f`: the reference of gate 3 |
+| `baseline_examples_613c74d.jsonl` | all the counters of the 22 examples at their default arguments |
+| `baseline_arm.py`, `baseline_examples.py` | the scripts that wrote them |
+
+- `baseline_arm.py` calls `rerun_arm.py` and adds a tag to the names of the files. Without flags, `rerun_arm.py`
+  writes over `results_medium_nucs.csv`, the run of 2026-09-19.
+- bibd has no default arguments: the baseline uses the instance of the README (`-v 8 -b 14 -r 7 -k 4 -l 3
+  --find-all`, 92 solutions, 712 choices).
+- magic_square uses `RANDOM_VALUE` with no seed: its counters change from run to run. Compare only its solution
+  count.
+- Most of the examples end in less than 1 ms. They are good for the checks of equal counters (steps 4 to 6), but not
+  to measure the nodes per second (step 5): for that, use tsp (45,208 choices), langford (18,632), golomb (11,241)
+  and the medium instances.
+- In the annotated arm, 11 of the 16 medium instances stop at the time limit. For them, gate 1 compares the best
+  objective, not the size of the tree. Only atp-stage2, tdtsp and filters end their search.
 
 ## Part 8 — Risks and open questions
 
