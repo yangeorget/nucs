@@ -18,7 +18,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_NB
-from nucs.problems.problem import Problem
+from nucs.problems.problem import PROBLEM_INCONSISTENT, Problem
 from nucs.propagators.propagators import (
     ALG_ALLDIFFERENT,
     ALG_LEQ_C,
@@ -218,12 +218,16 @@ def golomb_consistency_algorithm(
         # a reusable array for storing the minimal sum of different integers:
         # minimal_sum[i] will be the minimal sum of i different integers chosen among a set of possible integers
         minimal_sum = np.zeros(mark_nb - 1, dtype=np.int32)
-        # the following will mark at most sum(n-3) numbers as used
-        # hence there will be at least n-2 unused numbers greater than 0
-        for var in range(index(mark_nb, ni_var - 2, ni_var - 1) + 1):
-            dist = domains[var, DOMAIN_MIN]  # no offset
-            if dist < len(used_distance):
-                used_distance[dist] = True
+        # the distances between the marks 0..ni_var-1, which are bound (mark k is variable k-1): the following
+        # will mark at most sum(n-3) numbers as used, hence there will be at least n-2 unused numbers greater than 0;
+        # a distance is read from its two marks, because bc_algorithm has not yet propagated them into the distance
+        # variables, and a variable of a later mark can still be unbound
+        for i in range(ni_var - 1):
+            mark_i = 0 if i == 0 else domains[i - 1, DOMAIN_MIN]  # no offset
+            for j in range(i + 1, ni_var):
+                dist = domains[j - 1, DOMAIN_MIN] - mark_i
+                if dist < len(used_distance):
+                    used_distance[dist] = True
         # let's compute the sum of non-used numbers
         distance = 1
         for j in range(mark_nb - ni_var):
@@ -234,9 +238,15 @@ def golomb_consistency_algorithm(
         for i in range(ni_var - 1, mark_nb - 1):
             for j in range(i + 1, mark_nb):
                 var = index(mark_nb, i, j)
+                cell_idx = var << 1
+                new_min = max(state[cell_idx], minimal_sum[j - i])  # no offset
+                # tighten leaves the wipeout test to its caller: an empty domain must fail here, because the
+                # propagators of bc_algorithm do not expect one (a search that is not in index order meets it)
+                if new_min > state[cell_idx | 1]:
+                    trail_top[0] = trail_size
+                    return PROBLEM_INCONSISTENT
                 # every domain write goes through tighten, which owns the groundness test and the
                 # unbound-variable count -- and, once domains are trailed, the write barrier
-                cell_idx = var << 1
                 events, trail_size = tighten_at(
                     state,
                     trail_log,
@@ -244,7 +254,7 @@ def golomb_consistency_algorithm(
                     mark,
                     trail_size,
                     var,
-                    max(state[cell_idx], minimal_sum[j - i]),  # no offset
+                    new_min,
                     state[cell_idx | 1],
                 )
                 if events:

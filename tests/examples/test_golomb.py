@@ -14,11 +14,12 @@ import pytest
 
 from nucs.constants import DOMAIN_MIN
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm, index
-from nucs.heuristics.heuristics import VAR_HEURISTIC_DOM_WDEG
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_DOM_WDEG
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.consistency_algorithms import register_consistency_algorithm
 from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
+from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
 class TestGolomb:
@@ -36,6 +37,21 @@ class TestGolomb:
         solution = solver.find_best(problem.length_idx, DOMAIN_MIN)
         assert solution is not None
         assert solution[problem.length_idx] == length
+
+    def test_find_all_max_value(self) -> None:
+        # the Golomb pruning counted as used the distances to marks that were not yet bound: with this search it lost
+        # the optimal ruler of 8 marks (find_best returned 35), the smallest size and heuristics among all pairs that
+        # show it; the length is fixed at 34 to keep the tree at 670 choices instead of 22,137
+        problem = GolombProblem(8)
+        problem.domains[problem.length_idx] = (34, 34)
+        consistency_alg_golomb = register_consistency_algorithm(golomb_consistency_algorithm)
+        solver = BacktrackSolver(
+            problem,
+            consistency_algorithm=consistency_alg_golomb,
+            searches=[Search(dom_heuristic=DOM_HEURISTIC_MAX_VALUE)],
+        )
+        solver.find_all()
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1
 
     @pytest.mark.parametrize("mode", [OPTIM_PRUNE, OPTIM_RESET])
     @pytest.mark.parametrize("weight_decay", [1.0, 0.9])

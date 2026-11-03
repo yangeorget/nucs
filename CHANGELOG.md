@@ -88,6 +88,18 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 - **The `problem` of `Solver.__init__` is required.** It was `Problem | None`, but no solver passed `None`, and a
   solver without a problem had no `problem` attribute.
 
+### Fixed
+
+- **The Golomb consistency algorithm could lose the optimum, or return a ruler that is not a Golomb ruler.** It
+  computes a lower bound for the distances after the first unbound mark from the distances that are already used. To
+  find these, it read a range of row-major indices, which also holds the distances to marks that are not yet bound,
+  and it counted their lower bounds as used. The bound was then too high. With `--dom-heuristic MAX_VALUE`, n=8 gave
+  35 instead of 34. With `--var-heuristic SMALLEST_DOMAIN --dom-heuristic SPLIT_LOW`, n=10 gave a ruler of length 50,
+  with 18 - 1 = 25 - 8: the bound emptied a domain, and nothing reported the failure. The algorithm now reads the
+  used distances from the bound marks, and fails when a bound empties a domain. With all the pairs of heuristics that
+  need no parameters, n=5 to 8 now give the known optimum. The default search finds the same optima with 0.1% to
+  0.9% more choices (11,241 instead of 11,142 at n=10, 217,287 instead of 216,725 at n=11).
+
 ## 19.0.0
 
 ### Removed
