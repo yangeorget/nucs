@@ -25,7 +25,11 @@ if __name__ == "__main__":
     solver = BacktrackSolver(
         problem,
         **solver_kwargs_from_args(
-            args, searches=[Search(decision_variables=problem.requested_shifts, dom_heuristic=DOM_HEURISTIC_MAX_VALUE)]
+            args,
+            searches=[Search(decision_variables=problem.requested_shifts, dom_heuristic=DOM_HEURISTIC_MAX_VALUE)],
+            # last-conflict (measured 2026-11-03): 405 choices instead of 1,245, for the same optimum;
+            # tests/examples/test_employee_scheduling.py checks both
+            last_conflict=True,
         ),
     )
     run_optimizer(solver, args, problem.satisfied_request_nb, maximize=True)

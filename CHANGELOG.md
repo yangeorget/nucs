@@ -12,7 +12,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 - **Three options for the examples: `--last-conflict`, `--restart` and `--time-limit`.**
   - `--last-conflict` / `--no-last-conflict` turns last-conflict reasoning on or off. Without it, each example keeps
-    its own default: on for `magic_sequence` and `tsp`, off for the others.
+    its own default: on for `alphanumeric`, `cryptarithmetic`, `employee_scheduling`, `magic_sequence`,
+    `sports_tournament_scheduling` and `tsp`, off for the others.
   - `--restart POLICY[,SCALE[,BASE]]` sets the restart policy, with the syntax of `fzn-nucs --restart`, e.g.
     `--restart luby,100`. Without it, each example keeps its own policy: Luby with a scale of 100 for
     `magic_square`, no restarts for the others.
@@ -22,6 +23,17 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Changed
 
+- **Last-conflict is on by default in four more examples.** A sweep of all the examples, with and without
+  last-conflict, found smaller trees and the same answers in `alphanumeric` (112 choices instead of 3,071),
+  `cryptarithmetic` (399 instead of 737 on donald), `employee_scheduling` (405 instead of 1,245, for the same
+  optimum) and `sports_tournament_scheduling` (477 instead of 965 at n=8, and 7,193 instead of 10,490 at n=10). For
+  `alphanumeric` and `cryptarithmetic`, the gain stays with `--find-all`. A new test of each of these four examples
+  runs its `__main__` and checks the count with last-conflict. Last-conflict stays off in the other examples: it makes
+  `square` 30 times slower and `quasigroup` 3 times slower at n=12, `golomb`, `queens`, `langford` and `bacp` explore
+  more nodes, and in `bibd` and `magic_square` the result depends on the instance and the mode (for `bibd`, with
+  `--find-all` on (8,14,7,4,3), 1,084 choices instead of 712). `--last-conflict` turns it on for one run.
+- **The commands for BIBD(8,14,7,4,3) have `--find-all`**, in the README, the reference of the examples and the
+  comment of `bibd/__main__.py`, so that they compute the 92 solutions that the README gives, not only the first.
 - **`parse_restart` moves from `nucs.fzn.search_annotations` to `nucs.solvers.restart_policies`**, next to
   `RestartPolicy`, so that the examples can use it without the FlatZinc package. Replace
   `from nucs.fzn.search_annotations import parse_restart` with

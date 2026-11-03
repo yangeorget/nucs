@@ -10,12 +10,15 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from collections.abc import Callable
+
 from nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem import (
     SportsTournamentSchedulingProblem,
 )
 from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
+from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB
 
 
 class TestSportsTournamentScheduling:
@@ -104,3 +107,9 @@ class TestSportsTournamentScheduling:
         problem = SportsTournamentSchedulingProblem(8)
         solver = BacktrackSolver(problem, searches=[Search(var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN)])
         assert next(solver.solve(), None) is not None
+
+    def test_main(self, run_example_main: Callable[..., BacktrackSolver]) -> None:
+        """The example uses dom/wdeg with last-conflict, which finds a schedule with 477 choices instead of 965."""
+        solver = run_example_main("nucs.examples.sports_tournament_scheduling", "-n", "8")
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1
+        assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == 477

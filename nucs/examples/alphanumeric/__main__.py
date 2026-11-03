@@ -25,4 +25,6 @@ if __name__ == "__main__":
     with open(args.dataset, "r") as json_file:
         dataset = json.load(json_file)
         problem = AlphanumericProblem(dataset)
-        run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args)), args)
+        # last-conflict (measured 2026-11-03): 112 choices instead of 3,071 on alpha.json, and 235 instead of 6,278
+        # with --find-all; tests/examples/test_alphanumeric.py checks the 112
+        run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args, last_conflict=True)), args)

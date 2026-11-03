@@ -28,7 +28,12 @@ if __name__ == "__main__":
     problem = SportsTournamentSchedulingProblem(args.n, args.symmetry_breaking)
     run_solver(
         BacktrackSolver(
-            problem, **solver_kwargs_from_args(args, searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG)])
+            problem,
+            # last-conflict (measured 2026-11-03): 477 choices instead of 965 at n=8, and 7,193 instead of 10,490
+            # at n=10; tests/examples/test_sports_tournament_scheduling.py checks the 477
+            **solver_kwargs_from_args(
+                args, searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG)], last_conflict=True
+            ),
         ),
         args,
     )

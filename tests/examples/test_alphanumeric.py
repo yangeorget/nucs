@@ -11,6 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import json
+from collections.abc import Callable
 
 import pytest
 
@@ -18,7 +19,7 @@ from nucs.examples.alphanumeric.alphanumeric_problem import AlphanumericProblem
 from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
-from nucs.statistics import STATS_IDX_SOLUTION_NB
+from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB
 
 
 class TestAlphanumeric:
@@ -66,3 +67,9 @@ class TestAlphanumeric:
             solutions = solver.find_all()
             assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1
             assert solutions[0].tolist() == values
+
+    def test_main(self, run_example_main: Callable[..., BacktrackSolver]) -> None:
+        """The example uses last-conflict, which finds the solution with 112 choices instead of 3,071."""
+        solver = run_example_main("nucs.examples.alphanumeric")
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1
+        assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == 112

@@ -25,4 +25,6 @@ if __name__ == "__main__":
     with open(args.dataset, "r") as json_file:
         dataset = json.load(json_file)
         problem = CryptarithmeticProblem(dataset)
-        run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args)), args)
+        # last-conflict (measured 2026-11-03): 399 choices instead of 737 on donald.json, and 484 instead of 1,731
+        # with --find-all; tests/examples/test_cryptarithmetic.py checks the 399
+        run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args, last_conflict=True)), args)

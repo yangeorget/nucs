@@ -11,6 +11,7 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 import json
+from collections.abc import Callable
 
 import pytest
 
@@ -18,7 +19,7 @@ from nucs.examples.cryptarithmetic.cryptarithmetic_problem import Cryptarithmeti
 from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
-from nucs.statistics import STATS_IDX_SOLUTION_NB
+from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB
 
 
 class TestCryptarithmetic:
@@ -37,3 +38,16 @@ class TestCryptarithmetic:
             solutions = solver.find_all()
             assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1
             assert solutions[0].tolist() == values
+
+    @pytest.mark.parametrize(
+        "args, choice_nb",
+        [
+            ([], 399),  # donald.json, the default: 737 choices without last-conflict
+            (["--dataset", "datasets/examples/cryptarithmetic/sendmore.json"], 6),
+        ],
+    )
+    def test_main(self, run_example_main: Callable[..., BacktrackSolver], args: list[str], choice_nb: int) -> None:
+        """The example uses last-conflict."""
+        solver = run_example_main("nucs.examples.cryptarithmetic", *args)
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1
+        assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == choice_nb

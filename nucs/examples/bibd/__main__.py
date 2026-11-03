@@ -16,7 +16,7 @@ from nucs.examples.default_argument_parser import DefaultArgumentParser, run_sol
 from nucs.solvers.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
-# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -l 3 --symmetry-breaking
+# NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -l 3 --find-all
 if __name__ == "__main__":
     parser = DefaultArgumentParser()
     parser.add_argument("-v", type=int)
@@ -26,4 +26,6 @@ if __name__ == "__main__":
     parser.add_argument("-l", type=int)
     args = parser.parse_args()
     problem = BIBDProblem(args.v, args.b, args.r, args.k, args.l, args.symmetry_breaking)
+    # no last-conflict by default (measured 2026-11-03): it helps on (6,50,25,3,10), but with --find-all on
+    # (8,14,7,4,3), the instance of the README, it makes 1,084 choices instead of 712
     run_solver(BacktrackSolver(problem, **solver_kwargs_from_args(args)), args)
