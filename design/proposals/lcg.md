@@ -1,13 +1,14 @@
 # Lazy clause generation in NuCS — design
 
-> **Status:** proposed, 2026-10-05. Nothing is implemented.
+> **Status:** proposed, 2026-10-05. The implementation started on 2026-11-03: Phase 0 and step 3 of 7.0 are done.
 
 This document is the design of lazy clause generation (LCG) for NuCS. It is written for a reader who knows
 classical constraint programming (propagation, search, Gecode and Choco internals) but not LCG or SAT solving.
 Part 1 explains the concepts, with a worked example and links to read. Parts 2 to 6 give the design. Part 7 gives
 the implementation steps, the stages, the tests and the measurements that decide if each stage continues.
 
-Nothing in this document is implemented. The names of the new arrays and functions are proposals.
+Only the literals of 3.2 are implemented (`nucs/solvers/literals.py`). The names of the other new arrays and
+functions are proposals.
 
 ## Contents
 
@@ -827,6 +828,9 @@ explanations, the analysis and the store already have their tests.
 3. **Add the literals module.** It holds the encoding `(var_side, value)`, the negation, and the tests "true" and
    "false" on `state` (3.2).
    *Check:* unit tests.
+   *Done on 2026-11-03:* `nucs/solvers/literals.py` (`lit_negate`, `lit_is_true`, `lit_is_false`, all
+   `inline="always"`, because `lcg_algorithm` will be compiled with `_nrt=False` as `bc_algorithm` is) and
+   `tests/solvers/test_literals.py` (curated cases and a brute-force test on all the boxes in `[-3, 3]`).
 4. **Add an `LcgSolver` that is a copy of `BacktrackSolver`.** It gets its own `run_search_loop_lcg` and its own
    `lcg_algorithm`, which are exact copies of the current code at this step.
    *Check:* on all the examples, every counter is the same as with `BacktrackSolver`. Each later step then shows as
