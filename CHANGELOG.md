@@ -46,6 +46,25 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `square` 30 times slower and `quasigroup` 3 times slower at n=12, `golomb`, `queens`, `langford` and `bacp` explore
   more nodes, and in `bibd` and `magic_square` the result depends on the instance and the mode (for `bibd`, with
   `--find-all` on (8,14,7,4,3), 1,084 choices instead of 712). `--last-conflict` turns it on for one run.
+- **Four examples use other heuristics by default.** A sweep of all the examples over the pairs of variable and domain
+  heuristics (2,477 runs on 43 instances), then 3 timed runs of each candidate on more instances, found:
+  - `magic_sequence` splits the domains and tries the upper half first (`SPLIT_HIGH`): 9 ms instead of 105 ms at
+    n=100, 134 ms instead of 5,850 ms at n=300, and 0.6 s at n=500, where `MIN_VALUE` does not finish in 20 s.
+  - `sports_tournament_scheduling` selects the variable of smallest min (`MIN_EARLIEST_START`), with last-conflict:
+    81 choices instead of 477 at n=8, 23 ms instead of 262 ms at n=10, and 0.5 s at n=12 and 1.5 s at n=14, where
+    dom/wdeg does not finish in 20 s.
+  - `langford` uses `MIN_EARLIEST_START` and `MIN_VALUE`, which fill the sequence from the left: 264 ms instead of
+    735 ms at k=3, n=12, 103 ms instead of 2,075 ms at k=3, n=18, and 20 choices instead of 634 at k=2, n=20.
+  - `JobShopProblem.recommended_searches`, the search of `jobshop`, uses `MIN_EARLIEST_START` instead of
+    `CRITICAL_RESOURCE`: this is the Set Times scheme. In the mode of the example, it proves the optimum of la01 in
+    6 ms, where `CRITICAL_RESOURCE` does not in 10 s, and it finds a schedule of la31 in 300 choices, where
+    `CRITICAL_RESOURCE` finds none in 30 s. In 10 s it finds better schedules of mt20 (1186 against 1395) and la02,
+    but a worse one of mt10 (1089 against 1032). The search keeps the parameters of `CRITICAL_RESOURCE`, so that
+    `--var-heuristic CRITICAL_RESOURCE` selects it.
+
+  The tests of these examples check the new counts. `--var-heuristic` and `--dom-heuristic` select the previous
+  heuristics. The other examples keep theirs: the sweep found no gain that holds over their instances, or only gains
+  of a few milliseconds.
 - **The commands for BIBD(8,14,7,4,3) have `--find-all`**, in the README, the reference of the examples and the
   comment of `bibd/__main__.py`, so that they compute the 92 solutions that the README gives, not only the first.
 - **`parse_restart` moves from `nucs.fzn.search_annotations` to `nucs.solvers.restart_policies`**, next to

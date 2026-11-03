@@ -10,11 +10,13 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from collections.abc import Callable
+
 import pytest
 
 from nucs.examples.langford.langford_problem import LangfordProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.statistics import STATS_IDX_SOLUTION_NB
+from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB
 
 
 class TestLangford:
@@ -42,3 +44,9 @@ class TestLangford:
         solver = BacktrackSolver(problem)
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb
+
+    def test_main(self, run_example_main: Callable[..., BacktrackSolver]) -> None:
+        """The example fills the sequence from the left: 20 choices at k=2, n=20, where smallest_domain makes 634."""
+        solver = run_example_main("nucs.examples.langford", "-k", "2", "-n", "20")
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1
+        assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == 20

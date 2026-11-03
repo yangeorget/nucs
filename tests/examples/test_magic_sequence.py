@@ -10,12 +10,14 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+from collections.abc import Callable
+
 import pytest
 
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
-from nucs.statistics import STATS_IDX_SOLUTION_NB
+from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB
 
 
 class TestMagicSequence:
@@ -26,3 +28,9 @@ class TestMagicSequence:
         solutions = solver.find_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1
         assert solutions[0][0] == zero_nb
+
+    def test_main(self, run_example_main: Callable[..., BacktrackSolver]) -> None:
+        """The example splits the domains and tries the upper half first: 20 choices, where min_value makes 111."""
+        solver = run_example_main("nucs.examples.magic_sequence", "-n", "100")
+        assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1
+        assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == 20

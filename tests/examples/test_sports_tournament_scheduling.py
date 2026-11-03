@@ -109,7 +109,7 @@ class TestSportsTournamentScheduling:
         assert next(solver.solve(), None) is not None
 
     def test_main(self, run_example_main: Callable[..., BacktrackSolver]) -> None:
-        """The example uses dom/wdeg with last-conflict, which finds a schedule with 477 choices instead of 965."""
+        """The example uses min_earliest_start with last-conflict: 81 choices, where dom/wdeg with it makes 477."""
         solver = run_example_main("nucs.examples.sports_tournament_scheduling", "-n", "8")
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1
-        assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == 477
+        assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == 81

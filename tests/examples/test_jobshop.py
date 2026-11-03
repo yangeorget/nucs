@@ -18,6 +18,7 @@ import pytest
 from nucs.constants import DOMAIN_MIN
 from nucs.examples.jobshop.jobshop_problem import JobShopProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.solver import OPTIM_PRUNE
 
 
 def _assert_valid_schedule(problem: JobShopProblem, solution) -> int:  # type: ignore[no-untyped-def]
@@ -61,24 +62,29 @@ class TestJobShop:
             ("mt20", 1165),
             ("la01", 666),
             ("la05", 593),
+            ("la31", 1784),
         ],
     )
     def test_solve_first_solution(self, name: str, optimum: int) -> None:
-        # the critical-resource search keeps branching on one machine until its tasks are sequenced, then
-        # schedules each task at its earliest start: a valid schedule whose first-solution makespan is
-        # reproducible (and, on the larger instances, far better than the smallest-domain baseline)
+        # the Set Times search schedules the task that can start soonest at its earliest start: a valid schedule
+        # whose first-solution makespan is reproducible; on la31, the critical-resource search found no schedule in
+        # 30 s, where this one needs 300 choices
         with open(f"datasets/examples/jobshop/{name}.json", "r") as json_file:
             dataset = json.load(json_file)
         problem = JobShopProblem(dataset["jobs"])
-        solution = next(BacktrackSolver(problem, searches=problem.recommended_searches()).solve(), None)
+        # the budget makes a search that finds no schedule fail instead of hanging
+        solution = next(BacktrackSolver(problem, searches=problem.recommended_searches()).solve(timeout=10), None)
         assert solution is not None
         makespan = _assert_valid_schedule(problem, solution)
         assert makespan == int(solution[problem.makespan])
         assert makespan >= optimum
 
+    # in the mode of the example, OPTIM_PRUNE, the Set Times search proves the optimum of la01 with 195 choices; the
+    # critical-resource search does not in 10 s (it does in OPTIM_RESET, with 38,798 choices); the budget makes a
+    # slower search fail instead of hanging
     @pytest.mark.parametrize(
         "name, optimum",
-        [("mt06", 55)],
+        [("mt06", 55), ("la01", 666)],
     )
     def test_find_best(self, name: str, optimum: int) -> None:
         with open(f"datasets/examples/jobshop/{name}.json", "r") as json_file:
@@ -86,6 +92,6 @@ class TestJobShop:
         assert dataset["optimum"] == optimum
         problem = JobShopProblem(dataset["jobs"])
         solver = BacktrackSolver(problem, searches=problem.recommended_searches())
-        solution = solver.find_best(problem.makespan, DOMAIN_MIN)
+        solution = solver.find_best(problem.makespan, DOMAIN_MIN, mode=OPTIM_PRUNE, timeout=10)
         assert solution is not None
         assert solution[problem.makespan] == optimum

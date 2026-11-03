@@ -15,7 +15,7 @@ from nucs.examples.default_argument_parser import DefaultArgumentParser, run_sol
 from nucs.examples.sports_tournament_scheduling.sports_tournament_scheduling_problem import (
     SportsTournamentSchedulingProblem,
 )
-from nucs.heuristics.heuristics import VAR_HEURISTIC_DOM_WDEG
+from nucs.heuristics.heuristics import VAR_HEURISTIC_MIN_EARLIEST_START
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 
@@ -29,10 +29,12 @@ if __name__ == "__main__":
     run_solver(
         BacktrackSolver(
             problem,
-            # last-conflict (measured 2026-11-03): 477 choices instead of 965 at n=8, and 7,193 instead of 10,490
-            # at n=10; tests/examples/test_sports_tournament_scheduling.py checks the 477
+            # the variable of smallest min first, with last-conflict (measured 2026-11-03, against dom/wdeg with
+            # last-conflict): 81 choices instead of 477 at n=8, 23 ms instead of 262 ms at n=10, and 0.5 s at n=12
+            # and 1.5 s at n=14, where dom/wdeg does not finish in 20 s;
+            # tests/examples/test_sports_tournament_scheduling.py checks the 81
             **solver_kwargs_from_args(
-                args, searches=[Search(var_heuristic=VAR_HEURISTIC_DOM_WDEG)], last_conflict=True
+                args, searches=[Search(var_heuristic=VAR_HEURISTIC_MIN_EARLIEST_START)], last_conflict=True
             ),
         ),
         args,

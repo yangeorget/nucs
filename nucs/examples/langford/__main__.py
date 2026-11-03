@@ -12,7 +12,7 @@
 ###############################################################################
 from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.examples.langford.langford_problem import LangfordProblem
-from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_SMALLEST_DOMAIN
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, VAR_HEURISTIC_MIN_EARLIEST_START
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 
@@ -24,12 +24,18 @@ if __name__ == "__main__":
     parser.add_argument("-k", type=int, default=3)
     args = parser.parse_args()
     problem = LangfordProblem(args.k, args.n)
+    # the variables are positions: the variable of smallest min at its min fills the sequence from the left, and the
+    # propagators see a dense prefix (measured 2026-11-03, against smallest_domain and max_value): 264 ms instead of
+    # 735 ms at k=3, n=12, 103 ms instead of 2,075 ms at k=3, n=18, and 20 choices instead of 634 at k=2, n=20;
+    # tests/examples/test_langford.py checks the 20
     run_solver(
         BacktrackSolver(
             problem,
             **solver_kwargs_from_args(
                 args,
-                searches=[Search(var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MAX_VALUE)],
+                searches=[
+                    Search(var_heuristic=VAR_HEURISTIC_MIN_EARLIEST_START, dom_heuristic=DOM_HEURISTIC_MIN_VALUE)
+                ],
             ),
         ),
         args,
