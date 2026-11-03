@@ -13,7 +13,11 @@
 import json
 
 from nucs.constants import DOMAIN_MIN
-from nucs.examples.default_argument_parser import DefaultArgumentParser, solver_kwargs_from_args
+from nucs.examples.default_argument_parser import (
+    DefaultArgumentParser,
+    solver_kwargs_from_args,
+    timeout_from_args,
+)
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
@@ -51,6 +55,11 @@ if __name__ == "__main__":
                 last_conflict=True,
             ),
         )
-        solution = solver.find_best(problem.total_cost, DOMAIN_MIN, mode=args.optimization_mode or OPTIM_PRUNE)
+        solution = solver.find_best(
+            problem.total_cost,
+            DOMAIN_MIN,
+            mode=args.optimization_mode or OPTIM_PRUNE,
+            timeout=timeout_from_args(args),
+        )
         if args.display_stats:
             solver.print_statistics()

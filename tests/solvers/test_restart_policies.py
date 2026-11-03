@@ -22,6 +22,7 @@ from nucs.solvers.restart_policies import (
     RESTART_NEVER,
     RestartPolicy,
     luby,
+    parse_restart,
     restart_limits,
 )
 
@@ -73,3 +74,20 @@ class TestRestartPolicies:
     )
     def test_restart_policy_str(self, restarts: RestartPolicy, expected: str) -> None:
         assert str(restarts) == expected
+
+    @pytest.mark.parametrize(
+        "text,policy",
+        [
+            ("luby", RestartPolicy(RESTART_LUBY)),
+            ("luby,500", RestartPolicy(RESTART_LUBY, 500)),
+            ("Geometric,100,2.0", RestartPolicy(RESTART_GEOMETRIC, 100, 2.0)),
+            ("none", RestartPolicy()),
+        ],
+    )
+    def test_parse_restart(self, text: str, policy: RestartPolicy) -> None:
+        assert parse_restart(text) == policy
+
+    @pytest.mark.parametrize("text", ["fibonacci,10", "luby,0", "geometric,10,1.0", "luby,10,2,3"])
+    def test_parse_restart_rejects_a_wrong_policy(self, text: str) -> None:
+        with pytest.raises(ValueError):
+            parse_restart(text)

@@ -19,7 +19,6 @@ from nucs.fzn.parser import Id, parse
 from nucs.fzn.search_annotations import (
     RESTART_POLICY_FREE_SEARCH,
     free_search_heuristics,
-    parse_restart,
     restart_policy_of,
     search_heuristics,
     search_options,
@@ -152,23 +151,6 @@ class TestSearchAnnotations:
         searches = free_search_heuristics(model)
         assert len(searches) == 1
         assert sorted(searches[0].decision_variables or []) == list(range(model.problem.domain_nb))
-
-    @pytest.mark.parametrize(
-        "text,policy",
-        [
-            ("luby", RestartPolicy(RESTART_LUBY)),
-            ("luby,500", RestartPolicy(RESTART_LUBY, 500)),
-            ("Geometric,100,2.0", RestartPolicy(RESTART_GEOMETRIC, 100, 2.0)),
-            ("none", RestartPolicy()),
-        ],
-    )
-    def test_parse_restart(self, text: str, policy: RestartPolicy) -> None:
-        assert parse_restart(text) == policy
-
-    @pytest.mark.parametrize("text", ["fibonacci,10", "luby,0", "geometric,10,1.0", "luby,10,2,3"])
-    def test_parse_restart_rejects_a_wrong_policy(self, text: str) -> None:
-        with pytest.raises(ValueError):
-            parse_restart(text)
 
     @pytest.mark.parametrize(
         "free_search,last_conflict,restart,expected",

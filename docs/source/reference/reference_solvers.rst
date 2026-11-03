@@ -16,3 +16,4 @@ The restart policies it accepts:
    :members:
 .. autofunction:: nucs.solvers.restart_policies.restart_limits
 .. autofunction:: nucs.solvers.restart_policies.luby
+.. autofunction:: nucs.solvers.restart_policies.parse_restart

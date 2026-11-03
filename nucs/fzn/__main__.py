@@ -23,8 +23,7 @@ from nucs.fzn.model import build_model
 from nucs.fzn.parser import parse
 from nucs.fzn.register import register
 from nucs.fzn.runner import run
-from nucs.fzn.search_annotations import parse_restart
-from nucs.solvers.restart_policies import RestartPolicy
+from nucs.solvers.restart_policies import RestartPolicy, parse_restart
 
 
 def build_arg_parser() -> argparse.ArgumentParser:

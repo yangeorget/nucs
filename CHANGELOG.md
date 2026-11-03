@@ -8,8 +8,24 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ## Unreleased
 
+### Added
+
+- **Three options for the examples: `--last-conflict`, `--restart` and `--time-limit`.**
+  - `--last-conflict` / `--no-last-conflict` turns last-conflict reasoning on or off. Without it, each example keeps
+    its own default: on for `magic_sequence` and `tsp`, off for the others.
+  - `--restart POLICY[,SCALE[,BASE]]` sets the restart policy, with the syntax of `fzn-nucs --restart`, e.g.
+    `--restart luby,100`. Without it, each example keeps its own policy: Luby with a scale of 100 for
+    `magic_square`, no restarts for the others.
+  - `--time-limit MS` stops the search after a number of milliseconds, as `fzn-nucs -t` does. An optimization
+    returns the best solution that it found. `timeout_from_args` gives the budget in seconds, for an example that
+    calls the solver itself.
+
 ### Changed
 
+- **`parse_restart` moves from `nucs.fzn.search_annotations` to `nucs.solvers.restart_policies`**, next to
+  `RestartPolicy`, so that the examples can use it without the FlatZinc package. Replace
+  `from nucs.fzn.search_annotations import parse_restart` with
+  `from nucs.solvers.restart_policies import parse_restart`.
 - **`Restarts` is now `RestartPolicy`.** The class gives one policy and its parameters, not a set of restarts.
   Replace `Restarts(...)` with `RestartPolicy(...)`.
 - **The `restarts` parameter of `BacktrackSolver` is now `restart_policy`.** It takes a `RestartPolicy`, and the

@@ -21,8 +21,25 @@ from numpy.typing import NDArray
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, LOG_LEVELS
 from nucs.heuristics.heuristics import DOM_HEURISTICS, VAR_HEURISTICS
 from nucs.solvers.consistency_algorithms import CONSISTENCY_ALGS
+from nucs.solvers.restart_policies import RestartPolicy, parse_restart
 from nucs.solvers.searches import SEARCHES_DEFAULT, Search
 from nucs.solvers.solver import OPTIM_MODES, OPTIM_RESET, Solver
+
+
+def restart_arg(text: str) -> RestartPolicy:
+    """
+    Converts the --restart argument, so that a wrong one is reported as a usage error with its reason.
+
+    :param text: the argument, POLICY[,SCALE[,BASE]]
+    :type text: str
+
+    :return: the restart policy
+    :rtype: RestartPolicy
+    """
+    try:
+        return parse_restart(text)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e)) from e
 
 
 class DefaultArgumentParser(argparse.ArgumentParser):
@@ -58,6 +75,12 @@ class DefaultArgumentParser(argparse.ArgumentParser):
             action=argparse.BooleanOptionalAction,
             default=False,
         )
+        # no default: an example that turns last-conflict on keeps it unless the command line says otherwise
+        self.add_argument(
+            "--last-conflict",
+            help="branch first on the variable of the last refuted decision, as long as it is unbound",
+            action=argparse.BooleanOptionalAction,
+        )
         self.add_argument(
             "--log-level",
             help="set the log level",
@@ -68,11 +91,25 @@ class DefaultArgumentParser(argparse.ArgumentParser):
             help="set the optimization mode",
             choices=OPTIM_MODES,
         )
+        # no default: an example that sets a restart policy keeps it unless the command line says otherwise
+        self.add_argument(
+            "--restart",
+            help="restart after a number of failures: POLICY[,SCALE[,BASE]], the policy being luby, geometric, linear, "
+            "constant or none, e.g. luby,100",
+            metavar="POLICY[,SCALE[,BASE]]",
+            type=restart_arg,
+        )
         self.add_argument(
             "--symmetry-breaking",
             help="add symmetry breaking constraints",
             action=argparse.BooleanOptionalAction,
             default=True,
+        )
+        self.add_argument(
+            "--time-limit",
+            help="stop the search after this many milliseconds; an optimization reports the best solution found",
+            type=int,
+            metavar="MS",
         )
         self.add_argument(
             "--var-heuristic",
@@ -108,9 +145,24 @@ def solver_kwargs_from_args(
         "consistency_algorithm": None
         if args.consistency_algorithm is None
         else CONSISTENCY_ALGS[args.consistency_algorithm],
+        "last_conflict": args.last_conflict,  # None, True or False: --no-last-conflict must override a True default
         "log_level": args.log_level,
+        "restart_policy": args.restart,
     }
     return {**defaults, "searches": searches, **{k: v for k, v in overrides.items() if v is not None}}
+
+
+def timeout_from_args(args: Namespace) -> float | None:
+    """
+    Returns the search budget that --time-limit gives, in seconds as the solver takes it.
+
+    :param args: the CLI arguments
+    :type args: Namespace
+
+    :return: the budget in seconds, or None for an unbounded search
+    :rtype: Optional[float]
+    """
+    return None if args.time_limit is None else args.time_limit / 1000
 
 
 def run_solver(solver: Solver, args: Namespace) -> None:
@@ -123,14 +175,14 @@ def run_solver(solver: Solver, args: Namespace) -> None:
     :type args: Namespace
     """
     if args.find_all:
-        solutions = solver.find_all()
+        solutions = solver.find_all(timeout=timeout_from_args(args))
         if args.display_stats:
             solver.print_statistics()
         if args.display_solutions:
             for solution in solutions:
                 solver.problem.print_solution(solution)
     else:
-        solution = next(solver.solve(), None)  # type: ignore
+        solution = next(solver.solve(timeout=timeout_from_args(args)), None)  # type: ignore
         if args.display_stats:
             solver.print_statistics()
         if args.display_solutions:
@@ -162,7 +214,9 @@ def run_optimizer(
     :rtype: Optional[NDArray]
     """
     mode = args.optimization_mode or default_mode
-    solution = solver.find_best(objective, bound=DOMAIN_MAX if maximize else DOMAIN_MIN, mode=mode)
+    solution = solver.find_best(
+        objective, bound=DOMAIN_MAX if maximize else DOMAIN_MIN, mode=mode, timeout=timeout_from_args(args)
+    )
     if args.display_stats:
         solver.print_statistics()
     if args.display_solutions:

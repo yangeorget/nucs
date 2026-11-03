@@ -123,3 +123,23 @@ class RestartPolicy:
 
 
 RESTART_POLICY_NEVER = RestartPolicy()  # the default of BacktrackSolver; frozen, so one object serves every solver
+
+
+def parse_restart(text: str) -> RestartPolicy:
+    """
+    Parses a restart policy given on the command line as ``POLICY[,SCALE[,BASE]]``, such as ``luby,500`` or
+    ``geometric,100,1.5``. The scale defaults to 100 and the base to 1.5, as in BacktrackSolver.
+
+    :param text: the policy, one of RESTART_POLICIES, then optionally its scale and its base
+    :type text: str
+
+    :return: the restart policy
+    :rtype: RestartPolicy
+    """
+    parts = text.split(",")
+    if not 1 <= len(parts) <= 3:
+        raise ValueError(f"Expected POLICY[,SCALE[,BASE]], not {text!r}")
+    policy = parts[0].strip().lower()
+    scale = int(parts[1]) if len(parts) > 1 else 100
+    base = float(parts[2]) if len(parts) > 2 else 1.5
+    return RestartPolicy(policy, scale, base)  # raises on a wrong policy, scale or base

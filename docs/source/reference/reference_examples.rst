@@ -14,10 +14,13 @@ Most of these examples can be run from the command line and support the followin
 * :code:`--display-stats`: display the statistics, defaults to true
 * :code:`--find-all`: find all solutions, defaults to false
 * :code:`--help`: show the help
+* :code:`--last-conflict/--no-last-conflict`: branch first on the variable of the last refuted decision, as long as it is unbound; without the option, the example keeps its own default
 * :code:`--log-level`: set the log level, can take the values :code:`DEBUG`, :code:`INFO`, :code:`WARNING`, :code:`ERROR`, :code:`CRITICAL`, defaults to :code:`INFO`
 * :code:`--n`: define the size of the problem
 * :code:`--optimization-mode`: set the optimizer mode (:code:`RESET` or :code:`PRUNE`), defaults to :code:`RESET`
+* :code:`--restart POLICY[,SCALE[,BASE]]`: restart after a number of failures, the policy being :code:`luby`, :code:`geometric`, :code:`linear`, :code:`constant` or :code:`none`, e.g. :code:`luby,100`; without the option, the example keeps its own policy
 * :code:`--symmetry-breaking/--no-symmetry-breaking`: leverage symmetries in the problem, defaults to true
+* :code:`--time-limit MS`: stop the search after this many milliseconds; an optimization reports the best solution found
 
 
 .. autoclass:: nucs.examples.all_interval_series.all_interval_series_problem.AllIntervalSeriesProblem
