@@ -356,11 +356,14 @@ copies `state` into `prop_domains`, so "the propagator wrote nothing" means "`pr
   second array would have been a second parameter through `SIGN_CONSISTENCY_ALG`, and thus a breaking change for
   every custom consistency algorithm, for one bit. Six bits are left.
 
-Twenty-one propagators report today: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`,
-`count_eq`/`leq_c`/`geq_c`, `alldifferent`, `gcc`, `lexleq`, `inverse`, `regular`, `relation`, and the four
-`element_l_eq`/`_c`/`_alldifferent`/`_c_alldifferent`. All of them are n-ary. `abs_eq` and `leq_c` reported for a
-while and were taken back out: a propagator with two variables has at most two write-back iterations to skip, and it
-pays the report on every call to skip them. The set of reporting propagators is meant to stay small.
+Twenty-four propagators report today: `linear_eq_c`/`leq_c`/`geq_c`/`neq_c`, `sum_eq`/`eq_c`/`leq_c`/`geq_c`,
+`count_eq`/`eq_c`/`leq_c`/`geq_c`, `alldifferent`, `gcc`, `lexleq`, `inverse`, `nvalue`, `regular`, `relation`,
+`value_precede_chain`, and the four `element_l_eq`/`_c`/`_alldifferent`/`_c_alldifferent`. All of them are n-ary.
+`count_eq_c` was the last of the `count` family to start (2026-11-03). It is 1.087× faster on
+`datasets/fzn/count_eq_shifts`, a 120-long roster that calls it 2.8M times, with 83% of the calls changing nothing. It
+does not change the sports example, which posts it at arity 4 to 6. `abs_eq` and `leq_c` reported for a while and were
+taken back out: a propagator with two variables has at most two write-back iterations to skip, and it pays the report
+on every call to skip them. The set of reporting propagators is meant to stay small.
 
 There are four ways to answer, and the shape of the propagator picks one:
 

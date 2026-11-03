@@ -568,6 +568,7 @@ ALG_COUNT_EQ_C = register_propagator(
     get_complexity_count_eq_c,
     compute_domains_count_eq_c,
     get_state_fct=get_state_count_eq_c,
+    reports_changes=True,
 )
 ALG_COUNT_GEQ_C = register_propagator(
     get_triggers_count_geq_c,

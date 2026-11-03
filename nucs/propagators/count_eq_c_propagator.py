@@ -27,29 +27,29 @@ from nucs.constants import (
 
 STATE_LIVE_NB = 0  # trailed: how many x_i are still undetermined, biased by 1 so 0 reads as "cold"
 STATE_COUNT_MIN = 1  # trailed: how many x_i are already fixed to a
-STATE_LIVE = 2  # the live permutation; this propagator reports no changes, so there is no report cell
+STATE_REPORT = 2  # the engine's change-report cell, which must be the first cell of the hint suffix
+STATE_LIVE = 3  # the live permutation: the undetermined x_i occupy its first STATE_LIVE_NB - 1 places
 
 
 def get_state_count_eq_c(n: int, parameters: Sequence[int]) -> tuple[int, int]:
     """
-    Returns the size of this propagator's state block: two trailed counters and a permutation of the x_i
-    whose live prefix is the ones still undetermined.
+    Returns the size of this propagator's state block: two trailed counters, the change-report cell, and a
+    permutation of the x_i whose live prefix is the ones still undetermined.
 
-    Laid out like count_eq's but without its leading change-report cell, which this propagator has never
-    declared. See get_state_count_eq for why only the size of the live prefix is trailed and why count_max
-    is derived rather than stored.
+    Laid out exactly like count_eq's. See get_state_count_eq for why only the size of the live prefix is
+    trailed and why count_max is derived rather than stored.
 
     :param n: the number of variables
     :type n: int
     :param parameters: the parameters, unused here
     :type parameters: Sequence[int]
 
-    :return: (trailed_nb, hint_nb) = (2, n)
+    :return: (trailed_nb, hint_nb) = (2, 1 + n)
     :rtype: tuple[int, int]
     """
     if n < LIVE_SET_MIN_ARITY:
-        return 0, 0
-    return 2, n
+        return 0, 1
+    return 2, 1 + n
 
 
 def get_complexity_count_eq_c(n: int, parameters: NDArray) -> int:
@@ -98,7 +98,7 @@ def _compute_domains_count_eq_c_plain(domains: NDArray, parameters: NDArray, pro
     :type domains: NDArray
     :param parameters: the parameters of the propagator, a is the first parameter, c is the second parameter
     :type parameters: NDArray
-    :param prop_state: this propagator's state block (unused)
+    :param prop_state: this propagator's state block, whose first cell is the change report
     :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
@@ -124,25 +124,30 @@ def _compute_domains_count_eq_c_plain(domains: NDArray, parameters: NDArray, pro
             return PROP_ENTAILMENT
         # we cannot have more domains equal to a
         all_different = True
+        changed = False
         for domain in domains:
             domain_min = domain[DOMAIN_MIN]
             domain_max = domain[DOMAIN_MAX]
             if domain_min == a:
                 if domain_max > a:
                     domain[DOMAIN_MIN] = a + 1
+                    changed = True
             elif domain_min < a:
                 if domain_max == a:
                     domain[DOMAIN_MAX] = a - 1
+                    changed = True
                 elif domain_max > a:
                     all_different = False
         if all_different:
             return PROP_ENTAILMENT
-    else:
-        if count_max == c:  # we cannot have more domains different from a
-            for domain in domains:
-                if domain[DOMAIN_MIN] <= a <= domain[DOMAIN_MAX]:
-                    domain[:] = a
-            return PROP_ENTAILMENT
+        if changed:
+            return PROP_CONSISTENCY
+    elif count_max == c:  # we cannot have more domains different from a
+        for domain in domains:
+            if domain[DOMAIN_MIN] <= a <= domain[DOMAIN_MAX]:
+                domain[:] = a
+        return PROP_ENTAILMENT
+    prop_state[0] = 0  # nothing written: the engine can skip the write-back scan
     return PROP_CONSISTENCY
 
 
@@ -155,7 +160,7 @@ def compute_domains_count_eq_c(domains: NDArray, parameters: NDArray, prop_state
     :type domains: NDArray
     :param parameters: the parameters of the propagator, a is the first parameter, c is the second parameter
     :type parameters: NDArray
-    :param prop_state: this propagator's state block (unused)
+    :param prop_state: this propagator's state block, whose first cell is the change report
     :type prop_state: NDArray
 
     :return: the status of the propagation (consistency, inconsistency or entailment) as an int
@@ -213,18 +218,24 @@ def compute_domains_count_eq_c(domains: NDArray, parameters: NDArray, prop_state
             return PROP_ENTAILMENT
         # we cannot have more domains equal to a
         all_different = True
+        changed = False
         for k in range(live_nb):
             domain = domains[prop_state[STATE_LIVE + k]]
             if domain[DOMAIN_MIN] == a:  # live, so its max is above a
                 domain[DOMAIN_MIN] = a + 1
+                changed = True
             elif domain[DOMAIN_MAX] == a:  # live, so its min is below a
                 domain[DOMAIN_MAX] = a - 1
+                changed = True
             else:  # a is strictly inside, so this domain cannot be pushed off it
                 all_different = False
         if all_different:
             return PROP_ENTAILMENT
+        if changed:
+            return PROP_CONSISTENCY
     elif count_max == c:  # we cannot have more domains different from a
         for k in range(live_nb):
             domains[prop_state[STATE_LIVE + k]][:] = a
         return PROP_ENTAILMENT
+    prop_state[STATE_REPORT] = 0  # nothing written: the engine can skip the write-back scan
     return PROP_CONSISTENCY

@@ -27,16 +27,18 @@ registered (`fzn-nucs --register`). The `.fzn` is cached beside the `.mzn` and i
 |---|---|---|
 | `bin_packing_load` | `BIN_PACKING_LOAD` | partition 54 weighted items into 7 bins, minimising the heaviest |
 | `count_shifts` | `COUNT_LEQ_C` | per-shift quotas as `at_most`/`at_least` over a 120-long roster |
+| `count_eq_shifts` | `COUNT_EQ_C` | the same roster with exact quotas, as `count_eq` |
 | `diffn_packing` | `DIFFN` | strip packing, minimising the height |
 | `gcc_roster` | `GCC` | a shift roster with per-shift cardinality bounds |
 | `nvalue_assign` | `NVALUE` | minimise the number of distinct values in a constrained assignment |
 | `regular_shifts` | `REGULAR` | a rostering pattern automaton over a long horizon |
 | `value_precede_colouring` | `VALUE_PRECEDE` | graph colouring with the value symmetry broken |
 
-Six are hot enough to A/B a change against — `count_shifts` (2.9M `count_leq_c` calls at arity 120, with
-2.1M `count_geq_c` beside it), `gcc_roster` (3.7M `gcc`), `regular_shifts` (544k `regular`),
-`diffn_packing` (64k `diffn`), `nvalue_assign` (19k `nvalue`) and `bin_packing_load` (13k calls at arity
-61, where the propagator is most of the runtime because its cost is quadratic in that arity).
+Seven are hot enough to A/B a change against — `count_shifts` (2.9M `count_leq_c` calls at arity 120, with
+2.1M `count_geq_c` beside it), `count_eq_shifts` (2.8M `count_eq_c` calls at arity 120), `gcc_roster` (3.7M `gcc`),
+`regular_shifts` (544k `regular`), `diffn_packing` (64k `diffn`), `nvalue_assign` (19k `nvalue`) and
+`bin_packing_load` (13k calls at arity 61, where the propagator is most of the runtime because its cost is quadratic
+in that arity).
 
 `value_precede_colouring` is the exception, and it is **coverage only by nature rather than by neglect**.
 `value_precede(s, t)` returns entailment as soon as the earliest position that can hold `s` is ground to

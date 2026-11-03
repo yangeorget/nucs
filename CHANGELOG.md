@@ -31,6 +31,12 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Changed
 
+- **`count_eq_c` reports the calls that change no domain**, as `count_eq`, `count_leq_c` and `count_geq_c` already do.
+  The engine then skips the write-back scan for these calls. On the new dataset model `count_eq_shifts`, a 120-long
+  roster with exact quotas (2.8M calls, 83% of them with no change), the solve is 1.087× faster (1,116 ms to 1,027 ms,
+  7 runs in each order). The sports example, which posts `count_eq_c` at arity 4 to 6, does not change (1.002×). All
+  statistics are the same. The state block of `count_eq_c` now starts its hint suffix with the report cell, as the
+  state blocks of its siblings do.
 - **Last-conflict is on by default in four more examples.** A sweep of all the examples, with and without
   last-conflict, found smaller trees and the same answers in `alphanumeric` (112 choices instead of 3,071),
   `cryptarithmetic` (399 instead of 737 on donald), `employee_scheduling` (405 instead of 1,245, for the same

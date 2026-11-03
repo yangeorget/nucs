@@ -37,6 +37,8 @@ class TestCountEqC(PropagatorTest):
                 PROP_CONSISTENCY,
                 [[1, 4], [3, 5], [3, 6], [6, 8], [3, 3], [5, 5]],
             ),
+            # count_min == c, but a is strictly inside (3, 6): nothing is written, and the call reports it
+            ([(1, 4), (3, 6), 5], [5, 1], PROP_CONSISTENCY, [[1, 4], [3, 6], [5, 5]]),
             ([2, (0, 1), (3, 4), 2, 2], [2, 3], PROP_ENTAILMENT, [[2, 2], [0, 1], [3, 4], [2, 2], [2, 2]]),
             ([(1, 2), 2, 2, (5, 7)], [2, 2], PROP_ENTAILMENT, [[1, 1], [2, 2], [2, 2], [5, 7]]),
             ([(1, 3), 2, (5, 7)], [2, 2], PROP_ENTAILMENT, [[2, 2], [2, 2], [5, 7]]),
