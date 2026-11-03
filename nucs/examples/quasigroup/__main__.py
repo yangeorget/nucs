@@ -27,6 +27,12 @@ if __name__ == "__main__":
     parser.add_argument("--kind", type=int, choices=[3, 4, 5, 6, 7], default=5)
     args = parser.parse_args()
     problem = QuasigroupProblem(args.kind, args.n, args.idempotent, args.symmetry_breaking)
+    # dom/wdeg is the most robust variable heuristic over the kinds (measured 2026-11-03, all pairs of heuristics on
+    # kinds 4, 5, 6 and 7, 2 or 3 sizes of each). On kind 5, smallest_domain is faster: 13 ms instead of 20 ms at
+    # n=10, 30 ms instead of 77 ms at n=11, 594 ms instead of 2,363 ms at n=12 (--var-heuristic SMALLEST_DOMAIN).
+    # On the other kinds it is slower: on kind 6, 649 ms instead of 220 ms at n=11, and no result in 30 s at n=12
+    # (dom/wdeg: 20 s); on kind 7, 9.4 s instead of 8.7 s at n=10. On kinds 4, 6 and 7, no other pair of heuristics
+    # is faster on all the sizes, and none solves kind 4 at n=10 in 10 s.
     run_solver(
         BacktrackSolver(
             problem,
