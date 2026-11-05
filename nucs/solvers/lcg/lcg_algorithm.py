@@ -1,0 +1,224 @@
+###############################################################################
+# __   _            _____    _____
+# | \ | |          / ____|  / ____|
+# |  \| |  _   _  | |      | (___
+# | . ` | | | | | | |       \___ \
+# | |\  | | |_| | | |____   ____) |
+# |_| \_|  \__,_|  \_____| |_____/
+#
+# Fast constraint solving in Python  - https://github.com/yangeorget/nucs
+#
+# Copyright 2024-2026 - Yan Georget
+###############################################################################
+"""
+The propagation loop of :class:`LcgSolver`.
+"""
+
+from numba import njit  # type: ignore
+from numpy.typing import NDArray
+
+from nucs.buckets import STORAGE_OFFSET, buckets_pop
+from nucs.constants import (
+    PROP_CONSISTENCY,
+    PROP_ENTAILMENT,
+    PROP_FLAG_IDEMPOTENT,
+    PROP_FLAG_REPORTS_CHANGES,
+    PROP_INCONSISTENCY,
+)
+from nucs.problems.problem import (
+    OFFSETS_PARAM,
+    OFFSETS_STATE,
+    OFFSETS_STATE_HINT,
+    OFFSETS_VARIABLE,
+    PROBLEM_BOUND,
+    PROBLEM_INCONSISTENT,
+    PROBLEM_UNBOUND,
+)
+from nucs.propagators.propagators import call_compute_domains
+from nucs.solvers.bc_algorithm import (
+    count_no_change,
+    gather_domains,
+    record_entailment,
+    trail_state_prefix,
+    update_domains,
+)
+from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
+from nucs.solvers.state import unbound_index
+from nucs.solvers.weights import weights_bump
+from nucs.statistics import (
+    STATS_ALG_IDX_FILTER_NB,
+    STATS_ALG_WIDTH,
+    STATS_IDX_ALG_BC_NB,
+    STATS_IDX_PROPAGATOR_ENTAILMENT_NB,
+    STATS_IDX_PROPAGATOR_FILTER_NB,
+    STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
+    STATS_MAX,
+)
+
+
+# compiled without Numba's reference-counting runtime, as bc_algorithm is, for the same reasons and with the same two
+# rules (see bc_algorithm): nothing in it may allocate or touch a typed list, and every jitted function it calls must be
+# inline="always". tests/solvers/lcg/test_lcg_algorithm.py checks both.
+@njit(cache=True, _nrt=False)  # type: ignore[call-overload]
+def lcg_algorithm(
+    statistics: NDArray,
+    propagator_weights: NDArray,
+    algorithm_flags: NDArray,
+    algorithms: NDArray,
+    priorities: NDArray,
+    offsets: NDArray,
+    propagator_variables: NDArray,
+    propagator_parameters: NDArray,
+    triggers: NDArray,
+    triggers_offsets: NDArray,
+    state: NDArray,
+    domains: NDArray,
+    entailed: NDArray,
+    trail_log: NDArray,
+    trail_top: NDArray,
+    trail_indices: NDArray,
+    choice_point_stk: NDArray,
+    choice_point_top: NDArray,
+    triggered_propagators: NDArray,
+    compute_domains_addrs: NDArray,
+    domain_buffer: NDArray,
+) -> int:
+    """
+    Propagates as bc_algorithm does: the propagation loop of LcgSolver.
+
+    At this step (design/proposals/lcg.md, 7.0, step 4), it is an exact copy of bc_algorithm, so that LcgSolver gives
+    the same counters as BacktrackSolver; it counts its calls in ALG_BC_NB for the same reason. The next steps add the
+    implication trail and the reasons, each as a small diff against this copy.
+
+    :param statistics: a Numpy array of statistics
+    :type statistics: NDArray
+    :param propagator_weights: the failure weight of each propagator, followed by the increment and its growth
+                               (see nucs.solvers.weights)
+    :type propagator_weights: NDArray
+    :param algorithm_flags: the PROP_FLAG_* properties of each algorithm, packed into one word and indexed
+                            by algorithm rather than by propagator
+    :type algorithm_flags: NDArray
+    :param algorithms: the algorithms indexed by propagators
+    :type algorithms: NDArray
+    :param priorities: the propagation queue bucket priorities indexed by propagators
+    :type priorities: NDArray
+    :param offsets: the CSR offsets delimiting each propagator's slice of propagator_variables,
+                    propagator_parameters and its own state block, whose trailed prefix ends at
+                    OFFSETS_STATE_HINT (see OFFSETS_STATE)
+    :type offsets: NDArray
+    :param propagator_variables: the variables by propagators
+    :type propagator_variables: NDArray
+    :param propagator_parameters: the parameters by propagators
+    :type propagator_parameters: NDArray
+    :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :type triggers: NDArray
+    :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
+    :type triggers_offsets: NDArray
+    :param state: all the backtrackable state: the domain bounds, the unbound-variable count and,
+                  from there on, whatever else is trailed
+    :type state: NDArray
+    :param domains: the current domains, a (domain_nb, 2) view of the head of state
+    :type domains: NDArray
+    :param entailed: whether each propagator is entailed, a view of state
+    :type entailed: NDArray
+    :param trail_log: the undo log of (cell index, old value) pairs
+    :type trail_log: NDArray
+    :param trail_top: the trail size as a Numpy array
+    :type trail_top: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
+    :param choice_point_stk: the per-choice-point metadata
+    :type choice_point_stk: NDArray
+    :param choice_point_top: the index of the top of the choice points as a Numpy array
+    :type choice_point_top: NDArray
+    :param triggered_propagators: the Numpy array of triggered propagators
+    :type triggered_propagators: NDArray
+    :param compute_domains_addrs: the compiled compute_domains address of each algorithm, resolved once at solver init
+    :type compute_domains_addrs: NDArray
+    :param domain_buffer: a scratch buffer for prop_domains,
+                          sized to max propagator arity, allocated once at solver init
+    :type domain_buffer: NDArray
+
+    :return: a status (consistency, inconsistency or entailment) as an integer
+    :rtype: int
+    """
+    choice_point = choice_point_top[0]
+    # the choice point's mark is loaded once: choice_point_top does not move during a filtering, and neither does the
+    # mark of the choice point it is filtering
+    mark = choice_point_stk[choice_point, CHOICE_POINT_TRAIL_MARK]
+    unbound_idx = unbound_index(state)
+    # the trail size lives in a local for the whole filtering and is published on the way out. Nothing
+    # outside this function reads it before then, and keeping it out of memory takes a load and a store
+    # off every bound the propagation narrows.
+    trail_size = trail_top[0]
+    entailed_idx = len(domains) << 1  # the entailment flags follow the domain bounds in state
+    statistics[STATS_IDX_ALG_BC_NB] += 1
+    membership_offset = STORAGE_OFFSET + len(priorities)
+    while True:
+        prop_idx = buckets_pop(triggered_propagators, membership_offset)
+        if prop_idx == -1:
+            trail_top[0] = trail_size
+            return PROBLEM_BOUND if state[unbound_idx] == 0 else PROBLEM_UNBOUND
+        statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
+        algorithm = algorithms[prop_idx]
+        # the per-algorithm tail of the statistics array: which algorithms the calls (and, below, the
+        # wasted calls) belong to, which is what makes a throughput investigation targeted
+        algorithm_stats = STATS_MAX + STATS_ALG_WIDTH * algorithm
+        statistics[algorithm_stats + STATS_ALG_IDX_FILTER_NB] += 1
+        prop_var_start = offsets[prop_idx, OFFSETS_VARIABLE]
+        prop_var_end = offsets[prop_idx + 1, OFFSETS_VARIABLE]
+        prop_domains = domain_buffer[: prop_var_end - prop_var_start]
+        gather_domains(prop_domains, propagator_variables, prop_var_start, prop_var_end, state)
+        flags = algorithm_flags[algorithm]
+        reports_changes = flags & PROP_FLAG_REPORTS_CHANGES
+        prop_state_start = offsets[prop_idx, OFFSETS_STATE]
+        prop_state_end = offsets[prop_idx + 1, OFFSETS_STATE]
+        # where the untrailed hint suffix starts: the end of the trailed prefix, and the cell a reporting
+        # propagator answers in
+        prop_state_hint = offsets[prop_idx, OFFSETS_STATE_HINT]
+        trail_size = trail_state_prefix(
+            state, trail_log, trail_indices, mark, trail_size, prop_state_start, prop_state_hint
+        )
+        if reports_changes:
+            # pre-set to "changed", so that the fast path below is taken only on a propagator that has
+            # positively said it wrote nothing -- one that forgets simply gets the scan it gets today
+            state[prop_state_hint] = 1
+        status = call_compute_domains(
+            compute_domains_addrs,
+            algorithm,
+            prop_domains,
+            propagator_parameters[offsets[prop_idx, OFFSETS_PARAM] : offsets[prop_idx + 1, OFFSETS_PARAM]],
+            state[prop_state_start:prop_state_end],
+        )
+        if status == PROP_INCONSISTENCY:
+            statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
+            weights_bump(propagator_weights, prop_idx)
+            trail_top[0] = trail_size
+            return PROBLEM_INCONSISTENT
+        if status == PROP_ENTAILMENT:
+            statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
+            trail_size = record_entailment(entailed, trail_log, trail_indices, trail_size, entailed_idx, prop_idx)
+        if reports_changes and status == PROP_CONSISTENCY and state[prop_state_hint] == 0:
+            # the propagator wrote no domain, so update_domains would scan every variable only to find
+            # no event and schedule nobody: skip it outright
+            count_no_change(statistics, algorithm_stats)
+            continue
+        no_change, trail_size = update_domains(
+            prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
+            prop_var_start,
+            prop_var_end,
+            prop_domains,
+            propagator_variables,
+            state,
+            trail_log,
+            trail_indices,
+            mark,
+            trail_size,
+            triggered_propagators,
+            entailed,
+            triggers,
+            triggers_offsets,
+            priorities,
+        )
+        if no_change:
+            count_no_change(statistics, algorithm_stats)

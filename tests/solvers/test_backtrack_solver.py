@@ -45,7 +45,7 @@ from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.choice_points import CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_VARIABLE, branch
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
 from nucs.solvers.search_arrays import STEP_TIGHTENING_NB
-from nucs.solvers.search_loop import SOLVER_RUNNING
+from nucs.solvers.search_loops import SOLVER_RUNNING
 from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
 from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB, tighten_at
@@ -615,7 +615,7 @@ class TestBacktrackSolver:
         A three-way split (DOM_HEURISTIC_MID_VALUE, a DECISION_EQ) makes two choice points siblings
         holding disjoint objective ranges, so minimizing wiped the shallower one and the count-based drop
         discarded the survivor. The resulting choice point had an empty domain that no variable heuristic could
-        claim and no propagator noticed, and run_search_loop span forever on an empty queue.
+        claim and no propagator noticed, and run_search_loop_backtrack span forever on an empty queue.
         Only maximization was covered before, which wipes the deeper choice point first and so never hit it.
         """
         expected = [

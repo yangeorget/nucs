@@ -81,8 +81,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 - **`RESTART_NONE` is now `RESTART_NEVER`, and `NO_RESTARTS` is now `RESTART_POLICY_NEVER`.** The first is the name of
   the policy, the second the policy object that `BacktrackSolver` uses by default. The value of `RESTART_NEVER` stays
   `"none"`, so `fzn-nucs --restart none` does not change.
-- **`solve_one_step` is now `run_search_loop`**, in `nucs.solvers.search_loop`. A call runs the compiled loop until it
-  must return to Python, which can be many nodes, not one step.
+- **`solve_one_step` is now `run_search_loop_backtrack`**, in `nucs.solvers.backtrack_search_loop`. A call runs the
+  compiled loop until it must return to Python, which can be many nodes, not one step. The `SOLVER_*` statuses and the
+  `SEARCH_CONTROL_*` cells are in `nucs.solvers.search_loops`.
 - **The module `nucs.solvers.search` is now `nucs.solvers.searches`.** Replace
   `from nucs.solvers.search import Search` with `from nucs.solvers.searches import Search`.
 - **`DEFAULT_SEARCHES` is now `SEARCHES_DEFAULT`**, in `nucs.solvers.searches`, and `FREE_SEARCH_RESTART` is now
@@ -91,19 +92,19 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 - **`OBJECTIVE_VARIABLE`, `OBJECTIVE_BOUND`, `OBJECTIVE_VALUE` and `OBJECTIVE_WIDTH` are now `BB_VARIABLE`,
   `BB_BOUND`, `BB_VALUE` and `BB_WIDTH`**, in `nucs.constants`. They index the branch-and-bound bound, which
   is now the attribute `BacktrackSolver.bb` (it was `BacktrackSolver.objective`) and the parameter `bb` of
-  `backtrack` and `run_search_loop` (it was `objective`).
+  `backtrack` and `run_search_loop_backtrack` (it was `objective`).
 - **`Interruption` is now `Interrupter`, in the module `nucs.solvers.interrupter`** (it was
   `nucs.solvers.interruption`), and the attribute `BacktrackSolver.interruption` is now `BacktrackSolver.interrupter`.
   The object asks the search to stop.
 - **An `Interrupter` holds two cells, one for each writer**: `Interrupter.cell` is now `Interrupter.cells`, two
-  `bool` flags indexed by `INTERRUPTION_EXTERNAL` and `INTERRUPTION_DEADLINE`, and `run_search_loop` stops when
-  either flag is set. The clearing of a deadline writes only its own cell, so it cannot erase an `interrupt()`, and
-  the flag `Interrupter.interrupted` and the value `INTERRUPTION_NONE` are gone. The clearing waits for the timer to
+  `bool` flags indexed by `INTERRUPTION_EXTERNAL` and `INTERRUPTION_DEADLINE`, and `run_search_loop_backtrack` stops
+  when either flag is set. The clearing of a deadline writes only its own cell, so it cannot erase an `interrupt()`,
+  and the flag `Interrupter.interrupted` and the value `INTERRUPTION_NONE` are gone. The clearing waits for the timer to
   end before it writes, so the lock `Interrupter.deadline_lock` is gone too.
 - **`get_domain_buffer` is now `allocate_domain_buffer`**, in `nucs.solvers.search_arrays`. Like
   `allocate_search_arrays`, it allocates a new array on each call.
-- **`get_solution` moves from `nucs.solvers.solver` to `nucs.solvers.search_loop`**, its only caller. The compiled
-  search no longer imports the module of the abstract `Solver`.
+- **`get_solution` moves from `nucs.solvers.solver` to `nucs.solvers.search_loops`**, with what the compiled search
+  loops share. The compiled search no longer imports the module of the abstract `Solver`.
 - **The `problem` of `Solver.__init__` is required.** It was `Problem | None`, but no solver passed `None`, and a
   solver without a problem had no `problem` attribute.
 

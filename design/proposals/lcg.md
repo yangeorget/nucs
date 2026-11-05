@@ -1,14 +1,14 @@
 # Lazy clause generation in NuCS — design
 
-> **Status:** proposed, 2026-10-05. The implementation started on 2026-11-03: Phase 0 and step 3 of 7.0 are done.
+> **Status:** proposed, 2026-10-05. The implementation started on 2026-11-03: Phase 0 and steps 3 and 4 of 7.0 are done.
 
 This document is the design of lazy clause generation (LCG) for NuCS. It is written for a reader who knows
 classical constraint programming (propagation, search, Gecode and Choco internals) but not LCG or SAT solving.
 Part 1 explains the concepts, with a worked example and links to read. Parts 2 to 6 give the design. Part 7 gives
 the implementation steps, the stages, the tests and the measurements that decide if each stage continues.
 
-Only the literals of 3.2 are implemented (`nucs/solvers/literals.py`). The names of the other new arrays and
-functions are proposals.
+Only the literals of 3.2 and the copy of `BacktrackSolver` of step 4 (`TreeSearchSolver`, `LcgSolver`,
+`run_search_loop_lcg`, `lcg_algorithm`) are implemented. The names of the other new arrays and functions are proposals.
 
 ## Contents
 
@@ -298,7 +298,7 @@ Two features need care. The design keeps the first out of the LCG mode; the seco
 
 The LCG mode is a separate solver class, `LcgSolver`, with its own compiled step (`run_search_loop_lcg`) and its own
 propagation loop (`lcg_algorithm`). It shares the propagators, the heuristics, the state, the undo trail, the
-choice-point stack and the restarts with `BacktrackSolver`.
+choice-point stack and the restarts with `BacktrackSolver`, through their common base class `TreeSearchSolver`.
 
 Reasons:
 
@@ -828,13 +828,28 @@ explanations, the analysis and the store already have their tests.
 3. **Add the literals module.** It holds the encoding `(var_side, value)`, the negation, and the tests "true" and
    "false" on `state` (3.2).
    *Check:* unit tests.
-   *Done on 2026-11-03:* `nucs/solvers/literals.py` (`lit_negate`, `lit_is_true`, `lit_is_false`, all
+   *Done on 2026-11-03:* `nucs/solvers/lcg/literals.py` (`lit_negate`, `lit_is_true`, `lit_is_false`, all
    `inline="always"`, because `lcg_algorithm` will be compiled with `_nrt=False` as `bc_algorithm` is) and
-   `tests/solvers/test_literals.py` (curated cases and a brute-force test on all the boxes in `[-3, 3]`).
+   `tests/solvers/lcg/test_literals.py` (curated cases and a brute-force test on all the boxes in `[-3, 3]`).
 4. **Add an `LcgSolver` that is a copy of `BacktrackSolver`.** It gets its own `run_search_loop_lcg` and its own
    `lcg_algorithm`, which are exact copies of the current code at this step.
    *Check:* on all the examples, every counter is the same as with `BacktrackSolver`. Each later step then shows as
    a small diff against this copy.
+   *Done on 2026-11-04:* `TreeSearchSolver` (`nucs/solvers/tree_search_solver.py`) is the new base class of
+   `BacktrackSolver` and `LcgSolver` (`nucs/solvers/lcg/lcg_solver.py`). It holds the Python part of the search: the
+   state, the restarts, the optimization modes, the growth of the arrays and the time accounting. Its only abstract
+   method is `_run_search_loop`, and each subclass gives its compiled loop there. `BacktrackSolver` adds only its
+   consistency algorithm. `LcgSolver` adds nothing else: it has no `consistency_algorithm` parameter, because
+   `run_search_loop_lcg` calls `lcg_algorithm` directly, not through the table of consistency algorithms. Thus the rule
+   of step 7 that `LcgSolver` takes no custom consistency algorithm is already true. `lcg_algorithm` is not registered
+   as a consistency algorithm: from step 5, its signature is not `SIGN_CONSISTENCY_ALG`. A later step that must change
+   the shared Python part adds a hook to `TreeSearchSolver` (for example, the growth of a new array at step 5), and a
+   subclass never overrides a concrete method. The compiled code of `BacktrackSolver` does not change. All the LCG code
+   is in the subpackage `nucs/solvers/lcg/`, and its tests are in `tests/solvers/lcg/`: no other module of `nucs`
+   imports it, so `BacktrackSolver` cannot depend on it. On the 22 examples at their default arguments (golomb with
+   `--consistency-algorithm BC`), every counter is the same as with `BacktrackSolver`, which itself gives the counters
+   of the baseline (7.4). magic_square is the exception that 7.4 expects: its unseeded `RANDOM_VALUE` changes the tree,
+   and only its solution count is the same.
 5. **Add the implication trail** (3.3, 3.4). The arrays `lit_trail`, `lit_top`, `lit_last` and `level_start`. The
    status `SOLVER_LIT_TRAIL_FULL`, with the array doubled when full. The write-back of `lcg_algorithm`, the
    decisions and the objective bound write the rows, and a backtrack pops them. The search still uses the parked
@@ -846,7 +861,7 @@ explanations, the analysis and the store already have their tests.
    *Check:* the solution counts and the optima are the same as with `BacktrackSolver`.
 7. **Add the explanations** (4.3). The signature `SIGN_EXPLAIN`, and the optional `explain` argument of
    `register_propagator`. `explain_naive`, and the rebuild of the bounds at `REASON_POS` from the chains.
-   `LcgSolver` refuses the custom consistency algorithms. It accepts the Tier B propagators (Part 2): the debug mode
+   `LcgSolver` takes no custom consistency algorithm (true since step 4). It accepts the Tier B propagators (Part 2): the debug mode
    and the tests call them on a scratch copy of the block, with the trailed prefix at zero.
    *Check:* the brute-force explanation test of 7.2, run on `explain_naive` for every propagator. The debug mode of
    7.3.

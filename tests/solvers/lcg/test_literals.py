@@ -16,7 +16,7 @@ import numpy as np
 import pytest
 
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
-from nucs.solvers.literals import lit_is_false, lit_is_true, lit_negate
+from nucs.solvers.lcg.literals import lit_is_false, lit_is_true, lit_negate
 
 
 class TestLiterals:

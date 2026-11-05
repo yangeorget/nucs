@@ -23,15 +23,19 @@ for contributors are in `design/`; the user documentation is in `docs/`.
   `register_propagator`: `get_state_*` (the size of the propagator's state block, see *Propagator state* below) and
   `is_vacuous_*` (whether the parameters and the initial domains make the constraint impossible to violate, in which
   case it is not posted). See `nucs/propagators/abs_eq_propagator.py` for the minimal template.
-- **`nucs/solvers/`** — `BacktrackSolver`, which does the search (backtracking) and the propagation. The propagation
-  to a fixpoint is `bc_algorithm` (`bc_algorithm.py`), registered as `CONSISTENCY_ALG_BC`. The search driver is
-  `run_search_loop` (`search_loop.py`), the compiled loop that `BacktrackSolver` calls. The backtrackable state and
-  its trail live in `state.py`; `tighten_at` is the only permitted way to write a domain. The stack of choice
-  points, built on them, lives in `choice_points.py`. `allocate_search_arrays` (`search_arrays.py`) lays out the
-  state and sizes the trail and the stack for a problem. `Interrupter` (`interrupter.py`) holds the two cells that
-  stop the compiled search at its next node, one for each of its two writers: `interrupt()` and the timer of a
-  timeout. To iterate over the solutions, call `solver.solve()`. To optimize, call
-  `solver.find_best(var, DOMAIN_MIN)` or `solver.find_best(var, DOMAIN_MAX)`.
+- **`nucs/solvers/`** — `BacktrackSolver`, which does the search (backtracking) and the propagation. Its base class,
+  `TreeSearchSolver` (`tree_search_solver.py`), holds the Python part of the search: the state, the restarts, the
+  optimization modes and the growth of the arrays; a subclass gives only its compiled loop, in `_run_search_loop`.
+  `LcgSolver` (`lcg/lcg_solver.py`) is the other subclass, for lazy clause generation (`design/proposals/lcg.md`). All
+  the LCG code is in the subpackage `lcg/`, which no other module of `nucs` imports. The propagation to a fixpoint is
+  `bc_algorithm` (`bc_algorithm.py`), registered as `CONSISTENCY_ALG_BC`. The search driver is
+  `run_search_loop_backtrack` (`backtrack_search_loop.py`), the compiled loop that `BacktrackSolver` calls. The
+  backtrackable state and its trail live in `state.py`; `tighten_at` is the only permitted way to write a domain. The
+  stack of choice points, built on them, lives in `choice_points.py`. `allocate_search_arrays` (`search_arrays.py`) lays
+  out the state and sizes the trail and the stack for a problem. `Interrupter` (`interrupter.py`) holds the two cells
+  that stop the compiled search at its next node, one for each of its two writers: `interrupt()` and the timer of a
+  timeout. To iterate over the solutions, call `solver.solve()`. To optimize, call `solver.find_best(var, DOMAIN_MIN)`
+  or `solver.find_best(var, DOMAIN_MAX)`.
 - **`nucs/heuristics/`** — a variable heuristic picks the next unbound decision variable; a domain heuristic picks how
   to split its domain. Both are compiled by Numba against the fixed signatures `SIGN_VAR_HEURISTIC` and
   `SIGN_DOM_HEURISTIC` in `nucs/heuristics/heuristics.py`, and called by id.
@@ -48,7 +52,7 @@ for contributors are in `design/`; the user documentation is in `docs/`.
 
 ### The solve loop
 
-`run_search_loop` drives the search for one solution. It loops over two phases:
+`run_search_loop_backtrack` drives the search for one solution. It loops over two phases:
 
 1. **Propagate to a fixpoint** (`bc_algorithm`). A *fixpoint* is the state where no propagator can remove a value
    any more. To reach it, the loop pops the cheapest triggered propagator from the queue, gathers the domains of its
@@ -63,13 +67,13 @@ for contributors are in `design/`; the user documentation is in `docs/`.
    | `PROBLEM_INCONSISTENT` | a domain wiped out | `backtrack`: pop a choice point, replay the undo log back to its mark, and schedule the propagators of the refuted decision. When optimizing, it keeps popping while the objective bound wipes out the choice point it resumes |
    | `PROBLEM_UNBOUND` | the fixpoint is reached but some variables are unbound | `branch`: the first search that still has an unbound decision variable picks one (variable heuristic) and says where to split its domain (domain heuristic). The branch that is explored is written into the state; the alternatives are parked on the choice points below it |
 
-Between two calls of `run_search_loop` the queue is *not* filled again from the start. `backtrack` schedules only the
-propagators that the parked alternative affects, or that the objective bound affects when it is applied again to the
-choice point that the search resumes.
+Between two calls of `run_search_loop_backtrack` the queue is *not* filled again from the start. `backtrack` schedules
+only the propagators that the parked alternative affects, or that the objective bound affects when it is applied again
+to the choice point that the search resumes.
 
 A **descent** is the search from one start at the root to the next restart. Without restarts, the whole search is one
-descent. A descent is not one call of `run_search_loop`: a call also returns at each solution and each time an array
-must grow, so one descent can take many calls.
+descent. A descent is not one call of `run_search_loop_backtrack`: a call also returns at each solution and each time an
+array must grow, so one descent can take many calls.
 
 ## Constants
 
@@ -77,7 +81,7 @@ must grow, so one descent can take many calls.
 `EVENT_MASK_*`), a domain heuristic (`DECISION_*`) and the solver (`DOMAIN_*`, `BB_*`) are written against, and
 the logging levels. A constant that belongs to one module lives in that module: `CHOICE_POINT_*` in
 `nucs/solvers/choice_points.py`, `OFFSETS_*` and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` and
-`SEARCH_CONTROL_*` in `nucs/solvers/search_loop.py`, `OPTIM_*` in `nucs/solvers/solver.py`,
+`SEARCH_CONTROL_*` in `nucs/solvers/search_loops.py`, `OPTIM_*` in `nucs/solvers/solver.py`,
 `TIGHTENING_TRAIL_ENTRY_NB` in `nucs/solvers/state.py`, `STEP_TIGHTENING_NB` in `nucs/solvers/search_arrays.py`,
 `STATS_*` in `nucs/statistics.py`.
 
@@ -206,15 +210,15 @@ not entailed and has an unbound variable other than `x`.
 
 ### Restarts and last-conflict — solver state, not choice-point state
 
-Both live in `search_control`, a small `int64` array that `run_search_loop` reads and writes, and that the trail never
-records. It holds: the failure limit of the current descent, the number of failures since the last start from the
-root, whether last-conflict is on, the conflict variable, and the variable of the last decision.
+Both live in `search_control`, a small `int64` array that `run_search_loop_backtrack` reads and writes, and that the
+trail never records. It holds: the failure limit of the current descent, the number of failures since the last start
+from the root, whether last-conflict is on, the conflict variable, and the variable of the last decision.
 
-- **A restart is the reset of `OPTIM_RESET`, triggered by a failure limit.** At the top of its loop, `run_search_loop`
-  returns `SOLVER_RESTART` when the failures reach the limit. It does this before it starts a filtering, so the state
-  it leaves is not a half-done one. `_next_solution` takes the next limit of the policy
-  (`nucs/solvers/restart_policies.py`), and `_reset_to_root` goes back to the root with `choice_point_init`, empties
-  the queue and fills it again. The propagator weights stay.
+- **A restart is the reset of `OPTIM_RESET`, triggered by a failure limit.** At the top of its loop,
+  `run_search_loop_backtrack` returns `SOLVER_RESTART` when the failures reach the limit. It does this before it starts
+  a filtering, so the state it leaves is not a half-done one. `_next_solution` takes the next limit of the policy
+  (`nucs/solvers/restart_policies.py`), and `_reset_to_root` goes back to the root with `choice_point_init`, empties the
+  queue and fills it again. The propagator weights stay.
 - **The objective of the best solution is applied again at the root.** In `OPTIM_RESET`, the bound of the best
   solution is written once, at the root, and a restart undoes it. In `OPTIM_PRUNE`, the bound is armed, but
   `backtrack` only applies it to the choice points that it resumes. So after each restart, `_tighten_objective_at_root`
@@ -269,8 +273,8 @@ array, allocated before the solve started: 64 KB per variable, whatever the sear
 on the size of a model any more. The cost is 5-15% of the throughput. Measured on `golomb(9)`: 27 of the 72 domain
 cells are trailed per node, at 3 scattered cells per push plus the undo, against one contiguous memcpy of 72 cells.
 Copying wins in that regime, and the models of NuCS are in it. `H` and `T` are starting sizes, not ceilings:
-`run_search_loop` stops when either array is full, and the solver doubles it and continues, losing nothing of the
-search.
+`run_search_loop_backtrack` stops when either array is full, and the solver doubles it and continues, losing nothing of
+the search.
 
 The write barrier (the code that records the old value on the trail before a write) lives in one place, `tighten_at`,
 which is the only site that writes a domain: the propagation, the branching, the objective clamp, and a custom
