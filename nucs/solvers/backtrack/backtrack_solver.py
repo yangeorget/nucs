@@ -39,7 +39,8 @@ from nucs.solvers.choice_points import backtrack, branch
 from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, INTERRUPTION_EXTERNAL
 from nucs.solvers.propagation_steps import update_propagators
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
-from nucs.solvers.search_loops import (
+from nucs.solvers.searches import SEARCHES_DEFAULT, Search
+from nucs.solvers.tree_search_solver import (
     SEARCH_CONTROL_CONFLICT_VARIABLE,
     SEARCH_CONTROL_DECISION_VARIABLE,
     SEARCH_CONTROL_FAILURE_NB,
@@ -50,10 +51,9 @@ from nucs.solvers.search_loops import (
     SOLVER_RESTART,
     SOLVER_RUNNING,
     SOLVER_TRAIL_FULL,
+    TreeSearchSolver,
     get_solution,
 )
-from nucs.solvers.searches import SEARCHES_DEFAULT, Search
-from nucs.solvers.tree_search_solver import TreeSearchSolver
 from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_DEPTH, STATS_IDX_SOLVER_CHOICE_NB
 
 logger = logging.getLogger(__name__)

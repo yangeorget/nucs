@@ -31,10 +31,11 @@ for contributors are in `design/`; the user documentation is in `docs/`.
   `LcgSolver`, for lazy clause generation (`design/proposals/lcg.md`), with its own `run_search_loop` in the same module
   (`lcg_solver.py`), and its own propagation (`lcg_algorithm.py`). The base class of both solvers, `TreeSearchSolver`
   (`tree_search_solver.py`), holds the Python part of the search: the state, the restarts, the optimization modes and
-  the growth of the arrays; a subclass gives only its compiled loop, in `_run_search_loop`. The two loops share
-  `search_loops.py` (the statuses and the search control), `propagation_steps.py` (the steps of one propagator call,
-  with `update_propagators`, which schedules the propagators that a change wakes) and `buckets.py` (the propagation
-  queue, a priority queue in a flat array). The priority of a propagator, its bucket, comes from `compute_priority` in
+  the growth of the arrays; a subclass gives only its compiled loop, in `_run_search_loop`. The same module holds what
+  the two loops share: the statuses that say why a loop returned, the cells of the search control and
+  `get_solution`. The two loops also share `propagation_steps.py` (the steps of one propagator call, with
+  `update_propagators`, which schedules the propagators that a change wakes) and `buckets.py` (the propagation queue, a
+  priority queue in a flat array). The priority of a propagator, its bucket, comes from `compute_priority` in
   `nucs/problems/problem.py`, which computes it when the problem is built. The backtrackable state and its trail live in
   `state.py`; `tighten_at` is the only permitted way to write a domain. The stack of choice points, built on them, lives
   in `choice_points.py`. `allocate_search_arrays` (`tree_search_solver.py`) lays out the state and sizes the trail and
@@ -87,7 +88,7 @@ array must grow, so one descent can take many calls.
 `EVENT_MASK_*`), a domain heuristic (`DECISION_*`) and the solver (`DOMAIN_*`, `BB_*`) are written against, and
 the logging levels. A constant that belongs to one module lives in that module: `CHOICE_POINT_*` in
 `nucs/solvers/choice_points.py`, `OFFSETS_*` and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` and
-`SEARCH_CONTROL_*` in `nucs/solvers/search_loops.py`, `OPTIM_*` in `nucs/solvers/solver.py`,
+`SEARCH_CONTROL_*` in `nucs/solvers/tree_search_solver.py`, `OPTIM_*` in `nucs/solvers/solver.py`,
 `TIGHTENING_TRAIL_ENTRY_NB` in `nucs/solvers/state.py`, `STEP_TIGHTENING_NB` in
 `nucs/solvers/tree_search_solver.py`, `STATS_*` in `nucs/statistics.py`.
 

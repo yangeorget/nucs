@@ -16,6 +16,7 @@ from abc import abstractmethod
 from collections.abc import Callable, Iterator, Sequence
 
 import numpy as np
+from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import (
@@ -44,19 +45,6 @@ from nucs.solvers.buckets import buckets_create, buckets_init
 from nucs.solvers.choice_points import CHOICE_POINT_WIDTH, backtrack, choice_point_init, tighten_objective
 from nucs.solvers.interrupter import INTERRUPTION_EXTERNAL, Interrupter
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
-from nucs.solvers.search_loops import (
-    SEARCH_CONTROL_CONFLICT_VARIABLE,
-    SEARCH_CONTROL_DECISION_VARIABLE,
-    SEARCH_CONTROL_FAILURE_NB,
-    SEARCH_CONTROL_LAST_CONFLICT,
-    SEARCH_CONTROL_RESTART_LIMIT,
-    SEARCH_CONTROL_WIDTH,
-    SOLVER_CHOICE_POINTS_FULL,
-    SOLVER_INTERRUPTED,
-    SOLVER_RESTART,
-    SOLVER_RUNNING,
-    SOLVER_TRAIL_FULL,
-)
 from nucs.solvers.searches import SEARCHES_DEFAULT, Search, flatten_searches
 from nucs.solvers.solver import OPTIM_RESET, Solver, format_timeout
 from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB
@@ -69,6 +57,27 @@ from nucs.statistics import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Why a search loop returned.
+# The trail and the choice point stack are caller-allocated, so they cannot grow inside @njit. Rather than
+# sizing them for a worst case that never happens -- depth x (2 x domain_nb + 1) entries, which would
+# give back the memory this representation wins -- the search stops and says which one is full, and the
+# solver grows it and resumes. Nothing of the search is lost: the state, the trail marks and the
+# positions all stay valid across the reallocation.
+SOLVER_RUNNING = 0  # nothing filled up: the search returned a solution or exhausted itself
+SOLVER_TRAIL_FULL = 1  # the search stopped because the trail needs more room, not because it is over
+SOLVER_CHOICE_POINTS_FULL = 2  # likewise for the stack of choice points
+SOLVER_INTERRUPTED = 3  # the search stopped because interrupt() asked it to, from outside the compiled loop
+SOLVER_RESTART = 4  # the descent reached its failure limit: the solver restarts from the root and resumes
+
+# The cells of search_control, the state of the restarts and of last-conflict that the compiled loop reads and writes.
+# It is solver state, not choice-point state: nothing about it is trailed.
+SEARCH_CONTROL_RESTART_LIMIT = 0  # the failures after which the descent restarts, -1 for no restart
+SEARCH_CONTROL_FAILURE_NB = 1  # the failures since the search last started from the root
+SEARCH_CONTROL_LAST_CONFLICT = 2  # 1 when last-conflict is on, 0 otherwise
+SEARCH_CONTROL_CONFLICT_VARIABLE = 3  # the variable of the last decision that led to a failure, -1 when none
+SEARCH_CONTROL_DECISION_VARIABLE = 4  # the variable of the last decision, -1 once a refutation follows it
+SEARCH_CONTROL_WIDTH = 5
 
 # Trail entries a step of the search needs beyond one per cell of the backtrackable state.
 # The barrier in trail_set trails each cell at most once per choice point, so a fixpoint cannot need more
@@ -552,3 +561,17 @@ def allocate_domain_buffer(offsets: NDArray) -> NDArray:
     """
     max_arity = int(np.diff(offsets[:, OFFSETS_VARIABLE]).max(initial=0))
     return np.empty((max_arity, 2), dtype=np.int32)
+
+
+@njit(cache=True)
+def get_solution(domains: NDArray) -> NDArray:
+    """
+    Returns the solution to the problem.
+
+    :param domains: the domains, every one of them ground
+    :type domains: NDArray
+
+    :return: a Numpy array
+    :rtype: NDArray
+    """
+    return domains[:, DOMAIN_MIN].copy()

@@ -106,7 +106,7 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   names: replace `nucs.solvers.search_arrays` with `nucs.solvers.tree_search_solver` in their imports.
 - **`solve_one_step` is now `run_search_loop`**, in `nucs.solvers.backtrack.backtrack_solver`. A
   call runs the compiled loop until it must return to Python, which can be many nodes, not one step. The `SOLVER_*`
-  statuses and the `SEARCH_CONTROL_*` cells are in `nucs.solvers.search_loops`.
+  statuses and the `SEARCH_CONTROL_*` cells are in `nucs.solvers.tree_search_solver`.
 - **The module `nucs.solvers.search` is now `nucs.solvers.searches`.** Replace
   `from nucs.solvers.search import Search` with `from nucs.solvers.searches import Search`.
 - **`DEFAULT_SEARCHES` is now `SEARCHES_DEFAULT`**, in `nucs.solvers.searches`, and `FREE_SEARCH_RESTART` is now
@@ -126,8 +126,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   end before it writes, so the lock `Interrupter.deadline_lock` is gone too.
 - **`get_domain_buffer` is now `allocate_domain_buffer`**, in `nucs.solvers.tree_search_solver`. Like
   `allocate_search_arrays`, it allocates a new array on each call.
-- **`get_solution` moves from `nucs.solvers.solver` to `nucs.solvers.search_loops`**, with what the compiled search
-  loops share. The compiled search no longer imports the module of the abstract `Solver`.
+- **`get_solution` moves from `nucs.solvers.solver` to `nucs.solvers.tree_search_solver`**, with the statuses and
+  the cells of the search control that the compiled search loops share.
 - **The `problem` of `Solver.__init__` is required.** It was `Problem | None`, but no solver passed `None`, and a
   solver without a problem had no `problem` attribute.
 

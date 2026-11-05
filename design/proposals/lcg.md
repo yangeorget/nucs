@@ -848,8 +848,8 @@ explanations, the analysis and the store already have their tests.
    subclass never overrides a concrete method. The compiled code of `BacktrackSolver` does not change. All the LCG code
    is in the subpackage `nucs/solvers/lcg/`, and its tests are in `tests/solvers/lcg/`: no other module of `nucs`
    imports it, so `BacktrackSolver` cannot depend on it. The modules of `BacktrackSolver` are in the subpackage
-   `nucs/solvers/backtrack/`, and what the two solvers share is at the top of `nucs/solvers/`: `tree_search_solver.py`,
-   `search_loops.py` (the statuses and the search control) and `propagation_steps.py` (the steps of one propagator call,
+   `nucs/solvers/backtrack/`, and what the two solvers share is at the top of `nucs/solvers/`: `tree_search_solver.py`
+   (with the statuses and the search control) and `propagation_steps.py` (the steps of one propagator call,
    which `lcg_algorithm` took from `bc_algorithm.py`). The move of the modules of `BacktrackSolver` changes their import
    paths: it is a major version. On the 22 examples at their default arguments (golomb with
    `--consistency-algorithm BC`), every counter is the same as with `BacktrackSolver`, which itself gives the counters
