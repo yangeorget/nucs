@@ -28,38 +28,6 @@ from nucs.solvers.state import tighten_at
 GOLOMB_LENGTHS = np.array([0, 0, 1, 3, 6, 11, 17, 25, 34, 44, 55, 72, 85, 106, 127])
 
 
-@njit(cache=True)
-def sum_first(n: int) -> int:
-    """
-    Returns the sum of the first n integers.
-
-    :param n: an integer
-    :type n: int
-
-    :return: the sum
-    :rtype: int
-    """
-    return (n * (n + 1)) >> 1
-
-
-@njit(cache=True)
-def index(mark_nb: int, i: int, j: int) -> int:
-    """
-    Returns the index of the distance variable between two marks.
-
-    :param mark_nb: the total number of marks
-    :type mark_nb: int
-    :param i: the first mark
-    :type i: int
-    :param j: the second mark
-    :type j: int
-
-    :return: the index of the distance variable
-    :rtype: int
-    """
-    return i * mark_nb - sum_first(i) + j - i - 1
-
-
 class GolombProblem(Problem):
     """
     This is the famous Golomb ruler problem.
@@ -117,6 +85,38 @@ class GolombProblem(Problem):
     def solution_as_printable(self, solution: NDArray) -> Any:
         solution_as_list = solution.tolist()
         return solution_as_list[: self.mark_nb]
+
+
+@njit(cache=True)
+def sum_first(n: int) -> int:
+    """
+    Returns the sum of the first n integers.
+
+    :param n: an integer
+    :type n: int
+
+    :return: the sum
+    :rtype: int
+    """
+    return (n * (n + 1)) >> 1
+
+
+@njit(cache=True)
+def index(mark_nb: int, i: int, j: int) -> int:
+    """
+    Returns the index of the distance variable between two marks.
+
+    :param mark_nb: the total number of marks
+    :type mark_nb: int
+    :param i: the first mark
+    :type i: int
+    :param j: the second mark
+    :type j: int
+
+    :return: the index of the distance variable
+    :rtype: int
+    """
+    return i * mark_nb - sum_first(i) + j - i - 1
 
 
 @njit(cache=True)

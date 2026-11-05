@@ -45,30 +45,6 @@ BUCKET_NB = 8
 BUCKET_FACTOR = 2
 
 
-@njit(cache=True)
-def compute_priority(complexity: int) -> int:
-    """
-    Returns the index of the priority bucket a propagator of a given complexity belongs to.
-
-    The index is ceil(floor(log2(complexity)) / BUCKET_FACTOR), clamped to [0, BUCKET_NB - 1]; a complexity
-    of 1 or less lands in bucket 0. With a factor of 1 that is plain floor(log2(complexity)), which is what
-    this used to compute.
-
-    :param complexity: the time complexity of the propagator
-    :type complexity: int
-
-    :return: the bucket index
-    :rtype: int
-    """
-    if complexity <= 1:
-        return 0
-    bucket = 0
-    while complexity > 1:
-        complexity >>= BUCKET_FACTOR
-        bucket += 1
-    return min(bucket, BUCKET_NB - 1)
-
-
 PROBLEM_INCONSISTENT = 0  # returned when the filtering of a problem detects an inconsistency
 PROBLEM_UNBOUND = 1  # returned when the filtering of a problem has been completed, but the problem is not solved
 PROBLEM_BOUND = 2  # returned when a problem is solved
@@ -319,6 +295,30 @@ class Problem:
         :type solution: Optional[NDArray]
         """
         print("No solution" if solution is None else self.solution_as_printable(solution))
+
+
+@njit(cache=True)
+def compute_priority(complexity: int) -> int:
+    """
+    Returns the index of the priority bucket a propagator of a given complexity belongs to.
+
+    The index is ceil(floor(log2(complexity)) / BUCKET_FACTOR), clamped to [0, BUCKET_NB - 1]; a complexity
+    of 1 or less lands in bucket 0. With a factor of 1 that is plain floor(log2(complexity)), which is what
+    this used to compute.
+
+    :param complexity: the time complexity of the propagator
+    :type complexity: int
+
+    :return: the bucket index
+    :rtype: int
+    """
+    if complexity <= 1:
+        return 0
+    bucket = 0
+    while complexity > 1:
+        complexity >>= BUCKET_FACTOR
+        bucket += 1
+    return min(bucket, BUCKET_NB - 1)
 
 
 @njit(cache=True)

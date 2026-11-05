@@ -18,21 +18,6 @@ from nucs.examples.square.square_problem import SquarePlacementProblem
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 
 
-def _assert_valid_packing(problem: SquarePlacementProblem, solution) -> None:  # type: ignore[no-untyped-def]
-    """Checks that every square is inside the master rectangle and that no two squares overlap."""
-    rects = [
-        (int(solution[problem.x(i)]), int(solution[problem.y(i)]), problem.sizes[i]) for i in range(problem.square_nb)
-    ]
-    for x, y, s in rects:
-        assert 0 <= x and x + s <= problem.width, (x, s, problem.width)
-        assert 0 <= y and y + s <= problem.height, (y, s, problem.height)
-    for i in range(len(rects)):
-        for j in range(i + 1, len(rects)):
-            xi, yi, si = rects[i]
-            xj, yj, sj = rects[j]
-            assert xi + si <= xj or xj + sj <= xi or yi + si <= yj or yj + sj <= yi, (rects[i], rects[j])
-
-
 class TestSquare:
     @pytest.mark.parametrize(
         "name",
@@ -51,3 +36,18 @@ class TestSquare:
         solution = next(solver.solve(), None)
         assert solution is not None
         _assert_valid_packing(problem, solution)
+
+
+def _assert_valid_packing(problem: SquarePlacementProblem, solution) -> None:  # type: ignore[no-untyped-def]
+    """Checks that every square is inside the master rectangle and that no two squares overlap."""
+    rects = [
+        (int(solution[problem.x(i)]), int(solution[problem.y(i)]), problem.sizes[i]) for i in range(problem.square_nb)
+    ]
+    for x, y, s in rects:
+        assert 0 <= x and x + s <= problem.width, (x, s, problem.width)
+        assert 0 <= y and y + s <= problem.height, (y, s, problem.height)
+    for i in range(len(rects)):
+        for j in range(i + 1, len(rects)):
+            xi, yi, si = rects[i]
+            xj, yj, sj = rects[j]
+            assert xi + si <= xj or xj + sj <= xi or yi + si <= yj or yj + sj <= yi, (rects[i], rects[j])

@@ -30,23 +30,6 @@ RESTART_LUBY = "luby"  # scale times the Luby sequence 1, 1, 2, 1, 1, 2, 4, ...
 RESTART_POLICIES = (RESTART_NEVER, RESTART_CONSTANT, RESTART_LINEAR, RESTART_GEOMETRIC, RESTART_LUBY)
 
 
-def luby(i: int) -> int:
-    """
-    Returns the i-th term of the Luby sequence 1, 1, 2, 1, 1, 2, 4, 1, 1, 2, 1, 1, 2, 4, 8, ...
-
-    :param i: the index of the term, from 1
-    :type i: int
-
-    :return: the term
-    :rtype: int
-    """
-    while True:
-        k = i.bit_length()
-        if i == (1 << k) - 1:  # the last term of a block of length 2^k - 1
-            return 1 << (k - 1)
-        i -= (1 << (k - 1)) - 1  # the same term in the previous block
-
-
 def restart_limits(policy: str, scale: int, base: float = 2.0) -> Iterator[int]:
     """
     Returns the failure limits of the successive descents of the search.
@@ -120,6 +103,23 @@ class RestartPolicy:
         if self.policy == RESTART_GEOMETRIC:
             return f"{self.policy} restarts with scale {self.scale} and base {self.base}"
         return f"{self.policy} restarts with scale {self.scale}"
+
+
+def luby(i: int) -> int:
+    """
+    Returns the i-th term of the Luby sequence 1, 1, 2, 1, 1, 2, 4, 1, 1, 2, 1, 1, 2, 4, 8, ...
+
+    :param i: the index of the term, from 1
+    :type i: int
+
+    :return: the term
+    :rtype: int
+    """
+    while True:
+        k = i.bit_length()
+        if i == (1 << k) - 1:  # the last term of a block of length 2^k - 1
+            return 1 << (k - 1)
+        i -= (1 << (k - 1)) - 1  # the same term in the previous block
 
 
 RESTART_POLICY_NEVER = RestartPolicy()  # the default of BacktrackSolver; frozen, so one object serves every solver

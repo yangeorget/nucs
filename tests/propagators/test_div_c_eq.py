@@ -19,12 +19,6 @@ from nucs.propagators.div_c_eq_propagator import compute_domains_div_c_eq
 from tests.propagators.propagator_test import PropagatorTest
 
 
-def trunc_div(x: int, c: int) -> int:
-    """The truncated quotient x div c (rounded toward zero)."""
-    q = abs(x) // abs(c)
-    return q if (x >= 0) == (c >= 0) else -q
-
-
 class TestDivCEq(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
@@ -82,3 +76,9 @@ class TestDivCEq(PropagatorTest):
                         assert domains[1, DOMAIN_MIN] == min(ys) and domains[1, DOMAIN_MAX] == max(ys), (
                             f"y for {xl}..{xu} c={c}"
                         )
+
+
+def trunc_div(x: int, c: int) -> int:
+    """The truncated quotient x div c (rounded toward zero)."""
+    q = abs(x) // abs(c)
+    return q if (x >= 0) == (c >= 0) else -q

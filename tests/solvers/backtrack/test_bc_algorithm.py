@@ -23,6 +23,21 @@ from nucs.solvers.backtrack.consistency_algorithms import SIGN_CONSISTENCY_ALG
 from nucs.solvers.buckets import buckets_add, buckets_pop
 
 
+@pytest.mark.skipif(bool(NUMBA_DISABLE_JIT), reason="inspects the compiled code, which only exists under the JIT")
+class TestBcAlgorithmCompilation:
+    def test_is_compiled_without_the_reference_counting_runtime(self) -> None:
+        """
+        Pins the private _nrt option on bc_algorithm, which a Numba upgrade or a tidy-up could otherwise drop.
+        """
+        assert bc_algorithm.targetoptions["_nrt"] is False
+
+    def test_compiled_body_has_no_refcount_calls(self) -> None:
+        """
+        Checks that the compiled loop holds no refcount call, whatever compiled the functions it calls.
+        """
+        assert_compiled_without_refcounts(bc_algorithm, "bc_algorithm")
+
+
 def assert_compiled_without_refcounts(consistency_algorithm: Callable, name: str) -> None:
     """
     Checks that a propagation loop compiled without the reference-counting runtime holds no refcount call, whatever
@@ -59,18 +74,3 @@ def assert_compiled_without_refcounts(consistency_algorithm: Callable, name: str
     body = ir[starts[0] : ir.index("\n}\n", starts[0])]
     assert "@NRT_incref" not in body
     assert "@NRT_decref" not in body
-
-
-@pytest.mark.skipif(bool(NUMBA_DISABLE_JIT), reason="inspects the compiled code, which only exists under the JIT")
-class TestBcAlgorithmCompilation:
-    def test_is_compiled_without_the_reference_counting_runtime(self) -> None:
-        """
-        Pins the private _nrt option on bc_algorithm, which a Numba upgrade or a tidy-up could otherwise drop.
-        """
-        assert bc_algorithm.targetoptions["_nrt"] is False
-
-    def test_compiled_body_has_no_refcount_calls(self) -> None:
-        """
-        Checks that the compiled loop holds no refcount call, whatever compiled the functions it calls.
-        """
-        assert_compiled_without_refcounts(bc_algorithm, "bc_algorithm")

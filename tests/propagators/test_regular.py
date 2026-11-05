@@ -24,30 +24,6 @@ from nucs.propagators.regular_propagator import compute_domains_regular, get_sta
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from tests.propagators.propagator_test import PropagatorTest
 
-
-def _pair(a: int, b: int) -> tuple[int, int]:
-    return (a, b) if a <= b else (b, a)
-
-
-def _accepts(seq: tuple[int, ...], q_nb: int, s_nb: int, d: list[int], q0: int, accept: list[int]) -> bool:
-    q = q0
-    for v in seq:
-        q = d[(q - 1) * s_nb + (v - 1)]
-        if q == 0:
-            return False
-    return accept[q - 1] == 1
-
-
-def _brute_solutions(
-    doms: list[tuple[int, int]], q_nb: int, s_nb: int, d: list[int], q0: int, accept: list[int]
-) -> list[list[int]]:
-    solutions = []
-    for seq in itertools.product(*[range(lo, hi + 1) for lo, hi in doms]):
-        if _accepts(seq, q_nb, s_nb, d, q0, accept):
-            solutions.append(list(seq))
-    return solutions
-
-
 # DFA over {1, 2} accepting words with at least one 2: params [Q, S, q0, d(row-major), accept]
 AT_LEAST_ONE_2 = [2, 2, 1, 1, 2, 2, 2, 0, 1]
 
@@ -153,3 +129,26 @@ class TestRegular(PropagatorTest):
         assert sorted(tuple(s) for s in BacktrackSolver(dropped, log_level="ERROR").find_all()) == sorted(
             tuple(s) for s in BacktrackSolver(posted, log_level="ERROR").find_all()
         )
+
+
+def _pair(a: int, b: int) -> tuple[int, int]:
+    return (a, b) if a <= b else (b, a)
+
+
+def _accepts(seq: tuple[int, ...], q_nb: int, s_nb: int, d: list[int], q0: int, accept: list[int]) -> bool:
+    q = q0
+    for v in seq:
+        q = d[(q - 1) * s_nb + (v - 1)]
+        if q == 0:
+            return False
+    return accept[q - 1] == 1
+
+
+def _brute_solutions(
+    doms: list[tuple[int, int]], q_nb: int, s_nb: int, d: list[int], q0: int, accept: list[int]
+) -> list[list[int]]:
+    solutions = []
+    for seq in itertools.product(*[range(lo, hi + 1) for lo, hi in doms]):
+        if _accepts(seq, q_nb, s_nb, d, q0, accept):
+            solutions.append(list(seq))
+    return solutions

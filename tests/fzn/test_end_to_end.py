@@ -50,51 +50,6 @@ MINIZINC = os.environ.get("MINIZINC") or shutil.which("minizinc")
 pytestmark = pytest.mark.skipif(MINIZINC is None, reason="minizinc is not installed")
 
 
-def _compile_to_fzn(model: str) -> str:
-    """Compiles a full MiniZinc model (with its own solve item) to FlatZinc with the NuCS solver."""
-    with tempfile.TemporaryDirectory() as tmp:
-        model_path = os.path.join(tmp, "model.mzn")
-        with open(model_path, "w") as f:
-            f.write(model)
-        env = dict(os.environ, MZN_SOLVER_PATH=SHARE_DIR)
-        assert MINIZINC
-        result = subprocess.run(
-            [MINIZINC, "-c", "--solver", "nucs", model_path, "--output-fzn-to-stdout"],
-            capture_output=True,
-            text=True,
-            env=env,
-            timeout=120,
-            check=False,
-        )
-    assert result.returncode == 0, result.stderr
-    return result.stdout
-
-
-def _pipeline_solution_count(model: str) -> int:
-    """Returns the number of solutions found by the MiniZinc -> FlatZinc -> NuCS pipeline."""
-    fzn = _compile_to_fzn(model)
-    out = io.StringIO()
-    run(build_model(parse(fzn)), out, all_solutions=True)
-    return out.getvalue().count("----------")
-
-
-def _pipeline_optimum(model: str) -> int:
-    """Returns the objective of the optimal solution found by the pipeline."""
-    fzn = _compile_to_fzn(model)
-    out = io.StringIO()
-    run(build_model(parse(fzn)), out, output_objective=True)
-    matches = re.findall(r"objective = (-?\d+);", out.getvalue())
-    assert matches, f"no objective in solution stream:\n{out.getvalue()}"
-    return int(matches[-1])
-
-
-def _native_solution_count(problem) -> int:  # type: ignore[no-untyped-def]
-    """Returns the total number of solutions of a native NuCS problem."""
-    solver = BacktrackSolver(problem)
-    solver.solve_all()
-    return int(solver.statistics[STATS_IDX_SOLUTION_NB])
-
-
 class TestEndToEnd:
     @pytest.mark.parametrize("n", [4, 5, 6, 7])
     def test_queens_count(self, n: int) -> None:
@@ -149,3 +104,48 @@ class TestEndToEnd:
             "solve satisfy;\n"
         )
         assert _pipeline_solution_count(model) == _native_solution_count(LangfordProblem(k, n))
+
+
+def _compile_to_fzn(model: str) -> str:
+    """Compiles a full MiniZinc model (with its own solve item) to FlatZinc with the NuCS solver."""
+    with tempfile.TemporaryDirectory() as tmp:
+        model_path = os.path.join(tmp, "model.mzn")
+        with open(model_path, "w") as f:
+            f.write(model)
+        env = dict(os.environ, MZN_SOLVER_PATH=SHARE_DIR)
+        assert MINIZINC
+        result = subprocess.run(
+            [MINIZINC, "-c", "--solver", "nucs", model_path, "--output-fzn-to-stdout"],
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=120,
+            check=False,
+        )
+    assert result.returncode == 0, result.stderr
+    return result.stdout
+
+
+def _pipeline_solution_count(model: str) -> int:
+    """Returns the number of solutions found by the MiniZinc -> FlatZinc -> NuCS pipeline."""
+    fzn = _compile_to_fzn(model)
+    out = io.StringIO()
+    run(build_model(parse(fzn)), out, all_solutions=True)
+    return out.getvalue().count("----------")
+
+
+def _pipeline_optimum(model: str) -> int:
+    """Returns the objective of the optimal solution found by the pipeline."""
+    fzn = _compile_to_fzn(model)
+    out = io.StringIO()
+    run(build_model(parse(fzn)), out, output_objective=True)
+    matches = re.findall(r"objective = (-?\d+);", out.getvalue())
+    assert matches, f"no objective in solution stream:\n{out.getvalue()}"
+    return int(matches[-1])
+
+
+def _native_solution_count(problem) -> int:  # type: ignore[no-untyped-def]
+    """Returns the total number of solutions of a native NuCS problem."""
+    solver = BacktrackSolver(problem)
+    solver.solve_all()
+    return int(solver.statistics[STATS_IDX_SOLUTION_NB])

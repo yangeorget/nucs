@@ -28,25 +28,6 @@ from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from tests.propagators.propagator_test import PropagatorTest
 
 
-def _feasible_starts(
-    bounds: list[tuple[int, int]], durations: list[int], heights: list[int], capacity: int
-) -> list[tuple[int, ...]]:
-    """Brute-force every assignment of start times within bounds whose resource profile fits under capacity."""
-    ranges = [range(lo, hi + 1) for lo, hi in bounds]
-    feasible = []
-    for starts in itertools.product(*ranges):
-        horizon = max(starts[i] + durations[i] for i in range(len(starts)))
-        ok = True
-        for t in range(horizon):
-            load = sum(heights[i] for i in range(len(starts)) if starts[i] <= t < starts[i] + durations[i])
-            if load > capacity:
-                ok = False
-                break
-        if ok:
-            feasible.append(starts)
-    return feasible
-
-
 class TestCumulative(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
@@ -190,3 +171,22 @@ class TestCumulative(PropagatorTest):
         assert sorted(tuple(s) for s in BacktrackSolver(dropped, log_level="ERROR").find_all()) == sorted(
             tuple(s) for s in BacktrackSolver(posted, log_level="ERROR").find_all()
         )
+
+
+def _feasible_starts(
+    bounds: list[tuple[int, int]], durations: list[int], heights: list[int], capacity: int
+) -> list[tuple[int, ...]]:
+    """Brute-force every assignment of start times within bounds whose resource profile fits under capacity."""
+    ranges = [range(lo, hi + 1) for lo, hi in bounds]
+    feasible = []
+    for starts in itertools.product(*ranges):
+        horizon = max(starts[i] + durations[i] for i in range(len(starts)))
+        ok = True
+        for t in range(horizon):
+            load = sum(heights[i] for i in range(len(starts)) if starts[i] <= t < starts[i] + durations[i])
+            if load > capacity:
+                ok = False
+                break
+        if ok:
+            feasible.append(starts)
+    return feasible

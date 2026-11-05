@@ -43,13 +43,6 @@ def run_queens_two_searches(solver_class: type[TreeSearchSolver]) -> tuple[TreeS
     return solver, [solution.tolist() for solution in solver.find_all()]
 
 
-def run_golomb_find_best(solver_class: type[TreeSearchSolver], mode: str) -> tuple[TreeSearchSolver, list]:
-    problem = GolombProblem(6)
-    solver = solver_class(problem)
-    solution = solver.find_best(problem.length_idx, DOMAIN_MIN, mode=mode)
-    return solver, [None if solution is None else solution.tolist()]
-
-
 def run_quasigroup_restarts(solver_class: type[TreeSearchSolver]) -> tuple[TreeSearchSolver, list]:
     # dom/wdeg, last-conflict and restarts: the weights and the search control live across the descents
     solver = solver_class(
@@ -87,3 +80,10 @@ class TestLcgSolver:
         lcg_solver.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] = 0
         assert lcg_solver.statistics.tolist() == backtrack_solver.statistics.tolist()
         assert lcg_solver.propagator_weights.tolist() == backtrack_solver.propagator_weights.tolist()
+
+
+def run_golomb_find_best(solver_class: type[TreeSearchSolver], mode: str) -> tuple[TreeSearchSolver, list]:
+    problem = GolombProblem(6)
+    solver = solver_class(problem)
+    solution = solver.find_best(problem.length_idx, DOMAIN_MIN, mode=mode)
+    return solver, [None if solution is None else solution.tolist()]

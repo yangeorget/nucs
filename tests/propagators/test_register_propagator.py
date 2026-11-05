@@ -27,23 +27,6 @@ from nucs.propagators.propagators import ALGORITHM_FLAGS, get_algorithm_nb, regi
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 
 
-def get_complexity_leq(n: int, parameters: NDArray) -> int:
-    return 1
-
-
-@njit(cache=True)
-def get_triggers_leq(n: int, variable: int, parameters: NDArray) -> int:
-    return EVENT_MASK_MIN_MAX
-
-
-@njit(cache=True)
-def compute_domains_leq(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
-    """x <= y, as a propagator registered from outside the library."""
-    domains[0][DOMAIN_MAX] = min(domains[0][DOMAIN_MAX], domains[1][DOMAIN_MAX])
-    domains[1][DOMAIN_MIN] = max(domains[1][DOMAIN_MIN], domains[0][DOMAIN_MIN])
-    return PROP_CONSISTENCY
-
-
 class TestRegisterPropagator:
     def test_a_propagator_registered_after_import_can_be_solved_with(self) -> None:
         """A custom propagator gets an algorithm id past the end of every array built at import time.
@@ -62,28 +45,6 @@ class TestRegisterPropagator:
         assert len(problem.algorithm_flags) == get_algorithm_nb()  # the problem's copy covers it too
         solutions = [tuple(solution) for solution in solver.find_all()]
         assert sorted(solutions) == [(x, y) for x in range(3) for y in range(3) if x <= y]
-
-
-def get_complexity_count_calls(n: int, parameters: NDArray) -> int:
-    return 1
-
-
-@njit(cache=True)
-def get_triggers_count_calls(n: int, variable: int, parameters: NDArray) -> int:
-    return EVENT_MASK_MIN_MAX
-
-
-def get_state_count_calls(n: int, parameters: Sequence[int]) -> tuple[int, int]:
-    return 1, 0  # one trailed cell, no hint
-
-
-@njit(cache=True)
-def compute_domains_count_calls(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
-    """x <= y, recording in its trailed state cell that it has been entered."""
-    prop_state[0] += 1
-    domains[0][DOMAIN_MAX] = min(domains[0][DOMAIN_MAX], domains[1][DOMAIN_MAX])
-    domains[1][DOMAIN_MIN] = max(domains[1][DOMAIN_MIN], domains[0][DOMAIN_MIN])
-    return PROP_CONSISTENCY
 
 
 class TestPropagatorStateIsBacktracked:
@@ -117,32 +78,6 @@ class TestPropagatorStateIsBacktracked:
         assert solver.state[block] > 0  # the search left the block written, and the trail is not unwound
         solver._reset_to_root()  # what OPTIM_RESET and a restart do before they search from the root again
         assert solver.state[block] == 0
-
-
-def get_complexity_leq_reporting(n: int, parameters: NDArray) -> int:
-    return 1
-
-
-@njit(cache=True)
-def get_triggers_leq_reporting(n: int, variable: int, parameters: NDArray) -> int:
-    return EVENT_MASK_MIN_MAX
-
-
-def get_state_leq_reporting(n: int, parameters: Sequence[int]) -> tuple[int, int]:
-    return 0, 1  # the one cell the engine pre-sets and reads back
-
-
-@njit(cache=True)
-def compute_domains_leq_reporting(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
-    """x <= y, reporting to the engine whether it narrowed anything."""
-    new_x_max = min(domains[0][DOMAIN_MAX], domains[1][DOMAIN_MAX])
-    new_y_min = max(domains[1][DOMAIN_MIN], domains[0][DOMAIN_MIN])
-    if new_x_max == domains[0][DOMAIN_MAX] and new_y_min == domains[1][DOMAIN_MIN]:
-        prop_state[0] = 0
-        return PROP_CONSISTENCY
-    domains[0][DOMAIN_MAX] = new_x_max
-    domains[1][DOMAIN_MIN] = new_y_min
-    return PROP_CONSISTENCY
 
 
 class TestReportsChanges:
@@ -187,3 +122,68 @@ class TestReportsChanges:
         assert results[0][0] == results[1][0]
         # every counter, not just the solutions: the reported skip must cost no propagation either
         assert results[0][1] == results[1][1]
+
+
+def get_complexity_leq(n: int, parameters: NDArray) -> int:
+    return 1
+
+
+@njit(cache=True)
+def get_triggers_leq(n: int, variable: int, parameters: NDArray) -> int:
+    return EVENT_MASK_MIN_MAX
+
+
+@njit(cache=True)
+def compute_domains_leq(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
+    """x <= y, as a propagator registered from outside the library."""
+    domains[0][DOMAIN_MAX] = min(domains[0][DOMAIN_MAX], domains[1][DOMAIN_MAX])
+    domains[1][DOMAIN_MIN] = max(domains[1][DOMAIN_MIN], domains[0][DOMAIN_MIN])
+    return PROP_CONSISTENCY
+
+
+def get_complexity_count_calls(n: int, parameters: NDArray) -> int:
+    return 1
+
+
+@njit(cache=True)
+def get_triggers_count_calls(n: int, variable: int, parameters: NDArray) -> int:
+    return EVENT_MASK_MIN_MAX
+
+
+def get_state_count_calls(n: int, parameters: Sequence[int]) -> tuple[int, int]:
+    return 1, 0  # one trailed cell, no hint
+
+
+@njit(cache=True)
+def compute_domains_count_calls(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
+    """x <= y, recording in its trailed state cell that it has been entered."""
+    prop_state[0] += 1
+    domains[0][DOMAIN_MAX] = min(domains[0][DOMAIN_MAX], domains[1][DOMAIN_MAX])
+    domains[1][DOMAIN_MIN] = max(domains[1][DOMAIN_MIN], domains[0][DOMAIN_MIN])
+    return PROP_CONSISTENCY
+
+
+def get_complexity_leq_reporting(n: int, parameters: NDArray) -> int:
+    return 1
+
+
+@njit(cache=True)
+def get_triggers_leq_reporting(n: int, variable: int, parameters: NDArray) -> int:
+    return EVENT_MASK_MIN_MAX
+
+
+def get_state_leq_reporting(n: int, parameters: Sequence[int]) -> tuple[int, int]:
+    return 0, 1  # the one cell the engine pre-sets and reads back
+
+
+@njit(cache=True)
+def compute_domains_leq_reporting(domains: NDArray, parameters: NDArray, prop_state: NDArray) -> int:
+    """x <= y, reporting to the engine whether it narrowed anything."""
+    new_x_max = min(domains[0][DOMAIN_MAX], domains[1][DOMAIN_MAX])
+    new_y_min = max(domains[1][DOMAIN_MIN], domains[0][DOMAIN_MIN])
+    if new_x_max == domains[0][DOMAIN_MAX] and new_y_min == domains[1][DOMAIN_MIN]:
+        prop_state[0] = 0
+        return PROP_CONSISTENCY
+    domains[0][DOMAIN_MAX] = new_x_max
+    domains[1][DOMAIN_MIN] = new_y_min
+    return PROP_CONSISTENCY

@@ -22,31 +22,6 @@ from nucs.propagators.cumulative_propagator import compute_domains_cumulative_va
 from tests.propagators.propagator_test import PropagatorTest
 
 
-def _pair(a: int, b: int) -> tuple[int, int]:
-    return (a, b) if a <= b else (b, a)
-
-
-def _brute_solutions(
-    start_doms: list[tuple[int, int]], dur_doms: list[tuple[int, int]], heights: list[int], capacity: int
-) -> list[list[int]]:
-    """Enumerates every (start, duration) assignment whose resource profile never exceeds the capacity."""
-    n = len(start_doms)
-    solutions = []
-    start_ranges = [range(lo, hi + 1) for lo, hi in start_doms]
-    dur_ranges = [range(lo, hi + 1) for lo, hi in dur_doms]
-    for starts in itertools.product(*start_ranges):
-        for durations in itertools.product(*dur_ranges):
-            horizon_end = max(starts[i] + durations[i] for i in range(n))
-            ok = True
-            for t in range(min(starts), horizon_end):
-                if sum(heights[i] for i in range(n) if starts[i] <= t < starts[i] + durations[i]) > capacity:
-                    ok = False
-                    break
-            if ok:
-                solutions.append(list(starts) + list(durations))
-    return solutions
-
-
 class TestCumulativeVar(PropagatorTest):
     # domains = [start_0, ..., start_{n-1}, dur_0, ..., dur_{n-1}]; parameters = [h_0, ..., h_{n-1}, capacity]
     @pytest.mark.parametrize(
@@ -108,3 +83,28 @@ class TestCumulativeVar(PropagatorTest):
                         capacity,
                         var,
                     )
+
+
+def _pair(a: int, b: int) -> tuple[int, int]:
+    return (a, b) if a <= b else (b, a)
+
+
+def _brute_solutions(
+    start_doms: list[tuple[int, int]], dur_doms: list[tuple[int, int]], heights: list[int], capacity: int
+) -> list[list[int]]:
+    """Enumerates every (start, duration) assignment whose resource profile never exceeds the capacity."""
+    n = len(start_doms)
+    solutions = []
+    start_ranges = [range(lo, hi + 1) for lo, hi in start_doms]
+    dur_ranges = [range(lo, hi + 1) for lo, hi in dur_doms]
+    for starts in itertools.product(*start_ranges):
+        for durations in itertools.product(*dur_ranges):
+            horizon_end = max(starts[i] + durations[i] for i in range(n))
+            ok = True
+            for t in range(min(starts), horizon_end):
+                if sum(heights[i] for i in range(n) if starts[i] <= t < starts[i] + durations[i]) > capacity:
+                    ok = False
+                    break
+            if ok:
+                solutions.append(list(starts) + list(durations))
+    return solutions

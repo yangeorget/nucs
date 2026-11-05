@@ -21,24 +21,6 @@ from nucs.propagators.circuit_chains_propagator import compute_domains_circuit_c
 from tests.propagators.propagator_test import PropagatorTest
 
 
-def _circuits(bounds: list[tuple[int, int]], offset: int) -> list[tuple[int, ...]]:
-    """Every successor labelling within the bounds that forms a single circuit over all the nodes."""
-    n = len(bounds)
-    found = []
-    for perm in itertools.permutations(range(n)):
-        if any(not lo <= offset + perm[i] <= hi for i, (lo, hi) in enumerate(bounds)):
-            continue
-        node, length = 0, 0
-        while True:
-            node = perm[node]
-            length += 1
-            if node == 0:
-                break
-        if length == n:
-            found.append(tuple(offset + j for j in perm))
-    return found
-
-
 class TestCircuitChains(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
@@ -91,3 +73,21 @@ class TestCircuitChains(PropagatorTest):
             fixpoint = domains.copy()
             status = compute_domains_circuit_chains(domains, parameters, state)
             assert status != PROP_INCONSISTENCY and np.array_equal(domains, fixpoint), f"not idempotent on {bounds}"
+
+
+def _circuits(bounds: list[tuple[int, int]], offset: int) -> list[tuple[int, ...]]:
+    """Every successor labelling within the bounds that forms a single circuit over all the nodes."""
+    n = len(bounds)
+    found = []
+    for perm in itertools.permutations(range(n)):
+        if any(not lo <= offset + perm[i] <= hi for i, (lo, hi) in enumerate(bounds)):
+            continue
+        node, length = 0, 0
+        while True:
+            node = perm[node]
+            length += 1
+            if node == 0:
+                break
+        if length == n:
+            found.append(tuple(offset + j for j in perm))
+    return found
