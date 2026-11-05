@@ -10,8 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from nucs.heuristics.smallest_minimal_value_var_heuristic import smallest_minimal_value_var_heuristic
-from tests.heuristics.var_heuristic_test import call_var_heuristic
+from nucs.heuristics.variable.smallest_minimal_value_var_heuristic import smallest_minimal_value_var_heuristic
+from tests.heuristics.variable.var_heuristic_test import call_var_heuristic
 
 
 class TestSmallestMinimalValueVarHeuristic:

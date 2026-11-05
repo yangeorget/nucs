@@ -156,7 +156,7 @@ Three kinds cover all eight in-tree heuristics:
 | `EQ` at `v` | `[v, v]` | `[min, v-1]` then `[v+1, max]` | `mid_value`, `min_cost` |
 
 `EQ` is the ternary case and parks two choice points. The parked order is what an enumeration sees
-(`tests/heuristics/test_mid_value_dom_heuristic.py` pins it). `branch` normalizes an `EQ` at either end of
+(`tests/heuristics/domain/test_mid_value_dom_heuristic.py` pins it). `branch` normalizes an `EQ` at either end of
 the domain to a two-way split, and clamps an `EQ` value outside the domain into it — `min_cost` returns
 `-1` when no value has a positive cost, and a split has to partition the domain for the enumeration to
 stay complete.

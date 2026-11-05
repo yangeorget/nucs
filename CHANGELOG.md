@@ -96,6 +96,11 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   consistency algorithm imports it from there. `compute_priority`, `BUCKET_NB` and `BUCKET_FACTOR` move to
   `nucs.problems.problem`, which computes the priorities when the problem is built. Thus the problems and the
   propagators import no module of the solvers.
+- **The heuristics move to two subpackages: `nucs.heuristics.variable` and `nucs.heuristics.domain`.** Replace, for
+  example, `from nucs.heuristics.max_regret_var_heuristic import regret` with
+  `from nucs.heuristics.variable.max_regret_var_heuristic import regret`, and
+  `nucs.heuristics.min_value_dom_heuristic` with `nucs.heuristics.domain.min_value_dom_heuristic`. The registry,
+  `nucs.heuristics.heuristics`, does not move: the `VAR_HEURISTIC_*` and `DOM_HEURISTIC_*` ids keep their import.
 - **`solve_one_step` is now `run_search_loop_backtrack`**, in `nucs.solvers.backtrack.backtrack_search_loop`. A
   call runs the compiled loop until it must return to Python, which can be many nodes, not one step. The `SOLVER_*`
   statuses and the `SEARCH_CONTROL_*` cells are in `nucs.solvers.search_loops`.

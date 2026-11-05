@@ -13,9 +13,9 @@
 import random
 from collections.abc import Sequence
 
-from nucs.heuristics.dom_wdeg_var_heuristic import dom_wdeg_var_heuristic
+from nucs.heuristics.variable.dom_wdeg_var_heuristic import dom_wdeg_var_heuristic
 from nucs.propagators.propagators import ALG_DUMMY, ALG_LINEAR_LEQ_C
-from tests.heuristics.var_heuristic_test import call_var_heuristic
+from tests.heuristics.variable.var_heuristic_test import call_var_heuristic
 
 
 def _reference(

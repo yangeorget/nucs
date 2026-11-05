@@ -43,7 +43,8 @@ for contributors are in `design/`; the user documentation is in `docs/`.
   `solver.solve()`. To optimize, call `solver.find_best(var, DOMAIN_MIN)` or `solver.find_best(var, DOMAIN_MAX)`.
 - **`nucs/heuristics/`** — a variable heuristic picks the next unbound decision variable; a domain heuristic picks how
   to split its domain. Both are compiled by Numba against the fixed signatures `SIGN_VAR_HEURISTIC` and
-  `SIGN_DOM_HEURISTIC` in `nucs/heuristics/heuristics.py`, and called by id.
+  `SIGN_DOM_HEURISTIC` in `nucs/heuristics/heuristics.py`, and called by id. The variable heuristics are in the
+  subpackage `variable/` and the domain heuristics in `domain/`, one module each; `heuristics.py` registers both kinds.
 - **`nucs/fzn/`** — the **FlatZinc adapter**. You write a model in MiniZinc and solve it with NuCS through
   `minizinc --solver nucs`. The pipeline is: `parser.py` (FlatZinc text → an intermediate representation) → `model.py`
   (`FznModel` builds a `Problem`) → `builtins.py` (the `BUILTINS` dispatch table, from a FlatZinc builtin name to
