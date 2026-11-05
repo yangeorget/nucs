@@ -44,11 +44,11 @@ from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.buckets import buckets_empty
 from nucs.solvers.choice_points import CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_VARIABLE, branch
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
-from nucs.solvers.search_arrays import STEP_TIGHTENING_NB
 from nucs.solvers.search_loops import SOLVER_RUNNING
 from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
 from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB, tighten_at
+from nucs.solvers.tree_search_solver import STEP_TIGHTENING_NB
 from nucs.statistics import (
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
     STATS_IDX_SOLUTION_NB,

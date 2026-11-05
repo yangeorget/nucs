@@ -37,10 +37,10 @@ for contributors are in `design/`; the user documentation is in `docs/`.
   queue, a priority queue in a flat array). The priority of a propagator, its bucket, comes from `compute_priority` in
   `nucs/problems/problem.py`, which computes it when the problem is built. The backtrackable state and its trail live in
   `state.py`; `tighten_at` is the only permitted way to write a domain. The stack of choice points, built on them, lives
-  in `choice_points.py`. `allocate_search_arrays` (`search_arrays.py`) lays out the state and sizes the trail and the
-  stack for a problem. `Interrupter` (`interrupter.py`) holds the two cells that stop the compiled search at its next
-  node, one for each of its two writers: `interrupt()` and the timer of a timeout. To iterate over the solutions, call
-  `solver.solve()`. To optimize, call `solver.find_best(var, DOMAIN_MIN)` or `solver.find_best(var, DOMAIN_MAX)`.
+  in `choice_points.py`. `allocate_search_arrays` (`tree_search_solver.py`) lays out the state and sizes the trail and
+  the stack for a problem. `Interrupter` (`interrupter.py`) holds the two cells that stop the compiled search at its
+  next node, one for each of its two writers: `interrupt()` and the timer of a timeout. To iterate over the solutions,
+  call `solver.solve()`. To optimize, call `solver.find_best(var, DOMAIN_MIN)` or `solver.find_best(var, DOMAIN_MAX)`.
 - **`nucs/heuristics/`** — a variable heuristic picks the next unbound decision variable; a domain heuristic picks how
   to split its domain. Both are compiled by Numba against the fixed signatures `SIGN_VAR_HEURISTIC` and
   `SIGN_DOM_HEURISTIC` in `nucs/heuristics/heuristics.py`, and called by id. The variable heuristics are in the
@@ -88,8 +88,8 @@ array must grow, so one descent can take many calls.
 the logging levels. A constant that belongs to one module lives in that module: `CHOICE_POINT_*` in
 `nucs/solvers/choice_points.py`, `OFFSETS_*` and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` and
 `SEARCH_CONTROL_*` in `nucs/solvers/search_loops.py`, `OPTIM_*` in `nucs/solvers/solver.py`,
-`TIGHTENING_TRAIL_ENTRY_NB` in `nucs/solvers/state.py`, `STEP_TIGHTENING_NB` in `nucs/solvers/search_arrays.py`,
-`STATS_*` in `nucs/statistics.py`.
+`TIGHTENING_TRAIL_ENTRY_NB` in `nucs/solvers/state.py`, `STEP_TIGHTENING_NB` in
+`nucs/solvers/tree_search_solver.py`, `STATS_*` in `nucs/statistics.py`.
 
 The `SIGN_*` signatures are the fixed function types through which the compiled code calls a function by id (see
 *Functions are values* below). Each lives with the registry that compiles against it: `SIGN_COMPUTE_DOMAINS` and

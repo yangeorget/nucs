@@ -101,6 +101,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `from nucs.heuristics.variable.max_regret_var_heuristic import regret`, and
   `nucs.heuristics.min_value_dom_heuristic` with `nucs.heuristics.domain.min_value_dom_heuristic`. The registry,
   `nucs.heuristics.heuristics`, does not move: the `VAR_HEURISTIC_*` and `DOM_HEURISTIC_*` ids keep their import.
+- **The module `nucs.solvers.search_arrays` merges into `nucs.solvers.tree_search_solver`**, the only module that
+  uses it. `allocate_search_arrays`, `allocate_domain_buffer`, `double_rows` and `STEP_TIGHTENING_NB` keep their
+  names: replace `nucs.solvers.search_arrays` with `nucs.solvers.tree_search_solver` in their imports.
 - **`solve_one_step` is now `run_search_loop`**, in `nucs.solvers.backtrack.backtrack_solver`. A
   call runs the compiled loop until it must return to Python, which can be many nodes, not one step. The `SOLVER_*`
   statuses and the `SEARCH_CONTROL_*` cells are in `nucs.solvers.search_loops`.
@@ -121,7 +124,7 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   when either flag is set. The clearing of a deadline writes only its own cell, so it cannot erase an `interrupt()`,
   and the flag `Interrupter.interrupted` and the value `INTERRUPTION_NONE` are gone. The clearing waits for the timer to
   end before it writes, so the lock `Interrupter.deadline_lock` is gone too.
-- **`get_domain_buffer` is now `allocate_domain_buffer`**, in `nucs.solvers.search_arrays`. Like
+- **`get_domain_buffer` is now `allocate_domain_buffer`**, in `nucs.solvers.tree_search_solver`. Like
   `allocate_search_arrays`, it allocates a new array on each call.
 - **`get_solution` moves from `nucs.solvers.solver` to `nucs.solvers.search_loops`**, with what the compiled search
   loops share. The compiled search no longer imports the module of the abstract `Solver`.

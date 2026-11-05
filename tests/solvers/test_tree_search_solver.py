@@ -16,11 +16,11 @@ import pytest
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT
 from nucs.solvers.choice_points import CHOICE_POINT_WIDTH
-from nucs.solvers.search_arrays import STEP_TIGHTENING_NB, allocate_search_arrays, double_rows
 from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB
+from nucs.solvers.tree_search_solver import STEP_TIGHTENING_NB, allocate_search_arrays, double_rows
 
 
-class TestSearchArrays:
+class TestTreeSearchSolver:
     def test_allocate_search_arrays_lays_out_the_state(self) -> None:
         """The domains and the entailment flags are views on the state, before the propagator state and the count."""
         problem = Problem([(0, 7), (0, 7), (0, 7)])
