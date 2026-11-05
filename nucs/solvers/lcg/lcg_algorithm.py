@@ -17,7 +17,6 @@ The propagation loop of :class:`LcgSolver`.
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import STORAGE_OFFSET, buckets_pop
 from nucs.constants import (
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
@@ -35,6 +34,7 @@ from nucs.problems.problem import (
     PROBLEM_UNBOUND,
 )
 from nucs.propagators.propagators import call_compute_domains
+from nucs.solvers.buckets import STORAGE_OFFSET, buckets_pop
 from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
 from nucs.solvers.propagation_steps import (
     count_no_change,

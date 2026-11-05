@@ -26,7 +26,7 @@ from nucs.constants import (
     EVENT_MASK_NONE,
 )
 from nucs.problems.problem import OFFSETS_STATE, OFFSETS_STATE_HINT
-from nucs.propagators.propagators import update_propagators
+from nucs.solvers.propagation_steps import update_propagators
 from nucs.solvers.state import tighten_at, trail_undo, unbound_index
 from nucs.statistics import STATS_IDX_SOLVER_BACKTRACK_NB
 

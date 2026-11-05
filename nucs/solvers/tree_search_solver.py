@@ -18,7 +18,6 @@ from collections.abc import Callable, Iterator, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from nucs.buckets import buckets_create, buckets_init
 from nucs.constants import (
     BB_BOUND,
     BB_VALUE,
@@ -41,6 +40,7 @@ from nucs.propagators.propagators import (
     get_algorithm_names,
     get_algorithm_nb,
 )
+from nucs.solvers.buckets import buckets_create, buckets_init
 from nucs.solvers.choice_points import backtrack, choice_point_init, tighten_objective
 from nucs.solvers.interrupter import INTERRUPTION_EXTERNAL, Interrupter
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy

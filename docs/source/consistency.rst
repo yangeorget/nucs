@@ -57,7 +57,7 @@ Writing a domain
 :code:`tighten_at` also owns the groundness test and the unbound-variable count, so routing through it is
 what keeps the solver's "is this problem solved?" test correct. It returns the events the write raises,
 :code:`EVENT_MASK_NONE` when it changed nothing, which is what to pass to
-:func:`~nucs.propagators.propagators.update_propagators`, and the new trail size. Scheduling stays with
+:func:`~nucs.solvers.propagation_steps.update_propagators`, and the new trail size. Scheduling stays with
 the caller, and so does the trail size: load it from :code:`trail_top` once, thread it through the
 writes, and store it back once.
 

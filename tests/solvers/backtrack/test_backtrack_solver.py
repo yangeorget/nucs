@@ -16,7 +16,6 @@ from collections.abc import Generator
 
 import pytest
 
-from nucs.buckets import buckets_empty
 from nucs.constants import BB_BOUND, BB_VALUE, BB_VARIABLE, DECISION_EQ, DOMAIN_MAX, DOMAIN_MIN
 from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.heuristics.heuristics import (
@@ -42,6 +41,7 @@ from nucs.propagators.propagators import (
     ALG_SUM_LEQ_C,
 )
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
+from nucs.solvers.buckets import buckets_empty
 from nucs.solvers.choice_points import CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_VARIABLE, branch
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
 from nucs.solvers.search_arrays import STEP_TIGHTENING_NB

@@ -20,7 +20,6 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 from rich import print
 
-from nucs.buckets import compute_priority
 from nucs.constants import EVENT_MASK_NB, EVENT_NB
 from nucs.numba_helper import NUMBA_DISABLE_JIT, addresses_from_functions, function_ptr_from_address
 from nucs.propagators.propagators import (
@@ -36,6 +35,39 @@ from nucs.propagators.propagators import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Number of priority buckets.
+# priorities[val] is interpreted directly as a bucket index; values >= BUCKET_NB are clamped to the last bucket.
+# Within a bucket: FIFO order (insertion order is preserved on pop).
+BUCKET_NB = 8
+# How many bits compute_priority shifts off the complexity per bucket, which is what sets the log base:
+# 1 buckets by powers of 2, 2 by powers of 4.
+BUCKET_FACTOR = 2
+
+
+@njit(cache=True)
+def compute_priority(complexity: int) -> int:
+    """
+    Returns the index of the priority bucket a propagator of a given complexity belongs to.
+
+    The index is ceil(floor(log2(complexity)) / BUCKET_FACTOR), clamped to [0, BUCKET_NB - 1]; a complexity
+    of 1 or less lands in bucket 0. With a factor of 1 that is plain floor(log2(complexity)), which is what
+    this used to compute.
+
+    :param complexity: the time complexity of the propagator
+    :type complexity: int
+
+    :return: the bucket index
+    :rtype: int
+    """
+    if complexity <= 1:
+        return 0
+    bucket = 0
+    while complexity > 1:
+        complexity >>= BUCKET_FACTOR
+        bucket += 1
+    return min(bucket, BUCKET_NB - 1)
+
 
 PROBLEM_INCONSISTENT = 0  # returned when the filtering of a problem detects an inconsistency
 PROBLEM_UNBOUND = 1  # returned when the filtering of a problem has been completed, but the problem is not solved

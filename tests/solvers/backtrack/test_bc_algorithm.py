@@ -17,10 +17,10 @@ import pytest
 from numba import int32, int64, njit, uint32  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import buckets_add, buckets_pop
 from nucs.numba_helper import NUMBA_DISABLE_JIT
 from nucs.solvers.backtrack.bc_algorithm import bc_algorithm
 from nucs.solvers.backtrack.consistency_algorithms import SIGN_CONSISTENCY_ALG
+from nucs.solvers.buckets import buckets_add, buckets_pop
 
 
 def assert_compiled_without_refcounts(consistency_algorithm: Callable, name: str) -> None:

@@ -91,6 +91,11 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `record_entailment`, `count_no_change` and `update_domains`) move to `nucs.solvers.propagation_steps`. The log
   lines of the solver now come from the loggers `nucs.solvers.tree_search_solver` and
   `nucs.solvers.backtrack.backtrack_solver`.
+- **The propagation queue moves to the solvers.** `nucs.buckets` is now `nucs.solvers.buckets`, and
+  `update_propagators` moves from `nucs.propagators.propagators` to `nucs.solvers.propagation_steps`: a custom
+  consistency algorithm imports it from there. `compute_priority`, `BUCKET_NB` and `BUCKET_FACTOR` move to
+  `nucs.problems.problem`, which computes the priorities when the problem is built. Thus the problems and the
+  propagators import no module of the solvers.
 - **`solve_one_step` is now `run_search_loop_backtrack`**, in `nucs.solvers.backtrack.backtrack_search_loop`. A
   call runs the compiled loop until it must return to Python, which can be many nodes, not one step. The `SOLVER_*`
   statuses and the `SEARCH_CONTROL_*` cells are in `nucs.solvers.search_loops`.

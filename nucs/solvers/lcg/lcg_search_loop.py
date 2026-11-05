@@ -20,10 +20,10 @@ from numpy.typing import NDArray
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 from nucs.numba_helper import DomainHeuristicFunctions, VariableHeuristicFunctions
 from nucs.problems.problem import PROBLEM_BOUND, PROBLEM_UNBOUND
-from nucs.propagators.propagators import update_propagators
 from nucs.solvers.choice_points import backtrack, branch
 from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, INTERRUPTION_EXTERNAL
 from nucs.solvers.lcg.lcg_algorithm import lcg_algorithm
+from nucs.solvers.propagation_steps import update_propagators
 from nucs.solvers.search_loops import (
     SEARCH_CONTROL_CONFLICT_VARIABLE,
     SEARCH_CONTROL_DECISION_VARIABLE,

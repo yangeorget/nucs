@@ -12,7 +12,7 @@
 ###############################################################################
 import numpy as np
 
-from nucs.buckets import STORAGE_OFFSET, buckets_add, buckets_create, buckets_empty, buckets_init, buckets_pop
+from nucs.solvers.buckets import STORAGE_OFFSET, buckets_add, buckets_create, buckets_empty, buckets_init, buckets_pop
 
 
 class TestBuckets:

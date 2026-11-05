@@ -12,7 +12,8 @@
 ###############################################################################
 """
 The steps of one propagator call, which the propagation loops share: bc_algorithm (backtrack/bc_algorithm.py) and
-lcg_algorithm (lcg/lcg_algorithm.py).
+lcg_algorithm (lcg/lcg_algorithm.py). One of them, update_propagators, also schedules the propagators that a decision
+or a backtrack wakes.
 
 Each step is always inlined. The two loops are compiled without the reference-counting runtime, and a callee compiled
 on its own would bring the refcounts of whichever context first compiled it (see bc_algorithm).
@@ -24,8 +25,9 @@ from numpy.typing import NDArray
 from nucs.constants import (
     DOMAIN_MAX,
     DOMAIN_MIN,
+    EVENT_NB,
 )
-from nucs.propagators.propagators import update_propagators
+from nucs.solvers.buckets import STORAGE_OFFSET, buckets_add
 from nucs.solvers.state import tighten_at, trail_push, trail_set
 from nucs.statistics import (
     STATS_ALG_IDX_FILTER_NO_CHANGE_NB,
@@ -239,3 +241,47 @@ def update_domains(
                 )
                 no_changes = False
     return no_changes, trail_size
+
+
+# always inlined: the propagation loop calls this for every variable a filtering narrows, and it is compiled
+# without the reference-counting runtime, which every callee of it has to be inlined into (see bc_algorithm)
+@njit(cache=True, inline="always")
+def update_propagators(
+    triggered_propagators: NDArray,
+    entailed: NDArray,
+    triggers: NDArray,
+    triggers_offsets: NDArray,
+    priorities: NDArray,
+    variable: int,
+    events: int,
+    skip_prop_idx: int,
+) -> None:
+    """
+    Schedules the propagators that the events on a variable trigger.
+
+    A propagator that is entailed, or already in the queue, is not scheduled. Neither is skip_prop_idx: the
+    propagation loop passes the idempotent propagator whose filtering raised the events, since running it again
+    on its own output would change nothing. Every other caller passes -1.
+
+    :param triggered_propagators: the propagation queue
+    :type triggered_propagators: NDArray
+    :param entailed: whether each propagator is entailed
+    :type entailed: NDArray
+    :param triggers: the propagators to wake, grouped by (variable, event mask)
+    :type triggers: NDArray
+    :param triggers_offsets: the offsets of each (variable, event mask) slice of triggers
+    :type triggers_offsets: NDArray
+    :param priorities: the queue bucket of each propagator
+    :type priorities: NDArray
+    :param variable: the variable whose domain changed
+    :type variable: int
+    :param events: the events of the change, a mask of EVENT_MASK_*
+    :type events: int
+    :param skip_prop_idx: a propagator not to schedule, -1 for none
+    :type skip_prop_idx: int
+    """
+    offset = (variable << EVENT_NB) | events
+    membership_offset = STORAGE_OFFSET + len(priorities)
+    for prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
+        if not (triggered_propagators[membership_offset + prop_idx] or prop_idx == skip_prop_idx or entailed[prop_idx]):
+            buckets_add(triggered_propagators, priorities, prop_idx, membership_offset)
