@@ -615,7 +615,7 @@ class TestBacktrackSolver:
         A three-way split (DOM_HEURISTIC_MID_VALUE, a DECISION_EQ) makes two choice points siblings
         holding disjoint objective ranges, so minimizing wiped the shallower one and the count-based drop
         discarded the survivor. The resulting choice point had an empty domain that no variable heuristic could
-        claim and no propagator noticed, and run_search_loop_backtrack span forever on an empty queue.
+        claim and no propagator noticed, and run_search_loop span forever on an empty queue.
         Only maximization was covered before, which wipes the deeper choice point first and so never hit it.
         """
         expected = [

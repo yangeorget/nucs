@@ -30,7 +30,7 @@ class Interrupter:
     """
     Asks a search that runs in compiled code to stop at its next node.
 
-    A call of run_search_loop_backtrack returns to Python only at a solution, so cells that it reads itself at every node are
+    A call of run_search_loop returns to Python only at a solution, so cells that it reads itself at every node are
     the only way to stop it in between. interrupt() writes its cell for good, and a deadline writes its own cell for
     one search only. Since each writer has its own cell, the clearing of a deadline cannot erase an interrupt().
     """
@@ -39,7 +39,7 @@ class Interrupter:
         """
         Initializes an interrupter that asks nothing yet.
         """
-        # read by run_search_loop_backtrack at every node, and written possibly from another thread
+        # read by run_search_loop at every node, and written possibly from another thread
         self.cells = np.zeros(INTERRUPTION_WIDTH, dtype=np.bool)
 
     def interrupt(self) -> None:
@@ -54,7 +54,7 @@ class Interrupter:
         """
         Starts a timer that stops the search at its next node once the timeout has elapsed.
 
-        A check of the clock between solutions would not be enough: a call of run_search_loop_backtrack that finds no
+        A check of the clock between solutions would not be enough: a call of run_search_loop that finds no
         solution -- a proof of optimality, an infeasible subtree -- never returns to Python, and would run past
         the budget for as long as it lasts. So the timer writes a cell that the compiled search reads, and it is
         the only check of the budget: a consumer that keeps a solution past it stops the next call at its first

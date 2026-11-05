@@ -8,7 +8,8 @@ Part 1 explains the concepts, with a worked example and links to read. Parts 2 t
 the implementation steps, the stages, the tests and the measurements that decide if each stage continues.
 
 Only the literals of 3.2 and the copy of `BacktrackSolver` of step 4 (`TreeSearchSolver`, `LcgSolver`,
-`run_search_loop_lcg`, `lcg_algorithm`) are implemented. The names of the other new arrays and functions are proposals.
+`run_search_loop` in `lcg_solver.py`, `lcg_algorithm`) are implemented. The names of the other new arrays and
+functions are proposals.
 
 ## Contents
 
@@ -296,7 +297,7 @@ Two features need care. The design keeps the first out of the LCG mode; the seco
 
 ### 3.1 A separate solver path
 
-The LCG mode is a separate solver class, `LcgSolver`, with its own compiled step (`run_search_loop_lcg`) and its own
+The LCG mode is a separate solver class, `LcgSolver`, with its own compiled step (`run_search_loop`) and its own
 propagation loop (`lcg_algorithm`). It shares the propagators, the heuristics, the state, the undo trail, the
 choice-point stack and the restarts with `BacktrackSolver`, through their common base class `TreeSearchSolver`.
 
@@ -831,7 +832,7 @@ explanations, the analysis and the store already have their tests.
    *Done on 2026-11-03:* `nucs/solvers/lcg/literals.py` (`lit_negate`, `lit_is_true`, `lit_is_false`, all
    `inline="always"`, because `lcg_algorithm` will be compiled with `_nrt=False` as `bc_algorithm` is) and
    `tests/solvers/lcg/test_literals.py` (curated cases and a brute-force test on all the boxes in `[-3, 3]`).
-4. **Add an `LcgSolver` that is a copy of `BacktrackSolver`.** It gets its own `run_search_loop_lcg` and its own
+4. **Add an `LcgSolver` that is a copy of `BacktrackSolver`.** It gets its own `run_search_loop` and its own
    `lcg_algorithm`, which are exact copies of the current code at this step.
    *Check:* on all the examples, every counter is the same as with `BacktrackSolver`. Each later step then shows as
    a small diff against this copy.
@@ -840,7 +841,7 @@ explanations, the analysis and the store already have their tests.
    state, the restarts, the optimization modes, the growth of the arrays and the time accounting. Its only abstract
    method is `_run_search_loop`, and each subclass gives its compiled loop there. `BacktrackSolver` adds only its
    consistency algorithm. `LcgSolver` adds nothing else: it has no `consistency_algorithm` parameter, because
-   `run_search_loop_lcg` calls `lcg_algorithm` directly, not through the table of consistency algorithms. Thus the rule
+   `run_search_loop` calls `lcg_algorithm` directly, not through the table of consistency algorithms. Thus the rule
    of step 7 that `LcgSolver` takes no custom consistency algorithm is already true. `lcg_algorithm` is not registered
    as a consistency algorithm: from step 5, its signature is not `SIGN_CONSISTENCY_ALG`. A later step that must change
    the shared Python part adds a hook to `TreeSearchSolver` (for example, the growth of a new array at step 5), and a

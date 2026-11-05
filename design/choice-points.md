@@ -2,8 +2,8 @@
 
 How NuCS saves and restores search state. Companion to the *Backtrackable state is trailed, not copied*
 section of `ARCHITECTURE.md`, which gives the summary; this document gives the mechanism. Code lives in
-`nucs/solvers/choice_points.py`, with the search loop in `run_search_loop_backtrack`
-(`nucs/solvers/backtrack/backtrack_search_loop.py`).
+`nucs/solvers/choice_points.py`, with the search loop in `run_search_loop`
+(`nucs/solvers/backtrack/backtrack_solver.py`).
 
 ## One mechanism
 
@@ -132,7 +132,7 @@ position `-1`, and `choice_point_top` back to 0.
 
 ## Branching: only the explored branch is written
 
-`run_search_loop_backtrack` asks the domain heuristic *where* to split — a kind and a value, nothing more — and `branch`
+`run_search_loop` asks the domain heuristic *where* to split — a kind and a value, nothing more — and `branch`
 does the rest:
 
 ```python
@@ -209,7 +209,7 @@ that; a three-way split does not, and the mismatch discarded a surviving choice 
 
 `trail_log` and `choice_point_stk` are caller-allocated, so they cannot grow inside `@njit`. Sizing them for their
 worst case — depth × (2·`domain_nb` + 1) trail entries — would hand back the memory this representation
-wins, and a hard failure would end a long optimization run for nothing. So `run_search_loop_backtrack` checks for room
+wins, and a hard failure would end a long optimization run for nothing. So `run_search_loop` checks for room
 before each node, stops with `SOLVER_TRAIL_FULL` or `SOLVER_CHOICE_POINTS_FULL`, and
 `TreeSearchSolver._next_solution` doubles the array and resumes.
 

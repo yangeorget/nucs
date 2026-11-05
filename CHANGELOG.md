@@ -82,7 +82,7 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   the policy, the second the policy object that `BacktrackSolver` uses by default. The value of `RESTART_NEVER` stays
   `"none"`, so `fzn-nucs --restart none` does not change.
 - **The modules of `BacktrackSolver` move to the subpackage `nucs.solvers.backtrack`**: `backtrack_solver`,
-  `backtrack_search_loop`, `consistency_algorithms` and `bc_algorithm`. Replace
+  `consistency_algorithms` and `bc_algorithm`. Replace
   `from nucs.solvers.backtrack_solver import BacktrackSolver` with
   `from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver`, and `nucs.solvers.consistency_algorithms`
   with `nucs.solvers.backtrack.consistency_algorithms`. `BacktrackSolver` is now a subclass of `TreeSearchSolver`
@@ -101,7 +101,7 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `from nucs.heuristics.variable.max_regret_var_heuristic import regret`, and
   `nucs.heuristics.min_value_dom_heuristic` with `nucs.heuristics.domain.min_value_dom_heuristic`. The registry,
   `nucs.heuristics.heuristics`, does not move: the `VAR_HEURISTIC_*` and `DOM_HEURISTIC_*` ids keep their import.
-- **`solve_one_step` is now `run_search_loop_backtrack`**, in `nucs.solvers.backtrack.backtrack_search_loop`. A
+- **`solve_one_step` is now `run_search_loop`**, in `nucs.solvers.backtrack.backtrack_solver`. A
   call runs the compiled loop until it must return to Python, which can be many nodes, not one step. The `SOLVER_*`
   statuses and the `SEARCH_CONTROL_*` cells are in `nucs.solvers.search_loops`.
 - **The module `nucs.solvers.search` is now `nucs.solvers.searches`.** Replace
@@ -112,12 +112,12 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 - **`OBJECTIVE_VARIABLE`, `OBJECTIVE_BOUND`, `OBJECTIVE_VALUE` and `OBJECTIVE_WIDTH` are now `BB_VARIABLE`,
   `BB_BOUND`, `BB_VALUE` and `BB_WIDTH`**, in `nucs.constants`. They index the branch-and-bound bound, which
   is now the attribute `BacktrackSolver.bb` (it was `BacktrackSolver.objective`) and the parameter `bb` of
-  `backtrack` and `run_search_loop_backtrack` (it was `objective`).
+  `backtrack` and `run_search_loop` (it was `objective`).
 - **`Interruption` is now `Interrupter`, in the module `nucs.solvers.interrupter`** (it was
   `nucs.solvers.interruption`), and the attribute `BacktrackSolver.interruption` is now `BacktrackSolver.interrupter`.
   The object asks the search to stop.
 - **An `Interrupter` holds two cells, one for each writer**: `Interrupter.cell` is now `Interrupter.cells`, two
-  `bool` flags indexed by `INTERRUPTION_EXTERNAL` and `INTERRUPTION_DEADLINE`, and `run_search_loop_backtrack` stops
+  `bool` flags indexed by `INTERRUPTION_EXTERNAL` and `INTERRUPTION_DEADLINE`, and `run_search_loop` stops
   when either flag is set. The clearing of a deadline writes only its own cell, so it cannot erase an `interrupt()`,
   and the flag `Interrupter.interrupted` and the value `INTERRUPTION_NONE` are gone. The clearing waits for the timer to
   end before it writes, so the lock `Interrupter.deadline_lock` is gone too.

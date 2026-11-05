@@ -12,8 +12,8 @@
 ###############################################################################
 """
 What the search loops of the solvers share: the statuses that say why a loop returned, the cells of the search
-control, and the extraction of a solution. Each solver has its own loop: run_search_loop_backtrack
-(backtrack_search_loop.py) for BacktrackSolver, run_search_loop_lcg (lcg_search_loop.py) for LcgSolver.
+control, and the extraction of a solution. Each solver has its own loop, run_search_loop, in the module of the
+solver: backtrack_solver.py for BacktrackSolver, lcg_solver.py for LcgSolver.
 """
 
 from numba import njit  # type: ignore
