@@ -20,7 +20,7 @@ from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_SUBCIRCUIT
 from nucs.propagators.subcircuit_propagator import compute_domains_subcircuit, get_state_subcircuit
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from tests.propagators.propagator_test import PropagatorTest
 
 

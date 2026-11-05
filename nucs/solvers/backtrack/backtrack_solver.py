@@ -18,8 +18,8 @@ from numpy.typing import NDArray
 from nucs.constants import LOG_LEVEL_INFO
 from nucs.numba_helper import build_function_ptrs
 from nucs.problems.problem import Problem
-from nucs.solvers.backtrack_search_loop import run_search_loop_backtrack
-from nucs.solvers.consistency_algorithms import (
+from nucs.solvers.backtrack.backtrack_search_loop import run_search_loop_backtrack
+from nucs.solvers.backtrack.consistency_algorithms import (
     CONSISTENCY_ALG_BC,
     CONSISTENCY_ALG_FCTS,
     SIGN_CONSISTENCY_ALG,

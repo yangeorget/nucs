@@ -13,7 +13,7 @@
 import pytest
 
 from nucs.examples.bibd.bibd_problem import BIBDProblem
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 

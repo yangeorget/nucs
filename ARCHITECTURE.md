@@ -23,18 +23,21 @@ for contributors are in `design/`; the user documentation is in `docs/`.
   `register_propagator`: `get_state_*` (the size of the propagator's state block, see *Propagator state* below) and
   `is_vacuous_*` (whether the parameters and the initial domains make the constraint impossible to violate, in which
   case it is not posted). See `nucs/propagators/abs_eq_propagator.py` for the minimal template.
-- **`nucs/solvers/`** — `BacktrackSolver`, which does the search (backtracking) and the propagation. Its base class,
-  `TreeSearchSolver` (`tree_search_solver.py`), holds the Python part of the search: the state, the restarts, the
-  optimization modes and the growth of the arrays; a subclass gives only its compiled loop, in `_run_search_loop`.
-  `LcgSolver` (`lcg/lcg_solver.py`) is the other subclass, for lazy clause generation (`design/proposals/lcg.md`). All
-  the LCG code is in the subpackage `lcg/`, which no other module of `nucs` imports. The propagation to a fixpoint is
-  `bc_algorithm` (`bc_algorithm.py`), registered as `CONSISTENCY_ALG_BC`. The search driver is
-  `run_search_loop_backtrack` (`backtrack_search_loop.py`), the compiled loop that `BacktrackSolver` calls. The
-  backtrackable state and its trail live in `state.py`; `tighten_at` is the only permitted way to write a domain. The
-  stack of choice points, built on them, lives in `choice_points.py`. `allocate_search_arrays` (`search_arrays.py`) lays
-  out the state and sizes the trail and the stack for a problem. `Interrupter` (`interrupter.py`) holds the two cells
-  that stop the compiled search at its next node, one for each of its two writers: `interrupt()` and the timer of a
-  timeout. To iterate over the solutions, call `solver.solve()`. To optimize, call `solver.find_best(var, DOMAIN_MIN)`
+- **`nucs/solvers/`** — the solvers. Two subpackages hold one solver each, and the modules at the top are shared. No
+  shared module imports a subpackage, and no subpackage imports the other one. `backtrack/` holds `BacktrackSolver`
+  (`backtrack_solver.py`), which does the search (backtracking) and the propagation. The propagation to a fixpoint is
+  `bc_algorithm` (`bc_algorithm.py`), registered as `CONSISTENCY_ALG_BC` in `consistency_algorithms.py`. The search
+  driver is `run_search_loop_backtrack` (`backtrack_search_loop.py`), the compiled loop that `BacktrackSolver` calls.
+  `lcg/` holds `LcgSolver` (`lcg_solver.py`), for lazy clause generation (`design/proposals/lcg.md`), with its own loop
+  and propagation (`lcg_search_loop.py`, `lcg_algorithm.py`). The base class of both solvers, `TreeSearchSolver`
+  (`tree_search_solver.py`), holds the Python part of the search: the state, the restarts, the optimization modes and
+  the growth of the arrays; a subclass gives only its compiled loop, in `_run_search_loop`. The two loops share
+  `search_loops.py` (the statuses and the search control) and `propagation_steps.py` (the steps of one propagator call).
+  The backtrackable state and its trail live in `state.py`; `tighten_at` is the only permitted way to write a domain.
+  The stack of choice points, built on them, lives in `choice_points.py`. `allocate_search_arrays` (`search_arrays.py`)
+  lays out the state and sizes the trail and the stack for a problem. `Interrupter` (`interrupter.py`) holds the two
+  cells that stop the compiled search at its next node, one for each of its two writers: `interrupt()` and the timer of
+  a timeout. To iterate over the solutions, call `solver.solve()`. To optimize, call `solver.find_best(var, DOMAIN_MIN)`
   or `solver.find_best(var, DOMAIN_MAX)`.
 - **`nucs/heuristics/`** — a variable heuristic picks the next unbound decision variable; a domain heuristic picks how
   to split its domain. Both are compiled by Numba against the fixed signatures `SIGN_VAR_HEURISTIC` and
@@ -88,7 +91,7 @@ the logging levels. A constant that belongs to one module lives in that module: 
 The `SIGN_*` signatures are the fixed function types through which the compiled code calls a function by id (see
 *Functions are values* below). Each lives with the registry that compiles against it: `SIGN_COMPUTE_DOMAINS` and
 `SIGN_GET_TRIGGERS` in `nucs/propagators/propagators.py`, `SIGN_CONSISTENCY_ALG` in
-`nucs/solvers/consistency_algorithms.py`, `SIGN_VAR_HEURISTIC` and `SIGN_DOM_HEURISTIC` in
+`nucs/solvers/backtrack/consistency_algorithms.py`, `SIGN_VAR_HEURISTIC` and `SIGN_DOM_HEURISTIC` in
 `nucs/heuristics/heuristics.py`.
 
 ### Domain rows
@@ -536,8 +539,9 @@ Two rules come with it, and both are enforced:
   inlined by LLVM as whichever context first compiled it into the cache left it, and the cache key does not record
   that context. `buckets_add`, first compiled by a caller with reference counting, brought 4 increfs and 6 decrefs
   back into the loop on a warm cache, and none on an empty one. That fails nothing; it only makes the speed of the
-  loop depend on the history of the cache. `tests/solvers/test_bc_algorithm.py` forces the bad case (it compiles the
-  queue helpers in a reference-counted context first) and fails if the compiled loop holds any refcount call.
+  loop depend on the history of the cache. `tests/solvers/backtrack/test_bc_algorithm.py` forces the bad case (it
+  compiles the queue helpers in a reference-counted context first) and fails if the compiled loop holds any refcount
+  call.
 
 `_nrt` is a private option of Numba. Numba is pinned to an exact version, and the same test pins the option on the
 decorator, so an upgrade that drops or ignores it fails a test, not a benchmark. The propagators keep the runtime:

@@ -40,8 +40,8 @@ from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.fzn.model import build_model
 from nucs.fzn.parser import parse
 from nucs.fzn.runner import run
-from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.consistency_algorithms import register_consistency_algorithm
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.consistency_algorithms import register_consistency_algorithm
 from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 SHARE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "nucs", "fzn", "share")

@@ -24,7 +24,7 @@ from nucs.propagators.cumulative_propagator import (
     is_vacuous_cumulative_var,
 )
 from nucs.propagators.propagators import ALG_CUMULATIVE, ALG_CUMULATIVE_VAR
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from tests.propagators.propagator_test import PropagatorTest
 
 

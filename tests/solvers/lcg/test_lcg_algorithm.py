@@ -14,7 +14,7 @@ import pytest
 
 from nucs.numba_helper import NUMBA_DISABLE_JIT
 from nucs.solvers.lcg.lcg_algorithm import lcg_algorithm
-from tests.solvers.test_bc_algorithm import assert_compiled_without_refcounts
+from tests.solvers.backtrack.test_bc_algorithm import assert_compiled_without_refcounts
 
 
 @pytest.mark.skipif(bool(NUMBA_DISABLE_JIT), reason="inspects the compiled code, which only exists under the JIT")

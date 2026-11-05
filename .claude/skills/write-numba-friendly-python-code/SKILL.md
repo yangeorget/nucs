@@ -19,6 +19,6 @@ Most of `nucs/` runs under `@njit`. In that code:
   compilation — a dispatcher loaded from the cache has no IR.
 - **`bc_algorithm` is compiled with `_nrt=False`.** Code inlined into it must not allocate or index a typed list (it
   will not compile), and every jitted function it calls must be `inline="always"`, or LLVM inlines it with the
-  refcounts of whichever context first put it in the cache. `tests/solvers/test_bc_algorithm.py` checks both.
+  refcounts of whichever context first put it in the cache. `tests/solvers/backtrack/test_bc_algorithm.py` checks both.
 - **Debug a cryptic compile or typing error with `NUMBA_DISABLE_JIT=1`**: the plain-Python traceback points at the
   real line.

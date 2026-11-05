@@ -58,8 +58,8 @@ from nucs.heuristics.heuristics import (
     VAR_HEURISTIC_SMALLEST_DOMAIN,
     register_var_heuristic,
 )
-from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.consistency_algorithms import register_consistency_algorithm
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.consistency_algorithms import register_consistency_algorithm
 from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE
 from nucs.statistics import (

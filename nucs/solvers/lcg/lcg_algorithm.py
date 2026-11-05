@@ -35,14 +35,14 @@ from nucs.problems.problem import (
     PROBLEM_UNBOUND,
 )
 from nucs.propagators.propagators import call_compute_domains
-from nucs.solvers.bc_algorithm import (
+from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
+from nucs.solvers.propagation_steps import (
     count_no_change,
     gather_domains,
     record_entailment,
     trail_state_prefix,
     update_domains,
 )
-from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
 from nucs.solvers.state import unbound_index
 from nucs.solvers.weights import weights_bump
 from nucs.statistics import (

@@ -15,8 +15,8 @@ import pytest
 from nucs.constants import DOMAIN_MIN
 from nucs.examples.golomb.golomb_problem import GolombProblem, golomb_consistency_algorithm, index
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_DOM_WDEG
-from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.consistency_algorithms import register_consistency_algorithm
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.consistency_algorithms import register_consistency_algorithm
 from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
 from nucs.statistics import STATS_IDX_SOLUTION_NB

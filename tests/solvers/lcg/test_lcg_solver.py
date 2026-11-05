@@ -19,7 +19,7 @@ from nucs.examples.golomb.golomb_problem import GolombProblem
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
 from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_DOM_WDEG, VAR_HEURISTIC_SMALLEST_DOMAIN
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.lcg.lcg_solver import LcgSolver
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
 from nucs.solvers.searches import Search

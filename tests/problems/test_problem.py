@@ -12,7 +12,7 @@
 ###############################################################################
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_LINEAR_LEQ_C, ALG_NEQ, watchers
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 
 
 class TestProblem:

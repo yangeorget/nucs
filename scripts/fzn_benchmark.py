@@ -130,7 +130,7 @@ def solve(fzn: Path, all_solutions: bool = False) -> dict[str, Any]:
     from nucs.fzn.search_annotations import search_heuristics
     from nucs.problems.problem import OFFSETS_VARIABLE
     from nucs.propagators.propagators import get_algorithm_names
-    from nucs.solvers.backtrack_solver import BacktrackSolver
+    from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
     from nucs.statistics import STATS_ALG_IDX_FILTER_NB, STATS_ALG_IDX_FILTER_NO_CHANGE_NB, STATS_ALG_WIDTH, STATS_MAX
 
     model = build_model(parse(fzn.read_text()))

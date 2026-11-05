@@ -21,7 +21,7 @@ from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_ENTAIL
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_REGULAR
 from nucs.propagators.regular_propagator import compute_domains_regular, get_state_regular, is_vacuous_regular
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from tests.propagators.propagator_test import PropagatorTest
 
 

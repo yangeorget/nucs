@@ -14,7 +14,7 @@
 import pytest
 
 from nucs.examples.all_interval_series.all_interval_series_problem import AllIntervalSeriesProblem
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 

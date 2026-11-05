@@ -18,7 +18,7 @@ import pytest
 from nucs.constants import DOMAIN_MIN
 from nucs.examples.jobshop.jobshop_problem import JobShopProblem
 from nucs.numba_helper import NUMBA_DISABLE_JIT
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.solver import OPTIM_PRUNE
 
 

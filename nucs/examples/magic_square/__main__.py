@@ -13,7 +13,7 @@
 from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.examples.magic_square.magic_square_problem import MagicSquareProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_RANDOM_VALUE, VAR_HEURISTIC_DOM_WDEG
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
 from nucs.solvers.searches import Search
 

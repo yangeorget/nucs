@@ -15,7 +15,7 @@ from collections.abc import Callable
 import pytest
 
 from nucs.examples.langford.langford_problem import LangfordProblem
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB
 
 

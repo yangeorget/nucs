@@ -20,7 +20,7 @@ from numpy.typing import NDArray
 
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, LOG_LEVELS
 from nucs.heuristics.heuristics import DOM_HEURISTICS, VAR_HEURISTICS
-from nucs.solvers.consistency_algorithms import CONSISTENCY_ALGS
+from nucs.solvers.backtrack.consistency_algorithms import CONSISTENCY_ALGS
 from nucs.solvers.restart_policies import RestartPolicy, parse_restart
 from nucs.solvers.searches import SEARCHES_DEFAULT, Search
 from nucs.solvers.solver import OPTIM_MODES, OPTIM_RESET, Solver

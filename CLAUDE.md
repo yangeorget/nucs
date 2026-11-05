@@ -39,7 +39,7 @@ minizinc --solver nucs model.mzn
 ```python
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 
 
 class QueensProblem(Problem):

@@ -15,7 +15,7 @@ from collections.abc import Callable
 import pytest
 
 from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequenceProblem
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB
 

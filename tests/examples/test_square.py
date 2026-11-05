@@ -15,7 +15,7 @@ import json
 import pytest
 
 from nucs.examples.square.square_problem import SquarePlacementProblem
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 
 
 def _assert_valid_packing(problem: SquarePlacementProblem, solution) -> None:  # type: ignore[no-untyped-def]

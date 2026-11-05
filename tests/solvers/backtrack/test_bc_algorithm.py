@@ -19,8 +19,8 @@ from numpy.typing import NDArray
 
 from nucs.buckets import buckets_add, buckets_pop
 from nucs.numba_helper import NUMBA_DISABLE_JIT
-from nucs.solvers.bc_algorithm import bc_algorithm
-from nucs.solvers.consistency_algorithms import SIGN_CONSISTENCY_ALG
+from nucs.solvers.backtrack.bc_algorithm import bc_algorithm
+from nucs.solvers.backtrack.consistency_algorithms import SIGN_CONSISTENCY_ALG
 
 
 def assert_compiled_without_refcounts(consistency_algorithm: Callable, name: str) -> None:

@@ -24,7 +24,7 @@ from nucs.constants import (
 )
 from nucs.problems.problem import OFFSETS_STATE, Problem
 from nucs.propagators.propagators import ALGORITHM_FLAGS, get_algorithm_nb, register_propagator
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 
 
 def get_complexity_leq(n: int, parameters: NDArray) -> int:

@@ -15,7 +15,7 @@ import json
 from nucs.examples.bacp.bacp_problem import BACPProblem
 from nucs.examples.default_argument_parser import DefaultArgumentParser, run_optimizer, solver_kwargs_from_args
 from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE
 

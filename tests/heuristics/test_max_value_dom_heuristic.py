@@ -12,7 +12,7 @@
 ###############################################################################
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE
 from nucs.problems.problem import Problem
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 
 

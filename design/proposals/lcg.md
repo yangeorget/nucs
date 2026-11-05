@@ -621,7 +621,7 @@ If the learned clause is empty, or its asserting literal fails at level 0, the p
   analyses it as a conflict. Enumeration stays complete, and no solution comes twice. Restarts stop at the first
   solution, as today.
 - **Restarts.** A restart is a backjump to level 0. The learned clauses and the activities stay. But the level-0
-  facts that the search learned do not stay. `_reset_to_root` (`backtrack_solver.py`) calls `choice_point_init`,
+  facts that the search learned do not stay. `_reset_to_root` (`tree_search_solver.py`) calls `choice_point_init`,
   which writes `problem.initial_domains` back into `state`. The propagation at the root finds again the facts that
   come from the propagators and from the clauses with two or more literals. It does not find the clauses with one
   literal: they have no second watch, and nothing wakes them. Thus the LCG mode keeps them in `unit_lits` (3.5), and
@@ -846,7 +846,11 @@ explanations, the analysis and the store already have their tests.
    the shared Python part adds a hook to `TreeSearchSolver` (for example, the growth of a new array at step 5), and a
    subclass never overrides a concrete method. The compiled code of `BacktrackSolver` does not change. All the LCG code
    is in the subpackage `nucs/solvers/lcg/`, and its tests are in `tests/solvers/lcg/`: no other module of `nucs`
-   imports it, so `BacktrackSolver` cannot depend on it. On the 22 examples at their default arguments (golomb with
+   imports it, so `BacktrackSolver` cannot depend on it. The modules of `BacktrackSolver` are in the subpackage
+   `nucs/solvers/backtrack/`, and what the two solvers share is at the top of `nucs/solvers/`: `tree_search_solver.py`,
+   `search_loops.py` (the statuses and the search control) and `propagation_steps.py` (the steps of one propagator call,
+   which `lcg_algorithm` took from `bc_algorithm.py`). The move of the modules of `BacktrackSolver` changes their import
+   paths: it is a major version. On the 22 examples at their default arguments (golomb with
    `--consistency-algorithm BC`), every counter is the same as with `BacktrackSolver`, which itself gives the counters
    of the baseline (7.4). magic_square is the exception that 7.4 expects: its unseeded `RANDOM_VALUE` changes the tree,
    and only its solution count is the same.

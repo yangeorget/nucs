@@ -25,7 +25,7 @@ from nucs.propagators.propagators import (
     ALG_SUM_EQ,
     update_propagators,
 )
-from nucs.solvers.bc_algorithm import bc_algorithm
+from nucs.solvers.backtrack.bc_algorithm import bc_algorithm
 from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
 from nucs.solvers.state import tighten_at
 

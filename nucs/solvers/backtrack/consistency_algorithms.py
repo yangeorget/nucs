@@ -14,7 +14,7 @@ from collections.abc import Callable
 
 from numba import float64, int32, int64, uint8, uint32
 
-from nucs.solvers.bc_algorithm import bc_algorithm
+from nucs.solvers.backtrack.bc_algorithm import bc_algorithm
 
 CONSISTENCY_ALG_FCTS: list[Callable] = []
 CONSISTENCY_ALGS: dict[str, int] = {}  # algorithm name to index, for name-based selection (eg from the CLI)

@@ -18,7 +18,7 @@ A solver accepts the following parameters:
 Backtracking-based solver
 *************************
 
-NuCS provides :mod:`nucs.solvers.backtrack_solver` which is the main solver.
+NuCS provides :mod:`nucs.solvers.backtrack.backtrack_solver` which is the main solver.
 
 
 Backtracking solver arguments

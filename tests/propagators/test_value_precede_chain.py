@@ -22,7 +22,7 @@ from nucs.propagators.value_precede_chain_propagator import (
     compute_domains_value_precede_chain,
     value_precede_chain_parameters,
 )
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from tests.propagators.propagator_test import PropagatorTest, random_bounds
 
 

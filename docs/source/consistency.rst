@@ -9,7 +9,7 @@ Some consistency algorithms are provided, custom consistency algorithms can be d
 ***************************
 Bound consistency algorithm
 ***************************
-NuCS provides :mod:`nucs.solvers.bc_algorithm` which is the default consistency algorithm.
+NuCS provides :mod:`nucs.solvers.backtrack.bc_algorithm` which is the default consistency algorithm.
 
 
 *****************************
@@ -28,8 +28,8 @@ This custom consistency algorithm needs to be registered before it is used.
    solver = BacktrackSolver(problem, consistency_algorithm=consistency_alg_golomb)
 
 A custom consistency algorithm is compiled against :code:`SIGN_CONSISTENCY_ALG` in
-:mod:`nucs.solvers.consistency_algorithms`, so it takes the same arguments as
-:func:`nucs.solvers.bc_algorithm.bc_algorithm`. One of them, :code:`compute_domains_addrs`, holds the compiled
+:mod:`nucs.solvers.backtrack.consistency_algorithms`, so it takes the same arguments as
+:func:`nucs.solvers.backtrack.bc_algorithm.bc_algorithm`. One of them, :code:`compute_domains_addrs`, holds the compiled
 address of each propagator algorithm's :code:`compute_domains` function: pass it on unchanged, to
 :code:`bc_algorithm` or to :func:`~nucs.propagators.propagators.call_compute_domains`. Another one,
 :code:`propagator_weights`, holds the failure weight of each propagator: pass it on unchanged to
