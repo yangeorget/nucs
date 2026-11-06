@@ -142,6 +142,15 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   used distances from the bound marks, and fails when a bound empties a domain. With all the pairs of heuristics that
   need no parameters, n=5 to 8 now give the known optimum. The default search finds the same optima with 0.1% to
   0.9% more choices (11,241 instead of 11,142 at n=10, 217,287 instead of 216,725 at n=11).
+- **`inverse` could make a domain larger instead of failing.** When `prev[j]` was fixed to `i`, it set `next[i]` to
+  `j` without testing that `j` was in the domain of `next[i]`. When it was not, the constraint had no solution, but
+  the propagator gave back the values that another propagator had removed, and reported no failure. The answers stay
+  correct, because the other propagators run again on the larger domain and fail. But the failure comes later: the
+  tsp example finds the same optimum with fewer choices (35,269 instead of 45,208 on gr17 with the default search),
+  and the quasigroup example also changes (301 choices instead of 201 at its default arguments).
+  `PermutationProblem` (thus `CircuitProblem`), `LatinSquareRCProblem`, the dual model of `QueensProblem` and the
+  FlatZinc builtin `inverse` post this propagator. The
+  brute-force test of the propagators now also checks that no propagator makes a domain larger. Only `inverse` did.
 
 ## 19.0.0
 

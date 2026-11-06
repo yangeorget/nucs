@@ -46,8 +46,8 @@ class TestTSP:
             # without the JIT; a brute force over all the tours gives the same optimum
             ("gr17", 10, 1637, 153),
             # the case above runs the same code without the JIT
-            pytest.param("gr17", 17, 2085, 95320, marks=SLOW_WITHOUT_JIT),
-            pytest.param("gr21", 21, 2707, 108231, marks=SLOW_WITHOUT_JIT),
+            pytest.param("gr17", 17, 2085, 94926, marks=SLOW_WITHOUT_JIT),
+            pytest.param("gr21", 21, 2707, 108196, marks=SLOW_WITHOUT_JIT),
             # ("gr24", 24, 1272, ...)
         ],
     )

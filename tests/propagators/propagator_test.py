@@ -243,6 +243,12 @@ class PropagatorTest:
         if status == PROP_INCONSISTENCY:
             assert not solutions, f"declared inconsistent but {solutions[0]} is a solution: {bounds} {parameters}"
             return
+        # a propagator only narrows: a widening gives back values that another propagator removed, and a row of the
+        # implication trail of LCG that loosens its bound
+        box = np.array(bounds, dtype=np.int32)
+        assert np.all(domains[:, DOMAIN_MIN] >= box[:, DOMAIN_MIN]) and np.all(
+            domains[:, DOMAIN_MAX] <= box[:, DOMAIN_MAX]
+        ), f"widened a domain: {bounds} {parameters} -> {domains.tolist()}"
         assert np.all(domains[:, DOMAIN_MIN] <= domains[:, DOMAIN_MAX]), (
             f"left a domain empty without failing: {bounds} {parameters} -> {domains.tolist()}"
         )
