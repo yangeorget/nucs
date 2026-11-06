@@ -42,7 +42,7 @@ from nucs.propagators.propagators import (
     get_algorithm_nb,
 )
 from nucs.solvers.buckets import buckets_create, buckets_init
-from nucs.solvers.choice_points import CHOICE_POINT_WIDTH, backtrack, choice_point_init, tighten_objective
+from nucs.solvers.choice_points import CHOICE_POINT_WIDTH, choice_point_init, tighten_objective
 from nucs.solvers.interrupter import INTERRUPTION_EXTERNAL, Interrupter
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
 from nucs.solvers.searches import SEARCHES_DEFAULT, Search, flatten_searches
@@ -341,6 +341,7 @@ class TreeSearchSolver(Solver):
         # the search may have stopped at a failure: the failed filtering left propagators in the queue, and backtrack
         # added more, which buckets_init removes before it adds every propagator
         buckets_init(self.triggered_propagators, self.problem.priorities)
+        self._record_root()
 
     def _tighten_objective_at_root(self) -> bool:
         """
@@ -355,7 +356,7 @@ class TreeSearchSolver(Solver):
         variable = self.bb[BB_VARIABLE]
         if variable < 0:
             return True
-        return (
+        if (
             tighten_objective(
                 self.state,
                 self.trail_log,
@@ -366,8 +367,29 @@ class TreeSearchSolver(Solver):
                 self.bb[BB_VALUE],
                 self.bb[BB_BOUND],
             )
-            >= 0
-        )
+            < 0
+        ):
+            return False
+        self._record_root()
+        return True
+
+    def _record_root(self) -> None:
+        """
+        A hook that the solver calls each time it sets the root: after _reset_to_root, and after it applies the bound
+        of the best objective at the root. No propagation has run on the root yet.
+
+        A subclass that keeps its own record of the bound changes builds it again here. The default does nothing.
+        """
+
+    @abstractmethod
+    def _backtrack(self) -> bool:
+        """
+        Backtracks by forwarding the solver state to the compiled backtrack of the solver.
+
+        :return: true iff it was possible to backtrack
+        :rtype: bool
+        """
+        ...
 
     @abstractmethod
     def _run_search_loop(self) -> tuple[int, NDArray | None]:
@@ -420,29 +442,6 @@ class TreeSearchSolver(Solver):
         # the search resumes on a refutation, and a failure that follows one does not name a conflict variable
         self.search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
         return self._backtrack()
-
-    def _backtrack(self) -> bool:
-        """
-        Backtracks by forwarding the solver state to the jitted backtrack.
-
-        :return: true iff it was possible to backtrack
-        :rtype: bool
-        """
-        return backtrack(
-            self.statistics,
-            self.state,
-            self.trail_log,
-            self.trail_top,
-            self.trail_indices,
-            self.choice_point_stk,
-            self.choice_point_top,
-            self.entailed,
-            self.triggered_propagators,
-            self.problem.triggers,
-            self.problem.triggers_offsets,
-            self.problem.priorities,
-            self.bb,
-        )
 
     def get_statistics_as_dictionary(self) -> dict[str, int]:
         """
@@ -512,7 +511,7 @@ def allocate_search_arrays(
     trail_log = np.empty((max(1 << 16, 16 * trail_headroom), 2), dtype=np.int32)
     trail_top = np.zeros((1,), dtype=np.int32)
     trail_indices = np.full(len(state), -1, dtype=np.int32)
-    choice_point_stk = np.zeros((max(1 << 13, 4 * domain_nb), CHOICE_POINT_WIDTH), dtype=np.int32)
+    choice_point_stk = np.zeros((stack_height(domain_nb), CHOICE_POINT_WIDTH), dtype=np.int32)
     choice_point_top = np.ones((1,), dtype=np.uint32)
     return (
         state,
@@ -525,6 +524,19 @@ def allocate_search_arrays(
         choice_point_stk,
         choice_point_top,
     )
+
+
+def stack_height(domain_nb: int) -> int:
+    """
+    Returns the number of rows that the stack of choice points starts with (see allocate_search_arrays).
+
+    :param domain_nb: the number of variables of the problem
+    :type domain_nb: int
+
+    :return: the number of rows of the stack of choice points
+    :rtype: int
+    """
+    return max(1 << 13, 4 * domain_nb)
 
 
 def double_rows(array: NDArray) -> NDArray:

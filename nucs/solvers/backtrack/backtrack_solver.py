@@ -110,6 +110,29 @@ class BacktrackSolver(TreeSearchSolver):
             [CONSISTENCY_ALG_FCTS[consistency_algorithm]], SIGN_CONSISTENCY_ALG
         )
 
+    def _backtrack(self) -> bool:
+        """
+        Backtracks by forwarding the solver state to the jitted backtrack.
+
+        :return: true iff it was possible to backtrack
+        :rtype: bool
+        """
+        return backtrack(
+            self.statistics,
+            self.state,
+            self.trail_log,
+            self.trail_top,
+            self.trail_indices,
+            self.choice_point_stk,
+            self.choice_point_top,
+            self.entailed,
+            self.triggered_propagators,
+            self.problem.triggers,
+            self.problem.triggers_offsets,
+            self.problem.priorities,
+            self.bb,
+        )
+
     def _run_search_loop(self) -> tuple[int, NDArray | None]:
         """
         Runs the compiled search loop until it returns, by forwarding the solver state to the jitted run_search_loop.

@@ -12,6 +12,7 @@
 ###############################################################################
 import re
 from collections.abc import Callable
+from typing import Any
 
 import pytest
 from numba import int32, int64, njit, uint32  # type: ignore
@@ -38,7 +39,9 @@ class TestBcAlgorithmCompilation:
         assert_compiled_without_refcounts(bc_algorithm, "bc_algorithm")
 
 
-def assert_compiled_without_refcounts(consistency_algorithm: Callable, name: str) -> None:
+def assert_compiled_without_refcounts(
+    consistency_algorithm: Callable, name: str, signature: Any = SIGN_CONSISTENCY_ALG
+) -> None:
     """
     Checks that a propagation loop compiled without the reference-counting runtime holds no refcount call, whatever
     compiled the functions it calls.
@@ -52,6 +55,8 @@ def assert_compiled_without_refcounts(consistency_algorithm: Callable, name: str
     :type consistency_algorithm: Callable
     :param name: the name of its function, to find it in the IR
     :type name: str
+    :param signature: the signature to compile it with, defaults to that of the consistency algorithms
+    :type signature: Any
     """
 
     @njit(int64(int32[::1], uint32[::1], int32, int64))
@@ -62,7 +67,7 @@ def assert_compiled_without_refcounts(consistency_algorithm: Callable, name: str
         return buckets_pop(buckets, membership_offset)
 
     fresh = njit(_nrt=False)(consistency_algorithm.py_func)  # type: ignore[attr-defined, call-overload]
-    fresh.compile(SIGN_CONSISTENCY_ALG)
+    fresh.compile(signature)
     ir = fresh.inspect_llvm(fresh.signatures[0])
     # the function itself, not the cpython and cfunc wrappers Numba also emits around it
     starts = [

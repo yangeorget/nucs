@@ -1,14 +1,15 @@
 # Lazy clause generation in NuCS — design
 
-> **Status:** proposed, 2026-10-05. The implementation started on 2026-11-03: Phase 0 and steps 3 and 4 of 7.0 are done.
+> **Status:** proposed, 2026-10-05. The implementation started on 2026-11-03: Phase 0 and steps 3 to 5 of 7.0 are done.
 
 This document is the design of lazy clause generation (LCG) for NuCS. It is written for a reader who knows
 classical constraint programming (propagation, search, Gecode and Choco internals) but not LCG or SAT solving.
 Part 1 explains the concepts, with a worked example and links to read. Parts 2 to 6 give the design. Part 7 gives
 the implementation steps, the stages, the tests and the measurements that decide if each stage continues.
 
-Only the literals of 3.2 and the copy of `BacktrackSolver` of step 4 (`TreeSearchSolver`, `LcgSolver`,
-`run_search_loop` in `lcg_solver.py`, `lcg_algorithm`) are implemented. The names of the other new arrays and
+Only the literals of 3.2, the copy of `BacktrackSolver` of step 4 (`TreeSearchSolver`, `LcgSolver`,
+`run_search_loop` in `lcg_solver.py`, `lcg_algorithm`) and the implication trail of step 5 (3.3 and 3.4, in
+`implication_trail.py`) are implemented. The names of the other new arrays and
 functions are proposals.
 
 ## Contents
@@ -861,6 +862,27 @@ explanations, the analysis and the store already have their tests.
    alternatives.
    *Check:* a debug function replays `lit_trail` from the root and compares the result with `state` at each node.
    The counters stay the same as in step 4. Measure the drop in nodes per second.
+   *Done on 2026-11-06:* `nucs/solvers/lcg/implication_trail.py` holds the rows, `lit_push`, `lit_pop`,
+   `lit_trail_root` and the replay check `lit_trail_check`. The level of a row is `choice_point_top`, so a ternary
+   decision has an empty first level, and `level_start` has one cell for each row of the stack of choice points.
+   `lcg_algorithm` writes the rows in `update_domains_with_reasons`, a copy of `update_domains`. The decision rows are
+   written after `branch`, which does not change. `LcgSolver` has its own copy of `backtrack`, which pops the rows and
+   gives the parked alternative `REASON_DECISION` and the objective bound `REASON_ROOT`. Two changes to
+   `TreeSearchSolver`: `_backtrack` is abstract (each solver gives its own), and the hook `_record_root` runs after
+   each return to the root and after the objective bound at the root. `LcgSolver` grows `lit_trail` itself, in
+   `_run_search_loop`: no propagation step has a fixed number of rows, so `lcg_algorithm` checks the room before each
+   propagator call (2 × arity, plus 2 for the next decision or backtrack), returns `PROBLEM_LIT_TRAIL_FULL` with the
+   propagator still in the queue, and the next call continues the propagation. `LcgSolver(debug=True)` runs the replay
+   check at each node. The tests run it on the five cases of the step-4 test, on growth of the trail and of the stack,
+   and on a hand-built trail with one mutation for each rule.
+   The debug check found a bug at once: `inverse` made a domain larger instead of failing (fixed in the same change;
+   see the CHANGELOG). The fix changes the trees of tsp (35,269 choices instead of 45,208) and quasigroup (301 instead
+   of 201), for `BacktrackSolver` too. Thus these two baselines of 7.4 are now those of the fixed build. Without the
+   fix, both solvers still give the baseline counters.
+   On the 22 examples, every counter of `LcgSolver` is the same as with `BacktrackSolver` (magic_square excepted, 7.4).
+   Nodes per second, `LcgSolver` against `BacktrackSolver` on the same build, median of 7 runs in alternate order with
+   a random padding of the environment: tsp 271 / 267 ms (1.015), langford 252 / 250 ms (1.008), golomb (BC) 256 /
+   252 ms (1.016), all with the same trees. The drop is under 2%, below the 5% floor of `design/benchmarking.md`.
 6. **Add the decisions as literals** (4.2). Each level has one literal and one choice point. An interior `EQ` uses
    two levels, with the rules of 4.2. The alternatives stay parked.
    *Check:* the solution counts and the optima are the same as with `BacktrackSolver`.
@@ -1043,8 +1065,9 @@ of `register_propagator`. At these steps, the control is also a regression test:
 - magic_square uses `RANDOM_VALUE` with no seed: its counters change from run to run. Compare only its solution
   count.
 - Most of the examples end in less than 1 ms. They are good for the checks of equal counters (steps 4 to 6), but not
-  to measure the nodes per second (step 5): for that, use tsp (45,208 choices), langford (18,632), golomb (11,241)
-  and the medium instances.
+  to measure the nodes per second (step 5): for that, use tsp (45,208 choices; 35,269 since the `inverse` fix of
+  step 5), langford (18,632), golomb (11,241 with its own consistency algorithm, 18,986 with `--consistency-algorithm
+  BC`, which `LcgSolver` needs) and the medium instances.
 - In the annotated arm, 11 of the 16 medium instances stop at the time limit. For them, gate 1 compares the best
   objective, not the size of the tree. Only atp-stage2, tdtsp and filters end their search.
 
