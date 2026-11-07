@@ -52,7 +52,7 @@ class TestPropagatorStateIsBacktracked:
         """
         Restarting the search from the root has to put every trailed state block back to its root value.
 
-        OPTIM_RESET drops the trail rather than unwinding it, so nothing restores a block the way a
+        OPTIM_RESET drops the undo trail rather than unwinding it, so nothing restores a block the way a
         backtrack would, and without choice_point_init clearing the trailed prefixes the restarted search
         would begin holding whatever invariant the previous one stopped at. A propagator is entitled to
         read its block as describing the node it is being called at, so that is not a slow search but a
@@ -75,7 +75,7 @@ class TestPropagatorStateIsBacktracked:
         block = problem.offsets[0, OFFSETS_STATE]
         assert solver.state[block] == 0  # allocated cold
         assert len(list(solver.find_all())) == 6
-        assert solver.state[block] > 0  # the search left the block written, and the trail is not unwound
+        assert solver.state[block] > 0  # the search left the block written, and the undo trail is not unwound
         solver._reset_to_root()  # what OPTIM_RESET and a restart do before they search from the root again
         assert solver.state[block] == 0
 

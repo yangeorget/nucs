@@ -50,29 +50,29 @@ Writing a domain
 
    In NuCS 15 a consistency algorithm receives the current domains rather than a stack of them, and
    **must** write them through :func:`nucs.solvers.state.tighten_at`. Assigning
-   a domain directly still compiles and still looks right, but the write is not recorded on the trail:
+   a domain directly still compiles and still looks right, but the write is not recorded on the undo trail:
    it is never undone, and it survives the backtrack into sibling subtrees. That is silent unsoundness,
    with no error to point at.
 
 :code:`tighten_at` also owns the groundness test and the unbound-variable count, so routing through it is
 what keeps the solver's "is this problem solved?" test correct. It returns the events the write raises,
 :code:`EVENT_MASK_NONE` when it changed nothing, which is what to pass to
-:func:`~nucs.solvers.propagation_steps.update_propagators`, and the new trail size. Scheduling stays with
-the caller, and so does the trail size: load it from :code:`trail_top` once, thread it through the
+:func:`~nucs.solvers.propagation_steps.update_propagators`, and the new undo trail size. Scheduling stays with
+the caller, and so does the undo trail size: load it from :code:`utrail_top` once, thread it through the
 writes, and store it back once.
 
 .. code-block:: python
    :linenos:
 
-   trail_size = trail_top[0]
-   events, trail_size = tighten_at(state, trail_log, trail_indices, mark, trail_size, variable, new_min, new_max)
+   utrail_size = utrail_top[0]
+   events, utrail_size = tighten_at(state, utrail_log, utrail_indices, mark, utrail_size, variable, new_min, new_max)
    if events:
        update_propagators(triggered_propagators, entailed, triggers, triggers_offsets,
                           priorities, variable, events, -1)
-   trail_top[0] = trail_size
+   utrail_top[0] = utrail_size
 
-where :code:`mark` is :code:`choice_point_stk[choice_point_top[0], CHOICE_POINT_TRAIL_MARK]`, the trail position the current
-choice point branched at, and the last argument of :code:`update_propagators` is a propagator not to wake,
+where :code:`mark` is :code:`choice_point_stk[choice_point_top[0], CHOICE_POINT_UTRAIL_MARK]`, the undo trail position
+the current choice point branched at, and the last argument of :code:`update_propagators` is a propagator not to wake,
 which the propagation loop uses for an idempotent propagator's own writes: pass -1.
 :mod:`nucs.examples.golomb.golomb_problem` is the in-tree example.
 

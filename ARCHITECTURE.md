@@ -32,16 +32,16 @@ for contributors are in `design/`; the user documentation is in `docs/`.
   (`lcg_solver.py`), and its own propagation (`lcg_algorithm.py`). The base class of both solvers, `TreeSearchSolver`
   (`tree_search_solver.py`), holds the Python part of the search: the state, the restarts, the optimization modes and
   the growth of the arrays; a subclass gives only its compiled loop, in `_run_search_loop`. The same module holds what
-  the two loops share: the statuses that say why a loop returned, the cells of the search control and
-  `get_solution`. The two loops also share `propagation_steps.py` (the steps of one propagator call, with
-  `update_propagators`, which schedules the propagators that a change wakes) and `buckets.py` (the propagation queue, a
-  priority queue in a flat array). The priority of a propagator, its bucket, comes from `compute_priority` in
-  `nucs/problems/problem.py`, which computes it when the problem is built. The backtrackable state and its trail live in
-  `state.py`; `tighten_at` is the only permitted way to write a domain. The stack of choice points, built on them, lives
-  in `choice_points.py`. `allocate_search_arrays` (`tree_search_solver.py`) lays out the state and sizes the trail and
-  the stack for a problem. `Interrupter` (`interrupter.py`) holds the two cells that stop the compiled search at its
-  next node, one for each of its two writers: `interrupt()` and the timer of a timeout. To iterate over the solutions,
-  call `solver.solve()`. To optimize, call `solver.find_best(var, DOMAIN_MIN)` or `solver.find_best(var, DOMAIN_MAX)`.
+  the two loops share: the statuses that say why a loop returned, the cells of the search control and `get_solution`.
+  The two loops also share `propagation_steps.py` (the steps of one propagator call, with `update_propagators`, which
+  schedules the propagators that a change wakes) and `buckets.py` (the propagation queue, a priority queue in a flat
+  array). The priority of a propagator, its bucket, comes from `compute_priority` in `nucs/problems/problem.py`, which
+  computes it when the problem is built. The backtrackable state and its undo trail live in `state.py`; `tighten_at` is
+  the only permitted way to write a domain. The stack of choice points, built on them, lives in `choice_points.py`.
+  `allocate_search_arrays` (`tree_search_solver.py`) lays out the state and sizes the undo trail and the stack for a
+  problem. `Interrupter` (`interrupter.py`) holds the two cells that stop the compiled search at its next node, one for
+  each of its two writers: `interrupt()` and the timer of a timeout. To iterate over the solutions, call
+  `solver.solve()`. To optimize, call `solver.find_best(var, DOMAIN_MIN)` or `solver.find_best(var, DOMAIN_MAX)`.
 - **`nucs/heuristics/`** — a variable heuristic picks the next unbound decision variable; a domain heuristic picks how
   to split its domain. Both are compiled by Numba against the fixed signatures `SIGN_VAR_HEURISTIC` and
   `SIGN_DOM_HEURISTIC` in `nucs/heuristics/heuristics.py`, and called by id. The variable heuristics are in the
@@ -89,7 +89,7 @@ array must grow, so one descent can take many calls.
 the logging levels. A constant that belongs to one module lives in that module: `CHOICE_POINT_*` in
 `nucs/solvers/choice_points.py`, `OFFSETS_*` and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` and
 `SEARCH_CONTROL_*` in `nucs/solvers/tree_search_solver.py`, `OPTIM_*` in `nucs/solvers/solver.py`,
-`TIGHTENING_TRAIL_ENTRY_NB` in `nucs/solvers/state.py`, `STEP_TIGHTENING_NB` in
+`TIGHTENING_UTRAIL_ENTRY_NB` in `nucs/solvers/state.py`, `STEP_TIGHTENING_NB` in
 `nucs/solvers/tree_search_solver.py`, `STATS_*` in `nucs/statistics.py`.
 
 The `SIGN_*` signatures are the fixed function types through which the compiled code calls a function by id (see
@@ -196,8 +196,8 @@ to *weighted degree*, which is the sum of the weights of its live propagators. A
 not entailed and has an unbound variable other than `x`.
 
 - **The weights are not backtracked.** A failure says that a constraint is hard, and that stays true in every part of
-  the tree. So the weights are not in `state`, the trail never sees them, and `choice_point_init` does not clear them:
-  an `OPTIM_RESET` restart keeps what the previous descents learned. Choco and Gecode do the same.
+  the tree. So the weights are not in `state`, the undo trail never sees them, and `choice_point_init` does not clear
+  them: an `OPTIM_RESET` restart keeps what the previous descents learned. Choco and Gecode do the same.
 - **Decay costs one cell, not a pass over the weights.** Each propagator starts at 1, and a failure adds the current
   increment. With `weight_decay < 1` (the AFC of Gecode), each failure makes the increment larger by
   `1 / weight_decay`, which has the same effect as making all the older weights smaller. When the increment passes
@@ -218,8 +218,8 @@ not entailed and has an unbound variable other than `x`.
 ### Restarts and last-conflict — solver state, not choice-point state
 
 Both live in `search_control`, a small `int64` array that `run_search_loop` reads and writes, and that the
-trail never records. It holds: the failure limit of the current descent, the number of failures since the last start
-from the root, whether last-conflict is on, the conflict variable, and the variable of the last decision.
+undo trail never records. It holds: the failure limit of the current descent, the number of failures since the last
+start from the root, whether last-conflict is on, the conflict variable, and the variable of the last decision.
 
 - **A restart is the reset of `OPTIM_RESET`, triggered by a failure limit.** At the top of its loop,
   `run_search_loop` returns `SOLVER_RESTART` when the failures reach the limit. It does this before it starts
@@ -246,7 +246,9 @@ from the root, whether last-conflict is on, the conflict variable, and the varia
 
 ### Backtrackable state is trailed, not copied
 
-A *trail* is an undo log: before a cell is written, its old value is recorded, so that a backtrack can restore it.
+The *undo trail* (`utrail_*` in the code) is an undo log: before a cell is written, its old value is recorded, so
+that a backtrack can restore it. `LcgSolver` adds a second trail, the *implication trail* (`itrail_*`, in
+`nucs/solvers/lcg/implication_trail.py`): it restores nothing, but records each bound change with its reason.
 Every backtrackable value lives in one flat `int32` array, and one undo log restores all of it:
 
 ```
@@ -256,7 +258,7 @@ state (int32) [ ----- domains ----- | --- entailed --- | propagator state | unbo
 
 `domains` is an `int32[:, ::1]` view of the head of `state`, and `entailed` a view of its middle: the same memory,
 addressed the way each reader wants it. So the flat index of `(variable, bound)` is `(variable << 1) | bound`, and
-that of propagator `p` is `2n + p`. A trail entry is `(flat index, old value)`, with nothing that says what kind of
+that of propagator `p` is `2n + p`. An undo trail entry is `(flat index, old value)`, with nothing that says what kind of
 cell it is. Thus restoring a domain bound, making an entailed propagator active again, and rolling back the count of
 unbound variables are the same instruction. The propagator state sits between the entailment flags and the unbound
 count, so `unbound_index()`, which is `len(state) - 1`, does not depend on it. See *Propagator state* below.
@@ -264,15 +266,15 @@ count, so `unbound_index()`, which is `len(state) - 1`, does not depend on it. S
 | array | shape | dtype | role |
 |-------|-------|-------|------|
 | `state` | `(2·domain_nb + P + 1,)` | int32 | all the backtrackable state |
-| `trail_log` | `(T, 2)` | int32 | the undo log |
-| `trail_top` | `(1,)` | int32 | the size of the trail |
-| `trail_indices` | `(len(state),)` | int32 | the index of the last trail entry of each cell, `-1` when there is none |
-| `choice_point_stk` | `(H, 4)` | int32 | per choice point: `[CHOICE_POINT_TRAIL_MARK, CHOICE_POINT_VARIABLE, CHOICE_POINT_BOUND, CHOICE_POINT_VALUE]` |
+| `utrail_log` | `(T, 2)` | int32 | the undo log |
+| `utrail_top` | `(1,)` | int32 | the size of the undo trail |
+| `utrail_indices` | `(len(state),)` | int32 | the index of the last undo trail entry of each cell, `-1` when there is none |
+| `choice_point_stk` | `(H, 4)` | int32 | per choice point: `[CHOICE_POINT_UTRAIL_MARK, CHOICE_POINT_VARIABLE, CHOICE_POINT_BOUND, CHOICE_POINT_VALUE]` |
 | `choice_point_top` | `(1,)` | uint32 | the depth of the search |
 
 A choice point is where the search makes a decision and parks the alternatives, to come back to them later. A push
-copies nothing: it records the position of the trail (the *mark*) and the single-bound tightening to apply on return,
-and it writes only the branch that it explores. The alternatives are not built until the search reaches them.
+copies nothing: it records the position of the undo trail (the *mark*) and the single-bound tightening to apply on
+return, and it writes only the branch that it explores. The alternatives are not built until the search reaches them.
 
 **This trades time for the memory ceiling, deliberately.** Before, `domains_stk` was an `(H, domain_nb, 2)` int32
 array, allocated before the solve started: 64 KB per variable, whatever the search did. So `bibd(10,15,6,4,2)` reserved
@@ -283,10 +285,10 @@ Copying wins in that regime, and the models of NuCS are in it. `H` and `T` are s
 `run_search_loop` stops when either array is full, and the solver doubles it and continues, losing nothing of
 the search.
 
-The write barrier (the code that records the old value on the trail before a write) lives in one place, `tighten_at`,
-which is the only site that writes a domain: the propagation, the branching, the objective clamp, and a custom
-consistency algorithm. Entailment is the exception: it has a semantic guard (a flag is only written where it has just
-been read as clear), so it does not need the positional one.
+The write barrier (the code that records the old value on the undo trail before a write) lives in one place,
+`tighten_at`, which is the only site that writes a domain: the propagation, the branching, the objective clamp, and a
+custom consistency algorithm. Entailment is the exception: it has a semantic guard (a flag is only written where it has
+just been read as clear), so it does not need the positional one.
 
 See `design/choice-points.md` for the mechanism in detail: the exact rule that the barrier implements and why each part
 of it is necessary, what the three decision kinds are, and what the two `OPTIM_*` modes do.
@@ -311,7 +313,7 @@ of `p` starts. So the trailed prefix that the engine must save is
 the slicing has already loaded. A width that is per propagator belongs in the per-propagator table; a separate array
 for it would be a second cache line on the per-call path and one more argument through `SIGN_CONSISTENCY_ALG`.
 `register_propagator` takes an optional `get_state_fct`, which returns `(trailed_nb, hint_nb)` and defaults to
-`(0, 0)`. A propagator that asks for no block costs nothing: no branch, no cache line, no trail entry.
+`(0, 0)`. A propagator that asks for no block costs nothing: no branch, no cache line, no undo trail entry.
 
 There are two tiers, defined by their contract:
 
@@ -321,23 +323,23 @@ There are two tiers, defined by their contract:
 - **Tier B — semantic state (trailed).** The cells are a function of the current domains, maintained incrementally:
   the engine trails the block, and the propagator keeps it in step with the domains. **Six propagators use it** (since
   2026-09-12): `lexleq` trails the two positions where its scan continues (8f2b14e); `relation` trails the size of its
-  sparse set of live tuples (1bcdf98); `count_eq`, `count_eq_c`, `count_geq_c` and `count_leq_c` trail the two
+  sparse set of live tuples (1bcdf98); `count_eq`, `count_eq_c`, `count_geq_c` and `count_leq_c` undo trail the two
   counters of their live set, at an arity of `LIVE_SET_MIN_ARITY` or more (6543f92). The engine gives this tier two
   things. First, `bc_algorithm` trails the `trailed_nb`-wide prefix of a propagator, unconditionally, through the same
-  `trail_set` that a domain write uses, right before it calls `compute_domains_*`. Second, `choice_point_init` clears
+  `utrail_set` that a domain write uses, right before it calls `compute_domains_*`. Second, `choice_point_init` clears
   every trailed prefix, so a search that restarts from the root does not carry a block forward. That second thing is
-  not housekeeping but soundness: `OPTIM_RESET` *drops* the trail instead of unwinding it, so nothing restores a block
-  the way a backtrack would, and a propagator is entitled to read its block as a description of the node at which it
-  is called. Left uncleared, a block gives wrong answers, not slow searches: `knapsack` returned 40 instead of 54 when
-  this was tried with a Tier-B `linear_leq_c`. Zero is the root value by construction (it is what `np.zeros` gives the
-  block, and what a propagator with state reads as "cold"), so clearing *is* the restore; a Tier-B block that needed a
-  non-zero root value would still need seeding. The untrailed hint suffixes are deliberately left alone: a hint is
+  not housekeeping but soundness: `OPTIM_RESET` *drops* the undo trail instead of unwinding it, so nothing restores a
+  block the way a backtrack would, and a propagator is entitled to read its block as a description of the node at which
+  it is called. Left uncleared, a block gives wrong answers, not slow searches: `knapsack` returned 40 instead of 54
+  when this was tried with a Tier-B `linear_leq_c`. Zero is the root value by construction (it is what `np.zeros` gives
+  the block, and what a propagator with state reads as "cold"), so clearing *is* the restore; a Tier-B block that needed
+  a non-zero root value would still need seeding. The untrailed hint suffixes are deliberately left alone: a hint is
   valid from any node by contract, and clearing them would throw away exactly the warm sort permutations that an
   optimization restart most wants to keep. `TestPropagatorStateIsBacktracked` pins this on a Tier-B propagator that is
   local to the test, so the test does not depend on a shipped propagator.
 
 Because the barrier runs before the call, a propagator that returns `PROP_INCONSISTENCY` halfway through may already
-have written its state block, and that is safe: the block was trailed on entry, and `trail_undo` restores it like any
+have written its state block, and that is safe: the block was trailed on entry, and `utrail_undo` restores it like any
 other cell.
 
 #### Reporting what changed
@@ -356,7 +358,7 @@ copies `state` into `prop_domains`, so "the propagator wrote nothing" means "`pr
 "`update_domains` finds no event and schedules nobody".
 
 - **The cell is untrailed, and could not be anything else.** It describes the call that has just happened, not the
-  node, so there is nothing about it to restore. It never meets the trail, `choice_point_init` or the entry barrier.
+  node, so there is nothing about it to restore. It never sees the undo trail, `choice_point_init` or the entry barrier.
 - **Setting the cell to `1` first is what makes the default safe.** A propagator that forgets to answer gets the
   scan that it would have got anyway. Only the other direction is a bug, and a silent one: a propagator that reports
   `0` after it narrowed something drops that pruning, and the engine cannot tell, because the check would be the scan
@@ -528,7 +530,7 @@ references to each array. With the runtime on, an `inline="always"` helper incre
 takes on entry and decrements it on exit: Numba inlines at the level of its own IR, so the argument handling of the
 callee comes with it. On the propagation loop, those calls survived into the arm64 machine code as real calls
 (`ldr x22, [_NRT_incref@GOTPAGEOFF]`, `blr x22`), which forced live values onto the stack around them. The IR of the
-loop held 48 `NRT_incref` and 79 `NRT_decref` call sites: three of each for every bound that `trail_set` writes, one
+loop held 48 `NRT_incref` and 79 `NRT_decref` call sites: three of each for every bound that `utrail_set` writes, one
 typed-list incref and one `numba_list_size_address` C call per propagator call, and more around the slices given to
 the propagator and around the queue operations. Removing all of them is worth **1.23–1.36×** on golomb, magic_square,
 all_interval and magic_sequence, and **1.07×** on queens, with every statistic identical. See *The engine's per-call

@@ -28,7 +28,7 @@ from nucs.constants import (
     EVENT_NB,
 )
 from nucs.solvers.buckets import STORAGE_OFFSET, buckets_add
-from nucs.solvers.state import tighten_at, trail_push, trail_set
+from nucs.solvers.state import tighten_at, utrail_push, utrail_set
 from nucs.statistics import (
     STATS_ALG_IDX_FILTER_NO_CHANGE_NB,
     STATS_IDX_PROPAGATOR_FILTER_NO_CHANGE_NB,
@@ -65,50 +65,50 @@ def gather_domains(
 
 
 @njit(cache=True, inline="always")
-def trail_state_prefix(
+def utrail_state_prefix(
     state: NDArray,
-    trail_log: NDArray,
-    trail_indices: NDArray,
+    utrail_log: NDArray,
+    utrail_indices: NDArray,
     mark: int,
-    trail_size: int,
+    utrail_size: int,
     prop_state_start: int,
     prop_state_hint: int,
 ) -> int:
     """
     Trails the trailed prefix of a propagator's state block before the propagator runs: its entry barrier.
 
-    The prefix is trailed unconditionally (trail_set no-ops if this choice point already holds a live entry for a
-    cell), so the propagator itself can write its block directly with no trail bookkeeping of its own. The cost is
+    The prefix is trailed unconditionally (utrail_set no-ops if this choice point already holds a live entry for a
+    cell), so the propagator itself can write its block directly with no undo trail bookkeeping of its own. The cost is
     one L1 load per trailed cell per call -- zero for a propagator with no trailed state, which today is all of
     them. The prefix bound comes out of the same offsets row as the block itself, so an empty prefix costs no load
     the slicing was not making anyway.
 
     :param state: all the backtrackable state
     :type state: NDArray
-    :param trail_log: the undo log of (cell index, old value) pairs
-    :type trail_log: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
-    :param mark: the trail size when the current choice point branched
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
+    :param mark: the undo trail size when the current choice point branched
     :type mark: int
-    :param trail_size: the number of entries currently on the trail
-    :type trail_size: int
+    :param utrail_size: the number of entries currently on the undo trail
+    :type utrail_size: int
     :param prop_state_start: where the block starts in state
     :type prop_state_start: int
     :param prop_state_hint: where its untrailed hint suffix starts, the end of the prefix
     :type prop_state_hint: int
 
-    :return: the new trail size
+    :return: the new undo trail size
     :rtype: int
     """
     for cell in range(prop_state_start, prop_state_hint):
-        trail_size = trail_set(state, trail_log, trail_indices, mark, trail_size, cell, state[cell], state[cell])
-    return trail_size
+        utrail_size = utrail_set(state, utrail_log, utrail_indices, mark, utrail_size, cell, state[cell], state[cell])
+    return utrail_size
 
 
 @njit(cache=True, inline="always")
 def record_entailment(
-    entailed: NDArray, trail_log: NDArray, trail_indices: NDArray, trail_size: int, entailed_idx: int, prop_idx: int
+    entailed: NDArray, utrail_log: NDArray, utrail_indices: NDArray, utrail_size: int, entailed_idx: int, prop_idx: int
 ) -> int:
     """
     Sets a propagator's entailment flag, trailing it on the first time only.
@@ -118,24 +118,24 @@ def record_entailment(
 
     :param entailed: whether each propagator is entailed, a view of state
     :type entailed: NDArray
-    :param trail_log: the undo log of (cell index, old value) pairs
-    :type trail_log: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
-    :param trail_size: the number of entries currently on the trail
-    :type trail_size: int
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
+    :param utrail_size: the number of entries currently on the undo trail
+    :type utrail_size: int
     :param entailed_idx: where the entailment flags start in state
     :type entailed_idx: int
     :param prop_idx: the propagator
     :type prop_idx: int
 
-    :return: the new trail size
+    :return: the new undo trail size
     :rtype: int
     """
     if not entailed[prop_idx]:
-        trail_size = trail_push(trail_log, trail_indices, trail_size, entailed_idx + prop_idx, 0)
+        utrail_size = utrail_push(utrail_log, utrail_indices, utrail_size, entailed_idx + prop_idx, 0)
         entailed[prop_idx] = 1
-    return trail_size
+    return utrail_size
 
 
 @njit(cache=True, inline="always")
@@ -162,10 +162,10 @@ def update_domains(
     prop_domains: NDArray,
     propagator_variables: NDArray,
     state: NDArray,
-    trail_log: NDArray,
-    trail_indices: NDArray,
+    utrail_log: NDArray,
+    utrail_indices: NDArray,
     mark: int,
-    trail_size: int,
+    utrail_size: int,
     triggered_propagators: NDArray,
     entailed: NDArray,
     triggers: NDArray,
@@ -189,14 +189,14 @@ def update_domains(
     :param state: all the backtrackable state: the domain bounds, the unbound-variable count and,
                   from there on, whatever else is trailed
     :type state: NDArray
-    :param trail_log: the undo log of (cell index, old value) pairs
-    :type trail_log: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
-    :param mark: the trail size when the current choice point branched
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
+    :param mark: the undo trail size when the current choice point branched
     :type mark: int
-    :param trail_size: the number of entries currently on the trail
-    :type trail_size: int
+    :param utrail_size: the number of entries currently on the undo trail
+    :type utrail_size: int
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param entailed: whether each propagator is entailed, a view of state
@@ -208,7 +208,7 @@ def update_domains(
     :param priorities: the propagation queue bucket priorities indexed by propagators
     :type priorities: NDArray
 
-    :return: true iff no domain was changed, and the new trail size
+    :return: true iff no domain was changed, and the new undo trail size
     :rtype: Tuple[bool, int]
     """
     no_changes = True
@@ -218,12 +218,12 @@ def update_domains(
         # int32, but only this way can the compiler see that tighten_at is about to reload them
         cell_idx = variable << 1
         if state[cell_idx] != state[cell_idx | 1]:
-            events, trail_size = tighten_at(
+            events, utrail_size = tighten_at(
                 state,
-                trail_log,
-                trail_indices,
+                utrail_log,
+                utrail_indices,
                 mark,
-                trail_size,
+                utrail_size,
                 variable,
                 prop_domains[var_idx, DOMAIN_MIN],
                 prop_domains[var_idx, DOMAIN_MAX],
@@ -240,7 +240,7 @@ def update_domains(
                     skip_prop_idx,
                 )
                 no_changes = False
-    return no_changes, trail_size
+    return no_changes, utrail_size
 
 
 # always inlined: the propagation loop calls this for every variable a filtering narrows, and it is compiled

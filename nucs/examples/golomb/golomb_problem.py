@@ -21,7 +21,7 @@ from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_NB
 from nucs.problems.problem import PROBLEM_INCONSISTENT, Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_LEQ_C, ALG_SUM_EQ
 from nucs.solvers.backtrack.bc_algorithm import bc_algorithm
-from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
+from nucs.solvers.choice_points import CHOICE_POINT_UTRAIL_MARK
 from nucs.solvers.propagation_steps import update_propagators
 from nucs.solvers.state import tighten_at
 
@@ -134,9 +134,9 @@ def golomb_consistency_algorithm(
     state: NDArray,
     domains: NDArray,
     entailed: NDArray,
-    trail_log: NDArray,
-    trail_top: NDArray,
-    trail_indices: NDArray,
+    utrail_log: NDArray,
+    utrail_top: NDArray,
+    utrail_indices: NDArray,
     choice_point_stk: NDArray,
     choice_point_top: NDArray,
     triggered_propagators: NDArray,
@@ -176,12 +176,12 @@ def golomb_consistency_algorithm(
     :type domains: NDArray
     :param entailed: whether each propagator is entailed, a view of state
     :type entailed: NDArray
-    :param trail_log: the undo log of (cell index, old value) pairs
-    :type trail_log: NDArray
-    :param trail_top: the trail size as a Numpy array
-    :type trail_top: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_top: the undo trail size as a Numpy array
+    :type utrail_top: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
     :param choice_point_top: the index of the top of the choice points as a Numpy array
@@ -197,9 +197,9 @@ def golomb_consistency_algorithm(
     :return: the status as an int
     :rtype: int
     """
-    mark = choice_point_stk[choice_point_top[0], CHOICE_POINT_TRAIL_MARK]
-    # as in the propagation loop, the trail size stays in a register across the whole pruning
-    trail_size = trail_top[0]
+    mark = choice_point_stk[choice_point_top[0], CHOICE_POINT_UTRAIL_MARK]
+    # as in the propagation loop, the undo trail size stays in a register across the whole pruning
+    utrail_size = utrail_top[0]
     # first prune the search space
     domain_nb = (len(triggers_offsets) - 1) >> EVENT_NB
     mark_nb = (1 + int(math.sqrt(8 * domain_nb + 1))) >> 1
@@ -239,16 +239,16 @@ def golomb_consistency_algorithm(
                 # tighten leaves the wipeout test to its caller: an empty domain must fail here, because the
                 # propagators of bc_algorithm do not expect one (a search that is not in index order meets it)
                 if new_min > state[cell_idx | 1]:
-                    trail_top[0] = trail_size
+                    utrail_top[0] = utrail_size
                     return PROBLEM_INCONSISTENT
                 # every domain write goes through tighten, which owns the groundness test and the
                 # unbound-variable count -- and, once domains are trailed, the write barrier
-                events, trail_size = tighten_at(
+                events, utrail_size = tighten_at(
                     state,
-                    trail_log,
-                    trail_indices,
+                    utrail_log,
+                    utrail_indices,
                     mark,
-                    trail_size,
+                    utrail_size,
                     var,
                     new_min,
                     state[cell_idx | 1],
@@ -264,7 +264,7 @@ def golomb_consistency_algorithm(
                         events,
                         -1,
                     )
-    trail_top[0] = trail_size
+    utrail_top[0] = utrail_size
     return bc_algorithm(
         statistics,
         propagator_weights,
@@ -279,9 +279,9 @@ def golomb_consistency_algorithm(
         state,
         domains,
         entailed,
-        trail_log,
-        trail_top,
-        trail_indices,
+        utrail_log,
+        utrail_top,
+        utrail_indices,
         choice_point_stk,
         choice_point_top,
         triggered_propagators,

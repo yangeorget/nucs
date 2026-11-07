@@ -44,7 +44,7 @@ Each :code:`Search` (:mod:`nucs.solvers.searches`) gives:
        problem, searches=[Search(var_heuristic=VAR_HEURISTIC_SMALLEST_DOMAIN, dom_heuristic=DOM_HEURISTIC_MAX_VALUE)]
    )
 
-The stack of choice points and the trail start at sizes taken from the problem, and grow when the search needs more.
+The stack of choice points and the undo trail start at sizes taken from the problem, and grow when necessary.
 
 
 *******************

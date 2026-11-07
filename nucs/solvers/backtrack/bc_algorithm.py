@@ -33,13 +33,13 @@ from nucs.problems.problem import (
 )
 from nucs.propagators.propagators import call_compute_domains
 from nucs.solvers.buckets import STORAGE_OFFSET, buckets_pop
-from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
+from nucs.solvers.choice_points import CHOICE_POINT_UTRAIL_MARK
 from nucs.solvers.propagation_steps import (
     count_no_change,
     gather_domains,
     record_entailment,
-    trail_state_prefix,
     update_domains,
+    utrail_state_prefix,
 )
 from nucs.solvers.state import unbound_index
 from nucs.solvers.weights import weights_bump
@@ -57,7 +57,7 @@ from nucs.statistics import (
 # compiled without Numba's reference-counting runtime: _nrt=False, a private Numba option, which is why
 # tests/solvers/backtrack/test_bc_algorithm.py pins it. With the runtime on, every array an inline="always" helper takes
 # is increfed on entry and decrefed on exit, and those calls survive into the machine code -- three of each
-# per bound trail_set writes, more around every slice and every queue operation, on the hottest loop in the
+# per bound utrail_set writes, more around every slice and every queue operation, on the hottest loop in the
 # solver (see ARCHITECTURE.md). The price is two rules. Nothing in this function, or inlined into it, may allocate
 # an array or touch a typed list: either fails to compile with "NRT required but not enabled", so neither can
 # slip in unnoticed. And every jitted function it calls must be inline="always": one compiled on its own is
@@ -78,9 +78,9 @@ def bc_algorithm(
     state: NDArray,
     domains: NDArray,
     entailed: NDArray,
-    trail_log: NDArray,
-    trail_top: NDArray,
-    trail_indices: NDArray,
+    utrail_log: NDArray,
+    utrail_top: NDArray,
+    utrail_indices: NDArray,
     choice_point_stk: NDArray,
     choice_point_top: NDArray,
     triggered_propagators: NDArray,
@@ -121,12 +121,12 @@ def bc_algorithm(
     :type domains: NDArray
     :param entailed: whether each propagator is entailed, a view of state
     :type entailed: NDArray
-    :param trail_log: the undo log of (cell index, old value) pairs
-    :type trail_log: NDArray
-    :param trail_top: the trail size as a Numpy array
-    :type trail_top: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_top: the undo trail size as a Numpy array
+    :type utrail_top: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
     :param choice_point_top: the index of the top of the choice points as a Numpy array
@@ -145,19 +145,19 @@ def bc_algorithm(
     choice_point = choice_point_top[0]
     # the choice point's mark is loaded once: choice_point_top does not move during a filtering, and neither does the
     # mark of the choice point it is filtering
-    mark = choice_point_stk[choice_point, CHOICE_POINT_TRAIL_MARK]
+    mark = choice_point_stk[choice_point, CHOICE_POINT_UTRAIL_MARK]
     unbound_idx = unbound_index(state)
-    # the trail size lives in a local for the whole filtering and is published on the way out. Nothing
+    # the undo trail size lives in a local for the whole filtering and is published on the way out. Nothing
     # outside this function reads it before then, and keeping it out of memory takes a load and a store
     # off every bound the propagation narrows.
-    trail_size = trail_top[0]
+    utrail_size = utrail_top[0]
     entailed_idx = len(domains) << 1  # the entailment flags follow the domain bounds in state
     statistics[STATS_IDX_ALG_BC_NB] += 1
     membership_offset = STORAGE_OFFSET + len(priorities)
     while True:
         prop_idx = buckets_pop(triggered_propagators, membership_offset)
         if prop_idx == -1:
-            trail_top[0] = trail_size
+            utrail_top[0] = utrail_size
             return PROBLEM_BOUND if state[unbound_idx] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         algorithm = algorithms[prop_idx]
@@ -176,8 +176,8 @@ def bc_algorithm(
         # where the untrailed hint suffix starts: the end of the trailed prefix, and the cell a reporting
         # propagator answers in
         prop_state_hint = offsets[prop_idx, OFFSETS_STATE_HINT]
-        trail_size = trail_state_prefix(
-            state, trail_log, trail_indices, mark, trail_size, prop_state_start, prop_state_hint
+        utrail_size = utrail_state_prefix(
+            state, utrail_log, utrail_indices, mark, utrail_size, prop_state_start, prop_state_hint
         )
         if reports_changes:
             # pre-set to "changed", so that the fast path below is taken only on a propagator that has
@@ -193,27 +193,27 @@ def bc_algorithm(
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             weights_bump(propagator_weights, prop_idx)
-            trail_top[0] = trail_size
+            utrail_top[0] = utrail_size
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
-            trail_size = record_entailment(entailed, trail_log, trail_indices, trail_size, entailed_idx, prop_idx)
+            utrail_size = record_entailment(entailed, utrail_log, utrail_indices, utrail_size, entailed_idx, prop_idx)
         if reports_changes and status == PROP_CONSISTENCY and state[prop_state_hint] == 0:
             # the propagator wrote no domain, so update_domains would scan every variable only to find
             # no event and schedule nobody: skip it outright
             count_no_change(statistics, algorithm_stats)
             continue
-        no_change, trail_size = update_domains(
+        no_change, utrail_size = update_domains(
             prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
             prop_var_start,
             prop_var_end,
             prop_domains,
             propagator_variables,
             state,
-            trail_log,
-            trail_indices,
+            utrail_log,
+            utrail_indices,
             mark,
-            trail_size,
+            utrail_size,
             triggered_propagators,
             entailed,
             triggers,

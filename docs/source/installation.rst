@@ -44,7 +44,7 @@ Produces the following output:
    [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - BacktrackSolver uses last-conflict: no
    [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - BacktrackSolver uses a weight decay of 1.0
    [ 2026-09-30 21:51:36,800 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - The stack of choice points starts at 8192 rows and grows when it runs out
-   [ 2026-09-30 21:51:36,800 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - The trail starts at 65536 entries and grows when it runs out
+   [ 2026-09-30 21:51:36,800 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - The undo trail starts at 65536 entries and grows when it runs out
    [ 2026-09-30 21:51:36,800 | MainProcess | INFO ] nucs.solvers.backtrack.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm BC
    [ 2026-09-30 21:51:36,809 | MainProcess | INFO ] nucs.solvers.solver.find_all - Returning all solutions
    [ 2026-09-30 21:51:36,809 | MainProcess | INFO ] nucs.solvers.solver.solve_all - Iterating over the solutions
@@ -86,7 +86,7 @@ Produces the following output:
    [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - BacktrackSolver uses last-conflict: no
    [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - BacktrackSolver uses a weight decay of 1.0
    [ 2026-09-30 21:51:38,029 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - The stack of choice points starts at 8192 rows and grows when it runs out
-   [ 2026-09-30 21:51:38,029 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - The trail starts at 65536 entries and grows when it runs out
+   [ 2026-09-30 21:51:38,029 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - The undo trail starts at 65536 entries and grows when it runs out
    [ 2026-09-30 21:51:38,029 | MainProcess | INFO ] nucs.solvers.backtrack.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm GOLOMB
    [ 2026-09-30 21:51:38,039 | MainProcess | INFO ] nucs.solvers.solver.find_best - Returning the optimal solution
    [ 2026-09-30 21:51:38,039 | MainProcess | INFO ] nucs.solvers.tree_search_solver.optimize - Optimizing and iterating over the solutions: minimizing variable 8 in RESET mode, with no timeout

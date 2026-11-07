@@ -47,7 +47,7 @@ from nucs.solvers.interrupter import INTERRUPTION_EXTERNAL, Interrupter
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
 from nucs.solvers.searches import SEARCHES_DEFAULT, Search, flatten_searches
 from nucs.solvers.solver import OPTIM_RESET, Solver, format_timeout
-from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB
+from nucs.solvers.state import TIGHTENING_UTRAIL_ENTRY_NB
 from nucs.solvers.weights import weights_init
 from nucs.statistics import (
     STATS_IDX_SOLVER_ELAPSED_TIME,
@@ -59,13 +59,13 @@ from nucs.statistics import (
 logger = logging.getLogger(__name__)
 
 # Why a search loop returned.
-# The trail and the choice point stack are caller-allocated, so they cannot grow inside @njit. Rather than
+# The undo trail and the choice point stack are caller-allocated, so they cannot grow inside @njit. Rather than
 # sizing them for a worst case that never happens -- depth x (2 x domain_nb + 1) entries, which would
 # give back the memory this representation wins -- the search stops and says which one is full, and the
-# solver grows it and resumes. Nothing of the search is lost: the state, the trail marks and the
+# solver grows it and resumes. Nothing of the search is lost: the state, the undo trail marks and the
 # positions all stay valid across the reallocation.
 SOLVER_RUNNING = 0  # nothing filled up: the search returned a solution or exhausted itself
-SOLVER_TRAIL_FULL = 1  # the search stopped because the trail needs more room, not because it is over
+SOLVER_UTRAIL_FULL = 1  # the search stopped because the undo trail needs more room, not because it is over
 SOLVER_CHOICE_POINTS_FULL = 2  # likewise for the stack of choice points
 SOLVER_INTERRUPTED = 3  # the search stopped because interrupt() asked it to, from outside the compiled loop
 SOLVER_RESTART = 4  # the descent reached its failure limit: the solver restarts from the root and resumes
@@ -79,11 +79,11 @@ SEARCH_CONTROL_CONFLICT_VARIABLE = 3  # the variable of the last decision that l
 SEARCH_CONTROL_DECISION_VARIABLE = 4  # the variable of the last decision, -1 once a refutation follows it
 SEARCH_CONTROL_WIDTH = 5
 
-# Trail entries a step of the search needs beyond one per cell of the backtrackable state.
-# The barrier in trail_set trails each cell at most once per choice point, so a fixpoint cannot need more
+# Undo trail entries a step of the search needs beyond one per cell of the backtrackable state.
+# The barrier in utrail_set trails each cell at most once per choice point, so a fixpoint cannot need more
 # than len(state) entries however long it runs. The tightenings the search applies around it are not
-# covered by that budget: each writes at a mark the trail holds nothing for yet, so every one of their
-# writes is trailed. A tightening writes at most TIGHTENING_TRAIL_ENTRY_NB entries (see nucs.solvers.state);
+# covered by that budget: each writes at a mark the undo trail holds nothing for yet, so every one of their
+# writes is trailed. A tightening writes at most TIGHTENING_UTRAIL_ENTRY_NB entries (see nucs.solvers.state);
 # a step applies at most two of them -- branch's decision is one, while backtracking a choice point applies
 # its parked alternative and then the branch-and-bound objective bound.
 STEP_TIGHTENING_NB = 2  # an alternative then the objective bound, the longer of the two ways out of a step
@@ -93,8 +93,8 @@ class TreeSearchSolver(Solver):
     """
     The base class of the solvers that explore a search tree: BacktrackSolver and LcgSolver.
 
-    It holds what the two solvers share: the state, the trail, the stack of choice points, the searches, the restarts,
-    the optimization modes, the failure weights and the time accounting. A subclass gives only the compiled search
+    It holds what the two solvers share: the state, the undo trail, the stack of choice points, the searches, the
+    restarts, the optimization modes, the failure weights and the time accounting. A subclass gives only the compiled search
     loop, through _run_search_loop: this is where the two solvers differ.
     """
 
@@ -146,17 +146,17 @@ class TreeSearchSolver(Solver):
             self.state,
             self.domains,
             self.entailed,
-            self.trail_headroom,
-            self.trail_log,
-            self.trail_top,
-            self.trail_indices,
+            self.utrail_headroom,
+            self.utrail_log,
+            self.utrail_top,
+            self.utrail_indices,
             self.choice_point_stk,
             self.choice_point_top,
         ) = allocate_search_arrays(problem)
         logger.info(
             f"The stack of choice points starts at {len(self.choice_point_stk)} rows and grows when it runs out"
         )
-        logger.info(f"The trail starts at {len(self.trail_log)} entries and grows when it runs out")
+        logger.info(f"The undo trail starts at {len(self.utrail_log)} entries and grows when it runs out")
         # the branch-and-bound bound, as BB_VARIABLE, BB_BOUND and BB_VALUE: the variable optimized, the side of
         # its domain to tighten, and the best value found so far. It is solver state, not choice-point state --
         # the bound holds for the whole remaining search, so backtrack re-applies it to each choice point it
@@ -292,9 +292,9 @@ class TreeSearchSolver(Solver):
             status, solution = self._run_search_loop()
             if status == SOLVER_RUNNING:
                 return solution
-            if status == SOLVER_TRAIL_FULL:
-                self.trail_log = double_rows(self.trail_log)
-                logger.info(f"The trail grew to {len(self.trail_log)} entries")
+            if status == SOLVER_UTRAIL_FULL:
+                self.utrail_log = double_rows(self.utrail_log)
+                logger.info(f"The undo trail grew to {len(self.utrail_log)} entries")
             elif status == SOLVER_CHOICE_POINTS_FULL:
                 self.choice_point_stk = double_rows(self.choice_point_stk)
                 logger.info(f"The stack of choice points grew to a maximal height of {len(self.choice_point_stk)}")
@@ -330,8 +330,8 @@ class TreeSearchSolver(Solver):
         choice_point_init(
             self.state,
             self.entailed,
-            self.trail_top,
-            self.trail_indices,
+            self.utrail_top,
+            self.utrail_indices,
             self.choice_point_stk,
             self.choice_point_top,
             self.problem.initial_domains,
@@ -359,9 +359,9 @@ class TreeSearchSolver(Solver):
         if (
             tighten_objective(
                 self.state,
-                self.trail_log,
-                self.trail_top,
-                self.trail_indices,
+                self.utrail_log,
+                self.utrail_top,
+                self.utrail_indices,
                 0,
                 variable,
                 self.bb[BB_VALUE],
@@ -457,15 +457,15 @@ def allocate_search_arrays(
     problem: Problem,
 ) -> tuple[NDArray, NDArray, NDArray, int, NDArray, NDArray, NDArray, NDArray, NDArray]:
     """
-    Lays out the backtrackable state of a problem and allocates the trail and the stack of choice points.
+    Lays out the backtrackable state of a problem and allocates the undo trail and the stack of choice points.
 
     :param problem: the problem, already initialized
     :type problem: Problem
 
     :return: the arrays of the search, in this order: all the backtrackable state; the domains, a (domain_nb, 2) view
-             of its head; the entailment flags, a view of its middle; the trail entries that any one step of the
-             search can need; the undo log of (cell index, old value) pairs; the trail size, as a one-cell array;
-             the index of the last trail entry of each cell, -1 for none; the stack of choice points; the height of
+             of its head; the entailment flags, a view of its middle; the undo trail entries that any one step of the
+             search can need; the undo log of (cell index, old value) pairs; the undo trail size, as a one-cell array;
+             the index of the last undo trail entry of each cell, -1 for none; the stack of choice points; the height of
              the stack, as a one-cell array
     :rtype: Tuple[NDArray, NDArray, NDArray, int, NDArray, NDArray, NDArray, NDArray, NDArray]
     """
@@ -491,36 +491,36 @@ def allocate_search_arrays(
     # the guard lets a choice point trail each *trailable* cell at most once -- every domain bound, every
     # entailment flag, the count, and the trailed prefix of each propagator's state block -- so a fixpoint
     # cannot need more than that many entries, whatever it does; the tightenings the search applies around
-    # it write at their own mark and are counted on top. The solver grows the trail when this much room is
+    # it write at their own mark and are counted on top. The solver grows the undo trail when this much room is
     # no longer there. Counted rather than taken as len(state), which would include the untrailed hint
     # suffixes: bc_algorithm only ever trails block p's prefix below offsets[p, OFFSETS_STATE_HINT], so a
-    # hint cell can never reach the trail, and a wide alldifferent would otherwise inflate trail_log -- 16x
-    # trail_headroom rows of 2 int32 -- by 128 bytes per scratch cell it can never use.
+    # hint cell can never reach the undo trail, and a wide alldifferent would otherwise inflate utrail_log -- 16x
+    # utrail_headroom rows of 2 int32 -- by 128 bytes per scratch cell it can never use.
     trailable_nb = propagator_state_offset + problem.state_trailed_width + 1
-    trail_headroom = trailable_nb + STEP_TIGHTENING_NB * TIGHTENING_TRAIL_ENTRY_NB
+    utrail_headroom = trailable_nb + STEP_TIGHTENING_NB * TIGHTENING_UTRAIL_ENTRY_NB
     # Both starting sizes are a flat floor for the models the flat floor already covers, and a
     # model-derived one for the wide models it does not reach. The flat halves are measured: across the
-    # 27 benchmark models the trail never exceeds 4096 entries and the stack never exceeds 64 rows, so
+    # 27 benchmark models the undo trail never exceeds 4096 entries and the stack never exceeds 64 rows, so
     # 65536 and 8192 leave every one of them growing exactly zero times -- raising them further would buy
     # nothing and give back the memory trailing was introduced to win.
-    # The model-derived halves are where growth actually happens. A live trail runs between 2 and 12
+    # The model-derived halves are where growth actually happens. A live undo trail runs between 2 and 12
     # times headroom on those same models, so 16 covers the observed band with margin; a stack deep
     # enough to matter is bounded by the decisions on the path, which scales with domain_nb. Both bind
     # only past a few thousand variables -- exactly where a doubling copies the most, and where the
     # allocation is small next to the triggers and propagator arrays a model that wide already carries.
-    trail_log = np.empty((max(1 << 16, 16 * trail_headroom), 2), dtype=np.int32)
-    trail_top = np.zeros((1,), dtype=np.int32)
-    trail_indices = np.full(len(state), -1, dtype=np.int32)
+    utrail_log = np.empty((max(1 << 16, 16 * utrail_headroom), 2), dtype=np.int32)
+    utrail_top = np.zeros((1,), dtype=np.int32)
+    utrail_indices = np.full(len(state), -1, dtype=np.int32)
     choice_point_stk = np.zeros((stack_height(domain_nb), CHOICE_POINT_WIDTH), dtype=np.int32)
     choice_point_top = np.ones((1,), dtype=np.uint32)
     return (
         state,
         domains,
         entailed,
-        trail_headroom,
-        trail_log,
-        trail_top,
-        trail_indices,
+        utrail_headroom,
+        utrail_log,
+        utrail_top,
+        utrail_indices,
         choice_point_stk,
         choice_point_top,
     )
@@ -541,7 +541,7 @@ def stack_height(domain_nb: int) -> int:
 
 def double_rows(array: NDArray) -> NDArray:
     """
-    Returns a copy of an array with twice its rows, for the trail or the stack of choice points when it is full.
+    Returns a copy of an array with twice its rows, for the undo trail or the stack of choice points when it is full.
 
     The rows that follow the copy are not initialized: the search writes each row of these arrays before it reads
     it, and the rows it has written are all in the copy.

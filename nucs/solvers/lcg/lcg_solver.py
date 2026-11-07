@@ -25,7 +25,7 @@ from nucs.numba_helper import DomainHeuristicFunctions, VariableHeuristicFunctio
 from nucs.problems.problem import PROBLEM_BOUND, PROBLEM_UNBOUND, Problem
 from nucs.solvers.choice_points import (
     CHOICE_POINT_BOUND,
-    CHOICE_POINT_TRAIL_MARK,
+    CHOICE_POINT_UTRAIL_MARK,
     CHOICE_POINT_VALUE,
     CHOICE_POINT_VARIABLE,
     bounds_after_tightening,
@@ -34,20 +34,20 @@ from nucs.solvers.choice_points import (
 )
 from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, INTERRUPTION_EXTERNAL
 from nucs.solvers.lcg.implication_trail import (
-    LIT_TRAIL_VALID,
+    ITRAIL_VALID,
     REASON_DECISION,
     REASON_ROOT,
-    allocate_implication_trail,
-    lit_pop,
-    lit_push_events,
-    lit_trail_check,
-    lit_trail_root,
+    allocate_itrail,
+    itrail_check,
+    itrail_pop,
+    itrail_push_events,
+    itrail_root,
 )
-from nucs.solvers.lcg.lcg_algorithm import PROBLEM_LIT_TRAIL_FULL, lcg_algorithm
+from nucs.solvers.lcg.lcg_algorithm import PROBLEM_ITRAIL_FULL, lcg_algorithm
 from nucs.solvers.propagation_steps import update_propagators
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
 from nucs.solvers.searches import SEARCHES_DEFAULT, Search
-from nucs.solvers.state import tighten_at, trail_undo
+from nucs.solvers.state import tighten_at, utrail_undo
 from nucs.solvers.tree_search_solver import (
     SEARCH_CONTROL_CONFLICT_VARIABLE,
     SEARCH_CONTROL_DECISION_VARIABLE,
@@ -58,7 +58,7 @@ from nucs.solvers.tree_search_solver import (
     SOLVER_INTERRUPTED,
     SOLVER_RESTART,
     SOLVER_RUNNING,
-    SOLVER_TRAIL_FULL,
+    SOLVER_UTRAIL_FULL,
     TreeSearchSolver,
     double_rows,
     get_solution,
@@ -75,8 +75,8 @@ logger = logging.getLogger(__name__)
 
 # Why the search loop of LcgSolver returned, in addition to the SOLVER_* statuses of tree_search_solver.py. LcgSolver
 # handles these two itself, in _run_search_loop: TreeSearchSolver never sees them.
-SOLVER_LIT_TRAIL_FULL = 5  # the implication trail needs more room
-SOLVER_LIT_TRAIL_INVALID = 6  # in debug mode, the implication trail does not agree with the state
+SOLVER_ITRAIL_FULL = 5  # the implication trail needs more room
+SOLVER_ITRAIL_INVALID = 6  # in debug mode, the implication trail does not agree with the state
 
 
 class LcgSolver(TreeSearchSolver):
@@ -88,7 +88,7 @@ class LcgSolver(TreeSearchSolver):
 
     At this step (design/proposals/lcg.md, 7.0, step 5), it records each bound change on the path, with its decision
     level and its reason, on the implication trail (nucs.solvers.lcg.implication_trail). The search does not use the
-    trail yet: it is the search of BacktrackSolver, and every counter is the same.
+    implication trail yet: it is the search of BacktrackSolver, and every counter is the same.
     """
 
     def __init__(
@@ -126,20 +126,20 @@ class LcgSolver(TreeSearchSolver):
         :type debug: bool
         """
         # allocated before TreeSearchSolver.__init__, because it calls _record_root
-        self.lit_trail, self.lit_top, self.lit_last, self.level_start = allocate_implication_trail(
+        self.itrail, self.itrail_top, self.itrail_last, self.level_start = allocate_itrail(
             problem.domain_nb, stack_height(problem.domain_nb)
         )
         self.debug = debug
         super().__init__(problem, searches, log_level, weight_decay, restart_policy, last_conflict)
-        logger.info(f"The implication trail starts at {len(self.lit_trail)} rows and grows when it runs out")
+        logger.info(f"The implication trail starts at {len(self.itrail)} rows and grows when it runs out")
         logger.info(f"LcgSolver checks the implication trail at each node: {'yes' if debug else 'no'}")
 
     def _record_root(self) -> None:
         """
         Builds the implication trail again for the root that the solver has just set.
         """
-        lit_trail_root(
-            self.state, self.problem.initial_domains, self.lit_trail, self.lit_top, self.lit_last, self.level_start
+        itrail_root(
+            self.state, self.problem.initial_domains, self.itrail, self.itrail_top, self.itrail_last, self.level_start
         )
 
     def _backtrack(self) -> bool:
@@ -152,9 +152,9 @@ class LcgSolver(TreeSearchSolver):
         return backtrack(
             self.statistics,
             self.state,
-            self.trail_log,
-            self.trail_top,
-            self.trail_indices,
+            self.utrail_log,
+            self.utrail_top,
+            self.utrail_indices,
             self.choice_point_stk,
             self.choice_point_top,
             self.entailed,
@@ -163,9 +163,9 @@ class LcgSolver(TreeSearchSolver):
             self.problem.triggers_offsets,
             self.problem.priorities,
             self.bb,
-            self.lit_trail,
-            self.lit_top,
-            self.lit_last,
+            self.itrail,
+            self.itrail_top,
+            self.itrail_last,
             self.level_start,
         )
 
@@ -194,9 +194,9 @@ class LcgSolver(TreeSearchSolver):
                 self.state,
                 self.domains,
                 self.entailed,
-                self.trail_log,
-                self.trail_top,
-                self.trail_indices,
+                self.utrail_log,
+                self.utrail_top,
+                self.utrail_indices,
                 self.choice_point_stk,
                 self.choice_point_top,
                 self.triggered_propagators,
@@ -214,33 +214,33 @@ class LcgSolver(TreeSearchSolver):
                 self.domain_buffer,
                 self.problem.algorithm_flags,
                 self.bb,
-                self.trail_headroom,
+                self.utrail_headroom,
                 self.interrupter.cells,
                 self.propagator_weights,
                 self.search_control,
                 self.flat_searches.variable_searches,
-                self.lit_trail,
-                self.lit_top,
-                self.lit_last,
+                self.itrail,
+                self.itrail_top,
+                self.itrail_last,
                 self.level_start,
                 self.problem.initial_domains,
                 self.debug,
             )
-            if status == SOLVER_LIT_TRAIL_FULL:
-                self.lit_trail = double_rows(self.lit_trail)
-                logger.info(f"The implication trail grew to {len(self.lit_trail)} rows")
-            elif status == SOLVER_LIT_TRAIL_INVALID:
-                row = lit_trail_check(
+            if status == SOLVER_ITRAIL_FULL:
+                self.itrail = double_rows(self.itrail)
+                logger.info(f"The implication trail grew to {len(self.itrail)} rows")
+            elif status == SOLVER_ITRAIL_INVALID:
+                row = itrail_check(
                     self.state,
                     self.problem.initial_domains,
-                    self.lit_trail,
-                    self.lit_top,
-                    self.lit_last,
+                    self.itrail,
+                    self.itrail_top,
+                    self.itrail_last,
                     self.level_start,
                     self.choice_point_top[0],
                 )
                 raise AssertionError(
-                    f"The implication trail does not agree with the state at row {row} of {self.lit_top[0]}"
+                    f"The implication trail does not agree with the state at row {row} of {self.itrail_top[0]}"
                 )
             else:
                 return status, solution
@@ -259,9 +259,9 @@ def run_search_loop(
     state: NDArray,
     domains: NDArray,
     entailed: NDArray,
-    trail: NDArray,
-    trail_top: NDArray,
-    trail_indices: NDArray,
+    utrail_log: NDArray,
+    utrail_top: NDArray,
+    utrail_indices: NDArray,
     choice_point_stk: NDArray,
     choice_point_top: NDArray,
     triggered_propagators: NDArray,
@@ -279,14 +279,14 @@ def run_search_loop(
     domain_buffer: NDArray,
     algorithm_flags: NDArray,
     bb: NDArray,
-    trail_headroom: int,
+    utrail_headroom: int,
     interruption: NDArray,
     propagator_weights: NDArray,
     search_control: NDArray,
     variable_searches: NDArray,
-    lit_trail: NDArray,
-    lit_top: NDArray,
-    lit_last: NDArray,
+    itrail: NDArray,
+    itrail_top: NDArray,
+    itrail_last: NDArray,
     level_start: NDArray,
     initial_domains: NDArray,
     debug: bool,
@@ -306,7 +306,7 @@ def run_search_loop(
 
     It stops early when an array it cannot grow runs out of room.
 
-    It returns before the end of the search because the trail and the choice point stack belong to the
+    It returns before the end of the search because the undo trail and the choice point stack belong to the
     caller: when either fills up, the returned status names it and no solution comes back, for _next_solution
     to grow that array and call again. Nothing of the search is lost in between.
 
@@ -342,12 +342,12 @@ def run_search_loop(
     :type domains: NDArray
     :param entailed: whether each propagator is entailed, a view of state
     :type entailed: NDArray
-    :param trail: the undo log of (cell index, old value) pairs
-    :type trail: NDArray
-    :param trail_top: the trail size as a Numpy array
-    :type trail_top: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_top: the undo trail size as a Numpy array
+    :type utrail_top: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
     :param choice_point_top: the index of the top of the choice points as a Numpy array
@@ -385,8 +385,8 @@ def run_search_loop(
     :param bb: the branch-and-bound bound as a Numpy array of variable, bound and value,
                whose variable is -1 when not optimizing
     :type bb: NDArray
-    :param trail_headroom: the trail entries any one node of the search can need
-    :type trail_headroom: int
+    :param utrail_headroom: the undo trail entries any one node of the search can need
+    :type utrail_headroom: int
     :param interruption: the two flags of an Interrupter, one of them set once the search is asked to stop
     :type interruption: NDArray
     :param propagator_weights: the failure weight of each propagator, followed by the increment and its growth
@@ -396,12 +396,12 @@ def run_search_loop(
     :type search_control: NDArray
     :param variable_searches: the search that owns each variable, -1 for a variable no search branches on
     :type variable_searches: NDArray
-    :param lit_trail: the implication trail
-    :type lit_trail: NDArray
-    :param lit_top: the number of rows in use, as a one-cell array
-    :type lit_top: NDArray
-    :param lit_last: the last row of each bound, -1 when the bound has its root value
-    :type lit_last: NDArray
+    :param itrail: the implication trail
+    :type itrail: NDArray
+    :param itrail_top: the number of rows in use, as a one-cell array
+    :type itrail_top: NDArray
+    :param itrail_last: the last row of each bound, -1 when the bound has its root value
+    :type itrail_last: NDArray
     :param level_start: the first row of each decision level
     :type level_start: NDArray
     :param initial_domains: the domains of the problem before any propagation, for the debug check
@@ -423,16 +423,16 @@ def run_search_loop(
             return SOLVER_RESTART, None
         # the arrays are caller-allocated, so the search stops for the solver to grow one rather than
         # overrun it silently -- with boundscheck off, the overrun is what would otherwise happen
-        if trail_top[0] + trail_headroom > len(trail):
-            return SOLVER_TRAIL_FULL, None
+        if utrail_top[0] + utrail_headroom > len(utrail_log):
+            return SOLVER_UTRAIL_FULL, None
         if choice_point_top[0] > max_choice_point:
             return SOLVER_CHOICE_POINTS_FULL, None
         # no test of the room of the implication trail here: lcg_algorithm makes sure, before each propagator call,
         # that the rows of the call and those of the next decision or backtrack fit
-        if debug and not is_lit_trail_valid(
-            state, initial_domains, lit_trail, lit_top, lit_last, level_start, choice_point_top
+        if debug and not is_itrail_valid(
+            state, initial_domains, itrail, itrail_top, itrail_last, level_start, choice_point_top
         ):
-            return SOLVER_LIT_TRAIL_INVALID, None
+            return SOLVER_ITRAIL_INVALID, None
         problem_status = lcg_algorithm(
             statistics,
             propagator_weights,
@@ -447,24 +447,24 @@ def run_search_loop(
             state,
             domains,
             entailed,
-            trail,
-            trail_top,
-            trail_indices,
+            utrail_log,
+            utrail_top,
+            utrail_indices,
             choice_point_stk,
             choice_point_top,
             triggered_propagators,
             compute_domains_addrs,
             domain_buffer,
-            lit_trail,
-            lit_top,
-            lit_last,
+            itrail,
+            itrail_top,
+            itrail_last,
         )
-        if problem_status == PROBLEM_LIT_TRAIL_FULL:
-            return SOLVER_LIT_TRAIL_FULL, None
-        if debug and not is_lit_trail_valid(
-            state, initial_domains, lit_trail, lit_top, lit_last, level_start, choice_point_top
+        if problem_status == PROBLEM_ITRAIL_FULL:
+            return SOLVER_ITRAIL_FULL, None
+        if debug and not is_itrail_valid(
+            state, initial_domains, itrail, itrail_top, itrail_last, level_start, choice_point_top
         ):
-            return SOLVER_LIT_TRAIL_INVALID, None
+            return SOLVER_ITRAIL_INVALID, None
         if problem_status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLUTION_NB] += 1
             return SOLVER_RUNNING, get_solution(domains)
@@ -519,9 +519,9 @@ def run_search_loop(
             if not backtrack(
                 statistics,
                 state,
-                trail,
-                trail_top,
-                trail_indices,
+                utrail_log,
+                utrail_top,
+                utrail_indices,
                 choice_point_stk,
                 choice_point_top,
                 entailed,
@@ -530,9 +530,9 @@ def run_search_loop(
                 triggers_offsets,
                 priorities,
                 bb,
-                lit_trail,
-                lit_top,
-                lit_last,
+                itrail,
+                itrail_top,
+                itrail_last,
                 level_start,
             ):
                 return SOLVER_RUNNING, None
@@ -548,9 +548,9 @@ def run_search_loop(
         level = choice_point_top[0]
         events = branch(
             state,
-            trail,
-            trail_top,
-            trail_indices,
+            utrail_log,
+            utrail_top,
+            utrail_indices,
             choice_point_stk,
             choice_point_top,
             variable,
@@ -559,11 +559,11 @@ def run_search_loop(
         )
         choice_point = choice_point_top[0]
         # the decision opens one level, or two for a ternary split; its rows are on the deepest one
-        lit_size = lit_top[0]
+        itrail_size = itrail_top[0]
         for new_level in range(level + 1, choice_point + 1):
-            level_start[new_level] = lit_size
-        lit_top[0] = lit_push_events(
-            lit_trail, lit_last, lit_size, state, variable, events, choice_point, REASON_DECISION, -1, -1
+            level_start[new_level] = itrail_size
+        itrail_top[0] = itrail_push_events(
+            itrail, itrail_last, itrail_size, state, variable, events, choice_point, REASON_DECISION, -1, -1
         )
         update_propagators(
             triggered_propagators, entailed, triggers, triggers_offsets, priorities, variable, events, -1
@@ -575,12 +575,12 @@ def run_search_loop(
 
 
 @njit(cache=True, inline="always")
-def is_lit_trail_valid(
+def is_itrail_valid(
     state: NDArray,
     initial_domains: NDArray,
-    lit_trail: NDArray,
-    lit_top: NDArray,
-    lit_last: NDArray,
+    itrail: NDArray,
+    itrail_top: NDArray,
+    itrail_last: NDArray,
     level_start: NDArray,
     choice_point_top: NDArray,
 ) -> bool:
@@ -591,12 +591,12 @@ def is_lit_trail_valid(
     :type state: NDArray
     :param initial_domains: the domains of the problem before any propagation
     :type initial_domains: NDArray
-    :param lit_trail: the implication trail
-    :type lit_trail: NDArray
-    :param lit_top: the number of rows in use, as a one-cell array
-    :type lit_top: NDArray
-    :param lit_last: the last row of each bound, -1 when the bound has its root value
-    :type lit_last: NDArray
+    :param itrail: the implication trail
+    :type itrail: NDArray
+    :param itrail_top: the number of rows in use, as a one-cell array
+    :type itrail_top: NDArray
+    :param itrail_last: the last row of each bound, -1 when the bound has its root value
+    :type itrail_last: NDArray
     :param level_start: the first row of each decision level
     :type level_start: NDArray
     :param choice_point_top: the index of the top of the choice points as a Numpy array, the current level
@@ -606,8 +606,8 @@ def is_lit_trail_valid(
     :rtype: bool
     """
     return (
-        lit_trail_check(state, initial_domains, lit_trail, lit_top, lit_last, level_start, choice_point_top[0])
-        == LIT_TRAIL_VALID
+        itrail_check(state, initial_domains, itrail, itrail_top, itrail_last, level_start, choice_point_top[0])
+        == ITRAIL_VALID
     )
 
 
@@ -615,9 +615,9 @@ def is_lit_trail_valid(
 def backtrack(
     statistics: NDArray,
     state: NDArray,
-    trail_log: NDArray,
-    trail_top: NDArray,
-    trail_indices: NDArray,
+    utrail_log: NDArray,
+    utrail_top: NDArray,
+    utrail_indices: NDArray,
     choice_point_stk: NDArray,
     choice_point_top: NDArray,
     entailed: NDArray,
@@ -626,9 +626,9 @@ def backtrack(
     triggers_offsets: NDArray,
     priorities: NDArray,
     bb: NDArray,
-    lit_trail: NDArray,
-    lit_top: NDArray,
-    lit_last: NDArray,
+    itrail: NDArray,
+    itrail_top: NDArray,
+    itrail_last: NDArray,
     level_start: NDArray,
 ) -> bool:
     """
@@ -644,12 +644,12 @@ def backtrack(
     :type statistics: NDArray
     :param state: all the backtrackable state
     :type state: NDArray
-    :param trail_log: the undo log of (cell index, old value) pairs
-    :type trail_log: NDArray
-    :param trail_top: the trail size as a Numpy array
-    :type trail_top: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_top: the undo trail size as a Numpy array
+    :type utrail_top: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
     :param choice_point_top: the index of the top of the choice points as a Numpy array
@@ -667,12 +667,12 @@ def backtrack(
     :param bb: the branch-and-bound bound as a Numpy array of variable, bound and value,
                whose variable is -1 when not optimizing
     :type bb: NDArray
-    :param lit_trail: the implication trail
-    :type lit_trail: NDArray
-    :param lit_top: the number of rows in use, as a one-cell array
-    :type lit_top: NDArray
-    :param lit_last: the last row of each bound, -1 when the bound has its root value
-    :type lit_last: NDArray
+    :param itrail: the implication trail
+    :type itrail: NDArray
+    :param itrail_top: the number of rows in use, as a one-cell array
+    :type itrail_top: NDArray
+    :param itrail_last: the last row of each bound, -1 when the bound has its root value
+    :type itrail_last: NDArray
     :param level_start: the first row of each decision level
     :type level_start: NDArray
 
@@ -684,10 +684,10 @@ def backtrack(
         choice_point_top[0] -= 1
         choice_point = choice_point_top[0]
         statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
-        mark = choice_point_stk[choice_point, CHOICE_POINT_TRAIL_MARK]
-        trail_undo(state, trail_log, trail_indices, trail_top, mark)
+        mark = choice_point_stk[choice_point, CHOICE_POINT_UTRAIL_MARK]
+        utrail_undo(state, utrail_log, utrail_indices, utrail_top, mark)
         # the level of this choice point stays: the rows of the levels above it go
-        lit_pop(lit_trail, lit_top, lit_last, level_start[choice_point + 1])
+        itrail_pop(itrail, itrail_top, itrail_last, level_start[choice_point + 1])
         variable = choice_point_stk[choice_point, CHOICE_POINT_VARIABLE]
         cell_idx = variable << 1
         new_min, new_max = bounds_after_tightening(
@@ -696,10 +696,12 @@ def backtrack(
             choice_point_stk[choice_point, CHOICE_POINT_BOUND],
             choice_point_stk[choice_point, CHOICE_POINT_VALUE],
         )
-        events, trail_size = tighten_at(state, trail_log, trail_indices, mark, trail_top[0], variable, new_min, new_max)
-        trail_top[0] = trail_size
-        lit_top[0] = lit_push_events(
-            lit_trail, lit_last, lit_top[0], state, variable, events, choice_point, REASON_DECISION, -1, -1
+        events, utrail_size = tighten_at(
+            state, utrail_log, utrail_indices, mark, utrail_top[0], variable, new_min, new_max
+        )
+        utrail_top[0] = utrail_size
+        itrail_top[0] = itrail_push_events(
+            itrail, itrail_last, itrail_top[0], state, variable, events, choice_point, REASON_DECISION, -1, -1
         )
         if events != EVENT_MASK_NONE:
             update_propagators(
@@ -716,9 +718,9 @@ def backtrack(
             return True
         events = tighten_objective(
             state,
-            trail_log,
-            trail_top,
-            trail_indices,
+            utrail_log,
+            utrail_top,
+            utrail_indices,
             mark,
             optimized_variable,
             bb[BB_VALUE],
@@ -727,8 +729,8 @@ def backtrack(
         if events < 0:  # the choice point cannot hold an improving solution, keep popping
             continue
         if events != EVENT_MASK_NONE:
-            lit_top[0] = lit_push_events(
-                lit_trail, lit_last, lit_top[0], state, optimized_variable, events, choice_point, REASON_ROOT, -1, -1
+            itrail_top[0] = itrail_push_events(
+                itrail, itrail_last, itrail_top[0], state, optimized_variable, events, choice_point, REASON_ROOT, -1, -1
             )
             update_propagators(
                 triggered_propagators,

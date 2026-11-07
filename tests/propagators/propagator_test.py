@@ -174,13 +174,13 @@ class PropagatorTest:
                 if step(node_domains) != PROP_CONSISTENCY:
                     return
             return
-        trailed_mark = warm_state[:trailed_nb].copy()  # the choice point: the trail holds this and the bounds
+        trailed_mark = warm_state[:trailed_nb].copy()  # the choice point: the undo trail holds this and the bounds
         domains_mark = node_domains.copy()
         for _ in range(6):  # descend, permuting the live array as it goes
             narrow(node_domains)
             if step(node_domains) != PROP_CONSISTENCY:
                 break
-        warm_state[:trailed_nb] = trailed_mark  # backtrack: exactly what the trail undoes, and no more
+        warm_state[:trailed_nb] = trailed_mark  # backtrack: exactly what the undo trail undoes, and no more
         node_domains = domains_mark.copy()
         for _ in range(6):  # and away down a different branch
             narrow(node_domains)

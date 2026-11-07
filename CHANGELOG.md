@@ -87,7 +87,7 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver`, and `nucs.solvers.consistency_algorithms`
   with `nucs.solvers.backtrack.consistency_algorithms`. `BacktrackSolver` is now a subclass of `TreeSearchSolver`
   (`nucs.solvers.tree_search_solver`), which holds the part of the search that does not depend on the propagation.
-  The steps of one propagator call that `bc_algorithm` inlines (`gather_domains`, `trail_state_prefix`,
+  The steps of one propagator call that `bc_algorithm` inlines (`gather_domains`, `utrail_state_prefix`,
   `record_entailment`, `count_no_change` and `update_domains`) move to `nucs.solvers.propagation_steps`. The log
   lines of the solver now come from the loggers `nucs.solvers.tree_search_solver` and
   `nucs.solvers.backtrack.backtrack_solver`.
@@ -130,6 +130,18 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   the cells of the search control that the compiled search loops share.
 - **The `problem` of `Solver.__init__` is required.** It was `Problem | None`, but no solver passed `None`, and a
   solver without a problem had no `problem` attribute.
+- **The trail is now the undo trail, and its names start with `utrail`.** `LcgSolver` adds a second trail, the
+  implication trail, whose names start with `itrail`, so the name "trail" alone is no longer clear. Replace:
+  - `trail_log`, `trail_indices`, `trail_top` and `trail_headroom` with `utrail_log`, `utrail_indices`, `utrail_top`
+    and `utrail_headroom`, also as attributes of the solver;
+  - `trail_push`, `trail_set` and `trail_undo` (`nucs.solvers.state`) with `utrail_push`, `utrail_set` and
+    `utrail_undo`, and `trail_state_prefix` (`nucs.solvers.propagation_steps`) with `utrail_state_prefix`;
+  - `CHOICE_POINT_TRAIL_MARK` with `CHOICE_POINT_UTRAIL_MARK`, `TIGHTENING_TRAIL_ENTRY_NB` with
+    `TIGHTENING_UTRAIL_ENTRY_NB`, and `SOLVER_TRAIL_FULL` with `SOLVER_UTRAIL_FULL`.
+
+  The parameter `trail` of `run_search_loop` is now `utrail_log`. A custom consistency algorithm keeps its signature:
+  only the names of its parameters change. The values of the constants do not change. The log line of the solver now
+  says "The undo trail starts at ...".
 
 ### Fixed
 

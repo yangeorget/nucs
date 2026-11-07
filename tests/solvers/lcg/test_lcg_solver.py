@@ -97,17 +97,17 @@ class TestLcgSolver:
         assert solution.tolist() == [0, 1]
         # the decision [x0 <= 0] opens level 1; alldifferent, the propagator 0, then sets [x1 >= 1] in a call that
         # starts at row 1
-        assert solver.lit_top.tolist() == [2]
-        assert solver.lit_trail[:2].tolist() == [
+        assert solver.itrail_top.tolist() == [2]
+        assert solver.itrail[:2].tolist() == [
             [0 << 1 | DOMAIN_MAX, 0, -1, 1, REASON_DECISION, -1, -1],
             [1 << 1 | DOMAIN_MIN, 1, -1, 1, REASON_PROPAGATOR, 0, 1],
         ]
         assert solver.level_start[1] == 0
         assert solver._backtrack()
         # back at level 0: the rows of level 1 are gone, and the parked alternative [x0 >= 1] is the new row
-        assert solver.lit_top.tolist() == [1]
-        assert solver.lit_trail[0].tolist() == [0 << 1 | DOMAIN_MIN, 1, -1, 0, REASON_DECISION, -1, -1]
-        assert solver.lit_last.tolist() == [0, -1, -1, -1]
+        assert solver.itrail_top.tolist() == [1]
+        assert solver.itrail[0].tolist() == [0 << 1 | DOMAIN_MIN, 1, -1, 0, REASON_DECISION, -1, -1]
+        assert solver.itrail_last.tolist() == [0, -1, -1, -1]
 
     @pytest.mark.parametrize("row_nb", [1, 13, 14])  # below and at 14, the room of a call on 6 queens: 2 x 6 + 2
     def test_find_all_the_implication_trail_grows_rather_than_overruns(self, row_nb: int) -> None:
@@ -115,9 +115,9 @@ class TestLcgSolver:
         backtrack_solver = BacktrackSolver(QueensProblem(6))
         backtrack_solutions = [solution.tolist() for solution in backtrack_solver.find_all()]
         solver = LcgSolver(QueensProblem(6), debug=True)
-        solver.lit_trail = solver.lit_trail[:row_nb].copy()
+        solver.itrail = solver.itrail[:row_nb].copy()
         assert [solution.tolist() for solution in solver.find_all()] == backtrack_solutions
-        assert len(solver.lit_trail) > row_nb  # it did have to grow
+        assert len(solver.itrail) > row_nb  # it did have to grow
         backtrack_solver.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] = 0
         solver.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] = 0
         assert solver.statistics.tolist() == backtrack_solver.statistics.tolist()
@@ -130,9 +130,9 @@ class TestLcgSolver:
         assert [solution.tolist() for solution in solver.find_all()] == backtrack_solutions
         assert len(solver.level_start) == len(solver.choice_point_stk) > 4
 
-    def test_debug_mode_finds_a_trail_that_does_not_agree_with_the_state(self) -> None:
+    def test_debug_mode_finds_an_implication_trail_that_does_not_agree_with_the_state(self) -> None:
         solver = LcgSolver(QueensProblem(4), debug=True)
-        solver.lit_last[0] = 0  # the trail is empty, so no chain can end at a row
+        solver.itrail_last[0] = 0  # the implication trail is empty, so no chain can end at a row
         with pytest.raises(AssertionError, match="at row 0 of 0"):
             solver._run_search_loop()
 

@@ -50,7 +50,7 @@ from nucs.solvers.tree_search_solver import (
     SOLVER_INTERRUPTED,
     SOLVER_RESTART,
     SOLVER_RUNNING,
-    SOLVER_TRAIL_FULL,
+    SOLVER_UTRAIL_FULL,
     TreeSearchSolver,
     get_solution,
 )
@@ -120,9 +120,9 @@ class BacktrackSolver(TreeSearchSolver):
         return backtrack(
             self.statistics,
             self.state,
-            self.trail_log,
-            self.trail_top,
-            self.trail_indices,
+            self.utrail_log,
+            self.utrail_top,
+            self.utrail_indices,
             self.choice_point_stk,
             self.choice_point_top,
             self.entailed,
@@ -152,9 +152,9 @@ class BacktrackSolver(TreeSearchSolver):
             self.state,
             self.domains,
             self.entailed,
-            self.trail_log,
-            self.trail_top,
-            self.trail_indices,
+            self.utrail_log,
+            self.utrail_top,
+            self.utrail_indices,
             self.choice_point_stk,
             self.choice_point_top,
             self.triggered_propagators,
@@ -173,7 +173,7 @@ class BacktrackSolver(TreeSearchSolver):
             self.domain_buffer,
             self.problem.algorithm_flags,
             self.bb,
-            self.trail_headroom,
+            self.utrail_headroom,
             self.interrupter.cells,
             self.propagator_weights,
             self.search_control,
@@ -194,9 +194,9 @@ def run_search_loop(
     state: NDArray,
     domains: NDArray,
     entailed: NDArray,
-    trail: NDArray,
-    trail_top: NDArray,
-    trail_indices: NDArray,
+    utrail_log: NDArray,
+    utrail_top: NDArray,
+    utrail_indices: NDArray,
     choice_point_stk: NDArray,
     choice_point_top: NDArray,
     triggered_propagators: NDArray,
@@ -215,7 +215,7 @@ def run_search_loop(
     domain_buffer: NDArray,
     algorithm_flags: NDArray,
     bb: NDArray,
-    trail_headroom: int,
+    utrail_headroom: int,
     interruption: NDArray,
     propagator_weights: NDArray,
     search_control: NDArray,
@@ -224,7 +224,7 @@ def run_search_loop(
     """
     Searches for one solution, stopping early when an array it cannot grow runs out of room.
 
-    It returns before the end of the search because the trail and the choice point stack belong to the
+    It returns before the end of the search because the undo trail and the choice point stack belong to the
     caller: when either fills up, the returned status names it and no solution comes back, for _next_solution
     to grow that array and call again. Nothing of the search is lost in between.
 
@@ -260,12 +260,12 @@ def run_search_loop(
     :type domains: NDArray
     :param entailed: whether each propagator is entailed, a view of state
     :type entailed: NDArray
-    :param trail: the undo log of (cell index, old value) pairs
-    :type trail: NDArray
-    :param trail_top: the trail size as a Numpy array
-    :type trail_top: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_top: the undo trail size as a Numpy array
+    :type utrail_top: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
     :param choice_point_top: the index of the top of the choice points as a Numpy array
@@ -305,8 +305,8 @@ def run_search_loop(
     :param bb: the branch-and-bound bound as a Numpy array of variable, bound and value,
                whose variable is -1 when not optimizing
     :type bb: NDArray
-    :param trail_headroom: the trail entries any one node of the search can need
-    :type trail_headroom: int
+    :param utrail_headroom: the undo trail entries any one node of the search can need
+    :type utrail_headroom: int
     :param interruption: the two flags of an Interrupter, one of them set once the search is asked to stop
     :type interruption: NDArray
     :param propagator_weights: the failure weight of each propagator, followed by the increment and its growth
@@ -332,8 +332,8 @@ def run_search_loop(
             return SOLVER_RESTART, None
         # the arrays are caller-allocated, so the search stops for the solver to grow one rather than
         # overrun it silently -- with boundscheck off, the overrun is what would otherwise happen
-        if trail_top[0] + trail_headroom > len(trail):
-            return SOLVER_TRAIL_FULL, None
+        if utrail_top[0] + utrail_headroom > len(utrail_log):
+            return SOLVER_UTRAIL_FULL, None
         if choice_point_top[0] > max_choice_point:
             return SOLVER_CHOICE_POINTS_FULL, None
         problem_status = consistency_alg_fct(
@@ -350,9 +350,9 @@ def run_search_loop(
             state,
             domains,
             entailed,
-            trail,
-            trail_top,
-            trail_indices,
+            utrail_log,
+            utrail_top,
+            utrail_indices,
             choice_point_stk,
             choice_point_top,
             triggered_propagators,
@@ -413,9 +413,9 @@ def run_search_loop(
             if not backtrack(
                 statistics,
                 state,
-                trail,
-                trail_top,
-                trail_indices,
+                utrail_log,
+                utrail_top,
+                utrail_indices,
                 choice_point_stk,
                 choice_point_top,
                 entailed,
@@ -437,9 +437,9 @@ def run_search_loop(
         )
         events = branch(
             state,
-            trail,
-            trail_top,
-            trail_indices,
+            utrail_log,
+            utrail_top,
+            utrail_indices,
             choice_point_stk,
             choice_point_top,
             variable,

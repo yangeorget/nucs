@@ -37,14 +37,14 @@ from nucs.problems.problem import (
 )
 from nucs.propagators.propagators import call_compute_domains
 from nucs.solvers.buckets import STORAGE_OFFSET, buckets_pop
-from nucs.solvers.choice_points import CHOICE_POINT_TRAIL_MARK
-from nucs.solvers.lcg.implication_trail import LIT_STEP_ROW_NB, REASON_PROPAGATOR, lit_push_events
+from nucs.solvers.choice_points import CHOICE_POINT_UTRAIL_MARK
+from nucs.solvers.lcg.implication_trail import ITRAIL_STEP_ROW_NB, REASON_PROPAGATOR, itrail_push_events
 from nucs.solvers.propagation_steps import (
     count_no_change,
     gather_domains,
     record_entailment,
-    trail_state_prefix,
     update_propagators,
+    utrail_state_prefix,
 )
 from nucs.solvers.state import tighten_at, unbound_index
 from nucs.solvers.weights import weights_bump
@@ -60,7 +60,7 @@ from nucs.statistics import (
 
 # returned by lcg_algorithm when the implication trail has no room for the next propagator call; the propagator is
 # still in the queue, and the next call of lcg_algorithm continues the propagation
-PROBLEM_LIT_TRAIL_FULL = 3
+PROBLEM_ITRAIL_FULL = 3
 
 
 # compiled without Numba's reference-counting runtime, as bc_algorithm is, for the same reasons and with the same two
@@ -81,17 +81,17 @@ def lcg_algorithm(
     state: NDArray,
     domains: NDArray,
     entailed: NDArray,
-    trail_log: NDArray,
-    trail_top: NDArray,
-    trail_indices: NDArray,
+    utrail_log: NDArray,
+    utrail_top: NDArray,
+    utrail_indices: NDArray,
     choice_point_stk: NDArray,
     choice_point_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
     domain_buffer: NDArray,
-    lit_trail: NDArray,
-    lit_top: NDArray,
-    lit_last: NDArray,
+    itrail: NDArray,
+    itrail_top: NDArray,
+    itrail_last: NDArray,
 ) -> int:
     """
     Propagates as bc_algorithm does, and records each bound change on the implication trail: the propagation loop
@@ -108,8 +108,8 @@ def lcg_algorithm(
 
     Each propagator call adds at most two rows for each of its variables. Before it pops a propagator, the loop makes
     sure that these rows fit, and that the rows of the next step of the search fit too. When they do not, it returns
-    PROBLEM_LIT_TRAIL_FULL and leaves the propagator in the queue: the solver grows the trail, and the next call
-    continues the propagation. The two calls count as one in ALG_BC_NB.
+    PROBLEM_ITRAIL_FULL and leaves the propagator in the queue: the solver grows the implication trail, and the next
+    call continues the propagation. The two calls count as one in ALG_BC_NB.
 
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
@@ -142,12 +142,12 @@ def lcg_algorithm(
     :type domains: NDArray
     :param entailed: whether each propagator is entailed, a view of state
     :type entailed: NDArray
-    :param trail_log: the undo log of (cell index, old value) pairs
-    :type trail_log: NDArray
-    :param trail_top: the trail size as a Numpy array
-    :type trail_top: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_top: the undo trail size as a Numpy array
+    :type utrail_top: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
     :param choice_point_stk: the per-choice-point metadata
     :type choice_point_stk: NDArray
     :param choice_point_top: the index of the top of the choice points as a Numpy array
@@ -159,43 +159,43 @@ def lcg_algorithm(
     :param domain_buffer: a scratch buffer for prop_domains,
                           sized to max propagator arity, allocated once at solver init
     :type domain_buffer: NDArray
-    :param lit_trail: the implication trail
-    :type lit_trail: NDArray
-    :param lit_top: the number of rows in use, as a one-cell array
-    :type lit_top: NDArray
-    :param lit_last: the last row of each bound, -1 when the bound has its root value
-    :type lit_last: NDArray
+    :param itrail: the implication trail
+    :type itrail: NDArray
+    :param itrail_top: the number of rows in use, as a one-cell array
+    :type itrail_top: NDArray
+    :param itrail_last: the last row of each bound, -1 when the bound has its root value
+    :type itrail_last: NDArray
 
-    :return: PROBLEM_INCONSISTENT, PROBLEM_UNBOUND, PROBLEM_BOUND, or PROBLEM_LIT_TRAIL_FULL when the implication
+    :return: PROBLEM_INCONSISTENT, PROBLEM_UNBOUND, PROBLEM_BOUND, or PROBLEM_ITRAIL_FULL when the implication
              trail must grow before the propagation can continue
     :rtype: int
     """
     choice_point = choice_point_top[0]
     # the choice point's mark is loaded once: choice_point_top does not move during a filtering, and neither does the
     # mark of the choice point it is filtering
-    mark = choice_point_stk[choice_point, CHOICE_POINT_TRAIL_MARK]
+    mark = choice_point_stk[choice_point, CHOICE_POINT_UTRAIL_MARK]
     unbound_idx = unbound_index(state)
-    # the trail size lives in a local for the whole filtering and is published on the way out. Nothing
+    # the undo trail size lives in a local for the whole filtering and is published on the way out. Nothing
     # outside this function reads it before then, and keeping it out of memory takes a load and a store
     # off every bound the propagation narrows.
-    trail_size = trail_top[0]
+    utrail_size = utrail_top[0]
     entailed_idx = len(domains) << 1  # the entailment flags follow the domain bounds in state
     # the same for the implication trail
-    lit_size = lit_top[0]
+    itrail_size = itrail_top[0]
     # the rows that the next call can add, and those of the step of the search that follows the propagation
-    lit_room = 2 * len(domain_buffer) + LIT_STEP_ROW_NB
+    itrail_room = 2 * len(domain_buffer) + ITRAIL_STEP_ROW_NB
     statistics[STATS_IDX_ALG_BC_NB] += 1
     membership_offset = STORAGE_OFFSET + len(priorities)
     while True:
-        if lit_size + lit_room > len(lit_trail):
+        if itrail_size + itrail_room > len(itrail):
             statistics[STATS_IDX_ALG_BC_NB] -= 1  # the next call continues this one
-            trail_top[0] = trail_size
-            lit_top[0] = lit_size
-            return PROBLEM_LIT_TRAIL_FULL
+            utrail_top[0] = utrail_size
+            itrail_top[0] = itrail_size
+            return PROBLEM_ITRAIL_FULL
         prop_idx = buckets_pop(triggered_propagators, membership_offset)
         if prop_idx == -1:
-            trail_top[0] = trail_size
-            lit_top[0] = lit_size
+            utrail_top[0] = utrail_size
+            itrail_top[0] = itrail_size
             return PROBLEM_BOUND if state[unbound_idx] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         algorithm = algorithms[prop_idx]
@@ -214,8 +214,8 @@ def lcg_algorithm(
         # where the untrailed hint suffix starts: the end of the trailed prefix, and the cell a reporting
         # propagator answers in
         prop_state_hint = offsets[prop_idx, OFFSETS_STATE_HINT]
-        trail_size = trail_state_prefix(
-            state, trail_log, trail_indices, mark, trail_size, prop_state_start, prop_state_hint
+        utrail_size = utrail_state_prefix(
+            state, utrail_log, utrail_indices, mark, utrail_size, prop_state_start, prop_state_hint
         )
         if reports_changes:
             # pre-set to "changed", so that the fast path below is taken only on a propagator that has
@@ -231,36 +231,36 @@ def lcg_algorithm(
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             weights_bump(propagator_weights, prop_idx)
-            trail_top[0] = trail_size
-            lit_top[0] = lit_size
+            utrail_top[0] = utrail_size
+            itrail_top[0] = itrail_size
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
-            trail_size = record_entailment(entailed, trail_log, trail_indices, trail_size, entailed_idx, prop_idx)
+            utrail_size = record_entailment(entailed, utrail_log, utrail_indices, utrail_size, entailed_idx, prop_idx)
         if reports_changes and status == PROP_CONSISTENCY and state[prop_state_hint] == 0:
             # the propagator wrote no domain, so update_domains would scan every variable only to find
             # no event and schedule nobody: skip it outright
             count_no_change(statistics, algorithm_stats)
             continue
-        no_change, trail_size, lit_size = update_domains_with_reasons(
+        no_change, utrail_size, itrail_size = update_domains_with_reasons(
             prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
             prop_var_start,
             prop_var_end,
             prop_domains,
             propagator_variables,
             state,
-            trail_log,
-            trail_indices,
+            utrail_log,
+            utrail_indices,
             mark,
-            trail_size,
+            utrail_size,
             triggered_propagators,
             entailed,
             triggers,
             triggers_offsets,
             priorities,
-            lit_trail,
-            lit_last,
-            lit_size,
+            itrail,
+            itrail_last,
+            itrail_size,
             choice_point,
             prop_idx,
         )
@@ -277,18 +277,18 @@ def update_domains_with_reasons(
     prop_domains: NDArray,
     propagator_variables: NDArray,
     state: NDArray,
-    trail_log: NDArray,
-    trail_indices: NDArray,
+    utrail_log: NDArray,
+    utrail_indices: NDArray,
     mark: int,
-    trail_size: int,
+    utrail_size: int,
     triggered_propagators: NDArray,
     entailed: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
     priorities: NDArray,
-    lit_trail: NDArray,
-    lit_last: NDArray,
-    lit_size: int,
+    itrail: NDArray,
+    itrail_last: NDArray,
+    itrail_size: int,
     level: int,
     prop_idx: int,
 ) -> tuple[bool, int, int]:
@@ -312,14 +312,14 @@ def update_domains_with_reasons(
     :type propagator_variables: NDArray
     :param state: all the backtrackable state
     :type state: NDArray
-    :param trail_log: the undo log of (cell index, old value) pairs
-    :type trail_log: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
-    :param mark: the trail size when the current choice point branched
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
+    :param mark: the undo trail size when the current choice point branched
     :type mark: int
-    :param trail_size: the number of entries currently on the trail
-    :type trail_size: int
+    :param utrail_size: the number of entries currently on the undo trail
+    :type utrail_size: int
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param entailed: whether each propagator is entailed, a view of state
@@ -330,41 +330,41 @@ def update_domains_with_reasons(
     :type triggers_offsets: NDArray
     :param priorities: the propagation queue bucket priorities indexed by propagators
     :type priorities: NDArray
-    :param lit_trail: the implication trail
-    :type lit_trail: NDArray
-    :param lit_last: the last row of each bound, -1 when the bound has its root value
-    :type lit_last: NDArray
-    :param lit_size: the number of rows in use
-    :type lit_size: int
+    :param itrail: the implication trail
+    :type itrail: NDArray
+    :param itrail_last: the last row of each bound, -1 when the bound has its root value
+    :type itrail_last: NDArray
+    :param itrail_size: the number of rows in use
+    :type itrail_size: int
     :param level: the current decision level
     :type level: int
     :param prop_idx: the propagator whose domains these are
     :type prop_idx: int
 
-    :return: true iff no domain was changed, the new trail size and the new number of rows of the implication trail
+    :return: true iff no domain was changed, the new undo trail size and the new number of rows of the implication trail
     :rtype: Tuple[bool, int, int]
     """
-    reason_pos = lit_size
+    reason_pos = itrail_size
     no_changes = True
     for var_idx in range(prop_var_end - prop_var_start):
         variable = propagator_variables[prop_var_start + var_idx]
         cell_idx = variable << 1
         if state[cell_idx] != state[cell_idx | 1]:
-            events, trail_size = tighten_at(
+            events, utrail_size = tighten_at(
                 state,
-                trail_log,
-                trail_indices,
+                utrail_log,
+                utrail_indices,
                 mark,
-                trail_size,
+                utrail_size,
                 variable,
                 prop_domains[var_idx, DOMAIN_MIN],
                 prop_domains[var_idx, DOMAIN_MAX],
             )
             if events:
-                lit_size = lit_push_events(
-                    lit_trail,
-                    lit_last,
-                    lit_size,
+                itrail_size = itrail_push_events(
+                    itrail,
+                    itrail_last,
+                    itrail_size,
                     state,
                     variable,
                     events,
@@ -384,4 +384,4 @@ def update_domains_with_reasons(
                     skip_prop_idx,
                 )
                 no_changes = False
-    return no_changes, trail_size, lit_size
+    return no_changes, utrail_size, itrail_size
