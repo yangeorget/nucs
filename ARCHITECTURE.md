@@ -269,7 +269,7 @@ count, so `unbound_index()`, which is `len(state) - 1`, does not depend on it. S
 | `utrail_log` | `(T, 2)` | int32 | the undo log |
 | `utrail_top` | `(1,)` | int32 | the size of the undo trail |
 | `utrail_indices` | `(len(state),)` | int32 | the index of the last undo trail entry of each cell, `-1` when there is none |
-| `choicepoint_stk` | `(H, 5)` | int32 | per choice point: `[CHOICEPOINT_UTRAIL_MARK, CHOICEPOINT_VARIABLE, CHOICEPOINT_BOUND, CHOICEPOINT_VALUE, CHOICEPOINT_ITRAIL_MARK]` |
+| `choicepoints` | `(H, 5)` | int32 | per choice point: `[CHOICEPOINT_UTRAIL_MARK, CHOICEPOINT_VARIABLE, CHOICEPOINT_BOUND, CHOICEPOINT_VALUE, CHOICEPOINT_ITRAIL_MARK]` |
 | `choicepoint_top` | `(1,)` | uint32 | the depth of the search |
 
 A choice point is where the search makes a decision and parks the alternatives, to come back to them later. A push

@@ -204,21 +204,21 @@ def itrail_pop(itrail: NDArray, itrail_top: NDArray, itrail_last: NDArray, itrai
 
 
 @njit(cache=True, inline="always")
-def itrail_start(choicepoint_stk: NDArray, choicepoint: int) -> int:
+def itrail_start(choicepoints: NDArray, choicepoint: int) -> int:
     """
     Returns the first row of the implication trail that a choice point wrote.
 
     The rows of choice point c start when choice point c - 1 branches, and the rows of choice point 0 start at row 0.
 
-    :param choicepoint_stk: the per-choice-point metadata
-    :type choicepoint_stk: NDArray
+    :param choicepoints: the per-choice-point metadata
+    :type choicepoints: NDArray
     :param choicepoint: the choice point, at most choicepoint_top[0]
     :type choicepoint: int
 
     :return: the first row of the implication trail that the choice point wrote
     :rtype: int
     """
-    return 0 if choicepoint == 0 else choicepoint_stk[choicepoint - 1, CHOICEPOINT_ITRAIL_MARK]
+    return 0 if choicepoint == 0 else choicepoints[choicepoint - 1, CHOICEPOINT_ITRAIL_MARK]
 
 
 @njit(cache=True)
@@ -266,7 +266,7 @@ def itrail_check(
     itrail: NDArray,
     itrail_top: NDArray,
     itrail_last: NDArray,
-    choicepoint_stk: NDArray,
+    choicepoints: NDArray,
     choicepoint: int,
 ) -> int:
     """
@@ -291,8 +291,8 @@ def itrail_check(
     :type itrail_top: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
-    :param choicepoint_stk: the per-choice-point metadata, with the marks of the implication trail
-    :type choicepoint_stk: NDArray
+    :param choicepoints: the per-choice-point metadata, with the marks of the implication trail
+    :type choicepoints: NDArray
     :param choicepoint: the current choice point, choicepoint_top[0]
     :type choicepoint: int
 
@@ -318,10 +318,10 @@ def itrail_check(
                 return row
         elif value >= replay[var_side]:
             return row
-        start = itrail_start(choicepoint_stk, row_choicepoint)
+        start = itrail_start(choicepoints, row_choicepoint)
         if row_choicepoint < previous_choicepoint or row_choicepoint > choicepoint or row < start:
             return row
-        if row_choicepoint < choicepoint and row >= choicepoint_stk[row_choicepoint, CHOICEPOINT_ITRAIL_MARK]:
+        if row_choicepoint < choicepoint and row >= choicepoints[row_choicepoint, CHOICEPOINT_ITRAIL_MARK]:
             return row
         if itrail[row, ITRAIL_REASON_KIND] == REASON_PROPAGATOR and not (
             start <= itrail[row, ITRAIL_REASON_POS] <= row

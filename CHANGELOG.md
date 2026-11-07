@@ -148,7 +148,7 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   it. Code that allocates its own stack of choice points must use `CHOICEPOINT_WIDTH`.
 - **"Choice point" is one word in the names: `choicepoint`.** Replace:
   - the module `nucs.solvers.choice_points` with `nucs.solvers.choicepoints`;
-  - `choice_point_stk`, `choice_point_top` and `choice_point_init` with `choicepoint_stk`, `choicepoint_top` and
+  - `choice_point_stk`, `choice_point_top` and `choice_point_init` with `choicepoints`, `choicepoint_top` and
     `choicepoint_init`, also as attributes of the solver and as parameters of the compiled functions;
   - `CHOICE_POINT_TRAIL_MARK`, `CHOICE_POINT_VARIABLE`, `CHOICE_POINT_BOUND`, `CHOICE_POINT_VALUE` and
     `CHOICE_POINT_WIDTH` with `CHOICEPOINT_UTRAIL_MARK`, `CHOICEPOINT_VARIABLE`, `CHOICEPOINT_BOUND`,

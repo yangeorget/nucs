@@ -150,10 +150,10 @@ class TreeSearchSolver(Solver):
             self.utrail_log,
             self.utrail_top,
             self.utrail_indices,
-            self.choicepoint_stk,
+            self.choicepoints,
             self.choicepoint_top,
         ) = allocate_search_arrays(problem)
-        logger.info(f"The stack of choice points starts at {len(self.choicepoint_stk)} rows and grows when it runs out")
+        logger.info(f"The stack of choice points starts at {len(self.choicepoints)} rows and grows when it runs out")
         logger.info(f"The undo trail starts at {len(self.utrail_log)} entries and grows when it runs out")
         # the branch-and-bound bound, as BB_VARIABLE, BB_BOUND and BB_VALUE: the variable optimized, the side of
         # its domain to tighten, and the best value found so far. It is solver state, not choice-point state --
@@ -294,8 +294,8 @@ class TreeSearchSolver(Solver):
                 self.utrail_log = double_rows(self.utrail_log)
                 logger.info(f"The undo trail grew to {len(self.utrail_log)} entries")
             elif status == SOLVER_CHOICEPOINTS_FULL:
-                self.choicepoint_stk = double_rows(self.choicepoint_stk)
-                logger.info(f"The stack of choice points grew to a maximal height of {len(self.choicepoint_stk)}")
+                self.choicepoints = double_rows(self.choicepoints)
+                logger.info(f"The stack of choice points grew to a maximal height of {len(self.choicepoints)}")
             elif status == SOLVER_RESTART:
                 logger.debug("Restarting")
                 self.statistics[STATS_IDX_SOLVER_RESTART_NB] += 1
@@ -330,7 +330,7 @@ class TreeSearchSolver(Solver):
             self.entailed,
             self.utrail_top,
             self.utrail_indices,
-            self.choicepoint_stk,
+            self.choicepoints,
             self.choicepoint_top,
             self.problem.initial_domains,
             self.problem.unbound_variable_nb,
@@ -509,7 +509,7 @@ def allocate_search_arrays(
     utrail_log = np.empty((max(1 << 16, 16 * utrail_headroom), 2), dtype=np.int32)
     utrail_top = np.zeros((1,), dtype=np.int32)
     utrail_indices = np.full(len(state), -1, dtype=np.int32)
-    choicepoint_stk = np.zeros((stack_height(domain_nb), CHOICEPOINT_WIDTH), dtype=np.int32)
+    choicepoints = np.zeros((stack_height(domain_nb), CHOICEPOINT_WIDTH), dtype=np.int32)
     choicepoint_top = np.ones((1,), dtype=np.uint32)
     return (
         state,
@@ -519,7 +519,7 @@ def allocate_search_arrays(
         utrail_log,
         utrail_top,
         utrail_indices,
-        choicepoint_stk,
+        choicepoints,
         choicepoint_top,
     )
 

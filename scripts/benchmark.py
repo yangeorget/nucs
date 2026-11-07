@@ -91,7 +91,7 @@ CHOICEPOINT_ARRAYS = (
     "state",
     "utrail_log",
     "utrail_indices",
-    "choicepoint_stk",
+    "choicepoints",
     "entailed",
 )
 

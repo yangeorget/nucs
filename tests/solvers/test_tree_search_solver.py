@@ -55,9 +55,9 @@ class TestTreeSearchSolver:
     ) -> None:
         problem = Problem([(0, 1)] * domain_nb)
         problem.init()
-        _, _, _, _, utrail_log, _, _, choicepoint_stk, _ = allocate_search_arrays(problem)
+        _, _, _, _, utrail_log, _, _, choicepoints, _ = allocate_search_arrays(problem)
         assert utrail_log.shape == (utrail_size, 2)
-        assert choicepoint_stk.shape == (stack_height, CHOICEPOINT_WIDTH)
+        assert choicepoints.shape == (stack_height, CHOICEPOINT_WIDTH)
 
     @pytest.mark.parametrize("width", [2, CHOICEPOINT_WIDTH])  # a row of the undo trail, a row of the stack
     def test_double_rows_keeps_the_rows(self, width: int) -> None:

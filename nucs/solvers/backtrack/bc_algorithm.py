@@ -81,7 +81,7 @@ def bc_algorithm(
     utrail_log: NDArray,
     utrail_top: NDArray,
     utrail_indices: NDArray,
-    choicepoint_stk: NDArray,
+    choicepoints: NDArray,
     choicepoint_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
@@ -127,8 +127,8 @@ def bc_algorithm(
     :type utrail_top: NDArray
     :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
     :type utrail_indices: NDArray
-    :param choicepoint_stk: the per-choice-point metadata
-    :type choicepoint_stk: NDArray
+    :param choicepoints: the per-choice-point metadata
+    :type choicepoints: NDArray
     :param choicepoint_top: the index of the top of the choice points as a Numpy array
     :type choicepoint_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
@@ -145,7 +145,7 @@ def bc_algorithm(
     choicepoint = choicepoint_top[0]
     # the choice point's mark is loaded once: choicepoint_top does not move during a filtering, and neither does the
     # mark of the choice point it is filtering
-    mark = choicepoint_stk[choicepoint, CHOICEPOINT_UTRAIL_MARK]
+    mark = choicepoints[choicepoint, CHOICEPOINT_UTRAIL_MARK]
     unbound_idx = unbound_index(state)
     # the undo trail size lives in a local for the whole filtering and is published on the way out. Nothing
     # outside this function reads it before then, and keeping it out of memory takes a load and a store

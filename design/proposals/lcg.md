@@ -348,7 +348,7 @@ The implication trail records each literal that becomes true on the current path
 | `itrail` | `(L, ITRAIL_WIDTH)` | int32 | one row for each bound change: `[VAR_SIDE, VALUE, PREV, CHOICEPOINT, REASON_KIND, REASON_DATA, REASON_POS]` |
 | `itrail_top` | `(1,)` | int32 | the number of rows in use |
 | `itrail_last` | `(2 * domain_nb,)` | int32 | for each `var_side`, the row of its last change, `-1` when the bound has its root value |
-| `choicepoint_stk[:, CHOICEPOINT_ITRAIL_MARK]` | `(H,)` | int32 | for each choice point, the number of rows when it branched |
+| `choicepoints[:, CHOICEPOINT_ITRAIL_MARK]` | `(H,)` | int32 | for each choice point, the number of rows when it branched |
 
 Column meanings:
 
@@ -369,7 +369,7 @@ rows, because `tighten_at` writes `new_min` and `new_max` together. `update_doma
 propagator call, so a call that moves a bound several times internally adds only one row for it.
 
 **Backjumping to level `L`.** The solver pops the rows from `itrail_top - 1` down to
-`choicepoint_stk[L, CHOICEPOINT_ITRAIL_MARK]`, as it undoes the undo trail down to `CHOICEPOINT_UTRAIL_MARK` of the
+`choicepoints[L, CHOICEPOINT_ITRAIL_MARK]`, as it undoes the undo trail down to `CHOICEPOINT_UTRAIL_MARK` of the
 same row. For each popped row, it sets `itrail_last[VAR_SIDE] = PREV`. The cost is one step for each popped row, the same as for the
 undo trail.
 
@@ -599,10 +599,10 @@ The analysis also bumps the activity of every variable that it marks (Part 6).
 
 After the analysis, with assertion level `L`:
 
-1. `utrail_undo` to `choicepoint_stk[L, CHOICEPOINT_UTRAIL_MARK]`: the undo trail size just before the decision of
+1. `utrail_undo` to `choicepoints[L, CHOICEPOINT_UTRAIL_MARK]`: the undo trail size just before the decision of
    level `L + 1`. This restores `state` to the end of level `L`, as a backtrack does. The mark of the choice point
    that opened level `L` (index `L - 1`) is one level too low: it would also undo the decision of level `L`.
-2. Pop the rows of `itrail` down to `choicepoint_stk[L, CHOICEPOINT_ITRAIL_MARK]`, and fix `itrail_last` (3.3).
+2. Pop the rows of `itrail` down to `choicepoints[L, CHOICEPOINT_ITRAIL_MARK]`, and fix `itrail_last` (3.3).
 3. Set `choicepoint_top` to `L`.
 4. Add the learned clause to the store, with watches on the asserting literal and on the literal of level `L`. A
    clause with one literal goes into `unit_lits` instead (4.7).

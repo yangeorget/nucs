@@ -221,12 +221,12 @@ class TestBacktrackSolver:
         assert solver.domains[0].tolist() == [0, 0]
         assert solver.domains[1].tolist() == [0, 0]
         # each choice point parked the alternative to its own decision: raise that variable's min to 1
-        assert solver.choicepoint_stk[0, CHOICEPOINT_VARIABLE] == 0
-        assert solver.choicepoint_stk[0, CHOICEPOINT_BOUND] == DOMAIN_MIN
-        assert solver.choicepoint_stk[0, CHOICEPOINT_VALUE] == 1
-        assert solver.choicepoint_stk[1, CHOICEPOINT_VARIABLE] == 1
-        assert solver.choicepoint_stk[1, CHOICEPOINT_BOUND] == DOMAIN_MIN
-        assert solver.choicepoint_stk[1, CHOICEPOINT_VALUE] == 1
+        assert solver.choicepoints[0, CHOICEPOINT_VARIABLE] == 0
+        assert solver.choicepoints[0, CHOICEPOINT_BOUND] == DOMAIN_MIN
+        assert solver.choicepoints[0, CHOICEPOINT_VALUE] == 1
+        assert solver.choicepoints[1, CHOICEPOINT_VARIABLE] == 1
+        assert solver.choicepoints[1, CHOICEPOINT_BOUND] == DOMAIN_MIN
+        assert solver.choicepoints[1, CHOICEPOINT_VALUE] == 1
         assert solver._backtrack()
         # back at choice point 1, with variable 1's alternative applied: variable 0 stays at its decision
         assert solver.choicepoint_top == 1
@@ -301,7 +301,7 @@ class TestBacktrackSolver:
             solver.utrail_log,
             solver.utrail_top,
             solver.utrail_indices,
-            solver.choicepoint_stk,
+            solver.choicepoints,
             solver.choicepoint_top,
             0,
             DECISION_EQ,
@@ -322,9 +322,9 @@ class TestBacktrackSolver:
         reference = BacktrackSolver(problem).find_all()
         solver = BacktrackSolver(Problem([(0, 5)] * 6))
         assert solver.choicepoint_top[0] < 4  # a shorter stack keeps the rows the solver already wrote
-        solver.choicepoint_stk = solver.choicepoint_stk[:4].copy()
+        solver.choicepoints = solver.choicepoints[:4].copy()
         assert len(solver.find_all()) == len(reference)
-        assert len(solver.choicepoint_stk) > 4
+        assert len(solver.choicepoints) > 4
 
     def test_find_all(self) -> None:
         problem = Problem([(0, 1), (0, 1)])

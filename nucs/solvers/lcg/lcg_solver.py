@@ -151,7 +151,7 @@ class LcgSolver(TreeSearchSolver):
             self.utrail_log,
             self.utrail_top,
             self.utrail_indices,
-            self.choicepoint_stk,
+            self.choicepoints,
             self.choicepoint_top,
             self.entailed,
             self.triggered_propagators,
@@ -189,7 +189,7 @@ class LcgSolver(TreeSearchSolver):
                 self.utrail_log,
                 self.utrail_top,
                 self.utrail_indices,
-                self.choicepoint_stk,
+                self.choicepoints,
                 self.choicepoint_top,
                 self.triggered_propagators,
                 self.flat_searches.decision_variables,
@@ -227,7 +227,7 @@ class LcgSolver(TreeSearchSolver):
                     self.itrail,
                     self.itrail_top,
                     self.itrail_last,
-                    self.choicepoint_stk,
+                    self.choicepoints,
                     self.choicepoint_top[0],
                 )
                 raise AssertionError(
@@ -253,7 +253,7 @@ def run_search_loop(
     utrail_log: NDArray,
     utrail_top: NDArray,
     utrail_indices: NDArray,
-    choicepoint_stk: NDArray,
+    choicepoints: NDArray,
     choicepoint_top: NDArray,
     triggered_propagators: NDArray,
     decision_variables: NDArray,
@@ -339,8 +339,8 @@ def run_search_loop(
     :type utrail_top: NDArray
     :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
     :type utrail_indices: NDArray
-    :param choicepoint_stk: the per-choice-point metadata
-    :type choicepoint_stk: NDArray
+    :param choicepoints: the per-choice-point metadata
+    :type choicepoints: NDArray
     :param choicepoint_top: the index of the top of the choice points as a Numpy array
     :type choicepoint_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
@@ -402,7 +402,7 @@ def run_search_loop(
     :rtype: Tuple[int, Optional[NDArray]]
     """
     nb_searches = len(decision_variables_offsets) - 1
-    max_choicepoint = len(choicepoint_stk) - 3  # a ternary split pushes two choice points and marks a third
+    max_choicepoint = len(choicepoints) - 3  # a ternary split pushes two choice points and marks a third
     while True:
         # checked at every node and before the state is touched, like the two checks below
         if interruption[INTERRUPTION_EXTERNAL] | interruption[INTERRUPTION_DEADLINE]:
@@ -419,7 +419,7 @@ def run_search_loop(
         # no test of the room of the implication trail here: lcg_algorithm makes sure, before each propagator call,
         # that the rows of the call and those of the next decision or backtrack fit
         if debug and not is_itrail_valid(
-            state, initial_domains, itrail, itrail_top, itrail_last, choicepoint_stk, choicepoint_top
+            state, initial_domains, itrail, itrail_top, itrail_last, choicepoints, choicepoint_top
         ):
             return SOLVER_ITRAIL_INVALID, None
         problem_status = lcg_algorithm(
@@ -439,7 +439,7 @@ def run_search_loop(
             utrail_log,
             utrail_top,
             utrail_indices,
-            choicepoint_stk,
+            choicepoints,
             choicepoint_top,
             triggered_propagators,
             compute_domains_addrs,
@@ -451,7 +451,7 @@ def run_search_loop(
         if problem_status == PROBLEM_ITRAIL_FULL:
             return SOLVER_ITRAIL_FULL, None
         if debug and not is_itrail_valid(
-            state, initial_domains, itrail, itrail_top, itrail_last, choicepoint_stk, choicepoint_top
+            state, initial_domains, itrail, itrail_top, itrail_last, choicepoints, choicepoint_top
         ):
             return SOLVER_ITRAIL_INVALID, None
         if problem_status == PROBLEM_BOUND:
@@ -511,7 +511,7 @@ def run_search_loop(
                 utrail_log,
                 utrail_top,
                 utrail_indices,
-                choicepoint_stk,
+                choicepoints,
                 choicepoint_top,
                 entailed,
                 triggered_propagators,
@@ -539,7 +539,7 @@ def run_search_loop(
             utrail_log,
             utrail_top,
             utrail_indices,
-            choicepoint_stk,
+            choicepoints,
             choicepoint_top,
             variable,
             kind,
@@ -550,7 +550,7 @@ def run_search_loop(
         # trail. The rows of the decision are at the new choice point.
         itrail_size = itrail_top[0]
         for parked in range(first_parked, choicepoint):
-            choicepoint_stk[parked, CHOICEPOINT_ITRAIL_MARK] = itrail_size
+            choicepoints[parked, CHOICEPOINT_ITRAIL_MARK] = itrail_size
         itrail_top[0] = itrail_push_events(
             itrail, itrail_last, itrail_size, state, variable, events, choicepoint, REASON_DECISION, -1, -1
         )
@@ -570,7 +570,7 @@ def is_itrail_valid(
     itrail: NDArray,
     itrail_top: NDArray,
     itrail_last: NDArray,
-    choicepoint_stk: NDArray,
+    choicepoints: NDArray,
     choicepoint_top: NDArray,
 ) -> bool:
     """
@@ -586,8 +586,8 @@ def is_itrail_valid(
     :type itrail_top: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
-    :param choicepoint_stk: the per-choice-point metadata
-    :type choicepoint_stk: NDArray
+    :param choicepoints: the per-choice-point metadata
+    :type choicepoints: NDArray
     :param choicepoint_top: the index of the top of the choice points as a Numpy array
     :type choicepoint_top: NDArray
 
@@ -595,7 +595,7 @@ def is_itrail_valid(
     :rtype: bool
     """
     return (
-        itrail_check(state, initial_domains, itrail, itrail_top, itrail_last, choicepoint_stk, choicepoint_top[0])
+        itrail_check(state, initial_domains, itrail, itrail_top, itrail_last, choicepoints, choicepoint_top[0])
         == ITRAIL_VALID
     )
 
@@ -607,7 +607,7 @@ def backtrack(
     utrail_log: NDArray,
     utrail_top: NDArray,
     utrail_indices: NDArray,
-    choicepoint_stk: NDArray,
+    choicepoints: NDArray,
     choicepoint_top: NDArray,
     entailed: NDArray,
     triggered_propagators: NDArray,
@@ -638,8 +638,8 @@ def backtrack(
     :type utrail_top: NDArray
     :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
     :type utrail_indices: NDArray
-    :param choicepoint_stk: the per-choice-point metadata
-    :type choicepoint_stk: NDArray
+    :param choicepoints: the per-choice-point metadata
+    :type choicepoints: NDArray
     :param choicepoint_top: the index of the top of the choice points as a Numpy array
     :type choicepoint_top: NDArray
     :param entailed: whether each propagator is entailed, a view of state
@@ -670,17 +670,17 @@ def backtrack(
         choicepoint_top[0] -= 1
         choicepoint = choicepoint_top[0]
         statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
-        mark = choicepoint_stk[choicepoint, CHOICEPOINT_UTRAIL_MARK]
+        mark = choicepoints[choicepoint, CHOICEPOINT_UTRAIL_MARK]
         utrail_undo(state, utrail_log, utrail_indices, utrail_top, mark)
         # the rows that this choice point wrote before it branched stay: the rows of the choice points above it go
-        itrail_pop(itrail, itrail_top, itrail_last, choicepoint_stk[choicepoint, CHOICEPOINT_ITRAIL_MARK])
-        variable = choicepoint_stk[choicepoint, CHOICEPOINT_VARIABLE]
+        itrail_pop(itrail, itrail_top, itrail_last, choicepoints[choicepoint, CHOICEPOINT_ITRAIL_MARK])
+        variable = choicepoints[choicepoint, CHOICEPOINT_VARIABLE]
         cell_idx = variable << 1
         new_min, new_max = bounds_after_tightening(
             state[cell_idx],
             state[cell_idx | 1],
-            choicepoint_stk[choicepoint, CHOICEPOINT_BOUND],
-            choicepoint_stk[choicepoint, CHOICEPOINT_VALUE],
+            choicepoints[choicepoint, CHOICEPOINT_BOUND],
+            choicepoints[choicepoint, CHOICEPOINT_VALUE],
         )
         events, utrail_size = tighten_at(
             state, utrail_log, utrail_indices, mark, utrail_top[0], variable, new_min, new_max

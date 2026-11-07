@@ -123,7 +123,7 @@ class BacktrackSolver(TreeSearchSolver):
             self.utrail_log,
             self.utrail_top,
             self.utrail_indices,
-            self.choicepoint_stk,
+            self.choicepoints,
             self.choicepoint_top,
             self.entailed,
             self.triggered_propagators,
@@ -155,7 +155,7 @@ class BacktrackSolver(TreeSearchSolver):
             self.utrail_log,
             self.utrail_top,
             self.utrail_indices,
-            self.choicepoint_stk,
+            self.choicepoints,
             self.choicepoint_top,
             self.triggered_propagators,
             self.consistency_alg_fcts,
@@ -197,7 +197,7 @@ def run_search_loop(
     utrail_log: NDArray,
     utrail_top: NDArray,
     utrail_indices: NDArray,
-    choicepoint_stk: NDArray,
+    choicepoints: NDArray,
     choicepoint_top: NDArray,
     triggered_propagators: NDArray,
     consistency_alg_fcts: ConsistencyAlgorithmFunctions,
@@ -266,8 +266,8 @@ def run_search_loop(
     :type utrail_top: NDArray
     :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
     :type utrail_indices: NDArray
-    :param choicepoint_stk: the per-choice-point metadata
-    :type choicepoint_stk: NDArray
+    :param choicepoints: the per-choice-point metadata
+    :type choicepoints: NDArray
     :param choicepoint_top: the index of the top of the choice points as a Numpy array
     :type choicepoint_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
@@ -322,7 +322,7 @@ def run_search_loop(
     """
     consistency_alg_fct = consistency_alg_fcts[0]
     nb_searches = len(decision_variables_offsets) - 1
-    max_choicepoint = len(choicepoint_stk) - 3  # a ternary split pushes two choice points and marks a third
+    max_choicepoint = len(choicepoints) - 3  # a ternary split pushes two choice points and marks a third
     while True:
         # checked at every node and before the state is touched, like the two checks below
         if interruption[INTERRUPTION_EXTERNAL] | interruption[INTERRUPTION_DEADLINE]:
@@ -353,7 +353,7 @@ def run_search_loop(
             utrail_log,
             utrail_top,
             utrail_indices,
-            choicepoint_stk,
+            choicepoints,
             choicepoint_top,
             triggered_propagators,
             compute_domains_addrs,
@@ -416,7 +416,7 @@ def run_search_loop(
                 utrail_log,
                 utrail_top,
                 utrail_indices,
-                choicepoint_stk,
+                choicepoints,
                 choicepoint_top,
                 entailed,
                 triggered_propagators,
@@ -440,7 +440,7 @@ def run_search_loop(
             utrail_log,
             utrail_top,
             utrail_indices,
-            choicepoint_stk,
+            choicepoints,
             choicepoint_top,
             variable,
             kind,

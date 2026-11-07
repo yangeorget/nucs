@@ -71,7 +71,7 @@ writes, and store it back once.
                           priorities, variable, events, -1)
    utrail_top[0] = utrail_size
 
-where :code:`mark` is :code:`choicepoint_stk[choicepoint_top[0], CHOICEPOINT_UTRAIL_MARK]`, the undo trail position
+where :code:`mark` is :code:`choicepoints[choicepoint_top[0], CHOICEPOINT_UTRAIL_MARK]`, the undo trail position
 the current choice point branched at, and the last argument of :code:`update_propagators` is a propagator not to wake,
 which the propagation loop uses for an idempotent propagator's own writes: pass -1.
 :mod:`nucs.examples.golomb.golomb_problem` is the in-tree example.

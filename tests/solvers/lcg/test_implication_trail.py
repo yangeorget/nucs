@@ -104,17 +104,17 @@ class TestImplicationTrail:
         assert itrail_top.tolist() == [1]
         assert itrail[0].tolist() == [3, 6, -1, 0, REASON_ROOT, -1, -1]
         assert itrail_last.tolist() == [-1, -1, -1, 0]
-        choicepoint_stk = np.zeros((4, CHOICEPOINT_WIDTH), dtype=np.int32)
-        assert itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, choicepoint_stk, 0) == ITRAIL_VALID
+        choicepoints = np.zeros((4, CHOICEPOINT_WIDTH), dtype=np.int32)
+        assert itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, choicepoints, 0) == ITRAIL_VALID
 
     def test_itrail_start_is_the_mark_of_the_previous_choicepoint(self) -> None:
-        choicepoint_stk = np.zeros((4, CHOICEPOINT_WIDTH), dtype=np.int32)
-        choicepoint_stk[:, CHOICEPOINT_ITRAIL_MARK] = [3, 5, 5, 8]  # a ternary split parked 1 and 2 at row 5
-        assert [itrail_start(choicepoint_stk, choicepoint) for choicepoint in range(4)] == [0, 3, 5, 5]
+        choicepoints = np.zeros((4, CHOICEPOINT_WIDTH), dtype=np.int32)
+        choicepoints[:, CHOICEPOINT_ITRAIL_MARK] = [3, 5, 5, 8]  # a ternary split parked 1 and 2 at row 5
+        assert [itrail_start(choicepoints, choicepoint) for choicepoint in range(4)] == [0, 3, 5, 5]
 
     def test_itrail_check_accepts_a_valid_trail(self) -> None:
-        state, itrail, itrail_top, itrail_last, choicepoint_stk = build_valid_trail()
-        assert itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, choicepoint_stk, 1) == ITRAIL_VALID
+        state, itrail, itrail_top, itrail_last, choicepoints = build_valid_trail()
+        assert itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, choicepoints, 1) == ITRAIL_VALID
 
     @pytest.mark.parametrize(
         "row,column,value,expected",
@@ -128,25 +128,25 @@ class TestImplicationTrail:
         ],
     )
     def test_itrail_check_finds_the_first_bad_row(self, row: int, column: int, value: int, expected: int) -> None:
-        state, itrail, itrail_top, itrail_last, choicepoint_stk = build_valid_trail()
+        state, itrail, itrail_top, itrail_last, choicepoints = build_valid_trail()
         itrail[row, column] = value
-        assert itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, choicepoint_stk, 1) == expected
+        assert itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, choicepoints, 1) == expected
 
     @pytest.mark.parametrize(
         "array,index,value,expected",
         [
             ("state", 3, 6, 3),  # the replay does not give the state: the number of rows
             ("itrail_last", 1, 0, 3),  # a chain that does not end at the row of itrail_last
-            ("choicepoint_stk", (0, CHOICEPOINT_ITRAIL_MARK), 0, 0),  # choice point 0 branched before its own row
-            ("choicepoint_stk", (0, CHOICEPOINT_ITRAIL_MARK), 2, 1),  # choice point 0 branched after a row of 1
+            ("choicepoints", (0, CHOICEPOINT_ITRAIL_MARK), 0, 0),  # choice point 0 branched before its own row
+            ("choicepoints", (0, CHOICEPOINT_ITRAIL_MARK), 2, 1),  # choice point 0 branched after a row of 1
         ],
     )
     def test_itrail_check_compares_with_the_state_and_the_marks(
         self, array: str, index: int | tuple[int, int], value: int, expected: int
     ) -> None:
-        state, itrail, itrail_top, itrail_last, choicepoint_stk = build_valid_trail()
-        {"state": state, "itrail_last": itrail_last, "choicepoint_stk": choicepoint_stk}[array][index] = value
-        assert itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, choicepoint_stk, 1) == expected
+        state, itrail, itrail_top, itrail_last, choicepoints = build_valid_trail()
+        {"state": state, "itrail_last": itrail_last, "choicepoints": choicepoints}[array][index] = value
+        assert itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, choicepoints, 1) == expected
 
     @pytest.mark.parametrize(
         "domain_nb,row_nb",
@@ -173,11 +173,11 @@ def build_valid_trail() -> tuple[NDArray, NDArray, NDArray, NDArray, NDArray]:
     :rtype: Tuple[NDArray, NDArray, NDArray, NDArray, NDArray]
     """
     itrail, itrail_top, itrail_last = allocate_itrail(2)
-    choicepoint_stk = np.zeros((4, CHOICEPOINT_WIDTH), dtype=np.int32)
+    choicepoints = np.zeros((4, CHOICEPOINT_WIDTH), dtype=np.int32)
     itrail_size = itrail_push(itrail, itrail_last, 0, 0 << 1 | DOMAIN_MIN, 2, 0, REASON_PROPAGATOR, 0, 0)
-    choicepoint_stk[0, CHOICEPOINT_ITRAIL_MARK] = itrail_size
+    choicepoints[0, CHOICEPOINT_ITRAIL_MARK] = itrail_size
     itrail_size = itrail_push(itrail, itrail_last, itrail_size, 1 << 1 | DOMAIN_MAX, 5, 1, REASON_DECISION, -1, -1)
     itrail_size = itrail_push(itrail, itrail_last, itrail_size, 0 << 1 | DOMAIN_MIN, 3, 1, REASON_PROPAGATOR, 1, 2)
     itrail_top[0] = itrail_size
     state = np.array([3, 9, 0, 5, 2], dtype=np.int32)
-    return state, itrail, itrail_top, itrail_last, choicepoint_stk
+    return state, itrail, itrail_top, itrail_last, choicepoints
