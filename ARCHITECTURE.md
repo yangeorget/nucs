@@ -290,7 +290,7 @@ The write barrier (the code that records the old value on the undo trail before 
 custom consistency algorithm. Entailment is the exception: it has a semantic guard (a flag is only written where it has
 just been read as clear), so it does not need the positional one.
 
-See `design/choice-points.md` for the mechanism in detail: the exact rule that the barrier implements and why each part
+See `design/choicepoints.md` for the mechanism in detail: the exact rule that the barrier implements and why each part
 of it is necessary, what the three decision kinds are, and what the two `OPTIM_*` modes do.
 
 ### Propagators are stateless pure functions on a scratch buffer

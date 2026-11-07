@@ -361,7 +361,7 @@ Column meanings:
 - `REASON_KIND`, `REASON_DATA`, `REASON_POS`: see 3.4.
 
 **The new trail is not the undo trail.** The undo trail skips a write to a cell that it already saved at the current
-choice point (the write barrier in `design/choice-points.md`). That is correct for an undo log, but conflict analysis needs
+choice point (the write barrier in `design/choicepoints.md`). That is correct for an undo log, but conflict analysis needs
 every change. The undo trail stays as it is, and restores `state` as before.
 
 **Writes.** Each call of `tighten_at` in the LCG loop adds one row for each bound that it moves: zero, one or two
