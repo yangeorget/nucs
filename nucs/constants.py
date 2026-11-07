@@ -12,11 +12,11 @@
 ###############################################################################
 # What is left here is what several layers share: the protocols a propagator, a domain heuristic and a
 # consistency algorithm are written against, plus the logging levels. A constant owned by one module lives
-# with it instead -- CHOICE_POINT_* in solvers/choice_points.py, OFFSETS_* and PROBLEM_* in
+# with it instead -- CHOICEPOINT_* in solvers/choicepoints.py, OFFSETS_* and PROBLEM_* in
 # problems/problem.py, SOLVER_* in solvers/tree_search_solver.py, OPTIM_* in solvers/solver.py, STATS_* in
 # statistics.py, and each Numba signature with the registry that compiles against it.
 #
-# Index constants are prefixed with the array they index -- DOMAIN_, BB_, CHOICE_POINT_, OFFSETS_,
+# Index constants are prefixed with the array they index -- DOMAIN_, BB_, CHOICEPOINT_, OFFSETS_,
 # STATS_IDX_ -- so that a bare index constant never has to be traced back to find out what it indexes.
 
 # Domain bounds

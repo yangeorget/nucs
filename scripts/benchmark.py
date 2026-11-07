@@ -78,11 +78,11 @@ BenchmarkResult = tuple[str, dict[str, int], int, int]
 
 STATS_LBL_DOMAIN_NB = "DOMAIN_NB"
 STATS_LBL_PEAK_RSS_KB = "PEAK_RSS_KB"
-STATS_LBL_CHOICE_POINT_BYTES = "CHOICE_POINT_BYTES"
+STATS_LBL_CHOICEPOINT_BYTES = "CHOICEPOINT_BYTES"
 
 # the solver attributes holding backtrackable search state, whichever of them the branch under measurement
 # happens to define -- this is the allocation the migration is meant to shrink
-CHOICE_POINT_ARRAYS = (
+CHOICEPOINT_ARRAYS = (
     "domains_stk",
     "domain_update_stk",
     "unbound_variable_nb_stk",
@@ -91,12 +91,12 @@ CHOICE_POINT_ARRAYS = (
     "state",
     "utrail_log",
     "utrail_indices",
-    "choice_point_stk",
+    "choicepoint_stk",
     "entailed",
 )
 
 
-def _choice_point_bytes(solver: BacktrackSolver) -> int:
+def _choicepoint_bytes(solver: BacktrackSolver) -> int:
     """
     Returns the bytes the solver preallocates for backtrackable search state.
 
@@ -112,13 +112,13 @@ def _choice_point_bytes(solver: BacktrackSolver) -> int:
     """
     return sum(
         getattr(solver, name).nbytes
-        for name in CHOICE_POINT_ARRAYS
+        for name in CHOICEPOINT_ARRAYS
         if isinstance(getattr(solver, name, None), np.ndarray)
     )
 
 
 def _result(name: str, solver: BacktrackSolver) -> BenchmarkResult:
-    return name, solver.get_statistics_as_dictionary(), solver.problem.domain_nb, _choice_point_bytes(solver)
+    return name, solver.get_statistics_as_dictionary(), solver.problem.domain_nb, _choicepoint_bytes(solver)
 
 
 def solve_all(name: str, solver: BacktrackSolver) -> BenchmarkResult:
@@ -407,10 +407,10 @@ def _run_one(key: str) -> dict[str, Any]:
     :return: the statistics, augmented with the domain nb and the peak RSS of the process
     :rtype: Dict[str, Any]
     """
-    name, statistics, domain_nb, choice_point_bytes = _benchmarks()[key]()
+    name, statistics, domain_nb, choicepoint_bytes = _benchmarks()[key]()
     result: dict[str, Any] = {"name": name, **statistics}
     result[STATS_LBL_DOMAIN_NB] = domain_nb
-    result[STATS_LBL_CHOICE_POINT_BYTES] = choice_point_bytes
+    result[STATS_LBL_CHOICEPOINT_BYTES] = choicepoint_bytes
     # ru_maxrss is bytes on macOS and kibibytes on Linux
     max_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     result[STATS_LBL_PEAK_RSS_KB] = max_rss // 1024 if sys.platform == "darwin" else max_rss
@@ -478,7 +478,7 @@ def _report(console: Console, results: list[dict[str, Any]]) -> None:
             _int(statistics[STATS_LBL_DOMAIN_NB]),
             _int(statistics[STATS_LBL_SOLUTION_NB]),
             _int(milliseconds),
-            f"{statistics[STATS_LBL_CHOICE_POINT_BYTES] / (1024 * 1024):.1f}",
+            f"{statistics[STATS_LBL_CHOICEPOINT_BYTES] / (1024 * 1024):.1f}",
             "-" if peak_rss is None else f"{peak_rss / 1024:.0f}",
             _int(backtracks),
             _int(bc_calls),

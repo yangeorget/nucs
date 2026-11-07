@@ -35,7 +35,7 @@ from nucs.solvers.backtrack.consistency_algorithms import (
     SIGN_CONSISTENCY_ALG,
     get_consistency_algorithm_name,
 )
-from nucs.solvers.choice_points import backtrack, branch
+from nucs.solvers.choicepoints import backtrack, branch
 from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, INTERRUPTION_EXTERNAL
 from nucs.solvers.propagation_steps import update_propagators
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
@@ -46,7 +46,7 @@ from nucs.solvers.tree_search_solver import (
     SEARCH_CONTROL_FAILURE_NB,
     SEARCH_CONTROL_LAST_CONFLICT,
     SEARCH_CONTROL_RESTART_LIMIT,
-    SOLVER_CHOICE_POINTS_FULL,
+    SOLVER_CHOICEPOINTS_FULL,
     SOLVER_INTERRUPTED,
     SOLVER_RESTART,
     SOLVER_RUNNING,
@@ -123,8 +123,8 @@ class BacktrackSolver(TreeSearchSolver):
             self.utrail_log,
             self.utrail_top,
             self.utrail_indices,
-            self.choice_point_stk,
-            self.choice_point_top,
+            self.choicepoint_stk,
+            self.choicepoint_top,
             self.entailed,
             self.triggered_propagators,
             self.problem.triggers,
@@ -155,8 +155,8 @@ class BacktrackSolver(TreeSearchSolver):
             self.utrail_log,
             self.utrail_top,
             self.utrail_indices,
-            self.choice_point_stk,
-            self.choice_point_top,
+            self.choicepoint_stk,
+            self.choicepoint_top,
             self.triggered_propagators,
             self.consistency_alg_fcts,
             self.flat_searches.decision_variables,
@@ -197,8 +197,8 @@ def run_search_loop(
     utrail_log: NDArray,
     utrail_top: NDArray,
     utrail_indices: NDArray,
-    choice_point_stk: NDArray,
-    choice_point_top: NDArray,
+    choicepoint_stk: NDArray,
+    choicepoint_top: NDArray,
     triggered_propagators: NDArray,
     consistency_alg_fcts: ConsistencyAlgorithmFunctions,
     decision_variables: NDArray,
@@ -266,10 +266,10 @@ def run_search_loop(
     :type utrail_top: NDArray
     :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
     :type utrail_indices: NDArray
-    :param choice_point_stk: the per-choice-point metadata
-    :type choice_point_stk: NDArray
-    :param choice_point_top: the index of the top of the choice points as a Numpy array
-    :type choice_point_top: NDArray
+    :param choicepoint_stk: the per-choice-point metadata
+    :type choicepoint_stk: NDArray
+    :param choicepoint_top: the index of the top of the choice points as a Numpy array
+    :type choicepoint_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param consistency_alg_fcts: a 1-element list holding the consistency algorithm function
@@ -322,7 +322,7 @@ def run_search_loop(
     """
     consistency_alg_fct = consistency_alg_fcts[0]
     nb_searches = len(decision_variables_offsets) - 1
-    max_choice_point = len(choice_point_stk) - 3  # a ternary split pushes two choice points and marks a third
+    max_choicepoint = len(choicepoint_stk) - 3  # a ternary split pushes two choice points and marks a third
     while True:
         # checked at every node and before the state is touched, like the two checks below
         if interruption[INTERRUPTION_EXTERNAL] | interruption[INTERRUPTION_DEADLINE]:
@@ -334,8 +334,8 @@ def run_search_loop(
         # overrun it silently -- with boundscheck off, the overrun is what would otherwise happen
         if utrail_top[0] + utrail_headroom > len(utrail_log):
             return SOLVER_UTRAIL_FULL, None
-        if choice_point_top[0] > max_choice_point:
-            return SOLVER_CHOICE_POINTS_FULL, None
+        if choicepoint_top[0] > max_choicepoint:
+            return SOLVER_CHOICEPOINTS_FULL, None
         problem_status = consistency_alg_fct(
             statistics,
             propagator_weights,
@@ -353,8 +353,8 @@ def run_search_loop(
             utrail_log,
             utrail_top,
             utrail_indices,
-            choice_point_stk,
-            choice_point_top,
+            choicepoint_stk,
+            choicepoint_top,
             triggered_propagators,
             compute_domains_addrs,
             domain_buffer,
@@ -416,8 +416,8 @@ def run_search_loop(
                 utrail_log,
                 utrail_top,
                 utrail_indices,
-                choice_point_stk,
-                choice_point_top,
+                choicepoint_stk,
+                choicepoint_top,
                 entailed,
                 triggered_propagators,
                 triggers,
@@ -440,17 +440,17 @@ def run_search_loop(
             utrail_log,
             utrail_top,
             utrail_indices,
-            choice_point_stk,
-            choice_point_top,
+            choicepoint_stk,
+            choicepoint_top,
             variable,
             kind,
             value,
         )
-        choice_point = choice_point_top[0]
+        choicepoint = choicepoint_top[0]
         update_propagators(
             triggered_propagators, entailed, triggers, triggers_offsets, priorities, variable, events, -1
         )
         statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
         if search_control[SEARCH_CONTROL_LAST_CONFLICT]:
             search_control[SEARCH_CONTROL_DECISION_VARIABLE] = variable
-        statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = max(statistics[STATS_IDX_SOLVER_CHOICE_DEPTH], choice_point)
+        statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = max(statistics[STATS_IDX_SOLVER_CHOICE_DEPTH], choicepoint)

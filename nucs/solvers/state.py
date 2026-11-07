@@ -96,7 +96,7 @@ def utrail_set(
     per trailed write, and off the skip, which happens as often as a fixpoint re-narrows a bound.
 
     Stating the rule positionally, rather than approximating it with a generation counter stamped per
-    cell, means there is no counter to bump -- and therefore no site that can forget to bump one. choice_point_init
+    cell, means there is no counter to bump -- and therefore no site that can forget to bump one. choicepoint_init
     runs at solve time on every OPTIM_RESET, and every stack mutation is covered for free.
 
     The test is stated as a range, but only its lower half decides anything today: utrail_push never writes

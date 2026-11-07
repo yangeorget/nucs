@@ -37,7 +37,7 @@ from nucs.problems.problem import (
 )
 from nucs.propagators.propagators import call_compute_domains
 from nucs.solvers.buckets import STORAGE_OFFSET, buckets_pop
-from nucs.solvers.choice_points import CHOICE_POINT_UTRAIL_MARK
+from nucs.solvers.choicepoints import CHOICEPOINT_UTRAIL_MARK
 from nucs.solvers.lcg.implication_trail import ITRAIL_STEP_ROW_NB, REASON_PROPAGATOR, itrail_push_events
 from nucs.solvers.propagation_steps import (
     count_no_change,
@@ -84,8 +84,8 @@ def lcg_algorithm(
     utrail_log: NDArray,
     utrail_top: NDArray,
     utrail_indices: NDArray,
-    choice_point_stk: NDArray,
-    choice_point_top: NDArray,
+    choicepoint_stk: NDArray,
+    choicepoint_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
     domain_buffer: NDArray,
@@ -148,10 +148,10 @@ def lcg_algorithm(
     :type utrail_top: NDArray
     :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
     :type utrail_indices: NDArray
-    :param choice_point_stk: the per-choice-point metadata
-    :type choice_point_stk: NDArray
-    :param choice_point_top: the index of the top of the choice points as a Numpy array
-    :type choice_point_top: NDArray
+    :param choicepoint_stk: the per-choice-point metadata
+    :type choicepoint_stk: NDArray
+    :param choicepoint_top: the index of the top of the choice points as a Numpy array
+    :type choicepoint_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param compute_domains_addrs: the compiled compute_domains address of each algorithm, resolved once at solver init
@@ -170,10 +170,10 @@ def lcg_algorithm(
              trail must grow before the propagation can continue
     :rtype: int
     """
-    choice_point = choice_point_top[0]
-    # the choice point's mark is loaded once: choice_point_top does not move during a filtering, and neither does the
+    choicepoint = choicepoint_top[0]
+    # the choice point's mark is loaded once: choicepoint_top does not move during a filtering, and neither does the
     # mark of the choice point it is filtering
-    mark = choice_point_stk[choice_point, CHOICE_POINT_UTRAIL_MARK]
+    mark = choicepoint_stk[choicepoint, CHOICEPOINT_UTRAIL_MARK]
     unbound_idx = unbound_index(state)
     # the undo trail size lives in a local for the whole filtering and is published on the way out. Nothing
     # outside this function reads it before then, and keeping it out of memory takes a load and a store
@@ -261,7 +261,7 @@ def lcg_algorithm(
             itrail,
             itrail_last,
             itrail_size,
-            choice_point,
+            choicepoint,
             prop_idx,
         )
         if no_change:
@@ -289,7 +289,7 @@ def update_domains_with_reasons(
     itrail: NDArray,
     itrail_last: NDArray,
     itrail_size: int,
-    choice_point: int,
+    choicepoint: int,
     prop_idx: int,
 ) -> tuple[bool, int, int]:
     """
@@ -336,8 +336,8 @@ def update_domains_with_reasons(
     :type itrail_last: NDArray
     :param itrail_size: the number of rows in use
     :type itrail_size: int
-    :param choice_point: the current choice point, choice_point_top[0]
-    :type choice_point: int
+    :param choicepoint: the current choice point, choicepoint_top[0]
+    :type choicepoint: int
     :param prop_idx: the propagator whose domains these are
     :type prop_idx: int
 
@@ -368,7 +368,7 @@ def update_domains_with_reasons(
                     state,
                     variable,
                     events,
-                    choice_point,
+                    choicepoint,
                     REASON_PROPAGATOR,
                     prop_idx,
                     reason_pos,

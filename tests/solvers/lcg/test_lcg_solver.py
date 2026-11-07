@@ -23,7 +23,7 @@ from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_DO
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
-from nucs.solvers.choice_points import CHOICE_POINT_ITRAIL_MARK
+from nucs.solvers.choicepoints import CHOICEPOINT_ITRAIL_MARK
 from nucs.solvers.lcg.implication_trail import REASON_DECISION, REASON_PROPAGATOR
 from nucs.solvers.lcg.lcg_solver import LcgSolver
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
@@ -103,7 +103,7 @@ class TestLcgSolver:
             [0 << 1 | DOMAIN_MAX, 0, -1, 1, REASON_DECISION, -1, -1],
             [1 << 1 | DOMAIN_MIN, 1, -1, 1, REASON_PROPAGATOR, 0, 1],
         ]
-        assert solver.choice_point_stk[0, CHOICE_POINT_ITRAIL_MARK] == 0
+        assert solver.choicepoint_stk[0, CHOICEPOINT_ITRAIL_MARK] == 0
         assert solver._backtrack()
         # back at choice point 0: the rows of choice point 1 are gone, and the parked alternative [x0 >= 1] is the new row
         assert solver.itrail_top.tolist() == [1]
@@ -127,9 +127,9 @@ class TestLcgSolver:
         # the marks of the implication trail are a column of the stack: a stack that grows keeps them
         backtrack_solutions = [solution.tolist() for solution in BacktrackSolver(QueensProblem(7)).find_all()]
         solver = LcgSolver(QueensProblem(7), debug=True)
-        solver.choice_point_stk = solver.choice_point_stk[:4].copy()
+        solver.choicepoint_stk = solver.choicepoint_stk[:4].copy()
         assert [solution.tolist() for solution in solver.find_all()] == backtrack_solutions
-        assert len(solver.choice_point_stk) > 4  # it did have to grow
+        assert len(solver.choicepoint_stk) > 4  # it did have to grow
 
     def test_debug_mode_finds_an_implication_trail_that_does_not_agree_with_the_state(self) -> None:
         solver = LcgSolver(QueensProblem(4), debug=True)

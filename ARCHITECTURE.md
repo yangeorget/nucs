@@ -37,7 +37,7 @@ for contributors are in `design/`; the user documentation is in `docs/`.
   schedules the propagators that a change wakes) and `buckets.py` (the propagation queue, a priority queue in a flat
   array). The priority of a propagator, its bucket, comes from `compute_priority` in `nucs/problems/problem.py`, which
   computes it when the problem is built. The backtrackable state and its undo trail live in `state.py`; `tighten_at` is
-  the only permitted way to write a domain. The stack of choice points, built on them, lives in `choice_points.py`.
+  the only permitted way to write a domain. The stack of choice points, built on them, lives in `choicepoints.py`.
   `allocate_search_arrays` (`tree_search_solver.py`) lays out the state and sizes the undo trail and the stack for a
   problem. `Interrupter` (`interrupter.py`) holds the two cells that stop the compiled search at its next node, one for
   each of its two writers: `interrupt()` and the timer of a timeout. To iterate over the solutions, call
@@ -86,8 +86,8 @@ array must grow, so one descent can take many calls.
 
 `nucs/constants.py` holds the constants that several layers share: the protocols that a propagator (`PROP_*`,
 `EVENT_MASK_*`), a domain heuristic (`DECISION_*`) and the solver (`DOMAIN_*`, `BB_*`) are written against, and
-the logging levels. A constant that belongs to one module lives in that module: `CHOICE_POINT_*` in
-`nucs/solvers/choice_points.py`, `OFFSETS_*` and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` and
+the logging levels. A constant that belongs to one module lives in that module: `CHOICEPOINT_*` in
+`nucs/solvers/choicepoints.py`, `OFFSETS_*` and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` and
 `SEARCH_CONTROL_*` in `nucs/solvers/tree_search_solver.py`, `OPTIM_*` in `nucs/solvers/solver.py`,
 `TIGHTENING_UTRAIL_ENTRY_NB` in `nucs/solvers/state.py`, `STEP_TIGHTENING_NB` in
 `nucs/solvers/tree_search_solver.py`, `STATS_*` in `nucs/statistics.py`.
@@ -196,7 +196,7 @@ to *weighted degree*, which is the sum of the weights of its live propagators. A
 not entailed and has an unbound variable other than `x`.
 
 - **The weights are not backtracked.** A failure says that a constraint is hard, and that stays true in every part of
-  the tree. So the weights are not in `state`, the undo trail never sees them, and `choice_point_init` does not clear
+  the tree. So the weights are not in `state`, the undo trail never sees them, and `choicepoint_init` does not clear
   them: an `OPTIM_RESET` restart keeps what the previous descents learned. Choco and Gecode do the same.
 - **Decay costs one cell, not a pass over the weights.** Each propagator starts at 1, and a failure adds the current
   increment. With `weight_decay < 1` (the AFC of Gecode), each failure makes the increment larger by
@@ -224,7 +224,7 @@ start from the root, whether last-conflict is on, the conflict variable, and the
 - **A restart is the reset of `OPTIM_RESET`, triggered by a failure limit.** At the top of its loop,
   `run_search_loop` returns `SOLVER_RESTART` when the failures reach the limit. It does this before it starts
   a filtering, so the state it leaves is not a half-done one. `_next_solution` takes the next limit of the policy
-  (`nucs/solvers/restart_policies.py`), and `_reset_to_root` goes back to the root with `choice_point_init`, empties the
+  (`nucs/solvers/restart_policies.py`), and `_reset_to_root` goes back to the root with `choicepoint_init`, empties the
   queue and fills it again. The propagator weights stay.
 - **The objective of the best solution is applied again at the root.** In `OPTIM_RESET`, the bound of the best
   solution is written once, at the root, and a restart undoes it. In `OPTIM_PRUNE`, the bound is armed, but
@@ -269,8 +269,8 @@ count, so `unbound_index()`, which is `len(state) - 1`, does not depend on it. S
 | `utrail_log` | `(T, 2)` | int32 | the undo log |
 | `utrail_top` | `(1,)` | int32 | the size of the undo trail |
 | `utrail_indices` | `(len(state),)` | int32 | the index of the last undo trail entry of each cell, `-1` when there is none |
-| `choice_point_stk` | `(H, 5)` | int32 | per choice point: `[CHOICE_POINT_UTRAIL_MARK, CHOICE_POINT_VARIABLE, CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_ITRAIL_MARK]` |
-| `choice_point_top` | `(1,)` | uint32 | the depth of the search |
+| `choicepoint_stk` | `(H, 5)` | int32 | per choice point: `[CHOICEPOINT_UTRAIL_MARK, CHOICEPOINT_VARIABLE, CHOICEPOINT_BOUND, CHOICEPOINT_VALUE, CHOICEPOINT_ITRAIL_MARK]` |
+| `choicepoint_top` | `(1,)` | uint32 | the depth of the search |
 
 A choice point is where the search makes a decision and parks the alternatives, to come back to them later. A push
 copies nothing: it records the position of the undo trail (the *mark*) and the single-bound tightening to apply on
@@ -326,7 +326,7 @@ There are two tiers, defined by their contract:
   sparse set of live tuples (1bcdf98); `count_eq`, `count_eq_c`, `count_geq_c` and `count_leq_c` undo trail the two
   counters of their live set, at an arity of `LIVE_SET_MIN_ARITY` or more (6543f92). The engine gives this tier two
   things. First, `bc_algorithm` trails the `trailed_nb`-wide prefix of a propagator, unconditionally, through the same
-  `utrail_set` that a domain write uses, right before it calls `compute_domains_*`. Second, `choice_point_init` clears
+  `utrail_set` that a domain write uses, right before it calls `compute_domains_*`. Second, `choicepoint_init` clears
   every trailed prefix, so a search that restarts from the root does not carry a block forward. That second thing is
   not housekeeping but soundness: `OPTIM_RESET` *drops* the undo trail instead of unwinding it, so nothing restores a
   block the way a backtrack would, and a propagator is entitled to read its block as a description of the node at which
@@ -358,7 +358,7 @@ copies `state` into `prop_domains`, so "the propagator wrote nothing" means "`pr
 "`update_domains` finds no event and schedules nobody".
 
 - **The cell is untrailed, and could not be anything else.** It describes the call that has just happened, not the
-  node, so there is nothing about it to restore. It never sees the undo trail, `choice_point_init` or the entry barrier.
+  node, so there is nothing about it to restore. It never sees the undo trail, `choicepoint_init` or the entry barrier.
 - **Setting the cell to `1` first is what makes the default safe.** A propagator that forgets to answer gets the
   scan that it would have got anyway. Only the other direction is a bug, and a silent one: a propagator that reports
   `0` after it narrowed something drops that pruning, and the engine cannot tell, because the check would be the scan

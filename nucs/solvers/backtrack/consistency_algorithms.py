@@ -36,8 +36,8 @@ SIGN_CONSISTENCY_ALG = int64(
     int32[:, ::1],  # utrail_log
     int32[::1],  # utrail_top
     int32[::1],  # utrail_indices
-    int32[:, ::1],  # choice_point_stk
-    uint32[::1],  # choice_point_top
+    int32[:, ::1],  # choicepoint_stk
+    uint32[::1],  # choicepoint_top
     int32[::1],  # triggered_propagators
     int64[::1],  # compute_domains_addrs
     int32[:, ::1],  # domain_buffer

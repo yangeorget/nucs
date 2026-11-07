@@ -15,7 +15,7 @@ import pytest
 
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT
-from nucs.solvers.choice_points import CHOICE_POINT_WIDTH
+from nucs.solvers.choicepoints import CHOICEPOINT_WIDTH
 from nucs.solvers.state import TIGHTENING_UTRAIL_ENTRY_NB
 from nucs.solvers.tree_search_solver import STEP_TIGHTENING_NB, allocate_search_arrays, double_rows
 
@@ -26,7 +26,7 @@ class TestTreeSearchSolver:
         problem = Problem([(0, 7), (0, 7), (0, 7)])
         problem.add_propagator(ALG_ALLDIFFERENT, range(3))
         problem.init()
-        state, domains, entailed, utrail_headroom, _, utrail_top, utrail_indices, _, choice_point_top = (
+        state, domains, entailed, utrail_headroom, _, utrail_top, utrail_indices, _, choicepoint_top = (
             allocate_search_arrays(problem)
         )
         assert len(state) == 2 * 3 + 1 + problem.state_width + 1
@@ -39,7 +39,7 @@ class TestTreeSearchSolver:
             2 * 3 + 1 + problem.state_trailed_width + 1 + STEP_TIGHTENING_NB * TIGHTENING_UTRAIL_ENTRY_NB
         )
         assert utrail_top.tolist() == [0]
-        assert choice_point_top.tolist() == [1]
+        assert choicepoint_top.tolist() == [1]
 
     @pytest.mark.parametrize(
         "domain_nb,utrail_size,stack_height",
@@ -55,11 +55,11 @@ class TestTreeSearchSolver:
     ) -> None:
         problem = Problem([(0, 1)] * domain_nb)
         problem.init()
-        _, _, _, _, utrail_log, _, _, choice_point_stk, _ = allocate_search_arrays(problem)
+        _, _, _, _, utrail_log, _, _, choicepoint_stk, _ = allocate_search_arrays(problem)
         assert utrail_log.shape == (utrail_size, 2)
-        assert choice_point_stk.shape == (stack_height, CHOICE_POINT_WIDTH)
+        assert choicepoint_stk.shape == (stack_height, CHOICEPOINT_WIDTH)
 
-    @pytest.mark.parametrize("width", [2, CHOICE_POINT_WIDTH])  # a row of the undo trail, a row of the stack
+    @pytest.mark.parametrize("width", [2, CHOICEPOINT_WIDTH])  # a row of the undo trail, a row of the stack
     def test_double_rows_keeps_the_rows(self, width: int) -> None:
         array = np.arange(3 * width, dtype=np.int32).reshape(3, width)
         grown = double_rows(array)

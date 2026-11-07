@@ -119,11 +119,11 @@ form.
 ### 1.4 Decision levels and the implication trail
 
 Each decision opens a new **decision level**. The root is level 0, the first decision is level 1, and so on. In the
-LCG mode of NuCS, the decision level is the depth of the choice-point stack (`choice_point_top`), because each level
+LCG mode of NuCS, the decision level is the depth of the choice-point stack (`choicepoint_top`), because each level
 has one choice point (4.2). This is not true in `BacktrackSolver`: there, an `EQ` decision inside the domain parks
-two alternatives and pushes two choice points (`branch` in `choice_points.py`). The code uses only the name of the
-choice point: a row of the implication trail holds its `CHOICE_POINT`, the value of `choice_point_top` when the row is
-written, and level `L` starts at the mark `CHOICE_POINT_ITRAIL_MARK` of choice point `L - 1` (3.3).
+two alternatives and pushes two choice points (`branch` in `choicepoints.py`). The code uses only the name of the
+choice point: a row of the implication trail holds its `CHOICEPOINT`, the value of `choicepoint_top` when the row is
+written, and level `L` starts at the mark `CHOICEPOINT_ITRAIL_MARK` of choice point `L - 1` (3.3).
 
 The **implication trail** is the list of all the literals that became true, in the order in which they became true.
 Each entry records:
@@ -271,7 +271,7 @@ Several decisions that NuCS made for other reasons fit LCG well:
 | propagators are pure functions on a gathered buffer | a propagator can be called again later on the domains of an earlier node, which is what a lazy explanation needs |
 | the failure weights in `weights.py`, with increment growth and rescale | the same mechanism gives the decay of the activities |
 | restarts (`restarts.py`) and the restart of the objective bound | CDCL needs restarts; they exist |
-| arrays that grow when full (`SOLVER_UTRAIL_FULL`, `SOLVER_CHOICE_POINTS_FULL`) | the clause store and the implication trail grow in the same way |
+| arrays that grow when full (`SOLVER_UTRAIL_FULL`, `SOLVER_CHOICEPOINTS_FULL`) | the clause store and the implication trail grow in the same way |
 | FlatZinc clauses are `SUM_GEQ_C`, `SUM_LEQ_C` or `LINEAR_GEQ_C` over 0/1 variables (`_post_clause`; `SUM_LEQ_C` when all the literals are negative) | the explanation of the linear propagators also explains all the clauses of a model |
 
 Two features need care. The design keeps the first out of the LCG mode; the second fits, for the reasons below:
@@ -290,7 +290,7 @@ Two features need care. The design keeps the first out of the LCG mode; the seco
     variable left the live set, a tuple is dead, a prefix is fixed and equal. The domains only shrink along a path,
     so these facts are still true in the box at the time of the call.
   - **A call with the trailed prefix at zero is correct on any box.** Zero is the root value: the solver allocates
-    the block at zero, and `choice_point_init` clears it at each restart. A root call must be correct on any
+    the block at zero, and `choicepoint_init` clears it at each restart. A root call must be correct on any
     initial domains, and the box at `REASON_POS` is only another box. For `count_*` and `relation`, zero selects an
     explicit cold path that builds the live set again from the domains. For `lexleq`, `Q = R = 0` starts the
     automaton at position 0, as the first call does. The debug mode (7.3), the brute-force test (7.2) and an exact
@@ -345,10 +345,10 @@ The implication trail records each literal that becomes true on the current path
 
 | array | shape | dtype | holds |
 |---|---|---|---|
-| `itrail` | `(L, ITRAIL_WIDTH)` | int32 | one row for each bound change: `[VAR_SIDE, VALUE, PREV, CHOICE_POINT, REASON_KIND, REASON_DATA, REASON_POS]` |
+| `itrail` | `(L, ITRAIL_WIDTH)` | int32 | one row for each bound change: `[VAR_SIDE, VALUE, PREV, CHOICEPOINT, REASON_KIND, REASON_DATA, REASON_POS]` |
 | `itrail_top` | `(1,)` | int32 | the number of rows in use |
 | `itrail_last` | `(2 * domain_nb,)` | int32 | for each `var_side`, the row of its last change, `-1` when the bound has its root value |
-| `choice_point_stk[:, CHOICE_POINT_ITRAIL_MARK]` | `(H,)` | int32 | for each choice point, the number of rows when it branched |
+| `choicepoint_stk[:, CHOICEPOINT_ITRAIL_MARK]` | `(H,)` | int32 | for each choice point, the number of rows when it branched |
 
 Column meanings:
 
@@ -356,7 +356,7 @@ Column meanings:
   makes true every weaker literal on the same bound: after `[x >= 5]`, `[x >= 4]` is true too.
 - `PREV`: the row of the previous change of the same `var_side`, or `-1`. The rows of one bound make a chain. The
   value of a bound at an earlier row `t` is the value of the last row of the chain before `t`, or the root value.
-- `CHOICE_POINT`: the value of `choice_point_top` when the row is written, its decision level. The rows of choice
+- `CHOICEPOINT`: the value of `choicepoint_top` when the row is written, its decision level. The rows of choice
   point `c` start at the mark of choice point `c - 1`, and at row 0 for `c = 0`.
 - `REASON_KIND`, `REASON_DATA`, `REASON_POS`: see 3.4.
 
@@ -369,7 +369,7 @@ rows, because `tighten_at` writes `new_min` and `new_max` together. `update_doma
 propagator call, so a call that moves a bound several times internally adds only one row for it.
 
 **Backjumping to level `L`.** The solver pops the rows from `itrail_top - 1` down to
-`choice_point_stk[L, CHOICE_POINT_ITRAIL_MARK]`, as it undoes the undo trail down to `CHOICE_POINT_UTRAIL_MARK` of the
+`choicepoint_stk[L, CHOICEPOINT_ITRAIL_MARK]`, as it undoes the undo trail down to `CHOICEPOINT_UTRAIL_MARK` of the
 same row. For each popped row, it sets `itrail_last[VAR_SIDE] = PREV`. The cost is one step for each popped row, the same as for the
 undo trail.
 
@@ -480,7 +480,7 @@ Their results map to literals:
 | `EQ` at `v`, `v` = max | `[x >= v]` |
 | `EQ` at `v`, other `v` | `[x >= v]` on one level, then `[x <= v]` on the next level |
 
-The choice point keeps its undo trail mark (`CHOICE_POINT_UTRAIL_MARK`). It parks **no alternative**: the learned clause
+The choice point keeps its undo trail mark (`CHOICEPOINT_UTRAIL_MARK`). It parks **no alternative**: the learned clause
 replaces the refutation (1.7).
 
 **The second literal of an interior `EQ`.** The propagation of `[x >= v]` can change `x` before the solver opens the
@@ -599,11 +599,11 @@ The analysis also bumps the activity of every variable that it marks (Part 6).
 
 After the analysis, with assertion level `L`:
 
-1. `utrail_undo` to `choice_point_stk[L, CHOICE_POINT_UTRAIL_MARK]`: the undo trail size just before the decision of
+1. `utrail_undo` to `choicepoint_stk[L, CHOICEPOINT_UTRAIL_MARK]`: the undo trail size just before the decision of
    level `L + 1`. This restores `state` to the end of level `L`, as a backtrack does. The mark of the choice point
    that opened level `L` (index `L - 1`) is one level too low: it would also undo the decision of level `L`.
-2. Pop the rows of `itrail` down to `choice_point_stk[L, CHOICE_POINT_ITRAIL_MARK]`, and fix `itrail_last` (3.3).
-3. Set `choice_point_top` to `L`.
+2. Pop the rows of `itrail` down to `choicepoint_stk[L, CHOICEPOINT_ITRAIL_MARK]`, and fix `itrail_last` (3.3).
+3. Set `choicepoint_top` to `L`.
 4. Add the learned clause to the store, with watches on the asserting literal and on the literal of level `L`. A
    clause with one literal goes into `unit_lits` instead (4.7).
 5. Set the asserting literal (the negation of the UIP) with `tighten_at`, with `REASON_CLAUSE`.
@@ -616,7 +616,7 @@ If the learned clause is empty, or its asserting literal fails at level 0, the p
 - **Optimization.** When a solution with objective `f` is found (minimization), the bound `[obj <= f - 1]` holds for
   the rest of the search. It cannot be a row of level 0. A write made deep in the tree is on the undo trail, and a
   backtrack removes it. For this reason, `backtrack` today applies the bound again at each choice point that the
-  search resumes (`tighten_objective` in `choice_points.py`). The LCG mode resumes no alternative. Thus it applies
+  search resumes (`tighten_objective` in `choicepoints.py`). The LCG mode resumes no alternative. Thus it applies
   the bound again after each backjump, and after each restart (as `_tighten_objective_at_root` does). Each
   application adds a row with `REASON_ROOT` at the current level. The analysis drops such a row as it drops a
   level-0 fact (4.5), and a backjump below it removes it.
@@ -629,7 +629,7 @@ If the learned clause is empty, or its asserting literal fails at level 0, the p
   analyses it as a conflict. Enumeration stays complete, and no solution comes twice. Restarts stop at the first
   solution, as today.
 - **Restarts.** A restart is a backjump to level 0. The learned clauses and the activities stay. But the level-0
-  facts that the search learned do not stay. `_reset_to_root` (`tree_search_solver.py`) calls `choice_point_init`,
+  facts that the search learned do not stay. `_reset_to_root` (`tree_search_solver.py`) calls `choicepoint_init`,
   which writes `problem.initial_domains` back into `state`. The propagation at the root finds again the facts that
   come from the propagators and from the clauses with two or more literals. It does not find the clauses with one
   literal: they have no second watch, and nothing wakes them. Thus the LCG mode keeps them in `unit_lits` (3.5), and
@@ -869,10 +869,10 @@ trail, the explanations, the analysis and the store already have their tests.
    *Check:* a debug function replays `itrail` from the root and compares the result with `state` at each node.
    The counters stay the same as in step 4. Measure the drop in nodes per second.
    *Done on 2026-11-06:* `nucs/solvers/lcg/implication_trail.py` holds the rows, `itrail_push`, `itrail_pop`,
-   `itrail_root` and the replay check `itrail_check`. The level of a row is `choice_point_top`, so a ternary
+   `itrail_root` and the replay check `itrail_check`. The level of a row is `choicepoint_top`, so a ternary
    decision has an empty first level, and `level_start` has one cell for each row of the stack of choice points.
-   (On 2026-11-07, `level_start` became the column `CHOICE_POINT_ITRAIL_MARK` of the stack of choice points, and
-   `ITRAIL_LEVEL` became `ITRAIL_CHOICE_POINT`, so that the code has one name for a level; the names of the two trails
+   (On 2026-11-07, `level_start` became the column `CHOICEPOINT_ITRAIL_MARK` of the stack of choice points, and
+   `ITRAIL_LEVEL` became `ITRAIL_CHOICEPOINT`, so that the code has one name for a level; the names of the two trails
    became `utrail_*` and `itrail_*`.)
    `lcg_algorithm` writes the rows in `update_domains_with_reasons`, a copy of `update_domains`. The decision rows are
    written after `branch`, which does not change. `LcgSolver` has its own copy of `backtrack`, which pops the rows and
@@ -1211,7 +1211,7 @@ A shorter student lecture that goes from CP to SAT to LCG: [Lal, *From CP to SAT
 | CDCL | conflict-driven clause learning, the algorithm of modern SAT solvers |
 | clause | a disjunction of literals |
 | conflict | a failure found by a propagator or by a clause |
-| decision level | the number of decisions on the current path; 0 is the root. The code calls it the choice point (`choice_point_top`) |
+| decision level | the number of decisions on the current path; 0 is the root. The code calls it the choice point (`choicepoint_top`) |
 | explanation | a set of true literals that force a literal through one constraint |
 | first UIP (1UIP) | the literal of the current level, closest to the conflict, through which all the paths from the decision to the conflict go |
 | implication trail | the ordered list of the literals that became true, with their levels and reasons |

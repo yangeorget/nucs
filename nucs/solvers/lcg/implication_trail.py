@@ -21,9 +21,9 @@ trail only records.
 A row means "the literal (VAR_SIDE, VALUE) became true here". The rows of one bound make a chain through PREV, and
 itrail_last holds the last row of each chain, -1 when the bound has its root value.
 
-The choice point of a row is choice_point_top[0] when the row is written: in the terms of the conflict analysis, its
+The choice point of a row is choicepoint_top[0] when the row is written: in the terms of the conflict analysis, its
 decision level. When choice point c branches, the solver writes the size of the implication trail in its column
-CHOICE_POINT_ITRAIL_MARK, as branch writes the size of the undo trail in CHOICE_POINT_UTRAIL_MARK. Thus the rows of
+CHOICEPOINT_ITRAIL_MARK, as branch writes the size of the undo trail in CHOICEPOINT_UTRAIL_MARK. Thus the rows of
 choice point c start at the mark of choice point c - 1 (itrail_start), and a backtrack to choice point c pops the rows
 down to the mark of c, as it undoes the undo trail down to the other mark of c.
 """
@@ -33,13 +33,13 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_MAX, EVENT_MASK_MIN
-from nucs.solvers.choice_points import CHOICE_POINT_ITRAIL_MARK
+from nucs.solvers.choicepoints import CHOICEPOINT_ITRAIL_MARK
 
 # The columns of a row of itrail.
 ITRAIL_VAR_SIDE = 0  # the bound that changed, (variable << 1) | side, which is also its index in state
 ITRAIL_VALUE = 1  # the new value of the bound
 ITRAIL_PREV = 2  # the row of the previous change of the same bound, -1 when there is none
-ITRAIL_CHOICE_POINT = 3  # the choice point of the change, its decision level
+ITRAIL_CHOICEPOINT = 3  # the choice point of the change, its decision level
 ITRAIL_REASON_KIND = 4  # why the bound changed, one of REASON_*
 ITRAIL_REASON_DATA = 5  # the propagator for REASON_PROPAGATOR, the clause for REASON_CLAUSE, -1 otherwise
 ITRAIL_REASON_POS = 6  # for REASON_PROPAGATOR, the first row of the propagator call, -1 otherwise
@@ -66,7 +66,7 @@ def itrail_push(
     itrail_size: int,
     var_side: int,
     value: int,
-    choice_point: int,
+    choicepoint: int,
     reason_kind: int,
     reason_data: int,
     reason_pos: int,
@@ -86,8 +86,8 @@ def itrail_push(
     :type var_side: int
     :param value: the new value of the bound
     :type value: int
-    :param choice_point: the choice point of the change, choice_point_top[0]
-    :type choice_point: int
+    :param choicepoint: the choice point of the change, choicepoint_top[0]
+    :type choicepoint: int
     :param reason_kind: why the bound changed, one of REASON_*
     :type reason_kind: int
     :param reason_data: the propagator or the clause of the reason, -1 when there is none
@@ -101,7 +101,7 @@ def itrail_push(
     itrail[itrail_size, ITRAIL_VAR_SIDE] = var_side
     itrail[itrail_size, ITRAIL_VALUE] = value
     itrail[itrail_size, ITRAIL_PREV] = itrail_last[var_side]
-    itrail[itrail_size, ITRAIL_CHOICE_POINT] = choice_point
+    itrail[itrail_size, ITRAIL_CHOICEPOINT] = choicepoint
     itrail[itrail_size, ITRAIL_REASON_KIND] = reason_kind
     itrail[itrail_size, ITRAIL_REASON_DATA] = reason_data
     itrail[itrail_size, ITRAIL_REASON_POS] = reason_pos
@@ -117,7 +117,7 @@ def itrail_push_events(
     state: NDArray,
     variable: int,
     events: int,
-    choice_point: int,
+    choicepoint: int,
     reason_kind: int,
     reason_data: int,
     reason_pos: int,
@@ -140,8 +140,8 @@ def itrail_push_events(
     :type variable: int
     :param events: the events that tighten_at returned
     :type events: int
-    :param choice_point: the choice point of the change, choice_point_top[0]
-    :type choice_point: int
+    :param choicepoint: the choice point of the change, choicepoint_top[0]
+    :type choicepoint: int
     :param reason_kind: why the bounds changed, one of REASON_*
     :type reason_kind: int
     :param reason_data: the propagator or the clause of the reason, -1 when there is none
@@ -160,7 +160,7 @@ def itrail_push_events(
             itrail_size,
             cell_idx,
             state[cell_idx],
-            choice_point,
+            choicepoint,
             reason_kind,
             reason_data,
             reason_pos,
@@ -172,7 +172,7 @@ def itrail_push_events(
             itrail_size,
             cell_idx | 1,
             state[cell_idx | 1],
-            choice_point,
+            choicepoint,
             reason_kind,
             reason_data,
             reason_pos,
@@ -204,21 +204,21 @@ def itrail_pop(itrail: NDArray, itrail_top: NDArray, itrail_last: NDArray, itrai
 
 
 @njit(cache=True, inline="always")
-def itrail_start(choice_point_stk: NDArray, choice_point: int) -> int:
+def itrail_start(choicepoint_stk: NDArray, choicepoint: int) -> int:
     """
     Returns the first row of the implication trail that a choice point wrote.
 
     The rows of choice point c start when choice point c - 1 branches, and the rows of choice point 0 start at row 0.
 
-    :param choice_point_stk: the per-choice-point metadata
-    :type choice_point_stk: NDArray
-    :param choice_point: the choice point, at most choice_point_top[0]
-    :type choice_point: int
+    :param choicepoint_stk: the per-choice-point metadata
+    :type choicepoint_stk: NDArray
+    :param choicepoint: the choice point, at most choicepoint_top[0]
+    :type choicepoint: int
 
     :return: the first row of the implication trail that the choice point wrote
     :rtype: int
     """
-    return 0 if choice_point == 0 else choice_point_stk[choice_point - 1, CHOICE_POINT_ITRAIL_MARK]
+    return 0 if choicepoint == 0 else choicepoint_stk[choicepoint - 1, CHOICEPOINT_ITRAIL_MARK]
 
 
 @njit(cache=True)
@@ -266,8 +266,8 @@ def itrail_check(
     itrail: NDArray,
     itrail_top: NDArray,
     itrail_last: NDArray,
-    choice_point_stk: NDArray,
-    choice_point: int,
+    choicepoint_stk: NDArray,
+    choicepoint: int,
 ) -> int:
     """
     Replays the implication trail from the root, and checks it against state: the debug check of step 5 of
@@ -291,10 +291,10 @@ def itrail_check(
     :type itrail_top: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
-    :param choice_point_stk: the per-choice-point metadata, with the marks of the implication trail
-    :type choice_point_stk: NDArray
-    :param choice_point: the current choice point, choice_point_top[0]
-    :type choice_point: int
+    :param choicepoint_stk: the per-choice-point metadata, with the marks of the implication trail
+    :type choicepoint_stk: NDArray
+    :param choicepoint: the current choice point, choicepoint_top[0]
+    :type choicepoint: int
 
     :return: ITRAIL_VALID when the implication trail agrees with state, else the first row that does not, or the
              number of rows in use when only the final comparison fails
@@ -306,11 +306,11 @@ def itrail_check(
     for variable in range(len(initial_domains)):
         replay[variable << 1] = initial_domains[variable, DOMAIN_MIN]
         replay[(variable << 1) | 1] = initial_domains[variable, DOMAIN_MAX]
-    previous_choice_point = 0
+    previous_choicepoint = 0
     for row in range(itrail_size):
         var_side = itrail[row, ITRAIL_VAR_SIDE]
         value = itrail[row, ITRAIL_VALUE]
-        row_choice_point = itrail[row, ITRAIL_CHOICE_POINT]
+        row_choicepoint = itrail[row, ITRAIL_CHOICEPOINT]
         if itrail[row, ITRAIL_PREV] != last[var_side]:
             return row
         if (var_side & 1) == DOMAIN_MIN:
@@ -318,10 +318,10 @@ def itrail_check(
                 return row
         elif value >= replay[var_side]:
             return row
-        start = itrail_start(choice_point_stk, row_choice_point)
-        if row_choice_point < previous_choice_point or row_choice_point > choice_point or row < start:
+        start = itrail_start(choicepoint_stk, row_choicepoint)
+        if row_choicepoint < previous_choicepoint or row_choicepoint > choicepoint or row < start:
             return row
-        if row_choice_point < choice_point and row >= choice_point_stk[row_choice_point, CHOICE_POINT_ITRAIL_MARK]:
+        if row_choicepoint < choicepoint and row >= choicepoint_stk[row_choicepoint, CHOICEPOINT_ITRAIL_MARK]:
             return row
         if itrail[row, ITRAIL_REASON_KIND] == REASON_PROPAGATOR and not (
             start <= itrail[row, ITRAIL_REASON_POS] <= row
@@ -329,7 +329,7 @@ def itrail_check(
             return row
         replay[var_side] = value
         last[var_side] = row
-        previous_choice_point = row_choice_point
+        previous_choicepoint = row_choicepoint
     for var_side in range(len(replay)):
         if replay[var_side] != state[var_side] or last[var_side] != itrail_last[var_side]:
             return itrail_size

@@ -21,7 +21,7 @@ from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_NB
 from nucs.problems.problem import PROBLEM_INCONSISTENT, Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_LEQ_C, ALG_SUM_EQ
 from nucs.solvers.backtrack.bc_algorithm import bc_algorithm
-from nucs.solvers.choice_points import CHOICE_POINT_UTRAIL_MARK
+from nucs.solvers.choicepoints import CHOICEPOINT_UTRAIL_MARK
 from nucs.solvers.propagation_steps import update_propagators
 from nucs.solvers.state import tighten_at
 
@@ -137,8 +137,8 @@ def golomb_consistency_algorithm(
     utrail_log: NDArray,
     utrail_top: NDArray,
     utrail_indices: NDArray,
-    choice_point_stk: NDArray,
-    choice_point_top: NDArray,
+    choicepoint_stk: NDArray,
+    choicepoint_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
     domain_buffer: NDArray,
@@ -182,10 +182,10 @@ def golomb_consistency_algorithm(
     :type utrail_top: NDArray
     :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
     :type utrail_indices: NDArray
-    :param choice_point_stk: the per-choice-point metadata
-    :type choice_point_stk: NDArray
-    :param choice_point_top: the index of the top of the choice points as a Numpy array
-    :type choice_point_top: NDArray
+    :param choicepoint_stk: the per-choice-point metadata
+    :type choicepoint_stk: NDArray
+    :param choicepoint_top: the index of the top of the choice points as a Numpy array
+    :type choicepoint_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param compute_domains_addrs: the compiled compute_domains address of each algorithm, resolved once at solver init
@@ -197,7 +197,7 @@ def golomb_consistency_algorithm(
     :return: the status as an int
     :rtype: int
     """
-    mark = choice_point_stk[choice_point_top[0], CHOICE_POINT_UTRAIL_MARK]
+    mark = choicepoint_stk[choicepoint_top[0], CHOICEPOINT_UTRAIL_MARK]
     # as in the propagation loop, the undo trail size stays in a register across the whole pruning
     utrail_size = utrail_top[0]
     # first prune the search space
@@ -282,8 +282,8 @@ def golomb_consistency_algorithm(
         utrail_log,
         utrail_top,
         utrail_indices,
-        choice_point_stk,
-        choice_point_top,
+        choicepoint_stk,
+        choicepoint_top,
         triggered_propagators,
         compute_domains_addrs,
         domain_buffer,

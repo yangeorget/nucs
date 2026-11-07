@@ -33,7 +33,7 @@ from nucs.problems.problem import (
 )
 from nucs.propagators.propagators import call_compute_domains
 from nucs.solvers.buckets import STORAGE_OFFSET, buckets_pop
-from nucs.solvers.choice_points import CHOICE_POINT_UTRAIL_MARK
+from nucs.solvers.choicepoints import CHOICEPOINT_UTRAIL_MARK
 from nucs.solvers.propagation_steps import (
     count_no_change,
     gather_domains,
@@ -81,8 +81,8 @@ def bc_algorithm(
     utrail_log: NDArray,
     utrail_top: NDArray,
     utrail_indices: NDArray,
-    choice_point_stk: NDArray,
-    choice_point_top: NDArray,
+    choicepoint_stk: NDArray,
+    choicepoint_top: NDArray,
     triggered_propagators: NDArray,
     compute_domains_addrs: NDArray,
     domain_buffer: NDArray,
@@ -127,10 +127,10 @@ def bc_algorithm(
     :type utrail_top: NDArray
     :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
     :type utrail_indices: NDArray
-    :param choice_point_stk: the per-choice-point metadata
-    :type choice_point_stk: NDArray
-    :param choice_point_top: the index of the top of the choice points as a Numpy array
-    :type choice_point_top: NDArray
+    :param choicepoint_stk: the per-choice-point metadata
+    :type choicepoint_stk: NDArray
+    :param choicepoint_top: the index of the top of the choice points as a Numpy array
+    :type choicepoint_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param compute_domains_addrs: the compiled compute_domains address of each algorithm, resolved once at solver init
@@ -142,10 +142,10 @@ def bc_algorithm(
     :return: a status (consistency, inconsistency or entailment) as an integer
     :rtype: int
     """
-    choice_point = choice_point_top[0]
-    # the choice point's mark is loaded once: choice_point_top does not move during a filtering, and neither does the
+    choicepoint = choicepoint_top[0]
+    # the choice point's mark is loaded once: choicepoint_top does not move during a filtering, and neither does the
     # mark of the choice point it is filtering
-    mark = choice_point_stk[choice_point, CHOICE_POINT_UTRAIL_MARK]
+    mark = choicepoint_stk[choicepoint, CHOICEPOINT_UTRAIL_MARK]
     unbound_idx = unbound_index(state)
     # the undo trail size lives in a local for the whole filtering and is published on the way out. Nothing
     # outside this function reads it before then, and keeping it out of memory takes a load and a store

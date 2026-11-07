@@ -53,7 +53,7 @@ class TestPropagatorStateIsBacktracked:
         Restarting the search from the root has to put every trailed state block back to its root value.
 
         OPTIM_RESET drops the undo trail rather than unwinding it, so nothing restores a block the way a
-        backtrack would, and without choice_point_init clearing the trailed prefixes the restarted search
+        backtrack would, and without choicepoint_init clearing the trailed prefixes the restarted search
         would begin holding whatever invariant the previous one stopped at. A propagator is entitled to
         read its block as describing the node it is being called at, so that is not a slow search but a
         wrong answer: on knapsack, with the capacity constraint over STATE_MIN_N, it returned 40 instead

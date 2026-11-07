@@ -42,7 +42,7 @@ from nucs.propagators.propagators import (
 )
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.buckets import buckets_empty
-from nucs.solvers.choice_points import CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_VARIABLE, branch
+from nucs.solvers.choicepoints import CHOICEPOINT_BOUND, CHOICEPOINT_VALUE, CHOICEPOINT_VARIABLE, branch
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
 from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
@@ -216,20 +216,20 @@ class TestBacktrackSolver:
         assert status == SOLVER_RUNNING
         assert solution is not None
         assert solution.tolist() == [0, 0]
-        assert solver.choice_point_top == 2
+        assert solver.choicepoint_top == 2
         # two min_value decisions, so both variables are ground at [0, 0]
         assert solver.domains[0].tolist() == [0, 0]
         assert solver.domains[1].tolist() == [0, 0]
         # each choice point parked the alternative to its own decision: raise that variable's min to 1
-        assert solver.choice_point_stk[0, CHOICE_POINT_VARIABLE] == 0
-        assert solver.choice_point_stk[0, CHOICE_POINT_BOUND] == DOMAIN_MIN
-        assert solver.choice_point_stk[0, CHOICE_POINT_VALUE] == 1
-        assert solver.choice_point_stk[1, CHOICE_POINT_VARIABLE] == 1
-        assert solver.choice_point_stk[1, CHOICE_POINT_BOUND] == DOMAIN_MIN
-        assert solver.choice_point_stk[1, CHOICE_POINT_VALUE] == 1
+        assert solver.choicepoint_stk[0, CHOICEPOINT_VARIABLE] == 0
+        assert solver.choicepoint_stk[0, CHOICEPOINT_BOUND] == DOMAIN_MIN
+        assert solver.choicepoint_stk[0, CHOICEPOINT_VALUE] == 1
+        assert solver.choicepoint_stk[1, CHOICEPOINT_VARIABLE] == 1
+        assert solver.choicepoint_stk[1, CHOICEPOINT_BOUND] == DOMAIN_MIN
+        assert solver.choicepoint_stk[1, CHOICEPOINT_VALUE] == 1
         assert solver._backtrack()
         # back at choice point 1, with variable 1's alternative applied: variable 0 stays at its decision
-        assert solver.choice_point_top == 1
+        assert solver.choicepoint_top == 1
         assert solver.domains[0].tolist() == [0, 0]
         assert solver.domains[1].tolist() == [1, 1]
 
@@ -245,7 +245,7 @@ class TestBacktrackSolver:
         assert len(solutions) == 1000
         assert solutions[0].tolist() == [0, 0, 0]
         assert solutions[-1].tolist() == [9, 9, 9]
-        assert solver.choice_point_top[0] == 0  # exhausted, back at the root
+        assert solver.choicepoint_top[0] == 0  # exhausted, back at the root
         # the root's own refutations are never undone -- nothing pops past choice point 0 -- but everything
         # deeper is, so what is left is a handful of entries rather than one snapshot per choice point
         assert solver.utrail_top[0] < 4 * len(solver.utrail_indices)
@@ -301,8 +301,8 @@ class TestBacktrackSolver:
             solver.utrail_log,
             solver.utrail_top,
             solver.utrail_indices,
-            solver.choice_point_stk,
-            solver.choice_point_top,
+            solver.choicepoint_stk,
+            solver.choicepoint_top,
             0,
             DECISION_EQ,
             1,
@@ -321,10 +321,10 @@ class TestBacktrackSolver:
         problem = Problem([(0, 5)] * 6)
         reference = BacktrackSolver(problem).find_all()
         solver = BacktrackSolver(Problem([(0, 5)] * 6))
-        assert solver.choice_point_top[0] < 4  # a shorter stack keeps the rows the solver already wrote
-        solver.choice_point_stk = solver.choice_point_stk[:4].copy()
+        assert solver.choicepoint_top[0] < 4  # a shorter stack keeps the rows the solver already wrote
+        solver.choicepoint_stk = solver.choicepoint_stk[:4].copy()
         assert len(solver.find_all()) == len(reference)
-        assert len(solver.choice_point_stk) > 4
+        assert len(solver.choicepoint_stk) > 4
 
     def test_find_all(self) -> None:
         problem = Problem([(0, 1), (0, 1)])

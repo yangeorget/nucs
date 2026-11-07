@@ -136,16 +136,26 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
     and `utrail_headroom`, also as attributes of the solver;
   - `trail_push`, `trail_set` and `trail_undo` (`nucs.solvers.state`) with `utrail_push`, `utrail_set` and
     `utrail_undo`, and `trail_state_prefix` (`nucs.solvers.propagation_steps`) with `utrail_state_prefix`;
-  - `CHOICE_POINT_TRAIL_MARK` with `CHOICE_POINT_UTRAIL_MARK`, `TIGHTENING_TRAIL_ENTRY_NB` with
+  - `CHOICE_POINT_TRAIL_MARK` with `CHOICEPOINT_UTRAIL_MARK`, `TIGHTENING_TRAIL_ENTRY_NB` with
     `TIGHTENING_UTRAIL_ENTRY_NB`, and `SOLVER_TRAIL_FULL` with `SOLVER_UTRAIL_FULL`.
 
   The parameter `trail` of `run_search_loop` is now `utrail_log`. A custom consistency algorithm keeps its signature:
   only the names of its parameters change. The values of the constants do not change. The log line of the solver now
   says "The undo trail starts at ...".
-- **The stack of choice points has a fifth column, `CHOICE_POINT_ITRAIL_MARK`** (`nucs.solvers.choice_points`), and
-  `CHOICE_POINT_WIDTH` is now 5. `LcgSolver` writes there the size of the implication trail when a choice point
-  branches, as `branch` writes the size of the undo trail in `CHOICE_POINT_UTRAIL_MARK`. `BacktrackSolver` does not use
-  it. Code that allocates its own stack of choice points must use `CHOICE_POINT_WIDTH`.
+- **The stack of choice points has a fifth column, `CHOICEPOINT_ITRAIL_MARK`** (`nucs.solvers.choicepoints`), and
+  `CHOICEPOINT_WIDTH` is now 5. `LcgSolver` writes there the size of the implication trail when a choice point
+  branches, as `branch` writes the size of the undo trail in `CHOICEPOINT_UTRAIL_MARK`. `BacktrackSolver` does not use
+  it. Code that allocates its own stack of choice points must use `CHOICEPOINT_WIDTH`.
+- **"Choice point" is one word in the names: `choicepoint`.** Replace:
+  - the module `nucs.solvers.choice_points` with `nucs.solvers.choicepoints`;
+  - `choice_point_stk`, `choice_point_top` and `choice_point_init` with `choicepoint_stk`, `choicepoint_top` and
+    `choicepoint_init`, also as attributes of the solver and as parameters of the compiled functions;
+  - `CHOICE_POINT_TRAIL_MARK`, `CHOICE_POINT_VARIABLE`, `CHOICE_POINT_BOUND`, `CHOICE_POINT_VALUE` and
+    `CHOICE_POINT_WIDTH` with `CHOICEPOINT_UTRAIL_MARK`, `CHOICEPOINT_VARIABLE`, `CHOICEPOINT_BOUND`,
+    `CHOICEPOINT_VALUE` and `CHOICEPOINT_WIDTH`, and `SOLVER_CHOICE_POINTS_FULL` with `SOLVER_CHOICEPOINTS_FULL`.
+
+  The values of the constants do not change. In the output of `scripts/benchmark.py`, the label `CHOICE_POINT_BYTES`
+  is now `CHOICEPOINT_BYTES`.
 
 ### Fixed
 
