@@ -142,6 +142,10 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   The parameter `trail` of `run_search_loop` is now `utrail_log`. A custom consistency algorithm keeps its signature:
   only the names of its parameters change. The values of the constants do not change. The log line of the solver now
   says "The undo trail starts at ...".
+- **The stack of choice points has a fifth column, `CHOICE_POINT_ITRAIL_MARK`** (`nucs.solvers.choice_points`), and
+  `CHOICE_POINT_WIDTH` is now 5. `LcgSolver` writes there the size of the implication trail when a choice point
+  branches, as `branch` writes the size of the undo trail in `CHOICE_POINT_UTRAIL_MARK`. `BacktrackSolver` does not use
+  it. Code that allocates its own stack of choice points must use `CHOICE_POINT_WIDTH`.
 
 ### Fixed
 

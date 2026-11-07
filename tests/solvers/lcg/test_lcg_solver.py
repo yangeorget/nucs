@@ -23,6 +23,7 @@ from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_DO
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
+from nucs.solvers.choice_points import CHOICE_POINT_ITRAIL_MARK
 from nucs.solvers.lcg.implication_trail import REASON_DECISION, REASON_PROPAGATOR
 from nucs.solvers.lcg.lcg_solver import LcgSolver
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
@@ -95,16 +96,16 @@ class TestLcgSolver:
         assert status == SOLVER_RUNNING
         assert solution is not None
         assert solution.tolist() == [0, 1]
-        # the decision [x0 <= 0] opens level 1; alldifferent, the propagator 0, then sets [x1 >= 1] in a call that
-        # starts at row 1
+        # choice point 0 branches on the decision [x0 <= 0], at row 0; at choice point 1, alldifferent, the propagator
+        # 0, then sets [x1 >= 1] in a call that starts at row 1
         assert solver.itrail_top.tolist() == [2]
         assert solver.itrail[:2].tolist() == [
             [0 << 1 | DOMAIN_MAX, 0, -1, 1, REASON_DECISION, -1, -1],
             [1 << 1 | DOMAIN_MIN, 1, -1, 1, REASON_PROPAGATOR, 0, 1],
         ]
-        assert solver.level_start[1] == 0
+        assert solver.choice_point_stk[0, CHOICE_POINT_ITRAIL_MARK] == 0
         assert solver._backtrack()
-        # back at level 0: the rows of level 1 are gone, and the parked alternative [x0 >= 1] is the new row
+        # back at choice point 0: the rows of choice point 1 are gone, and the parked alternative [x0 >= 1] is the new row
         assert solver.itrail_top.tolist() == [1]
         assert solver.itrail[0].tolist() == [0 << 1 | DOMAIN_MIN, 1, -1, 0, REASON_DECISION, -1, -1]
         assert solver.itrail_last.tolist() == [0, -1, -1, -1]
@@ -122,13 +123,13 @@ class TestLcgSolver:
         solver.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] = 0
         assert solver.statistics.tolist() == backtrack_solver.statistics.tolist()
 
-    def test_find_all_level_start_grows_with_the_stack(self) -> None:
+    def test_find_all_the_itrail_marks_grow_with_the_stack(self) -> None:
+        # the marks of the implication trail are a column of the stack: a stack that grows keeps them
         backtrack_solutions = [solution.tolist() for solution in BacktrackSolver(QueensProblem(7)).find_all()]
         solver = LcgSolver(QueensProblem(7), debug=True)
         solver.choice_point_stk = solver.choice_point_stk[:4].copy()
-        solver.level_start = solver.level_start[:4].copy()
         assert [solution.tolist() for solution in solver.find_all()] == backtrack_solutions
-        assert len(solver.level_start) == len(solver.choice_point_stk) > 4
+        assert len(solver.choice_point_stk) > 4  # it did have to grow
 
     def test_debug_mode_finds_an_implication_trail_that_does_not_agree_with_the_state(self) -> None:
         solver = LcgSolver(QueensProblem(4), debug=True)

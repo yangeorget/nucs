@@ -289,7 +289,7 @@ def update_domains_with_reasons(
     itrail: NDArray,
     itrail_last: NDArray,
     itrail_size: int,
-    level: int,
+    choice_point: int,
     prop_idx: int,
 ) -> tuple[bool, int, int]:
     """
@@ -336,8 +336,8 @@ def update_domains_with_reasons(
     :type itrail_last: NDArray
     :param itrail_size: the number of rows in use
     :type itrail_size: int
-    :param level: the current decision level
-    :type level: int
+    :param choice_point: the current choice point, choice_point_top[0]
+    :type choice_point: int
     :param prop_idx: the propagator whose domains these are
     :type prop_idx: int
 
@@ -368,7 +368,7 @@ def update_domains_with_reasons(
                     state,
                     variable,
                     events,
-                    level,
+                    choice_point,
                     REASON_PROPAGATOR,
                     prop_idx,
                     reason_pos,

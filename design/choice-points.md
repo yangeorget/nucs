@@ -59,14 +59,18 @@ be *wrong*, not merely slower, because undoing to the choice point's own mark wo
 
 | array | shape | dtype | role |
 |-------|-------|-------|------|
-| `choice_point_stk` | `(H, 4)` | int32 | `[CHOICE_POINT_UTRAIL_MARK, CHOICE_POINT_VARIABLE, CHOICE_POINT_BOUND, CHOICE_POINT_VALUE]` |
+| `choice_point_stk` | `(H, 5)` | int32 | `[CHOICE_POINT_UTRAIL_MARK, CHOICE_POINT_VARIABLE, CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_ITRAIL_MARK]` |
 | `choice_point_top` | `(1,)` | uint32 | the index of the top |
 
 `choice_point_stk[d]` holds the undo trail position at which choice point `d` branched, and the alternative to apply
-when the search comes back to it. The four columns share an index *and* a schedule — branching writes all four,
-`backtrack` reads all four — so at 16 bytes a choice point's whole metadata is one aligned chunk, touched as a
-unit. (Contrast the per-propagator arrays, which share an index but are read at wildly different
-frequencies; merging *those* measured worse, and `ARCHITECTURE.md` records it.)
+when the search comes back to it. The first four columns share an index *and* a schedule — branching writes all four,
+`backtrack` reads all four — so a choice point's whole metadata is one chunk, touched as a unit. The fifth column,
+`CHOICE_POINT_ITRAIL_MARK`, is the position of the implication trail at which the choice point branched: only
+`LcgSolver` writes and reads it, on the same schedule. It makes a row 20 bytes instead of an aligned 16; with 7 runs in
+alternate order, `BacktrackSolver` measured 1.2% (langford) and 1.5% (tsp) slower, under the 5% noise floor of
+`design/benchmarking.md`, and `LcgSolver` measured no change (2026-11-07). (Contrast the per-propagator arrays, which
+share an index but are read at wildly different frequencies; merging *those* measured worse, and `ARCHITECTURE.md`
+records it.)
 
 `choice_point_top` and `utrail_top` are one-element arrays rather than `int`s because they are mutable state shared
 across separately jitted functions, and Numba has no way to pass a scalar by reference.

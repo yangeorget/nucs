@@ -25,6 +25,7 @@ from nucs.numba_helper import DomainHeuristicFunctions, VariableHeuristicFunctio
 from nucs.problems.problem import PROBLEM_BOUND, PROBLEM_UNBOUND, Problem
 from nucs.solvers.choice_points import (
     CHOICE_POINT_BOUND,
+    CHOICE_POINT_ITRAIL_MARK,
     CHOICE_POINT_UTRAIL_MARK,
     CHOICE_POINT_VALUE,
     CHOICE_POINT_VARIABLE,
@@ -62,7 +63,6 @@ from nucs.solvers.tree_search_solver import (
     TreeSearchSolver,
     double_rows,
     get_solution,
-    stack_height,
 )
 from nucs.statistics import (
     STATS_IDX_SOLUTION_NB,
@@ -86,8 +86,8 @@ class LcgSolver(TreeSearchSolver):
     Its propagation is always bound consistency, and no parameter selects another one: the conflict analysis needs a
     reason for each change of a bound, and a custom consistency algorithm gives none.
 
-    At this step (design/proposals/lcg.md, 7.0, step 5), it records each bound change on the path, with its decision
-    level and its reason, on the implication trail (nucs.solvers.lcg.implication_trail). The search does not use the
+    At this step (design/proposals/lcg.md, 7.0, step 5), it records each bound change on the path, with its choice
+    point and its reason, on the implication trail (nucs.solvers.lcg.implication_trail). The search does not use the
     implication trail yet: it is the search of BacktrackSolver, and every counter is the same.
     """
 
@@ -126,9 +126,7 @@ class LcgSolver(TreeSearchSolver):
         :type debug: bool
         """
         # allocated before TreeSearchSolver.__init__, because it calls _record_root
-        self.itrail, self.itrail_top, self.itrail_last, self.level_start = allocate_itrail(
-            problem.domain_nb, stack_height(problem.domain_nb)
-        )
+        self.itrail, self.itrail_top, self.itrail_last = allocate_itrail(problem.domain_nb)
         self.debug = debug
         super().__init__(problem, searches, log_level, weight_decay, restart_policy, last_conflict)
         logger.info(f"The implication trail starts at {len(self.itrail)} rows and grows when it runs out")
@@ -138,9 +136,7 @@ class LcgSolver(TreeSearchSolver):
         """
         Builds the implication trail again for the root that the solver has just set.
         """
-        itrail_root(
-            self.state, self.problem.initial_domains, self.itrail, self.itrail_top, self.itrail_last, self.level_start
-        )
+        itrail_root(self.state, self.problem.initial_domains, self.itrail, self.itrail_top, self.itrail_last)
 
     def _backtrack(self) -> bool:
         """
@@ -166,22 +162,18 @@ class LcgSolver(TreeSearchSolver):
             self.itrail,
             self.itrail_top,
             self.itrail_last,
-            self.level_start,
         )
 
     def _run_search_loop(self) -> tuple[int, NDArray | None]:
         """
         Runs the compiled search loop of LcgSolver until it returns, by forwarding the solver state to it.
 
-        It grows the implication trail itself when the loop asks for it, and calls the loop again. It also keeps
-        level_start as long as the stack of choice points, which TreeSearchSolver grows.
+        It grows the implication trail itself when the loop asks for it, and calls the loop again.
 
         :return: why the loop returned, and the solution when it found one
         :rtype: Tuple[int, Optional[NDArray]]
         """
         while True:
-            while len(self.level_start) < len(self.choice_point_stk):
-                self.level_start = double_rows(self.level_start)
             status, solution = run_search_loop(
                 self.statistics,
                 self.problem.algorithms,
@@ -222,7 +214,6 @@ class LcgSolver(TreeSearchSolver):
                 self.itrail,
                 self.itrail_top,
                 self.itrail_last,
-                self.level_start,
                 self.problem.initial_domains,
                 self.debug,
             )
@@ -236,7 +227,7 @@ class LcgSolver(TreeSearchSolver):
                     self.itrail,
                     self.itrail_top,
                     self.itrail_last,
-                    self.level_start,
+                    self.choice_point_stk,
                     self.choice_point_top[0],
                 )
                 raise AssertionError(
@@ -287,7 +278,6 @@ def run_search_loop(
     itrail: NDArray,
     itrail_top: NDArray,
     itrail_last: NDArray,
-    level_start: NDArray,
     initial_domains: NDArray,
     debug: bool,
 ) -> tuple[int, NDArray | None]:
@@ -298,11 +288,12 @@ def run_search_loop(
 
     - it calls lcg_algorithm directly, where that loop calls the consistency algorithm of the solver; lcg_algorithm
       records the changes that the propagators make on the implication trail;
-    - a decision opens its levels in level_start, and adds its rows with REASON_DECISION;
+    - a decision writes the size of the implication trail on the choice points that it parks
+      (CHOICE_POINT_ITRAIL_MARK), and adds its rows with REASON_DECISION;
     - it backtracks with the backtrack of LcgSolver, which also pops the implication trail.
 
-    The level of a row is the height of the stack of choice points when the row is written. A ternary decision
-    pushes two choice points, so its first level holds no row.
+    The choice point of a row is choice_point_top[0] when the row is written. A ternary decision parks two choice
+    points, so the first one of them writes no row.
 
     It stops early when an array it cannot grow runs out of room.
 
@@ -402,8 +393,6 @@ def run_search_loop(
     :type itrail_top: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
-    :param level_start: the first row of each decision level
-    :type level_start: NDArray
     :param initial_domains: the domains of the problem before any propagation, for the debug check
     :type initial_domains: NDArray
     :param debug: whether to replay the implication trail and compare it with the state at each node
@@ -430,7 +419,7 @@ def run_search_loop(
         # no test of the room of the implication trail here: lcg_algorithm makes sure, before each propagator call,
         # that the rows of the call and those of the next decision or backtrack fit
         if debug and not is_itrail_valid(
-            state, initial_domains, itrail, itrail_top, itrail_last, level_start, choice_point_top
+            state, initial_domains, itrail, itrail_top, itrail_last, choice_point_stk, choice_point_top
         ):
             return SOLVER_ITRAIL_INVALID, None
         problem_status = lcg_algorithm(
@@ -462,7 +451,7 @@ def run_search_loop(
         if problem_status == PROBLEM_ITRAIL_FULL:
             return SOLVER_ITRAIL_FULL, None
         if debug and not is_itrail_valid(
-            state, initial_domains, itrail, itrail_top, itrail_last, level_start, choice_point_top
+            state, initial_domains, itrail, itrail_top, itrail_last, choice_point_stk, choice_point_top
         ):
             return SOLVER_ITRAIL_INVALID, None
         if problem_status == PROBLEM_BOUND:
@@ -533,7 +522,6 @@ def run_search_loop(
                 itrail,
                 itrail_top,
                 itrail_last,
-                level_start,
             ):
                 return SOLVER_RUNNING, None
             continue
@@ -545,7 +533,7 @@ def run_search_loop(
                 dom_heuristic_params_offsets[search_idx] : dom_heuristic_params_offsets[search_idx + 1]
             ].reshape(dom_heuristic_params_shapes[search_idx, 0], dom_heuristic_params_shapes[search_idx, 1]),
         )
-        level = choice_point_top[0]
+        first_parked = choice_point_top[0]
         events = branch(
             state,
             utrail_log,
@@ -558,10 +546,11 @@ def run_search_loop(
             value,
         )
         choice_point = choice_point_top[0]
-        # the decision opens one level, or two for a ternary split; its rows are on the deepest one
+        # branch parks one choice point, or two for a ternary split: each one branched at this row of the implication
+        # trail. The rows of the decision are at the new choice point.
         itrail_size = itrail_top[0]
-        for new_level in range(level + 1, choice_point + 1):
-            level_start[new_level] = itrail_size
+        for parked in range(first_parked, choice_point):
+            choice_point_stk[parked, CHOICE_POINT_ITRAIL_MARK] = itrail_size
         itrail_top[0] = itrail_push_events(
             itrail, itrail_last, itrail_size, state, variable, events, choice_point, REASON_DECISION, -1, -1
         )
@@ -581,11 +570,11 @@ def is_itrail_valid(
     itrail: NDArray,
     itrail_top: NDArray,
     itrail_last: NDArray,
-    level_start: NDArray,
+    choice_point_stk: NDArray,
     choice_point_top: NDArray,
 ) -> bool:
     """
-    Returns whether the implication trail agrees with the state, at the current level: the debug check.
+    Returns whether the implication trail agrees with the state, at the current choice point: the debug check.
 
     :param state: all the backtrackable state
     :type state: NDArray
@@ -597,16 +586,16 @@ def is_itrail_valid(
     :type itrail_top: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
-    :param level_start: the first row of each decision level
-    :type level_start: NDArray
-    :param choice_point_top: the index of the top of the choice points as a Numpy array, the current level
+    :param choice_point_stk: the per-choice-point metadata
+    :type choice_point_stk: NDArray
+    :param choice_point_top: the index of the top of the choice points as a Numpy array
     :type choice_point_top: NDArray
 
     :return: true iff the implication trail agrees with the state
     :rtype: bool
     """
     return (
-        itrail_check(state, initial_domains, itrail, itrail_top, itrail_last, level_start, choice_point_top[0])
+        itrail_check(state, initial_domains, itrail, itrail_top, itrail_last, choice_point_stk, choice_point_top[0])
         == ITRAIL_VALID
     )
 
@@ -629,15 +618,14 @@ def backtrack(
     itrail: NDArray,
     itrail_top: NDArray,
     itrail_last: NDArray,
-    level_start: NDArray,
 ) -> bool:
     """
     Backtracks to the deepest choice point that can still hold a solution, as the backtrack of BacktrackSolver
     (nucs.solvers.choice_points) does, and keeps the implication trail in step.
 
-    It is a copy of that backtrack with two changes: popping a choice point also pops the rows of the levels above
-    it, and the parked alternative and the objective bound add their rows, at the level of the choice point that the
-    search resumes. The alternative gets REASON_DECISION: at this step it is a decision of the search, as in
+    It is a copy of that backtrack with two changes: popping a choice point also pops the implication trail down to
+    the mark of that choice point, and the parked alternative and the objective bound add their rows, at the choice
+    point that the search resumes. The alternative gets REASON_DECISION: at this step it is a decision of the search, as in
     BacktrackSolver. The objective bound gets REASON_ROOT: it holds for the rest of the search.
 
     :param statistics: the statistics array
@@ -673,8 +661,6 @@ def backtrack(
     :type itrail_top: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
-    :param level_start: the first row of each decision level
-    :type level_start: NDArray
 
     :return: true iff it is possible to backtrack
     :rtype: bool
@@ -686,8 +672,8 @@ def backtrack(
         statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
         mark = choice_point_stk[choice_point, CHOICE_POINT_UTRAIL_MARK]
         utrail_undo(state, utrail_log, utrail_indices, utrail_top, mark)
-        # the level of this choice point stays: the rows of the levels above it go
-        itrail_pop(itrail, itrail_top, itrail_last, level_start[choice_point + 1])
+        # the rows that this choice point wrote before it branched stay: the rows of the choice points above it go
+        itrail_pop(itrail, itrail_top, itrail_last, choice_point_stk[choice_point, CHOICE_POINT_ITRAIL_MARK])
         variable = choice_point_stk[choice_point, CHOICE_POINT_VARIABLE]
         cell_idx = variable << 1
         new_min, new_max = bounds_after_tightening(

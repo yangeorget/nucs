@@ -31,14 +31,16 @@ from nucs.solvers.state import tighten_at, unbound_index, utrail_undo
 from nucs.statistics import STATS_IDX_SOLVER_BACKTRACK_NB
 
 # Choice point metadata columns.
-# One row per choice point, holding what *describes* it rather than what it changed: the undo trail
-# position at its decision point, and the single-bound tightening to apply when the search resumes it.
+# One row per choice point, holding what *describes* it rather than what it changed: the positions of the two
+# trails at its decision point, and the single-bound tightening to apply when the search resumes it.
 # None of it is trailed -- trailing the decision would erase the very thing backtrack is about to apply.
 CHOICE_POINT_UTRAIL_MARK = 0  # the undo trail size when the choice point branched, the point utrail_undo restores to
 CHOICE_POINT_VARIABLE = 1  # the variable of the parked alternative
 CHOICE_POINT_BOUND = 2  # the side of its domain the alternative tightens
 CHOICE_POINT_VALUE = 3  # the value the alternative tightens that side to
-CHOICE_POINT_WIDTH = 4  # the number of columns of a choice point
+# the implication trail size when the choice point branched, the point itrail_pop restores to: only LcgSolver writes it
+CHOICE_POINT_ITRAIL_MARK = 4
+CHOICE_POINT_WIDTH = 5  # the number of columns of a choice point
 
 
 @njit(cache=True)

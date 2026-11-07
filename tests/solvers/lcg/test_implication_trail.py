@@ -23,8 +23,9 @@ from nucs.constants import (
     EVENT_MASK_MIN_MAX,
     EVENT_MASK_NONE,
 )
+from nucs.solvers.choice_points import CHOICE_POINT_ITRAIL_MARK, CHOICE_POINT_WIDTH
 from nucs.solvers.lcg.implication_trail import (
-    ITRAIL_LEVEL,
+    ITRAIL_CHOICE_POINT,
     ITRAIL_PREV,
     ITRAIL_REASON_DATA,
     ITRAIL_REASON_KIND,
@@ -42,6 +43,7 @@ from nucs.solvers.lcg.implication_trail import (
     itrail_push,
     itrail_push_events,
     itrail_root,
+    itrail_start,
 )
 
 INITIAL_DOMAINS = np.array([[0, 9], [0, 9]], dtype=np.int32)
@@ -49,7 +51,7 @@ INITIAL_DOMAINS = np.array([[0, 9], [0, 9]], dtype=np.int32)
 
 class TestImplicationTrail:
     def test_itrail_push_and_itrail_pop_keep_the_chains(self) -> None:
-        itrail, itrail_top, itrail_last, _ = allocate_itrail(2, 4)
+        itrail, itrail_top, itrail_last = allocate_itrail(2)
         # two changes of the min of x0, with a change of the max of x1 between them
         itrail_size = itrail_push(itrail, itrail_last, 0, 0, 2, 0, REASON_PROPAGATOR, 7, 0)
         itrail_size = itrail_push(itrail, itrail_last, itrail_size, 3, 5, 1, REASON_DECISION, -1, -1)
@@ -83,91 +85,103 @@ class TestImplicationTrail:
     def test_itrail_push_events_adds_a_row_for_each_moved_bound(
         self, events: int, expected_rows: list[list[int]]
     ) -> None:
-        itrail, _, itrail_last, _ = allocate_itrail(2, 4)
+        itrail, _, itrail_last = allocate_itrail(2)
         state = np.array([0, 9, 3, 6, 2], dtype=np.int32)  # x1 is now [3, 6]
         itrail_size = itrail_push_events(itrail, itrail_last, 0, state, 1, events, 2, REASON_PROPAGATOR, 5, 0)
         assert itrail_size == len(expected_rows)
         assert itrail[:itrail_size, [ITRAIL_VAR_SIDE, ITRAIL_VALUE]].tolist() == expected_rows
         assert itrail[
-            :itrail_size, [ITRAIL_LEVEL, ITRAIL_REASON_KIND, ITRAIL_REASON_DATA, ITRAIL_REASON_POS]
+            :itrail_size, [ITRAIL_CHOICE_POINT, ITRAIL_REASON_KIND, ITRAIL_REASON_DATA, ITRAIL_REASON_POS]
         ].tolist() == [[2, REASON_PROPAGATOR, 5, 0]] * len(expected_rows)
 
     def test_itrail_root_records_the_bounds_not_at_their_initial_value(self) -> None:
-        itrail, itrail_top, itrail_last, level_start = allocate_itrail(2, 4)
+        itrail, itrail_top, itrail_last = allocate_itrail(2)
         # what a previous search left, and the bound of the objective x1 at the root
         itrail_top[0] = 5
         itrail_last[:] = 4
-        level_start[0] = 3
         state = np.array([0, 9, 0, 6, 2], dtype=np.int32)
-        itrail_root(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, level_start)
+        itrail_root(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last)
         assert itrail_top.tolist() == [1]
         assert itrail[0].tolist() == [3, 6, -1, 0, REASON_ROOT, -1, -1]
         assert itrail_last.tolist() == [-1, -1, -1, 0]
-        assert level_start[0] == 0
-        assert itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, level_start, 0) == ITRAIL_VALID
+        choice_point_stk = np.zeros((4, CHOICE_POINT_WIDTH), dtype=np.int32)
+        assert (
+            itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, choice_point_stk, 0) == ITRAIL_VALID
+        )
+
+    def test_itrail_start_is_the_mark_of_the_previous_choice_point(self) -> None:
+        choice_point_stk = np.zeros((4, CHOICE_POINT_WIDTH), dtype=np.int32)
+        choice_point_stk[:, CHOICE_POINT_ITRAIL_MARK] = [3, 5, 5, 8]  # a ternary split parked 1 and 2 at row 5
+        assert [itrail_start(choice_point_stk, choice_point) for choice_point in range(4)] == [0, 3, 5, 5]
 
     def test_itrail_check_accepts_a_valid_trail(self) -> None:
-        state, itrail, itrail_top, itrail_last, level_start = build_valid_trail()
-        assert itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, level_start, 1) == ITRAIL_VALID
+        state, itrail, itrail_top, itrail_last, choice_point_stk = build_valid_trail()
+        assert (
+            itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, choice_point_stk, 1) == ITRAIL_VALID
+        )
 
     @pytest.mark.parametrize(
         "row,column,value,expected",
         [
             (2, ITRAIL_VALUE, 2, 2),  # a row that does not tighten its bound
             (2, ITRAIL_PREV, -1, 2),  # a broken chain
-            (1, ITRAIL_LEVEL, 0, 1),  # a row of level 0 after the start of level 1
-            (2, ITRAIL_LEVEL, 2, 2),  # a level above the current one
-            (2, ITRAIL_REASON_POS, 0, 2),  # a call that starts in an earlier level
+            (1, ITRAIL_CHOICE_POINT, 0, 1),  # a row of choice point 0 after choice point 0 branched
+            (2, ITRAIL_CHOICE_POINT, 2, 2),  # a choice point above the current one
+            (2, ITRAIL_REASON_POS, 0, 2),  # a call that starts at an earlier choice point
             (2, ITRAIL_REASON_POS, 3, 2),  # a call that starts after its own row
         ],
     )
     def test_itrail_check_finds_the_first_bad_row(self, row: int, column: int, value: int, expected: int) -> None:
-        state, itrail, itrail_top, itrail_last, level_start = build_valid_trail()
+        state, itrail, itrail_top, itrail_last, choice_point_stk = build_valid_trail()
         itrail[row, column] = value
-        assert itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, level_start, 1) == expected
+        assert itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, choice_point_stk, 1) == expected
 
     @pytest.mark.parametrize(
         "array,index,value,expected",
         [
             ("state", 3, 6, 3),  # the replay does not give the state: the number of rows
             ("itrail_last", 1, 0, 3),  # a chain that does not end at the row of itrail_last
-            ("level_start", 0, 1, 0),  # level 0 does not start at row 0
+            ("choice_point_stk", (0, CHOICE_POINT_ITRAIL_MARK), 0, 0),  # choice point 0 branched before its own row
+            ("choice_point_stk", (0, CHOICE_POINT_ITRAIL_MARK), 2, 1),  # choice point 0 branched after a row of 1
         ],
     )
-    def test_itrail_check_compares_with_the_state(self, array: str, index: int, value: int, expected: int) -> None:
-        state, itrail, itrail_top, itrail_last, level_start = build_valid_trail()
-        {"state": state, "itrail_last": itrail_last, "level_start": level_start}[array][index] = value
-        assert itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, level_start, 1) == expected
+    def test_itrail_check_compares_with_the_state_and_the_marks(
+        self, array: str, index: int | tuple[int, int], value: int, expected: int
+    ) -> None:
+        state, itrail, itrail_top, itrail_last, choice_point_stk = build_valid_trail()
+        {"state": state, "itrail_last": itrail_last, "choice_point_stk": choice_point_stk}[array][index] = value
+        assert itrail_check(state, INITIAL_DOMAINS, itrail, itrail_top, itrail_last, choice_point_stk, 1) == expected
 
     @pytest.mark.parametrize(
-        "domain_nb,level_nb,row_nb",
+        "domain_nb,row_nb",
         [
-            (2, 8, 1 << 16),  # a small problem gets the floor of the undo trail
-            (3000, 12000, 32 * 3000),  # a wide problem gets 16 changes of each bound
+            (2, 1 << 16),  # a small problem gets the floor of the undo trail
+            (3000, 32 * 3000),  # a wide problem gets 16 changes of each bound
         ],
     )
-    def test_allocate_itrail(self, domain_nb: int, level_nb: int, row_nb: int) -> None:
-        itrail, itrail_top, itrail_last, level_start = allocate_itrail(domain_nb, level_nb)
+    def test_allocate_itrail(self, domain_nb: int, row_nb: int) -> None:
+        itrail, itrail_top, itrail_last = allocate_itrail(domain_nb)
         assert itrail.shape == (row_nb, ITRAIL_WIDTH)
         assert itrail_top.tolist() == [0]
         assert itrail_last.tolist() == [-1] * (2 * domain_nb)
-        assert level_start.shape == (level_nb,)
 
 
 def build_valid_trail() -> tuple[NDArray, NDArray, NDArray, NDArray, NDArray]:
     """
-    Builds the implication trail of a path to level 1 on two variables in [0, 9]: at level 0, a propagator sets
-    [x0 >= 2]; the decision [x1 <= 5] opens level 1; a propagator then sets [x0 >= 3].
+    Builds the implication trail of a path to choice point 1 on two variables in [0, 9]: at choice point 0, a
+    propagator sets [x0 >= 2]; choice point 0 then branches on the decision [x1 <= 5]; at choice point 1, a propagator
+    then sets [x0 >= 3].
 
-    :return: the state, the implication trail, the number of rows in use, the last row of each bound and the first row
-             of each level
+    :return: the state, the implication trail, the number of rows in use, the last row of each bound and the stack of
+             choice points
     :rtype: Tuple[NDArray, NDArray, NDArray, NDArray, NDArray]
     """
-    itrail, itrail_top, itrail_last, level_start = allocate_itrail(2, 4)
+    itrail, itrail_top, itrail_last = allocate_itrail(2)
+    choice_point_stk = np.zeros((4, CHOICE_POINT_WIDTH), dtype=np.int32)
     itrail_size = itrail_push(itrail, itrail_last, 0, 0 << 1 | DOMAIN_MIN, 2, 0, REASON_PROPAGATOR, 0, 0)
-    level_start[1] = itrail_size
+    choice_point_stk[0, CHOICE_POINT_ITRAIL_MARK] = itrail_size
     itrail_size = itrail_push(itrail, itrail_last, itrail_size, 1 << 1 | DOMAIN_MAX, 5, 1, REASON_DECISION, -1, -1)
     itrail_size = itrail_push(itrail, itrail_last, itrail_size, 0 << 1 | DOMAIN_MIN, 3, 1, REASON_PROPAGATOR, 1, 2)
     itrail_top[0] = itrail_size
     state = np.array([3, 9, 0, 5, 2], dtype=np.int32)
-    return state, itrail, itrail_top, itrail_last, level_start
+    return state, itrail, itrail_top, itrail_last, choice_point_stk
