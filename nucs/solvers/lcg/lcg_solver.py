@@ -17,6 +17,7 @@ The solver of lazy clause generation (design/proposals/lcg.md) and its compiled 
 import logging
 from collections.abc import Sequence
 
+import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
@@ -30,10 +31,15 @@ from nucs.solvers.choicepoints import (
     CHOICEPOINT_VALUE,
     CHOICEPOINT_VARIABLE,
     bounds_after_tightening,
-    branch,
     tighten_objective,
 )
 from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, INTERRUPTION_EXTERNAL
+from nucs.solvers.lcg.decisions import (
+    PENDING_LIT_VAR_SIDE,
+    decide,
+    decision_literal,
+    take_pending_lit,
+)
 from nucs.solvers.lcg.implication_trail import (
     ITRAIL_VALID,
     REASON_DECISION,
@@ -86,9 +92,12 @@ class LcgSolver(TreeSearchSolver):
     Its propagation is always bound consistency, and no parameter selects another one: the conflict analysis needs a
     reason for each change of a bound, and a custom consistency algorithm gives none.
 
-    At this step (design/proposals/lcg.md, 7.0, step 5), it records each bound change on the path, with its choice
-    point and its reason, on the implication trail (nucs.solvers.lcg.implication_trail). The search does not use the
-    implication trail yet: it is the search of BacktrackSolver, and every counter is the same.
+    At this step (design/proposals/lcg.md, 7.0, step 6), it records each bound change on the path, with its choice
+    point and its reason, on the implication trail (nucs.solvers.lcg.implication_trail), and each decision is one
+    literal on its own choice point (nucs.solvers.lcg.decisions). The search does not use the implication trail yet.
+    It is the search of BacktrackSolver, except that an EQ decision inside the domain is two literals on two choice
+    points: it finds the same solutions and the same optima, and when no decision is such an EQ, every counter is the
+    same.
     """
 
     def __init__(
@@ -127,6 +136,8 @@ class LcgSolver(TreeSearchSolver):
         """
         # allocated before TreeSearchSolver.__init__, because it calls _record_root
         self.itrail, self.itrail_top, self.itrail_last = allocate_itrail(problem.domain_nb)
+        # the second literal of an interior EQ, while the first one propagates (see nucs.solvers.lcg.decisions)
+        self.pending_lit = np.full(2, -1, dtype=np.int32)
         self.debug = debug
         super().__init__(problem, searches, log_level, weight_decay, restart_policy, last_conflict)
         logger.info(f"The implication trail starts at {len(self.itrail)} rows and grows when it runs out")
@@ -134,8 +145,9 @@ class LcgSolver(TreeSearchSolver):
 
     def _record_root(self) -> None:
         """
-        Builds the implication trail again for the root that the solver has just set.
+        Builds the implication trail again for the root that the solver has just set, with no pending literal.
         """
+        self.pending_lit[PENDING_LIT_VAR_SIDE] = -1
         itrail_root(self.state, self.problem.initial_domains, self.itrail, self.itrail_top, self.itrail_last)
 
     def _backtrack(self) -> bool:
@@ -162,6 +174,7 @@ class LcgSolver(TreeSearchSolver):
             self.itrail,
             self.itrail_top,
             self.itrail_last,
+            self.pending_lit,
         )
 
     def _run_search_loop(self) -> tuple[int, NDArray | None]:
@@ -214,6 +227,7 @@ class LcgSolver(TreeSearchSolver):
                 self.itrail,
                 self.itrail_top,
                 self.itrail_last,
+                self.pending_lit,
                 self.problem.initial_domains,
                 self.debug,
             )
@@ -278,22 +292,27 @@ def run_search_loop(
     itrail: NDArray,
     itrail_top: NDArray,
     itrail_last: NDArray,
+    pending_lit: NDArray,
     initial_domains: NDArray,
     debug: bool,
 ) -> tuple[int, NDArray | None]:
     """
     Searches for one solution, as the run_search_loop of BacktrackSolver does: the search loop of LcgSolver.
 
-    It is a copy of the run_search_loop of BacktrackSolver with three changes (design/proposals/lcg.md, 7.0, step 5):
+    It is a copy of the run_search_loop of BacktrackSolver with four changes (design/proposals/lcg.md, 7.0, steps 5
+    and 6):
 
     - it calls lcg_algorithm directly, where that loop calls the consistency algorithm of the solver; lcg_algorithm
       records the changes that the propagators make on the implication trail;
-    - a decision writes the size of the implication trail on the choice points that it parks
-      (CHOICEPOINT_ITRAIL_MARK), and adds its rows with REASON_DECISION;
+    - each decision is one literal on one choice point (decide), where branch parks two alternatives for an EQ inside
+      the domain: the second literal of such an EQ waits in pending_lit, and comes before the heuristics at the next
+      node if the propagation left it open;
+    - a decision writes the size of the implication trail on the choice point that it parks
+      (CHOICEPOINT_ITRAIL_MARK), and adds its row with REASON_DECISION;
     - it backtracks with the backtrack of LcgSolver, which also pops the implication trail.
 
-    The choice point of a row is choicepoint_top[0] when the row is written. A ternary decision parks two choice
-    points, so the first one of them writes no row.
+    The choice point of a row is choicepoint_top[0] when the row is written. STATS_IDX_SOLVER_CHOICE_NB counts the
+    decision literals, so an interior EQ counts two choices when its second literal opens a choice point.
 
     It stops early when an array it cannot grow runs out of room.
 
@@ -393,6 +412,8 @@ def run_search_loop(
     :type itrail_top: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
+    :param pending_lit: the second literal of an interior EQ, see PENDING_LIT_*
+    :type pending_lit: NDArray
     :param initial_domains: the domains of the problem before any propagation, for the debug check
     :type initial_domains: NDArray
     :param debug: whether to replay the implication trail and compare it with the state at each node
@@ -402,7 +423,7 @@ def run_search_loop(
     :rtype: Tuple[int, Optional[NDArray]]
     """
     nb_searches = len(decision_variables_offsets) - 1
-    max_choicepoint = len(choicepoints) - 3  # a ternary split pushes two choice points and marks a third
+    max_choicepoint = len(choicepoints) - 2  # a decision pushes one choice point and marks a second
     while True:
         # checked at every node and before the state is touched, like the two checks below
         if interruption[INTERRUPTION_EXTERNAL] | interruption[INTERRUPTION_DEADLINE]:
@@ -458,43 +479,50 @@ def run_search_loop(
             statistics[STATS_IDX_SOLUTION_NB] += 1
             return SOLVER_RUNNING, get_solution(domains)
         # the variable to branch on, -1 when there is none, and the search that owns it; search_idx is set before
-        # the loop so that it has a value on every path
+        # the loop so that it has a value on every path. var_side is the bound of the decision literal when it is the
+        # pending literal of an interior EQ, -1 when the heuristics choose the decision.
         search_idx = 0
         variable = -1
+        var_side = -1
+        value = 0
         if problem_status == PROBLEM_UNBOUND:
-            # sequential search: the first search that still has an unbound decision variable owns the
-            # decision and branches with its own variable and domain heuristics
-            conflict_variable = search_control[SEARCH_CONTROL_CONFLICT_VARIABLE]
-            for search_idx in range(nb_searches):
-                # last-conflict: the variable of the last refuted decision, while it is unbound, takes the decision
-                # from the heuristic of the search that owns it. The searches before this one have no unbound
-                # variable left, or the loop would not be here, so this keeps the order of the searches.
-                if (
-                    conflict_variable >= 0
-                    and variable_searches[conflict_variable] == search_idx
-                    and domains[conflict_variable, DOMAIN_MIN] < domains[conflict_variable, DOMAIN_MAX]
-                ):
-                    variable = conflict_variable
-                else:
-                    variable = var_heuristic_fcts[search_idx](
-                        decision_variables[
-                            decision_variables_offsets[search_idx] : decision_variables_offsets[search_idx + 1]
-                        ],
-                        domains,
-                        entailed,
-                        offsets,
-                        propagator_variables,
-                        triggers,
-                        triggers_offsets,
-                        propagator_weights,
-                        var_heuristic_params[
-                            var_heuristic_params_offsets[search_idx] : var_heuristic_params_offsets[search_idx + 1]
-                        ].reshape(
-                            var_heuristic_params_shapes[search_idx, 0], var_heuristic_params_shapes[search_idx, 1]
-                        ),
-                    )
-                if variable != -1:
-                    break
+            var_side, value = take_pending_lit(state, pending_lit)
+            if var_side >= 0:
+                variable = var_side >> 1
+            else:
+                # sequential search: the first search that still has an unbound decision variable owns the
+                # decision and branches with its own variable and domain heuristics
+                conflict_variable = search_control[SEARCH_CONTROL_CONFLICT_VARIABLE]
+                for search_idx in range(nb_searches):
+                    # last-conflict: the variable of the last refuted decision, while it is unbound, takes the decision
+                    # from the heuristic of the search that owns it. The searches before this one have no unbound
+                    # variable left, or the loop would not be here, so this keeps the order of the searches.
+                    if (
+                        conflict_variable >= 0
+                        and variable_searches[conflict_variable] == search_idx
+                        and domains[conflict_variable, DOMAIN_MIN] < domains[conflict_variable, DOMAIN_MAX]
+                    ):
+                        variable = conflict_variable
+                    else:
+                        variable = var_heuristic_fcts[search_idx](
+                            decision_variables[
+                                decision_variables_offsets[search_idx] : decision_variables_offsets[search_idx + 1]
+                            ],
+                            domains,
+                            entailed,
+                            offsets,
+                            propagator_variables,
+                            triggers,
+                            triggers_offsets,
+                            propagator_weights,
+                            var_heuristic_params[
+                                var_heuristic_params_offsets[search_idx] : var_heuristic_params_offsets[search_idx + 1]
+                            ].reshape(
+                                var_heuristic_params_shapes[search_idx, 0], var_heuristic_params_shapes[search_idx, 1]
+                            ),
+                        )
+                    if variable != -1:
+                        break
         # either the problem is inconsistent, or no search can claim a variable although variables remain
         # unbound -- a choice point whose domains admit no assignment. Both are dead ends: backtrack.
         if variable == -1:
@@ -522,35 +550,30 @@ def run_search_loop(
                 itrail,
                 itrail_top,
                 itrail_last,
+                pending_lit,
             ):
                 return SOLVER_RUNNING, None
             continue
-        # the heuristic only says where to split; branch owns the two choice points it takes to do so
-        kind, value = dom_heuristic_fcts[search_idx](
-            domains,
-            variable,
-            dom_heuristic_params[
-                dom_heuristic_params_offsets[search_idx] : dom_heuristic_params_offsets[search_idx + 1]
-            ].reshape(dom_heuristic_params_shapes[search_idx, 0], dom_heuristic_params_shapes[search_idx, 1]),
-        )
-        first_parked = choicepoint_top[0]
-        events = branch(
-            state,
-            utrail_log,
-            utrail_top,
-            utrail_indices,
-            choicepoints,
-            choicepoint_top,
-            variable,
-            kind,
-            value,
-        )
+        if var_side < 0:
+            # the heuristic only says where to split; decision_literal maps the split to the literal to apply now, and
+            # puts the second literal of an interior EQ in pending_lit
+            kind, split_value = dom_heuristic_fcts[search_idx](
+                domains,
+                variable,
+                dom_heuristic_params[
+                    dom_heuristic_params_offsets[search_idx] : dom_heuristic_params_offsets[search_idx + 1]
+                ].reshape(dom_heuristic_params_shapes[search_idx, 0], dom_heuristic_params_shapes[search_idx, 1]),
+            )
+            var_side, value = decision_literal(
+                domains[variable, DOMAIN_MIN], domains[variable, DOMAIN_MAX], variable, kind, split_value, pending_lit
+            )
+        parked = choicepoint_top[0]
+        events = decide(state, utrail_log, utrail_top, utrail_indices, choicepoints, choicepoint_top, var_side, value)
         choicepoint = choicepoint_top[0]
-        # branch parks one choice point, or two for a ternary split: each one branched at this row of the implication
-        # trail. The rows of the decision are at the new choice point.
+        # the parked choice point branched at this row of the implication trail; the row of the decision is at the new
+        # choice point
         itrail_size = itrail_top[0]
-        for parked in range(first_parked, choicepoint):
-            choicepoints[parked, CHOICEPOINT_ITRAIL_MARK] = itrail_size
+        choicepoints[parked, CHOICEPOINT_ITRAIL_MARK] = itrail_size
         itrail_top[0] = itrail_push_events(
             itrail, itrail_last, itrail_size, state, variable, events, choicepoint, REASON_DECISION, -1, -1
         )
@@ -618,14 +641,16 @@ def backtrack(
     itrail: NDArray,
     itrail_top: NDArray,
     itrail_last: NDArray,
+    pending_lit: NDArray,
 ) -> bool:
     """
     Backtracks to the deepest choice point that can still hold a solution, as the backtrack of BacktrackSolver
     (nucs.solvers.choicepoints) does, and keeps the implication trail in step.
 
-    It is a copy of that backtrack with two changes: popping a choice point also pops the implication trail down to
-    the mark of that choice point, and the parked alternative and the objective bound add their rows, at the choice
-    point that the search resumes. The alternative gets REASON_DECISION: at this step it is a decision of the search, as in
+    It is a copy of that backtrack with three changes: it drops the pending literal of an interior EQ, which belongs to
+    the choice point that the backtrack leaves; popping a choice point also pops the implication trail down to the mark
+    of that choice point; and the parked alternative and the objective bound add their rows, at the choice point that
+    the search resumes. The alternative gets REASON_DECISION: at this step it is a decision of the search, as in
     BacktrackSolver. The objective bound gets REASON_ROOT: it holds for the rest of the search.
 
     :param statistics: the statistics array
@@ -661,10 +686,13 @@ def backtrack(
     :type itrail_top: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
+    :param pending_lit: the second literal of an interior EQ, see PENDING_LIT_*
+    :type pending_lit: NDArray
 
     :return: true iff it is possible to backtrack
     :rtype: bool
     """
+    pending_lit[PENDING_LIT_VAR_SIDE] = -1
     optimized_variable = bb[BB_VARIABLE]
     while choicepoint_top[0] > 0:
         choicepoint_top[0] -= 1

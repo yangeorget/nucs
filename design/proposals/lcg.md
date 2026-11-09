@@ -1,15 +1,15 @@
 # Lazy clause generation in NuCS — design
 
-> **Status:** proposed, 2026-10-05. The implementation started on 2026-11-03: Phase 0 and steps 3 to 5 of 7.0 are done.
+> **Status:** proposed, 2026-10-05. The implementation started on 2026-11-03: Phase 0 and steps 3 to 6 of 7.0 are done.
 
 This document is the design of lazy clause generation (LCG) for NuCS. It is written for a reader who knows
 classical constraint programming (propagation, search, Gecode and Choco internals) but not LCG or SAT solving.
 Part 1 explains the concepts, with a worked example and links to read. Parts 2 to 6 give the design. Part 7 gives
 the implementation steps, the stages, the tests and the measurements that decide if each stage continues.
 
-Only the literals of 3.2, the copy of `BacktrackSolver` of step 4 (`TreeSearchSolver`, `LcgSolver`,
-`run_search_loop` in `lcg_solver.py`, `lcg_algorithm`) and the implication trail of step 5 (3.3 and 3.4, in
-`implication_trail.py`) are implemented. The names of the other new arrays and
+Only the literals of 3.2, the copy of `BacktrackSolver` of step 4 (`TreeSearchSolver`, `LcgSolver`, `run_search_loop` in
+`lcg_solver.py`, `lcg_algorithm`), the implication trail of step 5 (3.3 and 3.4, in `implication_trail.py`) and the
+decisions as literals of step 6 (4.2, in `decisions.py`) are implemented. The names of the other new arrays and
 functions are proposals.
 
 ## Contents
@@ -478,22 +478,30 @@ Their results map to literals:
 | `GT` at `v` | `[x >= v + 1]` |
 | `EQ` at `v`, `v` = min | `[x <= v]` |
 | `EQ` at `v`, `v` = max | `[x >= v]` |
-| `EQ` at `v`, other `v` | `[x >= v]` on one level, then `[x <= v]` on the next level |
+| `EQ` at `v`, other `v` | `[x <= v]` on one level, then `[x >= v]` on the next level |
 
 The choice point keeps its undo trail mark (`CHOICEPOINT_UTRAIL_MARK`). It parks **no alternative**: the learned clause
 replaces the refutation (1.7).
 
-**The second literal of an interior `EQ`.** The propagation of `[x >= v]` can change `x` before the solver opens the
+**The second literal of an interior `EQ`.** The propagation of `[x <= v]` can change `x` before the solver opens the
 next level. Then:
 
-- if `[x <= v]` is already true (`x` is fixed to `v`), the solver opens no second level;
-- if `[x <= v]` is false (the propagation raised `x.min` above `v`), the solver opens no second level, and asks the
+- if `[x >= v]` is already true (`x` is fixed to `v`), the solver opens no second level;
+- if `[x >= v]` is false (the propagation lowered `x.max` below `v`), the solver opens no second level, and asks the
   heuristics for a new decision.
 
-**The refutation of an interior `EQ`.** A conflict under the second level, with the decision `[x <= v]` as UIP,
-gives a clause that asserts `[x >= v + 1]` at the first level. The other side, `[x <= v - 1]`, is not a single bound
-literal, so no clause asserts it at once. The search stays complete: a later conflict refutes `[x >= v]` itself.
-But the search does not visit the values in the same order as `BacktrackSolver` (question 3 of 8.2).
+The solver does not apply `x = v` at once and park the two alternatives, as `branch` of `BacktrackSolver` does: the
+first level must end at a fixpoint of the propagation of `[x <= v]`, or a conflict that needs only `[x <= v]` has no
+literal at the level of the conflict, and the 1UIP analysis finds no UIP (4.5). This also lets one failure of
+`[x <= v]` refute `v` and the values below `v` (on tsp at step 6: 45,509 failures instead of 54,924).
+
+**The order of the two literals.** `[x <= v]` comes first so that the search visits the values in the order of
+`BacktrackSolver`: `v`, then the values below `v`, then the values above `v`. With the parked alternatives (step 6),
+a backtrack to the second level applies `[x <= v - 1]`, and a backtrack to the first level applies `[x >= v + 1]`.
+With the learned clauses (step 10), a conflict under the second level, with the decision `[x >= v]` as UIP, gives a
+clause that asserts `[x <= v - 1]` at the first level, so the values below `v` come next there too. The values above
+`v` come when a later conflict refutes `[x <= v]` itself, so the search stays complete. (The first version of this
+design put `[x >= v]` first: the search then visits the values above `v` before the values below it.)
 
 ### 4.3 Explanations
 
@@ -895,6 +903,18 @@ trail, the explanations, the analysis and the store already have their tests.
 6. **Add the decisions as literals** (4.2). Each level has one literal and one choice point. An interior `EQ` uses
    two levels, with the rules of 4.2. The alternatives stay parked.
    *Check:* the solution counts and the optima are the same as with `BacktrackSolver`.
+   *Done on 2026-11-07:* `nucs/solvers/lcg/decisions.py` holds `decision_literal` (the map of 4.2), `decide`
+   (one literal on a new choice point, which parks the negation of the literal) and `take_pending_lit`. The second
+   literal of an interior `EQ` waits in the array `pending_lit` of `LcgSolver`, which survives the returns of the
+   compiled loop to Python: `decision_literal` writes it, `take_pending_lit` reads it, and a backtrack and a return
+   to the root clear it. `branch` does not change: only
+   `BacktrackSolver` uses it now. The order is `[x <= v]` first (4.2), not the order of the first version of 4.2.
+   `STATS_IDX_SOLVER_CHOICE_NB` counts the decision literals. On the 22 examples, the answers are the same as with
+   `BacktrackSolver`, and every counter is the same on the 20 examples that make no interior `EQ` decision.
+   magic_square (unseeded `RANDOM_VALUE`) and tsp (`MIN_COST`) make such decisions. On tsp (gr17), the optimum and
+   the 53 improving solutions are the same, with 45,563 choices instead of 35,269, 45,563 backtracks instead of
+   54,978 (each choice is now binary), 45,509 failures instead of 54,924 (a failure of `[x <= v]` also refutes the
+   values below `v`), and 1% more propagator calls.
 7. **Add the explanations** (4.3). The signature `SIGN_EXPLAIN`, and the optional `explain` argument of
    `register_propagator`. `explain_naive`, and the rebuild of the bounds at `REASON_POS` from the chains.
    `LcgSolver` takes no custom consistency algorithm (true since step 4). It accepts the Tier B propagators (Part 2): the debug mode
@@ -1106,8 +1126,9 @@ The decisions below were taken on 2026-11-02. Only question 2 is still open.
 3. **`EQ` decisions as two levels** (4.2). Chuffed uses equality literals for this. Two bound literals on two levels
    is correct, but it doubles the levels for value-by-value searches. Also, a learned clause can refute only one
    side of `x = v` at once (4.2), so the search visits the values in a different order.
-   **Decision:** stage 1 uses two levels. Gate 1 measures sdn-chain and mcm, the value-by-value searches, and
-   compares the levels and the conflicts with Chuffed. The design changes only if they show a problem.
+   **Decision:** stage 1 uses two levels, `[x <= v]` first, which keeps the order of the values of `BacktrackSolver`
+   (4.2). Gate 1 measures sdn-chain and mcm, the value-by-value searches, and compares the levels and the conflicts
+   with Chuffed. The design changes only if they show a problem.
 4. **`regular`: explanation or decomposition?** (5.3).
    **Decision:** the fallback explanation first. Stage 2 measures nonogram. If its clauses stay long, compare the
    MDD-style explanation ([gange-mdd]) with a decomposition into clauses at model build.
