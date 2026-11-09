@@ -16,7 +16,7 @@ import numpy as np
 import pytest
 
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
-from nucs.solvers.lcg.literals import lit_is_false, lit_is_true, lit_negate
+from nucs.solvers.lcg.literals import lit_is_false, lit_is_true, lit_is_unassigned, lit_negate
 
 
 class TestLiterals:
@@ -46,12 +46,13 @@ class TestLiterals:
             (DOMAIN_MIN, 8, False, True),  # [x >= 8], above the domain
         ],
     )
-    def test_lit_is_true_is_false(self, side: int, value: int, is_true: bool, is_false: bool) -> None:
+    def test_lit_is_true_is_false_is_unassigned(self, side: int, value: int, is_true: bool, is_false: bool) -> None:
         # the example of lcg.md 1.2: x (variable 1) in [2, 7], after a variable 0 in [0, 9]
         state = np.array([0, 9, 2, 7], dtype=np.int32)
         var_side = (1 << 1) | side
         assert lit_is_true(state, var_side, value) == is_true
         assert lit_is_false(state, var_side, value) == is_false
+        assert lit_is_unassigned(state, var_side, value) == (not is_true and not is_false)
 
     def test_soundness_against_brute_force(self) -> None:
         # every box [lo, hi] in [-3, 3] and every literal with a value in [-5, 5]: true must mean that all the values
@@ -67,6 +68,7 @@ class TestLiterals:
                 literal = f"side={side} value={value} box=[{lo}, {hi}]"
                 assert is_true == all(sat), literal
                 assert is_false == (not any(sat)), literal
+                assert lit_is_unassigned(state, var_side, value) == (any(sat) and not all(sat)), literal
                 # a literal on a fixed variable is never unassigned
                 assert lo < hi or is_true != is_false, literal
                 # the negation is false exactly when the literal is true

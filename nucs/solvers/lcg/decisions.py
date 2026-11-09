@@ -34,7 +34,7 @@ from numpy.typing import NDArray
 
 from nucs.constants import DECISION_EQ, DECISION_LE, DOMAIN_MAX, DOMAIN_MIN
 from nucs.solvers.choicepoints import CHOICEPOINT_UTRAIL_MARK, bounds_after_tightening, park_alternative
-from nucs.solvers.lcg.literals import lit_is_false, lit_is_true, lit_negate
+from nucs.solvers.lcg.literals import lit_is_unassigned, lit_negate
 from nucs.solvers.state import tighten_at
 
 # The cells of pending_lit, the second literal of an interior EQ: its var_side, -1 when there is none, and its value.
@@ -100,7 +100,7 @@ def take_pending_lit(state: NDArray, pending_lit: NDArray) -> tuple[int, int]:
     var_side = pending_lit[PENDING_LIT_VAR_SIDE]
     value = pending_lit[PENDING_LIT_VALUE]
     pending_lit[PENDING_LIT_VAR_SIDE] = -1
-    if var_side < 0 or lit_is_true(state, var_side, value) or lit_is_false(state, var_side, value):
+    if var_side < 0 or not lit_is_unassigned(state, var_side, value):
         return -1, 0
     return var_side, value
 

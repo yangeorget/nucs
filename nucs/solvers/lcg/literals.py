@@ -90,3 +90,25 @@ def lit_is_false(state: NDArray, var_side: int, value: int) -> bool:
     if (var_side & 1) == DOMAIN_MIN:
         return state[var_side ^ 1] < value
     return state[var_side ^ 1] > value
+
+
+@njit(cache=True, inline="always")
+def lit_is_unassigned(state: NDArray, var_side: int, value: int) -> bool:
+    """
+    Returns whether the current bounds make a literal neither true nor false.
+
+    [x >= v] is unassigned when min < v <= max, and [x <= v] is unassigned when min <= v < max.
+
+    :param state: all the backtrackable state, whose head holds the bounds of the domains
+    :type state: NDArray
+    :param var_side: the variable shifted left by one, with the side of the bound in the low bit
+    :type var_side: int
+    :param value: the value of the literal
+    :type value: int
+
+    :return: true if the literal is unassigned
+    :rtype: bool
+    """
+    if (var_side & 1) == DOMAIN_MIN:
+        return state[var_side] < value <= state[var_side ^ 1]
+    return state[var_side ^ 1] <= value < state[var_side]
