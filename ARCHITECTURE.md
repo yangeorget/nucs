@@ -33,15 +33,17 @@ for contributors are in `design/`; the user documentation is in `docs/`.
   (`tree_search_solver.py`), holds the Python part of the search: the state, the restarts, the optimization modes and
   the growth of the arrays; a subclass gives only its compiled loop, in `_run_search_loop`. The same module holds what
   the two loops share: the statuses that say why a loop returned, the cells of the search control and `get_solution`.
-  The two loops also share `propagation_steps.py` (the steps of one propagator call, with `update_propagators`, which
-  schedules the propagators that a change wakes) and `buckets.py` (the propagation queue, a priority queue in a flat
-  array). The priority of a propagator, its bucket, comes from `compute_priority` in `nucs/problems/problem.py`, which
-  computes it when the problem is built. The backtrackable state and its undo trail live in `state.py`; `tighten_at` is
-  the only permitted way to write a domain. The stack of choice points, built on them, lives in `choicepoints.py`.
-  `allocate_search_arrays` (`tree_search_solver.py`) lays out the state and sizes the undo trail and the stack for a
-  problem. `Interrupter` (`interrupter.py`) holds the two cells that stop the compiled search at its next node, one for
-  each of its two writers: `interrupt()` and the timer of a timeout. To iterate over the solutions, call
-  `solver.solve()`. To optimize, call `solver.find_best(var, DOMAIN_MIN)` or `solver.find_best(var, DOMAIN_MAX)`.
+  The two loops also share `search_steps.py` (the steps of one node of the search: the stop checks, the choice of the
+  variable, and what the search records after a failure and after a decision), `propagation_steps.py` (the steps of one
+  propagator call, with `update_propagators`, which schedules the propagators that a change wakes) and `buckets.py` (the
+  propagation queue, a priority queue in a flat array). The priority of a propagator, its bucket, comes from
+  `compute_priority` in `nucs/problems/problem.py`, which computes it when the problem is built. The backtrackable state
+  and its undo trail live in `state.py`; `tighten_at` is the only permitted way to write a domain. The stack of choice
+  points, built on them, lives in `choicepoints.py`. `allocate_search_arrays` (`tree_search_solver.py`) lays out the
+  state and sizes the undo trail and the stack for a problem. `Interrupter` (`interrupter.py`) holds the two cells that
+  stop the compiled search at its next node, one for each of its two writers: `interrupt()` and the timer of a timeout.
+  To iterate over the solutions, call `solver.solve()`. To optimize, call `solver.find_best(var, DOMAIN_MIN)` or
+  `solver.find_best(var, DOMAIN_MAX)`.
 - **`nucs/heuristics/`** — a variable heuristic picks the next unbound decision variable; a domain heuristic picks how
   to split its domain. Both are compiled by Numba against the fixed signatures `SIGN_VAR_HEURISTIC` and
   `SIGN_DOM_HEURISTIC` in `nucs/heuristics/heuristics.py`, and called by id. The variable heuristics are in the

@@ -33,7 +33,6 @@ from nucs.solvers.choicepoints import (
     bounds_after_tightening,
     tighten_objective,
 )
-from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, INTERRUPTION_EXTERNAL
 from nucs.solvers.lcg.decisions import (
     PENDING_LIT_VAR_SIDE,
     decide,
@@ -53,19 +52,11 @@ from nucs.solvers.lcg.implication_trail import (
 from nucs.solvers.lcg.lcg_algorithm import PROBLEM_ITRAIL_FULL, lcg_algorithm
 from nucs.solvers.propagation_steps import update_propagators
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
+from nucs.solvers.search_steps import record_decision, record_failure, select_variable, stop_status
 from nucs.solvers.searches import SEARCHES_DEFAULT, Search
 from nucs.solvers.state import tighten_at, utrail_undo
 from nucs.solvers.tree_search_solver import (
-    SEARCH_CONTROL_CONFLICT_VARIABLE,
-    SEARCH_CONTROL_DECISION_VARIABLE,
-    SEARCH_CONTROL_FAILURE_NB,
-    SEARCH_CONTROL_LAST_CONFLICT,
-    SEARCH_CONTROL_RESTART_LIMIT,
-    SOLVER_CHOICEPOINTS_FULL,
-    SOLVER_INTERRUPTED,
-    SOLVER_RESTART,
     SOLVER_RUNNING,
-    SOLVER_UTRAIL_FULL,
     TreeSearchSolver,
     double_rows,
     get_solution,
@@ -73,8 +64,6 @@ from nucs.solvers.tree_search_solver import (
 from nucs.statistics import (
     STATS_IDX_SOLUTION_NB,
     STATS_IDX_SOLVER_BACKTRACK_NB,
-    STATS_IDX_SOLVER_CHOICE_DEPTH,
-    STATS_IDX_SOLVER_CHOICE_NB,
 )
 
 logger = logging.getLogger(__name__)
@@ -422,21 +411,13 @@ def run_search_loop(
     :return: why the loop returned, and the solution when it found one
     :rtype: Tuple[int, Optional[NDArray]]
     """
-    nb_searches = len(decision_variables_offsets) - 1
     max_choicepoint = len(choicepoints) - 2  # a decision pushes one choice point and marks a second
     while True:
-        # checked at every node and before the state is touched, like the two checks below
-        if interruption[INTERRUPTION_EXTERNAL] | interruption[INTERRUPTION_DEADLINE]:
-            return SOLVER_INTERRUPTED, None
-        # checked before the filtering, so that the state the solver restarts from is not a half-done one
-        if 0 <= search_control[SEARCH_CONTROL_RESTART_LIMIT] <= search_control[SEARCH_CONTROL_FAILURE_NB]:
-            return SOLVER_RESTART, None
-        # the arrays are caller-allocated, so the search stops for the solver to grow one rather than
-        # overrun it silently -- with boundscheck off, the overrun is what would otherwise happen
-        if utrail_top[0] + utrail_headroom > len(utrail_log):
-            return SOLVER_UTRAIL_FULL, None
-        if choicepoint_top[0] > max_choicepoint:
-            return SOLVER_CHOICEPOINTS_FULL, None
+        status = stop_status(
+            interruption, search_control, utrail_log, utrail_top, utrail_headroom, choicepoint_top, max_choicepoint
+        )
+        if status != SOLVER_RUNNING:
+            return status, None
         # no test of the room of the implication trail here: lcg_algorithm makes sure, before each propagator call,
         # that the rows of the call and those of the next decision or backtrack fit
         if debug and not is_itrail_valid(
@@ -478,9 +459,8 @@ def run_search_loop(
         if problem_status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLUTION_NB] += 1
             return SOLVER_RUNNING, get_solution(domains)
-        # the variable to branch on, -1 when there is none, and the search that owns it; search_idx is set before
-        # the loop so that it has a value on every path. var_side is the bound of the decision literal when it is the
-        # pending literal of an interior EQ, -1 when the heuristics choose the decision.
+        # the variable to branch on, -1 when there is none, and the search that owns it. var_side is the bound of the
+        # decision literal when it is the pending literal of an interior EQ, -1 when the heuristics choose the decision.
         search_idx = 0
         variable = -1
         var_side = -1
@@ -490,49 +470,27 @@ def run_search_loop(
             if var_side >= 0:
                 variable = var_side >> 1
             else:
-                # sequential search: the first search that still has an unbound decision variable owns the
-                # decision and branches with its own variable and domain heuristics
-                conflict_variable = search_control[SEARCH_CONTROL_CONFLICT_VARIABLE]
-                for search_idx in range(nb_searches):
-                    # last-conflict: the variable of the last refuted decision, while it is unbound, takes the decision
-                    # from the heuristic of the search that owns it. The searches before this one have no unbound
-                    # variable left, or the loop would not be here, so this keeps the order of the searches.
-                    if (
-                        conflict_variable >= 0
-                        and variable_searches[conflict_variable] == search_idx
-                        and domains[conflict_variable, DOMAIN_MIN] < domains[conflict_variable, DOMAIN_MAX]
-                    ):
-                        variable = conflict_variable
-                    else:
-                        variable = var_heuristic_fcts[search_idx](
-                            decision_variables[
-                                decision_variables_offsets[search_idx] : decision_variables_offsets[search_idx + 1]
-                            ],
-                            domains,
-                            entailed,
-                            offsets,
-                            propagator_variables,
-                            triggers,
-                            triggers_offsets,
-                            propagator_weights,
-                            var_heuristic_params[
-                                var_heuristic_params_offsets[search_idx] : var_heuristic_params_offsets[search_idx + 1]
-                            ].reshape(
-                                var_heuristic_params_shapes[search_idx, 0], var_heuristic_params_shapes[search_idx, 1]
-                            ),
-                        )
-                    if variable != -1:
-                        break
+                search_idx, variable = select_variable(
+                    domains,
+                    entailed,
+                    offsets,
+                    propagator_variables,
+                    triggers,
+                    triggers_offsets,
+                    propagator_weights,
+                    search_control,
+                    variable_searches,
+                    decision_variables,
+                    decision_variables_offsets,
+                    var_heuristic_fcts,
+                    var_heuristic_params,
+                    var_heuristic_params_offsets,
+                    var_heuristic_params_shapes,
+                )
         # either the problem is inconsistent, or no search can claim a variable although variables remain
         # unbound -- a choice point whose domains admit no assignment. Both are dead ends: backtrack.
         if variable == -1:
-            search_control[SEARCH_CONTROL_FAILURE_NB] += 1
-            # last-conflict (Lecoutre et al. 2009): the conflict variable is that of the last decision that led to a
-            # failure. A failure that follows a refutation keeps the conflict variable: after x fails on all its
-            # values the search refutes an earlier decision on y, and x must then be tried first, to test y.
-            if search_control[SEARCH_CONTROL_DECISION_VARIABLE] >= 0:
-                search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = search_control[SEARCH_CONTROL_DECISION_VARIABLE]
-                search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
+            record_failure(search_control)
             if not backtrack(
                 statistics,
                 state,
@@ -580,10 +538,7 @@ def run_search_loop(
         update_propagators(
             triggered_propagators, entailed, triggers, triggers_offsets, priorities, variable, events, -1
         )
-        statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
-        if search_control[SEARCH_CONTROL_LAST_CONFLICT]:
-            search_control[SEARCH_CONTROL_DECISION_VARIABLE] = variable
-        statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = max(statistics[STATS_IDX_SOLVER_CHOICE_DEPTH], choicepoint)
+        record_decision(statistics, search_control, variable, choicepoint)
 
 
 @njit(cache=True, inline="always")
