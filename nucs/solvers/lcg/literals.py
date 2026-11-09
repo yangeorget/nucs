@@ -74,7 +74,8 @@ def lit_is_false(state: NDArray, var_side: int, value: int) -> bool:
     """
     Returns whether the current bounds make a literal false, that is, its negation true.
 
-    The test reads the other bound of the variable: [x >= v] is false when the upper bound of x is below v.
+    The test reads the other bound of the variable, at var_side ^ 1: [x >= v] is false when the upper bound of x is
+    below v, and [x <= v] is false when the lower bound of x is above v.
 
     :param state: all the backtrackable state, whose head holds the bounds of the domains
     :type state: NDArray
@@ -86,5 +87,6 @@ def lit_is_false(state: NDArray, var_side: int, value: int) -> bool:
     :return: true if the literal is false
     :rtype: bool
     """
-    neg_var_side, neg_value = lit_negate(var_side, value)
-    return lit_is_true(state, neg_var_side, neg_value)
+    if (var_side & 1) == DOMAIN_MIN:
+        return state[var_side ^ 1] < value
+    return state[var_side ^ 1] > value
