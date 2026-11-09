@@ -64,12 +64,12 @@ writes, and store it back once.
 .. code-block:: python
    :linenos:
 
-   utrail_size = utrail_top[0]
-   events, utrail_size = tighten_at(state, utrail_log, utrail_indices, mark, utrail_size, variable, new_min, new_max)
+   utrail_sz = utrail_top[0]
+   events, utrail_sz = tighten_at(state, utrail_log, utrail_indices, mark, utrail_sz, variable, new_min, new_max)
    if events:
        update_propagators(triggered_propagators, entailed, triggers, triggers_offsets,
                           priorities, variable, events, -1)
-   utrail_top[0] = utrail_size
+   utrail_top[0] = utrail_sz
 
 where :code:`mark` is :code:`choicepoints[choicepoint_top[0], CHOICEPOINT_UTRAIL_MARK]`, the undo trail position
 the current choice point branched at, and the last argument of :code:`update_propagators` is a propagator not to wake,

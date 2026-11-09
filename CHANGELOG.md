@@ -156,6 +156,10 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
   The values of the constants do not change. In the output of `scripts/benchmark.py`, the label `CHOICE_POINT_BYTES`
   is now `CHOICEPOINT_BYTES`.
+- **The names that end with `_size` now end with `_sz`.** The parameter `utrail_size` of `utrail_push`, `utrail_set`
+  and `tighten_at` (`nucs.solvers.state`), and of `utrail_state_prefix`, `record_entailment` and `update_domains`
+  (`nucs.solvers.propagation_steps`), is now `utrail_sz`. The parameter and the attribute `group_size` of
+  `SocialGolfersProblem` are now `group_sz`. Code that gives these parameters by position does not change.
 
 ### Fixed
 

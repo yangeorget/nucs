@@ -572,10 +572,10 @@ def run_search_loop(
         choicepoint = choicepoint_top[0]
         # the parked choice point branched at this row of the implication trail; the row of the decision is at the new
         # choice point
-        itrail_size = itrail_top[0]
-        choicepoints[parked, CHOICEPOINT_ITRAIL_MARK] = itrail_size
+        itrail_sz = itrail_top[0]
+        choicepoints[parked, CHOICEPOINT_ITRAIL_MARK] = itrail_sz
         itrail_top[0] = itrail_push_events(
-            itrail, itrail_last, itrail_size, state, variable, events, choicepoint, REASON_DECISION, -1, -1
+            itrail, itrail_last, itrail_sz, state, variable, events, choicepoint, REASON_DECISION, -1, -1
         )
         update_propagators(
             triggered_propagators, entailed, triggers, triggers_offsets, priorities, variable, events, -1
@@ -710,10 +710,10 @@ def backtrack(
             choicepoints[choicepoint, CHOICEPOINT_BOUND],
             choicepoints[choicepoint, CHOICEPOINT_VALUE],
         )
-        events, utrail_size = tighten_at(
+        events, utrail_sz = tighten_at(
             state, utrail_log, utrail_indices, mark, utrail_top[0], variable, new_min, new_max
         )
-        utrail_top[0] = utrail_size
+        utrail_top[0] = utrail_sz
         itrail_top[0] = itrail_push_events(
             itrail, itrail_last, itrail_top[0], state, variable, events, choicepoint, REASON_DECISION, -1, -1
         )

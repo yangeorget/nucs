@@ -63,7 +63,7 @@ ITRAIL_VALID = -1
 def itrail_push(
     itrail: NDArray,
     itrail_last: NDArray,
-    itrail_size: int,
+    itrail_sz: int,
     var_side: int,
     value: int,
     choicepoint: int,
@@ -80,8 +80,8 @@ def itrail_push(
     :type itrail: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
-    :param itrail_size: the number of rows in use
-    :type itrail_size: int
+    :param itrail_sz: the number of rows in use
+    :type itrail_sz: int
     :param var_side: the bound that changed
     :type var_side: int
     :param value: the new value of the bound
@@ -98,22 +98,22 @@ def itrail_push(
     :return: the new number of rows in use
     :rtype: int
     """
-    itrail[itrail_size, ITRAIL_VAR_SIDE] = var_side
-    itrail[itrail_size, ITRAIL_VALUE] = value
-    itrail[itrail_size, ITRAIL_PREV] = itrail_last[var_side]
-    itrail[itrail_size, ITRAIL_CHOICEPOINT] = choicepoint
-    itrail[itrail_size, ITRAIL_REASON_KIND] = reason_kind
-    itrail[itrail_size, ITRAIL_REASON_DATA] = reason_data
-    itrail[itrail_size, ITRAIL_REASON_POS] = reason_pos
-    itrail_last[var_side] = itrail_size
-    return itrail_size + 1
+    itrail[itrail_sz, ITRAIL_VAR_SIDE] = var_side
+    itrail[itrail_sz, ITRAIL_VALUE] = value
+    itrail[itrail_sz, ITRAIL_PREV] = itrail_last[var_side]
+    itrail[itrail_sz, ITRAIL_CHOICEPOINT] = choicepoint
+    itrail[itrail_sz, ITRAIL_REASON_KIND] = reason_kind
+    itrail[itrail_sz, ITRAIL_REASON_DATA] = reason_data
+    itrail[itrail_sz, ITRAIL_REASON_POS] = reason_pos
+    itrail_last[var_side] = itrail_sz
+    return itrail_sz + 1
 
 
 @njit(cache=True, inline="always")
 def itrail_push_events(
     itrail: NDArray,
     itrail_last: NDArray,
-    itrail_size: int,
+    itrail_sz: int,
     state: NDArray,
     variable: int,
     events: int,
@@ -132,8 +132,8 @@ def itrail_push_events(
     :type itrail: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
-    :param itrail_size: the number of rows in use
-    :type itrail_size: int
+    :param itrail_sz: the number of rows in use
+    :type itrail_sz: int
     :param state: all the backtrackable state, which holds the new bounds
     :type state: NDArray
     :param variable: the variable that tighten_at wrote
@@ -154,10 +154,10 @@ def itrail_push_events(
     """
     cell_idx = variable << 1
     if events & EVENT_MASK_MIN:
-        itrail_size = itrail_push(
+        itrail_sz = itrail_push(
             itrail,
             itrail_last,
-            itrail_size,
+            itrail_sz,
             cell_idx,
             state[cell_idx],
             choicepoint,
@@ -166,10 +166,10 @@ def itrail_push_events(
             reason_pos,
         )
     if events & EVENT_MASK_MAX:
-        itrail_size = itrail_push(
+        itrail_sz = itrail_push(
             itrail,
             itrail_last,
-            itrail_size,
+            itrail_sz,
             cell_idx | 1,
             state[cell_idx | 1],
             choicepoint,
@@ -177,7 +177,7 @@ def itrail_push_events(
             reason_data,
             reason_pos,
         )
-    return itrail_size
+    return itrail_sz
 
 
 @njit(cache=True, inline="always")
@@ -248,15 +248,15 @@ def itrail_root(
     :type itrail_last: NDArray
     """
     itrail_last.fill(-1)
-    itrail_size = 0
+    itrail_sz = 0
     for variable in range(len(initial_domains)):
         for side in range(2):
             var_side = (variable << 1) | side
             if state[var_side] != initial_domains[variable, side]:
-                itrail_size = itrail_push(
-                    itrail, itrail_last, itrail_size, var_side, state[var_side], 0, REASON_ROOT, -1, -1
+                itrail_sz = itrail_push(
+                    itrail, itrail_last, itrail_sz, var_side, state[var_side], 0, REASON_ROOT, -1, -1
                 )
-    itrail_top[0] = itrail_size
+    itrail_top[0] = itrail_sz
 
 
 @njit(cache=True)
@@ -300,14 +300,14 @@ def itrail_check(
              number of rows in use when only the final comparison fails
     :rtype: int
     """
-    itrail_size = itrail_top[0]
+    itrail_sz = itrail_top[0]
     replay = np.empty(2 * len(initial_domains), dtype=np.int32)
     last = np.full(2 * len(initial_domains), -1, dtype=np.int32)
     for variable in range(len(initial_domains)):
         replay[variable << 1] = initial_domains[variable, DOMAIN_MIN]
         replay[(variable << 1) | 1] = initial_domains[variable, DOMAIN_MAX]
     previous_choicepoint = 0
-    for row in range(itrail_size):
+    for row in range(itrail_sz):
         var_side = itrail[row, ITRAIL_VAR_SIDE]
         value = itrail[row, ITRAIL_VALUE]
         row_choicepoint = itrail[row, ITRAIL_CHOICEPOINT]
@@ -332,7 +332,7 @@ def itrail_check(
         previous_choicepoint = row_choicepoint
     for var_side in range(len(replay)):
         if replay[var_side] != state[var_side] or last[var_side] != itrail_last[var_side]:
-            return itrail_size
+            return itrail_sz
     return ITRAIL_VALID
 
 

@@ -199,7 +199,7 @@ def golomb_consistency_algorithm(
     """
     mark = choicepoints[choicepoint_top[0], CHOICEPOINT_UTRAIL_MARK]
     # as in the propagation loop, the undo trail size stays in a register across the whole pruning
-    utrail_size = utrail_top[0]
+    utrail_sz = utrail_top[0]
     # first prune the search space
     domain_nb = (len(triggers_offsets) - 1) >> EVENT_NB
     mark_nb = (1 + int(math.sqrt(8 * domain_nb + 1))) >> 1
@@ -239,16 +239,16 @@ def golomb_consistency_algorithm(
                 # tighten leaves the wipeout test to its caller: an empty domain must fail here, because the
                 # propagators of bc_algorithm do not expect one (a search that is not in index order meets it)
                 if new_min > state[cell_idx | 1]:
-                    utrail_top[0] = utrail_size
+                    utrail_top[0] = utrail_sz
                     return PROBLEM_INCONSISTENT
                 # every domain write goes through tighten, which owns the groundness test and the
                 # unbound-variable count -- and, once domains are trailed, the write barrier
-                events, utrail_size = tighten_at(
+                events, utrail_sz = tighten_at(
                     state,
                     utrail_log,
                     utrail_indices,
                     mark,
-                    utrail_size,
+                    utrail_sz,
                     var,
                     new_min,
                     state[cell_idx | 1],
@@ -264,7 +264,7 @@ def golomb_consistency_algorithm(
                         events,
                         -1,
                     )
-    utrail_top[0] = utrail_size
+    utrail_top[0] = utrail_sz
     return bc_algorithm(
         statistics,
         propagator_weights,

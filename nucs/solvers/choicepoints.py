@@ -241,8 +241,8 @@ def branch(
         choicepoint_top[0] = choicepoint + 2
         new_min, new_max = value, value
     # the undo trail size is the mark: the choice point has just been pushed at it
-    events, utrail_size = tighten_at(state, utrail_log, utrail_indices, mark, mark, variable, new_min, new_max)
-    utrail_top[0] = utrail_size
+    events, utrail_sz = tighten_at(state, utrail_log, utrail_indices, mark, mark, variable, new_min, new_max)
+    utrail_top[0] = utrail_sz
     return events
 
 
@@ -296,8 +296,8 @@ def tighten_objective(
     new_min, new_max = bounds_after_tightening(state[cell_idx], state[cell_idx | 1], bound, better)
     if new_min > new_max:
         return -1
-    events, utrail_size = tighten_at(state, utrail_log, utrail_indices, mark, utrail_top[0], variable, new_min, new_max)
-    utrail_top[0] = utrail_size
+    events, utrail_sz = tighten_at(state, utrail_log, utrail_indices, mark, utrail_top[0], variable, new_min, new_max)
+    utrail_top[0] = utrail_sz
     return events
 
 
@@ -377,10 +377,10 @@ def backtrack(
             choicepoints[choicepoint, CHOICEPOINT_BOUND],
             choicepoints[choicepoint, CHOICEPOINT_VALUE],
         )
-        events, utrail_size = tighten_at(
+        events, utrail_sz = tighten_at(
             state, utrail_log, utrail_indices, mark, utrail_top[0], variable, new_min, new_max
         )
-        utrail_top[0] = utrail_size
+        utrail_top[0] = utrail_sz
         if events != EVENT_MASK_NONE:
             update_propagators(
                 triggered_propagators,

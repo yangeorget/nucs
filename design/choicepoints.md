@@ -86,11 +86,11 @@ Every backtrackable write goes through `utrail_set`, and the rule it implements 
 
 ```python
 entry = utrail_indices[flat]
-if not mark <= entry < utrail_size:
-    utrail_log[utrail_size, 0] = flat
-    utrail_log[utrail_size, 1] = old
-    utrail_indices[flat] = utrail_size
-    utrail_size += 1
+if not mark <= entry < utrail_sz:
+    utrail_log[utrail_sz, 0] = flat
+    utrail_log[utrail_sz, 1] = old
+    utrail_indices[flat] = utrail_sz
+    utrail_sz += 1
 state[flat] = value
 ```
 
@@ -144,7 +144,7 @@ mark = utrail_top[0]
 park(choicepoints, choicepoint, mark, variable, MIN, value + 1)      # the alternative, for later
 choicepoints[choicepoint + 1, CHOICEPOINT_UTRAIL_MARK] = mark       # the one about to be worked at
 choicepoint_top[0] = choicepoint + 1
-events, utrail_size = tighten_at(..., mark, mark, variable, domain_min, value)  # the branch explored now
+events, utrail_sz = tighten_at(..., mark, mark, variable, domain_min, value)  # the branch explored now
 ```
 
 A push copies nothing. The alternatives are not materialised anywhere until the search reaches them —

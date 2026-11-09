@@ -150,14 +150,14 @@ def bc_algorithm(
     # the undo trail size lives in a local for the whole filtering and is published on the way out. Nothing
     # outside this function reads it before then, and keeping it out of memory takes a load and a store
     # off every bound the propagation narrows.
-    utrail_size = utrail_top[0]
+    utrail_sz = utrail_top[0]
     entailed_idx = len(domains) << 1  # the entailment flags follow the domain bounds in state
     statistics[STATS_IDX_ALG_BC_NB] += 1
     membership_offset = STORAGE_OFFSET + len(priorities)
     while True:
         prop_idx = buckets_pop(triggered_propagators, membership_offset)
         if prop_idx == -1:
-            utrail_top[0] = utrail_size
+            utrail_top[0] = utrail_sz
             return PROBLEM_BOUND if state[unbound_idx] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         algorithm = algorithms[prop_idx]
@@ -176,8 +176,8 @@ def bc_algorithm(
         # where the untrailed hint suffix starts: the end of the trailed prefix, and the cell a reporting
         # propagator answers in
         prop_state_hint = offsets[prop_idx, OFFSETS_STATE_HINT]
-        utrail_size = utrail_state_prefix(
-            state, utrail_log, utrail_indices, mark, utrail_size, prop_state_start, prop_state_hint
+        utrail_sz = utrail_state_prefix(
+            state, utrail_log, utrail_indices, mark, utrail_sz, prop_state_start, prop_state_hint
         )
         if reports_changes:
             # pre-set to "changed", so that the fast path below is taken only on a propagator that has
@@ -193,17 +193,17 @@ def bc_algorithm(
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             weights_bump(propagator_weights, prop_idx)
-            utrail_top[0] = utrail_size
+            utrail_top[0] = utrail_sz
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
-            utrail_size = record_entailment(entailed, utrail_log, utrail_indices, utrail_size, entailed_idx, prop_idx)
+            utrail_sz = record_entailment(entailed, utrail_log, utrail_indices, utrail_sz, entailed_idx, prop_idx)
         if reports_changes and status == PROP_CONSISTENCY and state[prop_state_hint] == 0:
             # the propagator wrote no domain, so update_domains would scan every variable only to find
             # no event and schedule nobody: skip it outright
             count_no_change(statistics, algorithm_stats)
             continue
-        no_change, utrail_size = update_domains(
+        no_change, utrail_sz = update_domains(
             prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
             prop_var_start,
             prop_var_end,
@@ -213,7 +213,7 @@ def bc_algorithm(
             utrail_log,
             utrail_indices,
             mark,
-            utrail_size,
+            utrail_sz,
             triggered_propagators,
             entailed,
             triggers,

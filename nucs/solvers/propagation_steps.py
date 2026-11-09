@@ -70,7 +70,7 @@ def utrail_state_prefix(
     utrail_log: NDArray,
     utrail_indices: NDArray,
     mark: int,
-    utrail_size: int,
+    utrail_sz: int,
     prop_state_start: int,
     prop_state_hint: int,
 ) -> int:
@@ -91,8 +91,8 @@ def utrail_state_prefix(
     :type utrail_indices: NDArray
     :param mark: the undo trail size when the current choice point branched
     :type mark: int
-    :param utrail_size: the number of entries currently on the undo trail
-    :type utrail_size: int
+    :param utrail_sz: the number of entries currently on the undo trail
+    :type utrail_sz: int
     :param prop_state_start: where the block starts in state
     :type prop_state_start: int
     :param prop_state_hint: where its untrailed hint suffix starts, the end of the prefix
@@ -102,13 +102,13 @@ def utrail_state_prefix(
     :rtype: int
     """
     for cell in range(prop_state_start, prop_state_hint):
-        utrail_size = utrail_set(state, utrail_log, utrail_indices, mark, utrail_size, cell, state[cell], state[cell])
-    return utrail_size
+        utrail_sz = utrail_set(state, utrail_log, utrail_indices, mark, utrail_sz, cell, state[cell], state[cell])
+    return utrail_sz
 
 
 @njit(cache=True, inline="always")
 def record_entailment(
-    entailed: NDArray, utrail_log: NDArray, utrail_indices: NDArray, utrail_size: int, entailed_idx: int, prop_idx: int
+    entailed: NDArray, utrail_log: NDArray, utrail_indices: NDArray, utrail_sz: int, entailed_idx: int, prop_idx: int
 ) -> int:
     """
     Sets a propagator's entailment flag, trailing it on the first time only.
@@ -122,8 +122,8 @@ def record_entailment(
     :type utrail_log: NDArray
     :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
     :type utrail_indices: NDArray
-    :param utrail_size: the number of entries currently on the undo trail
-    :type utrail_size: int
+    :param utrail_sz: the number of entries currently on the undo trail
+    :type utrail_sz: int
     :param entailed_idx: where the entailment flags start in state
     :type entailed_idx: int
     :param prop_idx: the propagator
@@ -133,9 +133,9 @@ def record_entailment(
     :rtype: int
     """
     if not entailed[prop_idx]:
-        utrail_size = utrail_push(utrail_log, utrail_indices, utrail_size, entailed_idx + prop_idx, 0)
+        utrail_sz = utrail_push(utrail_log, utrail_indices, utrail_sz, entailed_idx + prop_idx, 0)
         entailed[prop_idx] = 1
-    return utrail_size
+    return utrail_sz
 
 
 @njit(cache=True, inline="always")
@@ -165,7 +165,7 @@ def update_domains(
     utrail_log: NDArray,
     utrail_indices: NDArray,
     mark: int,
-    utrail_size: int,
+    utrail_sz: int,
     triggered_propagators: NDArray,
     entailed: NDArray,
     triggers: NDArray,
@@ -195,8 +195,8 @@ def update_domains(
     :type utrail_indices: NDArray
     :param mark: the undo trail size when the current choice point branched
     :type mark: int
-    :param utrail_size: the number of entries currently on the undo trail
-    :type utrail_size: int
+    :param utrail_sz: the number of entries currently on the undo trail
+    :type utrail_sz: int
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param entailed: whether each propagator is entailed, a view of state
@@ -218,12 +218,12 @@ def update_domains(
         # int32, but only this way can the compiler see that tighten_at is about to reload them
         cell_idx = variable << 1
         if state[cell_idx] != state[cell_idx | 1]:
-            events, utrail_size = tighten_at(
+            events, utrail_sz = tighten_at(
                 state,
                 utrail_log,
                 utrail_indices,
                 mark,
-                utrail_size,
+                utrail_sz,
                 variable,
                 prop_domains[var_idx, DOMAIN_MIN],
                 prop_domains[var_idx, DOMAIN_MAX],
@@ -240,7 +240,7 @@ def update_domains(
                     skip_prop_idx,
                 )
                 no_changes = False
-    return no_changes, utrail_size
+    return no_changes, utrail_sz
 
 
 # always inlined: the propagation loop calls this for every variable a filtering narrows, and it is compiled

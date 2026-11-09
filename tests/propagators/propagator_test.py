@@ -43,7 +43,7 @@ class PropagatorTest:
         parameters_arr = np.array(parameters, dtype=np.int32)
         # a fresh, zeroed state block, correctly sized by the propagator's own get_state_fct -- (0, 0), and
         # so an empty array, for every propagator that doesn't declare one
-        trailed_nb, hint_nb = _get_state_size(compute_domains_fct, domains_arr, parameters)
+        trailed_nb, hint_nb = _get_state_sz(compute_domains_fct, domains_arr, parameters)
         prop_state_arr = np.zeros(trailed_nb + hint_nb, dtype=np.int32)
         report_idx = trailed_nb if _reports_changes(compute_domains_fct) else -1
         status = self._call(compute_domains_fct, domains_arr, parameters_arr, prop_state_arr, report_idx)
@@ -132,7 +132,7 @@ class PropagatorTest:
         :param label: what names the chain in a failure, typically its seed, so that it can be replayed
         :type label: str
         """
-        trailed_nb, hint_nb = _get_state_size(compute_domains_fct, domains, parameters)
+        trailed_nb, hint_nb = _get_state_sz(compute_domains_fct, domains, parameters)
         report_idx = trailed_nb if _reports_changes(compute_domains_fct) else -1
         parameters_arr = np.array(parameters, dtype=np.int32)
         warm_state = np.zeros(trailed_nb + hint_nb, dtype=np.int32)
@@ -229,7 +229,7 @@ class PropagatorTest:
         solutions = [point for point in points if is_solution(point)]
         domains = np.array(bounds, dtype=np.int32)
         parameters_arr = np.array(parameters, dtype=np.int32)
-        trailed_nb, hint_nb = _get_state_size(compute_domains_fct, domains, parameters)
+        trailed_nb, hint_nb = _get_state_sz(compute_domains_fct, domains, parameters)
         state = np.zeros(trailed_nb + hint_nb, dtype=np.int32)
         report_idx = trailed_nb if _reports_changes(compute_domains_fct) else -1
         status = self._call(compute_domains_fct, domains, parameters_arr, state, report_idx)
@@ -315,7 +315,7 @@ def _reports_changes(compute_domains_fct: Callable) -> bool:
     return False
 
 
-def _get_state_size(compute_domains_fct: Callable, domains_arr: np.ndarray, parameters: list[int]) -> tuple[int, int]:
+def _get_state_sz(compute_domains_fct: Callable, domains_arr: np.ndarray, parameters: list[int]) -> tuple[int, int]:
     """
     Returns the (trailed_nb, hint_nb) size of a compute_domains function's state block, by the same
     by-identity lookup as _is_idempotent; unknown functions (a test-local one, say) get none.

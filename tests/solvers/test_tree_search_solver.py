@@ -42,7 +42,7 @@ class TestTreeSearchSolver:
         assert choicepoint_top.tolist() == [1]
 
     @pytest.mark.parametrize(
-        "domain_nb,utrail_size,stack_height",
+        "domain_nb,utrail_sz,stack_height",
         [
             # a small problem gets the measured floors
             (2, 1 << 16, 1 << 13),
@@ -51,12 +51,12 @@ class TestTreeSearchSolver:
         ],
     )
     def test_allocate_search_arrays_sizes_the_undo_trail_and_the_stack(
-        self, domain_nb: int, utrail_size: int, stack_height: int
+        self, domain_nb: int, utrail_sz: int, stack_height: int
     ) -> None:
         problem = Problem([(0, 1)] * domain_nb)
         problem.init()
         _, _, _, _, utrail_log, _, _, choicepoints, _ = allocate_search_arrays(problem)
-        assert utrail_log.shape == (utrail_size, 2)
+        assert utrail_log.shape == (utrail_sz, 2)
         assert choicepoints.shape == (stack_height, CHOICEPOINT_WIDTH)
 
     @pytest.mark.parametrize("width", [2, CHOICEPOINT_WIDTH])  # a row of the undo trail, a row of the stack

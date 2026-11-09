@@ -39,7 +39,7 @@ def unbound_index(state: NDArray) -> int:
 
 
 @njit(cache=True, inline="always")
-def utrail_push(utrail_log: NDArray, utrail_indices: NDArray, utrail_size: int, cell_idx: int, old: int) -> int:
+def utrail_push(utrail_log: NDArray, utrail_indices: NDArray, utrail_sz: int, cell_idx: int, old: int) -> int:
     """
     Records a cell's old value and stamps its position, without testing whether the entry is needed.
 
@@ -53,8 +53,8 @@ def utrail_push(utrail_log: NDArray, utrail_indices: NDArray, utrail_size: int, 
     :type utrail_log: NDArray
     :param utrail_indices: the index of the last undo trail entry per cell
     :type utrail_indices: NDArray
-    :param utrail_size: the number of entries currently on the undo trail
-    :type utrail_size: int
+    :param utrail_sz: the number of entries currently on the undo trail
+    :type utrail_sz: int
     :param cell_idx: the index of the cell in state
     :type cell_idx: int
     :param old: the value currently in that cell
@@ -63,10 +63,10 @@ def utrail_push(utrail_log: NDArray, utrail_indices: NDArray, utrail_size: int, 
     :return: the new undo trail size
     :rtype: int
     """
-    utrail_log[utrail_size, 0] = cell_idx
-    utrail_log[utrail_size, 1] = old
-    utrail_indices[cell_idx] = utrail_size
-    return utrail_size + 1
+    utrail_log[utrail_sz, 0] = cell_idx
+    utrail_log[utrail_sz, 1] = old
+    utrail_indices[cell_idx] = utrail_sz
+    return utrail_sz + 1
 
 
 @njit(cache=True, inline="always")
@@ -75,7 +75,7 @@ def utrail_set(
     utrail_log: NDArray,
     utrail_indices: NDArray,
     mark: int,
-    utrail_size: int,
+    utrail_sz: int,
     cell_idx: int,
     old: int,
     value: int,
@@ -118,8 +118,8 @@ def utrail_set(
     :type utrail_indices: NDArray
     :param mark: the undo trail size when the current choice point branched
     :type mark: int
-    :param utrail_size: the number of entries currently on the undo trail
-    :type utrail_size: int
+    :param utrail_sz: the number of entries currently on the undo trail
+    :type utrail_sz: int
     :param cell_idx: the index of the cell in state
     :type cell_idx: int
     :param old: the value currently in that cell, which every caller has already had to read
@@ -131,10 +131,10 @@ def utrail_set(
     :rtype: int
     """
     entry = utrail_indices[cell_idx]
-    if not mark <= entry < utrail_size:  # no live entry for this cell at this choice point
-        utrail_size = utrail_push(utrail_log, utrail_indices, utrail_size, cell_idx, old)
+    if not mark <= entry < utrail_sz:  # no live entry for this cell at this choice point
+        utrail_sz = utrail_push(utrail_log, utrail_indices, utrail_sz, cell_idx, old)
     state[cell_idx] = value
-    return utrail_size
+    return utrail_sz
 
 
 @njit(cache=True)
@@ -176,7 +176,7 @@ def tighten_at(
     utrail_log: NDArray,
     utrail_indices: NDArray,
     mark: int,
-    utrail_size: int,
+    utrail_sz: int,
     variable: int,
     new_min: int,
     new_max: int,
@@ -211,8 +211,8 @@ def tighten_at(
     :type utrail_indices: NDArray
     :param mark: the undo trail size when the current choice point branched
     :type mark: int
-    :param utrail_size: the number of entries currently on the undo trail
-    :type utrail_size: int
+    :param utrail_sz: the number of entries currently on the undo trail
+    :type utrail_sz: int
     :param variable: the variable
     :type variable: int
     :param new_min: the new min of the domain
@@ -231,16 +231,16 @@ def tighten_at(
     old_max = state[cell_idx | 1]
     events = EVENT_MASK_NONE
     if old_min != new_min:
-        utrail_size = utrail_set(state, utrail_log, utrail_indices, mark, utrail_size, cell_idx, old_min, new_min)
+        utrail_sz = utrail_set(state, utrail_log, utrail_indices, mark, utrail_sz, cell_idx, old_min, new_min)
         events = EVENT_MASK_MIN
     if old_max != new_max:
-        utrail_size = utrail_set(state, utrail_log, utrail_indices, mark, utrail_size, cell_idx | 1, old_max, new_max)
+        utrail_sz = utrail_set(state, utrail_log, utrail_indices, mark, utrail_sz, cell_idx | 1, old_max, new_max)
         events |= EVENT_MASK_MAX
     if events != EVENT_MASK_NONE and old_min != old_max and new_min == new_max:
         events |= EVENT_MASK_GROUND
         unbound_idx = unbound_index(state)
         old_unbound = state[unbound_idx]
-        utrail_size = utrail_set(
-            state, utrail_log, utrail_indices, mark, utrail_size, unbound_idx, old_unbound, old_unbound - 1
+        utrail_sz = utrail_set(
+            state, utrail_log, utrail_indices, mark, utrail_sz, unbound_idx, old_unbound, old_unbound - 1
         )
-    return events, utrail_size
+    return events, utrail_sz

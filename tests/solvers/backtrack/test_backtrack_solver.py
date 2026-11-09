@@ -269,12 +269,12 @@ class TestBacktrackSolver:
         reference_solver = BacktrackSolver(build())
         reference = [solution.tolist() for solution in reference_solver.find_all()]
         assert len(reference) == 336
-        utrail_size = reference_solver.utrail_headroom + offset
+        utrail_sz = reference_solver.utrail_headroom + offset
         solver = BacktrackSolver(build())
         assert solver.utrail_top[0] == 0  # nothing is trailed yet, so a shorter undo trail loses nothing
-        solver.utrail_log = solver.utrail_log[:utrail_size].copy()
+        solver.utrail_log = solver.utrail_log[:utrail_sz].copy()
         assert [solution.tolist() for solution in solver.find_all()] == reference
-        assert len(solver.utrail_log) > utrail_size  # it did have to grow
+        assert len(solver.utrail_log) > utrail_sz  # it did have to grow
 
     def test_what_the_utrail_headroom_is_derived_from(self) -> None:
         """The headroom reserves len(state) + STEP_TIGHTENING_NB x TIGHTENING_UTRAIL_ENTRY_NB entries.
@@ -288,8 +288,8 @@ class TestBacktrackSolver:
         solver = BacktrackSolver(Problem([(0, 9), (0, 9)]))
         mark = int(solver.utrail_top[0])
         # the widest single tightening: it moves both bounds and grounds the variable
-        _, utrail_size = tighten_at(solver.state, solver.utrail_log, solver.utrail_indices, mark, mark, 0, 5, 5)
-        assert utrail_size - mark == TIGHTENING_UTRAIL_ENTRY_NB
+        _, utrail_sz = tighten_at(solver.state, solver.utrail_log, solver.utrail_indices, mark, mark, 0, 5, 5)
+        assert utrail_sz - mark == TIGHTENING_UTRAIL_ENTRY_NB
 
         # a step that ends in a backtrack applies two tightenings -- the choice point's alternative, then
         # the objective bound -- at a mark the undo trail holds nothing for, so each trails every cell it

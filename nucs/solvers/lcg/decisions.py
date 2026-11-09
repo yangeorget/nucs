@@ -152,6 +152,6 @@ def decide(
     cell_idx = variable << 1
     new_min, new_max = bounds_after_tightening(state[cell_idx], state[cell_idx | 1], var_side & 1, value)
     # the undo trail size is the mark: the choice point has just been pushed at it
-    events, utrail_size = tighten_at(state, utrail_log, utrail_indices, mark, mark, variable, new_min, new_max)
-    utrail_top[0] = utrail_size
+    events, utrail_sz = tighten_at(state, utrail_log, utrail_indices, mark, mark, variable, new_min, new_max)
+    utrail_top[0] = utrail_sz
     return events

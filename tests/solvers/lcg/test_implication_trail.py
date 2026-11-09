@@ -53,10 +53,10 @@ class TestImplicationTrail:
     def test_itrail_push_and_itrail_pop_keep_the_chains(self) -> None:
         itrail, itrail_top, itrail_last = allocate_itrail(2)
         # two changes of the min of x0, with a change of the max of x1 between them
-        itrail_size = itrail_push(itrail, itrail_last, 0, 0, 2, 0, REASON_PROPAGATOR, 7, 0)
-        itrail_size = itrail_push(itrail, itrail_last, itrail_size, 3, 5, 1, REASON_DECISION, -1, -1)
-        itrail_size = itrail_push(itrail, itrail_last, itrail_size, 0, 4, 1, REASON_PROPAGATOR, 8, 2)
-        itrail_top[0] = itrail_size
+        itrail_sz = itrail_push(itrail, itrail_last, 0, 0, 2, 0, REASON_PROPAGATOR, 7, 0)
+        itrail_sz = itrail_push(itrail, itrail_last, itrail_sz, 3, 5, 1, REASON_DECISION, -1, -1)
+        itrail_sz = itrail_push(itrail, itrail_last, itrail_sz, 0, 4, 1, REASON_PROPAGATOR, 8, 2)
+        itrail_top[0] = itrail_sz
         assert itrail[:3].tolist() == [
             [0, 2, -1, 0, REASON_PROPAGATOR, 7, 0],
             [3, 5, -1, 1, REASON_DECISION, -1, -1],
@@ -87,11 +87,11 @@ class TestImplicationTrail:
     ) -> None:
         itrail, _, itrail_last = allocate_itrail(2)
         state = np.array([0, 9, 3, 6, 2], dtype=np.int32)  # x1 is now [3, 6]
-        itrail_size = itrail_push_events(itrail, itrail_last, 0, state, 1, events, 2, REASON_PROPAGATOR, 5, 0)
-        assert itrail_size == len(expected_rows)
-        assert itrail[:itrail_size, [ITRAIL_VAR_SIDE, ITRAIL_VALUE]].tolist() == expected_rows
+        itrail_sz = itrail_push_events(itrail, itrail_last, 0, state, 1, events, 2, REASON_PROPAGATOR, 5, 0)
+        assert itrail_sz == len(expected_rows)
+        assert itrail[:itrail_sz, [ITRAIL_VAR_SIDE, ITRAIL_VALUE]].tolist() == expected_rows
         assert itrail[
-            :itrail_size, [ITRAIL_CHOICEPOINT, ITRAIL_REASON_KIND, ITRAIL_REASON_DATA, ITRAIL_REASON_POS]
+            :itrail_sz, [ITRAIL_CHOICEPOINT, ITRAIL_REASON_KIND, ITRAIL_REASON_DATA, ITRAIL_REASON_POS]
         ].tolist() == [[2, REASON_PROPAGATOR, 5, 0]] * len(expected_rows)
 
     def test_itrail_root_records_the_bounds_not_at_their_initial_value(self) -> None:
@@ -174,10 +174,10 @@ def build_valid_trail() -> tuple[NDArray, NDArray, NDArray, NDArray, NDArray]:
     """
     itrail, itrail_top, itrail_last = allocate_itrail(2)
     choicepoints = np.zeros((4, CHOICEPOINT_WIDTH), dtype=np.int32)
-    itrail_size = itrail_push(itrail, itrail_last, 0, 0 << 1 | DOMAIN_MIN, 2, 0, REASON_PROPAGATOR, 0, 0)
-    choicepoints[0, CHOICEPOINT_ITRAIL_MARK] = itrail_size
-    itrail_size = itrail_push(itrail, itrail_last, itrail_size, 1 << 1 | DOMAIN_MAX, 5, 1, REASON_DECISION, -1, -1)
-    itrail_size = itrail_push(itrail, itrail_last, itrail_size, 0 << 1 | DOMAIN_MIN, 3, 1, REASON_PROPAGATOR, 1, 2)
-    itrail_top[0] = itrail_size
+    itrail_sz = itrail_push(itrail, itrail_last, 0, 0 << 1 | DOMAIN_MIN, 2, 0, REASON_PROPAGATOR, 0, 0)
+    choicepoints[0, CHOICEPOINT_ITRAIL_MARK] = itrail_sz
+    itrail_sz = itrail_push(itrail, itrail_last, itrail_sz, 1 << 1 | DOMAIN_MAX, 5, 1, REASON_DECISION, -1, -1)
+    itrail_sz = itrail_push(itrail, itrail_last, itrail_sz, 0 << 1 | DOMAIN_MIN, 3, 1, REASON_PROPAGATOR, 1, 2)
+    itrail_top[0] = itrail_sz
     state = np.array([3, 9, 0, 5, 2], dtype=np.int32)
     return state, itrail, itrail_top, itrail_last, choicepoints

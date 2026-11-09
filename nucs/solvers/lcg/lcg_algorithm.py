@@ -178,24 +178,24 @@ def lcg_algorithm(
     # the undo trail size lives in a local for the whole filtering and is published on the way out. Nothing
     # outside this function reads it before then, and keeping it out of memory takes a load and a store
     # off every bound the propagation narrows.
-    utrail_size = utrail_top[0]
+    utrail_sz = utrail_top[0]
     entailed_idx = len(domains) << 1  # the entailment flags follow the domain bounds in state
     # the same for the implication trail
-    itrail_size = itrail_top[0]
+    itrail_sz = itrail_top[0]
     # the rows that the next call can add, and those of the step of the search that follows the propagation
     itrail_room = 2 * len(domain_buffer) + ITRAIL_STEP_ROW_NB
     statistics[STATS_IDX_ALG_BC_NB] += 1
     membership_offset = STORAGE_OFFSET + len(priorities)
     while True:
-        if itrail_size + itrail_room > len(itrail):
+        if itrail_sz + itrail_room > len(itrail):
             statistics[STATS_IDX_ALG_BC_NB] -= 1  # the next call continues this one
-            utrail_top[0] = utrail_size
-            itrail_top[0] = itrail_size
+            utrail_top[0] = utrail_sz
+            itrail_top[0] = itrail_sz
             return PROBLEM_ITRAIL_FULL
         prop_idx = buckets_pop(triggered_propagators, membership_offset)
         if prop_idx == -1:
-            utrail_top[0] = utrail_size
-            itrail_top[0] = itrail_size
+            utrail_top[0] = utrail_sz
+            itrail_top[0] = itrail_sz
             return PROBLEM_BOUND if state[unbound_idx] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
         algorithm = algorithms[prop_idx]
@@ -214,8 +214,8 @@ def lcg_algorithm(
         # where the untrailed hint suffix starts: the end of the trailed prefix, and the cell a reporting
         # propagator answers in
         prop_state_hint = offsets[prop_idx, OFFSETS_STATE_HINT]
-        utrail_size = utrail_state_prefix(
-            state, utrail_log, utrail_indices, mark, utrail_size, prop_state_start, prop_state_hint
+        utrail_sz = utrail_state_prefix(
+            state, utrail_log, utrail_indices, mark, utrail_sz, prop_state_start, prop_state_hint
         )
         if reports_changes:
             # pre-set to "changed", so that the fast path below is taken only on a propagator that has
@@ -231,18 +231,18 @@ def lcg_algorithm(
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             weights_bump(propagator_weights, prop_idx)
-            utrail_top[0] = utrail_size
-            itrail_top[0] = itrail_size
+            utrail_top[0] = utrail_sz
+            itrail_top[0] = itrail_sz
             return PROBLEM_INCONSISTENT
         if status == PROP_ENTAILMENT:
             statistics[STATS_IDX_PROPAGATOR_ENTAILMENT_NB] += 1
-            utrail_size = record_entailment(entailed, utrail_log, utrail_indices, utrail_size, entailed_idx, prop_idx)
+            utrail_sz = record_entailment(entailed, utrail_log, utrail_indices, utrail_sz, entailed_idx, prop_idx)
         if reports_changes and status == PROP_CONSISTENCY and state[prop_state_hint] == 0:
             # the propagator wrote no domain, so update_domains would scan every variable only to find
             # no event and schedule nobody: skip it outright
             count_no_change(statistics, algorithm_stats)
             continue
-        no_change, utrail_size, itrail_size = update_domains_with_reasons(
+        no_change, utrail_sz, itrail_sz = update_domains_with_reasons(
             prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
             prop_var_start,
             prop_var_end,
@@ -252,7 +252,7 @@ def lcg_algorithm(
             utrail_log,
             utrail_indices,
             mark,
-            utrail_size,
+            utrail_sz,
             triggered_propagators,
             entailed,
             triggers,
@@ -260,7 +260,7 @@ def lcg_algorithm(
             priorities,
             itrail,
             itrail_last,
-            itrail_size,
+            itrail_sz,
             choicepoint,
             prop_idx,
         )
@@ -280,7 +280,7 @@ def update_domains_with_reasons(
     utrail_log: NDArray,
     utrail_indices: NDArray,
     mark: int,
-    utrail_size: int,
+    utrail_sz: int,
     triggered_propagators: NDArray,
     entailed: NDArray,
     triggers: NDArray,
@@ -288,7 +288,7 @@ def update_domains_with_reasons(
     priorities: NDArray,
     itrail: NDArray,
     itrail_last: NDArray,
-    itrail_size: int,
+    itrail_sz: int,
     choicepoint: int,
     prop_idx: int,
 ) -> tuple[bool, int, int]:
@@ -318,8 +318,8 @@ def update_domains_with_reasons(
     :type utrail_indices: NDArray
     :param mark: the undo trail size when the current choice point branched
     :type mark: int
-    :param utrail_size: the number of entries currently on the undo trail
-    :type utrail_size: int
+    :param utrail_sz: the number of entries currently on the undo trail
+    :type utrail_sz: int
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param entailed: whether each propagator is entailed, a view of state
@@ -334,8 +334,8 @@ def update_domains_with_reasons(
     :type itrail: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
-    :param itrail_size: the number of rows in use
-    :type itrail_size: int
+    :param itrail_sz: the number of rows in use
+    :type itrail_sz: int
     :param choicepoint: the current choice point, choicepoint_top[0]
     :type choicepoint: int
     :param prop_idx: the propagator whose domains these are
@@ -344,27 +344,27 @@ def update_domains_with_reasons(
     :return: true iff no domain was changed, the new undo trail size and the new number of rows of the implication trail
     :rtype: Tuple[bool, int, int]
     """
-    reason_pos = itrail_size
+    reason_pos = itrail_sz
     no_changes = True
     for var_idx in range(prop_var_end - prop_var_start):
         variable = propagator_variables[prop_var_start + var_idx]
         cell_idx = variable << 1
         if state[cell_idx] != state[cell_idx | 1]:
-            events, utrail_size = tighten_at(
+            events, utrail_sz = tighten_at(
                 state,
                 utrail_log,
                 utrail_indices,
                 mark,
-                utrail_size,
+                utrail_sz,
                 variable,
                 prop_domains[var_idx, DOMAIN_MIN],
                 prop_domains[var_idx, DOMAIN_MAX],
             )
             if events:
-                itrail_size = itrail_push_events(
+                itrail_sz = itrail_push_events(
                     itrail,
                     itrail_last,
-                    itrail_size,
+                    itrail_sz,
                     state,
                     variable,
                     events,
@@ -384,4 +384,4 @@ def update_domains_with_reasons(
                     skip_prop_idx,
                 )
                 no_changes = False
-    return no_changes, utrail_size, itrail_size
+    return no_changes, utrail_sz, itrail_sz

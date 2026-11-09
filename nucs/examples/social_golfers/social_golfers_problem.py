@@ -34,21 +34,21 @@ class SocialGolfersProblem(Problem):
             + self.player_nb * self.week_nb
         )
 
-    def __init__(self, group_nb: int, group_size: int, week_nb: int, symmetry_breaking: bool) -> None:
+    def __init__(self, group_nb: int, group_sz: int, week_nb: int, symmetry_breaking: bool) -> None:
         """
         Initializes the problem.
         """
         self.group_nb = group_nb
-        self.group_size = group_size
+        self.group_sz = group_sz
         self.week_nb = week_nb
-        self.player_nb = group_nb * group_size
+        self.player_nb = group_nb * group_sz
         domains = [(0, group_nb - 1)] * self.player_nb * week_nb + [(0, 1)] * (
             week_nb * self.player_nb * (self.player_nb - 1) // 2
         )
         if symmetry_breaking:
             for p in range(self.player_nb):
-                domains[self.index(0, p)] = (p // group_size, p // group_size)
-            for k in range(group_size):
+                domains[self.index(0, p)] = (p // group_sz, p // group_sz)
+            for k in range(group_sz):
                 for w in range(1, week_nb):
                     domains[self.index(w, k)] = (k, k)
         super().__init__(domains)
@@ -70,7 +70,7 @@ class SocialGolfersProblem(Problem):
             self.add_propagator(
                 ALG_GCC,
                 list(range(self.index(w, 0), self.index(w, self.player_nb))),
-                [0, *([self.group_size] * 2 * self.group_nb)],
+                [0, *([self.group_sz] * 2 * self.group_nb)],
             )
         if symmetry_breaking:
             for w in range(week_nb - 1):
