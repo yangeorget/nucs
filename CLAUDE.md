@@ -24,6 +24,7 @@ Each convention lives in a skill under `.claude/skills/`, loaded on demand — i
 - Writing or editing a test: `write-tests`.
 - Raising the version in `pyproject.toml`, or judging whether the pending changes are a major: `bump-version`.
 - Tagging a version and cutting the GitHub release that publishes it: `publish-release`.
+- Taking a complex feature, or a step of a plan, from a branch to a pull request ready for review: `open-pull-request`.
 
 ## FlatZinc adapter
 
