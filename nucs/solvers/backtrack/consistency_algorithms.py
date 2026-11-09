@@ -16,8 +16,11 @@ from numba import float64, int32, int64, uint8, uint32
 
 from nucs.solvers.backtrack.bc_algorithm import bc_algorithm
 
-CONSISTENCY_ALG_FCTS: list[Callable] = []
-CONSISTENCY_ALGS: dict[str, int] = {}  # algorithm name to index, for name-based selection (eg from the CLI)
+# the built-in consistency algorithm; register_consistency_algorithm adds the others after it
+CONSISTENCY_ALG_BC = 0
+
+CONSISTENCY_ALG_FCTS: list[Callable] = [bc_algorithm]  # the functions, by index
+CONSISTENCY_ALGS: dict[str, int] = {"BC": CONSISTENCY_ALG_BC}  # name to index, for a selection by name (from the CLI)
 
 SIGN_CONSISTENCY_ALG = int64(
     int64[::1],  # statistics
@@ -77,6 +80,3 @@ def get_consistency_algorithm_name(consistency_algorithm: int) -> str:
     return next(
         (name for name, idx in CONSISTENCY_ALGS.items() if idx == consistency_algorithm), str(consistency_algorithm)
     )
-
-
-CONSISTENCY_ALG_BC = register_consistency_algorithm(bc_algorithm, "BC")
