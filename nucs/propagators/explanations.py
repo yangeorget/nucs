@@ -17,6 +17,10 @@ An explain function tells why a propagator call set a literal, or failed. It get
 writes a set of literals that were true in these bounds and that are sufficient for the same deduction: in each state
 inside the box of these literals, the constraint forces the literal, or has no solution.
 
+The literal to explain is on the variable at index var_idx of the propagator. When the propagator has a variable more
+than once, var_idx is the index of the copy that the call narrowed, so that the explanation can use the role of that
+copy in the constraint.
+
 A row of the explanation is [EXPLAIN_VAR_IDX, EXPLAIN_SIDE, EXPLAIN_VALUE]: the literal [x >= value] for DOMAIN_MIN,
 or [x <= value] for DOMAIN_MAX, on the variable x at index EXPLAIN_VAR_IDX of the propagator. An explanation has at
 most one row for each bound of each variable, so the caller gives an out array of 2 * n rows for n variables.

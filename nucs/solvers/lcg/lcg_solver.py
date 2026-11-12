@@ -602,7 +602,7 @@ def run_search_loop(
         itrail_sz = itrail_top[0]
         choicepoints[parked, CHOICEPOINT_ITRAIL_MARK] = itrail_sz
         itrail_top[0] = itrail_push_events(
-            itrail, itrail_last, itrail_sz, state, variable, events, choicepoint, REASON_DECISION, -1, -1
+            itrail, itrail_last, itrail_sz, state, variable, events, choicepoint, REASON_DECISION, -1, -1, -1
         )
         update_propagators(
             triggered_propagators, entailed, triggers, triggers_offsets, priorities, variable, events, -1
@@ -739,7 +739,7 @@ def backtrack(
         )
         utrail_top[0] = utrail_sz
         itrail_top[0] = itrail_push_events(
-            itrail, itrail_last, itrail_top[0], state, variable, events, choicepoint, REASON_DECISION, -1, -1
+            itrail, itrail_last, itrail_top[0], state, variable, events, choicepoint, REASON_DECISION, -1, -1, -1
         )
         if events != EVENT_MASK_NONE:
             update_propagators(
@@ -768,7 +768,17 @@ def backtrack(
             continue
         if events != EVENT_MASK_NONE:
             itrail_top[0] = itrail_push_events(
-                itrail, itrail_last, itrail_top[0], state, optimized_variable, events, choicepoint, REASON_ROOT, -1, -1
+                itrail,
+                itrail_last,
+                itrail_top[0],
+                state,
+                optimized_variable,
+                events,
+                choicepoint,
+                REASON_ROOT,
+                -1,
+                -1,
+                -1,
             )
             update_propagators(
                 triggered_propagators,

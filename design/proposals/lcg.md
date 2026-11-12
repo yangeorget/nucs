@@ -345,7 +345,7 @@ The implication trail records each literal that becomes true on the current path
 
 | array | shape | dtype | holds |
 |---|---|---|---|
-| `itrail` | `(L, ITRAIL_WIDTH)` | int32 | one row for each bound change: `[VAR_SIDE, VALUE, PREV, CHOICEPOINT, REASON_KIND, REASON_DATA, REASON_POS]` |
+| `itrail` | `(L, ITRAIL_WIDTH)` | int32 | one row for each bound change: `[VAR_SIDE, VALUE, PREV, CHOICEPOINT, REASON_KIND, REASON_DATA, REASON_POS, REASON_VAR_IDX]` |
 | `itrail_top` | `(1,)` | int32 | the number of rows in use |
 | `itrail_last` | `(2 * domain_nb,)` | int32 | for each `var_side`, the row of its last change, `-1` when the bound has its root value |
 | `choicepoints[:, CHOICEPOINT_ITRAIL_MARK]` | `(H,)` | int32 | for each choice point, the number of rows when it branched |
@@ -358,7 +358,7 @@ Column meanings:
   value of a bound at an earlier row `t` is the value of the last row of the chain before `t`, or the root value.
 - `CHOICEPOINT`: the value of `choicepoint_top` when the row is written, its decision level. The rows of choice
   point `c` start at the mark of choice point `c - 1`, and at row 0 for `c = 0`.
-- `REASON_KIND`, `REASON_DATA`, `REASON_POS`: see 3.4.
+- `REASON_KIND`, `REASON_DATA`, `REASON_POS`, `REASON_VAR_IDX`: see 3.4.
 
 **The new trail is not the undo trail.** The undo trail skips a write to a cell that it already saved at the current
 choice point (the write barrier in `design/choicepoints.md`). That is correct for an undo log, but conflict analysis needs
@@ -379,16 +379,21 @@ bound moves along one branch. It grows by doubling when full, as the undo trail 
 
 ### 3.4 Reasons
 
-| `REASON_KIND` | `REASON_DATA` | `REASON_POS` | meaning |
-|---|---|---|---|
-| `REASON_DECISION` | — | — | a decision of the search |
-| `REASON_PROPAGATOR` | the propagator | the first row of the propagator call | a propagator made the change |
-| `REASON_CLAUSE` | the clause | — | a learned clause made the change |
-| `REASON_ROOT` | — | — | a fact that holds for the rest of the search, for example the bound of the best objective (4.7); never explained |
+| `REASON_KIND` | `REASON_DATA` | `REASON_POS` | `REASON_VAR_IDX` | meaning |
+|---|---|---|---|---|
+| `REASON_DECISION` | — | — | — | a decision of the search |
+| `REASON_PROPAGATOR` | the propagator | the first row of the propagator call | the index of the variable among the variables of the propagator | a propagator made the change |
+| `REASON_CLAUSE` | the clause | — | — | a learned clause made the change |
+| `REASON_ROOT` | — | — | — | a fact that holds for the rest of the search, for example the bound of the best objective (4.7); never explained |
 
 `REASON_POS` is what makes lazy explanations possible. To explain a change, the solver needs the bounds that the
 propagator *read* when it made the change. These are the bounds of its variables at row `REASON_POS`. The solver
 rebuilds them from the chains (`PREV`). It does not store a copy of the domains for each call.
+
+`REASON_VAR_IDX` is necessary because a propagator can have a variable twice. In magic_sequence, `count_eq` has `x[i]`
+in its list and as its count, and it can narrow one copy and not the other. The write-back puts the two copies into
+one variable, so `VAR_SIDE` does not tell which copy the call narrowed. An exact explanation needs it: the reason of
+`[x1 >= 1]` is not the same for `x1` as an element of the list and for `x1` as the count. (Added at step 7.)
 
 ### 3.5 The learned-clause store
 
@@ -933,8 +938,10 @@ trail, the explanations, the analysis and the store already have their tests.
      check the explanation of each failure. The step adds no other work to the propagation loop.
    - A propagator can have a variable twice: in magic_sequence, `count_eq` has `x[i]` in its list and as its
      count. The engine writes the two copies into one variable, so the check intersects the copies after each call
-     and enumerates only the tuples in which the copies are equal. `explain` gets the first index of the variable.
-     Without this, the debug mode reported a correct explanation as suspicious on magic_sequence(16).
+     and enumerates only the tuples in which the copies are equal. Without this, the debug mode reported a correct
+     explanation as suspicious on magic_sequence(16). Each row also records the index of the copy that the call
+     narrowed (`ITRAIL_REASON_VAR_IDX`, 3.4), and `explain` gets this index; the debug mode checks that it names the
+     variable of the row.
    - The debug mode checks two literals for each row: the literal of the row, and the weakest literal that the row
      sets (the analysis can ask for it). It stops the search at an explanation that is wrong or not true at
      `REASON_POS`, and also at a suspicious one: in the tests, a suspicious explanation must be looked at.

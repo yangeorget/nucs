@@ -301,7 +301,8 @@ def update_domains_with_reasons(
 ) -> tuple[bool, int, int]:
     """
     Applies a propagator's computed prop_domains as update_domains does, and adds a row to the implication trail for
-    each bound that moves, with the propagator as its reason.
+    each bound that moves, with the propagator as its reason and the index of the variable among the variables of the
+    propagator: when the propagator has the variable twice, the index tells which copy moved the bound.
 
     The propagator call adds no row before its write-back, so the number of rows at the start of the write-back is the
     first row of the call: the REASON_POS of each of its rows.
@@ -379,6 +380,7 @@ def update_domains_with_reasons(
                     REASON_PROPAGATOR,
                     prop_idx,
                     reason_pos,
+                    var_idx,
                 )
                 update_propagators(
                     triggered_propagators,
