@@ -937,11 +937,17 @@ trail, the explanations, the analysis and the store already have their tests.
    - `lcg_algorithm` writes the propagator that failed into `failed_propagator` (4.1), so that the debug mode can
      check the explanation of each failure. The step adds no other work to the propagation loop.
    - A propagator can have a variable twice: in magic_sequence, `count_eq` has `x[i]` in its list and as its
-     count. The engine writes the two copies into one variable, so the check intersects the copies after each call
-     and enumerates only the tuples in which the copies are equal. Without this, the debug mode reported a correct
-     explanation as suspicious on magic_sequence(16). Each row also records the index of the copy that the call
-     narrowed (`ITRAIL_REASON_VAR_IDX`, 3.4), and `explain` gets this index; the debug mode checks that it names the
-     variable of the row.
+     count. The two copies are one variable, so the check intersects the copies after each call and enumerates only
+     the tuples in which the copies are equal. Without this, the debug mode reported a correct explanation as
+     suspicious on magic_sequence(16). Each row also records the index of the copy that the call narrowed
+     (`ITRAIL_REASON_VAR_IDX`, 3.4), and `explain` gets this index; the debug mode checks that it names the variable of
+     the row.
+     **Open, in the engine of both solvers:** the write-back does not intersect the copies. `update_domains` writes
+     them one after the other with `tighten_at`, and skips a variable that an earlier copy fixed. When the propagator
+     narrows the copies to bounds with an empty intersection, it does not fail, and the write-back keeps one copy. A
+     propagator that is idempotent is not called again on its own writes, so a wrong solution can come out:
+     `count_eq` on `[x0, x1, x2]` with the count `x1`, and x0 = 0, x1 in [0, 1], x2 = 1, has no solution, but
+     `BacktrackSolver` and `LcgSolver` both give (0, 0, 1). Found by the code review of step 7, on 2026-11-12.
    - The debug mode checks two literals for each row: the literal of the row, and the weakest literal that the row
      sets (the analysis can ask for it). It stops the search at an explanation that is wrong or not true at
      `REASON_POS`, and also at a suspicious one: in the tests, a suspicious explanation must be looked at.

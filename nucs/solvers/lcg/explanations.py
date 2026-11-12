@@ -51,7 +51,7 @@ from nucs.solvers.lcg.implication_trail import (
     ITRAIL_VAR_SIDE,
     REASON_PROPAGATOR,
 )
-from nucs.solvers.lcg.literals import LIT_VALUE, LIT_VAR_SIDE, LIT_WIDTH
+from nucs.solvers.lcg.literals import LIT_VALUE, LIT_VAR_SIDE, LIT_WIDTH, lit_is_true
 
 # The verdicts of the check of an explanation, from the best to the worst. The first two say that the explanation is
 # correct.
@@ -63,7 +63,16 @@ EXPLANATION_SUSPICIOUS = 2  # the propagation does not, and the box has too many
 EXPLANATION_WRONG = 3  # a tuple of the box satisfies the constraint and not the literal
 EXPLANATION_NOT_TRUE = 4  # a literal of the explanation was not true when the propagator read the bounds
 EXPLANATION_OTHER_VARIABLE = 5  # the index of the row (ITRAIL_REASON_VAR_IDX) does not name the variable of the row
-EXPLANATION_VERDICTS = ["confirmed", "enumerated", "suspicious", "wrong", "not true", "on another variable"]
+EXPLANATION_NO_PROPAGATOR = 6  # the propagator of the row (ITRAIL_REASON_DATA) does not exist
+EXPLANATION_VERDICTS = [
+    "confirmed",
+    "enumerated",
+    "suspicious",
+    "wrong",
+    "not true",
+    "on another variable",
+    "on no propagator",
+]
 
 # The largest box that the check enumerates.
 EXPLANATION_ENUMERATION_LIMIT = 1 << 16
@@ -102,6 +111,26 @@ def bound_at(itrail: NDArray, itrail_last: NDArray, initial_domains: NDArray, va
     return itrail[row, ITRAIL_VALUE]
 
 
+@njit(cache=True, inline="always")
+def prop_variable_range(offsets: NDArray, prop_idx: int) -> tuple[int, int]:
+    """
+    Returns where the variables of a propagator start in propagator_variables, and how many they are.
+
+    Both are signed. offsets is unsigned, and Numba unifies an unsigned index and -1 (no variable) into a float.
+    int() keeps the type that it gets, and tells mypy that the result is an int.
+
+    :param offsets: the CSR offsets of each propagator's slices
+    :type offsets: NDArray
+    :param prop_idx: the propagator
+    :type prop_idx: int
+
+    :return: the first index of the variables of the propagator in propagator_variables, and their number
+    :rtype: Tuple[int, int]
+    """
+    prop_var_start = int(np.int64(offsets[prop_idx, OFFSETS_VARIABLE]))
+    return prop_var_start, int(np.int64(offsets[prop_idx + 1, OFFSETS_VARIABLE])) - prop_var_start
+
+
 @njit(cache=True)
 def explain_propagator(
     explain_addrs: NDArray,
@@ -125,6 +154,10 @@ def explain_propagator(
 
     It rebuilds the bounds of the variables of the propagator when the implication trail had pos rows, and calls
     the explain function of the propagator on them.
+
+    Nothing here checks prop_idx and var_idx: the caller takes them from a REASON_PROPAGATOR row, or from
+    failed_propagator. With a wrong one, the explain function reads out of its arrays, and under the JIT nothing
+    reports it. The debug mode checks both (check_explanations).
 
     :param explain_addrs: the compiled explain address of each algorithm
     :type explain_addrs: NDArray
@@ -164,10 +197,7 @@ def explain_propagator(
     :return: the number of rows of the explanation
     :rtype: int
     """
-    # signed, because offsets is unsigned and a variable index is -1 when there is none: Numba unifies an unsigned
-    # index and -1 into a float. int() keeps the type that it gets, and tells mypy that the result is an int
-    prop_var_start = int(np.int64(offsets[prop_idx, OFFSETS_VARIABLE]))
-    arity = int(np.int64(offsets[prop_idx + 1, OFFSETS_VARIABLE])) - prop_var_start
+    prop_var_start, arity = prop_variable_range(offsets, prop_idx)
     domains = prop_domains[:arity]
     for idx in range(arity):
         variable_side = propagator_variables[prop_var_start + idx] << 1
@@ -251,9 +281,11 @@ def check_explanation(
     check calls the propagator on each tuple of the box, and a tuple that does not fail must satisfy the literal (for
     a failure, no tuple must pass).
 
-    A propagator can have a variable more than once. As the engine does, the check gives the same bounds to all the
-    copies of a variable after each call (propagate_to_fixpoint), and it enumerates only the tuples in which the
-    copies are equal.
+    A propagator can have a variable more than once. After each call, the check gives to all the copies of a variable
+    the intersection of their bounds (propagate_to_fixpoint), and it enumerates only the tuples in which the copies
+    are equal. The propagator narrows each copy soundly, so the variable is in the intersection. The write-back of the
+    engine does not intersect: update_domains writes the copies one after the other with tighten_at, and skips a
+    variable that an earlier copy fixed (see design/proposals/lcg.md, 7.0, step 7).
 
     :param compute_domains_addrs: the compiled compute_domains address of each algorithm
     :type compute_domains_addrs: NDArray
@@ -281,17 +313,21 @@ def check_explanation(
     :rtype: int
     """
     prop_state = np.zeros(state_sz, dtype=np.int32)
-    status = propagate_to_fixpoint(compute_domains_addrs, algorithm, first_copy, box, parameters, prop_state)
+    previous = np.empty_like(box)
+    status = propagate_to_fixpoint(compute_domains_addrs, algorithm, first_copy, box, parameters, prop_state, previous)
     if status == PROP_INCONSISTENCY:
         return EXPLANATION_CONFIRMED
-    if var_idx >= 0 and literal_holds(box, var_idx, side, value):
+    # var_side is the flat index of the bound in the box, as in state: a box is C-contiguous with two bounds a row
+    var_side = (var_idx << 1) | side
+    if var_idx >= 0 and lit_is_true(box.reshape(-1), var_side, value):
         return EXPLANATION_CONFIRMED
     # the propagation removed no solution from the box, so the tuples of the narrowed box are sufficient; a tuple
-    # gives a value to the first copy of each variable only
+    # gives a value to the first copy of each variable only. The count is on 64 bits: without the JIT, the int32
+    # bounds would give an int32 product, which wraps silently
     tuple_nb = 1
     for idx in range(len(box)):
         if first_copy[idx] == idx:
-            tuple_nb *= box[idx, DOMAIN_MAX] - box[idx, DOMAIN_MIN] + 1
+            tuple_nb *= int(np.int64(box[idx, DOMAIN_MAX])) - int(np.int64(box[idx, DOMAIN_MIN])) + 1
             if tuple_nb > EXPLANATION_ENUMERATION_LIMIT:
                 return EXPLANATION_SUSPICIOUS
     point = np.empty(len(box), dtype=np.int32)
@@ -301,8 +337,10 @@ def check_explanation(
         for idx in range(len(box)):
             singleton[idx, DOMAIN_MIN] = singleton[idx, DOMAIN_MAX] = point[first_copy[idx]]
         prop_state[:] = 0
-        status = propagate_to_fixpoint(compute_domains_addrs, algorithm, first_copy, singleton, parameters, prop_state)
-        if status != PROP_INCONSISTENCY and (var_idx < 0 or not literal_holds(singleton, var_idx, side, value)):
+        status = propagate_to_fixpoint(
+            compute_domains_addrs, algorithm, first_copy, singleton, parameters, prop_state, previous
+        )
+        if status != PROP_INCONSISTENCY and (var_idx < 0 or not lit_is_true(singleton.reshape(-1), var_side, value)):
             return EXPLANATION_WRONG
         # the next tuple, in the order of an odometer on the first copies
         idx = 0
@@ -347,6 +385,7 @@ def check_explanations(
     itrail_last: NDArray,
     first_row: int,
     failed_propagator: int,
+    prop_domains: NDArray,
 ) -> tuple[int, int]:
     """
     Checks the explanations of the rows that the propagators wrote from a row up, and of a failure: the debug mode
@@ -355,8 +394,9 @@ def check_explanations(
     For each row with REASON_PROPAGATOR, it checks two literals: the literal of the row, and the weakest literal
     that the row makes true, because the conflict analysis can ask for a literal weaker than the row. For each
     literal, the literals of the explanation must be true at the REASON_POS of the row (EXPLANATION_NOT_TRUE if
-    not), and they must be sufficient for the literal (check_explanation). Before that, the index of the row must
-    name the variable of the row (EXPLANATION_OTHER_VARIABLE if not).
+    not), and they must be sufficient for the literal (check_explanation). Before that, the row must name a
+    propagator (EXPLANATION_NO_PROPAGATOR if not), and its index must name the variable of the row
+    (EXPLANATION_OTHER_VARIABLE if not).
 
     :param compute_domains_addrs: the compiled compute_domains address of each algorithm
     :type compute_domains_addrs: NDArray
@@ -382,18 +422,15 @@ def check_explanations(
     :type first_row: int
     :param failed_propagator: the propagator that failed with the current bounds, -1 when there is none
     :type failed_propagator: int
+    :param prop_domains: a scratch buffer with one row for each variable of the largest propagator, such as the
+                         domain_buffer of the solver
+    :type prop_domains: NDArray
 
     :return: EXPLANATIONS_VALID and EXPLANATION_CONFIRMED when each explanation is correct; else the first row whose
              explanation is not proven correct, or the number of rows in use for the failure, and the verdict
     :rtype: Tuple[int, int]
     """
-    max_arity = 0
-    for prop_idx in range(len(offsets) - 1):
-        arity = int(np.int64(offsets[prop_idx + 1, OFFSETS_VARIABLE])) - int(
-            np.int64(offsets[prop_idx, OFFSETS_VARIABLE])
-        )
-        max_arity = max(max_arity, arity)
-    prop_domains = np.empty((max_arity, 2), dtype=np.int32)
+    max_arity = len(prop_domains)
     explanation = np.empty((max_arity << 1, EXPLAIN_WIDTH), dtype=np.int32)
     literals = np.empty((max_arity << 1, LIT_WIDTH), dtype=np.int32)
     box = np.empty((max_arity, 2), dtype=np.int32)
@@ -403,11 +440,8 @@ def check_explanations(
         var_side = itrail[row, ITRAIL_VAR_SIDE]
         value = itrail[row, ITRAIL_VALUE]
         prop_idx = itrail[row, ITRAIL_REASON_DATA]
-        var_idx = itrail[row, ITRAIL_REASON_VAR_IDX]
-        prop_var_start = int(np.int64(offsets[prop_idx, OFFSETS_VARIABLE]))
-        arity = int(np.int64(offsets[prop_idx + 1, OFFSETS_VARIABLE])) - prop_var_start
-        if not 0 <= var_idx < arity or propagator_variables[prop_var_start + var_idx] != var_side >> 1:
-            return row, EXPLANATION_OTHER_VARIABLE
+        if not 0 <= prop_idx < len(algorithms):
+            return row, EXPLANATION_NO_PROPAGATOR
         # the bound before the row: [x >= before + 1] or [x <= before - 1] is the weakest literal that the row sets
         before = bound_at(itrail, itrail_last, initial_domains, var_side, row)
         weakest = before + 1 if (var_side & 1) == DOMAIN_MIN else before - 1
@@ -425,8 +459,8 @@ def check_explanations(
                 itrail_last,
                 prop_idx,
                 itrail[row, ITRAIL_REASON_POS],
-                var_idx,
-                var_side & 1,
+                itrail[row, ITRAIL_REASON_VAR_IDX],
+                var_side,
                 lit_value,
                 prop_domains,
                 explanation,
@@ -449,7 +483,7 @@ def check_explanations(
             failed_propagator,
             itrail_top[0],
             -1,
-            DOMAIN_MIN,
+            -1,
             0,
             prop_domains,
             explanation,
@@ -475,7 +509,7 @@ def check_propagator_explanation(
     prop_idx: int,
     pos: int,
     var_idx: int,
-    side: int,
+    var_side: int,
     value: int,
     prop_domains: NDArray,
     explanation: NDArray,
@@ -510,8 +544,8 @@ def check_propagator_explanation(
     :param var_idx: the variable of the literal, as the index of the copy that the call wrote among the variables of
                     the propagator, -1 for a failure
     :type var_idx: int
-    :param side: DOMAIN_MIN for [x >= value], DOMAIN_MAX for [x <= value]
-    :type side: int
+    :param var_side: the bound of the literal, -1 for a failure
+    :type var_side: int
     :param value: the value of the literal
     :type value: int
     :param prop_domains: a scratch buffer of max arity rows
@@ -526,6 +560,11 @@ def check_propagator_explanation(
     :return: the verdict, one of EXPLANATION_*
     :rtype: int
     """
+    prop_var_start, arity = prop_variable_range(offsets, prop_idx)
+    side = var_side & 1
+    # the index must name the variable before explain reads it
+    if var_side >= 0 and (not 0 <= var_idx < arity or propagator_variables[prop_var_start + var_idx] != var_side >> 1):
+        return EXPLANATION_OTHER_VARIABLE
     row_nb = explain_propagator(
         explain_addrs,
         algorithms,
@@ -543,17 +582,15 @@ def check_propagator_explanation(
         prop_domains,
         explanation,
     )
-    # signed, because offsets is unsigned and a variable index is -1 when there is none: Numba unifies an unsigned
-    # index and -1 into a float. int() keeps the type that it gets, and tells mypy that the result is an int
-    prop_var_start = int(np.int64(offsets[prop_idx, OFFSETS_VARIABLE]))
-    arity = int(np.int64(offsets[prop_idx + 1, OFFSETS_VARIABLE])) - prop_var_start
-    lit_nb = explanation_literals(explanation, row_nb, propagator_variables, prop_var_start, initial_domains, literals)
-    for lit in range(lit_nb):
-        lit_var_side = literals[lit, LIT_VAR_SIDE]
-        lit_value = literals[lit, LIT_VALUE]
-        bound = bound_at(itrail, itrail_last, initial_domains, lit_var_side, pos)
-        if bound < lit_value if (lit_var_side & 1) == DOMAIN_MIN else bound > lit_value:
+    # explain_propagator left the bounds at pos in prop_domains: each row of the explanation must be true there
+    domains_at_pos = prop_domains[:arity].reshape(-1)
+    for row in range(row_nb):
+        row_var_idx = explanation[row, EXPLAIN_VAR_IDX]
+        if not 0 <= row_var_idx < arity or not lit_is_true(
+            domains_at_pos, (row_var_idx << 1) | explanation[row, EXPLAIN_SIDE], explanation[row, EXPLAIN_VALUE]
+        ):
             return EXPLANATION_NOT_TRUE
+    lit_nb = explanation_literals(explanation, row_nb, propagator_variables, prop_var_start, initial_domains, literals)
     # the box of the explanation: the root bounds, cut by the literals on each copy of their variable
     for idx in range(arity):
         variable = propagator_variables[prop_var_start + idx]
@@ -602,28 +639,6 @@ def variable_index(propagator_variables: NDArray, prop_var_start: int, arity: in
     return -1
 
 
-@njit(cache=True, inline="always")
-def literal_holds(box: NDArray, var_idx: int, side: int, value: int) -> bool:
-    """
-    Returns whether a box makes a literal true.
-
-    :param box: the bounds of the variables of a propagator
-    :type box: NDArray
-    :param var_idx: the variable of the literal, as an index into the variables of the propagator
-    :type var_idx: int
-    :param side: DOMAIN_MIN for [x >= value], DOMAIN_MAX for [x <= value]
-    :type side: int
-    :param value: the value of the literal
-    :type value: int
-
-    :return: true iff the literal is true in the box
-    :rtype: bool
-    """
-    if side == DOMAIN_MIN:
-        return box[var_idx, DOMAIN_MIN] >= value
-    return box[var_idx, DOMAIN_MAX] <= value
-
-
 @njit(cache=True)
 def propagate_to_fixpoint(
     compute_domains_addrs: NDArray,
@@ -632,12 +647,13 @@ def propagate_to_fixpoint(
     box: NDArray,
     parameters: NDArray,
     prop_state: NDArray,
+    previous: NDArray,
 ) -> int:
     """
     Calls a propagator on a box until it fails, it is entailed, or nothing changes.
 
-    After each call, it gives to all the copies of a variable the intersection of their bounds, as the write-back of
-    the engine does, and fails if the intersection is empty.
+    After each call, it gives to all the copies of a variable the intersection of their bounds, and fails if the
+    intersection is empty: the propagator narrowed each copy soundly, so the variable is in the intersection.
 
     :param compute_domains_addrs: the compiled compute_domains address of each algorithm
     :type compute_domains_addrs: NDArray
@@ -651,11 +667,12 @@ def propagate_to_fixpoint(
     :type parameters: NDArray
     :param prop_state: the state block of the propagator
     :type prop_state: NDArray
+    :param previous: a scratch buffer of the shape of box
+    :type previous: NDArray
 
     :return: the status of the last call
     :rtype: int
     """
-    previous = np.empty_like(box)
     while True:
         previous[:] = box
         status = call_compute_domains(compute_domains_addrs, algorithm, box, parameters, prop_state)

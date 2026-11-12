@@ -135,6 +135,8 @@ class LcgSolver(TreeSearchSolver):
         self.pending_lit = np.full(2, -1, dtype=np.int32)
         # the propagator that failed last, which lcg_algorithm writes; the conflict is explained with it
         self.failed_propagator = np.full(1, -1, dtype=np.int32)
+        # in debug mode, the row of the first explanation that is not proven correct, and its verdict
+        self.explanation_report = np.full(2, -1, dtype=np.int64)
         self.debug = debug
         super().__init__(problem, searches, log_level, weight_decay, restart_policy, last_conflict)
         # the compiled explain address of each algorithm, resolved as compute_domains_addrs is: only for the
@@ -236,6 +238,7 @@ class LcgSolver(TreeSearchSolver):
                 self.debug,
                 self.explain_addrs,
                 self.failed_propagator,
+                self.explanation_report,
             )
             if status == SOLVER_ITRAIL_FULL:
                 self.itrail = double_rows(self.itrail)
@@ -254,22 +257,7 @@ class LcgSolver(TreeSearchSolver):
                     f"The implication trail does not agree with the state at row {row} of {self.itrail_top[0]}"
                 )
             elif status == SOLVER_EXPLANATION_INVALID:
-                # the loop returned at once, so the rows that it checked are still on the implication trail, and the
-                # rows below them passed the check before: the first row that fails here is the one that it found
-                row, verdict = check_explanations(
-                    self.compute_domains_addrs,
-                    self.explain_addrs,
-                    self.problem.algorithms,
-                    self.problem.offsets,
-                    self.problem.propagator_variables,
-                    self.problem.propagator_parameters,
-                    self.problem.initial_domains,
-                    self.itrail,
-                    self.itrail_top,
-                    self.itrail_last,
-                    0,
-                    self.failed_propagator[0],
-                )
+                row, verdict = (int(cell) for cell in self.explanation_report)
                 what = (
                     f"the failure of propagator {self.failed_propagator[0]}"
                     if row == self.itrail_top[0]
@@ -326,6 +314,7 @@ def run_search_loop(
     debug: bool,
     explain_addrs: NDArray,
     failed_propagator: NDArray,
+    explanation_report: NDArray,
 ) -> tuple[int, NDArray | None]:
     """
     Searches for one solution, as the run_search_loop of BacktrackSolver does: the search loop of LcgSolver.
@@ -454,6 +443,9 @@ def run_search_loop(
     :type explain_addrs: NDArray
     :param failed_propagator: a one-cell array that gets the propagator that failed, from lcg_algorithm
     :type failed_propagator: NDArray
+    :param explanation_report: a two-cell array that gets, in debug mode, the row of the first explanation that is
+                               not proven correct (the number of rows in use for a failure) and its verdict
+    :type explanation_report: NDArray
 
     :return: why the loop returned, and the solution when it found one
     :rtype: Tuple[int, Optional[NDArray]]
@@ -501,8 +493,8 @@ def run_search_loop(
         )
         # the rows of a propagation that stops for a full implication trail are checked before the return: the next
         # call checks only its own rows
-        if debug and (
-            check_explanations(
+        if debug:
+            row, verdict = check_explanations(
                 compute_domains_addrs,
                 explain_addrs,
                 algorithms,
@@ -515,10 +507,12 @@ def run_search_loop(
                 itrail_last,
                 first_row,
                 failed_propagator[0] if problem_status == PROBLEM_INCONSISTENT else -1,
-            )[0]
-            != EXPLANATIONS_VALID
-        ):
-            return SOLVER_EXPLANATION_INVALID, None
+                domain_buffer,
+            )
+            if row != EXPLANATIONS_VALID:
+                explanation_report[0] = row
+                explanation_report[1] = verdict
+                return SOLVER_EXPLANATION_INVALID, None
         if problem_status == PROBLEM_ITRAIL_FULL:
             return SOLVER_ITRAIL_FULL, None
         if debug and not is_itrail_valid(
