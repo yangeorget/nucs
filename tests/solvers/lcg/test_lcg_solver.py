@@ -116,14 +116,14 @@ class TestLcgSolver:
         # 0, then sets [x1 >= 1] in a call that starts at row 1
         assert solver.itrail_top.tolist() == [2]
         assert solver.itrail[:2].tolist() == [
-            [0 << 1 | DOMAIN_MAX, 0, -1, 1, REASON_DECISION, -1, -1],
-            [1 << 1 | DOMAIN_MIN, 1, -1, 1, REASON_PROPAGATOR, 0, 1],
+            [0 << 1 | DOMAIN_MAX, 0, -1, 1, REASON_DECISION, -1, -1, -1],
+            [1 << 1 | DOMAIN_MIN, 1, -1, 1, REASON_PROPAGATOR, 0, 1, 1],
         ]
         assert solver.choicepoints[0, CHOICEPOINT_ITRAIL_MARK] == 0
         assert solver._backtrack()
         # back at choice point 0: the rows of choice point 1 are gone, and the parked alternative [x0 >= 1] is the new row
         assert solver.itrail_top.tolist() == [1]
-        assert solver.itrail[0].tolist() == [0 << 1 | DOMAIN_MIN, 1, -1, 0, REASON_DECISION, -1, -1]
+        assert solver.itrail[0].tolist() == [0 << 1 | DOMAIN_MIN, 1, -1, 0, REASON_DECISION, -1, -1, -1]
         assert solver.itrail_last.tolist() == [0, -1, -1, -1]
 
     @pytest.mark.parametrize("row_nb", [1, 13, 14])  # below and at 14, the room of a call on 6 queens: 2 x 6 + 2
@@ -180,8 +180,8 @@ class TestLcgSolver:
         # x0 = 1 is [x0 <= 1] at choice point 1, then [x0 >= 1] at choice point 2
         assert solver.itrail_top.tolist() == [2]
         assert solver.itrail[:2].tolist() == [
-            [0 << 1 | DOMAIN_MAX, 1, -1, 1, REASON_DECISION, -1, -1],
-            [0 << 1 | DOMAIN_MIN, 1, -1, 2, REASON_DECISION, -1, -1],
+            [0 << 1 | DOMAIN_MAX, 1, -1, 1, REASON_DECISION, -1, -1, -1],
+            [0 << 1 | DOMAIN_MIN, 1, -1, 2, REASON_DECISION, -1, -1, -1],
         ]
         # each choice point parks the negation of its literal, and the row of the implication trail where it branched
         parked = solver.choicepoints[
@@ -207,9 +207,9 @@ class TestLcgSolver:
         # point; the heuristic then splits [0, 1] at its min: [x0 <= 0] at choice point 2
         assert solver.itrail_top.tolist() == [3]
         assert solver.itrail[:3].tolist() == [
-            [0 << 1 | DOMAIN_MAX, 2, -1, 1, REASON_DECISION, -1, -1],
-            [0 << 1 | DOMAIN_MAX, 1, 0, 1, REASON_PROPAGATOR, 0, 1],
-            [0 << 1 | DOMAIN_MAX, 0, 1, 2, REASON_DECISION, -1, -1],
+            [0 << 1 | DOMAIN_MAX, 2, -1, 1, REASON_DECISION, -1, -1, -1],
+            [0 << 1 | DOMAIN_MAX, 1, 0, 1, REASON_PROPAGATOR, 0, 1, 0],
+            [0 << 1 | DOMAIN_MAX, 0, 1, 2, REASON_DECISION, -1, -1, -1],
         ]
         solutions = [solution.tolist() for solution in LcgSolver(problem, searches=searches, debug=True).solve()]
         assert solutions == [solution.tolist() for solution in BacktrackSolver(problem, searches=searches).solve()]

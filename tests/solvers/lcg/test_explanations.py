@@ -38,14 +38,23 @@ from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.lcg.explanations import (
     EXPLANATION_CONFIRMED,
     EXPLANATION_ENUMERATED,
+    EXPLANATION_OTHER_VARIABLE,
     EXPLANATION_SUSPICIOUS,
     EXPLANATION_WRONG,
+    EXPLANATIONS_VALID,
     bound_at,
     check_explanation,
+    check_explanations,
     explanation_literals,
     first_copies,
 )
-from nucs.solvers.lcg.implication_trail import ITRAIL_WIDTH, REASON_PROPAGATOR, itrail_push
+from nucs.solvers.lcg.implication_trail import (
+    ITRAIL_REASON_VAR_IDX,
+    ITRAIL_VAR_SIDE,
+    ITRAIL_WIDTH,
+    REASON_PROPAGATOR,
+    itrail_push,
+)
 from nucs.solvers.lcg.lcg_solver import LcgSolver
 
 
@@ -85,6 +94,14 @@ def neq_triangle(explain_fct: Callable) -> Problem:
     return problem
 
 
+def count_with_its_count_in_the_list() -> Problem:
+    # x1 is the number of 1 in [x0, x1, x2]: count_eq has x1 at index 1, in its list, and at index 3, as its count. With
+    # x0 = 1, the root propagation sets [x1 >= 1] on the count only, and the only solution is (1, 2, 1)
+    problem = Problem([(1, 1), (0, 3), (0, 3)])
+    problem.add_propagator(ALG_COUNT_EQ, [0, 1, 2, 1], [1])
+    return problem
+
+
 class TestExplanations:
     @pytest.mark.parametrize(
         "var_side,pos,expected",
@@ -104,7 +121,7 @@ class TestExplanations:
         itrail_last = np.full(4, -1, dtype=np.int32)
         itrail_sz = 0
         for row_var_side, value in [(0, 2), (3, 7), (0, 4), (0, 5)]:
-            itrail_sz = itrail_push(itrail, itrail_last, itrail_sz, row_var_side, value, 0, REASON_PROPAGATOR, 0, 0)
+            itrail_sz = itrail_push(itrail, itrail_last, itrail_sz, row_var_side, value, 0, REASON_PROPAGATOR, 0, 0, 0)
         assert bound_at(itrail, itrail_last, initial_domains, var_side, pos) == expected
 
     def test_explanation_literals_maps_the_variables_and_drops_the_root_literals(self) -> None:
@@ -199,6 +216,46 @@ class TestExplanations:
     def test_debug_mode_finds_a_wrong_explanation(self, explain_fct: Callable, message: str) -> None:
         with pytest.raises(AssertionError, match=message):
             list(LcgSolver(neq_triangle(explain_fct), debug=True).solve())
+
+    def test_a_row_records_the_copy_that_the_call_narrowed(self) -> None:
+        solver = LcgSolver(count_with_its_count_in_the_list(), debug=True)
+        _, solution = solver._run_search_loop()
+        assert solution is not None and solution.tolist() == [1, 2, 1]
+        rows = solver.itrail[: solver.itrail_top[0]].tolist()
+        # [x1 >= 1] at the root, by the propagator 0, in a call that starts at row 0, through the copy at index 3
+        assert [(1 << 1) | DOMAIN_MIN, 1, -1, 0, REASON_PROPAGATOR, 0, 0, 3] in rows
+
+    @pytest.mark.parametrize(
+        "var_idx,expected",
+        [
+            (3, (EXPLANATIONS_VALID, EXPLANATION_CONFIRMED)),  # the copy that the call narrowed
+            (0, (0, EXPLANATION_OTHER_VARIABLE)),  # x0, not x1
+            (4, (0, EXPLANATION_OTHER_VARIABLE)),  # past the 4 variables of the propagator
+        ],
+    )
+    def test_debug_mode_checks_the_index_of_a_row(self, var_idx: int, expected: tuple[int, int]) -> None:
+        solver = LcgSolver(count_with_its_count_in_the_list(), debug=True)
+        solver._run_search_loop()
+        # the rows from row 0 up: the first one, [x1 >= 1], gets the index under test
+        assert solver.itrail[0, ITRAIL_VAR_SIDE] == (1 << 1) | DOMAIN_MIN
+        solver.itrail[0, ITRAIL_REASON_VAR_IDX] = var_idx
+        assert (
+            check_explanations(
+                solver.compute_domains_addrs,
+                solver.explain_addrs,
+                solver.problem.algorithms,
+                solver.problem.offsets,
+                solver.problem.propagator_variables,
+                solver.problem.propagator_parameters,
+                solver.problem.initial_domains,
+                solver.itrail,
+                solver.itrail_top,
+                solver.itrail_last,
+                0,
+                -1,
+            )
+            == expected
+        )
 
     def test_find_all_checks_the_explanations_of_the_tier_b_propagators(self) -> None:
         # count_eq keeps a live set in its trailed prefix from LIVE_SET_MIN_ARITY = 16 variables (design/proposals/lcg.md,

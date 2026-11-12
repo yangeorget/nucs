@@ -43,7 +43,10 @@ ITRAIL_CHOICEPOINT = 3  # the choice point of the change, its decision level
 ITRAIL_REASON_KIND = 4  # why the bound changed, one of REASON_*
 ITRAIL_REASON_DATA = 5  # the propagator for REASON_PROPAGATOR, the clause for REASON_CLAUSE, -1 otherwise
 ITRAIL_REASON_POS = 6  # for REASON_PROPAGATOR, the first row of the propagator call, -1 otherwise
-ITRAIL_WIDTH = 7
+# for REASON_PROPAGATOR, the index of the variable among the variables of the propagator, -1 otherwise. A propagator can
+# have a variable twice, and each copy has its own index: this is the copy whose write moved the bound.
+ITRAIL_REASON_VAR_IDX = 7
+ITRAIL_WIDTH = 8
 
 # The kinds of reasons.
 REASON_DECISION = 0  # a decision of the search, or a parked alternative that a backtrack applies
@@ -70,6 +73,7 @@ def itrail_push(
     reason_kind: int,
     reason_data: int,
     reason_pos: int,
+    reason_var_idx: int,
 ) -> int:
     """
     Adds a row to the implication trail and makes it the last row of the chain of its bound.
@@ -94,6 +98,9 @@ def itrail_push(
     :type reason_data: int
     :param reason_pos: the first row of the propagator call, -1 when the reason is not a propagator
     :type reason_pos: int
+    :param reason_var_idx: the index of the variable among the variables of the propagator, -1 when the reason is not
+                           a propagator
+    :type reason_var_idx: int
 
     :return: the new number of rows in use
     :rtype: int
@@ -105,6 +112,7 @@ def itrail_push(
     itrail[itrail_sz, ITRAIL_REASON_KIND] = reason_kind
     itrail[itrail_sz, ITRAIL_REASON_DATA] = reason_data
     itrail[itrail_sz, ITRAIL_REASON_POS] = reason_pos
+    itrail[itrail_sz, ITRAIL_REASON_VAR_IDX] = reason_var_idx
     itrail_last[var_side] = itrail_sz
     return itrail_sz + 1
 
@@ -121,6 +129,7 @@ def itrail_push_events(
     reason_kind: int,
     reason_data: int,
     reason_pos: int,
+    reason_var_idx: int,
 ) -> int:
     """
     Adds a row for each bound that a call of tighten_at moved, with the new value that the call wrote into state.
@@ -148,6 +157,9 @@ def itrail_push_events(
     :type reason_data: int
     :param reason_pos: the first row of the propagator call, -1 when the reason is not a propagator
     :type reason_pos: int
+    :param reason_var_idx: the index of the variable among the variables of the propagator, -1 when the reason is not
+                           a propagator
+    :type reason_var_idx: int
 
     :return: the new number of rows in use
     :rtype: int
@@ -164,6 +176,7 @@ def itrail_push_events(
             reason_kind,
             reason_data,
             reason_pos,
+            reason_var_idx,
         )
     if events & EVENT_MASK_MAX:
         itrail_sz = itrail_push(
@@ -176,6 +189,7 @@ def itrail_push_events(
             reason_kind,
             reason_data,
             reason_pos,
+            reason_var_idx,
         )
     return itrail_sz
 
@@ -254,7 +268,7 @@ def itrail_root(
             var_side = (variable << 1) | side
             if state[var_side] != initial_domains[variable, side]:
                 itrail_sz = itrail_push(
-                    itrail, itrail_last, itrail_sz, var_side, state[var_side], 0, REASON_ROOT, -1, -1
+                    itrail, itrail_last, itrail_sz, var_side, state[var_side], 0, REASON_ROOT, -1, -1, -1
                 )
     itrail_top[0] = itrail_sz
 

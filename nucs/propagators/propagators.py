@@ -346,7 +346,7 @@ TYPE_GET_TRIGGERS = types.FunctionType(SIGN_GET_TRIGGERS)
 SIGN_EXPLAIN = int64(
     int32[:, ::1],  # domains: the bounds of the variables of the propagator when the call read them
     int32[::1],  # parameters
-    int64,  # var_idx: the variable of the literal, as an index into the variables of the propagator; -1 for a failure
+    int64,  # var_idx: the variable of the literal, as the index of the copy that the call narrowed; -1 for a failure
     int64,  # side: DOMAIN_MIN for [x >= value], DOMAIN_MAX for [x <= value]
     int64,  # value
     int32[:, ::1],  # out: the explanation, one row [var_idx, side, value] for each literal
