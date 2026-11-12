@@ -160,6 +160,8 @@ class TestExplanations:
             (ALG_COUNT_EQ, [1], [0, 1, 1], [(1, 1), (0, 3), (0, 3)], 1, DOMAIN_MIN, 1, EXPLANATION_CONFIRMED),
             # the same literal on a box of a million tuples
             (ALG_NEQ, [], [0, 1], [(0, 999), (0, 999)], 0, DOMAIN_MIN, 1, EXPLANATION_SUSPICIOUS),
+            # 60,000 x 40,000 tuples: an int32 count wraps to a negative number, and nothing is enumerated
+            (ALG_NEQ, [], [0, 1], [(0, 59_999), (0, 39_999)], 0, DOMAIN_MIN, 1, EXPLANATION_SUSPICIOUS),
         ],
     )
     def test_check_explanation(
@@ -253,6 +255,7 @@ class TestExplanations:
                 solver.itrail_last,
                 0,
                 -1,
+                solver.domain_buffer,
             )
             == expected
         )
