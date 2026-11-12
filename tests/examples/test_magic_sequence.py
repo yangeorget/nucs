@@ -30,7 +30,12 @@ class TestMagicSequence:
         assert solutions[0][0] == zero_nb
 
     def test_main(self, run_example_main: Callable[..., BacktrackSolver]) -> None:
-        """The example splits the domains and tries the upper half first: 20 choices, where min_value makes 111."""
+        """
+        The example splits the domains and tries the upper half first: 19 choices, where min_value makes 111.
+
+        count_eq has x[i] in its list and as its count. Before the write-back of copies (update_domains_of_copies),
+        the copies were not intersected, and the search made 20 choices.
+        """
         solver = run_example_main("nucs.examples.magic_sequence", "-n", "100")
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == 1
-        assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == 20
+        assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == 19

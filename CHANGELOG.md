@@ -109,6 +109,21 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Fixed
 
+- **A propagator with a variable more than once could give a wrong solution.** The propagator sees each copy of the
+  variable as a variable of its own, so it can narrow the copies to different bounds, even to bounds with no common
+  value, and still not fail. The write-back wrote the copies one after the other: a later copy could undo the
+  narrowing of an earlier one, and a copy that fixed the variable hid the later copies. With an idempotent propagator,
+  nothing called the propagator again. For example, with `count_eq` on `[x0, x1, x2, x1]` (x1 is the number of 1 in
+  `[x0, x1, x2]`), x0 = 0, x1 in [0, 1] and x2 = 1, there is no solution, but `BacktrackSolver` gave `[0, 0, 1]`. On
+  300 random small models with a variable twice, 14 gave wrong solutions: 10 with `linear_eq_c` and 4 with
+  `count_eq`.
+  `Problem.init` now marks these propagators in a new column of `offsets`, `OFFSETS_COPIES` (`OFFSETS_WIDTH` is now
+  5). For them only, `bc_algorithm` uses `update_domains_of_copies`: each copy is intersected with the current bounds,
+  an empty intersection is a failure, and the propagator is called again after its own writes. The other propagators
+  do not change. The magic_sequence example has such propagators: with `-n 100`, it makes 19 choices instead of 20,
+  and 3% fewer propagator calls. A custom consistency algorithm that writes the domains of a propagator with
+  `tighten_at` must read `OFFSETS_COPIES` too.
+
 - **The Golomb consistency algorithm could lose the optimum, or return a ruler that is not a Golomb ruler.** It
   computes a lower bound for the distances after the first unbound mark from the distances that are already used. To
   find these, it read a range of row-major indices, which also holds the distances to marks that are not yet bound,
