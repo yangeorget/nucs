@@ -10,6 +10,8 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
+import itertools
+import random
 from collections.abc import Callable
 from functools import partial
 
@@ -46,6 +48,7 @@ from nucs.statistics import (
     STATS_IDX_SOLVER_ELAPSED_TIME,
     STATS_IDX_SOLVER_RESTART_NB,
 )
+from tests.solvers.backtrack.test_bc_algorithm import random_problem_with_copies
 
 
 def run_queens_find_all(solver_class: Callable[..., TreeSearchSolver]) -> tuple[TreeSearchSolver, list]:
@@ -213,6 +216,18 @@ class TestLcgSolver:
         ]
         solutions = [solution.tolist() for solution in LcgSolver(problem, searches=searches, debug=True).solve()]
         assert solutions == [solution.tolist() for solution in BacktrackSolver(problem, searches=searches).solve()]
+
+    def test_find_all_with_copies_against_brute_force(self) -> None:
+        # a propagator with a variable twice gets the write-back of copies, which writes rows and can fail after some of
+        # them: the debug mode checks these rows, and the explanation of the failure at the position of the call
+        rng = random.Random(20261113)
+        for _ in range(200):
+            problem, bounds, is_solution = random_problem_with_copies(rng)
+            expected = sorted(
+                point for point in itertools.product(*[range(lo, hi + 1) for lo, hi in bounds]) if is_solution(point)
+            )
+            found = sorted(tuple(solution.tolist()) for solution in LcgSolver(problem, debug=True).find_all())
+            assert found == expected, f"{bounds} {problem.propagators}"
 
     def test_debug_mode_finds_an_implication_trail_that_does_not_agree_with_the_state(self) -> None:
         solver = LcgSolver(QueensProblem(4), debug=True)

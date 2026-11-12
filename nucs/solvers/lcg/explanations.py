@@ -385,6 +385,7 @@ def check_explanations(
     itrail_last: NDArray,
     first_row: int,
     failed_propagator: int,
+    failed_pos: int,
     prop_domains: NDArray,
 ) -> tuple[int, int]:
     """
@@ -420,8 +421,10 @@ def check_explanations(
     :type itrail_last: NDArray
     :param first_row: the first row to check
     :type first_row: int
-    :param failed_propagator: the propagator that failed with the current bounds, -1 when there is none
+    :param failed_propagator: the propagator that failed, -1 when there is none
     :type failed_propagator: int
+    :param failed_pos: the number of rows of the implication trail when the call that failed read the bounds
+    :type failed_pos: int
     :param prop_domains: a scratch buffer with one row for each variable of the largest propagator, such as the
                          domain_buffer of the solver
     :type prop_domains: NDArray
@@ -481,7 +484,7 @@ def check_explanations(
             itrail,
             itrail_last,
             failed_propagator,
-            itrail_top[0],
+            failed_pos,
             -1,
             -1,
             0,

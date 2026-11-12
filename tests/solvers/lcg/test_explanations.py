@@ -259,6 +259,7 @@ class TestExplanations:
                 solver.itrail_last,
                 0,
                 -1,
+                -1,
                 solver.domain_buffer,
             )
             == expected

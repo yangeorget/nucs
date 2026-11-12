@@ -36,6 +36,11 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Changed
 
+- **`offsets` has a fifth column, `OFFSETS_COPIES`** (`OFFSETS_WIDTH` is now 5): 1 for a propagator that has a
+  variable more than once. No existing code breaks: the other columns keep their indices. A custom consistency
+  algorithm that writes back the domains of such a propagator itself must read it; `docs/source/consistency.rst`
+  says how. See the fix of the copies under "Fixed".
+
 - **`count_eq_c` reports the calls that change no domain**, as `count_eq`, `count_leq_c` and `count_geq_c` already do.
   The engine then skips the write-back scan for these calls. On the new dataset model `count_eq_shifts`, a 120-long
   roster with exact quotas (2.8M calls, 83% of them with no change), the solve is 1.087× faster (1,116 ms to 1,027 ms,
@@ -167,6 +172,27 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `SocialGolfersProblem` are now `group_sz`. Code that gives these parameters by position does not change.
 
 ### Fixed
+
+- **A propagator with a variable more than once could give a wrong solution.** The propagator sees each copy of the
+  variable as a variable of its own, so it can narrow the copies to different bounds, even to bounds with no common
+  value, and still not fail. The write-back wrote the copies one after the other: a later copy could undo the
+  narrowing of an earlier one, and a copy that fixed the variable hid the later copies. With an idempotent propagator,
+  nothing called the propagator again. For example, with `count_eq` on `[x0, x1, x2, x1]` (x1 is the number of 1 in
+  `[x0, x1, x2]`), x0 = 0, x1 in [0, 1] and x2 = 1, there is no solution, but `BacktrackSolver` gave `[0, 0, 1]`. On
+  300 random small models with a variable twice, 14 gave wrong solutions: 10 with `linear_eq_c` and 4 with
+  `count_eq`.
+  `Problem.init` now marks these propagators in a new column of `offsets`, `OFFSETS_COPIES` (`OFFSETS_WIDTH` is now
+  5). For them only, `bc_algorithm` uses `update_domains_of_copies`: each copy is intersected with the current bounds,
+  an empty intersection is a failure, and the propagator is called again after its own writes. The other propagators
+  do not change. The magic_sequence example has such propagators: with `-n 100`, it makes 19 choices instead of 20,
+  and 3% fewer propagator calls. A custom consistency algorithm that writes the domains of a propagator with
+  `tighten_at` must read `OFFSETS_COPIES` too.
+  The triggers also registered only the watcher of the first copy: a copy with a wider watcher (another sign, or a
+  zero coefficient on the first copy of a linear constraint) never woke the propagator. A variable now gets the union
+  of the watchers of its copies (`variable_trigger` in `nucs.problems.problem`). And the write-back of copies calls an
+  idempotent propagator again only when a copy is wider than the final bounds. On 600 random small models with a
+  variable twice in `count_eq`, `linear_eq_c`, `linear_leq_c`, `linear_geq_c` or `alldifferent`, 27 gave wrong
+  solutions before these fixes, 2 with the write-back of copies alone, and none now.
 
 - **The Golomb consistency algorithm could lose the optimum, or return a ruler that is not a Golomb ruler.** It
   computes a lower bound for the distances after the first unbound mark from the distances that are already used. To
