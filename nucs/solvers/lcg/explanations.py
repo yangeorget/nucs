@@ -63,7 +63,16 @@ EXPLANATION_SUSPICIOUS = 2  # the propagation does not, and the box has too many
 EXPLANATION_WRONG = 3  # a tuple of the box satisfies the constraint and not the literal
 EXPLANATION_NOT_TRUE = 4  # a literal of the explanation was not true when the propagator read the bounds
 EXPLANATION_OTHER_VARIABLE = 5  # the index of the row (ITRAIL_REASON_VAR_IDX) does not name the variable of the row
-EXPLANATION_VERDICTS = ["confirmed", "enumerated", "suspicious", "wrong", "not true", "on another variable"]
+EXPLANATION_NO_PROPAGATOR = 6  # the propagator of the row (ITRAIL_REASON_DATA) does not exist
+EXPLANATION_VERDICTS = [
+    "confirmed",
+    "enumerated",
+    "suspicious",
+    "wrong",
+    "not true",
+    "on another variable",
+    "on no propagator",
+]
 
 # The largest box that the check enumerates.
 EXPLANATION_ENUMERATION_LIMIT = 1 << 16
@@ -145,6 +154,10 @@ def explain_propagator(
 
     It rebuilds the bounds of the variables of the propagator when the implication trail had pos rows, and calls
     the explain function of the propagator on them.
+
+    Nothing here checks prop_idx and var_idx: the caller takes them from a REASON_PROPAGATOR row, or from
+    failed_propagator. With a wrong one, the explain function reads out of its arrays, and under the JIT nothing
+    reports it. The debug mode checks both (check_explanations).
 
     :param explain_addrs: the compiled explain address of each algorithm
     :type explain_addrs: NDArray
@@ -381,8 +394,9 @@ def check_explanations(
     For each row with REASON_PROPAGATOR, it checks two literals: the literal of the row, and the weakest literal
     that the row makes true, because the conflict analysis can ask for a literal weaker than the row. For each
     literal, the literals of the explanation must be true at the REASON_POS of the row (EXPLANATION_NOT_TRUE if
-    not), and they must be sufficient for the literal (check_explanation). Before that, the index of the row must
-    name the variable of the row (EXPLANATION_OTHER_VARIABLE if not).
+    not), and they must be sufficient for the literal (check_explanation). Before that, the row must name a
+    propagator (EXPLANATION_NO_PROPAGATOR if not), and its index must name the variable of the row
+    (EXPLANATION_OTHER_VARIABLE if not).
 
     :param compute_domains_addrs: the compiled compute_domains address of each algorithm
     :type compute_domains_addrs: NDArray
@@ -426,10 +440,8 @@ def check_explanations(
         var_side = itrail[row, ITRAIL_VAR_SIDE]
         value = itrail[row, ITRAIL_VALUE]
         prop_idx = itrail[row, ITRAIL_REASON_DATA]
-        var_idx = itrail[row, ITRAIL_REASON_VAR_IDX]
-        prop_var_start, arity = prop_variable_range(offsets, prop_idx)
-        if not 0 <= var_idx < arity or propagator_variables[prop_var_start + var_idx] != var_side >> 1:
-            return row, EXPLANATION_OTHER_VARIABLE
+        if not 0 <= prop_idx < len(algorithms):
+            return row, EXPLANATION_NO_PROPAGATOR
         # the bound before the row: [x >= before + 1] or [x <= before - 1] is the weakest literal that the row sets
         before = bound_at(itrail, itrail_last, initial_domains, var_side, row)
         weakest = before + 1 if (var_side & 1) == DOMAIN_MIN else before - 1
@@ -447,8 +459,8 @@ def check_explanations(
                 itrail_last,
                 prop_idx,
                 itrail[row, ITRAIL_REASON_POS],
-                var_idx,
-                var_side & 1,
+                itrail[row, ITRAIL_REASON_VAR_IDX],
+                var_side,
                 lit_value,
                 prop_domains,
                 explanation,
@@ -471,7 +483,7 @@ def check_explanations(
             failed_propagator,
             itrail_top[0],
             -1,
-            DOMAIN_MIN,
+            -1,
             0,
             prop_domains,
             explanation,
@@ -497,7 +509,7 @@ def check_propagator_explanation(
     prop_idx: int,
     pos: int,
     var_idx: int,
-    side: int,
+    var_side: int,
     value: int,
     prop_domains: NDArray,
     explanation: NDArray,
@@ -532,8 +544,8 @@ def check_propagator_explanation(
     :param var_idx: the variable of the literal, as the index of the copy that the call wrote among the variables of
                     the propagator, -1 for a failure
     :type var_idx: int
-    :param side: DOMAIN_MIN for [x >= value], DOMAIN_MAX for [x <= value]
-    :type side: int
+    :param var_side: the bound of the literal, -1 for a failure
+    :type var_side: int
     :param value: the value of the literal
     :type value: int
     :param prop_domains: a scratch buffer of max arity rows
@@ -548,6 +560,11 @@ def check_propagator_explanation(
     :return: the verdict, one of EXPLANATION_*
     :rtype: int
     """
+    prop_var_start, arity = prop_variable_range(offsets, prop_idx)
+    side = var_side & 1
+    # the index must name the variable before explain reads it
+    if var_side >= 0 and (not 0 <= var_idx < arity or propagator_variables[prop_var_start + var_idx] != var_side >> 1):
+        return EXPLANATION_OTHER_VARIABLE
     row_nb = explain_propagator(
         explain_addrs,
         algorithms,
@@ -565,7 +582,6 @@ def check_propagator_explanation(
         prop_domains,
         explanation,
     )
-    prop_var_start, arity = prop_variable_range(offsets, prop_idx)
     # explain_propagator left the bounds at pos in prop_domains: each row of the explanation must be true there
     domains_at_pos = prop_domains[:arity].reshape(-1)
     for row in range(row_nb):

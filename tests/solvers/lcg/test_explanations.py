@@ -38,6 +38,7 @@ from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.lcg.explanations import (
     EXPLANATION_CONFIRMED,
     EXPLANATION_ENUMERATED,
+    EXPLANATION_NO_PROPAGATOR,
     EXPLANATION_OTHER_VARIABLE,
     EXPLANATION_SUSPICIOUS,
     EXPLANATION_WRONG,
@@ -49,6 +50,7 @@ from nucs.solvers.lcg.explanations import (
     first_copies,
 )
 from nucs.solvers.lcg.implication_trail import (
+    ITRAIL_REASON_DATA,
     ITRAIL_REASON_VAR_IDX,
     ITRAIL_VAR_SIDE,
     ITRAIL_WIDTH,
@@ -228,19 +230,21 @@ class TestExplanations:
         assert [(1 << 1) | DOMAIN_MIN, 1, -1, 0, REASON_PROPAGATOR, 0, 0, 3] in rows
 
     @pytest.mark.parametrize(
-        "var_idx,expected",
+        "column,value,expected",
         [
-            (3, (EXPLANATIONS_VALID, EXPLANATION_CONFIRMED)),  # the copy that the call narrowed
-            (0, (0, EXPLANATION_OTHER_VARIABLE)),  # x0, not x1
-            (4, (0, EXPLANATION_OTHER_VARIABLE)),  # past the 4 variables of the propagator
+            (ITRAIL_REASON_VAR_IDX, 3, (EXPLANATIONS_VALID, EXPLANATION_CONFIRMED)),  # the copy that the call narrowed
+            (ITRAIL_REASON_VAR_IDX, 0, (0, EXPLANATION_OTHER_VARIABLE)),  # x0, not x1
+            (ITRAIL_REASON_VAR_IDX, 4, (0, EXPLANATION_OTHER_VARIABLE)),  # past the 4 variables of the propagator
+            (ITRAIL_REASON_DATA, 1, (0, EXPLANATION_NO_PROPAGATOR)),  # the problem has one propagator
+            (ITRAIL_REASON_DATA, -1, (0, EXPLANATION_NO_PROPAGATOR)),
         ],
     )
-    def test_debug_mode_checks_the_index_of_a_row(self, var_idx: int, expected: tuple[int, int]) -> None:
+    def test_debug_mode_checks_the_reason_of_a_row(self, column: int, value: int, expected: tuple[int, int]) -> None:
         solver = LcgSolver(count_with_its_count_in_the_list(), debug=True)
         solver._run_search_loop()
-        # the rows from row 0 up: the first one, [x1 >= 1], gets the index under test
+        # the rows from row 0 up: the first one, [x1 >= 1], gets the value under test
         assert solver.itrail[0, ITRAIL_VAR_SIDE] == (1 << 1) | DOMAIN_MIN
-        solver.itrail[0, ITRAIL_REASON_VAR_IDX] = var_idx
+        solver.itrail[0, column] = value
         assert (
             check_explanations(
                 solver.compute_domains_addrs,
