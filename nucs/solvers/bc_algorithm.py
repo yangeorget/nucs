@@ -26,6 +26,7 @@ from nucs.constants import (
     PROP_INCONSISTENCY,
 )
 from nucs.problems.problem import (
+    OFFSETS_COPIES,
     OFFSETS_PARAM,
     OFFSETS_STATE,
     OFFSETS_STATE_HINT,
@@ -200,23 +201,47 @@ def bc_algorithm(
             # no event and schedule nobody: skip it outright
             count_no_change(statistics, algorithm_stats)
             continue
-        no_change, trail_size = update_domains(
-            prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
-            prop_var_start,
-            prop_var_end,
-            prop_domains,
-            propagator_variables,
-            state,
-            trail_log,
-            trail_indices,
-            mark,
-            trail_size,
-            triggered_propagators,
-            entailed,
-            triggers,
-            triggers_offsets,
-            priorities,
-        )
+        if offsets[prop_idx, OFFSETS_COPIES]:
+            # the propagator has a variable more than once: its copies can disagree (see update_domains_of_copies)
+            consistent, no_change, trail_size = update_domains_of_copies(
+                prop_var_start,
+                prop_var_end,
+                prop_domains,
+                propagator_variables,
+                state,
+                trail_log,
+                trail_indices,
+                mark,
+                trail_size,
+                triggered_propagators,
+                entailed,
+                triggers,
+                triggers_offsets,
+                priorities,
+            )
+            if not consistent:
+                statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
+                weights_bump(propagator_weights, prop_idx)
+                trail_top[0] = trail_size
+                return PROBLEM_INCONSISTENT
+        else:
+            no_change, trail_size = update_domains(
+                prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
+                prop_var_start,
+                prop_var_end,
+                prop_domains,
+                propagator_variables,
+                state,
+                trail_log,
+                trail_indices,
+                mark,
+                trail_size,
+                triggered_propagators,
+                entailed,
+                triggers,
+                triggers_offsets,
+                priorities,
+            )
         if no_change:
             count_no_change(statistics, algorithm_stats)
 
@@ -432,3 +457,94 @@ def update_domains(
                 )
                 no_changes = False
     return no_changes, trail_size
+
+
+@njit(cache=True, inline="always")
+def update_domains_of_copies(
+    prop_var_start: int,
+    prop_var_end: int,
+    prop_domains: NDArray,
+    propagator_variables: NDArray,
+    state: NDArray,
+    trail_log: NDArray,
+    trail_indices: NDArray,
+    mark: int,
+    trail_size: int,
+    triggered_propagators: NDArray,
+    entailed: NDArray,
+    triggers: NDArray,
+    triggers_offsets: NDArray,
+    priorities: NDArray,
+) -> tuple[bool, bool, int]:
+    """
+    Applies the computed prop_domains of a propagator that has a variable more than once, and schedules the
+    propagators triggered by the changes, this propagator included.
+
+    The propagator sees each copy of a variable as a variable of its own. It narrows each copy soundly, so the
+    variable is in the intersection of the copies, but it can narrow the copies to different bounds, even to bounds
+    with an empty intersection, and still not fail. update_domains would write the copies one after the other: a later
+    copy would undo the narrowing of an earlier one, and a copy that fixes the variable would hide the later copies.
+    Thus this write-back:
+
+    - intersects each copy with the current bounds, which already hold the writes of the earlier copies, and fails when
+      the intersection is empty;
+    - does not skip a fixed variable, because a later copy must still agree with it;
+    - schedules the propagator again after its own writes, even when it is idempotent: its next call reads the
+      intersection on all the copies, and at the fixpoint, it has accepted a box in which the copies are equal.
+
+    :param prop_var_start: where the propagator's variables start in propagator_variables
+    :type prop_var_start: int
+    :param prop_var_end: where they end
+    :type prop_var_end: int
+    :param prop_domains: the domains computed by the propagator
+    :type prop_domains: NDArray
+    :param propagator_variables: the variables by propagators
+    :type propagator_variables: NDArray
+    :param state: all the backtrackable state: the domain bounds, the unbound-variable count and,
+                  from there on, whatever else is trailed
+    :type state: NDArray
+    :param trail_log: the undo log of (cell index, old value) pairs
+    :type trail_log: NDArray
+    :param trail_indices: the index of the last trail entry per positionally guarded cell
+    :type trail_indices: NDArray
+    :param mark: the trail size when the current choice point branched
+    :type mark: int
+    :param trail_size: the number of entries currently on the trail
+    :type trail_size: int
+    :param triggered_propagators: the Numpy array of triggered propagators
+    :type triggered_propagators: NDArray
+    :param entailed: whether each propagator is entailed, a view of state
+    :type entailed: NDArray
+    :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :type triggers: NDArray
+    :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
+    :type triggers_offsets: NDArray
+    :param priorities: the propagation queue bucket priorities indexed by propagators
+    :type priorities: NDArray
+
+    :return: false iff the copies of a variable have an empty intersection, true iff no domain was changed, and the
+             new trail size
+    :rtype: Tuple[bool, bool, int]
+    """
+    no_changes = True
+    for var_idx in range(prop_var_end - prop_var_start):
+        variable = propagator_variables[prop_var_start + var_idx]
+        cell_idx = variable << 1
+        new_min = max(state[cell_idx], prop_domains[var_idx, DOMAIN_MIN])
+        new_max = min(state[cell_idx | 1], prop_domains[var_idx, DOMAIN_MAX])
+        if new_min > new_max:
+            return False, no_changes, trail_size
+        events, trail_size = tighten_at(state, trail_log, trail_indices, mark, trail_size, variable, new_min, new_max)
+        if events:
+            update_propagators(
+                triggered_propagators,
+                entailed,
+                triggers,
+                triggers_offsets,
+                priorities,
+                variable,
+                events,
+                -1,
+            )
+            no_changes = False
+    return True, no_changes, trail_size
