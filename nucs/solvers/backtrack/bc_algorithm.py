@@ -23,6 +23,7 @@ from nucs.constants import (
     PROP_INCONSISTENCY,
 )
 from nucs.problems.problem import (
+    OFFSETS_COPIES,
     OFFSETS_PARAM,
     OFFSETS_STATE,
     OFFSETS_STATE_HINT,
@@ -39,6 +40,7 @@ from nucs.solvers.propagation_steps import (
     gather_domains,
     record_entailment,
     update_domains,
+    update_domains_of_copies,
     utrail_state_prefix,
 )
 from nucs.solvers.state import unbound_index
@@ -203,22 +205,47 @@ def bc_algorithm(
             # no event and schedule nobody: skip it outright
             count_no_change(statistics, algorithm_stats)
             continue
-        no_change, utrail_sz = update_domains(
-            prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
-            prop_var_start,
-            prop_var_end,
-            prop_domains,
-            propagator_variables,
-            state,
-            utrail_log,
-            utrail_indices,
-            mark,
-            utrail_sz,
-            triggered_propagators,
-            entailed,
-            triggers,
-            triggers_offsets,
-            priorities,
-        )
+        if offsets[prop_idx, OFFSETS_COPIES]:
+            # the propagator has a variable more than once: its copies can disagree (see update_domains_of_copies)
+            consistent, no_change, utrail_sz = update_domains_of_copies(
+                prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
+                prop_var_start,
+                prop_var_end,
+                prop_domains,
+                propagator_variables,
+                state,
+                utrail_log,
+                utrail_indices,
+                mark,
+                utrail_sz,
+                triggered_propagators,
+                entailed,
+                triggers,
+                triggers_offsets,
+                priorities,
+            )
+            if not consistent:
+                statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
+                weights_bump(propagator_weights, prop_idx)
+                utrail_top[0] = utrail_sz
+                return PROBLEM_INCONSISTENT
+        else:
+            no_change, utrail_sz = update_domains(
+                prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
+                prop_var_start,
+                prop_var_end,
+                prop_domains,
+                propagator_variables,
+                state,
+                utrail_log,
+                utrail_indices,
+                mark,
+                utrail_sz,
+                triggered_propagators,
+                entailed,
+                triggers,
+                triggers_offsets,
+                priorities,
+            )
         if no_change:
             count_no_change(statistics, algorithm_stats)

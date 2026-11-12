@@ -54,7 +54,8 @@ OFFSETS_VARIABLE = 0  # column of offsets holding the propagator variable offset
 OFFSETS_PARAM = 1  # column of offsets holding the propagator parameter offsets
 OFFSETS_STATE = 2  # column of offsets holding the propagator state offsets, absolute into state (see below)
 OFFSETS_STATE_HINT = 3  # column of offsets holding where each state block's untrailed hint suffix starts
-OFFSETS_WIDTH = 4  # number of columns of offsets
+OFFSETS_COPIES = 4  # column of offsets holding 1 when the propagator has a variable more than once, else 0
+OFFSETS_WIDTH = 5  # number of columns of offsets
 
 
 class Problem:
@@ -199,6 +200,13 @@ class Problem:
         both bounds from the offsets row that it has already loaded. This value is a column, not an array of
         its own, because this table is for per-propagator widths. An array of its own would add a second
         cache line on the per-call path. It would also add a fourth argument to SIGN_CONSISTENCY_ALG.
+
+        The OFFSETS_COPIES column holds 1 for a propagator that has a variable more than once, for example
+        count_eq in magic_sequence, with x[i] in its list and as its count. The propagator sees each copy as a
+        variable of its own, so it can narrow the copies to different bounds, even to bounds with an empty
+        intersection, and still not fail. bc_algorithm reads this column, and gives such a propagator a write-back
+        that intersects the copies (update_domains_of_copies). It is a column for the same reasons as
+        OFFSETS_STATE_HINT. The closing row holds 0.
         """
         logger.debug("Initializing offsets")
         self.offsets = np.zeros((self.propagator_nb + 1, OFFSETS_WIDTH), dtype=np.uint32)
@@ -217,6 +225,7 @@ class Problem:
             state_start = self.offsets[propagator_idx, OFFSETS_STATE]
             self.offsets[propagator_idx, OFFSETS_STATE_HINT] = state_start + trailed_nb
             self.offsets[propagator_idx + 1, OFFSETS_STATE] = state_start + trailed_nb + hint_nb
+            self.offsets[propagator_idx, OFFSETS_COPIES] = len(set(propagator[0])) < len(propagator[0])
         self.state_width = int(self.offsets[-1, OFFSETS_STATE] - state_base)
         # the closing row has no propagator, so its split is degenerate; keeping it consistent means a
         # reader never sees a hint start below its own state start

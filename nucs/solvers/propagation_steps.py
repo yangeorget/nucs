@@ -246,6 +246,116 @@ def update_domains(
 # always inlined: the propagation loop calls this for every variable a filtering narrows, and it is compiled
 # without the reference-counting runtime, which every callee of it has to be inlined into (see bc_algorithm)
 @njit(cache=True, inline="always")
+def update_domains_of_copies(
+    skip_prop_idx: int,
+    prop_var_start: int,
+    prop_var_end: int,
+    prop_domains: NDArray,
+    propagator_variables: NDArray,
+    state: NDArray,
+    utrail_log: NDArray,
+    utrail_indices: NDArray,
+    mark: int,
+    utrail_sz: int,
+    triggered_propagators: NDArray,
+    entailed: NDArray,
+    triggers: NDArray,
+    triggers_offsets: NDArray,
+    priorities: NDArray,
+) -> tuple[bool, bool, int]:
+    """
+    Applies the computed prop_domains of a propagator that has a variable more than once, and schedules the
+    propagators triggered by the changes.
+
+    The propagator sees each copy of a variable as a variable of its own. It narrows each copy soundly, so the
+    variable is in the intersection of the copies, but it can narrow the copies to different bounds, even to bounds
+    with an empty intersection, and still not fail. update_domains would write the copies one after the other: a later
+    copy would undo the narrowing of an earlier one, and a copy that fixes the variable would hide the later copies.
+    Thus this write-back:
+
+    - intersects each copy with the current bounds, which already hold the writes of the earlier copies, and fails when
+      the intersection is empty;
+    - does not skip a fixed variable, because a later copy must still agree with it;
+    - schedules the propagator again when a copy that it wrote is wider than the bounds that the write-back leaves,
+      even when it is idempotent: its next call reads the intersection on all the copies, and at the fixpoint, it has
+      accepted a box in which the copies are equal. When each copy is equal to these bounds, the propagator has
+      already seen them, and an idempotent propagator is not scheduled, as with update_domains.
+
+    The test compares each copy with the final bounds, not with the bounds at its own write: when copy 0 writes min
+    1 and copy 1 then writes min 2, no write is clipped, but the propagator saw min 1 on copy 0.
+
+    :param skip_prop_idx: the propagator whose domains these are when it is idempotent, so that its own writes
+                          schedule it again only when its copies disagree; -1 when it is not, so that it is
+                          rescheduled like any other
+    :type skip_prop_idx: int
+    :param prop_var_start: where the propagator's variables start in propagator_variables
+    :type prop_var_start: int
+    :param prop_var_end: where they end
+    :type prop_var_end: int
+    :param prop_domains: the domains computed by the propagator
+    :type prop_domains: NDArray
+    :param propagator_variables: the variables by propagators
+    :type propagator_variables: NDArray
+    :param state: all the backtrackable state: the domain bounds, the unbound-variable count and,
+                  from there on, whatever else is trailed
+    :type state: NDArray
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
+    :param mark: the undo trail size when the current choice point branched
+    :type mark: int
+    :param utrail_sz: the number of entries currently on the undo trail
+    :type utrail_sz: int
+    :param triggered_propagators: the Numpy array of triggered propagators
+    :type triggered_propagators: NDArray
+    :param entailed: whether each propagator is entailed, a view of state
+    :type entailed: NDArray
+    :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :type triggers: NDArray
+    :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
+    :type triggers_offsets: NDArray
+    :param priorities: the propagation queue bucket priorities indexed by propagators
+    :type priorities: NDArray
+
+    :return: false iff the copies of a variable have an empty intersection, true iff no domain was changed, and the
+             new undo trail size
+    :rtype: Tuple[bool, bool, int]
+    """
+    no_changes = True
+    for var_idx in range(prop_var_end - prop_var_start):
+        variable = propagator_variables[prop_var_start + var_idx]
+        cell_idx = variable << 1
+        new_min = max(state[cell_idx], prop_domains[var_idx, DOMAIN_MIN])
+        new_max = min(state[cell_idx | 1], prop_domains[var_idx, DOMAIN_MAX])
+        if new_min > new_max:
+            return False, no_changes, utrail_sz
+        events, utrail_sz = tighten_at(state, utrail_log, utrail_indices, mark, utrail_sz, variable, new_min, new_max)
+        if events:
+            update_propagators(
+                triggered_propagators,
+                entailed,
+                triggers,
+                triggers_offsets,
+                priorities,
+                variable,
+                events,
+                skip_prop_idx,
+            )
+            no_changes = False
+    if skip_prop_idx >= 0 and not entailed[skip_prop_idx]:
+        for var_idx in range(prop_var_end - prop_var_start):
+            cell_idx = propagator_variables[prop_var_start + var_idx] << 1
+            if (
+                state[cell_idx] != prop_domains[var_idx, DOMAIN_MIN]
+                or state[cell_idx | 1] != prop_domains[var_idx, DOMAIN_MAX]
+            ):
+                buckets_add(triggered_propagators, priorities, skip_prop_idx, STORAGE_OFFSET + len(priorities))
+                break
+    return True, no_changes, utrail_sz
+
+
+@njit(cache=True, inline="always")
 def update_propagators(
     triggered_propagators: NDArray,
     entailed: NDArray,
