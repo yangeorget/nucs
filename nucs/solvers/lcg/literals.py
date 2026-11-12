@@ -27,6 +27,11 @@ from numpy.typing import NDArray
 
 from nucs.constants import DOMAIN_MIN
 
+# The columns of an array of literals, one literal on each row.
+LIT_VAR_SIDE = 0
+LIT_VALUE = 1
+LIT_WIDTH = 2
+
 
 @njit(cache=True, inline="always")
 def lit_negate(var_side: int, value: int) -> tuple[int, int]:

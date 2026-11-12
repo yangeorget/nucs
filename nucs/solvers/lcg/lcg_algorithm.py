@@ -92,16 +92,19 @@ def lcg_algorithm(
     itrail: NDArray,
     itrail_top: NDArray,
     itrail_last: NDArray,
+    failed_propagator: NDArray,
 ) -> int:
     """
     Propagates as bc_algorithm does, and records each bound change on the implication trail: the propagation loop
     of LcgSolver.
 
-    It is a copy of bc_algorithm with two changes (design/proposals/lcg.md, 4.1):
+    It is a copy of bc_algorithm with three changes (design/proposals/lcg.md, 4.1):
 
     - before the call of a propagator, it keeps the number of rows of the implication trail as the REASON_POS of
       the call;
-    - in the write-back, each moved bound adds a row with REASON_PROPAGATOR, the propagator and this REASON_POS.
+    - in the write-back, each moved bound adds a row with REASON_PROPAGATOR, the propagator and this REASON_POS;
+    - when a propagator fails, it writes the propagator in failed_propagator, so that the solver can ask for the
+      explanation of the failure.
 
     The search is the same as with bc_algorithm, and so are the counters: it counts its calls in ALG_BC_NB for this
     reason.
@@ -165,6 +168,9 @@ def lcg_algorithm(
     :type itrail_top: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
+    :param failed_propagator: a one-cell array that gets the propagator that failed, when the loop returns
+                              PROBLEM_INCONSISTENT
+    :type failed_propagator: NDArray
 
     :return: PROBLEM_INCONSISTENT, PROBLEM_UNBOUND, PROBLEM_BOUND, or PROBLEM_ITRAIL_FULL when the implication
              trail must grow before the propagation can continue
@@ -231,6 +237,7 @@ def lcg_algorithm(
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             weights_bump(propagator_weights, prop_idx)
+            failed_propagator[0] = prop_idx
             utrail_top[0] = utrail_sz
             itrail_top[0] = itrail_sz
             return PROBLEM_INCONSISTENT
