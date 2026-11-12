@@ -27,6 +27,7 @@ from nucs.constants import (
     PROP_INCONSISTENCY,
 )
 from nucs.problems.problem import (
+    OFFSETS_COPIES,
     OFFSETS_PARAM,
     OFFSETS_STATE,
     OFFSETS_STATE_HINT,
@@ -36,7 +37,7 @@ from nucs.problems.problem import (
     PROBLEM_UNBOUND,
 )
 from nucs.propagators.propagators import call_compute_domains
-from nucs.solvers.buckets import STORAGE_OFFSET, buckets_pop
+from nucs.solvers.buckets import STORAGE_OFFSET, buckets_add, buckets_pop
 from nucs.solvers.choicepoints import CHOICEPOINT_UTRAIL_MARK
 from nucs.solvers.lcg.implication_trail import ITRAIL_STEP_ROW_NB, REASON_PROPAGATOR, itrail_push_events
 from nucs.solvers.propagation_steps import (
@@ -61,6 +62,12 @@ from nucs.statistics import (
 # returned by lcg_algorithm when the implication trail has no room for the next propagator call; the propagator is
 # still in the queue, and the next call of lcg_algorithm continues the propagation
 PROBLEM_ITRAIL_FULL = 3
+
+# The cells of failed_propagator: the propagator that failed, and the number of rows of the implication trail when its
+# call read the bounds. The failure is explained with the bounds at that position: a write-back of copies can fail
+# after it wrote rows (see update_domains_of_copies_with_reasons).
+FAILED_PROPAGATOR = 0
+FAILED_POS = 1
 
 
 # compiled without Numba's reference-counting runtime, as bc_algorithm is, for the same reasons and with the same two
@@ -98,13 +105,15 @@ def lcg_algorithm(
     Propagates as bc_algorithm does, and records each bound change on the implication trail: the propagation loop
     of LcgSolver.
 
-    It is a copy of bc_algorithm with three changes (design/proposals/lcg.md, 4.1):
+    It is a copy of bc_algorithm with four changes (design/proposals/lcg.md, 4.1):
 
     - before the call of a propagator, it keeps the number of rows of the implication trail as the REASON_POS of
       the call;
     - in the write-back, each moved bound adds a row with REASON_PROPAGATOR, the propagator and this REASON_POS;
-    - when a propagator fails, it writes the propagator in failed_propagator, so that the solver can ask for the
-      explanation of the failure.
+    - when a propagator fails, it writes the propagator and the position of its call in failed_propagator, so that
+      the solver can ask for the explanation of the failure;
+    - a propagator that has a variable more than once (OFFSETS_COPIES) gets update_domains_of_copies_with_reasons, as
+      bc_algorithm gives it update_domains_of_copies.
 
     The search is the same as with bc_algorithm, and so are the counters: it counts its calls in ALG_BC_NB for this
     reason.
@@ -168,8 +177,8 @@ def lcg_algorithm(
     :type itrail_top: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
-    :param failed_propagator: a one-cell array that gets the propagator that failed, when the loop returns
-                              PROBLEM_INCONSISTENT
+    :param failed_propagator: a two-cell array that gets the propagator that failed and the position of its call
+                              (FAILED_PROPAGATOR, FAILED_POS), when the loop returns PROBLEM_INCONSISTENT
     :type failed_propagator: NDArray
 
     :return: PROBLEM_INCONSISTENT, PROBLEM_UNBOUND, PROBLEM_BOUND, or PROBLEM_ITRAIL_FULL when the implication
@@ -237,7 +246,8 @@ def lcg_algorithm(
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             weights_bump(propagator_weights, prop_idx)
-            failed_propagator[0] = prop_idx
+            failed_propagator[FAILED_PROPAGATOR] = prop_idx
+            failed_propagator[FAILED_POS] = itrail_sz
             utrail_top[0] = utrail_sz
             itrail_top[0] = itrail_sz
             return PROBLEM_INCONSISTENT
@@ -249,28 +259,62 @@ def lcg_algorithm(
             # no event and schedule nobody: skip it outright
             count_no_change(statistics, algorithm_stats)
             continue
-        no_change, utrail_sz, itrail_sz = update_domains_with_reasons(
-            prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
-            prop_var_start,
-            prop_var_end,
-            prop_domains,
-            propagator_variables,
-            state,
-            utrail_log,
-            utrail_indices,
-            mark,
-            utrail_sz,
-            triggered_propagators,
-            entailed,
-            triggers,
-            triggers_offsets,
-            priorities,
-            itrail,
-            itrail_last,
-            itrail_sz,
-            choicepoint,
-            prop_idx,
-        )
+        if offsets[prop_idx, OFFSETS_COPIES]:
+            # the propagator has a variable more than once: its copies can disagree (see update_domains_of_copies)
+            reason_pos = itrail_sz
+            consistent, no_change, utrail_sz, itrail_sz = update_domains_of_copies_with_reasons(
+                prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
+                prop_var_start,
+                prop_var_end,
+                prop_domains,
+                propagator_variables,
+                state,
+                utrail_log,
+                utrail_indices,
+                mark,
+                utrail_sz,
+                triggered_propagators,
+                entailed,
+                triggers,
+                triggers_offsets,
+                priorities,
+                itrail,
+                itrail_last,
+                itrail_sz,
+                choicepoint,
+                prop_idx,
+            )
+            if not consistent:
+                statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
+                weights_bump(propagator_weights, prop_idx)
+                failed_propagator[FAILED_PROPAGATOR] = prop_idx
+                failed_propagator[FAILED_POS] = reason_pos
+                utrail_top[0] = utrail_sz
+                itrail_top[0] = itrail_sz
+                return PROBLEM_INCONSISTENT
+        else:
+            no_change, utrail_sz, itrail_sz = update_domains_with_reasons(
+                prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
+                prop_var_start,
+                prop_var_end,
+                prop_domains,
+                propagator_variables,
+                state,
+                utrail_log,
+                utrail_indices,
+                mark,
+                utrail_sz,
+                triggered_propagators,
+                entailed,
+                triggers,
+                triggers_offsets,
+                priorities,
+                itrail,
+                itrail_last,
+                itrail_sz,
+                choicepoint,
+                prop_idx,
+            )
         if no_change:
             count_no_change(statistics, algorithm_stats)
 
@@ -394,3 +438,129 @@ def update_domains_with_reasons(
                 )
                 no_changes = False
     return no_changes, utrail_sz, itrail_sz
+
+
+# always inlined, as update_domains_of_copies is: lcg_algorithm is compiled without the reference-counting runtime
+@njit(cache=True, inline="always")
+def update_domains_of_copies_with_reasons(
+    skip_prop_idx: int,
+    prop_var_start: int,
+    prop_var_end: int,
+    prop_domains: NDArray,
+    propagator_variables: NDArray,
+    state: NDArray,
+    utrail_log: NDArray,
+    utrail_indices: NDArray,
+    mark: int,
+    utrail_sz: int,
+    triggered_propagators: NDArray,
+    entailed: NDArray,
+    triggers: NDArray,
+    triggers_offsets: NDArray,
+    priorities: NDArray,
+    itrail: NDArray,
+    itrail_last: NDArray,
+    itrail_sz: int,
+    choicepoint: int,
+    prop_idx: int,
+) -> tuple[bool, bool, int, int]:
+    """
+    Applies the computed prop_domains of a propagator that has a variable more than once, as update_domains_of_copies
+    does, and adds a row to the implication trail for each bound that moves, as update_domains_with_reasons does.
+
+    Each copy is intersected with the current bounds, so each row is a strict narrowing, and its ITRAIL_REASON_VAR_IDX
+    is the copy whose write moved the bound. When the intersection is empty, the rows that the earlier copies wrote
+    stay: each one is a sound narrowing of the call. The caller explains the failure at the first row of the call.
+
+    :param skip_prop_idx: the propagator whose domains these are when it is idempotent, so that its own writes
+                          schedule it again only when its copies disagree; -1 when it is not, so that it is
+                          rescheduled like any other
+    :type skip_prop_idx: int
+    :param prop_var_start: where the propagator's variables start in propagator_variables
+    :type prop_var_start: int
+    :param prop_var_end: where they end
+    :type prop_var_end: int
+    :param prop_domains: the domains computed by the propagator
+    :type prop_domains: NDArray
+    :param propagator_variables: the variables by propagators
+    :type propagator_variables: NDArray
+    :param state: all the backtrackable state
+    :type state: NDArray
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
+    :param mark: the undo trail size when the current choice point branched
+    :type mark: int
+    :param utrail_sz: the number of entries currently on the undo trail
+    :type utrail_sz: int
+    :param triggered_propagators: the Numpy array of triggered propagators
+    :type triggered_propagators: NDArray
+    :param entailed: whether each propagator is entailed, a view of state
+    :type entailed: NDArray
+    :param triggers: a Numpy array of event masks indexed by variables and propagators
+    :type triggers: NDArray
+    :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
+    :type triggers_offsets: NDArray
+    :param priorities: the propagation queue bucket priorities indexed by propagators
+    :type priorities: NDArray
+    :param itrail: the implication trail
+    :type itrail: NDArray
+    :param itrail_last: the last row of each bound, -1 when the bound has its root value
+    :type itrail_last: NDArray
+    :param itrail_sz: the number of rows in use
+    :type itrail_sz: int
+    :param choicepoint: the current choice point, choicepoint_top[0]
+    :type choicepoint: int
+    :param prop_idx: the propagator whose domains these are
+    :type prop_idx: int
+
+    :return: false iff the copies of a variable have an empty intersection, true iff no domain was changed, the new
+             undo trail size and the new number of rows of the implication trail
+    :rtype: Tuple[bool, bool, int, int]
+    """
+    reason_pos = itrail_sz
+    no_changes = True
+    for var_idx in range(prop_var_end - prop_var_start):
+        variable = propagator_variables[prop_var_start + var_idx]
+        cell_idx = variable << 1
+        new_min = max(state[cell_idx], prop_domains[var_idx, DOMAIN_MIN])
+        new_max = min(state[cell_idx | 1], prop_domains[var_idx, DOMAIN_MAX])
+        if new_min > new_max:
+            return False, no_changes, utrail_sz, itrail_sz
+        events, utrail_sz = tighten_at(state, utrail_log, utrail_indices, mark, utrail_sz, variable, new_min, new_max)
+        if events:
+            itrail_sz = itrail_push_events(
+                itrail,
+                itrail_last,
+                itrail_sz,
+                state,
+                variable,
+                events,
+                choicepoint,
+                REASON_PROPAGATOR,
+                prop_idx,
+                reason_pos,
+                var_idx,
+            )
+            update_propagators(
+                triggered_propagators,
+                entailed,
+                triggers,
+                triggers_offsets,
+                priorities,
+                variable,
+                events,
+                skip_prop_idx,
+            )
+            no_changes = False
+    if skip_prop_idx >= 0 and not entailed[skip_prop_idx]:
+        for var_idx in range(prop_var_end - prop_var_start):
+            cell_idx = propagator_variables[prop_var_start + var_idx] << 1
+            if (
+                state[cell_idx] != prop_domains[var_idx, DOMAIN_MIN]
+                or state[cell_idx | 1] != prop_domains[var_idx, DOMAIN_MAX]
+            ):
+                buckets_add(triggered_propagators, priorities, skip_prop_idx, STORAGE_OFFSET + len(priorities))
+                break
+    return True, no_changes, utrail_sz, itrail_sz

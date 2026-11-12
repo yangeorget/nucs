@@ -942,12 +942,15 @@ trail, the explanations, the analysis and the store already have their tests.
      suspicious on magic_sequence(16). Each row also records the index of the copy that the call narrowed
      (`ITRAIL_REASON_VAR_IDX`, 3.4), and `explain` gets this index; the debug mode checks that it names the variable of
      the row.
-     **Open, in the engine of both solvers:** the write-back does not intersect the copies. `update_domains` writes
-     them one after the other with `tighten_at`, and skips a variable that an earlier copy fixed. When the propagator
-     narrows the copies to bounds with an empty intersection, it does not fail, and the write-back keeps one copy. A
-     propagator that is idempotent is not called again on its own writes, so a wrong solution can come out:
-     `count_eq` on `[x0, x1, x2]` with the count `x1`, and x0 = 0, x1 in [0, 1], x2 = 1, has no solution, but
-     `BacktrackSolver` and `LcgSolver` both give (0, 0, 1). Found by the code review of step 7, on 2026-11-12.
+     **Fixed in the engine of both solvers (2026-11-12, #210 and #211 on `main`):** the write-back did not intersect
+     the copies, and the triggers registered the watcher of the first copy only. When the propagator narrowed the
+     copies to bounds with an empty intersection, it did not fail, and a wrong solution could come out (`count_eq`
+     on `[x0, x1, x2, x1]`, x0 = 0, x1 in [0, 1], x2 = 1 gave (0, 0, 1)). Now `Problem.init` marks these propagators
+     (`OFFSETS_COPIES`), their write-back intersects the copies and fails on an empty intersection
+     (`update_domains_of_copies`; in `lcg_algorithm`, `update_domains_of_copies_with_reasons`, which writes the rows),
+     and a variable wakes the propagator on the watchers of all its copies. A write-back of copies can fail after
+     it wrote rows, so `failed_propagator` also holds the position of the call (`FAILED_POS`), and the failure is
+     explained with the bounds at that position.
    - The debug mode checks two literals for each row: the literal of the row, and the weakest literal that the row
      sets (the analysis can ask for it). It stops the search at an explanation that is wrong or not true at
      `REASON_POS`, and also at a suspicious one: in the tests, a suspicious explanation must be looked at.

@@ -51,7 +51,7 @@ from nucs.solvers.lcg.implication_trail import (
     itrail_push_events,
     itrail_root,
 )
-from nucs.solvers.lcg.lcg_algorithm import PROBLEM_ITRAIL_FULL, lcg_algorithm
+from nucs.solvers.lcg.lcg_algorithm import FAILED_POS, FAILED_PROPAGATOR, PROBLEM_ITRAIL_FULL, lcg_algorithm
 from nucs.solvers.propagation_steps import update_propagators
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
 from nucs.solvers.search_steps import record_decision, record_failure, select_variable, stop_status
@@ -133,8 +133,9 @@ class LcgSolver(TreeSearchSolver):
         self.itrail, self.itrail_top, self.itrail_last = allocate_itrail(problem.domain_nb)
         # the second literal of an interior EQ, while the first one propagates (see nucs.solvers.lcg.decisions)
         self.pending_lit = np.full(2, -1, dtype=np.int32)
-        # the propagator that failed last, which lcg_algorithm writes; the conflict is explained with it
-        self.failed_propagator = np.full(1, -1, dtype=np.int32)
+        # the propagator that failed last and the position of its call, which lcg_algorithm writes; the conflict is
+        # explained with them
+        self.failed_propagator = np.full(2, -1, dtype=np.int32)
         # in debug mode, the row of the first explanation that is not proven correct, and its verdict
         self.explanation_report = np.full(2, -1, dtype=np.int64)
         self.debug = debug
@@ -259,7 +260,7 @@ class LcgSolver(TreeSearchSolver):
             elif status == SOLVER_EXPLANATION_INVALID:
                 row, verdict = (int(cell) for cell in self.explanation_report)
                 what = (
-                    f"the failure of propagator {self.failed_propagator[0]}"
+                    f"the failure of propagator {self.failed_propagator[FAILED_PROPAGATOR]}"
                     if row == self.itrail_top[0]
                     else f"row {row} of {self.itrail_top[0]}"
                 )
@@ -441,7 +442,8 @@ def run_search_loop(
     :type debug: bool
     :param explain_addrs: the compiled explain address of each algorithm, for the debug mode
     :type explain_addrs: NDArray
-    :param failed_propagator: a one-cell array that gets the propagator that failed, from lcg_algorithm
+    :param failed_propagator: a two-cell array that gets the propagator that failed and the position of its call,
+                              from lcg_algorithm
     :type failed_propagator: NDArray
     :param explanation_report: a two-cell array that gets, in debug mode, the row of the first explanation that is
                                not proven correct (the number of rows in use for a failure) and its verdict
@@ -506,7 +508,8 @@ def run_search_loop(
                 itrail_top,
                 itrail_last,
                 first_row,
-                failed_propagator[0] if problem_status == PROBLEM_INCONSISTENT else -1,
+                failed_propagator[FAILED_PROPAGATOR] if problem_status == PROBLEM_INCONSISTENT else -1,
+                failed_propagator[FAILED_POS],
                 domain_buffer,
             )
             if row != EXPLANATIONS_VALID:
