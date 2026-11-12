@@ -15,7 +15,7 @@
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.buckets import STORAGE_OFFSET, buckets_pop
+from nucs.buckets import STORAGE_OFFSET, buckets_add, buckets_pop
 from nucs.constants import (
     DOMAIN_MAX,
     DOMAIN_MIN,
@@ -204,6 +204,7 @@ def bc_algorithm(
         if offsets[prop_idx, OFFSETS_COPIES]:
             # the propagator has a variable more than once: its copies can disagree (see update_domains_of_copies)
             consistent, no_change, trail_size = update_domains_of_copies(
+                prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
                 prop_var_start,
                 prop_var_end,
                 prop_domains,
@@ -461,6 +462,7 @@ def update_domains(
 
 @njit(cache=True, inline="always")
 def update_domains_of_copies(
+    skip_prop_idx: int,
     prop_var_start: int,
     prop_var_end: int,
     prop_domains: NDArray,
@@ -478,7 +480,7 @@ def update_domains_of_copies(
 ) -> tuple[bool, bool, int]:
     """
     Applies the computed prop_domains of a propagator that has a variable more than once, and schedules the
-    propagators triggered by the changes, this propagator included.
+    propagators triggered by the changes.
 
     The propagator sees each copy of a variable as a variable of its own. It narrows each copy soundly, so the
     variable is in the intersection of the copies, but it can narrow the copies to different bounds, even to bounds
@@ -489,9 +491,18 @@ def update_domains_of_copies(
     - intersects each copy with the current bounds, which already hold the writes of the earlier copies, and fails when
       the intersection is empty;
     - does not skip a fixed variable, because a later copy must still agree with it;
-    - schedules the propagator again after its own writes, even when it is idempotent: its next call reads the
-      intersection on all the copies, and at the fixpoint, it has accepted a box in which the copies are equal.
+    - schedules the propagator again when a copy that it wrote is wider than the bounds that the write-back leaves,
+      even when it is idempotent: its next call reads the intersection on all the copies, and at the fixpoint, it has
+      accepted a box in which the copies are equal. When each copy is equal to these bounds, the propagator has
+      already seen them, and an idempotent propagator is not scheduled, as with update_domains.
 
+    The test compares each copy with the final bounds, not with the bounds at its own write: when copy 0 writes min
+    1 and copy 1 then writes min 2, no write is clipped, but the propagator saw min 1 on copy 0.
+
+    :param skip_prop_idx: the propagator whose domains these are when it is idempotent, so that its own writes
+                          schedule it again only when its copies disagree; -1 when it is not, so that it is
+                          rescheduled like any other
+    :type skip_prop_idx: int
     :param prop_var_start: where the propagator's variables start in propagator_variables
     :type prop_var_start: int
     :param prop_var_end: where they end
@@ -544,7 +555,16 @@ def update_domains_of_copies(
                 priorities,
                 variable,
                 events,
-                -1,
+                skip_prop_idx,
             )
             no_changes = False
+    if skip_prop_idx >= 0 and not entailed[skip_prop_idx]:
+        for var_idx in range(prop_var_end - prop_var_start):
+            cell_idx = propagator_variables[prop_var_start + var_idx] << 1
+            if (
+                state[cell_idx] != prop_domains[var_idx, DOMAIN_MIN]
+                or state[cell_idx | 1] != prop_domains[var_idx, DOMAIN_MAX]
+            ):
+                buckets_add(triggered_propagators, priorities, skip_prop_idx, STORAGE_OFFSET + len(priorities))
+                break
     return True, no_changes, trail_size

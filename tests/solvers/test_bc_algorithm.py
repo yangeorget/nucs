@@ -22,7 +22,13 @@ from numpy.typing import NDArray
 from nucs.buckets import buckets_add, buckets_pop
 from nucs.numba_helper import NUMBA_DISABLE_JIT
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_COUNT_EQ, ALG_LINEAR_EQ_C
+from nucs.propagators.propagators import (
+    ALG_ALLDIFFERENT,
+    ALG_COUNT_EQ,
+    ALG_LINEAR_EQ_C,
+    ALG_LINEAR_GEQ_C,
+    ALG_LINEAR_LEQ_C,
+)
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.bc_algorithm import bc_algorithm
 from nucs.solvers.consistency_algorithms import SIGN_CONSISTENCY_ALG
@@ -69,32 +75,6 @@ class TestBcAlgorithmCompilation:
         assert "@NRT_decref" not in body
 
 
-def random_problem_with_copies(
-    rng: random.Random,
-) -> tuple[Problem, list[tuple[int, int]], Callable[[tuple[int, ...]], bool]]:
-    """
-    Returns a small problem with one propagator that has a variable more than once, its bounds and its solution
-    predicate.
-    """
-    bounds = random_bounds(rng, 3, 0, 3)
-    problem = Problem(bounds)
-    kind = rng.randrange(3)
-    variables = [rng.randrange(3) for _ in range(3)]
-    variables[rng.randrange(3)] = variables[rng.randrange(3)] = rng.randrange(3)  # at least one copy, mostly
-    if kind == 0:  # the number of v in the list is the last variable
-        variables.append(rng.choice(variables))
-        value = rng.randint(0, 3)
-        problem.add_propagator(ALG_COUNT_EQ, variables, [value])
-        return problem, bounds, lambda x: sum(x[v] == value for v in variables[:-1]) == x[variables[-1]]
-    if kind == 1:  # sum a_i * x_i = c
-        coefficients = [rng.choice([-2, -1, 1, 2]) for _ in variables]
-        constant = rng.randint(-3, 6)
-        problem.add_propagator(ALG_LINEAR_EQ_C, variables, coefficients + [constant])
-        return problem, bounds, lambda x: sum(a * x[v] for a, v in zip(coefficients, variables)) == constant
-    problem.add_propagator(ALG_ALLDIFFERENT, variables)
-    return problem, bounds, lambda x: len({x[v] for v in variables}) == len(variables)
-
-
 class TestBcAlgorithmCopies:
     @pytest.mark.parametrize(
         "bounds,variables,value",
@@ -114,13 +94,57 @@ class TestBcAlgorithmCopies:
         assert list(BacktrackSolver(problem).find_all()) == []
 
     def test_find_all_soundness_against_brute_force(self) -> None:
-        # 300 small problems in which a propagator has a variable twice: the solver finds exactly the solutions of an
-        # enumeration; before the write-back of copies, 14 of them failed: 10 with linear_eq_c, 4 with count_eq
+        # 600 small problems in which a propagator has a variable twice: the solver finds exactly the solutions of an
+        # enumeration. Before the write-back of copies (update_domains_of_copies), 27 of them failed: 17 with
+        # linear_eq_c, 4 with linear_leq_c, 4 with linear_geq_c, 2 with count_eq. With that write-back but the watcher
+        # of the first copy only (variable_trigger), 2 failed, with linear_eq_c: a zero coefficient on the first copy
+        # watches nothing
         rng = random.Random(20261112)
-        for _ in range(300):
+        for _ in range(600):
             problem, bounds, is_solution = random_problem_with_copies(rng)
             expected = sorted(
                 point for point in itertools.product(*[range(lo, hi + 1) for lo, hi in bounds]) if is_solution(point)
             )
             found = sorted(tuple(solution.tolist()) for solution in BacktrackSolver(problem).find_all())
             assert found == expected, f"{bounds} {problem.propagators}"
+
+
+def random_problem_with_copies(
+    rng: random.Random,
+) -> tuple[Problem, list[tuple[int, int]], Callable[[tuple[int, ...]], bool]]:
+    """
+    Returns a small problem with one propagator that has a variable more than once.
+
+    The propagator is count_eq, linear_eq_c, linear_leq_c, linear_geq_c or alldifferent. The linear ones get zero and
+    negative coefficients too, so that the watchers of the copies of a variable differ.
+
+    :param rng: the source of the problem
+    :type rng: random.Random
+
+    :return: the problem, its bounds, and whether a point of the bounds is a solution
+    :rtype: tuple[Problem, list[tuple[int, int]], Callable[[tuple[int, ...]], bool]]
+    """
+    bounds = random_bounds(rng, 3, 0, 3)
+    problem = Problem(bounds)
+    variables = [rng.randrange(3) for _ in range(3)]
+    first, second = rng.sample(range(3), 2)
+    variables[second] = variables[first]  # at least one copy
+    kind = rng.randrange(5)
+    if kind == 0:  # the number of v in the list is the last variable
+        variables.append(rng.choice(variables))
+        value = rng.randint(0, 3)
+        problem.add_propagator(ALG_COUNT_EQ, variables, [value])
+        return problem, bounds, lambda x: sum(x[v] == value for v in variables[:-1]) == x[variables[-1]]
+    if kind == 4:
+        problem.add_propagator(ALG_ALLDIFFERENT, variables)
+        return problem, bounds, lambda x: len({x[v] for v in variables}) == len(variables)
+    # sum a_i * x_i = c, <= c or >= c
+    coefficients = [rng.choice([-2, -1, 0, 1, 2]) for _ in variables]
+    constant = rng.randint(-3, 6)
+    algorithm, holds = [
+        (ALG_LINEAR_EQ_C, lambda total: total == constant),
+        (ALG_LINEAR_LEQ_C, lambda total: total <= constant),
+        (ALG_LINEAR_GEQ_C, lambda total: total >= constant),
+    ][kind - 1]
+    problem.add_propagator(algorithm, variables, coefficients + [constant])
+    return problem, bounds, lambda x: holds(sum(a * x[v] for a, v in zip(coefficients, variables)))

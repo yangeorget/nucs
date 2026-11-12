@@ -12,7 +12,7 @@
 ###############################################################################
 import logging
 from collections import Counter
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from typing import Any
 
 import numpy as np
@@ -333,17 +333,12 @@ def count_triggers(
         var_start = offsets[propagator, OFFSETS_VARIABLE]
         var_end = offsets[propagator + 1, OFFSETS_VARIABLE]
         var_nb = var_end - var_start
+        copies = offsets[propagator, OFFSETS_COPIES]
         for var_idx in range(var_nb):
             variable = propagator_variables[var_start + var_idx]
-            # beware, a propagator can reference the same variable twice; only the first occurrence counts
-            duplicate = False
-            for prev in range(var_idx):
-                if propagator_variables[var_start + prev] == variable:
-                    duplicate = True
-                    break
-            if duplicate:
-                continue
-            trigger = trigger_fct(var_nb, var_idx, parameters)
+            trigger = variable_trigger(
+                trigger_fct, var_nb, var_idx, parameters, propagator_variables, var_start, copies
+            )
             for event_mask in range(1, EVENT_MASK_NB):
                 if trigger & event_mask:
                     counts[variable, event_mask] += 1
@@ -388,18 +383,62 @@ def fill_triggers(
         var_start = offsets[propagator, OFFSETS_VARIABLE]
         var_end = offsets[propagator + 1, OFFSETS_VARIABLE]
         var_nb = var_end - var_start
+        copies = offsets[propagator, OFFSETS_COPIES]
         for var_idx in range(var_nb):
             variable = propagator_variables[var_start + var_idx]
-            duplicate = False
-            for prev in range(var_idx):
-                if propagator_variables[var_start + prev] == variable:
-                    duplicate = True
-                    break
-            if duplicate:
-                continue
-            trigger = trigger_fct(var_nb, var_idx, parameters)
+            trigger = variable_trigger(
+                trigger_fct, var_nb, var_idx, parameters, propagator_variables, var_start, copies
+            )
             for event_mask in range(1, EVENT_MASK_NB):
                 if trigger & event_mask:
                     position = cursors[(variable << EVENT_NB) | event_mask]
                     triggers[position] = propagator
                     cursors[(variable << EVENT_NB) | event_mask] = position + 1
+
+
+@njit(cache=True, inline="always")
+def variable_trigger(
+    trigger_fct: Callable,
+    var_nb: int,
+    var_idx: int,
+    parameters: NDArray,
+    propagator_variables: NDArray,
+    var_start: int,
+    copies: int,
+) -> int:
+    """
+    Returns the events of a variable that call a propagator again, for the variable at an index of the propagator.
+
+    A propagator is in the slice of a (variable, event) pair at most once. When the propagator has a variable more
+    than once (OFFSETS_COPIES), its copies can have different watchers: linear_leq_c on [x, y, x] with the
+    coefficients [0, 1, 1] watches nothing on the first copy, and MAX on the last one. The variable then gets the union
+    of the watchers of all its copies, at its first copy, and the other copies get no event. A propagator that has no
+    copies needs no scan.
+
+    :param trigger_fct: the get_triggers function of the propagator
+    :type trigger_fct: Callable
+    :param var_nb: the number of variables of the propagator
+    :type var_nb: int
+    :param var_idx: the index of the variable among the variables of the propagator
+    :type var_idx: int
+    :param parameters: the parameters of the propagator
+    :type parameters: NDArray
+    :param propagator_variables: the variables by propagators
+    :type propagator_variables: NDArray
+    :param var_start: where the variables of the propagator start in propagator_variables
+    :type var_start: int
+    :param copies: whether the propagator has a variable more than once, its OFFSETS_COPIES cell
+    :type copies: int
+
+    :return: the events, as a mask
+    :rtype: int
+    """
+    trigger = trigger_fct(var_nb, var_idx, parameters)
+    if copies:
+        variable = propagator_variables[var_start + var_idx]
+        for other in range(var_nb):
+            if other != var_idx and propagator_variables[var_start + other] == variable:
+                if other < var_idx:
+                    return 0  # the first copy has the events of all the copies
+                trigger |= trigger_fct(var_nb, other, parameters)
+    return trigger
