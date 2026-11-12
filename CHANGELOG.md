@@ -10,6 +10,11 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Added
 
+- **An optional `explain_fct` parameter of `register_propagator`.** An explain function tells why a call of the
+  propagator set a bound, or failed, with the signature `SIGN_EXPLAIN` (`nucs.propagators.propagators`). Only
+  `LcgSolver` (lazy clause generation) uses it. The default, `explain_naive`
+  (`nucs.propagators.explanations`), is correct for each sound propagator, so a propagator that is registered with
+  no explain function does not change.
 - **Three options for the examples: `--last-conflict`, `--restart` and `--time-limit`.**
   - `--last-conflict` / `--no-last-conflict` turns last-conflict reasoning on or off. Without it, each example keeps
     its own default: on for `alphanumeric`, `cryptarithmetic`, `employee_scheduling`, `magic_sequence`,

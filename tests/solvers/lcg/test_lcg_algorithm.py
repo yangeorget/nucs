@@ -18,8 +18,9 @@ from nucs.solvers.backtrack.consistency_algorithms import SIGN_CONSISTENCY_ALG
 from nucs.solvers.lcg.lcg_algorithm import lcg_algorithm
 from tests.solvers.backtrack.test_bc_algorithm import assert_compiled_without_refcounts
 
-# the signature of the consistency algorithms, followed by the implication trail: itrail, itrail_top and itrail_last
-SIGN_LCG_ALGORITHM = int64(*SIGN_CONSISTENCY_ALG.args, int32[:, ::1], int32[::1], int32[::1])
+# the signature of the consistency algorithms, followed by the implication trail (itrail, itrail_top and itrail_last)
+# and failed_propagator
+SIGN_LCG_ALGORITHM = int64(*SIGN_CONSISTENCY_ALG.args, int32[:, ::1], int32[::1], int32[::1], int32[::1])
 
 
 @pytest.mark.skipif(bool(NUMBA_DISABLE_JIT), reason="inspects the compiled code, which only exists under the JIT")

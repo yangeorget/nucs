@@ -22,8 +22,9 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import BB_BOUND, BB_VALUE, BB_VARIABLE, DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_NONE, LOG_LEVEL_INFO
-from nucs.numba_helper import DomainHeuristicFunctions, VariableHeuristicFunctions
-from nucs.problems.problem import PROBLEM_BOUND, PROBLEM_UNBOUND, Problem
+from nucs.numba_helper import DomainHeuristicFunctions, VariableHeuristicFunctions, addresses_from_functions
+from nucs.problems.problem import PROBLEM_BOUND, PROBLEM_INCONSISTENT, PROBLEM_UNBOUND, Problem
+from nucs.propagators.propagators import ALG_DUMMY, EXPLAIN_FCTS, SIGN_EXPLAIN
 from nucs.solvers.choicepoints import (
     CHOICEPOINT_BOUND,
     CHOICEPOINT_ITRAIL_MARK,
@@ -39,6 +40,7 @@ from nucs.solvers.lcg.decisions import (
     decision_literal,
     take_pending_lit,
 )
+from nucs.solvers.lcg.explanations import EXPLANATION_VERDICTS, EXPLANATIONS_VALID, check_explanations
 from nucs.solvers.lcg.implication_trail import (
     ITRAIL_VALID,
     REASON_DECISION,
@@ -69,9 +71,10 @@ from nucs.statistics import (
 logger = logging.getLogger(__name__)
 
 # Why the search loop of LcgSolver returned, in addition to the SOLVER_* statuses of tree_search_solver.py. LcgSolver
-# handles these two itself, in _run_search_loop: TreeSearchSolver never sees them.
+# handles these three itself, in _run_search_loop: TreeSearchSolver never sees them.
 SOLVER_ITRAIL_FULL = 5  # the implication trail needs more room
 SOLVER_ITRAIL_INVALID = 6  # in debug mode, the implication trail does not agree with the state
+SOLVER_EXPLANATION_INVALID = 7  # in debug mode, an explanation is not proven correct
 
 
 class LcgSolver(TreeSearchSolver):
@@ -81,9 +84,11 @@ class LcgSolver(TreeSearchSolver):
     Its propagation is always bound consistency, and no parameter selects another one: the conflict analysis needs a
     reason for each change of a bound, and a custom consistency algorithm gives none.
 
-    At this step (design/proposals/lcg.md, 7.0, step 6), it records each bound change on the path, with its choice
+    At this step (design/proposals/lcg.md, 7.0, step 7), it records each bound change on the path, with its choice
     point and its reason, on the implication trail (nucs.solvers.lcg.implication_trail), and each decision is one
-    literal on its own choice point (nucs.solvers.lcg.decisions). The search does not use the implication trail yet.
+    literal on its own choice point (nucs.solvers.lcg.decisions). It can explain each change that a propagator made,
+    and each failure (nucs.solvers.lcg.explanations), but only the debug mode asks for the explanations. The search
+    does not use the implication trail yet.
     It is the search of BacktrackSolver, except that an EQ decision inside the domain is two literals on two choice
     points: it finds the same solutions and the same optima, and when no decision is such an EQ, every counter is the
     same.
@@ -119,18 +124,28 @@ class LcgSolver(TreeSearchSolver):
                               BacktrackSolver, defaults to False
         :type last_conflict: bool
         :param debug: whether the search replays the implication trail from the root at each node and compares the
-                      result with the state; an AssertionError tells the first row that does not agree. This is slow:
-                      it is for the tests. Defaults to False
+                      result with the state, and checks the explanation of each change that a propagator makes and of
+                      each failure; an AssertionError tells the first row that does not agree, or the first explanation
+                      that is not proven correct. This is slow: it is for the tests. Defaults to False
         :type debug: bool
         """
         # allocated before TreeSearchSolver.__init__, because it calls _record_root
         self.itrail, self.itrail_top, self.itrail_last = allocate_itrail(problem.domain_nb)
         # the second literal of an interior EQ, while the first one propagates (see nucs.solvers.lcg.decisions)
         self.pending_lit = np.full(2, -1, dtype=np.int32)
+        # the propagator that failed last, which lcg_algorithm writes; the conflict is explained with it
+        self.failed_propagator = np.full(1, -1, dtype=np.int32)
         self.debug = debug
         super().__init__(problem, searches, log_level, weight_decay, restart_policy, last_conflict)
+        # the compiled explain address of each algorithm, resolved as compute_domains_addrs is: only for the
+        # algorithms of the problem, and as a placeholder without the JIT
+        self.explain_addrs = addresses_from_functions(
+            EXPLAIN_FCTS, SIGN_EXPLAIN, np.unique(self.problem.algorithms), ALG_DUMMY
+        )
         logger.info(f"The implication trail starts at {len(self.itrail)} rows and grows when it runs out")
-        logger.info(f"LcgSolver checks the implication trail at each node: {'yes' if debug else 'no'}")
+        logger.info(
+            f"LcgSolver checks the implication trail and the explanations at each node: {'yes' if debug else 'no'}"
+        )
 
     def _record_root(self) -> None:
         """
@@ -219,6 +234,8 @@ class LcgSolver(TreeSearchSolver):
                 self.pending_lit,
                 self.problem.initial_domains,
                 self.debug,
+                self.explain_addrs,
+                self.failed_propagator,
             )
             if status == SOLVER_ITRAIL_FULL:
                 self.itrail = double_rows(self.itrail)
@@ -236,6 +253,29 @@ class LcgSolver(TreeSearchSolver):
                 raise AssertionError(
                     f"The implication trail does not agree with the state at row {row} of {self.itrail_top[0]}"
                 )
+            elif status == SOLVER_EXPLANATION_INVALID:
+                # the loop returned at once, so the rows that it checked are still on the implication trail, and the
+                # rows below them passed the check before: the first row that fails here is the one that it found
+                row, verdict = check_explanations(
+                    self.compute_domains_addrs,
+                    self.explain_addrs,
+                    self.problem.algorithms,
+                    self.problem.offsets,
+                    self.problem.propagator_variables,
+                    self.problem.propagator_parameters,
+                    self.problem.initial_domains,
+                    self.itrail,
+                    self.itrail_top,
+                    self.itrail_last,
+                    0,
+                    self.failed_propagator[0],
+                )
+                what = (
+                    f"the failure of propagator {self.failed_propagator[0]}"
+                    if row == self.itrail_top[0]
+                    else f"row {row} of {self.itrail_top[0]}"
+                )
+                raise AssertionError(f"The explanation of {what} is {EXPLANATION_VERDICTS[verdict]}")
             else:
                 return status, solution
 
@@ -284,12 +324,14 @@ def run_search_loop(
     pending_lit: NDArray,
     initial_domains: NDArray,
     debug: bool,
+    explain_addrs: NDArray,
+    failed_propagator: NDArray,
 ) -> tuple[int, NDArray | None]:
     """
     Searches for one solution, as the run_search_loop of BacktrackSolver does: the search loop of LcgSolver.
 
     It is a copy of the run_search_loop of BacktrackSolver with four changes (design/proposals/lcg.md, 7.0, steps 5
-    and 6):
+    and 6), and a debug mode (steps 5 and 7):
 
     - it calls lcg_algorithm directly, where that loop calls the consistency algorithm of the solver; lcg_algorithm
       records the changes that the propagators make on the implication trail;
@@ -405,8 +447,13 @@ def run_search_loop(
     :type pending_lit: NDArray
     :param initial_domains: the domains of the problem before any propagation, for the debug check
     :type initial_domains: NDArray
-    :param debug: whether to replay the implication trail and compare it with the state at each node
+    :param debug: whether to replay the implication trail and compare it with the state at each node, and to check
+                  the explanation of each row that the propagation writes and of each failure
     :type debug: bool
+    :param explain_addrs: the compiled explain address of each algorithm, for the debug mode
+    :type explain_addrs: NDArray
+    :param failed_propagator: a one-cell array that gets the propagator that failed, from lcg_algorithm
+    :type failed_propagator: NDArray
 
     :return: why the loop returned, and the solution when it found one
     :rtype: Tuple[int, Optional[NDArray]]
@@ -424,6 +471,7 @@ def run_search_loop(
             state, initial_domains, itrail, itrail_top, itrail_last, choicepoints, choicepoint_top
         ):
             return SOLVER_ITRAIL_INVALID, None
+        first_row = itrail_top[0]
         problem_status = lcg_algorithm(
             statistics,
             propagator_weights,
@@ -449,7 +497,28 @@ def run_search_loop(
             itrail,
             itrail_top,
             itrail_last,
+            failed_propagator,
         )
+        # the rows of a propagation that stops for a full implication trail are checked before the return: the next
+        # call checks only its own rows
+        if debug and (
+            check_explanations(
+                compute_domains_addrs,
+                explain_addrs,
+                algorithms,
+                offsets,
+                propagator_variables,
+                propagator_parameters,
+                initial_domains,
+                itrail,
+                itrail_top,
+                itrail_last,
+                first_row,
+                failed_propagator[0] if problem_status == PROBLEM_INCONSISTENT else -1,
+            )[0]
+            != EXPLANATIONS_VALID
+        ):
+            return SOLVER_EXPLANATION_INVALID, None
         if problem_status == PROBLEM_ITRAIL_FULL:
             return SOLVER_ITRAIL_FULL, None
         if debug and not is_itrail_valid(

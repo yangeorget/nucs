@@ -921,6 +921,31 @@ trail, the explanations, the analysis and the store already have their tests.
    and the tests call them on a scratch copy of the block, with the trailed prefix at zero.
    *Check:* the brute-force explanation test of 7.2, run on `explain_naive` for every propagator. The debug mode of
    7.3.
+   *Done on 2026-11-12:* `SIGN_EXPLAIN`, `EXPLAIN_FCTS`, `call_explain` and the parameter `explain_fct` of
+   `register_propagator` are in `nucs/propagators/propagators.py`; `explain_naive` is in
+   `nucs/propagators/explanations.py`, because no module outside `nucs/solvers/lcg/` can import the LCG code.
+   `nucs/solvers/lcg/explanations.py` holds `bound_at` (the bound at a row, from the chains), `explain_propagator`
+   (the bounds at `REASON_POS`, then the call of `explain`), `explanation_literals` and the debug check
+   `check_explanations`. Four points are different from 4.3 and 7.3:
+   - `explain_naive` writes the two bounds of each variable, and `explanation_literals` removes the literals that are
+     true at the root, for each explain function. Thus `SIGN_EXPLAIN` needs no root domains.
+   - `lcg_algorithm` writes the propagator that failed into `failed_propagator` (4.1), so that the debug mode can
+     check the explanation of each failure. The step adds no other work to the propagation loop.
+   - A propagator can have a variable twice: in magic_sequence, `count_eq` has `x[i]` in its list and as its
+     count. The engine writes the two copies into one variable, so the check intersects the copies after each call
+     and enumerates only the tuples in which the copies are equal. `explain` gets the first index of the variable.
+     Without this, the debug mode reported a correct explanation as suspicious on magic_sequence(16).
+   - The debug mode checks two literals for each row: the literal of the row, and the weakest literal that the row
+     sets (the analysis can ask for it). It stops the search at an explanation that is wrong or not true at
+     `REASON_POS`, and also at a suspicious one: in the tests, a suspicious explanation must be looked at.
+   The brute-force test of 7.2 is in `PropagatorTest.assert_sound_against_brute_force`, so it runs in the 13 test
+   files that use this helper; the 15 other brute-force tests have their own loops, and do not check the
+   explanations yet. With `explain_naive`, this is not a gap: the naive explanation is correct when the propagator is
+   sound, and these tests check that. Step 15 gives each exact explanation its own brute-force test. The helper also
+   calls the propagator on a sub-box of the test box: on the test box,
+   the first call reads the root box, and any explanation is then correct. With an explain function that writes
+   nothing, 17 of the 86 brute-force tests fail. The debug mode runs in each test of `LcgSolver` with
+   `debug=True`, and on magic_sequence(16) for the Tier B state of `count_eq`. The counters do not change.
 
 #### Phase 2 — Learn the clauses (stage 1)
 

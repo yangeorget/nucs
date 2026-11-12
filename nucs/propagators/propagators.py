@@ -147,6 +147,7 @@ from nucs.propagators.eq_reif_propagator import (
     get_complexity_eq_reif,
     get_triggers_eq_reif,
 )
+from nucs.propagators.explanations import explain_naive
 from nucs.propagators.gcc_propagator import (
     compute_domains_gcc,
     get_complexity_gcc,
@@ -340,11 +341,24 @@ TYPE_COMPUTE_DOMAINS = types.FunctionType(SIGN_COMPUTE_DOMAINS)
 SIGN_GET_TRIGGERS = int64(uint64, uint64, int32[::1])
 TYPE_GET_TRIGGERS = types.FunctionType(SIGN_GET_TRIGGERS)
 
+# How LcgSolver asks a propagator why it set a literal, or why it failed (see nucs.propagators.explanations). The
+# solver calls it only during the conflict analysis, and in the debug mode, never in the propagation loop.
+SIGN_EXPLAIN = int64(
+    int32[:, ::1],  # domains: the bounds of the variables of the propagator when the call read them
+    int32[::1],  # parameters
+    int64,  # var_idx: the variable of the literal, as an index into the variables of the propagator; -1 for a failure
+    int64,  # side: DOMAIN_MIN for [x >= value], DOMAIN_MAX for [x <= value]
+    int64,  # value
+    int32[:, ::1],  # out: the explanation, one row [var_idx, side, value] for each literal
+)  # returns the number of rows written in out
+TYPE_EXPLAIN = types.FunctionType(SIGN_EXPLAIN)
+
 GET_TRIGGERS_FCTS: list[Callable] = []
 GET_COMPLEXITY_FCTS: list[Callable] = []
 COMPUTE_DOMAINS_FCTS: list[Callable] = []
 IS_VACUOUS_FCTS: list[Callable] = []
 GET_STATE_FCTS: list[Callable] = []
+EXPLAIN_FCTS: list[Callable] = []
 # The PROP_FLAG_* properties of each algorithm, packed into one word and indexed by algorithm. Packed
 # rather than one array per property because this is what a consistency algorithm receives and forwards:
 # a second array would be a second parameter through SIGN_CONSISTENCY_ALG, and so a breaking change to
@@ -384,6 +398,41 @@ if NUMBA_DISABLE_JIT:
         """
         return COMPUTE_DOMAINS_FCTS[algorithm](domains, parameters, prop_state)
 
+    def call_explain(
+        explain_addrs: NDArray,
+        algorithm: int,
+        domains: NDArray,
+        parameters: NDArray,
+        var_idx: int,
+        side: int,
+        value: int,
+        out: NDArray,
+    ) -> int:
+        """
+        Calls the explain function of an algorithm, looked up in the registry.
+
+        :param explain_addrs: the compiled explain address of each algorithm, unused without the JIT
+        :type explain_addrs: NDArray
+        :param algorithm: the algorithm
+        :type algorithm: int
+        :param domains: the bounds of the variables of the propagator when the call read them
+        :type domains: NDArray
+        :param parameters: the parameters of the propagator
+        :type parameters: NDArray
+        :param var_idx: the variable of the literal, as an index into the variables of the propagator, -1 for a failure
+        :type var_idx: int
+        :param side: DOMAIN_MIN for [x >= value], DOMAIN_MAX for [x <= value]
+        :type side: int
+        :param value: the value of the literal
+        :type value: int
+        :param out: the explanation, one row for each literal
+        :type out: NDArray
+
+        :return: the number of rows written in out
+        :rtype: int
+        """
+        return EXPLAIN_FCTS[algorithm](domains, parameters, var_idx, side, value, out)
+
 else:
 
     @njit(cache=True, inline="always")
@@ -409,6 +458,44 @@ else:
         """
         return function_ptr_from_address(TYPE_COMPUTE_DOMAINS, compute_domains_addrs[algorithm])(  # type: ignore[call-arg, arg-type]
             domains, parameters, prop_state
+        )
+
+    @njit(cache=True, inline="always")
+    def call_explain(
+        explain_addrs: NDArray,
+        algorithm: int,
+        domains: NDArray,
+        parameters: NDArray,
+        var_idx: int,
+        side: int,
+        value: int,
+        out: NDArray,
+    ) -> int:
+        """
+        Calls the explain function of an algorithm through its compiled address.
+
+        :param explain_addrs: the compiled explain address of each algorithm
+        :type explain_addrs: NDArray
+        :param algorithm: the algorithm
+        :type algorithm: int
+        :param domains: the bounds of the variables of the propagator when the call read them
+        :type domains: NDArray
+        :param parameters: the parameters of the propagator
+        :type parameters: NDArray
+        :param var_idx: the variable of the literal, as an index into the variables of the propagator, -1 for a failure
+        :type var_idx: int
+        :param side: DOMAIN_MIN for [x >= value], DOMAIN_MAX for [x <= value]
+        :type side: int
+        :param value: the value of the literal
+        :type value: int
+        :param out: the explanation, one row for each literal
+        :type out: NDArray
+
+        :return: the number of rows written in out
+        :rtype: int
+        """
+        return function_ptr_from_address(TYPE_EXPLAIN, explain_addrs[algorithm])(  # type: ignore[call-arg, arg-type]
+            domains, parameters, var_idx, side, value, out
         )
 
 
@@ -466,6 +553,7 @@ def register_propagator(
     idempotent: bool = True,
     get_state_fct: Callable = get_state_default,
     reports_changes: bool = False,
+    explain_fct: Callable = explain_naive,
 ) -> int:
     """
     Registers a propagator by adding its functions to the corresponding lists of functions.
@@ -489,6 +577,9 @@ def register_propagator(
         suffix, whether it changed any domain -- which lets the engine skip the write-back scan on the
         calls that changed none. Opting in obliges get_state_fct to reserve that cell
     :type reports_changes: bool
+    :param explain_fct: a function that explains, for LcgSolver, why a call of the propagator set a literal or
+        failed (see nucs.propagators.explanations); the default explains with the bounds of all the variables
+    :type explain_fct: Callable
 
     :return: the index of the propagator
     :rtype: int
@@ -498,6 +589,7 @@ def register_propagator(
     COMPUTE_DOMAINS_FCTS.append(compute_domains_fct)
     IS_VACUOUS_FCTS.append(is_vacuous_fct)
     GET_STATE_FCTS.append(get_state_fct)
+    EXPLAIN_FCTS.append(explain_fct)
     ALGORITHM_FLAGS.append(
         (PROP_FLAG_IDEMPOTENT if idempotent else 0) | (PROP_FLAG_REPORTS_CHANGES if reports_changes else 0)
     )
