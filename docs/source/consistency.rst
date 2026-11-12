@@ -79,3 +79,17 @@ which the propagation loop uses for an idempotent propagator's own writes: pass 
 Propagators need no such care and are unchanged: a :code:`compute_domains_*` function receives a gathered
 copy of only its own variables' domains and mutates that copy, and the scatter back through the barrier
 happens in the consistency algorithm.
+
+A propagator can have a variable more than once: :code:`count_eq` in the magic sequence example has
+:code:`x[i]` in its list and as its count. The propagator sees each copy as a variable of its own, so it can
+narrow the copies to different bounds, even to bounds with no common value, and still not fail.
+:code:`offsets[p, OFFSETS_COPIES]` (:mod:`nucs.problems.problem`) is 1 for such a propagator. A consistency
+algorithm that writes back the domains of such a propagator itself must:
+
+- intersect each copy with the current bounds, and fail when the intersection is empty;
+- not skip a variable that an earlier copy fixed;
+- call the propagator again when a copy is wider than the bounds that the write-back leaves.
+
+:func:`~nucs.solvers.propagation_steps.update_domains_of_copies` does this; a consistency algorithm that calls
+:func:`~nucs.solvers.backtrack.bc_algorithm.bc_algorithm` for the propagators, as the Golomb one does, gets it with no
+change.
