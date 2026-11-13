@@ -17,9 +17,9 @@ import pytest
 
 from nucs.constants import DOMAIN_MIN
 from nucs.examples.jobshop.jobshop_problem import JobShopProblem
-from nucs.numba_helper import NUMBA_DISABLE_JIT
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.solver import OPTIM_PRUNE
+from tests.marks import SLOW_WITHOUT_JIT
 
 
 class TestJobShop:
@@ -45,13 +45,7 @@ class TestJobShop:
             ("la05", 593),
             # without the JIT, la31 needs 3.2 s on a fast machine and 4.9 s under coverage on Python 3.12, which
             # traces each line: on the CI runner, more than the budget of 10 s; the other instances cover the same code
-            pytest.param(
-                "la31",
-                1784,
-                marks=pytest.mark.skipif(
-                    bool(NUMBA_DISABLE_JIT), reason="300 choices of interpreted Python are too slow"
-                ),
-            ),
+            pytest.param("la31", 1784, marks=SLOW_WITHOUT_JIT),
         ],
     )
     def test_solve_first_solution(self, name: str, optimum: int) -> None:

@@ -14,6 +14,13 @@ jobs:
     strategy:
       matrix:
         python-version: [ "3.12", "3.15" ]
+        # Coverage is measured on one version only, the one where it is cheap. On 3.15, coverage.py uses
+        # sys.monitoring (core SysMonitor) and costs almost nothing. On 3.12, its default core (CTracer) traces each
+        # line: on 2026-11-13, the no-JIT step under coverage took 1110 s on 3.12 and 508 s on 3.15. Both versions
+        # run the same tests.
+        include:
+          - python-version: "3.15"
+            coverage: true
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.python-version }}
@@ -47,20 +54,23 @@ jobs:
         run: mypy nucs tests scripts
       - name: Test with pytest (with Numba)
         run: NUMBA_CACHE_DIR=.numba/cache pytest
+      - name: Test with pytest (without Numba)
+        if: ${{ !matrix.coverage }}
+        run: NUMBA_DISABLE_JIT=1 pytest
       # Coverage is measured on this run, not the jitted one: under the JIT a propagator's body is compiled and
       # never executes as Python, so coverage would report the hottest code in the library as unexecuted.
       # PYTHONPATH=. puts the working tree ahead of the installed copy, so the paths reported are repo-relative.
       - name: Test with pytest (without Numba), under coverage
+        if: ${{ matrix.coverage }}
         run: NUMBA_DISABLE_JIT=1 PYTHONPATH=. coverage run --source=nucs -m pytest
       - name: Report coverage
+        if: ${{ matrix.coverage }}
         run: coverage report
-      # One upload per commit: the matrix versions cover the same lines, and Coveralls would otherwise
-      # report the last to finish.
       - name: Generate the LCOV report
-        if: matrix.python-version == '3.12'
+        if: ${{ matrix.coverage }}
         run: coverage lcov -o coverage.lcov
       - name: Send to Coveralls
-        if: matrix.python-version == '3.12'
+        if: ${{ matrix.coverage }}
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

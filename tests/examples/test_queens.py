@@ -17,6 +17,7 @@ from nucs.heuristics.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 from nucs.statistics import STATS_IDX_SOLUTION_NB
+from tests.marks import SLOW_WITHOUT_JIT
 
 
 class TestQueens:
@@ -32,8 +33,8 @@ class TestQueens:
             (False, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 7, 40),
             (False, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 8, 92),
             (False, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 9, 352),
-            (False, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 10, 724),
-            (False, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 11, 2680),
+            pytest.param(False, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 10, 724, marks=SLOW_WITHOUT_JIT),
+            pytest.param(False, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 11, 2680, marks=SLOW_WITHOUT_JIT),
             (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 1, 1),
             (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 2, 0),
             (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 3, 0),
@@ -43,8 +44,8 @@ class TestQueens:
             (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 7, 40),
             (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 8, 92),
             (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 9, 352),
-            (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 10, 724),
-            (True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 11, 2680),
+            pytest.param(True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 10, 724, marks=SLOW_WITHOUT_JIT),
+            pytest.param(True, VAR_HEURISTIC_FIRST_NOT_INSTANTIATED, 11, 2680, marks=SLOW_WITHOUT_JIT),
         ],
     )
     def test_solve_all(self, dual: bool, var_heuristic: int, queen_nb: int, solution_nb: int) -> None:
