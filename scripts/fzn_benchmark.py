@@ -125,6 +125,7 @@ def solve(fzn: Path, all_solutions: bool = False) -> dict[str, Any]:
     :return: the model's statistics, its propagator counts by algorithm name, and its arities
     :rtype: Dict[str, Any]
     """
+    from nucs.constants import INFO_ALGORITHM
     from nucs.fzn.model import build_model
     from nucs.fzn.parser import parse
     from nucs.fzn.search_annotations import search_heuristics
@@ -158,7 +159,7 @@ def solve(fzn: Path, all_solutions: bool = False) -> dict[str, Any]:
     # says whether this model exercises an algorithm at the size where its cost lives
     arity: dict[str, int] = {}
     for propagator in range(problem.propagator_nb):
-        name = names[problem.algorithms[propagator]]
+        name = names[problem.propagator_infos[propagator, INFO_ALGORITHM]]
         width = int(problem.offsets[propagator + 1, OFFSETS_VARIABLE] - problem.offsets[propagator, OFFSETS_VARIABLE])
         arity[name] = max(arity.get(name, 0), width)
     calls = {}

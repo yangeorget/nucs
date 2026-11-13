@@ -16,7 +16,7 @@ import re
 from collections.abc import Callable
 
 import pytest
-from numba import int32, int64, njit, uint32  # type: ignore
+from numba import int32, int64, njit, uint8  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.buckets import buckets_add, buckets_pop
@@ -53,11 +53,11 @@ class TestBcAlgorithmCompilation:
         compiled it first -- forcing it here keeps the test independent of the cache's history.
         """
 
-        @njit(int64(int32[::1], uint32[::1], int32, int64))
+        @njit(int64(int32[::1], uint8, int32, int64))
         def compile_queue_helpers_with_refcounting(
-            buckets: NDArray, priorities: NDArray, idx: int, membership_offset: int
+            buckets: NDArray, bucket: int, idx: int, membership_offset: int
         ) -> int:
-            buckets_add(buckets, priorities, idx, membership_offset)
+            buckets_add(buckets, bucket, idx, membership_offset)
             return buckets_pop(buckets, membership_offset)
 
         fresh = njit(_nrt=False)(bc_algorithm.py_func)  # type: ignore[call-overload]

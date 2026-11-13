@@ -16,7 +16,13 @@ from numba import int32, int64, njit, types, uint64  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.buckets import STORAGE_OFFSET, buckets_add
-from nucs.constants import EVENT_MASK_MIN_MAX_GROUND, EVENT_NB, PROP_FLAG_IDEMPOTENT, PROP_FLAG_REPORTS_CHANGES
+from nucs.constants import (
+    EVENT_MASK_MIN_MAX_GROUND,
+    EVENT_NB,
+    INFO_PRIORITY,
+    PROP_FLAG_IDEMPOTENT,
+    PROP_FLAG_REPORTS_CHANGES,
+)
 from nucs.numba_helper import NUMBA_DISABLE_JIT, function_ptr_from_address
 from nucs.propagators.abs_eq_propagator import (
     compute_domains_abs_eq,
@@ -787,7 +793,7 @@ def update_propagators(
     entailed: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
     variable: int,
     events: int,
     skip_prop_idx: int,
@@ -807,8 +813,8 @@ def update_propagators(
     :type triggers: NDArray
     :param triggers_offsets: the offsets of each (variable, event mask) slice of triggers
     :type triggers_offsets: NDArray
-    :param priorities: the queue bucket of each propagator
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator
+    :type propagator_infos: NDArray
     :param variable: the variable whose domain changed
     :type variable: int
     :param events: the events of the change, a mask of EVENT_MASK_*
@@ -817,7 +823,7 @@ def update_propagators(
     :type skip_prop_idx: int
     """
     offset = (variable << EVENT_NB) | events
-    membership_offset = STORAGE_OFFSET + len(priorities)
+    membership_offset = STORAGE_OFFSET + len(propagator_infos)
     for prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
         if not (triggered_propagators[membership_offset + prop_idx] or prop_idx == skip_prop_idx or entailed[prop_idx]):
-            buckets_add(triggered_propagators, priorities, prop_idx, membership_offset)
+            buckets_add(triggered_propagators, propagator_infos[prop_idx, INFO_PRIORITY], prop_idx, membership_offset)

@@ -19,6 +19,9 @@ from nucs.buckets import STORAGE_OFFSET, buckets_add, buckets_pop
 from nucs.constants import (
     DOMAIN_MAX,
     DOMAIN_MIN,
+    INFO_ALGORITHM,
+    INFO_COPIES,
+    INFO_PRIORITY,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_FLAG_IDEMPOTENT,
@@ -26,7 +29,6 @@ from nucs.constants import (
     PROP_INCONSISTENCY,
 )
 from nucs.problems.problem import (
-    OFFSETS_COPIES,
     OFFSETS_PARAM,
     OFFSETS_STATE,
     OFFSETS_STATE_HINT,
@@ -66,8 +68,7 @@ def bc_algorithm(
     statistics: NDArray,
     propagator_weights: NDArray,
     algorithm_flags: NDArray,
-    algorithms: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -96,10 +97,9 @@ def bc_algorithm(
     :param algorithm_flags: the PROP_FLAG_* properties of each algorithm, packed into one word and indexed
                             by algorithm rather than by propagator
     :type algorithm_flags: NDArray
-    :param algorithms: the algorithms indexed by propagators
-    :type algorithms: NDArray
-    :param priorities: the propagation queue bucket priorities indexed by propagators
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
     :param offsets: the CSR offsets delimiting each propagator's slice of propagator_variables,
                     propagator_parameters and its own state block, whose trailed prefix ends at
                     OFFSETS_STATE_HINT (see OFFSETS_STATE)
@@ -151,14 +151,14 @@ def bc_algorithm(
     trail_size = trail_top[0]
     entailed_idx = len(domains) << 1  # the entailment flags follow the domain bounds in state
     statistics[STATS_IDX_ALG_BC_NB] += 1
-    membership_offset = STORAGE_OFFSET + len(priorities)
+    membership_offset = STORAGE_OFFSET + len(propagator_infos)
     while True:
         prop_idx = buckets_pop(triggered_propagators, membership_offset)
         if prop_idx == -1:
             trail_top[0] = trail_size
             return PROBLEM_BOUND if state[unbound_idx] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
-        algorithm = algorithms[prop_idx]
+        algorithm = propagator_infos[prop_idx, INFO_ALGORITHM]
         # the per-algorithm tail of the statistics array: which algorithms the calls (and, below, the
         # wasted calls) belong to, which is what makes a throughput investigation targeted
         algorithm_stats = STATS_MAX + STATS_ALG_WIDTH * algorithm
@@ -201,7 +201,7 @@ def bc_algorithm(
             # no event and schedule nobody: skip it outright
             count_no_change(statistics, algorithm_stats)
             continue
-        if offsets[prop_idx, OFFSETS_COPIES]:
+        if propagator_infos[prop_idx, INFO_COPIES]:
             # the propagator has a variable more than once: its copies can disagree (see update_domains_of_copies)
             consistent, no_change, trail_size = update_domains_of_copies(
                 prop_idx if flags & PROP_FLAG_IDEMPOTENT else -1,
@@ -218,7 +218,7 @@ def bc_algorithm(
                 entailed,
                 triggers,
                 triggers_offsets,
-                priorities,
+                propagator_infos,
             )
             if not consistent:
                 statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
@@ -241,7 +241,7 @@ def bc_algorithm(
                 entailed,
                 triggers,
                 triggers_offsets,
-                priorities,
+                propagator_infos,
             )
         if no_change:
             count_no_change(statistics, algorithm_stats)
@@ -387,7 +387,7 @@ def update_domains(
     entailed: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
 ) -> tuple[bool, int]:
     """
     Applies a propagator's computed prop_domains and schedules the propagators triggered by the changes.
@@ -422,8 +422,8 @@ def update_domains(
     :type triggers: NDArray
     :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
     :type triggers_offsets: NDArray
-    :param priorities: the propagation queue bucket priorities indexed by propagators
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator
+    :type propagator_infos: NDArray
 
     :return: true iff no domain was changed, and the new trail size
     :rtype: Tuple[bool, int]
@@ -451,7 +451,7 @@ def update_domains(
                     entailed,
                     triggers,
                     triggers_offsets,
-                    priorities,
+                    propagator_infos,
                     variable,
                     events,
                     skip_prop_idx,
@@ -476,7 +476,7 @@ def update_domains_of_copies(
     entailed: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
 ) -> tuple[bool, bool, int]:
     """
     Applies the computed prop_domains of a propagator that has a variable more than once, and schedules the
@@ -530,8 +530,8 @@ def update_domains_of_copies(
     :type triggers: NDArray
     :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
     :type triggers_offsets: NDArray
-    :param priorities: the propagation queue bucket priorities indexed by propagators
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator
+    :type propagator_infos: NDArray
 
     :return: false iff the copies of a variable have an empty intersection, true iff no domain was changed, and the
              new trail size
@@ -552,7 +552,7 @@ def update_domains_of_copies(
                 entailed,
                 triggers,
                 triggers_offsets,
-                priorities,
+                propagator_infos,
                 variable,
                 events,
                 skip_prop_idx,
@@ -565,6 +565,11 @@ def update_domains_of_copies(
                 state[cell_idx] != prop_domains[var_idx, DOMAIN_MIN]
                 or state[cell_idx | 1] != prop_domains[var_idx, DOMAIN_MAX]
             ):
-                buckets_add(triggered_propagators, priorities, skip_prop_idx, STORAGE_OFFSET + len(priorities))
+                buckets_add(
+                    triggered_propagators,
+                    propagator_infos[skip_prop_idx, INFO_PRIORITY],
+                    skip_prop_idx,
+                    STORAGE_OFFSET + len(propagator_infos),
+                )
                 break
     return True, no_changes, trail_size
