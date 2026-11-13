@@ -17,7 +17,7 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
-from numba import int32, int64, njit, uint32  # type: ignore
+from numba import int32, int64, njit, uint8  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.numba_helper import NUMBA_DISABLE_JIT
@@ -71,11 +71,9 @@ def assert_compiled_without_refcounts(
     :type signature: Any
     """
 
-    @njit(int64(int32[::1], uint32[::1], int32, int64))
-    def compile_queue_helpers_with_refcounting(
-        buckets: NDArray, priorities: NDArray, idx: int, membership_offset: int
-    ) -> int:
-        buckets_add(buckets, priorities, idx, membership_offset)
+    @njit(int64(int32[::1], uint8, int32, int64))
+    def compile_queue_helpers_with_refcounting(buckets: NDArray, bucket: int, idx: int, membership_offset: int) -> int:
+        buckets_add(buckets, bucket, idx, membership_offset)
         return buckets_pop(buckets, membership_offset)
 
     fresh = njit(_nrt=False)(consistency_algorithm.py_func)  # type: ignore[attr-defined, call-overload]

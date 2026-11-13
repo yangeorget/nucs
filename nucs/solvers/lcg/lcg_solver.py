@@ -21,7 +21,16 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import BB_BOUND, BB_VALUE, BB_VARIABLE, DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_NONE, LOG_LEVEL_INFO
+from nucs.constants import (
+    BB_BOUND,
+    BB_VALUE,
+    BB_VARIABLE,
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    EVENT_MASK_NONE,
+    INFO_ALGORITHM,
+    LOG_LEVEL_INFO,
+)
 from nucs.numba_helper import DomainHeuristicFunctions, VariableHeuristicFunctions, addresses_from_functions
 from nucs.problems.problem import PROBLEM_BOUND, PROBLEM_INCONSISTENT, PROBLEM_UNBOUND, Problem
 from nucs.propagators.propagators import ALG_DUMMY, EXPLAIN_FCTS, SIGN_EXPLAIN
@@ -143,7 +152,7 @@ class LcgSolver(TreeSearchSolver):
         # the compiled explain address of each algorithm, resolved as compute_domains_addrs is: only for the
         # algorithms of the problem, and as a placeholder without the JIT
         self.explain_addrs = addresses_from_functions(
-            EXPLAIN_FCTS, SIGN_EXPLAIN, np.unique(self.problem.algorithms), ALG_DUMMY
+            EXPLAIN_FCTS, SIGN_EXPLAIN, np.unique(self.problem.propagator_infos[:, INFO_ALGORITHM]), ALG_DUMMY
         )
         logger.info(f"The implication trail starts at {len(self.itrail)} rows and grows when it runs out")
         logger.info(
@@ -176,7 +185,7 @@ class LcgSolver(TreeSearchSolver):
             self.triggered_propagators,
             self.problem.triggers,
             self.problem.triggers_offsets,
-            self.problem.priorities,
+            self.problem.propagator_infos,
             self.bb,
             self.itrail,
             self.itrail_top,
@@ -196,8 +205,7 @@ class LcgSolver(TreeSearchSolver):
         while True:
             status, solution = run_search_loop(
                 self.statistics,
-                self.problem.algorithms,
-                self.problem.priorities,
+                self.problem.propagator_infos,
                 self.problem.offsets,
                 self.problem.propagator_variables,
                 self.problem.propagator_parameters,
@@ -272,8 +280,7 @@ class LcgSolver(TreeSearchSolver):
 @njit(cache=True, nogil=True)
 def run_search_loop(
     statistics: NDArray,
-    algorithms: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -352,10 +359,9 @@ def run_search_loop(
 
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
-    :param algorithms: the algorithms indexed by propagators
-    :type algorithms: NDArray
-    :param priorities: the propagation queue bucket priorities indexed by propagators
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
     :param offsets: the CSR offsets delimiting each propagator's slice of propagator_variables
                     and propagator_parameters
     :type offsets: NDArray
@@ -470,8 +476,7 @@ def run_search_loop(
             statistics,
             propagator_weights,
             algorithm_flags,
-            algorithms,
-            priorities,
+            propagator_infos,
             offsets,
             propagator_variables,
             propagator_parameters,
@@ -499,7 +504,7 @@ def run_search_loop(
             row, verdict = check_explanations(
                 compute_domains_addrs,
                 explain_addrs,
-                algorithms,
+                propagator_infos,
                 offsets,
                 propagator_variables,
                 propagator_parameters,
@@ -569,7 +574,7 @@ def run_search_loop(
                 triggered_propagators,
                 triggers,
                 triggers_offsets,
-                priorities,
+                propagator_infos,
                 bb,
                 itrail,
                 itrail_top,
@@ -602,7 +607,7 @@ def run_search_loop(
             itrail, itrail_last, itrail_sz, state, variable, events, choicepoint, REASON_DECISION, -1, -1, -1
         )
         update_propagators(
-            triggered_propagators, entailed, triggers, triggers_offsets, priorities, variable, events, -1
+            triggered_propagators, entailed, triggers, triggers_offsets, propagator_infos, variable, events, -1
         )
         record_decision(statistics, search_control, variable, choicepoint)
 
@@ -657,7 +662,7 @@ def backtrack(
     triggered_propagators: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
     bb: NDArray,
     itrail: NDArray,
     itrail_top: NDArray,
@@ -696,8 +701,9 @@ def backtrack(
     :type triggers: NDArray
     :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
     :type triggers_offsets: NDArray
-    :param priorities: the propagation queue bucket priorities indexed by propagators
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
     :param bb: the branch-and-bound bound as a Numpy array of variable, bound and value,
                whose variable is -1 when not optimizing
     :type bb: NDArray
@@ -744,7 +750,7 @@ def backtrack(
                 entailed,
                 triggers,
                 triggers_offsets,
-                priorities,
+                propagator_infos,
                 variable,
                 events,
                 -1,
@@ -782,7 +788,7 @@ def backtrack(
                 entailed,
                 triggers,
                 triggers_offsets,
-                priorities,
+                propagator_infos,
                 optimized_variable,
                 events,
                 -1,

@@ -20,6 +20,9 @@ from numpy.typing import NDArray
 from nucs.constants import (
     DOMAIN_MAX,
     DOMAIN_MIN,
+    INFO_ALGORITHM,
+    INFO_COPIES,
+    INFO_PRIORITY,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_FLAG_IDEMPOTENT,
@@ -27,7 +30,6 @@ from nucs.constants import (
     PROP_INCONSISTENCY,
 )
 from nucs.problems.problem import (
-    OFFSETS_COPIES,
     OFFSETS_PARAM,
     OFFSETS_STATE,
     OFFSETS_STATE_HINT,
@@ -78,8 +80,7 @@ def lcg_algorithm(
     statistics: NDArray,
     propagator_weights: NDArray,
     algorithm_flags: NDArray,
-    algorithms: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -112,7 +113,7 @@ def lcg_algorithm(
     - in the write-back, each moved bound adds a row with REASON_PROPAGATOR, the propagator and this REASON_POS;
     - when a propagator fails, it writes the propagator and the position of its call in failed_propagator, so that
       the solver can ask for the explanation of the failure;
-    - a propagator that has a variable more than once (OFFSETS_COPIES) gets update_domains_of_copies_with_reasons, as
+    - a propagator that has a variable more than once (INFO_COPIES) gets update_domains_of_copies_with_reasons, as
       bc_algorithm gives it update_domains_of_copies.
 
     The search is the same as with bc_algorithm, and so are the counters: it counts its calls in ALG_BC_NB for this
@@ -131,10 +132,9 @@ def lcg_algorithm(
     :param algorithm_flags: the PROP_FLAG_* properties of each algorithm, packed into one word and indexed
                             by algorithm rather than by propagator
     :type algorithm_flags: NDArray
-    :param algorithms: the algorithms indexed by propagators
-    :type algorithms: NDArray
-    :param priorities: the propagation queue bucket priorities indexed by propagators
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
     :param offsets: the CSR offsets delimiting each propagator's slice of propagator_variables,
                     propagator_parameters and its own state block, whose trailed prefix ends at
                     OFFSETS_STATE_HINT (see OFFSETS_STATE)
@@ -200,7 +200,7 @@ def lcg_algorithm(
     # the rows that the next call can add, and those of the step of the search that follows the propagation
     itrail_room = 2 * len(domain_buffer) + ITRAIL_STEP_ROW_NB
     statistics[STATS_IDX_ALG_BC_NB] += 1
-    membership_offset = STORAGE_OFFSET + len(priorities)
+    membership_offset = STORAGE_OFFSET + len(propagator_infos)
     while True:
         if itrail_sz + itrail_room > len(itrail):
             statistics[STATS_IDX_ALG_BC_NB] -= 1  # the next call continues this one
@@ -213,7 +213,7 @@ def lcg_algorithm(
             itrail_top[0] = itrail_sz
             return PROBLEM_BOUND if state[unbound_idx] == 0 else PROBLEM_UNBOUND
         statistics[STATS_IDX_PROPAGATOR_FILTER_NB] += 1
-        algorithm = algorithms[prop_idx]
+        algorithm = propagator_infos[prop_idx, INFO_ALGORITHM]
         # the per-algorithm tail of the statistics array: which algorithms the calls (and, below, the
         # wasted calls) belong to, which is what makes a throughput investigation targeted
         algorithm_stats = STATS_MAX + STATS_ALG_WIDTH * algorithm
@@ -259,7 +259,7 @@ def lcg_algorithm(
             # no event and schedule nobody: skip it outright
             count_no_change(statistics, algorithm_stats)
             continue
-        if offsets[prop_idx, OFFSETS_COPIES]:
+        if propagator_infos[prop_idx, INFO_COPIES]:
             # the propagator has a variable more than once: its copies can disagree (see update_domains_of_copies)
             reason_pos = itrail_sz
             consistent, no_change, utrail_sz, itrail_sz = update_domains_of_copies_with_reasons(
@@ -277,7 +277,7 @@ def lcg_algorithm(
                 entailed,
                 triggers,
                 triggers_offsets,
-                priorities,
+                propagator_infos,
                 itrail,
                 itrail_last,
                 itrail_sz,
@@ -308,7 +308,7 @@ def lcg_algorithm(
                 entailed,
                 triggers,
                 triggers_offsets,
-                priorities,
+                propagator_infos,
                 itrail,
                 itrail_last,
                 itrail_sz,
@@ -336,7 +336,7 @@ def update_domains_with_reasons(
     entailed: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
     itrail: NDArray,
     itrail_last: NDArray,
     itrail_sz: int,
@@ -380,8 +380,9 @@ def update_domains_with_reasons(
     :type triggers: NDArray
     :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
     :type triggers_offsets: NDArray
-    :param priorities: the propagation queue bucket priorities indexed by propagators
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
     :param itrail: the implication trail
     :type itrail: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
@@ -431,7 +432,7 @@ def update_domains_with_reasons(
                     entailed,
                     triggers,
                     triggers_offsets,
-                    priorities,
+                    propagator_infos,
                     variable,
                     events,
                     skip_prop_idx,
@@ -457,7 +458,7 @@ def update_domains_of_copies_with_reasons(
     entailed: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
     itrail: NDArray,
     itrail_last: NDArray,
     itrail_sz: int,
@@ -502,8 +503,9 @@ def update_domains_of_copies_with_reasons(
     :type triggers: NDArray
     :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
     :type triggers_offsets: NDArray
-    :param priorities: the propagation queue bucket priorities indexed by propagators
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
     :param itrail: the implication trail
     :type itrail: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
@@ -548,7 +550,7 @@ def update_domains_of_copies_with_reasons(
                 entailed,
                 triggers,
                 triggers_offsets,
-                priorities,
+                propagator_infos,
                 variable,
                 events,
                 skip_prop_idx,
@@ -561,6 +563,11 @@ def update_domains_of_copies_with_reasons(
                 state[cell_idx] != prop_domains[var_idx, DOMAIN_MIN]
                 or state[cell_idx | 1] != prop_domains[var_idx, DOMAIN_MAX]
             ):
-                buckets_add(triggered_propagators, priorities, skip_prop_idx, STORAGE_OFFSET + len(priorities))
+                buckets_add(
+                    triggered_propagators,
+                    propagator_infos[skip_prop_idx, INFO_PRIORITY],
+                    skip_prop_idx,
+                    STORAGE_OFFSET + len(propagator_infos),
+                )
                 break
     return True, no_changes, utrail_sz, itrail_sz

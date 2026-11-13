@@ -124,8 +124,7 @@ def golomb_consistency_algorithm(
     statistics: NDArray,
     propagator_weights: NDArray,
     algorithm_flags: NDArray,
-    algorithms: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -153,10 +152,9 @@ def golomb_consistency_algorithm(
     :param algorithm_flags: the PROP_FLAG_* properties of each algorithm, packed into one word and indexed by
                           algorithm rather than by propagator
     :type algorithm_flags: NDArray
-    :param algorithms: the algorithms indexed by propagators
-    :type algorithms: NDArray
-    :param priorities: the propagation queue bucket priorities indexed by propagators
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
     :param offsets: the CSR offsets delimiting each propagator's slice of propagator_variables,
                     propagator_parameters and its own state block, whose trailed prefix ends at
                     OFFSETS_STATE_HINT (see OFFSETS_STATE)
@@ -259,7 +257,7 @@ def golomb_consistency_algorithm(
                         entailed,
                         triggers,
                         triggers_offsets,
-                        priorities,
+                        propagator_infos,
                         var,
                         events,
                         -1,
@@ -269,8 +267,7 @@ def golomb_consistency_algorithm(
         statistics,
         propagator_weights,
         algorithm_flags,
-        algorithms,
-        priorities,
+        propagator_infos,
         offsets,
         propagator_variables,
         propagator_parameters,
