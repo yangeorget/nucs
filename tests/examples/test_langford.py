@@ -17,6 +17,7 @@ import pytest
 from nucs.examples.langford.langford_problem import LangfordProblem
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB
+from tests.marks import SLOW_WITHOUT_JIT
 
 
 class TestLangford:
@@ -29,14 +30,14 @@ class TestLangford:
             (2, 6, 0),
             (2, 7, 52),
             (2, 8, 300),
-            (2, 9, 0),
+            pytest.param(2, 9, 0, marks=SLOW_WITHOUT_JIT),
             (3, 3, 0),
             (3, 4, 0),
             (3, 5, 0),
             (3, 6, 0),
             (3, 7, 0),
             (3, 8, 0),
-            (3, 9, 6),
+            pytest.param(3, 9, 6, marks=SLOW_WITHOUT_JIT),
         ],
     )
     def test_solve_all(self, k: int, n: int, solution_nb: int) -> None:

@@ -18,15 +18,11 @@ from nucs.constants import DOMAIN_MIN
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
-from nucs.numba_helper import NUMBA_DISABLE_JIT
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE
 from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB
-
-# without the JIT, the full instances take about 100,000 choices: 116 s and 156 s on a fast machine, and much more under
-# coverage on the CI
-SLOW_WITHOUT_JIT = pytest.mark.skipif(bool(NUMBA_DISABLE_JIT), reason="too slow without the JIT")
+from tests.marks import SLOW_WITHOUT_JIT
 
 
 class TestTSP:

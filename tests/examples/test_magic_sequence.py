@@ -18,10 +18,11 @@ from nucs.examples.magic_sequence.magic_sequence_problem import MagicSequencePro
 from nucs.solvers.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB
+from tests.marks import SLOW_WITHOUT_JIT
 
 
 class TestMagicSequence:
-    @pytest.mark.parametrize("size,zero_nb", [(50, 46), (100, 96), (200, 196)])
+    @pytest.mark.parametrize("size,zero_nb", [(50, 46), (100, 96), pytest.param(200, 196, marks=SLOW_WITHOUT_JIT)])
     def test_find_all(self, size: int, zero_nb: int) -> None:
         problem = MagicSequenceProblem(size)
         solver = BacktrackSolver(problem, searches=[Search(decision_variables=range(size - 1, -1, -1))])
