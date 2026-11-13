@@ -20,7 +20,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 from rich import print
 
-from nucs.constants import EVENT_MASK_NB, EVENT_NB, INFO_ALGORITHM, INFO_COPIES, INFO_PRIORITY, INFO_WIDTH
+from nucs.constants import EVENT_MASK_NB, EVENT_NB
 from nucs.numba_helper import NUMBA_DISABLE_JIT, addresses_from_functions, function_ptr_from_address
 from nucs.propagators.propagators import (
     ALG_DUMMY,
@@ -55,6 +55,13 @@ OFFSETS_PARAM = 1  # column of offsets holding the propagator parameter offsets
 OFFSETS_STATE = 2  # column of offsets holding the propagator state offsets, absolute into state (see below)
 OFFSETS_STATE_HINT = 3  # column of offsets holding where each state block's untrailed hint suffix starts
 OFFSETS_WIDTH = 4  # number of columns of offsets
+
+# Column indices into propagator_infos: one row for each propagator (see init_propagator_infos). All the cells are
+# uint8: an algorithm id is a uint8, a priority is less than BUCKET_NB and the copies flag is 0 or 1.
+INFO_ALGORITHM = 0  # column for the ALG_* id of the propagator
+INFO_PRIORITY = 1  # column for the bucket of the propagator in the propagation queue
+INFO_COPIES = 2  # column for 1 when the propagator has a variable more than once, else 0
+INFO_WIDTH = 3  # the number of columns of propagator_infos
 
 
 class Problem:
@@ -144,10 +151,10 @@ class Problem:
         # solver's own domains -- those are a view of state. int32 because that is what it is copied into.
         self.initial_domains = np.array(self.domains, dtype=np.int32)
         self.init_propagator_infos()
-        # Built here, beside propagator_infos[:, INFO_ALGORITHM] that indexes it, so the two are fixed at the same instant and the
-        # flags cover every algorithm this problem can name -- including one registered after import. The
-        # consistency algorithm needs a boolean array rather than the registry's list; converting some sixty
-        # bools once per problem is nothing next to the rest of this method.
+        # Built here, beside propagator_infos[:, INFO_ALGORITHM] that indexes it, so the two are fixed at the same
+        # instant and the flags cover every algorithm this problem can name -- including one registered after
+        # import. The consistency algorithm needs a boolean array rather than the registry's list; converting some
+        # sixty bools once per problem is nothing next to the rest of this method.
         self.algorithm_flags = np.array(ALGORITHM_FLAGS, dtype=np.uint8)
         self.init_propagator_arrays()
         self.init_triggers()
@@ -172,11 +179,12 @@ class Problem:
         - INFO_COPIES holds 1 for a propagator that has a variable more than once, for example count_eq in
           magic_sequence, with x[i] in its list and as its count. The propagator sees each copy as a variable of its
           own, so it can narrow the copies to different bounds, even to bounds with an empty intersection, and still
-          not fail. bc_algorithm reads this cell, and gives such a propagator a write-back that intersects the copies
-          (update_domains_of_copies).
+          not fail. bc_algorithm and lcg_algorithm read this cell, and give such a propagator a write-back that
+          intersects the copies (update_domains_of_copies, and update_domains_of_copies_with_reasons for
+          lcg_algorithm).
 
-        These three values are in one array because bc_algorithm reads all of them, for the same propagator, on each
-        call. They are not columns of offsets, because they are not offsets, and because offsets has a closing row
+        These three values are in one array because the consistency algorithm (bc_algorithm or lcg_algorithm) reads
+        all of them, for the same propagator, on each call. They are not columns of offsets, because they are not offsets, and because offsets has a closing row
         that has no propagator.
         """
         logger.debug("Initializing propagator infos")

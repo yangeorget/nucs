@@ -21,18 +21,9 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import (
-    BB_BOUND,
-    BB_VALUE,
-    BB_VARIABLE,
-    DOMAIN_MAX,
-    DOMAIN_MIN,
-    EVENT_MASK_NONE,
-    INFO_ALGORITHM,
-    LOG_LEVEL_INFO,
-)
+from nucs.constants import BB_BOUND, BB_VALUE, BB_VARIABLE, DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_NONE, LOG_LEVEL_INFO
 from nucs.numba_helper import DomainHeuristicFunctions, VariableHeuristicFunctions, addresses_from_functions
-from nucs.problems.problem import PROBLEM_BOUND, PROBLEM_INCONSISTENT, PROBLEM_UNBOUND, Problem
+from nucs.problems.problem import INFO_ALGORITHM, PROBLEM_BOUND, PROBLEM_INCONSISTENT, PROBLEM_UNBOUND, Problem
 from nucs.propagators.propagators import ALG_DUMMY, EXPLAIN_FCTS, SIGN_EXPLAIN
 from nucs.solvers.choicepoints import (
     CHOICEPOINT_BOUND,

@@ -37,14 +37,8 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import (
-    DOMAIN_MAX,
-    DOMAIN_MIN,
-    INFO_ALGORITHM,
-    PROP_CONSISTENCY,
-    PROP_INCONSISTENCY,
-)
-from nucs.problems.problem import OFFSETS_PARAM, OFFSETS_STATE, OFFSETS_VARIABLE
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.problems.problem import INFO_ALGORITHM, OFFSETS_PARAM, OFFSETS_STATE, OFFSETS_VARIABLE
 from nucs.propagators.explanations import EXPLAIN_SIDE, EXPLAIN_VALUE, EXPLAIN_VAR_IDX, EXPLAIN_WIDTH
 from nucs.propagators.propagators import call_compute_domains, call_explain
 from nucs.solvers.lcg.implication_trail import (

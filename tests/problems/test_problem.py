@@ -10,8 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from nucs.constants import INFO_ALGORITHM, INFO_COPIES, INFO_PRIORITY
-from nucs.problems.problem import Problem
+from nucs.problems.problem import INFO_ALGORITHM, INFO_COPIES, INFO_PRIORITY, Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_LINEAR_LEQ_C, ALG_NEQ, watchers
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 

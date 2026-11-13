@@ -41,8 +41,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 - **Breaking: the arrays `algorithms` and `priorities` became one array, `propagator_infos`.** It has one row of
   uint8 cells for each propagator, with the columns `INFO_ALGORITHM`, `INFO_PRIORITY` and `INFO_COPIES` of
-  `nucs.constants`. `INFO_COPIES` is 1 for a propagator that has a variable more than once (see the fix of the copies
-  under "Fixed"). These changes follow:
+  `nucs.problems.problem`. `INFO_COPIES` is 1 for a propagator that has a variable more than once (see the fix of
+  the copies under "Fixed"). These changes follow:
   - `SIGN_CONSISTENCY_ALG`, `run_search_loop`, `backtrack` and `update_propagators` take `propagator_infos` where they
     took `priorities` (and `algorithms`). A custom consistency algorithm must change its signature;
     `docs/source/consistency.rst` says how.

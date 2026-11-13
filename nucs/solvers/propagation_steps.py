@@ -22,12 +22,8 @@ on its own would bring the refcounts of whichever context first compiled it (see
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import (
-    DOMAIN_MAX,
-    DOMAIN_MIN,
-    EVENT_NB,
-    INFO_PRIORITY,
-)
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, EVENT_NB
+from nucs.problems.problem import INFO_PRIORITY
 from nucs.solvers.buckets import STORAGE_OFFSET, buckets_add
 from nucs.solvers.state import tighten_at, utrail_push, utrail_set
 from nucs.statistics import (
@@ -346,6 +342,62 @@ def update_domains_of_copies(
                 skip_prop_idx,
             )
             no_changes = False
+    schedule_if_copies_disagree(
+        skip_prop_idx,
+        prop_var_start,
+        prop_var_end,
+        prop_domains,
+        propagator_variables,
+        state,
+        triggered_propagators,
+        entailed,
+        propagator_infos,
+    )
+    return True, no_changes, utrail_sz
+
+
+@njit(cache=True, inline="always")
+def schedule_if_copies_disagree(
+    skip_prop_idx: int,
+    prop_var_start: int,
+    prop_var_end: int,
+    prop_domains: NDArray,
+    propagator_variables: NDArray,
+    state: NDArray,
+    triggered_propagators: NDArray,
+    entailed: NDArray,
+    propagator_infos: NDArray,
+) -> None:
+    """
+    Schedules an idempotent propagator again when a copy that it wrote is not equal to the bounds that the write-back
+    of its copies leaves.
+
+    The write-back of the copies (update_domains_of_copies, and update_domains_of_copies_with_reasons for
+    lcg_algorithm) intersects the copies of a variable. When a copy is wider than this intersection, the propagator
+    has not seen the bounds that it now has, so it must run again, even when it is idempotent. Both write-backs call
+    this function after a write-back that did not fail.
+
+    :param skip_prop_idx: the propagator whose domains these are when it is idempotent; -1 when it is not, and then
+                          nothing is done, because its own writes already scheduled it
+    :type skip_prop_idx: int
+    :param prop_var_start: where the propagator's variables start in propagator_variables
+    :type prop_var_start: int
+    :param prop_var_end: where they end
+    :type prop_var_end: int
+    :param prop_domains: the domains computed by the propagator
+    :type prop_domains: NDArray
+    :param propagator_variables: the variables by propagators
+    :type propagator_variables: NDArray
+    :param state: all the backtrackable state, with the bounds after the write-back
+    :type state: NDArray
+    :param triggered_propagators: the Numpy array of triggered propagators
+    :type triggered_propagators: NDArray
+    :param entailed: whether each propagator is entailed, a view of state
+    :type entailed: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
+    """
     if skip_prop_idx >= 0 and not entailed[skip_prop_idx]:
         for var_idx in range(prop_var_end - prop_var_start):
             cell_idx = propagator_variables[prop_var_start + var_idx] << 1
@@ -360,7 +412,6 @@ def update_domains_of_copies(
                     STORAGE_OFFSET + len(propagator_infos),
                 )
                 break
-    return True, no_changes, utrail_sz
 
 
 @njit(cache=True, inline="always")
