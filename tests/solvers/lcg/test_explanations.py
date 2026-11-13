@@ -249,7 +249,7 @@ class TestExplanations:
             check_explanations(
                 solver.compute_domains_addrs,
                 solver.explain_addrs,
-                solver.problem.algorithms,
+                solver.problem.propagator_infos,
                 solver.problem.offsets,
                 solver.problem.propagator_variables,
                 solver.problem.propagator_parameters,

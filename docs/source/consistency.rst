@@ -41,6 +41,13 @@ address of each propagator algorithm's :code:`compute_domains` function: pass it
    In NuCS 17 :code:`propagator_weights` became the second argument of a consistency algorithm, after
    :code:`statistics`. A consistency algorithm written against the old signature will fail to compile.
 
+.. warning::
+
+   In NuCS 20 the two arguments :code:`algorithms` and :code:`priorities` became one argument,
+   :code:`propagator_infos`, at the same position. It has one row for each propagator, and the columns
+   :code:`INFO_ALGORITHM`, :code:`INFO_PRIORITY` and :code:`INFO_COPIES` of :mod:`nucs.constants`. A consistency
+   algorithm written against the old signature will fail to compile.
+
 
 
 Writing a domain
@@ -68,7 +75,7 @@ writes, and store it back once.
    events, utrail_sz = tighten_at(state, utrail_log, utrail_indices, mark, utrail_sz, variable, new_min, new_max)
    if events:
        update_propagators(triggered_propagators, entailed, triggers, triggers_offsets,
-                          priorities, variable, events, -1)
+                          propagator_infos, variable, events, -1)
    utrail_top[0] = utrail_sz
 
 where :code:`mark` is :code:`choicepoints[choicepoint_top[0], CHOICEPOINT_UTRAIL_MARK]`, the undo trail position
@@ -83,7 +90,7 @@ happens in the consistency algorithm.
 A propagator can have a variable more than once: :code:`count_eq` in the magic sequence example has
 :code:`x[i]` in its list and as its count. The propagator sees each copy as a variable of its own, so it can
 narrow the copies to different bounds, even to bounds with no common value, and still not fail.
-:code:`offsets[p, OFFSETS_COPIES]` (:mod:`nucs.problems.problem`) is 1 for such a propagator. A consistency
+:code:`propagator_infos[p, INFO_COPIES]` (:mod:`nucs.constants`) is 1 for such a propagator. A consistency
 algorithm that writes back the domains of such a propagator itself must:
 
 - intersect each copy with the current bounds, and fail when the intersection is empty;

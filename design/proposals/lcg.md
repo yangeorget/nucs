@@ -946,8 +946,9 @@ trail, the explanations, the analysis and the store already have their tests.
      the copies, and the triggers registered the watcher of the first copy only. When the propagator narrowed the
      copies to bounds with an empty intersection, it did not fail, and a wrong solution could come out (`count_eq`
      on `[x0, x1, x2, x1]`, x0 = 0, x1 in [0, 1], x2 = 1 gave (0, 0, 1)). Now `Problem.init` marks these propagators
-     (`OFFSETS_COPIES`), their write-back intersects the copies and fails on an empty intersection
-     (`update_domains_of_copies`; in `lcg_algorithm`, `update_domains_of_copies_with_reasons`, which writes the rows),
+     (`INFO_COPIES` of `propagator_infos`, since #213), their write-back intersects the copies and fails on an empty
+     intersection (`update_domains_of_copies`; in `lcg_algorithm`, `update_domains_of_copies_with_reasons`, which
+     writes the rows),
      and a variable wakes the propagator on the watchers of all its copies. A write-back of copies can fail after
      it wrote rows, so `failed_propagator` also holds the position of the call (`FAILED_POS`), and the failure is
      explained with the bounds at that position.

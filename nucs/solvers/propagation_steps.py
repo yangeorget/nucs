@@ -26,6 +26,7 @@ from nucs.constants import (
     DOMAIN_MAX,
     DOMAIN_MIN,
     EVENT_NB,
+    INFO_PRIORITY,
 )
 from nucs.solvers.buckets import STORAGE_OFFSET, buckets_add
 from nucs.solvers.state import tighten_at, utrail_push, utrail_set
@@ -170,7 +171,7 @@ def update_domains(
     entailed: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
 ) -> tuple[bool, int]:
     """
     Applies a propagator's computed prop_domains and schedules the propagators triggered by the changes.
@@ -205,8 +206,9 @@ def update_domains(
     :type triggers: NDArray
     :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
     :type triggers_offsets: NDArray
-    :param priorities: the propagation queue bucket priorities indexed by propagators
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
 
     :return: true iff no domain was changed, and the new undo trail size
     :rtype: Tuple[bool, int]
@@ -234,7 +236,7 @@ def update_domains(
                     entailed,
                     triggers,
                     triggers_offsets,
-                    priorities,
+                    propagator_infos,
                     variable,
                     events,
                     skip_prop_idx,
@@ -261,7 +263,7 @@ def update_domains_of_copies(
     entailed: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
 ) -> tuple[bool, bool, int]:
     """
     Applies the computed prop_domains of a propagator that has a variable more than once, and schedules the
@@ -315,8 +317,9 @@ def update_domains_of_copies(
     :type triggers: NDArray
     :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
     :type triggers_offsets: NDArray
-    :param priorities: the propagation queue bucket priorities indexed by propagators
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
 
     :return: false iff the copies of a variable have an empty intersection, true iff no domain was changed, and the
              new undo trail size
@@ -337,7 +340,7 @@ def update_domains_of_copies(
                 entailed,
                 triggers,
                 triggers_offsets,
-                priorities,
+                propagator_infos,
                 variable,
                 events,
                 skip_prop_idx,
@@ -350,7 +353,12 @@ def update_domains_of_copies(
                 state[cell_idx] != prop_domains[var_idx, DOMAIN_MIN]
                 or state[cell_idx | 1] != prop_domains[var_idx, DOMAIN_MAX]
             ):
-                buckets_add(triggered_propagators, priorities, skip_prop_idx, STORAGE_OFFSET + len(priorities))
+                buckets_add(
+                    triggered_propagators,
+                    propagator_infos[skip_prop_idx, INFO_PRIORITY],
+                    skip_prop_idx,
+                    STORAGE_OFFSET + len(propagator_infos),
+                )
                 break
     return True, no_changes, utrail_sz
 
@@ -361,7 +369,7 @@ def update_propagators(
     entailed: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
     variable: int,
     events: int,
     skip_prop_idx: int,
@@ -381,8 +389,9 @@ def update_propagators(
     :type triggers: NDArray
     :param triggers_offsets: the offsets of each (variable, event mask) slice of triggers
     :type triggers_offsets: NDArray
-    :param priorities: the queue bucket of each propagator
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
     :param variable: the variable whose domain changed
     :type variable: int
     :param events: the events of the change, a mask of EVENT_MASK_*
@@ -391,7 +400,7 @@ def update_propagators(
     :type skip_prop_idx: int
     """
     offset = (variable << EVENT_NB) | events
-    membership_offset = STORAGE_OFFSET + len(priorities)
+    membership_offset = STORAGE_OFFSET + len(propagator_infos)
     for prop_idx in triggers[triggers_offsets[offset] : triggers_offsets[offset + 1]]:
         if not (triggered_propagators[membership_offset + prop_idx] or prop_idx == skip_prop_idx or entailed[prop_idx]):
-            buckets_add(triggered_propagators, priorities, prop_idx, membership_offset)
+            buckets_add(triggered_propagators, propagator_infos[prop_idx, INFO_PRIORITY], prop_idx, membership_offset)

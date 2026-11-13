@@ -314,7 +314,7 @@ def backtrack(
     triggered_propagators: NDArray,
     triggers: NDArray,
     triggers_offsets: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
     bb: NDArray,
 ) -> bool:
     """
@@ -353,8 +353,8 @@ def backtrack(
     :type triggers: NDArray
     :param triggers_offsets: the CSR offsets delimiting each (variable, event) slice of triggers
     :type triggers_offsets: NDArray
-    :param priorities: the propagation queue bucket priorities indexed by propagators
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator
+    :type propagator_infos: NDArray
     :param bb: the branch-and-bound bound as a Numpy array of variable, bound and value,
                whose variable is -1 when not optimizing
     :type bb: NDArray
@@ -387,7 +387,7 @@ def backtrack(
                 entailed,
                 triggers,
                 triggers_offsets,
-                priorities,
+                propagator_infos,
                 variable,
                 events,
                 -1,
@@ -412,7 +412,7 @@ def backtrack(
                 entailed,
                 triggers,
                 triggers_offsets,
-                priorities,
+                propagator_infos,
                 optimized_variable,
                 events,
                 -1,

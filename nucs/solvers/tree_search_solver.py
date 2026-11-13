@@ -26,6 +26,8 @@ from nucs.constants import (
     BB_WIDTH,
     DOMAIN_MAX,
     DOMAIN_MIN,
+    INFO_ALGORITHM,
+    INFO_PRIORITY,
     LOG_LEVEL_INFO,
 )
 from nucs.heuristics.heuristics import DOM_HEURISTIC_FCTS, SIGN_DOM_HEURISTIC, SIGN_VAR_HEURISTIC, VAR_HEURISTIC_FCTS
@@ -184,7 +186,10 @@ class TreeSearchSolver(Solver):
         # instead of the whole propagator library; without the JIT this is a placeholder that call_compute_domains
         # ignores
         self.compute_domains_addrs = addresses_from_functions(
-            COMPUTE_DOMAINS_FCTS, SIGN_COMPUTE_DOMAINS, np.unique(self.problem.algorithms), ALG_DUMMY
+            COMPUTE_DOMAINS_FCTS,
+            SIGN_COMPUTE_DOMAINS,
+            np.unique(self.problem.propagator_infos[:, INFO_ALGORITHM]),
+            ALG_DUMMY,
         )
         # the function tables threaded into the search loop: Numba typed lists under the JIT, plain Python lists
         # otherwise (see build_function_ptrs)
@@ -338,7 +343,7 @@ class TreeSearchSolver(Solver):
         )
         # the search may have stopped at a failure: the failed filtering left propagators in the queue, and backtrack
         # added more, which buckets_init removes before it adds every propagator
-        buckets_init(self.triggered_propagators, self.problem.priorities)
+        buckets_init(self.triggered_propagators, self.problem.propagator_infos[:, INFO_PRIORITY])
         self._record_root()
 
     def _tighten_objective_at_root(self) -> bool:

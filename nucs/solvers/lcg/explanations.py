@@ -37,7 +37,13 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
+from nucs.constants import (
+    DOMAIN_MAX,
+    DOMAIN_MIN,
+    INFO_ALGORITHM,
+    PROP_CONSISTENCY,
+    PROP_INCONSISTENCY,
+)
 from nucs.problems.problem import OFFSETS_PARAM, OFFSETS_STATE, OFFSETS_VARIABLE
 from nucs.propagators.explanations import EXPLAIN_SIDE, EXPLAIN_VALUE, EXPLAIN_VAR_IDX, EXPLAIN_WIDTH
 from nucs.propagators.propagators import call_compute_domains, call_explain
@@ -134,7 +140,7 @@ def prop_variable_range(offsets: NDArray, prop_idx: int) -> tuple[int, int]:
 @njit(cache=True)
 def explain_propagator(
     explain_addrs: NDArray,
-    algorithms: NDArray,
+    propagator_infos: NDArray,
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -161,8 +167,9 @@ def explain_propagator(
 
     :param explain_addrs: the compiled explain address of each algorithm
     :type explain_addrs: NDArray
-    :param algorithms: the algorithms indexed by propagators
-    :type algorithms: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
     :param offsets: the CSR offsets of each propagator's slice of propagator_variables and propagator_parameters
     :type offsets: NDArray
     :param propagator_variables: the variables by propagators
@@ -205,7 +212,7 @@ def explain_propagator(
         domains[idx, DOMAIN_MAX] = bound_at(itrail, itrail_last, initial_domains, variable_side | 1, pos)
     return call_explain(
         explain_addrs,
-        algorithms[prop_idx],
+        propagator_infos[prop_idx, INFO_ALGORITHM],
         domains,
         propagator_parameters[offsets[prop_idx, OFFSETS_PARAM] : offsets[prop_idx + 1, OFFSETS_PARAM]],
         var_idx,
@@ -375,7 +382,7 @@ def first_copies(variables: NDArray) -> NDArray:
 def check_explanations(
     compute_domains_addrs: NDArray,
     explain_addrs: NDArray,
-    algorithms: NDArray,
+    propagator_infos: NDArray,
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -403,8 +410,9 @@ def check_explanations(
     :type compute_domains_addrs: NDArray
     :param explain_addrs: the compiled explain address of each algorithm
     :type explain_addrs: NDArray
-    :param algorithms: the algorithms indexed by propagators
-    :type algorithms: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
     :param offsets: the CSR offsets of each propagator's slices
     :type offsets: NDArray
     :param propagator_variables: the variables by propagators
@@ -443,7 +451,7 @@ def check_explanations(
         var_side = itrail[row, ITRAIL_VAR_SIDE]
         value = itrail[row, ITRAIL_VALUE]
         prop_idx = itrail[row, ITRAIL_REASON_DATA]
-        if not 0 <= prop_idx < len(algorithms):
+        if not 0 <= prop_idx < len(propagator_infos):
             return row, EXPLANATION_NO_PROPAGATOR
         # the bound before the row: [x >= before + 1] or [x <= before - 1] is the weakest literal that the row sets
         before = bound_at(itrail, itrail_last, initial_domains, var_side, row)
@@ -453,7 +461,7 @@ def check_explanations(
             verdict = check_propagator_explanation(
                 compute_domains_addrs,
                 explain_addrs,
-                algorithms,
+                propagator_infos,
                 offsets,
                 propagator_variables,
                 propagator_parameters,
@@ -476,7 +484,7 @@ def check_explanations(
         verdict = check_propagator_explanation(
             compute_domains_addrs,
             explain_addrs,
-            algorithms,
+            propagator_infos,
             offsets,
             propagator_variables,
             propagator_parameters,
@@ -502,7 +510,7 @@ def check_explanations(
 def check_propagator_explanation(
     compute_domains_addrs: NDArray,
     explain_addrs: NDArray,
-    algorithms: NDArray,
+    propagator_infos: NDArray,
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -526,8 +534,9 @@ def check_propagator_explanation(
     :type compute_domains_addrs: NDArray
     :param explain_addrs: the compiled explain address of each algorithm
     :type explain_addrs: NDArray
-    :param algorithms: the algorithms indexed by propagators
-    :type algorithms: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
     :param offsets: the CSR offsets of each propagator's slices
     :type offsets: NDArray
     :param propagator_variables: the variables by propagators
@@ -570,7 +579,7 @@ def check_propagator_explanation(
         return EXPLANATION_OTHER_VARIABLE
     row_nb = explain_propagator(
         explain_addrs,
-        algorithms,
+        propagator_infos,
         offsets,
         propagator_variables,
         propagator_parameters,
@@ -608,7 +617,7 @@ def check_propagator_explanation(
                     box[idx, DOMAIN_MAX] = min(box[idx, DOMAIN_MAX], literals[lit, LIT_VALUE])
     return check_explanation(
         compute_domains_addrs,
-        algorithms[prop_idx],
+        propagator_infos[prop_idx, INFO_ALGORITHM],
         propagator_parameters[offsets[prop_idx, OFFSETS_PARAM] : offsets[prop_idx + 1, OFFSETS_PARAM]],
         offsets[prop_idx + 1, OFFSETS_STATE] - offsets[prop_idx, OFFSETS_STATE],
         first_copies(propagator_variables[prop_var_start : prop_var_start + arity]),
