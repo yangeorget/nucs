@@ -17,6 +17,7 @@ from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE, VAR_HEURISTIC_SM
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 from nucs.statistics import STATS_IDX_SOLUTION_NB
+from tests.marks import SLOW_WITHOUT_JIT
 
 
 class TestMagicSquare:
@@ -26,7 +27,7 @@ class TestMagicSquare:
     def test_second_diag(self) -> None:
         assert list(MagicSquareProblem(3).second_diag()) == [6, 4, 2]
 
-    @pytest.mark.parametrize("size,solution_nb", [(2, 0), (3, 1), (4, 880)])
+    @pytest.mark.parametrize("size,solution_nb", [(2, 0), (3, 1), pytest.param(4, 880, marks=SLOW_WITHOUT_JIT)])
     def test_solve_all(self, size: int, solution_nb: int) -> None:
         problem = MagicSquareProblem(size)
         solver = BacktrackSolver(

@@ -20,6 +20,7 @@ from nucs.solvers.backtrack.consistency_algorithms import register_consistency_a
 from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
 from nucs.statistics import STATS_IDX_SOLUTION_NB
+from tests.marks import SLOW_WITHOUT_JIT
 
 
 class TestGolomb:
@@ -29,7 +30,18 @@ class TestGolomb:
     def test_index(self, mark_nb: int, i: int, j: int, idx: int) -> None:
         assert index(mark_nb, i, j) == idx
 
-    @pytest.mark.parametrize("mark_nb,length", [(4, 6), (5, 11), (6, 17), (7, 25), (8, 34), (9, 44), (10, 55)])
+    @pytest.mark.parametrize(
+        "mark_nb,length",
+        [
+            (4, 6),
+            (5, 11),
+            (6, 17),
+            (7, 25),
+            (8, 34),
+            pytest.param(9, 44, marks=SLOW_WITHOUT_JIT),
+            pytest.param(10, 55, marks=SLOW_WITHOUT_JIT),
+        ],
+    )
     def test_find_best(self, mark_nb: int, length: int) -> None:
         problem = GolombProblem(mark_nb)
         consistency_alg_golomb = register_consistency_algorithm(golomb_consistency_algorithm)

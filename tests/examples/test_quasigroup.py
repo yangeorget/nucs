@@ -17,6 +17,7 @@ from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_SM
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 from nucs.statistics import STATS_IDX_SOLUTION_NB
+from tests.marks import SLOW_WITHOUT_JIT
 
 
 class TestQuasigroup:
@@ -26,19 +27,19 @@ class TestQuasigroup:
             (3, 5, True, 0),
             (3, 6, True, 0),
             (3, 7, True, 0),
-            (3, 8, True, 18),
+            pytest.param(3, 8, True, 18, marks=SLOW_WITHOUT_JIT),
             (4, 5, True, 3),
             (4, 6, True, 0),
             (4, 7, True, 0),
-            (4, 8, True, 0),
+            pytest.param(4, 8, True, 0, marks=SLOW_WITHOUT_JIT),
             (5, 5, True, 1),
             (5, 6, True, 0),
             (5, 7, True, 3),
             (5, 8, True, 1),
             (5, 9, True, 0),
             (5, 10, True, 0),
-            (5, 11, True, 5),
-            (5, 12, True, 0),
+            pytest.param(5, 11, True, 5, marks=SLOW_WITHOUT_JIT),
+            pytest.param(5, 12, True, 0, marks=SLOW_WITHOUT_JIT),
             # (5, 13, True, 0),     97s
             # (5, 14, True, 0),   1380s
             # (5, 15, True, 0),   8h (6p)
