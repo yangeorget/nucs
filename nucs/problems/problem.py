@@ -21,7 +21,7 @@ from numpy.typing import NDArray
 from rich import print
 
 from nucs.buckets import compute_priority
-from nucs.constants import EVENT_MASK_NB, EVENT_NB
+from nucs.constants import EVENT_MASK_NB, EVENT_NB, INFO_ALGORITHM, INFO_COPIES, INFO_PRIORITY, INFO_WIDTH
 from nucs.numba_helper import NUMBA_DISABLE_JIT, addresses_from_functions, function_ptr_from_address
 from nucs.propagators.propagators import (
     ALG_DUMMY,
@@ -46,8 +46,7 @@ OFFSETS_VARIABLE = 0  # column of offsets holding the propagator variable offset
 OFFSETS_PARAM = 1  # column of offsets holding the propagator parameter offsets
 OFFSETS_STATE = 2  # column of offsets holding the propagator state offsets, absolute into state (see below)
 OFFSETS_STATE_HINT = 3  # column of offsets holding where each state block's untrailed hint suffix starts
-OFFSETS_COPIES = 4  # column of offsets holding 1 when the propagator has a variable more than once, else 0
-OFFSETS_WIDTH = 5  # number of columns of offsets
+OFFSETS_WIDTH = 4  # number of columns of offsets
 
 
 class Problem:
@@ -136,40 +135,54 @@ class Problem:
         # appends to; this is what a search resets to, and it has to survive the search that overwrites the
         # solver's own domains -- those are a view of state. int32 because that is what it is copied into.
         self.initial_domains = np.array(self.domains, dtype=np.int32)
-        self.algorithms = np.array([propagator[1] for propagator in self.propagators], dtype=np.uint8)
-        # Built here, beside the algorithms that index it, so the two are fixed at the same instant and the
+        self.init_propagator_infos()
+        # Built here, beside propagator_infos[:, INFO_ALGORITHM] that indexes it, so the two are fixed at the same instant and the
         # flags cover every algorithm this problem can name -- including one registered after import. The
         # consistency algorithm needs a boolean array rather than the registry's list; converting some sixty
         # bools once per problem is nothing next to the rest of this method.
         self.algorithm_flags = np.array(ALGORITHM_FLAGS, dtype=np.uint8)
-        self.init_priorities()
         self.init_propagator_arrays()
         self.init_triggers()
         logger.debug("Problem initialized")
         logger.info(f"Problem has {self.domain_nb} variables, {self.unbound_variable_nb} of them unbound")
         algorithm_names = get_algorithm_names()
-        algorithm_counts = Counter(algorithm_names[algorithm] for algorithm in self.algorithms)
+        algorithm_counts = Counter(algorithm_names[algorithm] for algorithm in self.propagator_infos[:, INFO_ALGORITHM])
         logger.info(
             f"Problem has {self.propagator_nb} propagators: "
             + ", ".join(f"{count} {name}" for name, count in sorted(algorithm_counts.items()))
         )
 
-    def init_priorities(self) -> None:
+    def init_propagator_infos(self) -> None:
         """
-        Initializes the priorities of the propagators.
+        Initializes propagator_infos, one row of INFO_WIDTH uint8 cells for each propagator.
 
-        The propagation queue is a bucketed (priority) queue: priorities here store the bucket index =
-        floor(log2(complexity)), clamped to [0, BUCKET_NB - 1]. Higher-complexity propagators land in higher
-        buckets and run after cheaper ones at fixpoint computation.
+        - INFO_ALGORITHM holds the ALG_* id of the propagator.
+        - INFO_PRIORITY holds the bucket of the propagator in the propagation queue, which is a bucketed (priority)
+          queue: compute_priority gives the bucket from the complexity of the propagator, clamped to
+          [0, BUCKET_NB - 1]. A propagator with a higher complexity goes in a higher bucket, and runs after the
+          cheaper ones at the fixpoint computation.
+        - INFO_COPIES holds 1 for a propagator that has a variable more than once, for example count_eq in
+          magic_sequence, with x[i] in its list and as its count. The propagator sees each copy as a variable of its
+          own, so it can narrow the copies to different bounds, even to bounds with an empty intersection, and still
+          not fail. bc_algorithm reads this cell, and gives such a propagator a write-back that intersects the copies
+          (update_domains_of_copies).
+
+        These three values are in one array because bc_algorithm reads all of them, for the same propagator, on each
+        call. They are not columns of offsets, because they are not offsets, and because offsets has a closing row
+        that has no propagator.
         """
-        logger.debug("Initializing priorities")
-        self.priorities = np.array(
-            [
-                compute_priority(GET_COMPLEXITY_FCTS[propagator[1]](len(propagator[0]), propagator[2]))
-                for propagator in self.propagators
-            ],
-            dtype=np.uint32,
-        )
+        logger.debug("Initializing propagator infos")
+        self.propagator_infos = np.zeros((self.propagator_nb, INFO_WIDTH), dtype=np.uint8)
+        # each column is written once from a list: a write of one cell from Python costs about 100 ns, which
+        # adds up on a FlatZinc model with a million propagators
+        self.propagator_infos[:, INFO_ALGORITHM] = [algorithm for _, algorithm, _ in self.propagators]
+        self.propagator_infos[:, INFO_PRIORITY] = [
+            compute_priority(GET_COMPLEXITY_FCTS[algorithm](len(variables), parameters))
+            for variables, algorithm, parameters in self.propagators
+        ]
+        self.propagator_infos[:, INFO_COPIES] = [
+            len(set(variables)) < len(variables) for variables, _, _ in self.propagators
+        ]
 
     def init_propagator_arrays(self) -> None:
         """
@@ -192,13 +205,6 @@ class Problem:
         both bounds from the offsets row that it has already loaded. This value is a column, not an array of
         its own, because this table is for per-propagator widths. An array of its own would add a second
         cache line on the per-call path. It would also add a fourth argument to SIGN_CONSISTENCY_ALG.
-
-        The OFFSETS_COPIES column holds 1 for a propagator that has a variable more than once, for example
-        count_eq in magic_sequence, with x[i] in its list and as its count. The propagator sees each copy as a
-        variable of its own, so it can narrow the copies to different bounds, even to bounds with an empty
-        intersection, and still not fail. bc_algorithm reads this column, and gives such a propagator a write-back
-        that intersects the copies (update_domains_of_copies). It is a column for the same reasons as
-        OFFSETS_STATE_HINT. The closing row holds 0.
         """
         logger.debug("Initializing offsets")
         self.offsets = np.zeros((self.propagator_nb + 1, OFFSETS_WIDTH), dtype=np.uint32)
@@ -217,7 +223,6 @@ class Problem:
             state_start = self.offsets[propagator_idx, OFFSETS_STATE]
             self.offsets[propagator_idx, OFFSETS_STATE_HINT] = state_start + trailed_nb
             self.offsets[propagator_idx + 1, OFFSETS_STATE] = state_start + trailed_nb + hint_nb
-            self.offsets[propagator_idx, OFFSETS_COPIES] = len(set(propagator[0])) < len(propagator[0])
         self.state_width = int(self.offsets[-1, OFFSETS_STATE] - state_base)
         # the closing row has no propagator, so its split is degenerate; keeping it consistent means a
         # reader never sees a hint start below its own state start
@@ -245,13 +250,13 @@ class Problem:
         is stored in CSR form: triggers is the flat list of propagators and triggers_offsets delimits, for
         each (variable, event), its slice -- offsets[variable * EVENT_MASK_NB + event] up to the next offset.
 
-        Requires the algorithms, the offsets and the propagator variables and parameters to be initialized.
+        Requires propagator_infos, the offsets and the propagator variables and parameters to be initialized.
         """
         logger.debug("Initializing triggers")
         # resolving only the algorithms used by the problem keeps the init cost proportional
         # to the problem instead of the whole propagator library
         get_triggers_addrs = addresses_from_functions(
-            GET_TRIGGERS_FCTS, SIGN_GET_TRIGGERS, np.unique(self.algorithms), ALG_DUMMY
+            GET_TRIGGERS_FCTS, SIGN_GET_TRIGGERS, np.unique(self.propagator_infos[:, INFO_ALGORITHM]), ALG_DUMMY
         )
         counts = np.zeros((self.domain_nb, EVENT_MASK_NB), dtype=np.int32)
         count_triggers(
@@ -259,7 +264,7 @@ class Problem:
             self.offsets,
             self.propagator_variables,
             self.propagator_parameters,
-            self.algorithms,
+            self.propagator_infos,
             get_triggers_addrs,
         )
         self.triggers_offsets = np.zeros((self.domain_nb << EVENT_NB) + 1, dtype=np.int32)
@@ -272,7 +277,7 @@ class Problem:
             self.offsets,
             self.propagator_variables,
             self.propagator_parameters,
-            self.algorithms,
+            self.propagator_infos,
             get_triggers_addrs,
         )
 
@@ -304,7 +309,7 @@ def count_triggers(
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
-    algorithms: NDArray,
+    propagator_infos: NDArray,
     get_triggers_addrs: NDArray,
 ) -> None:
     """
@@ -318,13 +323,13 @@ def count_triggers(
     :type propagator_variables: NDArray
     :param propagator_parameters: the propagator parameters
     :type propagator_parameters: NDArray
-    :param algorithms: the algorithm ids of the propagators
-    :type algorithms: NDArray
+    :param propagator_infos: the algorithm, the priority and the copies flag of each propagator
+    :type propagator_infos: NDArray
     :param get_triggers_addrs: the addresses of the get_triggers functions
     :type get_triggers_addrs: NDArray
     """
-    for propagator in range(len(algorithms)):
-        algorithm = algorithms[propagator]
+    for propagator in range(len(propagator_infos)):
+        algorithm = propagator_infos[propagator, INFO_ALGORITHM]
         if NUMBA_DISABLE_JIT:
             trigger_fct = GET_TRIGGERS_FCTS[algorithm]
         else:
@@ -333,7 +338,7 @@ def count_triggers(
         var_start = offsets[propagator, OFFSETS_VARIABLE]
         var_end = offsets[propagator + 1, OFFSETS_VARIABLE]
         var_nb = var_end - var_start
-        copies = offsets[propagator, OFFSETS_COPIES]
+        copies = propagator_infos[propagator, INFO_COPIES]
         for var_idx in range(var_nb):
             variable = propagator_variables[var_start + var_idx]
             trigger = variable_trigger(
@@ -351,7 +356,7 @@ def fill_triggers(
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
-    algorithms: NDArray,
+    propagator_infos: NDArray,
     get_triggers_addrs: NDArray,
 ) -> None:
     """
@@ -368,13 +373,13 @@ def fill_triggers(
     :type propagator_variables: NDArray
     :param propagator_parameters: the propagator parameters
     :type propagator_parameters: NDArray
-    :param algorithms: the algorithm ids of the propagators
-    :type algorithms: NDArray
+    :param propagator_infos: the algorithm, the priority and the copies flag of each propagator
+    :type propagator_infos: NDArray
     :param get_triggers_addrs: the addresses of the get_triggers functions
     :type get_triggers_addrs: NDArray
     """
-    for propagator in range(len(algorithms)):
-        algorithm = algorithms[propagator]
+    for propagator in range(len(propagator_infos)):
+        algorithm = propagator_infos[propagator, INFO_ALGORITHM]
         if NUMBA_DISABLE_JIT:
             trigger_fct = GET_TRIGGERS_FCTS[algorithm]
         else:
@@ -383,7 +388,7 @@ def fill_triggers(
         var_start = offsets[propagator, OFFSETS_VARIABLE]
         var_end = offsets[propagator + 1, OFFSETS_VARIABLE]
         var_nb = var_end - var_start
-        copies = offsets[propagator, OFFSETS_COPIES]
+        copies = propagator_infos[propagator, INFO_COPIES]
         for var_idx in range(var_nb):
             variable = propagator_variables[var_start + var_idx]
             trigger = variable_trigger(
@@ -410,7 +415,7 @@ def variable_trigger(
     Returns the events of a variable that call a propagator again, for the variable at an index of the propagator.
 
     A propagator is in the slice of a (variable, event) pair at most once. When the propagator has a variable more
-    than once (OFFSETS_COPIES), its copies can have different watchers: linear_leq_c on [x, y, x] with the
+    than once (INFO_COPIES), its copies can have different watchers: linear_leq_c on [x, y, x] with the
     coefficients [0, 1, 1] watches nothing on the first copy, and MAX on the last one. The variable then gets the union
     of the watchers of all its copies, at its first copy, and the other copies get no event. A propagator that has no
     copies needs no scan.
@@ -427,7 +432,7 @@ def variable_trigger(
     :type propagator_variables: NDArray
     :param var_start: where the variables of the propagator start in propagator_variables
     :type var_start: int
-    :param copies: whether the propagator has a variable more than once, its OFFSETS_COPIES cell
+    :param copies: whether the propagator has a variable more than once, its INFO_COPIES cell
     :type copies: int
 
     :return: the events, as a mask

@@ -65,8 +65,7 @@ def get_solution(domains: NDArray) -> NDArray:
 @njit(cache=True, nogil=True)
 def run_search_loop(
     statistics: NDArray,
-    algorithms: NDArray,
-    priorities: NDArray,
+    propagator_infos: NDArray,
     offsets: NDArray,
     propagator_variables: NDArray,
     propagator_parameters: NDArray,
@@ -120,10 +119,9 @@ def run_search_loop(
 
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
-    :param algorithms: the algorithms indexed by propagators
-    :type algorithms: NDArray
-    :param priorities: the propagation queue bucket priorities indexed by propagators
-    :type priorities: NDArray
+    :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
+                             columns
+    :type propagator_infos: NDArray
     :param offsets: the CSR offsets delimiting each propagator's slice of propagator_variables
                     and propagator_parameters
     :type offsets: NDArray
@@ -221,8 +219,7 @@ def run_search_loop(
             statistics,
             propagator_weights,
             algorithm_flags,
-            algorithms,
-            priorities,
+            propagator_infos,
             offsets,
             propagator_variables,
             propagator_parameters,
@@ -303,7 +300,7 @@ def run_search_loop(
                 triggered_propagators,
                 triggers,
                 triggers_offsets,
-                priorities,
+                propagator_infos,
                 bb,
             ):
                 return SOLVER_RUNNING, None
@@ -329,7 +326,7 @@ def run_search_loop(
         )
         choice_point = choice_point_top[0]
         update_propagators(
-            triggered_propagators, entailed, triggers, triggers_offsets, priorities, variable, events, -1
+            triggered_propagators, entailed, triggers, triggers_offsets, propagator_infos, variable, events, -1
         )
         statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
         if search_control[SEARCH_CONTROL_LAST_CONFLICT]:

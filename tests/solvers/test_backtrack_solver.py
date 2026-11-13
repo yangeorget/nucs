@@ -212,7 +212,7 @@ class TestBacktrackSolver:
         """
         problem = Problem([(0, 1), (0, 1)])
         solver = BacktrackSolver(problem)
-        buckets_empty(solver.triggered_propagators, problem.priorities)
+        buckets_empty(solver.triggered_propagators, problem.propagator_nb)
         status, solution = solver._run_search_loop()
         assert status == SOLVER_RUNNING
         assert solution is not None

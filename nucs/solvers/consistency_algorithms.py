@@ -23,8 +23,7 @@ SIGN_CONSISTENCY_ALG = int64(
     int64[::1],  # statistics
     float64[::1],  # propagator_weights
     uint8[::1],  # algorithm_flags
-    uint8[::1],  # algorithms
-    uint32[::1],  # priorities
+    uint8[:, ::1],  # propagator_infos
     uint32[:, ::1],  # offsets
     uint32[::1],  # propagator_variables
     int32[::1],  # propagator_parameters

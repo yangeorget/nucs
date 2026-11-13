@@ -17,7 +17,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 # Number of priority buckets.
-# priorities[val] is interpreted directly as a bucket index; values >= BUCKET_NB are clamped to the last bucket.
+# A priority is directly a bucket index; values >= BUCKET_NB are clamped to the last bucket.
 # Within a bucket: FIFO order (insertion order is preserved on pop).
 BUCKET_NB = 8
 # How many bits compute_priority shifts off the complexity per bucket, which is what sets the log base:
@@ -78,19 +78,23 @@ def buckets_init(buckets: NDArray, priorities: NDArray) -> None:
     :param priorities: the bucket of each propagator
     :type priorities: NDArray
     """
-    buckets_empty(buckets, priorities)
     propagator_nb = len(priorities)
+    buckets_empty(buckets, propagator_nb)
     membership_offset = STORAGE_OFFSET + propagator_nb
     for prop_idx in range(propagator_nb):
-        buckets_add(buckets, priorities, prop_idx, membership_offset)
+        buckets_add(buckets, priorities[prop_idx], prop_idx, membership_offset)
 
 
 @njit(cache=True)
-def buckets_empty(buckets: NDArray, priorities: NDArray) -> None:
+def buckets_empty(buckets: NDArray, propagator_nb: int) -> None:
     """
-    Empty the bucket FIFO queue.
+    Empties the bucket FIFO queue.
+
+    :param buckets: the queue
+    :type buckets: NDArray
+    :param propagator_nb: the number of propagators, the capacity of the queue
+    :type propagator_nb: int
     """
-    propagator_nb = len(priorities)
     buckets[: STORAGE_OFFSET + propagator_nb] = -1
     buckets[STORAGE_OFFSET + propagator_nb : STORAGE_OFFSET + 2 * propagator_nb] = 0
     buckets[-1] = BUCKET_NB
@@ -99,15 +103,25 @@ def buckets_empty(buckets: NDArray, priorities: NDArray) -> None:
 # always inlined, like buckets_pop: bc_algorithm is compiled without the reference-counting runtime, and a helper
 # compiled on its own is inlined into it with the refcounts of whichever context first compiled it into the cache
 @njit(cache=True, inline="always")
-def buckets_add(buckets: NDArray, priorities: NDArray, idx: int, membership_offset: int) -> None:
+def buckets_add(buckets: NDArray, bucket: int, idx: int, membership_offset: int) -> None:
     """
-    Appends idx at the tail of bucket weights[idx].
-    No-op if idx is already present.
+    Appends idx at the tail of a bucket, and does nothing if idx is already in the queue.
+
+    The caller gives the bucket, not an array of priorities: the propagation loop reads it from the INFO_PRIORITY
+    column of propagator_infos, and the queue does not have to know that array.
+
+    :param buckets: the queue
+    :type buckets: NDArray
+    :param bucket: the bucket of idx, clamped to the last bucket
+    :type bucket: int
+    :param idx: the element to add
+    :type idx: int
+    :param membership_offset: where the membership flags start in the queue, STORAGE_OFFSET + capacity
+    :type membership_offset: int
     """
     membership_idx = membership_offset + idx
     if buckets[membership_idx]:
         return
-    bucket = priorities[idx]
     if bucket >= BUCKET_NB:
         bucket = BUCKET_NB - 1
     buckets[STORAGE_OFFSET + idx] = -1  # new tail has no successor
