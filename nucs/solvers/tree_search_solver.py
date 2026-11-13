@@ -19,23 +19,13 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import (
-    BB_BOUND,
-    BB_VALUE,
-    BB_VARIABLE,
-    BB_WIDTH,
-    DOMAIN_MAX,
-    DOMAIN_MIN,
-    INFO_ALGORITHM,
-    INFO_PRIORITY,
-    LOG_LEVEL_INFO,
-)
+from nucs.constants import BB_BOUND, BB_VALUE, BB_VARIABLE, BB_WIDTH, DOMAIN_MAX, DOMAIN_MIN, LOG_LEVEL_INFO
 from nucs.heuristics.heuristics import DOM_HEURISTIC_FCTS, SIGN_DOM_HEURISTIC, SIGN_VAR_HEURISTIC, VAR_HEURISTIC_FCTS
 from nucs.numba_helper import (
     addresses_from_functions,
     build_function_ptrs,
 )
-from nucs.problems.problem import OFFSETS_VARIABLE, Problem
+from nucs.problems.problem import INFO_ALGORITHM, INFO_PRIORITY, OFFSETS_VARIABLE, Problem
 from nucs.propagators.propagators import (
     ALG_DUMMY,
     COMPUTE_DOMAINS_FCTS,

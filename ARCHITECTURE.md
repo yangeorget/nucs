@@ -89,7 +89,7 @@ array must grow, so one descent can take many calls.
 `nucs/constants.py` holds the constants that several layers share: the protocols that a propagator (`PROP_*`,
 `EVENT_MASK_*`), a domain heuristic (`DECISION_*`) and the solver (`DOMAIN_*`, `BB_*`) are written against, and
 the logging levels. A constant that belongs to one module lives in that module: `CHOICEPOINT_*` in
-`nucs/solvers/choicepoints.py`, `OFFSETS_*` and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` and
+`nucs/solvers/choicepoints.py`, `OFFSETS_*`, `INFO_*` and `PROBLEM_*` in `nucs/problems/problem.py`, `SOLVER_*` and
 `SEARCH_CONTROL_*` in `nucs/solvers/tree_search_solver.py`, `OPTIM_*` in `nucs/solvers/solver.py`,
 `TIGHTENING_UTRAIL_ENTRY_NB` in `nucs/solvers/state.py`, `STEP_TIGHTENING_NB` in
 `nucs/solvers/tree_search_solver.py`, `STATS_*` in `nucs/statistics.py`.
@@ -178,7 +178,7 @@ starts in it. `propagator_variables` and `propagator_parameters` are stored this
 
 | array | shape | indexed by | holds |
 |-------|-------|-----------|-------|
-| `propagator_infos` | `(P, 3)` uint8 | propagator | `[INFO_ALGORITHM, INFO_PRIORITY, INFO_COPIES]` (in `nucs/constants.py`): its `ALG_*` id, the index of its bucket in the queue, and 1 when the propagator has a variable more than once: `bc_algorithm` then intersects the copies in the write-back (`update_domains_of_copies`), and the triggers of the variable are the union of the watchers of its copies (`variable_trigger`) |
+| `propagator_infos` | `(P, 3)` uint8 | propagator | `[INFO_ALGORITHM, INFO_PRIORITY, INFO_COPIES]` (in `nucs/problems/problem.py`): its `ALG_*` id, the index of its bucket in the queue, and 1 when the propagator has a variable more than once: `bc_algorithm` and `lcg_algorithm` then intersect the copies in the write-back (`update_domains_of_copies`, `update_domains_of_copies_with_reasons`), and the triggers of the variable are the union of the watchers of its copies (`variable_trigger`) |
 | `offsets` | `(P+1, 4)` uint32 | propagator | `[OFFSETS_VARIABLE, OFFSETS_PARAM, OFFSETS_STATE, OFFSETS_STATE_HINT]`: where the slice of each propagator starts in the two arrays below; it ends where the slice of the next propagator begins. `OFFSETS_STATE` and `OFFSETS_STATE_HINT` address its state block (see *Propagator state*) |
 | `propagator_variables` | `(Σ arity,)` uint32 | flat (CSR) | the variables of every propagator, one after the other |
 | `propagator_parameters` | `(Σ params,)` int32 | flat (CSR) | the parameters of every propagator, one after the other |

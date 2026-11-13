@@ -12,7 +12,7 @@
 ###############################################################################
 # What is left here is what several layers share: the protocols a propagator, a domain heuristic and a
 # consistency algorithm are written against, plus the logging levels. A constant owned by one module lives
-# with it instead -- CHOICEPOINT_* in solvers/choicepoints.py, OFFSETS_* and PROBLEM_* in
+# with it instead -- CHOICEPOINT_* in solvers/choicepoints.py, OFFSETS_*, INFO_* and PROBLEM_* in
 # problems/problem.py, SOLVER_* in solvers/tree_search_solver.py, OPTIM_* in solvers/solver.py, STATS_* in
 # statistics.py, and each Numba signature with the registry that compiles against it.
 #
@@ -54,16 +54,6 @@ PROP_FLAG_REPORTS_CHANGES = 2
 # 1.00x at 16 variables, 1.12-1.16x at 64, 1.54-1.65x at 256, 2.6-3.1x at 1024 -- and in the solver a
 # count_leq_c of arity 3 measured 5-8% slower with one, which is the cost showing up undiluted.
 LIVE_SET_MIN_ARITY = 16
-
-# Column indices into the propagator_infos array of a problem: one row for each propagator. They are here, not in
-# problems/problem.py with OFFSETS_*, because on main update_propagators reads INFO_PRIORITY in
-# propagators/propagators.py, which problems/problem.py imports. On lcg, update_propagators is in
-# solvers/propagation_steps.py, so this reason goes away when lcg merges into main. All the cells are uint8: an
-# algorithm id is a uint8, a priority is less than BUCKET_NB and the copies flag is 0 or 1.
-INFO_ALGORITHM = 0  # column for the ALG_* id of the propagator
-INFO_PRIORITY = 1  # column for the bucket of the propagator in the propagation queue
-INFO_COPIES = 2  # column for 1 when the propagator has a variable more than once, else 0
-INFO_WIDTH = 3  # the number of columns of propagator_infos
 
 # Branch-and-bound indices, into the bb array of the solver.
 # The branch-and-bound bound is solver state, not choice-point state: it is not backtrackable, so it is

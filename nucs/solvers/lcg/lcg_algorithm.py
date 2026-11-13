@@ -20,9 +20,6 @@ from numpy.typing import NDArray
 from nucs.constants import (
     DOMAIN_MAX,
     DOMAIN_MIN,
-    INFO_ALGORITHM,
-    INFO_COPIES,
-    INFO_PRIORITY,
     PROP_CONSISTENCY,
     PROP_ENTAILMENT,
     PROP_FLAG_IDEMPOTENT,
@@ -30,6 +27,8 @@ from nucs.constants import (
     PROP_INCONSISTENCY,
 )
 from nucs.problems.problem import (
+    INFO_ALGORITHM,
+    INFO_COPIES,
     OFFSETS_PARAM,
     OFFSETS_STATE,
     OFFSETS_STATE_HINT,
@@ -39,13 +38,14 @@ from nucs.problems.problem import (
     PROBLEM_UNBOUND,
 )
 from nucs.propagators.propagators import call_compute_domains
-from nucs.solvers.buckets import STORAGE_OFFSET, buckets_add, buckets_pop
+from nucs.solvers.buckets import STORAGE_OFFSET, buckets_pop
 from nucs.solvers.choicepoints import CHOICEPOINT_UTRAIL_MARK
 from nucs.solvers.lcg.implication_trail import ITRAIL_STEP_ROW_NB, REASON_PROPAGATOR, itrail_push_events
 from nucs.solvers.propagation_steps import (
     count_no_change,
     gather_domains,
     record_entailment,
+    schedule_if_copies_disagree,
     update_propagators,
     utrail_state_prefix,
 )
@@ -556,18 +556,15 @@ def update_domains_of_copies_with_reasons(
                 skip_prop_idx,
             )
             no_changes = False
-    if skip_prop_idx >= 0 and not entailed[skip_prop_idx]:
-        for var_idx in range(prop_var_end - prop_var_start):
-            cell_idx = propagator_variables[prop_var_start + var_idx] << 1
-            if (
-                state[cell_idx] != prop_domains[var_idx, DOMAIN_MIN]
-                or state[cell_idx | 1] != prop_domains[var_idx, DOMAIN_MAX]
-            ):
-                buckets_add(
-                    triggered_propagators,
-                    propagator_infos[skip_prop_idx, INFO_PRIORITY],
-                    skip_prop_idx,
-                    STORAGE_OFFSET + len(propagator_infos),
-                )
-                break
+    schedule_if_copies_disagree(
+        skip_prop_idx,
+        prop_var_start,
+        prop_var_end,
+        prop_domains,
+        propagator_variables,
+        state,
+        triggered_propagators,
+        entailed,
+        propagator_infos,
+    )
     return True, no_changes, utrail_sz, itrail_sz
