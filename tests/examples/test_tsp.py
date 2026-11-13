@@ -18,7 +18,7 @@ from nucs.constants import DOMAIN_MIN
 from nucs.examples.tsp.tsp_problem import TSPProblem
 from nucs.examples.tsp.tsp_var_heuristic import tsp_var_heuristic
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_COST, register_var_heuristic
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE
 from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB
@@ -42,8 +42,8 @@ class TestTSP:
             # without the JIT; a brute force over all the tours gives the same optimum
             ("gr17", 10, 1637, 153),
             # the case above runs the same code without the JIT
-            pytest.param("gr17", 17, 2085, 95320, marks=SLOW_WITHOUT_JIT),
-            pytest.param("gr21", 21, 2707, 108231, marks=SLOW_WITHOUT_JIT),
+            pytest.param("gr17", 17, 2085, 94926, marks=SLOW_WITHOUT_JIT),
+            pytest.param("gr21", 21, 2707, 108196, marks=SLOW_WITHOUT_JIT),
             # ("gr24", 24, 1272, ...)
         ],
     )

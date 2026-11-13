@@ -11,55 +11,164 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 """
-The compiled search loop of :class:`BacktrackSolver`: one call searches for one solution, and stops early when an
-array it cannot grow runs out of room, when it must restart, or when it is interrupted.
+BacktrackSolver and its compiled search loop: one call of the loop searches for one solution, and stops early when
+an array it cannot grow runs out of room, when it must restart, or when it is interrupted.
 """
+
+import logging
+from collections.abc import Sequence
 
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
-from nucs.numba_helper import ConsistencyAlgorithmFunctions, DomainHeuristicFunctions, VariableHeuristicFunctions
-from nucs.problems.problem import PROBLEM_BOUND, PROBLEM_UNBOUND
-from nucs.propagators.propagators import update_propagators
-from nucs.solvers.choice_points import backtrack, branch
-from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, INTERRUPTION_EXTERNAL
-from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_DEPTH, STATS_IDX_SOLVER_CHOICE_NB
+from nucs.constants import LOG_LEVEL_INFO
+from nucs.numba_helper import (
+    ConsistencyAlgorithmFunctions,
+    DomainHeuristicFunctions,
+    VariableHeuristicFunctions,
+    build_function_ptrs,
+)
+from nucs.problems.problem import PROBLEM_BOUND, PROBLEM_UNBOUND, Problem
+from nucs.solvers.backtrack.consistency_algorithms import (
+    CONSISTENCY_ALG_BC,
+    CONSISTENCY_ALG_FCTS,
+    SIGN_CONSISTENCY_ALG,
+    get_consistency_algorithm_name,
+)
+from nucs.solvers.choicepoints import backtrack, branch
+from nucs.solvers.propagation_steps import update_propagators
+from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
+from nucs.solvers.search_steps import record_decision, record_failure, select_variable, stop_status
+from nucs.solvers.searches import SEARCHES_DEFAULT, Search
+from nucs.solvers.tree_search_solver import (
+    SOLVER_RUNNING,
+    TreeSearchSolver,
+    get_solution,
+)
+from nucs.statistics import STATS_IDX_SOLUTION_NB
 
-# Why run_search_loop returned.
-# The trail and the choice point stack are caller-allocated, so they cannot grow inside @njit. Rather than
-# sizing them for a worst case that never happens -- depth x (2 x domain_nb + 1) entries, which would
-# give back the memory this representation wins -- the search stops and says which one is full, and the
-# solver grows it and resumes. Nothing of the search is lost: the state, the trail marks and the
-# positions all stay valid across the reallocation.
-SOLVER_RUNNING = 0  # nothing filled up: the search returned a solution or exhausted itself
-SOLVER_TRAIL_FULL = 1  # the search stopped because the trail needs more room, not because it is over
-SOLVER_CHOICE_POINTS_FULL = 2  # likewise for the stack of choice points
-SOLVER_INTERRUPTED = 3  # the search stopped because interrupt() asked it to, from outside the compiled loop
-SOLVER_RESTART = 4  # the descent reached its failure limit: the solver restarts from the root and resumes
-
-# The cells of search_control, the state of the restarts and of last-conflict that the compiled loop reads and writes.
-# It is solver state, not choice-point state: nothing about it is trailed.
-SEARCH_CONTROL_RESTART_LIMIT = 0  # the failures after which the descent restarts, -1 for no restart
-SEARCH_CONTROL_FAILURE_NB = 1  # the failures since the search last started from the root
-SEARCH_CONTROL_LAST_CONFLICT = 2  # 1 when last-conflict is on, 0 otherwise
-SEARCH_CONTROL_CONFLICT_VARIABLE = 3  # the variable of the last decision that led to a failure, -1 when none
-SEARCH_CONTROL_DECISION_VARIABLE = 4  # the variable of the last decision, -1 once a refutation follows it
-SEARCH_CONTROL_WIDTH = 5
+logger = logging.getLogger(__name__)
 
 
-@njit(cache=True)
-def get_solution(domains: NDArray) -> NDArray:
+class BacktrackSolver(TreeSearchSolver):
     """
-    Returns the solution to the problem.
-
-    :param domains: the domains, every one of them ground
-    :type domains: NDArray
-
-    :return: a Numpy array
-    :rtype: NDArray
+    A solver relying on a backtracking mechanism, with a propagation that a consistency algorithm gives.
     """
-    return domains[:, DOMAIN_MIN].copy()
+
+    def __init__(
+        self,
+        problem: Problem,
+        consistency_algorithm: int = CONSISTENCY_ALG_BC,
+        searches: Sequence[Search] = SEARCHES_DEFAULT,
+        log_level: str = LOG_LEVEL_INFO,
+        weight_decay: float = 1.0,
+        restart_policy: RestartPolicy = RESTART_POLICY_NEVER,
+        last_conflict: bool = False,
+    ):
+        """
+        Initializes the solver.
+
+        :param problem: the problem to be solved
+        :type problem: Problem
+        :param consistency_algorithm: the consistency algorithm, defaults to bound consistency
+        :type consistency_algorithm: int
+        :param searches: an ordered sequence of searches defining a sequential search, each with its decision
+                         variables, its variable and domain heuristics and their parameters; defaults to
+                         SEARCHES_DEFAULT, one search that branches on every variable with the default heuristics of
+                         Search. The union of the searches' decision variables should cover every branchable variable.
+        :type searches: Sequence[Search]
+        :param log_level: the log level,
+                          defaults to INFO
+        :type log_level: str
+        :param weight_decay: in (0, 1], how much the failure weight of a propagator keeps of a failure after each
+                             later failure; 1 counts all the failures the same (dom/wdeg), less than 1 prefers the
+                             recent ones (AFC), defaults to 1
+        :type weight_decay: float
+        :param restart_policy: after how many failures each descent restarts from the root
+                               (nucs.solvers.restart_policies), defaults to no restart. When enumerating, the restarts
+                               stop at the first solution, so that no solution is found twice.
+        :type restart_policy: RestartPolicy
+        :param last_conflict: whether the search branches first on the variable of the last refuted decision, as long
+                              as it is unbound (last-conflict reasoning), defaults to False
+        :type last_conflict: bool
+        """
+        super().__init__(problem, searches, log_level, weight_decay, restart_policy, last_conflict)
+        logger.info(
+            f"BacktrackSolver uses consistency algorithm {get_consistency_algorithm_name(consistency_algorithm)}"
+        )
+        # a typed list of 1 function under the JIT, a plain Python list otherwise (see build_function_ptrs)
+        self.consistency_alg_fcts = build_function_ptrs(
+            [CONSISTENCY_ALG_FCTS[consistency_algorithm]], SIGN_CONSISTENCY_ALG
+        )
+
+    def _backtrack(self) -> bool:
+        """
+        Backtracks by forwarding the solver state to the jitted backtrack.
+
+        :return: true iff it was possible to backtrack
+        :rtype: bool
+        """
+        return backtrack(
+            self.statistics,
+            self.state,
+            self.utrail_log,
+            self.utrail_top,
+            self.utrail_indices,
+            self.choicepoints,
+            self.choicepoint_top,
+            self.entailed,
+            self.triggered_propagators,
+            self.problem.triggers,
+            self.problem.triggers_offsets,
+            self.problem.propagator_infos,
+            self.bb,
+        )
+
+    def _run_search_loop(self) -> tuple[int, NDArray | None]:
+        """
+        Runs the compiled search loop until it returns, by forwarding the solver state to the jitted run_search_loop.
+
+        :return: why the loop returned, and the solution when it found one
+        :rtype: Tuple[int, Optional[NDArray]]
+        """
+        return run_search_loop(
+            self.statistics,
+            self.problem.propagator_infos,
+            self.problem.offsets,
+            self.problem.propagator_variables,
+            self.problem.propagator_parameters,
+            self.problem.triggers,
+            self.problem.triggers_offsets,
+            self.state,
+            self.domains,
+            self.entailed,
+            self.utrail_log,
+            self.utrail_top,
+            self.utrail_indices,
+            self.choicepoints,
+            self.choicepoint_top,
+            self.triggered_propagators,
+            self.consistency_alg_fcts,
+            self.flat_searches.decision_variables,
+            self.flat_searches.decision_variables_offsets,
+            self.var_heuristic_fcts,
+            self.flat_searches.var_heuristic_params,
+            self.flat_searches.var_heuristic_params_offsets,
+            self.flat_searches.var_heuristic_params_shapes,
+            self.dom_heuristic_fcts,
+            self.flat_searches.dom_heuristic_params,
+            self.flat_searches.dom_heuristic_params_offsets,
+            self.flat_searches.dom_heuristic_params_shapes,
+            self.compute_domains_addrs,
+            self.domain_buffer,
+            self.problem.algorithm_flags,
+            self.bb,
+            self.utrail_headroom,
+            self.interrupter.cells,
+            self.propagator_weights,
+            self.search_control,
+            self.flat_searches.variable_searches,
+        )
 
 
 @njit(cache=True, nogil=True)
@@ -74,11 +183,11 @@ def run_search_loop(
     state: NDArray,
     domains: NDArray,
     entailed: NDArray,
-    trail: NDArray,
-    trail_top: NDArray,
-    trail_indices: NDArray,
-    choice_point_stk: NDArray,
-    choice_point_top: NDArray,
+    utrail_log: NDArray,
+    utrail_top: NDArray,
+    utrail_indices: NDArray,
+    choicepoints: NDArray,
+    choicepoint_top: NDArray,
     triggered_propagators: NDArray,
     consistency_alg_fcts: ConsistencyAlgorithmFunctions,
     decision_variables: NDArray,
@@ -95,7 +204,7 @@ def run_search_loop(
     domain_buffer: NDArray,
     algorithm_flags: NDArray,
     bb: NDArray,
-    trail_headroom: int,
+    utrail_headroom: int,
     interruption: NDArray,
     propagator_weights: NDArray,
     search_control: NDArray,
@@ -104,7 +213,7 @@ def run_search_loop(
     """
     Searches for one solution, stopping early when an array it cannot grow runs out of room.
 
-    It returns before the end of the search because the trail and the choice point stack belong to the
+    It returns before the end of the search because the undo trail and the choice point stack belong to the
     caller: when either fills up, the returned status names it and no solution comes back, for _next_solution
     to grow that array and call again. Nothing of the search is lost in between.
 
@@ -139,16 +248,16 @@ def run_search_loop(
     :type domains: NDArray
     :param entailed: whether each propagator is entailed, a view of state
     :type entailed: NDArray
-    :param trail: the undo log of (cell index, old value) pairs
-    :type trail: NDArray
-    :param trail_top: the trail size as a Numpy array
-    :type trail_top: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
-    :param choice_point_stk: the per-choice-point metadata
-    :type choice_point_stk: NDArray
-    :param choice_point_top: the index of the top of the choice points as a Numpy array
-    :type choice_point_top: NDArray
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_top: the undo trail size as a Numpy array
+    :type utrail_top: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
+    :param choicepoints: the per-choice-point metadata
+    :type choicepoints: NDArray
+    :param choicepoint_top: the index of the top of the choice points as a Numpy array
+    :type choicepoint_top: NDArray
     :param triggered_propagators: the Numpy array of triggered propagators
     :type triggered_propagators: NDArray
     :param consistency_alg_fcts: a 1-element list holding the consistency algorithm function
@@ -184,8 +293,8 @@ def run_search_loop(
     :param bb: the branch-and-bound bound as a Numpy array of variable, bound and value,
                whose variable is -1 when not optimizing
     :type bb: NDArray
-    :param trail_headroom: the trail entries any one node of the search can need
-    :type trail_headroom: int
+    :param utrail_headroom: the undo trail entries any one node of the search can need
+    :type utrail_headroom: int
     :param interruption: the two flags of an Interrupter, one of them set once the search is asked to stop
     :type interruption: NDArray
     :param propagator_weights: the failure weight of each propagator, followed by the increment and its growth
@@ -200,21 +309,13 @@ def run_search_loop(
     :rtype: Tuple[int, Optional[NDArray]]
     """
     consistency_alg_fct = consistency_alg_fcts[0]
-    nb_searches = len(decision_variables_offsets) - 1
-    max_choice_point = len(choice_point_stk) - 3  # a ternary split pushes two choice points and marks a third
+    max_choicepoint = len(choicepoints) - 3  # a ternary split pushes two choice points and marks a third
     while True:
-        # checked at every node and before the state is touched, like the two checks below
-        if interruption[INTERRUPTION_EXTERNAL] | interruption[INTERRUPTION_DEADLINE]:
-            return SOLVER_INTERRUPTED, None
-        # checked before the filtering, so that the state the solver restarts from is not a half-done one
-        if 0 <= search_control[SEARCH_CONTROL_RESTART_LIMIT] <= search_control[SEARCH_CONTROL_FAILURE_NB]:
-            return SOLVER_RESTART, None
-        # the arrays are caller-allocated, so the search stops for the solver to grow one rather than
-        # overrun it silently -- with boundscheck off, the overrun is what would otherwise happen
-        if trail_top[0] + trail_headroom > len(trail):
-            return SOLVER_TRAIL_FULL, None
-        if choice_point_top[0] > max_choice_point:
-            return SOLVER_CHOICE_POINTS_FULL, None
+        status = stop_status(
+            interruption, search_control, utrail_log, utrail_top, utrail_headroom, choicepoint_top, max_choicepoint
+        )
+        if status != SOLVER_RUNNING:
+            return status, None
         problem_status = consistency_alg_fct(
             statistics,
             propagator_weights,
@@ -228,11 +329,11 @@ def run_search_loop(
             state,
             domains,
             entailed,
-            trail,
-            trail_top,
-            trail_indices,
-            choice_point_stk,
-            choice_point_top,
+            utrail_log,
+            utrail_top,
+            utrail_indices,
+            choicepoints,
+            choicepoint_top,
             triggered_propagators,
             compute_domains_addrs,
             domain_buffer,
@@ -240,62 +341,39 @@ def run_search_loop(
         if problem_status == PROBLEM_BOUND:
             statistics[STATS_IDX_SOLUTION_NB] += 1
             return SOLVER_RUNNING, get_solution(domains)
-        # the variable to branch on, -1 when there is none, and the search that owns it; search_idx is set before
-        # the loop so that it has a value on every path
+        # the variable to branch on, -1 when there is none, and the search that owns it
         search_idx = 0
         variable = -1
         if problem_status == PROBLEM_UNBOUND:
-            # sequential search: the first search that still has an unbound decision variable owns the
-            # decision and branches with its own variable and domain heuristics
-            conflict_variable = search_control[SEARCH_CONTROL_CONFLICT_VARIABLE]
-            for search_idx in range(nb_searches):
-                # last-conflict: the variable of the last refuted decision, while it is unbound, takes the decision
-                # from the heuristic of the search that owns it. The searches before this one have no unbound
-                # variable left, or the loop would not be here, so this keeps the order of the searches.
-                if (
-                    conflict_variable >= 0
-                    and variable_searches[conflict_variable] == search_idx
-                    and domains[conflict_variable, DOMAIN_MIN] < domains[conflict_variable, DOMAIN_MAX]
-                ):
-                    variable = conflict_variable
-                else:
-                    variable = var_heuristic_fcts[search_idx](
-                        decision_variables[
-                            decision_variables_offsets[search_idx] : decision_variables_offsets[search_idx + 1]
-                        ],
-                        domains,
-                        entailed,
-                        offsets,
-                        propagator_variables,
-                        triggers,
-                        triggers_offsets,
-                        propagator_weights,
-                        var_heuristic_params[
-                            var_heuristic_params_offsets[search_idx] : var_heuristic_params_offsets[search_idx + 1]
-                        ].reshape(
-                            var_heuristic_params_shapes[search_idx, 0], var_heuristic_params_shapes[search_idx, 1]
-                        ),
-                    )
-                if variable != -1:
-                    break
+            search_idx, variable = select_variable(
+                domains,
+                entailed,
+                offsets,
+                propagator_variables,
+                triggers,
+                triggers_offsets,
+                propagator_weights,
+                search_control,
+                variable_searches,
+                decision_variables,
+                decision_variables_offsets,
+                var_heuristic_fcts,
+                var_heuristic_params,
+                var_heuristic_params_offsets,
+                var_heuristic_params_shapes,
+            )
         # either the problem is inconsistent, or no search can claim a variable although variables remain
         # unbound -- a choice point whose domains admit no assignment. Both are dead ends: backtrack.
         if variable == -1:
-            search_control[SEARCH_CONTROL_FAILURE_NB] += 1
-            # last-conflict (Lecoutre et al. 2009): the conflict variable is that of the last decision that led to a
-            # failure. A failure that follows a refutation keeps the conflict variable: after x fails on all its
-            # values the search refutes an earlier decision on y, and x must then be tried first, to test y.
-            if search_control[SEARCH_CONTROL_DECISION_VARIABLE] >= 0:
-                search_control[SEARCH_CONTROL_CONFLICT_VARIABLE] = search_control[SEARCH_CONTROL_DECISION_VARIABLE]
-                search_control[SEARCH_CONTROL_DECISION_VARIABLE] = -1
+            record_failure(search_control)
             if not backtrack(
                 statistics,
                 state,
-                trail,
-                trail_top,
-                trail_indices,
-                choice_point_stk,
-                choice_point_top,
+                utrail_log,
+                utrail_top,
+                utrail_indices,
+                choicepoints,
+                choicepoint_top,
                 entailed,
                 triggered_propagators,
                 triggers,
@@ -315,20 +393,16 @@ def run_search_loop(
         )
         events = branch(
             state,
-            trail,
-            trail_top,
-            trail_indices,
-            choice_point_stk,
-            choice_point_top,
+            utrail_log,
+            utrail_top,
+            utrail_indices,
+            choicepoints,
+            choicepoint_top,
             variable,
             kind,
             value,
         )
-        choice_point = choice_point_top[0]
         update_propagators(
             triggered_propagators, entailed, triggers, triggers_offsets, propagator_infos, variable, events, -1
         )
-        statistics[STATS_IDX_SOLVER_CHOICE_NB] += 1
-        if search_control[SEARCH_CONTROL_LAST_CONFLICT]:
-            search_control[SEARCH_CONTROL_DECISION_VARIABLE] = variable
-        statistics[STATS_IDX_SOLVER_CHOICE_DEPTH] = max(statistics[STATS_IDX_SOLVER_CHOICE_DEPTH], choice_point)
+        record_decision(statistics, search_control, variable, choicepoint_top[0])

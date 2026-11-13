@@ -20,26 +20,10 @@ from numpy.typing import NDArray
 
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, LOG_LEVELS
 from nucs.heuristics.heuristics import DOM_HEURISTICS, VAR_HEURISTICS
-from nucs.solvers.consistency_algorithms import CONSISTENCY_ALGS
+from nucs.solvers.backtrack.consistency_algorithms import CONSISTENCY_ALGS
 from nucs.solvers.restart_policies import RestartPolicy, parse_restart
 from nucs.solvers.searches import SEARCHES_DEFAULT, Search
 from nucs.solvers.solver import OPTIM_MODES, OPTIM_RESET, Solver
-
-
-def restart_arg(text: str) -> RestartPolicy:
-    """
-    Converts the --restart argument, so that a wrong one is reported as a usage error with its reason.
-
-    :param text: the argument, POLICY[,SCALE[,BASE]]
-    :type text: str
-
-    :return: the restart policy
-    :rtype: RestartPolicy
-    """
-    try:
-        return parse_restart(text)
-    except ValueError as e:
-        raise argparse.ArgumentTypeError(str(e)) from e
 
 
 class DefaultArgumentParser(argparse.ArgumentParser):
@@ -116,6 +100,22 @@ class DefaultArgumentParser(argparse.ArgumentParser):
             help="set the variable heuristic",
             choices=sorted(VAR_HEURISTICS),
         )
+
+
+def restart_arg(text: str) -> RestartPolicy:
+    """
+    Converts the --restart argument, so that a wrong one is reported as a usage error with its reason.
+
+    :param text: the argument, POLICY[,SCALE[,BASE]]
+    :type text: str
+
+    :return: the restart policy
+    :rtype: RestartPolicy
+    """
+    try:
+        return parse_restart(text)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e)) from e
 
 
 def solver_kwargs_from_args(

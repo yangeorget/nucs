@@ -16,7 +16,6 @@ from collections.abc import Generator
 
 import pytest
 
-from nucs.buckets import buckets_empty
 from nucs.constants import BB_BOUND, BB_VALUE, BB_VARIABLE, DECISION_EQ, DOMAIN_MAX, DOMAIN_MIN
 from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.heuristics.heuristics import (
@@ -41,14 +40,14 @@ from nucs.propagators.propagators import (
     ALG_SUM_EQ,
     ALG_SUM_LEQ_C,
 )
-from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.choice_points import CHOICE_POINT_BOUND, CHOICE_POINT_VALUE, CHOICE_POINT_VARIABLE, branch
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
+from nucs.solvers.buckets import buckets_empty
+from nucs.solvers.choicepoints import CHOICEPOINT_BOUND, CHOICEPOINT_VALUE, CHOICEPOINT_VARIABLE, branch
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
-from nucs.solvers.search_arrays import STEP_TIGHTENING_NB
-from nucs.solvers.search_loop import SOLVER_RUNNING
 from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
-from nucs.solvers.state import TIGHTENING_TRAIL_ENTRY_NB, tighten_at
+from nucs.solvers.state import TIGHTENING_UTRAIL_ENTRY_NB, tighten_at
+from nucs.solvers.tree_search_solver import SOLVER_RUNNING, STEP_TIGHTENING_NB
 from nucs.statistics import (
     STATS_IDX_PROPAGATOR_INCONSISTENCY_NB,
     STATS_IDX_SOLUTION_NB,
@@ -217,27 +216,27 @@ class TestBacktrackSolver:
         assert status == SOLVER_RUNNING
         assert solution is not None
         assert solution.tolist() == [0, 0]
-        assert solver.choice_point_top == 2
+        assert solver.choicepoint_top == 2
         # two min_value decisions, so both variables are ground at [0, 0]
         assert solver.domains[0].tolist() == [0, 0]
         assert solver.domains[1].tolist() == [0, 0]
         # each choice point parked the alternative to its own decision: raise that variable's min to 1
-        assert solver.choice_point_stk[0, CHOICE_POINT_VARIABLE] == 0
-        assert solver.choice_point_stk[0, CHOICE_POINT_BOUND] == DOMAIN_MIN
-        assert solver.choice_point_stk[0, CHOICE_POINT_VALUE] == 1
-        assert solver.choice_point_stk[1, CHOICE_POINT_VARIABLE] == 1
-        assert solver.choice_point_stk[1, CHOICE_POINT_BOUND] == DOMAIN_MIN
-        assert solver.choice_point_stk[1, CHOICE_POINT_VALUE] == 1
+        assert solver.choicepoints[0, CHOICEPOINT_VARIABLE] == 0
+        assert solver.choicepoints[0, CHOICEPOINT_BOUND] == DOMAIN_MIN
+        assert solver.choicepoints[0, CHOICEPOINT_VALUE] == 1
+        assert solver.choicepoints[1, CHOICEPOINT_VARIABLE] == 1
+        assert solver.choicepoints[1, CHOICEPOINT_BOUND] == DOMAIN_MIN
+        assert solver.choicepoints[1, CHOICEPOINT_VALUE] == 1
         assert solver._backtrack()
         # back at choice point 1, with variable 1's alternative applied: variable 0 stays at its decision
-        assert solver.choice_point_top == 1
+        assert solver.choicepoint_top == 1
         assert solver.domains[0].tolist() == [0, 0]
         assert solver.domains[1].tolist() == [1, 1]
 
-    def test_find_all_the_trail_holds_only_what_the_live_branch_changed(self) -> None:
-        """The trail is bounded by the changes on the path, not by domain_nb per node.
+    def test_find_all_the_undo_trail_holds_only_what_the_live_branch_changed(self) -> None:
+        """The undo trail is bounded by the changes on the path, not by domain_nb per node.
 
-        That is the whole claim of trailing over copying, and it is checkable: a live trail of a few
+        That is the whole claim of trailing over copying, and it is checkable: a live undo trail of a few
         dozen entries where the copying representation would have written 30 int32 per node.
         """
         problem = Problem([(0, 9)] * 3)
@@ -246,15 +245,15 @@ class TestBacktrackSolver:
         assert len(solutions) == 1000
         assert solutions[0].tolist() == [0, 0, 0]
         assert solutions[-1].tolist() == [9, 9, 9]
-        assert solver.choice_point_top[0] == 0  # exhausted, back at the root
+        assert solver.choicepoint_top[0] == 0  # exhausted, back at the root
         # the root's own refutations are never undone -- nothing pops past choice point 0 -- but everything
         # deeper is, so what is left is a handful of entries rather than one snapshot per choice point
-        assert solver.trail_top[0] < 4 * len(solver.trail_indices)
-        assert len(solver.trail_log) == 1 << 16  # it never had to grow
+        assert solver.utrail_top[0] < 4 * len(solver.utrail_indices)
+        assert len(solver.utrail_log) == 1 << 16  # it never had to grow
 
     @pytest.mark.parametrize("offset", [-6, -5, 0, 1])
-    def test_find_all_the_trail_grows_rather_than_overruns(self, offset: int) -> None:
-        """A trail too small for the search is grown, not overrun -- and the search is not restarted.
+    def test_find_all_the_undo_trail_grows_rather_than_overruns(self, offset: int) -> None:
+        """An undo trail too small for the search is grown, not overrun -- and the search is not restarted.
 
         Parameterized over sizes below and just above the headroom the solver reserves, so that a
         headroom too small for one step of the search shows up as a wrong answer rather than as luck.
@@ -270,40 +269,40 @@ class TestBacktrackSolver:
         reference_solver = BacktrackSolver(build())
         reference = [solution.tolist() for solution in reference_solver.find_all()]
         assert len(reference) == 336
-        trail_size = reference_solver.trail_headroom + offset
+        utrail_sz = reference_solver.utrail_headroom + offset
         solver = BacktrackSolver(build())
-        assert solver.trail_top[0] == 0  # nothing is trailed yet, so a shorter trail loses nothing
-        solver.trail_log = solver.trail_log[:trail_size].copy()
+        assert solver.utrail_top[0] == 0  # nothing is trailed yet, so a shorter undo trail loses nothing
+        solver.utrail_log = solver.utrail_log[:utrail_sz].copy()
         assert [solution.tolist() for solution in solver.find_all()] == reference
-        assert len(solver.trail_log) > trail_size  # it did have to grow
+        assert len(solver.utrail_log) > utrail_sz  # it did have to grow
 
-    def test_what_the_trail_headroom_is_derived_from(self) -> None:
-        """The headroom reserves len(state) + STEP_TIGHTENING_NB x TIGHTENING_TRAIL_ENTRY_NB entries.
+    def test_what_the_utrail_headroom_is_derived_from(self) -> None:
+        """The headroom reserves len(state) + STEP_TIGHTENING_NB x TIGHTENING_UTRAIL_ENTRY_NB entries.
 
         The first term is the write barrier's doing and is checked by the search itself; these two are
         properties of tighten_at and backtrack, which nothing else would catch going stale. A tightening
         that gains a fourth trailed cell, or a backtrack that gains a third tightening, has to raise the
-        constant it no longer fits in -- silently overrunning the trail is what the reserve exists to
+        constant it no longer fits in -- silently overrunning the undo trail is what the reserve exists to
         prevent, and with boundscheck off it does not raise.
         """
         solver = BacktrackSolver(Problem([(0, 9), (0, 9)]))
-        mark = int(solver.trail_top[0])
+        mark = int(solver.utrail_top[0])
         # the widest single tightening: it moves both bounds and grounds the variable
-        _, trail_size = tighten_at(solver.state, solver.trail_log, solver.trail_indices, mark, mark, 0, 5, 5)
-        assert trail_size - mark == TIGHTENING_TRAIL_ENTRY_NB
+        _, utrail_sz = tighten_at(solver.state, solver.utrail_log, solver.utrail_indices, mark, mark, 0, 5, 5)
+        assert utrail_sz - mark == TIGHTENING_UTRAIL_ENTRY_NB
 
         # a step that ends in a backtrack applies two tightenings -- the choice point's alternative, then
-        # the objective bound -- at a mark the trail holds nothing for, so each trails every cell it
+        # the objective bound -- at a mark the undo trail holds nothing for, so each trails every cell it
         # writes. Both ground their variable here, which is the most either can write.
         solver = BacktrackSolver(Problem([(0, 9), (0, 9)]))
-        mark = int(solver.trail_top[0])
+        mark = int(solver.utrail_top[0])
         branch(
             solver.state,
-            solver.trail_log,
-            solver.trail_top,
-            solver.trail_indices,
-            solver.choice_point_stk,
-            solver.choice_point_top,
+            solver.utrail_log,
+            solver.utrail_top,
+            solver.utrail_indices,
+            solver.choicepoints,
+            solver.choicepoint_top,
             0,
             DECISION_EQ,
             1,
@@ -315,17 +314,17 @@ class TestBacktrackSolver:
         assert solver.domains.tolist() == [[0, 0], [0, 0]]  # both refuted down to their min
         # the reserve is an upper bound, not a tight one: a tightening moving one bound writes less than
         # one moving two, and the unbound count is shared -- the second grounding finds it already trailed
-        assert int(solver.trail_top[0]) - mark <= STEP_TIGHTENING_NB * TIGHTENING_TRAIL_ENTRY_NB
+        assert int(solver.utrail_top[0]) - mark <= STEP_TIGHTENING_NB * TIGHTENING_UTRAIL_ENTRY_NB
 
     def test_find_all_the_level_stack_grows_rather_than_overruns(self) -> None:
         """Likewise for a search deeper than the choice point stack: grow, do not corrupt memory."""
         problem = Problem([(0, 5)] * 6)
         reference = BacktrackSolver(problem).find_all()
         solver = BacktrackSolver(Problem([(0, 5)] * 6))
-        assert solver.choice_point_top[0] < 4  # a shorter stack keeps the rows the solver already wrote
-        solver.choice_point_stk = solver.choice_point_stk[:4].copy()
+        assert solver.choicepoint_top[0] < 4  # a shorter stack keeps the rows the solver already wrote
+        solver.choicepoints = solver.choicepoints[:4].copy()
         assert len(solver.find_all()) == len(reference)
-        assert len(solver.choice_point_stk) > 4
+        assert len(solver.choicepoints) > 4
 
     def test_find_all(self) -> None:
         problem = Problem([(0, 1), (0, 1)])

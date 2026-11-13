@@ -41,6 +41,8 @@ class TestInverse(PropagatorTest):
                 PROP_CONSISTENCY,
                 [[2, 2], [1, 1], [0, 0], [2, 2], [1, 1], [0, 0]],
             ),
+            # prev[1] = 1 needs next[1] = 1, outside its domain: a failure, not a widening of next[1] to 1
+            ([(-1, 2), (0, 0), (0, 0), (1, 1)], [], PROP_INCONSISTENCY, None),
         ],
     )
     def test_compute_domains(

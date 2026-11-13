@@ -15,7 +15,7 @@ import argparse
 from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_DOM_WDEG
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 
 # Run with the following command (the second run is much faster because the code has been compiled):

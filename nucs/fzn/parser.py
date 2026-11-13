@@ -153,157 +153,6 @@ _PUNCT2 = ("::", "..")
 _PUNCT1 = set(":;,()[]{}=")
 
 
-def _float_end(text: str, start: int, end: int) -> int:
-    """
-    Returns where the number starting at ``start`` ends, which is past ``end`` when the integer literal ending at
-    ``end`` is in fact the head of a float literal.
-
-    A ``.`` only starts a float when a digit follows, which leaves the ``lo..hi`` range punctuation intact. The
-    tokenizer makes a FLOAT token of a float, and accepts it only in an annotation (see _reject_floats).
-
-    :param text: the FlatZinc source
-    :type text: str
-    :param start: the offset of the first character of the integer literal
-    :type start: int
-    :param end: the offset just past the last digit of the integer literal
-    :type end: int
-
-    :return: the offset just past the last character of the number
-    :rtype: int
-    """
-    n = len(text)
-    stop = end
-    if stop + 1 < n and text[stop] == "." and text[stop + 1].isdigit():
-        stop += 2
-        while stop < n and text[stop].isdigit():
-            stop += 1
-    if stop < n and text[stop] in "eE":
-        j = stop + 1
-        if j < n and text[j] in "+-":
-            j += 1
-        if j < n and text[j].isdigit():
-            stop = j + 1
-            while stop < n and text[stop].isdigit():
-                stop += 1
-    return stop
-
-
-def _append_number(tokens: list[tuple[str, object]], text: str, start: int, end: int) -> int:
-    """
-    Appends the INT token of the integer literal between ``start`` and ``end``, or the FLOAT token of the float
-    literal it starts.
-
-    :param tokens: the tokens so far
-    :type tokens: List[Tuple[str, object]]
-    :param text: the FlatZinc source
-    :type text: str
-    :param start: the offset of the first character of the literal
-    :type start: int
-    :param end: the offset just past the last digit of its integer part
-    :type end: int
-
-    :return: the offset just past the literal
-    :rtype: int
-    """
-    stop = _float_end(text, start, end)
-    if stop == end:
-        tokens.append(("INT", int(text[start:end])))
-    else:
-        tokens.append(("FLOAT", (text[start:stop], start)))
-    return stop
-
-
-def _reject_floats(tokens: list[tuple[str, object]]) -> None:
-    """
-    Raises on the first float literal outside the arguments of an annotation.
-
-    NuCS has no float variables, but an annotation can take a float, such as the base of restart_geometric. The
-    check runs on the whole input before parsing, so a float anywhere else is reported as the type error it really
-    is, whatever statement it is in.
-
-    :param tokens: the tokens of the whole input
-    :type tokens: List[Tuple[str, object]]
-    """
-    depth = 0  # the parentheses still open since an annotation name
-    for idx, (kind, value) in enumerate(tokens):
-        if depth == 0 and kind == "PUNCT" and value == "(":
-            if idx >= 2 and tokens[idx - 1][0] == "IDENT" and tokens[idx - 2] == ("PUNCT", "::"):
-                depth = 1
-        elif depth > 0 and kind == "PUNCT" and value == "(":
-            depth += 1
-        elif depth > 0 and kind == "PUNCT" and value == ")":
-            depth -= 1
-        elif kind == "FLOAT" and depth == 0:
-            assert isinstance(value, tuple)
-            literal, offset = value
-            raise FznUnsupportedError(
-                f"float literal {literal!r} at offset {offset} is not supported: NuCS handles integer variables only"
-            )
-
-
-def tokenize(text: str) -> list[tuple[str, object]]:
-    """
-    Splits FlatZinc text into a list of ``(kind, value)`` tokens.
-
-    :param text: the FlatZinc source
-    :type text: str
-
-    :return: a list of tokens, each a pair of a kind (INT, FLOAT, IDENT, PUNCT, STRING) and a value; the value of
-             a FLOAT is its text and its offset, for the parser to report it where it does not accept one
-    :rtype: List[Tuple[str, object]]
-    """
-    tokens: list[tuple[str, object]] = []
-    i = 0
-    n = len(text)
-    while i < n:
-        c = text[i]
-        if c in " \t\r\n":
-            i += 1
-            continue
-        if c == "%":  # line comment
-            while i < n and text[i] != "\n":
-                i += 1
-            continue
-        if c == '"':  # string literal
-            i += 1
-            start = i
-            while i < n and text[i] != '"':
-                i += 1
-            tokens.append(("STRING", text[start:i]))
-            i += 1
-            continue
-        if c == "-" and i + 1 < n and text[i + 1].isdigit():
-            j = i + 1
-            while j < n and text[j].isdigit():
-                j += 1
-            i = _append_number(tokens, text, i, j)
-            continue
-        if c.isdigit():
-            j = i
-            while j < n and text[j].isdigit():
-                j += 1
-            i = _append_number(tokens, text, i, j)
-            continue
-        if c.isalpha() or c == "_":
-            j = i
-            while j < n and (text[j].isalnum() or text[j] == "_"):
-                j += 1
-            tokens.append(("IDENT", text[i:j]))
-            i = j
-            continue
-        if text[i : i + 2] in _PUNCT2:
-            tokens.append(("PUNCT", text[i : i + 2]))
-            i += 2
-            continue
-        if c in _PUNCT1:
-            tokens.append(("PUNCT", c))
-            i += 1
-            continue
-        raise FznParseError(f"unexpected character {c!r} at offset {i}")
-    _reject_floats(tokens)
-    return tokens
-
-
 class Parser:
     """
     A recursive-descent parser over a token list produced by :func:`tokenize`.
@@ -660,6 +509,157 @@ class Parser:
             elems = term
         self.expect("PUNCT", ";")
         return ArrayDecl(name, elems, annotations, is_var, lo, hi, size, is_bool, values)
+
+
+def _float_end(text: str, start: int, end: int) -> int:
+    """
+    Returns where the number starting at ``start`` ends, which is past ``end`` when the integer literal ending at
+    ``end`` is in fact the head of a float literal.
+
+    A ``.`` only starts a float when a digit follows, which leaves the ``lo..hi`` range punctuation intact. The
+    tokenizer makes a FLOAT token of a float, and accepts it only in an annotation (see _reject_floats).
+
+    :param text: the FlatZinc source
+    :type text: str
+    :param start: the offset of the first character of the integer literal
+    :type start: int
+    :param end: the offset just past the last digit of the integer literal
+    :type end: int
+
+    :return: the offset just past the last character of the number
+    :rtype: int
+    """
+    n = len(text)
+    stop = end
+    if stop + 1 < n and text[stop] == "." and text[stop + 1].isdigit():
+        stop += 2
+        while stop < n and text[stop].isdigit():
+            stop += 1
+    if stop < n and text[stop] in "eE":
+        j = stop + 1
+        if j < n and text[j] in "+-":
+            j += 1
+        if j < n and text[j].isdigit():
+            stop = j + 1
+            while stop < n and text[stop].isdigit():
+                stop += 1
+    return stop
+
+
+def _append_number(tokens: list[tuple[str, object]], text: str, start: int, end: int) -> int:
+    """
+    Appends the INT token of the integer literal between ``start`` and ``end``, or the FLOAT token of the float
+    literal it starts.
+
+    :param tokens: the tokens so far
+    :type tokens: List[Tuple[str, object]]
+    :param text: the FlatZinc source
+    :type text: str
+    :param start: the offset of the first character of the literal
+    :type start: int
+    :param end: the offset just past the last digit of its integer part
+    :type end: int
+
+    :return: the offset just past the literal
+    :rtype: int
+    """
+    stop = _float_end(text, start, end)
+    if stop == end:
+        tokens.append(("INT", int(text[start:end])))
+    else:
+        tokens.append(("FLOAT", (text[start:stop], start)))
+    return stop
+
+
+def _reject_floats(tokens: list[tuple[str, object]]) -> None:
+    """
+    Raises on the first float literal outside the arguments of an annotation.
+
+    NuCS has no float variables, but an annotation can take a float, such as the base of restart_geometric. The
+    check runs on the whole input before parsing, so a float anywhere else is reported as the type error it really
+    is, whatever statement it is in.
+
+    :param tokens: the tokens of the whole input
+    :type tokens: List[Tuple[str, object]]
+    """
+    depth = 0  # the parentheses still open since an annotation name
+    for idx, (kind, value) in enumerate(tokens):
+        if depth == 0 and kind == "PUNCT" and value == "(":
+            if idx >= 2 and tokens[idx - 1][0] == "IDENT" and tokens[idx - 2] == ("PUNCT", "::"):
+                depth = 1
+        elif depth > 0 and kind == "PUNCT" and value == "(":
+            depth += 1
+        elif depth > 0 and kind == "PUNCT" and value == ")":
+            depth -= 1
+        elif kind == "FLOAT" and depth == 0:
+            assert isinstance(value, tuple)
+            literal, offset = value
+            raise FznUnsupportedError(
+                f"float literal {literal!r} at offset {offset} is not supported: NuCS handles integer variables only"
+            )
+
+
+def tokenize(text: str) -> list[tuple[str, object]]:
+    """
+    Splits FlatZinc text into a list of ``(kind, value)`` tokens.
+
+    :param text: the FlatZinc source
+    :type text: str
+
+    :return: a list of tokens, each a pair of a kind (INT, FLOAT, IDENT, PUNCT, STRING) and a value; the value of
+             a FLOAT is its text and its offset, for the parser to report it where it does not accept one
+    :rtype: List[Tuple[str, object]]
+    """
+    tokens: list[tuple[str, object]] = []
+    i = 0
+    n = len(text)
+    while i < n:
+        c = text[i]
+        if c in " \t\r\n":
+            i += 1
+            continue
+        if c == "%":  # line comment
+            while i < n and text[i] != "\n":
+                i += 1
+            continue
+        if c == '"':  # string literal
+            i += 1
+            start = i
+            while i < n and text[i] != '"':
+                i += 1
+            tokens.append(("STRING", text[start:i]))
+            i += 1
+            continue
+        if c == "-" and i + 1 < n and text[i + 1].isdigit():
+            j = i + 1
+            while j < n and text[j].isdigit():
+                j += 1
+            i = _append_number(tokens, text, i, j)
+            continue
+        if c.isdigit():
+            j = i
+            while j < n and text[j].isdigit():
+                j += 1
+            i = _append_number(tokens, text, i, j)
+            continue
+        if c.isalpha() or c == "_":
+            j = i
+            while j < n and (text[j].isalnum() or text[j] == "_"):
+                j += 1
+            tokens.append(("IDENT", text[i:j]))
+            i = j
+            continue
+        if text[i : i + 2] in _PUNCT2:
+            tokens.append(("PUNCT", text[i : i + 2]))
+            i += 2
+            continue
+        if c in _PUNCT1:
+            tokens.append(("PUNCT", c))
+            i += 1
+            continue
+        raise FznParseError(f"unexpected character {c!r} at offset {i}")
+    _reject_floats(tokens)
+    return tokens
 
 
 def _term_to_par_value(term: Term) -> int | bool | list[int]:

@@ -17,29 +17,9 @@ import pytest
 
 from nucs.constants import DOMAIN_MIN
 from nucs.examples.jobshop.jobshop_problem import JobShopProblem
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.solver import OPTIM_PRUNE
 from tests.marks import SLOW_WITHOUT_JIT
-
-
-def _assert_valid_schedule(problem: JobShopProblem, solution) -> int:  # type: ignore[no-untyped-def]
-    """Checks that a solution respects job precedences and machine non-overlap, and returns the makespan."""
-    starts = [[int(solution[problem.start(j, k)]) for k in range(problem.machine_nb)] for j in range(problem.job_nb)]
-    completion = 0
-    machine_intervals: dict = {}
-    for j, job in enumerate(problem.jobs):
-        for k, (machine, duration) in enumerate(job):
-            s = starts[j][k]
-            if k > 0:  # job precedence: operation k starts after operation k-1 completes
-                _prev_machine, prev_duration = job[k - 1]
-                assert starts[j][k - 1] + prev_duration <= s
-            machine_intervals.setdefault(machine, []).append((s, s + duration))
-            completion = max(completion, s + duration)
-    for intervals in machine_intervals.values():  # machine non-overlap
-        intervals.sort()
-        for (_, end), (start, _) in itertools.pairwise(intervals):
-            assert end <= start
-    return completion
 
 
 class TestJobShop:
@@ -98,3 +78,23 @@ class TestJobShop:
         solution = solver.find_best(problem.makespan, DOMAIN_MIN, mode=OPTIM_PRUNE, timeout=10)
         assert solution is not None
         assert solution[problem.makespan] == optimum
+
+
+def _assert_valid_schedule(problem: JobShopProblem, solution) -> int:  # type: ignore[no-untyped-def]
+    """Checks that a solution respects job precedences and machine non-overlap, and returns the makespan."""
+    starts = [[int(solution[problem.start(j, k)]) for k in range(problem.machine_nb)] for j in range(problem.job_nb)]
+    completion = 0
+    machine_intervals: dict = {}
+    for j, job in enumerate(problem.jobs):
+        for k, (machine, duration) in enumerate(job):
+            s = starts[j][k]
+            if k > 0:  # job precedence: operation k starts after operation k-1 completes
+                _prev_machine, prev_duration = job[k - 1]
+                assert starts[j][k - 1] + prev_duration <= s
+            machine_intervals.setdefault(machine, []).append((s, s + duration))
+            completion = max(completion, s + duration)
+    for intervals in machine_intervals.values():  # machine non-overlap
+        intervals.sort()
+        for (_, end), (start, _) in itertools.pairwise(intervals):
+            assert end <= start
+    return completion

@@ -27,9 +27,10 @@ from nucs.fzn.errors import FznUnsupportedError
 from nucs.fzn.model import FznModel
 from nucs.fzn.output import print_search_complete, print_solution, print_unknown, print_unsatisfiable
 from nucs.fzn.search_annotations import free_search_heuristics, search_heuristics, search_options
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.restart_policies import RestartPolicy
 from nucs.solvers.solver import OPTIM_PRUNE
+from nucs.solvers.tree_search_solver import TreeSearchSolver
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +122,7 @@ def run(
         _print_statistics(solver, out)
 
 
-def _interrupt_on_sigterm(solver: BacktrackSolver) -> None:
+def _interrupt_on_sigterm(solver: TreeSearchSolver) -> None:
     """
     Makes SIGTERM interrupt the search, so that the run still prints its best solution, its terminator and
     its statistics.
@@ -134,7 +135,7 @@ def _interrupt_on_sigterm(solver: BacktrackSolver) -> None:
     runs, merely does the same.
 
     :param solver: the solver to interrupt
-    :type solver: BacktrackSolver
+    :type solver: TreeSearchSolver
     """
     reader, writer = socket.socketpair()
     writer.setblocking(False)
@@ -153,7 +154,7 @@ def _interrupt_on_sigterm(solver: BacktrackSolver) -> None:
 
 def _run_optimize(
     model: FznModel,
-    solver: BacktrackSolver,
+    solver: TreeSearchSolver,
     objective_var: int,
     out: TextIO,
     output_mode: str,
@@ -182,7 +183,7 @@ def _run_optimize(
     :param model: the built model
     :type model: FznModel
     :param solver: the solver
-    :type solver: BacktrackSolver
+    :type solver: TreeSearchSolver
     :param objective_var: the NuCS variable index of the objective
     :type objective_var: int
     :param out: the solution output stream
@@ -256,7 +257,7 @@ def _print_optimization_solution(
 
 def _run_satisfy(
     model: FznModel,
-    solver: BacktrackSolver,
+    solver: TreeSearchSolver,
     out: TextIO,
     all_solutions: bool,
     num_solutions: int | None,
@@ -269,7 +270,7 @@ def _run_satisfy(
     :param model: the built model
     :type model: FznModel
     :param solver: the solver
-    :type solver: BacktrackSolver
+    :type solver: TreeSearchSolver
     :param out: the solution output stream
     :type out: TextIO
     :param all_solutions: whether to enumerate every solution
@@ -300,7 +301,7 @@ def _run_satisfy(
     out.flush()
 
 
-def _print_statistics(solver: BacktrackSolver, out: TextIO) -> None:
+def _print_statistics(solver: TreeSearchSolver, out: TextIO) -> None:
     """
     Prints solver statistics as MiniZinc-style comment lines on the solution stream.
 
@@ -309,7 +310,7 @@ def _print_statistics(solver: BacktrackSolver, out: TextIO) -> None:
     specification allows as concluding output.
 
     :param solver: the solver
-    :type solver: BacktrackSolver
+    :type solver: TreeSearchSolver
     :param out: the solution output stream
     :type out: TextIO
     """

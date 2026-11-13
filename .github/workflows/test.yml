@@ -2,8 +2,9 @@ name: tests
 on:
   push:
     branches: [ "main" ]
+  # every pull request, whatever its base: a step PR into a feature branch is checked before its review, as a PR into
+  # main is
   pull_request:
-    branches: [ "main" ]
 permissions:
   contents: read
 jobs:

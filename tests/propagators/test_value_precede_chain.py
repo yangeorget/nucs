@@ -22,14 +22,8 @@ from nucs.propagators.value_precede_chain_propagator import (
     compute_domains_value_precede_chain,
     value_precede_chain_parameters,
 )
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from tests.propagators.propagator_test import PropagatorTest, random_bounds
-
-
-def is_chained(xs: tuple[int, ...], chain: list[int]) -> bool:
-    """Returns whether every chain value that occurs in xs first occurs after the one before it in the chain."""
-    firsts = [xs.index(c) if c in xs else len(xs) for c in chain]
-    return all(firsts[m - 1] < firsts[m] or firsts[m] == len(xs) for m in range(1, len(chain)))
 
 
 class TestValuePrecedeChain(PropagatorTest):
@@ -83,3 +77,9 @@ class TestValuePrecedeChain(PropagatorTest):
         problem.add_propagator(ALG_VALUE_PRECEDE_CHAIN, range(n), value_precede_chain_parameters(chain))
         got = sorted(tuple(solution.tolist()) for solution in BacktrackSolver(problem).find_all())
         assert got == truth
+
+
+def is_chained(xs: tuple[int, ...], chain: list[int]) -> bool:
+    """Returns whether every chain value that occurs in xs first occurs after the one before it in the chain."""
+    firsts = [xs.index(c) if c in xs else len(xs) for c in chain]
+    return all(firsts[m - 1] < firsts[m] or firsts[m] == len(xs) for m in range(1, len(chain)))

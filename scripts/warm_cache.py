@@ -35,8 +35,8 @@ from nucs.propagators.propagators import (
     SIGN_COMPUTE_DOMAINS,
     SIGN_GET_TRIGGERS,
 )
-from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.consistency_algorithms import CONSISTENCY_ALG_FCTS, SIGN_CONSISTENCY_ALG
 
 
 def warm() -> None:

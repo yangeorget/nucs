@@ -10,19 +10,19 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE
+from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE
 from nucs.problems.problem import Problem
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 
 
-class TestMinValueDomHeuristic:
+class TestMaxValueDomHeuristic:
     def test_find_all(self) -> None:
         problem = Problem([(1, 5)])
-        solver = BacktrackSolver(problem, searches=[Search(dom_heuristic=DOM_HEURISTIC_MIN_VALUE)])
+        solver = BacktrackSolver(problem, searches=[Search(dom_heuristic=DOM_HEURISTIC_MAX_VALUE)])
         solutions = solver.find_all()
         assert len(solutions) == 5
-        assert solutions == [[1], [2], [3], [4], [5]]
+        assert solutions == [[5], [4], [3], [2], [1]]
 
     def test_find_all_over_a_negative_domain(self) -> None:
         """A split value below zero has to survive the trip to the solver.
@@ -33,5 +33,5 @@ class TestMinValueDomHeuristic:
         and this pins it -- without a negative domain, the whole suite passes either way.
         """
         problem = Problem([(-5, -1)])
-        solver = BacktrackSolver(problem, searches=[Search(dom_heuristic=DOM_HEURISTIC_MIN_VALUE)])
-        assert solver.find_all() == [[-5], [-4], [-3], [-2], [-1]]
+        solver = BacktrackSolver(problem, searches=[Search(dom_heuristic=DOM_HEURISTIC_MAX_VALUE)])
+        assert solver.find_all() == [[-1], [-2], [-3], [-4], [-5]]

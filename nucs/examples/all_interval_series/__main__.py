@@ -12,7 +12,7 @@
 ###############################################################################
 from nucs.examples.all_interval_series.all_interval_series_problem import AllIntervalSeriesProblem
 from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 
 # Run with the following command (the second run is much faster because the code has been compiled):

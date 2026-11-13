@@ -13,7 +13,7 @@
 import json
 
 from nucs.examples.car_sequencing.car_sequencing_problem import CarSequencingProblem
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 

@@ -9,7 +9,7 @@ Some consistency algorithms are provided, custom consistency algorithms can be d
 ***************************
 Bound consistency algorithm
 ***************************
-NuCS provides :mod:`nucs.solvers.bc_algorithm` which is the default consistency algorithm.
+NuCS provides :mod:`nucs.solvers.backtrack.bc_algorithm` which is the default consistency algorithm.
 
 
 *****************************
@@ -28,8 +28,8 @@ This custom consistency algorithm needs to be registered before it is used.
    solver = BacktrackSolver(problem, consistency_algorithm=consistency_alg_golomb)
 
 A custom consistency algorithm is compiled against :code:`SIGN_CONSISTENCY_ALG` in
-:mod:`nucs.solvers.consistency_algorithms`, so it takes the same arguments as
-:func:`nucs.solvers.bc_algorithm.bc_algorithm`. One of them, :code:`compute_domains_addrs`, holds the compiled
+:mod:`nucs.solvers.backtrack.consistency_algorithms`, so it takes the same arguments as
+:func:`nucs.solvers.backtrack.bc_algorithm.bc_algorithm`. One of them, :code:`compute_domains_addrs`, holds the compiled
 address of each propagator algorithm's :code:`compute_domains` function: pass it on unchanged, to
 :code:`bc_algorithm` or to :func:`~nucs.propagators.propagators.call_compute_domains`. Another one,
 :code:`propagator_weights`, holds the failure weight of each propagator: pass it on unchanged to
@@ -45,8 +45,8 @@ address of each propagator algorithm's :code:`compute_domains` function: pass it
 
    In NuCS 20 the two arguments :code:`algorithms` and :code:`priorities` became one argument,
    :code:`propagator_infos`, at the same position. It has one row for each propagator, and the columns
-   :code:`INFO_ALGORITHM`, :code:`INFO_PRIORITY` and :code:`INFO_COPIES` of :mod:`nucs.constants`. A consistency
-   algorithm written against the old signature will fail to compile.
+   :code:`INFO_ALGORITHM`, :code:`INFO_PRIORITY` and :code:`INFO_COPIES` of :mod:`nucs.problems.problem`. A
+   consistency algorithm written against the old signature will fail to compile.
 
 
 
@@ -57,29 +57,29 @@ Writing a domain
 
    In NuCS 15 a consistency algorithm receives the current domains rather than a stack of them, and
    **must** write them through :func:`nucs.solvers.state.tighten_at`. Assigning
-   a domain directly still compiles and still looks right, but the write is not recorded on the trail:
+   a domain directly still compiles and still looks right, but the write is not recorded on the undo trail:
    it is never undone, and it survives the backtrack into sibling subtrees. That is silent unsoundness,
    with no error to point at.
 
 :code:`tighten_at` also owns the groundness test and the unbound-variable count, so routing through it is
 what keeps the solver's "is this problem solved?" test correct. It returns the events the write raises,
 :code:`EVENT_MASK_NONE` when it changed nothing, which is what to pass to
-:func:`~nucs.propagators.propagators.update_propagators`, and the new trail size. Scheduling stays with
-the caller, and so does the trail size: load it from :code:`trail_top` once, thread it through the
+:func:`~nucs.solvers.propagation_steps.update_propagators`, and the new undo trail size. Scheduling stays with
+the caller, and so does the undo trail size: load it from :code:`utrail_top` once, thread it through the
 writes, and store it back once.
 
 .. code-block:: python
    :linenos:
 
-   trail_size = trail_top[0]
-   events, trail_size = tighten_at(state, trail_log, trail_indices, mark, trail_size, variable, new_min, new_max)
+   utrail_sz = utrail_top[0]
+   events, utrail_sz = tighten_at(state, utrail_log, utrail_indices, mark, utrail_sz, variable, new_min, new_max)
    if events:
        update_propagators(triggered_propagators, entailed, triggers, triggers_offsets,
                           propagator_infos, variable, events, -1)
-   trail_top[0] = trail_size
+   utrail_top[0] = utrail_sz
 
-where :code:`mark` is :code:`choice_point_stk[choice_point_top[0], CHOICE_POINT_TRAIL_MARK]`, the trail position the current
-choice point branched at, and the last argument of :code:`update_propagators` is a propagator not to wake,
+where :code:`mark` is :code:`choicepoints[choicepoint_top[0], CHOICEPOINT_UTRAIL_MARK]`, the undo trail position
+the current choice point branched at, and the last argument of :code:`update_propagators` is a propagator not to wake,
 which the propagation loop uses for an idempotent propagator's own writes: pass -1.
 :mod:`nucs.examples.golomb.golomb_problem` is the in-tree example.
 
@@ -90,13 +90,13 @@ happens in the consistency algorithm.
 A propagator can have a variable more than once: :code:`count_eq` in the magic sequence example has
 :code:`x[i]` in its list and as its count. The propagator sees each copy as a variable of its own, so it can
 narrow the copies to different bounds, even to bounds with no common value, and still not fail.
-:code:`propagator_infos[p, INFO_COPIES]` (:mod:`nucs.constants`) is 1 for such a propagator. A consistency
-algorithm that writes back the domains of such a propagator itself must:
+:code:`propagator_infos[p, INFO_COPIES]` (:mod:`nucs.problems.problem`) is 1 for such a propagator. A
+consistency algorithm that writes back the domains of such a propagator itself must:
 
 - intersect each copy with the current bounds, and fail when the intersection is empty;
 - not skip a variable that an earlier copy fixed;
 - call the propagator again when a copy is wider than the bounds that the write-back leaves.
 
-:func:`~nucs.solvers.bc_algorithm.update_domains_of_copies` does this; a consistency algorithm that calls
-:func:`~nucs.solvers.bc_algorithm.bc_algorithm` for the propagators, as the Golomb one does, gets it with no
+:func:`~nucs.solvers.propagation_steps.update_domains_of_copies` does this; a consistency algorithm that calls
+:func:`~nucs.solvers.backtrack.bc_algorithm.bc_algorithm` for the propagators, as the Golomb one does, gets it with no
 change.

@@ -10,6 +10,11 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Added
 
+- **An optional `explain_fct` parameter of `register_propagator`.** An explain function tells why a call of the
+  propagator set a bound, or failed, with the signature `SIGN_EXPLAIN` (`nucs.propagators.propagators`). Only
+  `LcgSolver` (lazy clause generation) uses it. The default, `explain_naive`
+  (`nucs.propagators.explanations`), is correct for each sound propagator, so a propagator that is registered with
+  no explain function does not change.
 - **Three options for the examples: `--last-conflict`, `--restart` and `--time-limit`.**
   - `--last-conflict` / `--no-last-conflict` turns last-conflict reasoning on or off. Without it, each example keeps
     its own default: on for `alphanumeric`, `cryptarithmetic`, `employee_scheduling`, `magic_sequence`,
@@ -36,8 +41,8 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 - **Breaking: the arrays `algorithms` and `priorities` became one array, `propagator_infos`.** It has one row of
   uint8 cells for each propagator, with the columns `INFO_ALGORITHM`, `INFO_PRIORITY` and `INFO_COPIES` of
-  `nucs.constants`. `INFO_COPIES` is 1 for a propagator that has a variable more than once (see the fix of the copies
-  under "Fixed"). These changes follow:
+  `nucs.problems.problem`. `INFO_COPIES` is 1 for a propagator that has a variable more than once (see the fix of
+  the copies under "Fixed"). These changes follow:
   - `SIGN_CONSISTENCY_ALG`, `run_search_loop`, `backtrack` and `update_propagators` take `propagator_infos` where they
     took `priorities` (and `algorithms`). A custom consistency algorithm must change its signature;
     `docs/source/consistency.rst` says how.
@@ -96,8 +101,32 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 - **`RESTART_NONE` is now `RESTART_NEVER`, and `NO_RESTARTS` is now `RESTART_POLICY_NEVER`.** The first is the name of
   the policy, the second the policy object that `BacktrackSolver` uses by default. The value of `RESTART_NEVER` stays
   `"none"`, so `fzn-nucs --restart none` does not change.
-- **`solve_one_step` is now `run_search_loop`**, in `nucs.solvers.search_loop`. A call runs the compiled loop until it
-  must return to Python, which can be many nodes, not one step.
+- **The modules of `BacktrackSolver` move to the subpackage `nucs.solvers.backtrack`**: `backtrack_solver`,
+  `consistency_algorithms` and `bc_algorithm`. Replace
+  `from nucs.solvers.backtrack_solver import BacktrackSolver` with
+  `from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver`, and `nucs.solvers.consistency_algorithms`
+  with `nucs.solvers.backtrack.consistency_algorithms`. `BacktrackSolver` is now a subclass of `TreeSearchSolver`
+  (`nucs.solvers.tree_search_solver`), which holds the part of the search that does not depend on the propagation.
+  The steps of one propagator call that `bc_algorithm` inlines (`gather_domains`, `utrail_state_prefix`,
+  `record_entailment`, `count_no_change` and `update_domains`) move to `nucs.solvers.propagation_steps`. The log
+  lines of the solver now come from the loggers `nucs.solvers.tree_search_solver` and
+  `nucs.solvers.backtrack.backtrack_solver`.
+- **The propagation queue moves to the solvers.** `nucs.buckets` is now `nucs.solvers.buckets`, and
+  `update_propagators` moves from `nucs.propagators.propagators` to `nucs.solvers.propagation_steps`: a custom
+  consistency algorithm imports it from there. `compute_priority`, `BUCKET_NB` and `BUCKET_FACTOR` move to
+  `nucs.problems.problem`, which computes the priorities when the problem is built. Thus the problems and the
+  propagators import no module of the solvers.
+- **The heuristics move to two subpackages: `nucs.heuristics.variable` and `nucs.heuristics.domain`.** Replace, for
+  example, `from nucs.heuristics.max_regret_var_heuristic import regret` with
+  `from nucs.heuristics.variable.max_regret_var_heuristic import regret`, and
+  `nucs.heuristics.min_value_dom_heuristic` with `nucs.heuristics.domain.min_value_dom_heuristic`. The registry,
+  `nucs.heuristics.heuristics`, does not move: the `VAR_HEURISTIC_*` and `DOM_HEURISTIC_*` ids keep their import.
+- **The module `nucs.solvers.search_arrays` merges into `nucs.solvers.tree_search_solver`**, the only module that
+  uses it. `allocate_search_arrays`, `allocate_domain_buffer`, `double_rows` and `STEP_TIGHTENING_NB` keep their
+  names: replace `nucs.solvers.search_arrays` with `nucs.solvers.tree_search_solver` in their imports.
+- **`solve_one_step` is now `run_search_loop`**, in `nucs.solvers.backtrack.backtrack_solver`. A
+  call runs the compiled loop until it must return to Python, which can be many nodes, not one step. The `SOLVER_*`
+  statuses and the `SEARCH_CONTROL_*` cells are in `nucs.solvers.tree_search_solver`.
 - **The module `nucs.solvers.search` is now `nucs.solvers.searches`.** Replace
   `from nucs.solvers.search import Search` with `from nucs.solvers.searches import Search`.
 - **`DEFAULT_SEARCHES` is now `SEARCHES_DEFAULT`**, in `nucs.solvers.searches`, and `FREE_SEARCH_RESTART` is now
@@ -111,16 +140,46 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `nucs.solvers.interruption`), and the attribute `BacktrackSolver.interruption` is now `BacktrackSolver.interrupter`.
   The object asks the search to stop.
 - **An `Interrupter` holds two cells, one for each writer**: `Interrupter.cell` is now `Interrupter.cells`, two
-  `bool` flags indexed by `INTERRUPTION_EXTERNAL` and `INTERRUPTION_DEADLINE`, and `run_search_loop` stops when
-  either flag is set. The clearing of a deadline writes only its own cell, so it cannot erase an `interrupt()`, and
-  the flag `Interrupter.interrupted` and the value `INTERRUPTION_NONE` are gone. The clearing waits for the timer to
+  `bool` flags indexed by `INTERRUPTION_EXTERNAL` and `INTERRUPTION_DEADLINE`, and `run_search_loop` stops
+  when either flag is set. The clearing of a deadline writes only its own cell, so it cannot erase an `interrupt()`,
+  and the flag `Interrupter.interrupted` and the value `INTERRUPTION_NONE` are gone. The clearing waits for the timer to
   end before it writes, so the lock `Interrupter.deadline_lock` is gone too.
-- **`get_domain_buffer` is now `allocate_domain_buffer`**, in `nucs.solvers.search_arrays`. Like
+- **`get_domain_buffer` is now `allocate_domain_buffer`**, in `nucs.solvers.tree_search_solver`. Like
   `allocate_search_arrays`, it allocates a new array on each call.
-- **`get_solution` moves from `nucs.solvers.solver` to `nucs.solvers.search_loop`**, its only caller. The compiled
-  search no longer imports the module of the abstract `Solver`.
+- **`get_solution` moves from `nucs.solvers.solver` to `nucs.solvers.tree_search_solver`**, with the statuses and
+  the cells of the search control that the compiled search loops share.
 - **The `problem` of `Solver.__init__` is required.** It was `Problem | None`, but no solver passed `None`, and a
   solver without a problem had no `problem` attribute.
+- **The trail is now the undo trail, and its names start with `utrail`.** `LcgSolver` adds a second trail, the
+  implication trail, whose names start with `itrail`, so the name "trail" alone is no longer clear. Replace:
+  - `trail_log`, `trail_indices`, `trail_top` and `trail_headroom` with `utrail_log`, `utrail_indices`, `utrail_top`
+    and `utrail_headroom`, also as attributes of the solver;
+  - `trail_push`, `trail_set` and `trail_undo` (`nucs.solvers.state`) with `utrail_push`, `utrail_set` and
+    `utrail_undo`, and `trail_state_prefix` (`nucs.solvers.propagation_steps`) with `utrail_state_prefix`;
+  - `CHOICE_POINT_TRAIL_MARK` with `CHOICEPOINT_UTRAIL_MARK`, `TIGHTENING_TRAIL_ENTRY_NB` with
+    `TIGHTENING_UTRAIL_ENTRY_NB`, and `SOLVER_TRAIL_FULL` with `SOLVER_UTRAIL_FULL`.
+
+  The parameter `trail` of `run_search_loop` is now `utrail_log`. A custom consistency algorithm keeps its signature:
+  only the names of its parameters change. The values of the constants do not change. The log line of the solver now
+  says "The undo trail starts at ...".
+- **The stack of choice points has a fifth column, `CHOICEPOINT_ITRAIL_MARK`** (`nucs.solvers.choicepoints`), and
+  `CHOICEPOINT_WIDTH` is now 5. `LcgSolver` writes there the size of the implication trail when a choice point
+  branches, as `branch` writes the size of the undo trail in `CHOICEPOINT_UTRAIL_MARK`. `BacktrackSolver` does not use
+  it. Code that allocates its own stack of choice points must use `CHOICEPOINT_WIDTH`.
+- **"Choice point" is one word in the names: `choicepoint`.** Replace:
+  - the module `nucs.solvers.choice_points` with `nucs.solvers.choicepoints`;
+  - `choice_point_stk`, `choice_point_top` and `choice_point_init` with `choicepoints`, `choicepoint_top` and
+    `choicepoint_init`, also as attributes of the solver and as parameters of the compiled functions;
+  - `CHOICE_POINT_TRAIL_MARK`, `CHOICE_POINT_VARIABLE`, `CHOICE_POINT_BOUND`, `CHOICE_POINT_VALUE` and
+    `CHOICE_POINT_WIDTH` with `CHOICEPOINT_UTRAIL_MARK`, `CHOICEPOINT_VARIABLE`, `CHOICEPOINT_BOUND`,
+    `CHOICEPOINT_VALUE` and `CHOICEPOINT_WIDTH`, and `SOLVER_CHOICE_POINTS_FULL` with `SOLVER_CHOICEPOINTS_FULL`.
+
+  The values of the constants do not change. In the output of `scripts/benchmark.py`, the label `CHOICE_POINT_BYTES`
+  is now `CHOICEPOINT_BYTES`.
+- **The names that end with `_size` now end with `_sz`.** The parameter `utrail_size` of `utrail_push`, `utrail_set`
+  and `tighten_at` (`nucs.solvers.state`), and of `utrail_state_prefix`, `record_entailment` and `update_domains`
+  (`nucs.solvers.propagation_steps`), is now `utrail_sz`. The parameter and the attribute `group_size` of
+  `SocialGolfersProblem` are now `group_sz`. Code that gives these parameters by position does not change.
 
 ### Fixed
 
@@ -154,6 +213,15 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   used distances from the bound marks, and fails when a bound empties a domain. With all the pairs of heuristics that
   need no parameters, n=5 to 8 now give the known optimum. The default search finds the same optima with 0.1% to
   0.9% more choices (11,241 instead of 11,142 at n=10, 217,287 instead of 216,725 at n=11).
+- **`inverse` could make a domain larger instead of failing.** When `prev[j]` was fixed to `i`, it set `next[i]` to
+  `j` without testing that `j` was in the domain of `next[i]`. When it was not, the constraint had no solution, but
+  the propagator gave back the values that another propagator had removed, and reported no failure. The answers stay
+  correct, because the other propagators run again on the larger domain and fail. But the failure comes later: the
+  tsp example finds the same optimum with fewer choices (35,269 instead of 45,208 on gr17 with the default search),
+  and the quasigroup example also changes (301 choices instead of 201 at its default arguments).
+  `PermutationProblem` (thus `CircuitProblem`), `LatinSquareRCProblem`, the dual model of `QueensProblem` and the
+  FlatZinc builtin `inverse` post this propagator. The
+  brute-force test of the propagators now also checks that no propagator makes a domain larger. Only `inverse` did.
 
 ## 19.0.0
 

@@ -16,38 +16,10 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-# Number of priority buckets.
-# A priority is directly a bucket index; values >= BUCKET_NB are clamped to the last bucket.
-# Within a bucket: FIFO order (insertion order is preserved on pop).
-BUCKET_NB = 8
-# How many bits compute_priority shifts off the complexity per bucket, which is what sets the log base:
-# 1 buckets by powers of 2, 2 by powers of 4.
-BUCKET_FACTOR = 2
+from nucs.problems.problem import BUCKET_NB
+
+# the queue array starts with a head and a tail per bucket (see buckets_create)
 STORAGE_OFFSET = BUCKET_NB << 1
-
-
-@njit(cache=True)
-def compute_priority(complexity: int) -> int:
-    """
-    Returns the index of the priority bucket a propagator of a given complexity belongs to.
-
-    The index is ceil(floor(log2(complexity)) / BUCKET_FACTOR), clamped to [0, BUCKET_NB - 1]; a complexity
-    of 1 or less lands in bucket 0. With a factor of 1 that is plain floor(log2(complexity)), which is what
-    this used to compute.
-
-    :param complexity: the time complexity of the propagator
-    :type complexity: int
-
-    :return: the bucket index
-    :rtype: int
-    """
-    if complexity <= 1:
-        return 0
-    bucket = 0
-    while complexity > 1:
-        complexity >>= BUCKET_FACTOR
-        bucket += 1
-    return min(bucket, BUCKET_NB - 1)
 
 
 @njit(cache=True)

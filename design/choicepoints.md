@@ -2,8 +2,8 @@
 
 How NuCS saves and restores search state. Companion to the *Backtrackable state is trailed, not copied*
 section of `ARCHITECTURE.md`, which gives the summary; this document gives the mechanism. Code lives in
-`nucs/solvers/choice_points.py`, with the search loop in `run_search_loop`
-(`nucs/solvers/search_loop.py`).
+`nucs/solvers/choicepoints.py`, with the search loop in `run_search_loop`
+(`nucs/solvers/backtrack/backtrack_solver.py`).
 
 ## One mechanism
 
@@ -21,7 +21,7 @@ state (int32) [ ----- domains ----- | --- entailed --- | unbound ]     n = domai
    flat index of propagator p      = 2n + p
 ```
 
-A trail entry is `(flat index, old value)` with no discriminator, so **one** `trail_undo` loop restores a
+An undo trail entry is `(flat index, old value)` with no discriminator, so **one** `utrail_undo` loop restores a
 domain bound, reactivates an entailed propagator and rolls back the unbound count with the same
 instruction. That is the point of the single array.
 
@@ -38,9 +38,9 @@ The line is not "O(changes) versus O(1)". It is:
 - **Backtrackable state** — a value that existed before the choice point and must come back afterwards. Trail it.
   Domain bounds, entailment flags, the unbound count.
 - **Per-choice-point metadata** — a value that *describes* the choice point and has no meaning outside it. Index it by
-  `choice_point_top` and let the pointer decrement restore it.
+  `choicepoint_top` and let the pointer decrement restore it.
 
-The decision columns of `choice_point_stk` prove the line is real rather than a preference: trailing them would
+The decision columns of `choicepoints` prove the line is real rather than a preference: trailing them would
 be *wrong*, not merely slower, because undoing to the choice point's own mark would erase the very decision
 `backtrack` is about to apply.
 
@@ -51,42 +51,46 @@ be *wrong*, not merely slower, because undoing to the choice point's own mark wo
 | array | shape | dtype | role |
 |-------|-------|-------|------|
 | `state` | `(2·domain_nb + propagator_nb + 1,)` | int32 | all the backtrackable state; `domains` and `entailed` are views into it |
-| `trail_log` | `(T, 2)` | int32 | the undo log: `[flat index, old value]` |
-| `trail_top` | `(1,)` | int32 | the trail size |
-| `trail_indices` | `(len(state),)` | int32 | index of the last trail entry per cell, `-1` when none |
+| `utrail_log` | `(T, 2)` | int32 | the undo log: `[flat index, old value]` |
+| `utrail_top` | `(1,)` | int32 | the undo trail size |
+| `utrail_indices` | `(len(state),)` | int32 | index of the last undo trail entry per cell, `-1` when none |
 
 ### Per-choice point
 
 | array | shape | dtype | role |
 |-------|-------|-------|------|
-| `choice_point_stk` | `(H, 4)` | int32 | `[CHOICE_POINT_TRAIL_MARK, CHOICE_POINT_VARIABLE, CHOICE_POINT_BOUND, CHOICE_POINT_VALUE]` |
-| `choice_point_top` | `(1,)` | uint32 | the index of the top |
+| `choicepoints` | `(H, 5)` | int32 | `[CHOICEPOINT_UTRAIL_MARK, CHOICEPOINT_VARIABLE, CHOICEPOINT_BOUND, CHOICEPOINT_VALUE, CHOICEPOINT_ITRAIL_MARK]` |
+| `choicepoint_top` | `(1,)` | uint32 | the index of the top |
 
-`choice_point_stk[d]` holds the trail position at which choice point `d` branched, and the alternative to apply when the
-search comes back to it. The four columns share an index *and* a schedule — branching writes all four,
-`backtrack` reads all four — so at 16 bytes a choice point's whole metadata is one aligned chunk, touched as a
-unit. (Contrast the per-propagator arrays, which share an index but are read at wildly different
-frequencies; merging *those* measured worse, and `ARCHITECTURE.md` records it.)
+`choicepoints[d]` holds the undo trail position at which choice point `d` branched, and the alternative to apply
+when the search comes back to it. The first four columns share an index *and* a schedule — branching writes all four,
+`backtrack` reads all four — so a choice point's whole metadata is one chunk, touched as a unit. The fifth column,
+`CHOICEPOINT_ITRAIL_MARK`, is the position of the implication trail at which the choice point branched: only
+`LcgSolver` writes and reads it, on the same schedule. It makes a row 20 bytes instead of an aligned 16; with 7 runs in
+alternate order, `BacktrackSolver` measured 1.2% (langford) and 1.5% (tsp) slower, under the 5% noise floor of
+`design/benchmarking.md`, and `LcgSolver` measured no change (2026-11-07). (Contrast the per-propagator arrays, which
+share an index but are read at wildly different frequencies; merging *those* measured worse, and `ARCHITECTURE.md`
+records it.)
 
-`choice_point_top` and `trail_top` are one-element arrays rather than `int`s because they are mutable state shared
+`choicepoint_top` and `utrail_top` are one-element arrays rather than `int`s because they are mutable state shared
 across separately jitted functions, and Numba has no way to pass a scalar by reference.
 
 `H` and `T` are starting sizes, not ceilings: see *Growing* below.
 
 ## The write barrier
 
-Every backtrackable write goes through `trail_set`, and the rule it implements is exactly:
+Every backtrackable write goes through `utrail_set`, and the rule it implements is exactly:
 
-> a write to `flat` may skip the trail **iff** the trail already holds a live entry *for `flat`* at an
-> index `>= choice_point_stk[choice_point_top[0], CHOICE_POINT_TRAIL_MARK]`.
+> a write to `flat` may skip the undo trail **iff** the undo trail already holds a live entry *for `flat`* at an
+> index `>= choicepoints[choicepoint_top[0], CHOICEPOINT_UTRAIL_MARK]`.
 
 ```python
-entry = trail_indices[flat]
-if not mark <= entry < trail_size:
-    trail_log[trail_size, 0] = flat
-    trail_log[trail_size, 1] = old
-    trail_indices[flat] = trail_size
-    trail_size += 1
+entry = utrail_indices[flat]
+if not mark <= entry < utrail_sz:
+    utrail_log[utrail_sz, 0] = flat
+    utrail_log[utrail_sz, 1] = old
+    utrail_indices[flat] = utrail_sz
+    utrail_sz += 1
 state[flat] = value
 ```
 
@@ -94,9 +98,9 @@ Redundant entries are always safe — undo is LIFO, so an extra entry restores a
 the one after it — but a missing entry corrupts.
 
 **"For `flat`" is load-bearing, and a position inside the live range does not establish it.** Popping the
-trail and letting it regrow leaves `trail_indices[flat]` pointing at an index another cell has since
+undo trail and letting it regrow leaves `utrail_indices[flat]` pointing at an index another cell has since
 claimed. So
-`trail_undo` clears the position of every entry it pops, and a position is stale only by being `-1`. The
+`utrail_undo` clears the position of every entry it pops, and a position is stale only by being `-1`. The
 cost lands on the pop, once per trailed write, rather than on the skip, which happens as often as a
 fixpoint re-narrows a bound.
 
@@ -104,13 +108,13 @@ fixpoint re-narrows a bound.
 so a guard indexed by variable would suppress the second write and never restore `MAX`.
 
 Two things follow from stating the rule positionally rather than with a generation counter stamped per
-cell. There is no counter to bump, so no site — `choice_point_init`, which runs at *solve* time on every
+cell. There is no counter to bump, so no site — `choicepoint_init`, which runs at *solve* time on every
 `OPTIM_RESET`, `backtrack`, or any future stack mutation — can forget to bump one. And there is no
 overflow: a monotonic world id would wrap `int32` after ~1e9 nodes, which NuCS reaches.
 
-Entailment is the one exception, and takes `trail_push` instead: a flag only ever goes from active to
+Entailment is the one exception, and takes `utrail_push` instead: a flag only ever goes from active to
 entailed, and it is only written where the caller has just read it as clear, so it cannot be written twice
-in a choice point and needs no positional guard. Its position is still recorded, so `trail_undo` can clear it like
+in a choice point and needs no positional guard. Its position is still recorded, so `utrail_undo` can clear it like
 any other.
 
 `tighten_at` is the only place a domain is written — a propagator's filtering, a branching decision, the
@@ -118,17 +122,17 @@ branch-and-bound clamp, a custom consistency algorithm's pruning — so the grou
 count and the barrier stay consistent by construction. Scheduling is deliberately *not* part of it:
 `update_propagators` does it from the events, and only the propagation loop knows which propagator not to
 wake on its own writes (an idempotent one, which it passes as `skip_prop_idx`). `tighten_at` takes and returns
-the trail size rather than reading it out of memory, so a filtering keeps it in a register across every bound
+the undo trail size rather than reading it out of memory, so a filtering keeps it in a register across every bound
 it narrows.
 
-## What `choice_point_top` means
+## What `choicepoint_top` means
 
-`choice_point_top[0]` is the search depth. `state` always holds the domains of the choice point the search is *at*; the
-choice points below it hold, in `choice_point_stk`, the trail position to rewind to and the alternative to apply.
-`choice_point_top[0] == 0` with no alternative left is exhaustion.
+`choicepoint_top[0]` is the search depth. `state` always holds the domains of the choice point the search is *at*; the
+choice points below it hold, in `choicepoints`, the undo trail position to rewind to and the alternative to apply.
+`choicepoint_top[0] == 0` with no alternative left is exhaustion.
 
-`choice_point_init` resets the whole thing: the initial domains, every propagator active, the trail empty, every
-position `-1`, and `choice_point_top` back to 0.
+`choicepoint_init` resets the whole thing: the initial domains, every propagator active, the undo trail empty, every
+position `-1`, and `choicepoint_top` back to 0.
 
 ## Branching: only the explored branch is written
 
@@ -136,11 +140,11 @@ position `-1`, and `choice_point_top` back to 0.
 does the rest:
 
 ```python
-mark = trail_top[0]
-park(choice_point_stk, choice_point, mark, variable, MIN, value + 1)      # the alternative, for later
-choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark       # the one about to be worked at
-choice_point_top[0] = choice_point + 1
-events, trail_size = tighten_at(..., mark, mark, variable, domain_min, value)  # the branch explored now
+mark = utrail_top[0]
+park(choicepoints, choicepoint, mark, variable, MIN, value + 1)      # the alternative, for later
+choicepoints[choicepoint + 1, CHOICEPOINT_UTRAIL_MARK] = mark       # the one about to be worked at
+choicepoint_top[0] = choicepoint + 1
+events, utrail_sz = tighten_at(..., mark, mark, variable, domain_min, value)  # the branch explored now
 ```
 
 A push copies nothing. The alternatives are not materialised anywhere until the search reaches them —
@@ -156,7 +160,7 @@ Three kinds cover all eight in-tree heuristics:
 | `EQ` at `v` | `[v, v]` | `[min, v-1]` then `[v+1, max]` | `mid_value`, `min_cost` |
 
 `EQ` is the ternary case and parks two choice points. The parked order is what an enumeration sees
-(`tests/heuristics/test_mid_value_dom_heuristic.py` pins it). `branch` normalizes an `EQ` at either end of
+(`tests/heuristics/domain/test_mid_value_dom_heuristic.py` pins it). `branch` normalizes an `EQ` at either end of
 the domain to a two-way split, and clamps an `EQ` value outside the domain into it — `min_cost` returns
 `-1` when no value has a positive cost, and a split has to partition the domain for the enumeration to
 stay complete.
@@ -164,10 +168,10 @@ stay complete.
 ## Backtracking
 
 1. return `False` if `top == 0` — the search is exhausted;
-2. `choice_point_top[0] -= 1`;
-3. `trail_undo(...)` back to `choice_point_stk[top, CHOICE_POINT_TRAIL_MARK]` — this restores the domains *and*
+2. `choicepoint_top[0] -= 1`;
+3. `utrail_undo(...)` back to `choicepoints[top, CHOICEPOINT_UTRAIL_MARK]` — this restores the domains *and*
    reactivates the propagators entailed below this choice point, in one loop;
-4. apply `choice_point_stk[top]`'s alternative through `tighten_at` — so the refutation is itself undone when the
+4. apply `choicepoints[top]`'s alternative through `tighten_at` — so the refutation is itself undone when the
    search later backtracks past this choice point — and `update_propagators` for the events it raises.
 
 Step 4 is why the queue needs no rebuild: the only unpropagated change at this choice point is the one just
@@ -183,11 +187,11 @@ the same, having first armed `bb` with the bound the solution establishes.
 ## Optimization
 
 `optimize` re-enters the search after each local optimum, and the two `OPTIM_*` modes differ exactly in
-what they do to the choice points (`BacktrackSolver._advance_after_optimum`):
+what they do to the choice points (`TreeSearchSolver._advance_after_optimum`):
 
 | mode | function | effect |
 |------|----------|--------|
-| `OPTIM_RESET` | `choice_point_init` + `tighten_objective_at_root` | throws the choice points away, restarts from the initial domains with the objective bound tightened at the root |
+| `OPTIM_RESET` | `choicepoint_init` + `tighten_objective_at_root` | throws the choice points away, restarts from the initial domains with the objective bound tightened at the root |
 | `OPTIM_PRUNE` | arms `bb`, then `backtrack` | keeps the choice points; the bound is re-applied by `backtrack` to each one as it is resumed |
 
 `OPTIM_PRUNE` rests on the observation that **the branch-and-bound bound is not backtrackable**. It holds
@@ -207,11 +211,11 @@ that; a three-way split does not, and the mismatch discarded a surviving choice 
 
 ## Growing
 
-`trail_log` and `choice_point_stk` are caller-allocated, so they cannot grow inside `@njit`. Sizing them for their
-worst case — depth × (2·`domain_nb` + 1) trail entries — would hand back the memory this representation
+`utrail_log` and `choicepoints` are caller-allocated, so they cannot grow inside `@njit`. Sizing them for their
+worst case — depth × (2·`domain_nb` + 1) undo trail entries — would hand back the memory this representation
 wins, and a hard failure would end a long optimization run for nothing. So `run_search_loop` checks for room
-before each node, stops with `SOLVER_TRAIL_FULL` or `SOLVER_CHOICE_POINTS_FULL`, and
-`BacktrackSolver._grow_trail` or `BacktrackSolver._grow_choice_points` doubles the array and resumes.
+before each node, stops with `SOLVER_UTRAIL_FULL` or `SOLVER_CHOICEPOINTS_FULL`, and
+`TreeSearchSolver._next_solution` doubles the array and resumes.
 
 Nothing of the search is lost across the reallocation: `state`, the marks and the positions all still
 address the same entries.

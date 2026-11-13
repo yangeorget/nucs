@@ -11,8 +11,8 @@ description: How NuCS tests are laid out and written — where a test file goes,
 
 | module | test file |
 |---|---|
-| `nucs/buckets.py` | `tests/test_buckets.py` |
-| `nucs/heuristics/min_value_dom_heuristic.py` | `tests/heuristics/test_min_value_dom_heuristic.py` |
+| `nucs/solvers/buckets.py` | `tests/solvers/test_buckets.py` |
+| `nucs/heuristics/domain/min_value_dom_heuristic.py` | `tests/heuristics/domain/test_min_value_dom_heuristic.py` |
 | `nucs/propagators/abs_eq_propagator.py` | `tests/propagators/test_abs_eq.py` (no `_propagator` suffix) |
 | `nucs/examples/queens/queens_problem.py` | `tests/examples/test_queens.py` |
 | `nucs/fzn/builtins.py` | `tests/fzn/test_builtins.py` |

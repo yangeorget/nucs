@@ -22,8 +22,8 @@ from nucs.examples.default_argument_parser import (
 )
 from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MIN_VALUE, DOM_HEURISTIC_SPLIT_LOW, VAR_HEURISTIC_SMALLEST_DOMAIN
-from nucs.solvers.backtrack_solver import BacktrackSolver
-from nucs.solvers.consistency_algorithms import CONSISTENCY_ALG_BC
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.consistency_algorithms import CONSISTENCY_ALG_BC
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
 from nucs.solvers.searches import Search
 from nucs.statistics import STATS_IDX_SOLUTION_NB

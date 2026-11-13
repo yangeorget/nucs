@@ -1,13 +1,16 @@
 # Lazy clause generation in NuCS — design
 
-> **Status:** proposed, 2026-10-05. Nothing is implemented.
+> **Status:** proposed, 2026-10-05. The implementation started on 2026-11-03: Phase 0 and steps 3 to 6 of 7.0 are done.
 
 This document is the design of lazy clause generation (LCG) for NuCS. It is written for a reader who knows
 classical constraint programming (propagation, search, Gecode and Choco internals) but not LCG or SAT solving.
 Part 1 explains the concepts, with a worked example and links to read. Parts 2 to 6 give the design. Part 7 gives
 the implementation steps, the stages, the tests and the measurements that decide if each stage continues.
 
-Nothing in this document is implemented. The names of the new arrays and functions are proposals.
+Only the literals of 3.2, the copy of `BacktrackSolver` of step 4 (`TreeSearchSolver`, `LcgSolver`, `run_search_loop` in
+`lcg_solver.py`, `lcg_algorithm`), the implication trail of step 5 (3.3 and 3.4, in `implication_trail.py`) and the
+decisions as literals of step 6 (4.2, in `decisions.py`) are implemented. The names of the other new arrays and
+functions are proposals.
 
 ## Contents
 
@@ -116,9 +119,11 @@ form.
 ### 1.4 Decision levels and the implication trail
 
 Each decision opens a new **decision level**. The root is level 0, the first decision is level 1, and so on. In the
-LCG mode of NuCS, the decision level is the depth of the choice-point stack (`choice_point_top`), because each level
+LCG mode of NuCS, the decision level is the depth of the choice-point stack (`choicepoint_top`), because each level
 has one choice point (4.2). This is not true in `BacktrackSolver`: there, an `EQ` decision inside the domain parks
-two alternatives and pushes two choice points (`branch` in `choice_points.py`).
+two alternatives and pushes two choice points (`branch` in `choicepoints.py`). The code uses only the name of the
+choice point: a row of the implication trail holds its `CHOICEPOINT`, the value of `choicepoint_top` when the row is
+written, and level `L` starts at the mark `CHOICEPOINT_ITRAIL_MARK` of choice point `L - 1` (3.3).
 
 The **implication trail** is the list of all the literals that became true, in the order in which they became true.
 Each entry records:
@@ -127,9 +132,9 @@ Each entry records:
 - its decision level,
 - its **reason**: a decision, a propagator, or a learned clause.
 
-NuCS already has a trail, but it is an *undo* trail. It records the old value of a memory cell, only the first time
-that the cell changes at a choice point. LCG needs every change, in order, with its reason. Part 3 adds a second
-trail for this.
+NuCS already has a trail, but it is an *undo* trail (`utrail_*` in the code). It records the old value of a memory cell,
+only the first time that the cell changes at a choice point. LCG needs every change, in order, with its reason. Part 3
+adds a second trail for this: the *implication trail* (`itrail_*`).
 
 ### 1.5 Explanations
 
@@ -266,7 +271,7 @@ Several decisions that NuCS made for other reasons fit LCG well:
 | propagators are pure functions on a gathered buffer | a propagator can be called again later on the domains of an earlier node, which is what a lazy explanation needs |
 | the failure weights in `weights.py`, with increment growth and rescale | the same mechanism gives the decay of the activities |
 | restarts (`restarts.py`) and the restart of the objective bound | CDCL needs restarts; they exist |
-| arrays that grow when full (`SOLVER_TRAIL_FULL`, `SOLVER_CHOICE_POINTS_FULL`) | the clause store and the new trail grow in the same way |
+| arrays that grow when full (`SOLVER_UTRAIL_FULL`, `SOLVER_CHOICEPOINTS_FULL`) | the clause store and the implication trail grow in the same way |
 | FlatZinc clauses are `SUM_GEQ_C`, `SUM_LEQ_C` or `LINEAR_GEQ_C` over 0/1 variables (`_post_clause`; `SUM_LEQ_C` when all the literals are negative) | the explanation of the linear propagators also explains all the clauses of a model |
 
 Two features need care. The design keeps the first out of the LCG mode; the second fits, for the reasons below:
@@ -274,7 +279,7 @@ Two features need care. The design keeps the first out of the LCG mode; the seco
 - **Custom consistency algorithms** (`register_consistency_algorithm`). The LCG mode needs its own propagation loop,
   which records reasons. A custom algorithm cannot record them.
 - **Tier B propagator state** (trailed semantic state). These are state cells that a propagator keeps up to date as
-  a function of the current domains, and that the engine puts on the trail. See
+  a function of the current domains, and that the engine puts on the undo trail. See
   [ARCHITECTURE.md](../../ARCHITECTURE.md#propagator-state-a-solver-owned-block-per-propagator). Six propagators use
   it: `lexleq`, `relation`, and `count_eq`, `count_eq_c`, `count_geq_c` and `count_leq_c` at an arity of
   `LIVE_SET_MIN_ARITY` or more. During conflict analysis, the block has the values of the current node, not of the
@@ -285,7 +290,7 @@ Two features need care. The design keeps the first out of the LCG mode; the seco
     variable left the live set, a tuple is dead, a prefix is fixed and equal. The domains only shrink along a path,
     so these facts are still true in the box at the time of the call.
   - **A call with the trailed prefix at zero is correct on any box.** Zero is the root value: the solver allocates
-    the block at zero, and `choice_point_init` clears it at each restart. A root call must be correct on any
+    the block at zero, and `choicepoint_init` clears it at each restart. A root call must be correct on any
     initial domains, and the box at `REASON_POS` is only another box. For `count_*` and `relation`, zero selects an
     explicit cold path that builds the live set again from the domains. For `lexleq`, `Q = R = 0` starts the
     automaton at position 0, as the first call does. The debug mode (7.3), the brute-force test (7.2) and an exact
@@ -295,9 +300,9 @@ Two features need care. The design keeps the first out of the LCG mode; the seco
 
 ### 3.1 A separate solver path
 
-The LCG mode is a separate solver class, `LcgSolver`, with its own compiled step (`run_search_loop_lcg`) and its own
+The LCG mode is a separate solver class, `LcgSolver`, with its own compiled step (`run_search_loop`) and its own
 propagation loop (`lcg_algorithm`). It shares the propagators, the heuristics, the state, the undo trail, the
-choice-point stack and the restarts with `BacktrackSolver`.
+choice-point stack and the restarts with `BacktrackSolver`, through their common base class `TreeSearchSolver`.
 
 Reasons:
 
@@ -340,10 +345,10 @@ The implication trail records each literal that becomes true on the current path
 
 | array | shape | dtype | holds |
 |---|---|---|---|
-| `lit_trail` | `(L, LIT_WIDTH)` | int32 | one row for each bound change: `[VAR_SIDE, VALUE, PREV, LEVEL, REASON_KIND, REASON_DATA, REASON_POS]` |
-| `lit_top` | `(1,)` | int32 | the number of rows in use |
-| `lit_last` | `(2 * domain_nb,)` | int32 | for each `var_side`, the row of its last change, `-1` when the bound has its root value |
-| `level_start` | `(H,)` | int32 | for each decision level, the first row of that level |
+| `itrail` | `(L, ITRAIL_WIDTH)` | int32 | one row for each bound change: `[VAR_SIDE, VALUE, PREV, CHOICEPOINT, REASON_KIND, REASON_DATA, REASON_POS, REASON_VAR_IDX]` |
+| `itrail_top` | `(1,)` | int32 | the number of rows in use |
+| `itrail_last` | `(2 * domain_nb,)` | int32 | for each `var_side`, the row of its last change, `-1` when the bound has its root value |
+| `choicepoints[:, CHOICEPOINT_ITRAIL_MARK]` | `(H,)` | int32 | for each choice point, the number of rows when it branched |
 
 Column meanings:
 
@@ -351,35 +356,44 @@ Column meanings:
   makes true every weaker literal on the same bound: after `[x >= 5]`, `[x >= 4]` is true too.
 - `PREV`: the row of the previous change of the same `var_side`, or `-1`. The rows of one bound make a chain. The
   value of a bound at an earlier row `t` is the value of the last row of the chain before `t`, or the root value.
-- `LEVEL`: the decision level of the row.
-- `REASON_KIND`, `REASON_DATA`, `REASON_POS`: see 3.4.
+- `CHOICEPOINT`: the value of `choicepoint_top` when the row is written, its decision level. The rows of choice
+  point `c` start at the mark of choice point `c - 1`, and at row 0 for `c = 0`.
+- `REASON_KIND`, `REASON_DATA`, `REASON_POS`, `REASON_VAR_IDX`: see 3.4.
 
 **The new trail is not the undo trail.** The undo trail skips a write to a cell that it already saved at the current
-choice point (the write barrier in `design/choice-points.md`). That is correct for an undo log, but conflict analysis needs
+choice point (the write barrier in `design/choicepoints.md`). That is correct for an undo log, but conflict analysis needs
 every change. The undo trail stays as it is, and restores `state` as before.
 
 **Writes.** Each call of `tighten_at` in the LCG loop adds one row for each bound that it moves: zero, one or two
 rows, because `tighten_at` writes `new_min` and `new_max` together. `update_domains` writes the final bounds of one
 propagator call, so a call that moves a bound several times internally adds only one row for it.
 
-**Backjumping to level `L`.** The solver pops the rows from `lit_top - 1` down to `level_start[L + 1]`. For each popped
-row, it sets `lit_last[VAR_SIDE] = PREV`. The cost is one step for each popped row, the same as for the undo trail.
+**Backjumping to level `L`.** The solver pops the rows from `itrail_top - 1` down to
+`choicepoints[L, CHOICEPOINT_ITRAIL_MARK]`, as it undoes the undo trail down to `CHOICEPOINT_UTRAIL_MARK` of the
+same row. For each popped row, it sets `itrail_last[VAR_SIDE] = PREV`. The cost is one step for each popped row, the same as for the
+undo trail.
 
-**Size.** The trail holds only the changes on the current path, so its size is bounded by the number of bound moves
-along one branch. It grows by doubling when full, as the undo trail does (a new status `SOLVER_LIT_TRAIL_FULL`).
+**Size.** The implication trail holds only the changes on the current path, so its size is bounded by the number of
+bound moves along one branch. It grows by doubling when full, as the undo trail does (a new status
+`SOLVER_ITRAIL_FULL`).
 
 ### 3.4 Reasons
 
-| `REASON_KIND` | `REASON_DATA` | `REASON_POS` | meaning |
-|---|---|---|---|
-| `REASON_DECISION` | — | — | a decision of the search |
-| `REASON_PROPAGATOR` | the propagator | the first row of the propagator call | a propagator made the change |
-| `REASON_CLAUSE` | the clause | — | a learned clause made the change |
-| `REASON_ROOT` | — | — | a fact that holds for the rest of the search, for example the bound of the best objective (4.7); never explained |
+| `REASON_KIND` | `REASON_DATA` | `REASON_POS` | `REASON_VAR_IDX` | meaning |
+|---|---|---|---|---|
+| `REASON_DECISION` | — | — | — | a decision of the search |
+| `REASON_PROPAGATOR` | the propagator | the first row of the propagator call | the index of the variable among the variables of the propagator | a propagator made the change |
+| `REASON_CLAUSE` | the clause | — | — | a learned clause made the change |
+| `REASON_ROOT` | — | — | — | a fact that holds for the rest of the search, for example the bound of the best objective (4.7); never explained |
 
 `REASON_POS` is what makes lazy explanations possible. To explain a change, the solver needs the bounds that the
 propagator *read* when it made the change. These are the bounds of its variables at row `REASON_POS`. The solver
 rebuilds them from the chains (`PREV`). It does not store a copy of the domains for each call.
+
+`REASON_VAR_IDX` is necessary because a propagator can have a variable twice. In magic_sequence, `count_eq` has `x[i]`
+in its list and as its count, and it can narrow one copy and not the other. The write-back puts the two copies into
+one variable, so `VAR_SIDE` does not tell which copy the call narrowed. An exact explanation needs it: the reason of
+`[x1 >= 1]` is not the same for `x1` as an element of the list and for `x1` as the count. (Added at step 7.)
 
 ### 3.5 The learned-clause store
 
@@ -418,7 +432,7 @@ clauses of a FlatZinc model are (`_post_clause`). For the learned clauses, the s
    each addition and each deletion would rebuild these tables and make the trigger lists longer, and the trigger
    lists are on the hottest path of the engine. The store grows and is compacted without a change to these tables.
 4. **No work on backtrack.** The two watches of a clause stay correct after a backtrack, so nothing goes on the
-   trail. A clause propagator with trailed state would put its state on the trail at each call.
+   trail. A clause propagator with trailed state would put its state on the undo trail at each call.
 5. **The weights of dom/wdeg.** The weights are kept for each propagator. With learned clauses as propagators, the
    failures of the clauses would go into dom/wdeg, and a variable would get more weight because it is in more
    learned clauses. The activities of 3.6 are kept separately for this reason.
@@ -447,8 +461,8 @@ not reset at a restart.
 
 `lcg_algorithm` is `bc_algorithm` with three changes:
 
-1. **Before the call of a propagator**, it keeps the current `lit_top` as the `REASON_POS` of the call.
-2. **In the write-back**, each moved bound adds a row to `lit_trail` with `REASON_PROPAGATOR`, the propagator and
+1. **Before the call of a propagator**, it keeps the current `itrail_top` as the `REASON_POS` of the call.
+2. **In the write-back**, each moved bound adds a row to `itrail` with `REASON_PROPAGATOR`, the propagator and
    the `REASON_POS`.
 3. **The clause queue runs first.** Each moved bound whose `watch_head` is not empty goes into a clause queue. Before
    the loop pops the next propagator, it empties the clause queue: it visits the watches of each queued bound and
@@ -456,7 +470,7 @@ not reset at a restart.
    as the SAT part has in LCG solvers ([feydy2009]).
 
 When a propagator returns `PROP_INCONSISTENCY`, the loop returns the conflict with the failed propagator and the
-current `lit_top`, so that the analysis can ask for the explanation of the failure.
+current `itrail_top`, so that the analysis can ask for the explanation of the failure.
 
 ### 4.2 Decisions
 
@@ -469,22 +483,30 @@ Their results map to literals:
 | `GT` at `v` | `[x >= v + 1]` |
 | `EQ` at `v`, `v` = min | `[x <= v]` |
 | `EQ` at `v`, `v` = max | `[x >= v]` |
-| `EQ` at `v`, other `v` | `[x >= v]` on one level, then `[x <= v]` on the next level |
+| `EQ` at `v`, other `v` | `[x <= v]` on one level, then `[x >= v]` on the next level |
 
-The choice point keeps its trail mark (`CHOICE_POINT_TRAIL_MARK`). It parks **no alternative**: the learned clause
+The choice point keeps its undo trail mark (`CHOICEPOINT_UTRAIL_MARK`). It parks **no alternative**: the learned clause
 replaces the refutation (1.7).
 
-**The second literal of an interior `EQ`.** The propagation of `[x >= v]` can change `x` before the solver opens the
+**The second literal of an interior `EQ`.** The propagation of `[x <= v]` can change `x` before the solver opens the
 next level. Then:
 
-- if `[x <= v]` is already true (`x` is fixed to `v`), the solver opens no second level;
-- if `[x <= v]` is false (the propagation raised `x.min` above `v`), the solver opens no second level, and asks the
+- if `[x >= v]` is already true (`x` is fixed to `v`), the solver opens no second level;
+- if `[x >= v]` is false (the propagation lowered `x.max` below `v`), the solver opens no second level, and asks the
   heuristics for a new decision.
 
-**The refutation of an interior `EQ`.** A conflict under the second level, with the decision `[x <= v]` as UIP,
-gives a clause that asserts `[x >= v + 1]` at the first level. The other side, `[x <= v - 1]`, is not a single bound
-literal, so no clause asserts it at once. The search stays complete: a later conflict refutes `[x >= v]` itself.
-But the search does not visit the values in the same order as `BacktrackSolver` (question 3 of 8.2).
+The solver does not apply `x = v` at once and park the two alternatives, as `branch` of `BacktrackSolver` does: the
+first level must end at a fixpoint of the propagation of `[x <= v]`, or a conflict that needs only `[x <= v]` has no
+literal at the level of the conflict, and the 1UIP analysis finds no UIP (4.5). This also lets one failure of
+`[x <= v]` refute `v` and the values below `v` (on tsp at step 6: 45,509 failures instead of 54,924).
+
+**The order of the two literals.** `[x <= v]` comes first so that the search visits the values in the order of
+`BacktrackSolver`: `v`, then the values below `v`, then the values above `v`. With the parked alternatives (step 6),
+a backtrack to the second level applies `[x <= v - 1]`, and a backtrack to the first level applies `[x >= v + 1]`.
+With the learned clauses (step 10), a conflict under the second level, with the decision `[x >= v]` as UIP, gives a
+clause that asserts `[x <= v - 1]` at the first level, so the values below `v` come next there too. The values above
+`v` come when a later conflict refutes `[x <= v]` itself, so the search stays complete. (The first version of this
+design put `[x >= v]` first: the search then visits the values above `v` before the values below it.)
 
 ### 4.3 Explanations
 
@@ -525,7 +547,7 @@ analysis visits.
 
 A walk on the `PREV` chains to rebuild these bounds costs the length of each chain, for each variable of the
 propagator. For a large linear constraint, or for the objective, whose chain is long, the analysis can then cost
-more than the search. The analysis walks `lit_trail` down (4.5), so a cheaper method is possible:
+more than the search. The analysis walks `itrail` down (4.5), so a cheaper method is possible:
 
 - keep a scratch copy of the bounds, equal to `state` when the analysis starts;
 - each time that the walk passes a row, write back into the copy the value that the bound had before the row: the
@@ -533,8 +555,8 @@ more than the search. The analysis walks `lit_trail` down (4.5), so a cheaper me
 - to explain a row, also undo in the copy the rows of the same call that are below it (they start at its
   `REASON_POS`), call `explain`, then apply these rows again.
 
-Each row of the trail then costs O(1) for the walk, and each explanation costs the number of rows of its own call.
-The first version can use the chains. Change to the scratch copy if the analysis time shows the need.
+Each row of the implication trail then costs O(1) for the walk, and each explanation costs the number of rows of its own
+call. The first version can use the chains. Change to the scratch copy if the analysis time shows the need.
 
 ### 4.4 Clause propagation
 
@@ -557,7 +579,7 @@ an assertion level.
 analyze(nogood):
     level = current decision level
     for each literal in nogood: add(literal)
-    walk the rows of lit_trail from lit_top - 1 down:
+    walk the rows of itrail from itrail_top - 1 down:
         if the row makes true a marked literal of the current level:
             if it is the only marked literal of the current level that is left:
                 the first UIP is this literal; stop
@@ -590,11 +612,11 @@ The analysis also bumps the activity of every variable that it marks (Part 6).
 
 After the analysis, with assertion level `L`:
 
-1. `trail_undo` to `choice_point_stk[L, CHOICE_POINT_TRAIL_MARK]`: the trail size just before the decision of
+1. `utrail_undo` to `choicepoints[L, CHOICEPOINT_UTRAIL_MARK]`: the undo trail size just before the decision of
    level `L + 1`. This restores `state` to the end of level `L`, as a backtrack does. The mark of the choice point
    that opened level `L` (index `L - 1`) is one level too low: it would also undo the decision of level `L`.
-2. Pop the rows of `lit_trail` above `level_start[L + 1]`, and fix `lit_last` (3.3).
-3. Set `choice_point_top` to `L`.
+2. Pop the rows of `itrail` down to `choicepoints[L, CHOICEPOINT_ITRAIL_MARK]`, and fix `itrail_last` (3.3).
+3. Set `choicepoint_top` to `L`.
 4. Add the learned clause to the store, with watches on the asserting literal and on the literal of level `L`. A
    clause with one literal goes into `unit_lits` instead (4.7).
 5. Set the asserting literal (the negation of the UIP) with `tighten_at`, with `REASON_CLAUSE`.
@@ -607,7 +629,7 @@ If the learned clause is empty, or its asserting literal fails at level 0, the p
 - **Optimization.** When a solution with objective `f` is found (minimization), the bound `[obj <= f - 1]` holds for
   the rest of the search. It cannot be a row of level 0. A write made deep in the tree is on the undo trail, and a
   backtrack removes it. For this reason, `backtrack` today applies the bound again at each choice point that the
-  search resumes (`tighten_objective` in `choice_points.py`). The LCG mode resumes no alternative. Thus it applies
+  search resumes (`tighten_objective` in `choicepoints.py`). The LCG mode resumes no alternative. Thus it applies
   the bound again after each backjump, and after each restart (as `_tighten_objective_at_root` does). Each
   application adds a row with `REASON_ROOT` at the current level. The analysis drops such a row as it drops a
   level-0 fact (4.5), and a backjump below it removes it.
@@ -620,7 +642,7 @@ If the learned clause is empty, or its asserting literal fails at level 0, the p
   analyses it as a conflict. Enumeration stays complete, and no solution comes twice. Restarts stop at the first
   solution, as today.
 - **Restarts.** A restart is a backjump to level 0. The learned clauses and the activities stay. But the level-0
-  facts that the search learned do not stay. `_reset_to_root` (`backtrack_solver.py`) calls `choice_point_init`,
+  facts that the search learned do not stay. `_reset_to_root` (`tree_search_solver.py`) calls `choicepoint_init`,
   which writes `problem.initial_domains` back into `state`. The propagation at the root finds again the facts that
   come from the propagators and from the clauses with two or more literals. It does not find the clauses with one
   literal: they have no second watch, and nothing wakes them. Thus the LCG mode keeps them in `unit_lits` (3.5), and
@@ -693,8 +715,8 @@ variables. For a clause, the explanation is exactly the other literals of the cl
 **`LINEAR_EQ_C` and the propagators that loop inside one call.** `LINEAR_EQ_C` is two inequalities, but its
 propagator does not apply them one after the other. It loops inside one call (`linear_eq_c_propagator.py`) until
 neither side changes a bound. Thus it can raise `min_k` with the `>=` side, and then use the new `min_k` in the
-`<=` side to lower `max_j`. The trail gets one row for each bound at the end of the call, and an explanation can
-use only the bounds at `REASON_POS` (4.3). The new `min_k` is not true at `REASON_POS`. Thus the rule above, with
+`<=` side to lower `max_j`. The implication trail gets one row for each bound at the end of the call, and an explanation
+can use only the bounds at `REASON_POS` (4.3). The new `min_k` is not true at `REASON_POS`. Thus the rule above, with
 one bound for each other term, is **not correct** for `LINEAR_EQ_C`: the explanation of `[x_j <= v]` must also
 contain the literals that raised `min_k`, which are upper bounds of the other terms. There are two options:
 
@@ -796,9 +818,9 @@ that the earlier descents learned. `fzn-nucs -f` uses dom/wdeg, last-conflict an
 
 At each restart, if the store holds more than a limit of clauses, the solver deletes half of the clauses with the
 highest LBD. The limit grows slowly with the number of conflicts ([glucose]). SAT solvers keep the clauses that are
-the reason of a row of the trail. At a restart, only the rows of level 0 are left, and the analysis never explains
-them (4.5). Thus no clause is a reason at a restart, and the reduction needs no such test. A reduction at another
-time would need it. The first version can keep all the clauses, and add the reduction when memory or propagation
+the reason of a row of the implication trail. At a restart, only the rows of level 0 are left, and the analysis never
+explains them (4.5). Thus no clause is a reason at a restart, and the reduction needs no such test. A reduction at
+another time would need it. The first version can keep all the clauses, and add the reduction when memory or propagation
 time shows the need.
 
 ## Part 7 — Stages, tests and measurements
@@ -809,8 +831,8 @@ The steps below divide the stages of 7.1 into commits or PRs. Each step has a ch
 step starts. `BacktrackSolver` does not change at any step.
 
 Steps 4 to 9 do not change the search. While the tree stays the same, the best test of a new mode is that it gives
-*the same* counters as the old mode. Step 10 is the first step that changes the tree. At that step, the trail, the
-explanations, the analysis and the store already have their tests.
+*the same* counters as the old mode. Step 10 is the first step that changes the tree. At that step, the implication
+trail, the explanations, the analysis and the store already have their tests.
 
 #### Phase 0 — Preparation
 
@@ -820,31 +842,127 @@ explanations, the analysis and the store already have their tests.
    `minizinc --solver nucs`, so a registration that points to an old install measures old code.
 2. **Record a baseline.** Run the current `BacktrackSolver` on the 16 medium instances and on the examples. Record
    the nodes, the time and the results. Choose a control model for the A/B runs (7.4).
+   *Done on 2026-11-03, at commit 613c74d:* the files and the control are in 7.4.
 
 #### Phase 1 — Record the reasons, with the search unchanged
 
 3. **Add the literals module.** It holds the encoding `(var_side, value)`, the negation, and the tests "true" and
    "false" on `state` (3.2).
    *Check:* unit tests.
-4. **Add an `LcgSolver` that is a copy of `BacktrackSolver`.** It gets its own `run_search_loop_lcg` and its own
+   *Done on 2026-11-03:* `nucs/solvers/lcg/literals.py` (`lit_negate`, `lit_is_true`, `lit_is_false`, all
+   `inline="always"`, because `lcg_algorithm` will be compiled with `_nrt=False` as `bc_algorithm` is) and
+   `tests/solvers/lcg/test_literals.py` (curated cases and a brute-force test on all the boxes in `[-3, 3]`).
+4. **Add an `LcgSolver` that is a copy of `BacktrackSolver`.** It gets its own `run_search_loop` and its own
    `lcg_algorithm`, which are exact copies of the current code at this step.
    *Check:* on all the examples, every counter is the same as with `BacktrackSolver`. Each later step then shows as
    a small diff against this copy.
-5. **Add the implication trail** (3.3, 3.4). The arrays `lit_trail`, `lit_top`, `lit_last` and `level_start`. The
-   status `SOLVER_LIT_TRAIL_FULL`, with the array doubled when full. The write-back of `lcg_algorithm`, the
+   *Done on 2026-11-04:* `TreeSearchSolver` (`nucs/solvers/tree_search_solver.py`) is the new base class of
+   `BacktrackSolver` and `LcgSolver` (`nucs/solvers/lcg/lcg_solver.py`). It holds the Python part of the search: the
+   state, the restarts, the optimization modes, the growth of the arrays and the time accounting. Its only abstract
+   method is `_run_search_loop`, and each subclass gives its compiled loop there. `BacktrackSolver` adds only its
+   consistency algorithm. `LcgSolver` adds nothing else: it has no `consistency_algorithm` parameter, because
+   `run_search_loop` calls `lcg_algorithm` directly, not through the table of consistency algorithms. Thus the rule
+   of step 7 that `LcgSolver` takes no custom consistency algorithm is already true. `lcg_algorithm` is not registered
+   as a consistency algorithm: from step 5, its signature is not `SIGN_CONSISTENCY_ALG`. A later step that must change
+   the shared Python part adds a hook to `TreeSearchSolver` (for example, the growth of a new array at step 5), and a
+   subclass never overrides a concrete method. The compiled code of `BacktrackSolver` does not change. All the LCG code
+   is in the subpackage `nucs/solvers/lcg/`, and its tests are in `tests/solvers/lcg/`: no other module of `nucs`
+   imports it, so `BacktrackSolver` cannot depend on it. The modules of `BacktrackSolver` are in the subpackage
+   `nucs/solvers/backtrack/`, and what the two solvers share is at the top of `nucs/solvers/`: `tree_search_solver.py`
+   (with the statuses and the search control) and `propagation_steps.py` (the steps of one propagator call,
+   which `lcg_algorithm` took from `bc_algorithm.py`). The move of the modules of `BacktrackSolver` changes their import
+   paths: it is a major version. On the 22 examples at their default arguments (golomb with
+   `--consistency-algorithm BC`), every counter is the same as with `BacktrackSolver`, which itself gives the counters
+   of the baseline (7.4). magic_square is the exception that 7.4 expects: its unseeded `RANDOM_VALUE` changes the tree,
+   and only its solution count is the same.
+5. **Add the implication trail** (3.3, 3.4). The arrays `itrail`, `itrail_top`, `itrail_last` and the first row of each level. The
+   status `SOLVER_ITRAIL_FULL`, with the array doubled when full. The write-back of `lcg_algorithm`, the
    decisions and the objective bound write the rows, and a backtrack pops them. The search still uses the parked
    alternatives.
-   *Check:* a debug function replays `lit_trail` from the root and compares the result with `state` at each node.
+   *Check:* a debug function replays `itrail` from the root and compares the result with `state` at each node.
    The counters stay the same as in step 4. Measure the drop in nodes per second.
+   *Done on 2026-11-06:* `nucs/solvers/lcg/implication_trail.py` holds the rows, `itrail_push`, `itrail_pop`,
+   `itrail_root` and the replay check `itrail_check`. The level of a row is `choicepoint_top`, so a ternary
+   decision has an empty first level, and `level_start` has one cell for each row of the stack of choice points.
+   (On 2026-11-07, `level_start` became the column `CHOICEPOINT_ITRAIL_MARK` of the stack of choice points, and
+   `ITRAIL_LEVEL` became `ITRAIL_CHOICEPOINT`, so that the code has one name for a level; the names of the two trails
+   became `utrail_*` and `itrail_*`.)
+   `lcg_algorithm` writes the rows in `update_domains_with_reasons`, a copy of `update_domains`. The decision rows are
+   written after `branch`, which does not change. `LcgSolver` has its own copy of `backtrack`, which pops the rows and
+   gives the parked alternative `REASON_DECISION` and the objective bound `REASON_ROOT`. Two changes to
+   `TreeSearchSolver`: `_backtrack` is abstract (each solver gives its own), and the hook `_record_root` runs after
+   each return to the root and after the objective bound at the root. `LcgSolver` grows `itrail` itself, in
+   `_run_search_loop`: no propagation step has a fixed number of rows, so `lcg_algorithm` checks the room before each
+   propagator call (2 × arity, plus 2 for the next decision or backtrack), returns `PROBLEM_ITRAIL_FULL` with the
+   propagator still in the queue, and the next call continues the propagation. `LcgSolver(debug=True)` runs the replay
+   check at each node. The tests run it on the five cases of the step-4 test, on growth of the implication trail and of
+   the stack, and on a hand-built implication trail with one mutation for each rule.
+   The debug check found a bug at once: `inverse` made a domain larger instead of failing (fixed in the same change;
+   see the CHANGELOG). The fix changes the trees of tsp (35,269 choices instead of 45,208) and quasigroup (301 instead
+   of 201), for `BacktrackSolver` too. Thus these two baselines of 7.4 are now those of the fixed build. Without the
+   fix, both solvers still give the baseline counters.
+   On the 22 examples, every counter of `LcgSolver` is the same as with `BacktrackSolver` (magic_square excepted, 7.4).
+   Nodes per second, `LcgSolver` against `BacktrackSolver` on the same build, median of 7 runs in alternate order with
+   a random padding of the environment: tsp 271 / 267 ms (1.015), langford 252 / 250 ms (1.008), golomb (BC) 256 /
+   252 ms (1.016), all with the same trees. The drop is under 2%, below the 5% floor of `design/benchmarking.md`.
 6. **Add the decisions as literals** (4.2). Each level has one literal and one choice point. An interior `EQ` uses
    two levels, with the rules of 4.2. The alternatives stay parked.
    *Check:* the solution counts and the optima are the same as with `BacktrackSolver`.
+   *Done on 2026-11-07:* `nucs/solvers/lcg/decisions.py` holds `decision_literal` (the map of 4.2), `decide`
+   (one literal on a new choice point, which parks the negation of the literal) and `take_pending_lit`. The second
+   literal of an interior `EQ` waits in the array `pending_lit` of `LcgSolver`, which survives the returns of the
+   compiled loop to Python: `decision_literal` writes it, `take_pending_lit` reads it, and a backtrack and a return
+   to the root clear it. `branch` does not change: only
+   `BacktrackSolver` uses it now. The order is `[x <= v]` first (4.2), not the order of the first version of 4.2.
+   `STATS_IDX_SOLVER_CHOICE_NB` counts the decision literals. On the 22 examples, the answers are the same as with
+   `BacktrackSolver`, and every counter is the same on the 20 examples that make no interior `EQ` decision.
+   magic_square (unseeded `RANDOM_VALUE`) and tsp (`MIN_COST`) make such decisions. On tsp (gr17), the optimum and
+   the 53 improving solutions are the same, with 45,563 choices instead of 35,269, 45,563 backtracks instead of
+   54,978 (each choice is now binary), 45,509 failures instead of 54,924 (a failure of `[x <= v]` also refutes the
+   values below `v`), and 1% more propagator calls.
 7. **Add the explanations** (4.3). The signature `SIGN_EXPLAIN`, and the optional `explain` argument of
    `register_propagator`. `explain_naive`, and the rebuild of the bounds at `REASON_POS` from the chains.
-   `LcgSolver` refuses the custom consistency algorithms. It accepts the Tier B propagators (Part 2): the debug mode
+   `LcgSolver` takes no custom consistency algorithm (true since step 4). It accepts the Tier B propagators (Part 2): the debug mode
    and the tests call them on a scratch copy of the block, with the trailed prefix at zero.
    *Check:* the brute-force explanation test of 7.2, run on `explain_naive` for every propagator. The debug mode of
    7.3.
+   *Done on 2026-11-12:* `SIGN_EXPLAIN`, `EXPLAIN_FCTS`, `call_explain` and the parameter `explain_fct` of
+   `register_propagator` are in `nucs/propagators/propagators.py`; `explain_naive` is in
+   `nucs/propagators/explanations.py`, because no module outside `nucs/solvers/lcg/` can import the LCG code.
+   `nucs/solvers/lcg/explanations.py` holds `bound_at` (the bound at a row, from the chains), `explain_propagator`
+   (the bounds at `REASON_POS`, then the call of `explain`), `explanation_literals` and the debug check
+   `check_explanations`. Four points are different from 4.3 and 7.3:
+   - `explain_naive` writes the two bounds of each variable, and `explanation_literals` removes the literals that are
+     true at the root, for each explain function. Thus `SIGN_EXPLAIN` needs no root domains.
+   - `lcg_algorithm` writes the propagator that failed into `failed_propagator` (4.1), so that the debug mode can
+     check the explanation of each failure. The step adds no other work to the propagation loop.
+   - A propagator can have a variable twice: in magic_sequence, `count_eq` has `x[i]` in its list and as its
+     count. The two copies are one variable, so the check intersects the copies after each call and enumerates only
+     the tuples in which the copies are equal. Without this, the debug mode reported a correct explanation as
+     suspicious on magic_sequence(16). Each row also records the index of the copy that the call narrowed
+     (`ITRAIL_REASON_VAR_IDX`, 3.4), and `explain` gets this index; the debug mode checks that it names the variable of
+     the row.
+     **Fixed in the engine of both solvers (2026-11-12, #210 and #211 on `main`):** the write-back did not intersect
+     the copies, and the triggers registered the watcher of the first copy only. When the propagator narrowed the
+     copies to bounds with an empty intersection, it did not fail, and a wrong solution could come out (`count_eq`
+     on `[x0, x1, x2, x1]`, x0 = 0, x1 in [0, 1], x2 = 1 gave (0, 0, 1)). Now `Problem.init` marks these propagators
+     (`INFO_COPIES` of `propagator_infos`, since #213), their write-back intersects the copies and fails on an empty
+     intersection (`update_domains_of_copies`; in `lcg_algorithm`, `update_domains_of_copies_with_reasons`, which
+     writes the rows),
+     and a variable wakes the propagator on the watchers of all its copies. A write-back of copies can fail after
+     it wrote rows, so `failed_propagator` also holds the position of the call (`FAILED_POS`), and the failure is
+     explained with the bounds at that position.
+   - The debug mode checks two literals for each row: the literal of the row, and the weakest literal that the row
+     sets (the analysis can ask for it). It stops the search at an explanation that is wrong or not true at
+     `REASON_POS`, and also at a suspicious one: in the tests, a suspicious explanation must be looked at.
+   The brute-force test of 7.2 is in `PropagatorTest.assert_sound_against_brute_force`, so it runs in the 13 test
+   files that use this helper; the 15 other brute-force tests have their own loops, and do not check the
+   explanations yet. With `explain_naive`, this is not a gap: the naive explanation is correct when the propagator is
+   sound, and these tests check that. Step 15 gives each exact explanation its own brute-force test. The helper also
+   calls the propagator on a sub-box of the test box: on the test box,
+   the first call reads the root box, and any explanation is then correct. With an explain function that writes
+   nothing, 17 of the 86 brute-force tests fail. The debug mode runs in each test of `LcgSolver` with
+   `debug=True`, and on magic_sequence(16) for the Tier B state of `count_eq`. The counters do not change.
 
 #### Phase 2 — Learn the clauses (stage 1)
 
@@ -864,7 +982,7 @@ explanations, the analysis and the store already have their tests.
     *Check:* the solution counts and the optima are the same as with `BacktrackSolver`, with the JIT on and with the
     JIT off. The learned clauses are valid.
 11. **Add enumeration, optimization and restarts** (4.7). Enumeration: the blocking nogoods. Optimization: the
-    objective bound is applied again after each backjump. Restarts: `lit_trail` is reset, and `unit_lits` is applied
+    objective bound is applied again after each backjump. Restarts: `itrail` is reset, and `unit_lits` is applied
     again after each `_reset_to_root`.
     *Check:* the clause test of 7.2, with its three cases. The examples with restarts.
 12. **Add the statistics.** The conflicts, the mean length of the learned clauses, the mean LBD, and, for each
@@ -914,7 +1032,7 @@ instances (120 s), with the same harness as the benchmark above (`rerun_arm.py`)
 
 | stage | content | gate |
 |---|---|---|
-| 1. Infrastructure | `LcgSolver`, `lit_trail` and reasons, decisions as literals, fallback explanations only, 1UIP analysis, backjumping, clause store with two watched literals. The search heuristics stay as they are. | all the tests of 7.2 pass; on most of the instances that both runs solve, the search tree is smaller than without LCG; on the other instances, the best objective or the time to the first solution is better; the number of nodes per second stays above half of the current rate |
+| 1. Infrastructure | `LcgSolver`, `itrail` and reasons, decisions as literals, fallback explanations only, 1UIP analysis, backjumping, clause store with two watched literals. The search heuristics stay as they are. | all the tests of 7.2 pass; on most of the instances that both runs solve, the search tree is smaller than without LCG; on the other instances, the best objective or the time to the first solution is better; the number of nodes per second stays above half of the current rate |
 | 2. Exact explanations | the propagators of Part 5, in the order of the table | the learned clauses are shorter (mean length); the results move toward Chuffed with annotations (8 / 4 / 4 against NuCS) |
 | 3. Search | activity, saved values, restarts; `fzn-nucs -f` in the LCG mode | the results move toward Chuffed `-f` (13 / 1 / 2 against NuCS) |
 | 4. Scale | clause database reduction; explanations for `circuit_chains`, `disjunctive`, `cumulative` | no loss on atp-stage2 and tdtsp; the memory stays bounded on long runs |
@@ -967,10 +1085,62 @@ The tests run with this mode on. The production runs run with it off.
 Follow the method of the earlier performance work:
 
 - Measure the solve time and the wall time separately (the Numba compile cost is per process).
-- Use a control model that the change cannot affect. The order of runs moves the results by about 5%.
+- Use `BacktrackSolver` on the same instance as the control (see below). The order of runs moves the results by
+  about 5%.
 - Count the nodes, the conflicts, the mean length of the learned clauses and the mean LBD. The time alone does not
   show why a stage helps or not.
 - Compare with Chuffed with the same flags (`MZN_SOLVER_PATH` must point to the solvers of the MiniZinc IDE bundle).
+
+**The control.** Rule 5 of `design/benchmarking.md` asks for a control model that the change cannot affect, and says
+that no model is safe for a change to the engine. LCG is a change to the engine, but `BacktrackSolver` does not
+change at any step of 7.0. Thus the control is the same instance, solved by `BacktrackSolver`, in the same session,
+with the two solvers in alternate order:
+
+```
+BacktrackSolver  instance    control
+LcgSolver        instance    subject
+LcgSolver        instance    subject
+BacktrackSolver  instance    control
+```
+
+- **The same shape.** The control has the same propagators, domains and memory use as the subject. A different
+  model can drift in a different way, for example under cache pressure. The same instance cannot.
+- **The ratio is the result.** The gates of 7.1 compare LCG with `BacktrackSolver` (for example, the nodes per
+  second). When the two run in the same session, the drift of the machine goes out of the ratio. If the control moves
+  as much as the subject between two builds, discard the comparison (rule 6 of `design/benchmarking.md`).
+
+Some steps change code that the two solvers share: for example, step 7 adds `SIGN_EXPLAIN` and the `explain` argument
+of `register_propagator`. At these steps, the control is also a regression test:
+
+- Its counters must be *the same* as in the baseline of step 2. The counters do not change from run to run: the
+  baseline gave the same choice counts as the run of 2026-09-19 on the two medium instances whose search ends
+  (atp-stage2: 8,775,827; tdtsp: 2,109,982).
+- Its time must stay inside the drift of the order of runs. If it moves more, the shared change has a cost for
+  `BacktrackSolver`, which stays the default solver.
+- Clear the Numba cache before such a run. The cache keys on the date of the file of the function only (rule 4 of
+  `design/benchmarking.md`), so a stale cache can show an unchanged control.
+
+**The baseline of step 2** (commit 613c74d, 2026-11-03). The files are in `~/dev/mzn-challenge/2026/`:
+
+| file | content |
+|---|---|
+| `results_medium_nucs_613c74d.csv`, `stats_medium_nucs_613c74d.json` | the 16 medium instances, 120 s, annotated search: the reference of gates 1 and 2 |
+| `results_medium_nucs_613c74d_f.csv`, `stats_medium_nucs_613c74d_f.json` | the same with `-f`: the reference of gate 3 |
+| `baseline_examples_613c74d.jsonl` | all the counters of the 22 examples at their default arguments |
+| `baseline_arm.py`, `baseline_examples.py` | the scripts that wrote them |
+
+- `baseline_arm.py` calls `rerun_arm.py` and adds a tag to the names of the files. Without flags, `rerun_arm.py`
+  writes over `results_medium_nucs.csv`, the run of 2026-09-19.
+- bibd has no default arguments: the baseline uses the instance of the README (`-v 8 -b 14 -r 7 -k 4 -l 3
+  --find-all`, 92 solutions, 712 choices).
+- magic_square uses `RANDOM_VALUE` with no seed: its counters change from run to run. Compare only its solution
+  count.
+- Most of the examples end in less than 1 ms. They are good for the checks of equal counters (steps 4 to 6), but not
+  to measure the nodes per second (step 5): for that, use tsp (45,208 choices; 35,269 since the `inverse` fix of
+  step 5), langford (18,632), golomb (11,241 with its own consistency algorithm, 18,986 with `--consistency-algorithm
+  BC`, which `LcgSolver` needs) and the medium instances.
+- In the annotated arm, 11 of the 16 medium instances stop at the time limit. For them, gate 1 compares the best
+  objective, not the size of the tree. Only atp-stage2, tdtsp and filters end their search.
 
 ## Part 8 — Risks and open questions
 
@@ -998,8 +1168,9 @@ The decisions below were taken on 2026-11-02. Only question 2 is still open.
 3. **`EQ` decisions as two levels** (4.2). Chuffed uses equality literals for this. Two bound literals on two levels
    is correct, but it doubles the levels for value-by-value searches. Also, a learned clause can refute only one
    side of `x = v` at once (4.2), so the search visits the values in a different order.
-   **Decision:** stage 1 uses two levels. Gate 1 measures sdn-chain and mcm, the value-by-value searches, and
-   compares the levels and the conflicts with Chuffed. The design changes only if they show a problem.
+   **Decision:** stage 1 uses two levels, `[x <= v]` first, which keeps the order of the values of `BacktrackSolver`
+   (4.2). Gate 1 measures sdn-chain and mcm, the value-by-value searches, and compares the levels and the conflicts
+   with Chuffed. The design changes only if they show a problem.
 4. **`regular`: explanation or decomposition?** (5.3).
    **Decision:** the fallback explanation first. Stage 2 measures nonogram. If its clauses stay long, compare the
    MDD-style explanation ([gange-mdd]) with a decomposition into clauses at model build.
@@ -1103,7 +1274,7 @@ A shorter student lecture that goes from CP to SAT to LCG: [Lal, *From CP to SAT
 | CDCL | conflict-driven clause learning, the algorithm of modern SAT solvers |
 | clause | a disjunction of literals |
 | conflict | a failure found by a propagator or by a clause |
-| decision level | the number of decisions on the current path; 0 is the root |
+| decision level | the number of decisions on the current path; 0 is the root. The code calls it the choice point (`choicepoint_top`) |
 | explanation | a set of true literals that force a literal through one constraint |
 | first UIP (1UIP) | the literal of the current level, closest to the conflict, through which all the paths from the decision to the conflict go |
 | implication trail | the ordered list of the literals that became true, with their levels and reasons |

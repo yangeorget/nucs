@@ -17,7 +17,7 @@ import pytest
 
 from nucs.examples.alphanumeric.alphanumeric_problem import AlphanumericProblem
 from nucs.heuristics.heuristics import VAR_HEURISTIC_SMALLEST_DOMAIN
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 from nucs.statistics import STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB
 

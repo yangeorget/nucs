@@ -39,16 +39,16 @@ Produces the following output:
    [ 2026-09-30 21:51:36,753 | MainProcess | INFO ] nucs.solvers.solver.__init__ - Initializing Solver
    [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 12 variables, 12 of them unbound
    [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 3 propagators: 3 ALLDIFFERENT
-   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses search 1 on variables 0..11, variable heuristic FIRST_NOT_INSTANTIATED and domain heuristic MIN_VALUE
-   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm BC
-   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses no restarts
-   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses last-conflict: no
-   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses a weight decay of 1.0
-   [ 2026-09-30 21:51:36,800 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stack of choice points starts at 8192 rows and grows when it runs out
-   [ 2026-09-30 21:51:36,800 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The trail starts at 65536 entries and grows when it runs out
+   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - BacktrackSolver uses search 1 on variables 0..11, variable heuristic FIRST_NOT_INSTANTIATED and domain heuristic MIN_VALUE
+   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - BacktrackSolver uses no restarts
+   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - BacktrackSolver uses last-conflict: no
+   [ 2026-09-30 21:51:36,799 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - BacktrackSolver uses a weight decay of 1.0
+   [ 2026-09-30 21:51:36,800 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - The stack of choice points starts at 8192 rows and grows when it runs out
+   [ 2026-09-30 21:51:36,800 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - The undo trail starts at 65536 entries and grows when it runs out
+   [ 2026-09-30 21:51:36,800 | MainProcess | INFO ] nucs.solvers.backtrack.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm BC
    [ 2026-09-30 21:51:36,809 | MainProcess | INFO ] nucs.solvers.solver.find_all - Returning all solutions
    [ 2026-09-30 21:51:36,809 | MainProcess | INFO ] nucs.solvers.solver.solve_all - Iterating over the solutions
-   [ 2026-09-30 21:51:36,809 | MainProcess | INFO ] nucs.solvers.backtrack_solver.solve - Solving and iterating over the solutions, with no timeout
+   [ 2026-09-30 21:51:36,809 | MainProcess | INFO ] nucs.solvers.tree_search_solver.solve - Solving and iterating over the solutions, with no timeout
    {
        'ALG_BC_NB': 262011,
        'PROPAGATOR_ENTAILMENT_NB': 39047,
@@ -81,25 +81,25 @@ Produces the following output:
    [ 2026-09-30 21:51:38,022 | MainProcess | INFO ] nucs.solvers.solver.__init__ - Initializing Solver
    [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 45 variables, 45 of them unbound
    [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.problems.problem.init - Problem has 82 propagators: 1 ALLDIFFERENT, 45 LEQ_C, 36 SUM_EQ
-   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses search 1 on variables 0..44, variable heuristic FIRST_NOT_INSTANTIATED and domain heuristic MIN_VALUE
-   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm GOLOMB
-   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses no restarts
-   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses last-conflict: no
-   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - BacktrackSolver uses a weight decay of 1.0
-   [ 2026-09-30 21:51:38,029 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The stack of choice points starts at 8192 rows and grows when it runs out
-   [ 2026-09-30 21:51:38,029 | MainProcess | INFO ] nucs.solvers.backtrack_solver.__init__ - The trail starts at 65536 entries and grows when it runs out
+   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - BacktrackSolver uses search 1 on variables 0..44, variable heuristic FIRST_NOT_INSTANTIATED and domain heuristic MIN_VALUE
+   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - BacktrackSolver uses no restarts
+   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - BacktrackSolver uses last-conflict: no
+   [ 2026-09-30 21:51:38,028 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - BacktrackSolver uses a weight decay of 1.0
+   [ 2026-09-30 21:51:38,029 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - The stack of choice points starts at 8192 rows and grows when it runs out
+   [ 2026-09-30 21:51:38,029 | MainProcess | INFO ] nucs.solvers.tree_search_solver.__init__ - The undo trail starts at 65536 entries and grows when it runs out
+   [ 2026-09-30 21:51:38,029 | MainProcess | INFO ] nucs.solvers.backtrack.backtrack_solver.__init__ - BacktrackSolver uses consistency algorithm GOLOMB
    [ 2026-09-30 21:51:38,039 | MainProcess | INFO ] nucs.solvers.solver.find_best - Returning the optimal solution
-   [ 2026-09-30 21:51:38,039 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Optimizing and iterating over the solutions: minimizing variable 8 in RESET mode, with no timeout
-   [ 2026-09-30 21:51:38,043 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 80
-   [ 2026-09-30 21:51:38,044 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 75
-   [ 2026-09-30 21:51:38,044 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 73
-   [ 2026-09-30 21:51:38,045 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 72
-   [ 2026-09-30 21:51:38,045 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 70
-   [ 2026-09-30 21:51:38,045 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 68
-   [ 2026-09-30 21:51:38,046 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 66
-   [ 2026-09-30 21:51:38,047 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 62
-   [ 2026-09-30 21:51:38,051 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 60
-   [ 2026-09-30 21:51:38,093 | MainProcess | INFO ] nucs.solvers.backtrack_solver.optimize - Found a local optimum: 55
+   [ 2026-09-30 21:51:38,039 | MainProcess | INFO ] nucs.solvers.tree_search_solver.optimize - Optimizing and iterating over the solutions: minimizing variable 8 in RESET mode, with no timeout
+   [ 2026-09-30 21:51:38,043 | MainProcess | INFO ] nucs.solvers.tree_search_solver.optimize - Found a local optimum: 80
+   [ 2026-09-30 21:51:38,044 | MainProcess | INFO ] nucs.solvers.tree_search_solver.optimize - Found a local optimum: 75
+   [ 2026-09-30 21:51:38,044 | MainProcess | INFO ] nucs.solvers.tree_search_solver.optimize - Found a local optimum: 73
+   [ 2026-09-30 21:51:38,045 | MainProcess | INFO ] nucs.solvers.tree_search_solver.optimize - Found a local optimum: 72
+   [ 2026-09-30 21:51:38,045 | MainProcess | INFO ] nucs.solvers.tree_search_solver.optimize - Found a local optimum: 70
+   [ 2026-09-30 21:51:38,045 | MainProcess | INFO ] nucs.solvers.tree_search_solver.optimize - Found a local optimum: 68
+   [ 2026-09-30 21:51:38,046 | MainProcess | INFO ] nucs.solvers.tree_search_solver.optimize - Found a local optimum: 66
+   [ 2026-09-30 21:51:38,047 | MainProcess | INFO ] nucs.solvers.tree_search_solver.optimize - Found a local optimum: 62
+   [ 2026-09-30 21:51:38,051 | MainProcess | INFO ] nucs.solvers.tree_search_solver.optimize - Found a local optimum: 60
+   [ 2026-09-30 21:51:38,093 | MainProcess | INFO ] nucs.solvers.tree_search_solver.optimize - Found a local optimum: 55
    {
        'ALG_BC_NB': 21413,
        'PROPAGATOR_ENTAILMENT_NB': 198429,

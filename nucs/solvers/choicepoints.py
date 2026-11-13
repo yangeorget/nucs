@@ -26,29 +26,31 @@ from nucs.constants import (
     EVENT_MASK_NONE,
 )
 from nucs.problems.problem import OFFSETS_STATE, OFFSETS_STATE_HINT
-from nucs.propagators.propagators import update_propagators
-from nucs.solvers.state import tighten_at, trail_undo, unbound_index
+from nucs.solvers.propagation_steps import update_propagators
+from nucs.solvers.state import tighten_at, unbound_index, utrail_undo
 from nucs.statistics import STATS_IDX_SOLVER_BACKTRACK_NB
 
 # Choice point metadata columns.
-# One row per choice point, holding what *describes* it rather than what it changed: the trail
-# position at its decision point, and the single-bound tightening to apply when the search resumes it.
+# One row per choice point, holding what *describes* it rather than what it changed: the positions of the two
+# trails at its decision point, and the single-bound tightening to apply when the search resumes it.
 # None of it is trailed -- trailing the decision would erase the very thing backtrack is about to apply.
-CHOICE_POINT_TRAIL_MARK = 0  # the trail size when the choice point branched, the point trail_undo restores to
-CHOICE_POINT_VARIABLE = 1  # the variable of the parked alternative
-CHOICE_POINT_BOUND = 2  # the side of its domain the alternative tightens
-CHOICE_POINT_VALUE = 3  # the value the alternative tightens that side to
-CHOICE_POINT_WIDTH = 4  # the number of columns of a choice point
+CHOICEPOINT_UTRAIL_MARK = 0  # the undo trail size when the choice point branched, the point utrail_undo restores to
+CHOICEPOINT_VARIABLE = 1  # the variable of the parked alternative
+CHOICEPOINT_BOUND = 2  # the side of its domain the alternative tightens
+CHOICEPOINT_VALUE = 3  # the value the alternative tightens that side to
+# the implication trail size when the choice point branched, the point itrail_pop restores to: only LcgSolver writes it
+CHOICEPOINT_ITRAIL_MARK = 4
+CHOICEPOINT_WIDTH = 5  # the number of columns of a choice point
 
 
 @njit(cache=True)
-def choice_point_init(
+def choicepoint_init(
     state: NDArray,
     entailed: NDArray,
-    trail_top: NDArray,
-    trail_indices: NDArray,
-    choice_point_stk: NDArray,
-    choice_point_top: NDArray,
+    utrail_top: NDArray,
+    utrail_indices: NDArray,
+    choicepoints: NDArray,
+    choicepoint_top: NDArray,
     domains: NDArray,
     unbound_variable_nb: int,
     offsets: NDArray,
@@ -56,12 +58,12 @@ def choice_point_init(
     """
     Initializes the choice points.
 
-    trail_indices has to be cleared rather than left to invalidate itself: the guard reads trail_indices[cell_idx] as
-    a trail index, and a position left over from a previous search can fall inside the new live range and
+    utrail_indices has to be cleared rather than left to invalidate itself: the guard reads utrail_indices[cell_idx] as
+    an undo trail index, and a position left over from a previous search can fall inside the new live range and
     suppress a write that needed trailing.
 
     The trailed prefix of every propagator's state block is cleared for the same reason the domains are
-    rewritten: this drops the trail, so whatever those cells hold is about to become unrecoverable, and what
+    rewritten: this drops the undo trail, so whatever those cells hold is about to become unrecoverable, and what
     they hold is the invariant of the node the previous search stopped at, not of the root. Zero is what a
     block is worth at the root -- it is what the solver allocates and what every propagator reads as cold --
     so clearing is the whole restore. The untrailed hint suffixes are deliberately left alone: a hint is
@@ -76,14 +78,14 @@ def choice_point_init(
     :type state: NDArray
     :param entailed: whether each propagator is entailed, a view of state
     :type entailed: NDArray
-    :param trail_top: the trail size as a Numpy array
-    :type trail_top: NDArray
-    :param trail_indices: the index of the last trail entry per cell
-    :type trail_indices: NDArray
-    :param choice_point_stk: the per-choice-point metadata
-    :type choice_point_stk: NDArray
-    :param choice_point_top: the index of the top of the choice points as a Numpy array
-    :type choice_point_top: NDArray
+    :param utrail_top: the undo trail size as a Numpy array
+    :type utrail_top: NDArray
+    :param utrail_indices: the index of the last undo trail entry per cell
+    :type utrail_indices: NDArray
+    :param choicepoints: the per-choice-point metadata
+    :type choicepoints: NDArray
+    :param choicepoint_top: the index of the top of the choice points as a Numpy array
+    :type choicepoint_top: NDArray
     :param domains: the domains
     :type domains: NDArray
     :param unbound_variable_nb: the number of unbound variables
@@ -100,22 +102,20 @@ def choice_point_init(
     for propagator in range(len(offsets) - 1):
         state[offsets[propagator, OFFSETS_STATE] : offsets[propagator, OFFSETS_STATE_HINT]] = 0
     entailed.fill(0)
-    trail_indices.fill(-1)
-    choice_point_stk[0, CHOICE_POINT_TRAIL_MARK] = trail_top[0] = choice_point_top[0] = 0
+    utrail_indices.fill(-1)
+    choicepoints[0, CHOICEPOINT_UTRAIL_MARK] = utrail_top[0] = choicepoint_top[0] = 0
 
 
 @njit(cache=True, inline="always")
-def park_alternative(
-    choice_point_stk: NDArray, choice_point: int, mark: int, variable: int, bound: int, value: int
-) -> None:
+def park_alternative(choicepoints: NDArray, choicepoint: int, mark: int, variable: int, bound: int, value: int) -> None:
     """
     Records on a choice point the alternative to apply when the search resumes it.
 
-    :param choice_point_stk: the per-choice-point metadata
-    :type choice_point_stk: NDArray
-    :param choice_point: the choice point
-    :type choice_point: int
-    :param mark: the trail size when the choice point branched
+    :param choicepoints: the per-choice-point metadata
+    :type choicepoints: NDArray
+    :param choicepoint: the choice point
+    :type choicepoint: int
+    :param mark: the undo trail size when the choice point branched
     :type mark: int
     :param variable: the variable of the alternative
     :type variable: int
@@ -124,10 +124,10 @@ def park_alternative(
     :param value: the value the alternative tightens that side to
     :type value: int
     """
-    choice_point_stk[choice_point, CHOICE_POINT_TRAIL_MARK] = mark
-    choice_point_stk[choice_point, CHOICE_POINT_VARIABLE] = variable
-    choice_point_stk[choice_point, CHOICE_POINT_BOUND] = bound
-    choice_point_stk[choice_point, CHOICE_POINT_VALUE] = value
+    choicepoints[choicepoint, CHOICEPOINT_UTRAIL_MARK] = mark
+    choicepoints[choicepoint, CHOICEPOINT_VARIABLE] = variable
+    choicepoints[choicepoint, CHOICEPOINT_BOUND] = bound
+    choicepoints[choicepoint, CHOICEPOINT_VALUE] = value
 
 
 @njit(cache=True, inline="always")
@@ -158,11 +158,11 @@ def bounds_after_tightening(domain_min: int, domain_max: int, bound: int, value:
 @njit(cache=True)
 def branch(
     state: NDArray,
-    trail_log: NDArray,
-    trail_top: NDArray,
-    trail_indices: NDArray,
-    choice_point_stk: NDArray,
-    choice_point_top: NDArray,
+    utrail_log: NDArray,
+    utrail_top: NDArray,
+    utrail_indices: NDArray,
+    choicepoints: NDArray,
+    choicepoint_top: NDArray,
     variable: int,
     kind: int,
     value: int,
@@ -170,7 +170,7 @@ def branch(
     """
     Applies a decision: explores one branch and parks the alternatives for the search to resume.
 
-    A push copies nothing. It records the trail position -- so that returning to this choice point is a matter of
+    A push copies nothing. It records the undo trail position -- so that returning to this choice point is a matter of
     replaying the undo log back to it -- and the alternative to apply on arrival, which is always a
     single-bound tightening, hence monotone and idempotent, hence safe to re-apply.
 
@@ -189,16 +189,16 @@ def branch(
 
     :param state: all the backtrackable state
     :type state: NDArray
-    :param trail_log: the undo log of (cell index, old value) pairs
-    :type trail_log: NDArray
-    :param trail_top: the trail size as a Numpy array
-    :type trail_top: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
-    :param choice_point_stk: the per-choice-point metadata
-    :type choice_point_stk: NDArray
-    :param choice_point_top: the index of the top of the choice points as a Numpy array
-    :type choice_point_top: NDArray
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_top: the undo trail size as a Numpy array
+    :type utrail_top: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
+    :param choicepoints: the per-choice-point metadata
+    :type choicepoints: NDArray
+    :param choicepoint_top: the index of the top of the choice points as a Numpy array
+    :type choicepoint_top: NDArray
     :param variable: the variable being branched on
     :type variable: int
     :param kind: the kind of split, one of DECISION_LE, DECISION_GT and DECISION_EQ
@@ -209,11 +209,11 @@ def branch(
     :return: the events triggered in the explored branch
     :rtype: int
     """
-    choice_point = choice_point_top[0]
+    choicepoint = choicepoint_top[0]
     cell_idx = variable << 1
     domain_min = state[cell_idx]
     domain_max = state[cell_idx | 1]
-    mark = trail_top[0]
+    mark = utrail_top[0]
     if kind == DECISION_EQ:
         value = min(max(value, domain_min), domain_max)
         # an EQ at either end of the domain has an empty alternative on that side, so it is a two-way
@@ -224,34 +224,34 @@ def branch(
             kind = DECISION_GT
             value = domain_max - 1
     if kind == DECISION_LE:
-        park_alternative(choice_point_stk, choice_point, mark, variable, DOMAIN_MIN, value + 1)
-        choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark
-        choice_point_top[0] = choice_point + 1
+        park_alternative(choicepoints, choicepoint, mark, variable, DOMAIN_MIN, value + 1)
+        choicepoints[choicepoint + 1, CHOICEPOINT_UTRAIL_MARK] = mark
+        choicepoint_top[0] = choicepoint + 1
         new_min, new_max = domain_min, value
     elif kind == DECISION_GT:
-        park_alternative(choice_point_stk, choice_point, mark, variable, DOMAIN_MAX, value)
-        choice_point_stk[choice_point + 1, CHOICE_POINT_TRAIL_MARK] = mark
-        choice_point_top[0] = choice_point + 1
+        park_alternative(choicepoints, choicepoint, mark, variable, DOMAIN_MAX, value)
+        choicepoints[choicepoint + 1, CHOICEPOINT_UTRAIL_MARK] = mark
+        choicepoint_top[0] = choicepoint + 1
         new_min, new_max = value + 1, domain_max
     else:
         # the shallower alternative is resumed last
-        park_alternative(choice_point_stk, choice_point, mark, variable, DOMAIN_MIN, value + 1)
-        park_alternative(choice_point_stk, choice_point + 1, mark, variable, DOMAIN_MAX, value - 1)
-        choice_point_stk[choice_point + 2, CHOICE_POINT_TRAIL_MARK] = mark
-        choice_point_top[0] = choice_point + 2
+        park_alternative(choicepoints, choicepoint, mark, variable, DOMAIN_MIN, value + 1)
+        park_alternative(choicepoints, choicepoint + 1, mark, variable, DOMAIN_MAX, value - 1)
+        choicepoints[choicepoint + 2, CHOICEPOINT_UTRAIL_MARK] = mark
+        choicepoint_top[0] = choicepoint + 2
         new_min, new_max = value, value
-    # the trail size is the mark: the choice point has just been pushed at it
-    events, trail_size = tighten_at(state, trail_log, trail_indices, mark, mark, variable, new_min, new_max)
-    trail_top[0] = trail_size
+    # the undo trail size is the mark: the choice point has just been pushed at it
+    events, utrail_sz = tighten_at(state, utrail_log, utrail_indices, mark, mark, variable, new_min, new_max)
+    utrail_top[0] = utrail_sz
     return events
 
 
 @njit(cache=True, inline="always")
 def tighten_objective(
     state: NDArray,
-    trail_log: NDArray,
-    trail_top: NDArray,
-    trail_indices: NDArray,
+    utrail_log: NDArray,
+    utrail_top: NDArray,
+    utrail_indices: NDArray,
     mark: int,
     variable: int,
     value: int,
@@ -271,13 +271,13 @@ def tighten_objective(
 
     :param state: all the backtrackable state
     :type state: NDArray
-    :param trail_log: the undo log of (cell index, old value) pairs
-    :type trail_log: NDArray
-    :param trail_top: the trail size as a Numpy array
-    :type trail_top: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
-    :param mark: the trail size when the choice point being tightened branched, 0 at the root
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_top: the undo trail size as a Numpy array
+    :type utrail_top: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
+    :param mark: the undo trail size when the choice point being tightened branched, 0 at the root
     :type mark: int
     :param variable: the variable being optimized
     :type variable: int
@@ -296,8 +296,8 @@ def tighten_objective(
     new_min, new_max = bounds_after_tightening(state[cell_idx], state[cell_idx | 1], bound, better)
     if new_min > new_max:
         return -1
-    events, trail_size = tighten_at(state, trail_log, trail_indices, mark, trail_top[0], variable, new_min, new_max)
-    trail_top[0] = trail_size
+    events, utrail_sz = tighten_at(state, utrail_log, utrail_indices, mark, utrail_top[0], variable, new_min, new_max)
+    utrail_top[0] = utrail_sz
     return events
 
 
@@ -305,11 +305,11 @@ def tighten_objective(
 def backtrack(
     statistics: NDArray,
     state: NDArray,
-    trail_log: NDArray,
-    trail_top: NDArray,
-    trail_indices: NDArray,
-    choice_point_stk: NDArray,
-    choice_point_top: NDArray,
+    utrail_log: NDArray,
+    utrail_top: NDArray,
+    utrail_indices: NDArray,
+    choicepoints: NDArray,
+    choicepoint_top: NDArray,
     entailed: NDArray,
     triggered_propagators: NDArray,
     triggers: NDArray,
@@ -335,16 +335,16 @@ def backtrack(
     :type statistics: NDArray
     :param state: all the backtrackable state
     :type state: NDArray
-    :param trail_log: the undo log of (cell index, old value) pairs
-    :type trail_log: NDArray
-    :param trail_top: the trail size as a Numpy array
-    :type trail_top: NDArray
-    :param trail_indices: the index of the last trail entry per positionally guarded cell
-    :type trail_indices: NDArray
-    :param choice_point_stk: the per-choice-point metadata
-    :type choice_point_stk: NDArray
-    :param choice_point_top: the index of the top of the choice points as a Numpy array
-    :type choice_point_top: NDArray
+    :param utrail_log: the undo log of (cell index, old value) pairs
+    :type utrail_log: NDArray
+    :param utrail_top: the undo trail size as a Numpy array
+    :type utrail_top: NDArray
+    :param utrail_indices: the index of the last undo trail entry per positionally guarded cell
+    :type utrail_indices: NDArray
+    :param choicepoints: the per-choice-point metadata
+    :type choicepoints: NDArray
+    :param choicepoint_top: the index of the top of the choice points as a Numpy array
+    :type choicepoint_top: NDArray
     :param entailed: whether each propagator is entailed, a view of state
     :type entailed: NDArray
     :param triggered_propagators: the set propagators that are currently triggered as a Numpy array
@@ -363,22 +363,24 @@ def backtrack(
     :rtype: bool
     """
     optimized_variable = bb[BB_VARIABLE]
-    while choice_point_top[0] > 0:
-        choice_point_top[0] -= 1
-        choice_point = choice_point_top[0]
+    while choicepoint_top[0] > 0:
+        choicepoint_top[0] -= 1
+        choicepoint = choicepoint_top[0]
         statistics[STATS_IDX_SOLVER_BACKTRACK_NB] += 1
-        mark = choice_point_stk[choice_point, CHOICE_POINT_TRAIL_MARK]
-        trail_undo(state, trail_log, trail_indices, trail_top, mark)
-        variable = choice_point_stk[choice_point, CHOICE_POINT_VARIABLE]
+        mark = choicepoints[choicepoint, CHOICEPOINT_UTRAIL_MARK]
+        utrail_undo(state, utrail_log, utrail_indices, utrail_top, mark)
+        variable = choicepoints[choicepoint, CHOICEPOINT_VARIABLE]
         cell_idx = variable << 1
         new_min, new_max = bounds_after_tightening(
             state[cell_idx],
             state[cell_idx | 1],
-            choice_point_stk[choice_point, CHOICE_POINT_BOUND],
-            choice_point_stk[choice_point, CHOICE_POINT_VALUE],
+            choicepoints[choicepoint, CHOICEPOINT_BOUND],
+            choicepoints[choicepoint, CHOICEPOINT_VALUE],
         )
-        events, trail_size = tighten_at(state, trail_log, trail_indices, mark, trail_top[0], variable, new_min, new_max)
-        trail_top[0] = trail_size
+        events, utrail_sz = tighten_at(
+            state, utrail_log, utrail_indices, mark, utrail_top[0], variable, new_min, new_max
+        )
+        utrail_top[0] = utrail_sz
         if events != EVENT_MASK_NONE:
             update_propagators(
                 triggered_propagators,
@@ -394,9 +396,9 @@ def backtrack(
             return True
         events = tighten_objective(
             state,
-            trail_log,
-            trail_top,
-            trail_indices,
+            utrail_log,
+            utrail_top,
+            utrail_indices,
             mark,
             optimized_variable,
             bb[BB_VALUE],

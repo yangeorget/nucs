@@ -12,7 +12,7 @@
 ###############################################################################
 from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
 from nucs.examples.social_golfers.social_golfers_problem import SocialGolfersProblem
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.social_golfers

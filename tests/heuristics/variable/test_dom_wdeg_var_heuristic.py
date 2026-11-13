@@ -13,32 +13,9 @@
 import random
 from collections.abc import Sequence
 
-from nucs.heuristics.dom_wdeg_var_heuristic import dom_wdeg_var_heuristic
+from nucs.heuristics.variable.dom_wdeg_var_heuristic import dom_wdeg_var_heuristic
 from nucs.propagators.propagators import ALG_DUMMY, ALG_LINEAR_LEQ_C
-from tests.heuristics.var_heuristic_test import call_var_heuristic
-
-
-def _reference(
-    domains: Sequence[tuple[int, int]],
-    propagators: Sequence[Sequence[int]],
-    entailed: Sequence[int],
-    weights: Sequence[float],
-) -> int:
-    """The definition, written as plainly as possible: the oracle for the jitted heuristic."""
-    best: tuple[bool, float] | None = None
-    best_variable = -1
-    for variable, (lo, hi) in enumerate(domains):
-        if lo == hi:
-            continue
-        wdeg = 0.0
-        for propagator, variables in enumerate(propagators):
-            unbound = {v for v in variables if domains[v][0] < domains[v][1]}
-            if variable in unbound and not entailed[propagator] and len(unbound) >= 2:
-                wdeg += weights[propagator]
-        key = (wdeg == 0.0, (hi - lo + 1) if wdeg == 0.0 else (hi - lo + 1) / wdeg)
-        if best is None or key < best:
-            best, best_variable = key, variable
-    return best_variable
+from tests.heuristics.variable.var_heuristic_test import call_var_heuristic
 
 
 class TestDomWdegVarHeuristic:
@@ -107,3 +84,26 @@ class TestDomWdegVarHeuristic:
                 dom_wdeg_var_heuristic, domains, propagators=propagators, entailed=entailed, weights=weights
             )
             assert actual == expected, f"{domains} {propagators} {entailed} {weights}"
+
+
+def _reference(
+    domains: Sequence[tuple[int, int]],
+    propagators: Sequence[Sequence[int]],
+    entailed: Sequence[int],
+    weights: Sequence[float],
+) -> int:
+    """The definition, written as plainly as possible: the oracle for the jitted heuristic."""
+    best: tuple[bool, float] | None = None
+    best_variable = -1
+    for variable, (lo, hi) in enumerate(domains):
+        if lo == hi:
+            continue
+        wdeg = 0.0
+        for propagator, variables in enumerate(propagators):
+            unbound = {v for v in variables if domains[v][0] < domains[v][1]}
+            if variable in unbound and not entailed[propagator] and len(unbound) >= 2:
+                wdeg += weights[propagator]
+        key = (wdeg == 0.0, (hi - lo + 1) if wdeg == 0.0 else (hi - lo + 1) / wdeg)
+        if best is None or key < best:
+            best, best_variable = key, variable
+    return best_variable
