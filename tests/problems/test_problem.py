@@ -10,7 +10,7 @@
 #
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
-from nucs.constants import INFO_ALGORITHM, INFO_COPIES
+from nucs.constants import INFO_ALGORITHM, INFO_COPIES, INFO_PRIORITY
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_LINEAR_LEQ_C, ALG_NEQ, watchers
 from nucs.solvers.backtrack_solver import BacktrackSolver
@@ -38,6 +38,8 @@ class TestProblem:
         problem.init()
         # one row for each propagator, and no closing row, unlike offsets
         assert problem.propagator_infos[:, INFO_ALGORITHM].tolist() == [ALG_NEQ, ALG_ALLDIFFERENT, ALG_LINEAR_LEQ_C]
+        # neq has the smallest complexity, so it goes in the first bucket of the queue
+        assert problem.propagator_infos[:, INFO_PRIORITY].tolist() == [0, 1, 1]
         # only alldifferent has a variable more than once
         assert problem.propagator_infos[:, INFO_COPIES].tolist() == [0, 1, 0]
 

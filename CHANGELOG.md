@@ -28,6 +28,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   stay.
 - **The module `nucs.examples.tsp.total_cost_propagator`.** Nothing imported it; the only reference was code
   commented out in `tsp_problem.py`, which goes too.
+- **`Problem.algorithms`, `Problem.priorities` and `Problem.init_priorities`.** `Problem.propagator_infos` replaces
+  the two arrays (see "Changed"): use `problem.propagator_infos[:, INFO_ALGORITHM]` and
+  `problem.propagator_infos[:, INFO_PRIORITY]`. `Problem.init_propagator_infos` replaces `Problem.init_priorities`.
 
 ### Changed
 
@@ -38,8 +41,7 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   - `SIGN_CONSISTENCY_ALG`, `run_search_loop`, `backtrack` and `update_propagators` take `propagator_infos` where they
     took `priorities` (and `algorithms`). A custom consistency algorithm must change its signature;
     `docs/source/consistency.rst` says how.
-  - `Problem.algorithms` and `Problem.priorities` are removed. Use `problem.propagator_infos[:, INFO_ALGORITHM]` and
-    `problem.propagator_infos[:, INFO_PRIORITY]`. `Problem.init_priorities` is now `Problem.init_propagator_infos`.
+  - `Problem.algorithms`, `Problem.priorities` and `Problem.init_priorities` are removed (see "Removed").
   - `buckets_add` takes the bucket of the element, not an array of priorities, and `buckets_empty` takes the number
     of elements.
   - `offsets` keeps its four columns (`OFFSETS_WIDTH` is 4).
@@ -130,8 +132,9 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `[x0, x1, x2]`), x0 = 0, x1 in [0, 1] and x2 = 1, there is no solution, but `BacktrackSolver` gave `[0, 0, 1]`. On
   300 random small models with a variable twice, 14 gave wrong solutions: 10 with `linear_eq_c` and 4 with
   `count_eq`.
-  `Problem.init` now marks these propagators in the `INFO_COPIES` column of `propagator_infos`. For them only, `bc_algorithm` uses `update_domains_of_copies`: each copy is intersected with the current bounds,
-  an empty intersection is a failure, and the propagator is called again after its own writes. The other propagators
+  `Problem.init` now marks these propagators in the `INFO_COPIES` column of `propagator_infos`. For them only,
+  `bc_algorithm` uses `update_domains_of_copies`: each copy is intersected with the current bounds, an empty
+  intersection is a failure, and the propagator is called again after its own writes. The other propagators
   do not change. The magic_sequence example has such propagators: with `-n 100`, it makes 19 choices instead of 20,
   and 3% fewer propagator calls. A custom consistency algorithm that writes the domains of a propagator with
   `tighten_at` must read `INFO_COPIES` too.

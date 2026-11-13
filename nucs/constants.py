@@ -56,8 +56,8 @@ LIVE_SET_MIN_ARITY = 16
 
 # Column indices into the propagator_infos array of a problem: one row for each propagator. They are here, not in
 # problems/problem.py with OFFSETS_*, because update_propagators in propagators/propagators.py reads INFO_PRIORITY,
-# and problems/problem.py imports that module. All the cells are uint8: an algorithm id is a uint8, a priority is less
-# than BUCKET_NB and the copies flag is 0 or 1.
+# and problems/problem.py imports that module. All the cells are uint8: an algorithm id is a uint8, a priority is
+# less than BUCKET_NB and the copies flag is 0 or 1.
 INFO_ALGORITHM = 0  # column for the ALG_* id of the propagator
 INFO_PRIORITY = 1  # column for the bucket of the propagator in the propagation queue
 INFO_COPIES = 2  # column for 1 when the propagator has a variable more than once, else 0

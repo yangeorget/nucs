@@ -136,7 +136,7 @@ class Problem:
         # solver's own domains -- those are a view of state. int32 because that is what it is copied into.
         self.initial_domains = np.array(self.domains, dtype=np.int32)
         self.init_propagator_infos()
-        # Built here, beside the algorithms that index it, so the two are fixed at the same instant and the
+        # Built here, beside propagator_infos[:, INFO_ALGORITHM] that indexes it, so the two are fixed at the same instant and the
         # flags cover every algorithm this problem can name -- including one registered after import. The
         # consistency algorithm needs a boolean array rather than the registry's list; converting some sixty
         # bools once per problem is nothing next to the rest of this method.
@@ -173,12 +173,16 @@ class Problem:
         """
         logger.debug("Initializing propagator infos")
         self.propagator_infos = np.zeros((self.propagator_nb, INFO_WIDTH), dtype=np.uint8)
-        for propagator_idx, (variables, algorithm, parameters) in enumerate(self.propagators):
-            self.propagator_infos[propagator_idx, INFO_ALGORITHM] = algorithm
-            self.propagator_infos[propagator_idx, INFO_PRIORITY] = compute_priority(
-                GET_COMPLEXITY_FCTS[algorithm](len(variables), parameters)
-            )
-            self.propagator_infos[propagator_idx, INFO_COPIES] = len(set(variables)) < len(variables)
+        # each column is written once from a list: a write of one cell from Python costs about 100 ns, which
+        # adds up on a FlatZinc model with a million propagators
+        self.propagator_infos[:, INFO_ALGORITHM] = [algorithm for _, algorithm, _ in self.propagators]
+        self.propagator_infos[:, INFO_PRIORITY] = [
+            compute_priority(GET_COMPLEXITY_FCTS[algorithm](len(variables), parameters))
+            for variables, algorithm, parameters in self.propagators
+        ]
+        self.propagator_infos[:, INFO_COPIES] = [
+            len(set(variables)) < len(variables) for variables, _, _ in self.propagators
+        ]
 
     def init_propagator_arrays(self) -> None:
         """

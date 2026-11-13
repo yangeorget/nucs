@@ -359,7 +359,7 @@ GET_STATE_FCTS: list[Callable] = []
 # A list, appended to like the five above, rather than the array the consistency algorithm wants:
 # np.append returns a new array, so growing one would rebind this name, and any module that had imported
 # it by value would keep an array one entry short of every algorithm registered since -- indexing past it
-# for the new one. Problem.init makes the array, beside the algorithms that index it.
+# for the new one. Problem.init makes the array, beside propagator_infos[:, INFO_ALGORITHM] that indexes it.
 ALGORITHM_FLAGS: list[int] = []
 
 # How a consistency algorithm calls a propagator: through the compiled address of its compute_domains, read
