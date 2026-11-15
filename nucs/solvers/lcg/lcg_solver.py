@@ -123,15 +123,16 @@ class LcgSolver(TreeSearchSolver):
     Its propagation is always bound consistency, and no parameter selects another one: the conflict analysis needs a
     reason for each change of a bound, and a custom consistency algorithm gives none.
 
-    At this step (design/proposals/lcg.md, 7.0, step 8), it records each bound change on the path, with its choice
+    At this step (design/proposals/lcg.md, 7.0, step 9), it records each bound change on the path, with its choice
     point and its reason, on the implication trail (nucs.solvers.lcg.implication_trail), and each decision is one
-    literal on its own choice point (nucs.solvers.lcg.decisions). It can explain each change that a propagator made,
-    and each failure (nucs.solvers.lcg.explanations). At each failure, it learns a clause by the 1UIP analysis
-    (nucs.solvers.lcg.conflict_analysis), in shadow mode: the search does not use the clause yet. The debug mode
-    keeps the learned clauses (learned_clauses), so that the tests can check them.
-    It is the search of BacktrackSolver, except that an EQ decision inside the domain is two literals on two choice
-    points: it finds the same solutions and the same optima, and when no decision is such an EQ, every counter is the
-    same.
+    literal on its own choice point (nucs.solvers.lcg.decisions). At each failure, it learns a clause by the 1UIP
+    analysis (nucs.solvers.lcg.conflict_analysis), and adds it to the store, which propagates the clauses
+    (nucs.solvers.lcg.clause_store). The search still backtracks in the classical way: it finds the solutions and the
+    optima of BacktrackSolver, and the clauses remove nodes from its tree (with an adaptive heuristic, such as
+    dom/wdeg, they can also change the order of the decisions). The debug mode keeps the learned
+    clauses (learned_clauses), so that the tests can check them.
+    Apart from the clauses, it is the search of BacktrackSolver, except that an EQ decision inside the domain is two
+    literals on two choice points.
     """
 
     def __init__(
