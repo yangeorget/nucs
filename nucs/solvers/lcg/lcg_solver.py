@@ -53,7 +53,12 @@ from nucs.solvers.lcg.decisions import (
     decision_literal,
     take_pending_lit,
 )
-from nucs.solvers.lcg.explanations import EXPLANATION_VERDICTS, EXPLANATIONS_VALID, check_explanations
+from nucs.solvers.lcg.explanations import (
+    EXPLANATION_NOT_TRUE,
+    EXPLANATION_VERDICTS,
+    EXPLANATIONS_VALID,
+    check_explanations,
+)
 from nucs.solvers.lcg.implication_trail import (
     ITRAIL_VALID,
     REASON_DECISION,
@@ -165,8 +170,8 @@ class LcgSolver(TreeSearchSolver):
         self.explanation, self.explanation_lits, self.marks, self.marked, self.learned = allocate_analysis(
             problem.domain_nb, len(self.domain_buffer)
         )
-        # the learned clauses, which only the debug mode logs
-        self.clause_log, self.clause_log_info, self.clause_log_top = allocate_clause_log(problem.domain_nb)
+        # the learned clauses, which only the debug mode logs: without it, the log has no rows
+        self.clause_log, self.clause_log_info, self.clause_log_top = allocate_clause_log(problem.domain_nb, debug)
         logger.info(f"The implication trail starts at {len(self.itrail)} rows and grows when it runs out")
         logger.info(
             f"LcgSolver checks the implication trail and the explanations at each node: {'yes' if debug else 'no'}"
@@ -234,7 +239,8 @@ class LcgSolver(TreeSearchSolver):
         """
         Runs the compiled search loop of LcgSolver until it returns, by forwarding the solver state to it.
 
-        It grows the implication trail itself when the loop asks for it, and calls the loop again.
+        It grows the implication trail (SOLVER_ITRAIL_FULL) and, in debug mode, the log of the learned clauses
+        (SOLVER_CLAUSE_LOG_FULL) itself when the loop asks for it, and calls the loop again.
 
         :return: why the loop returned, and the solution when it found one
         :rtype: Tuple[int, Optional[NDArray]]
@@ -398,7 +404,8 @@ def run_search_loop(
       (CHOICEPOINT_ITRAIL_MARK), and adds its row with REASON_DECISION;
     - it backtracks with the backtrack of LcgSolver, which also pops the implication trail;
     - at each failure of a propagator, it learns a clause by the 1UIP analysis (analyze_conflict), in shadow mode: the
-      search does not use the clause, and the debug mode logs it.
+      search does not use the clause, and the debug mode logs it. An analysis that meets a wrong explanation gives no
+      clause; the debug mode stops on it, as on an explanation that is not proven correct.
 
     The choice point of a row is choicepoint_top[0] when the row is written. STATS_IDX_SOLVER_CHOICE_NB counts the
     decision literals, so an interior EQ counts two choices when its second literal opens a choice point.
@@ -599,6 +606,8 @@ def run_search_loop(
                 failed_propagator[FAILED_PROPAGATOR] if problem_status == PROBLEM_INCONSISTENT else -1,
                 failed_propagator[FAILED_POS],
                 domain_buffer,
+                explanation,
+                explanation_lits,
             )
             if row != EXPLANATIONS_VALID:
                 explanation_report[0] = row
@@ -629,6 +638,11 @@ def run_search_loop(
                 learned,
             )
             if debug:
+                if lit_nb < 0:
+                    # an explanation gave a literal that was not true when its call read the bounds; level is its row
+                    explanation_report[0] = level
+                    explanation_report[1] = EXPLANATION_NOT_TRUE
+                    return SOLVER_EXPLANATION_INVALID, None
                 clause_log_add(
                     clause_log,
                     clause_log_info,

@@ -187,6 +187,22 @@ class TestConflictAnalysis:
                 [ge(0, 1)],
                 ([], 0, -1),
             ),
+            # the nogood of the failure has [x1 >= 1], which no row made true: the explanation is wrong, there is no
+            # clause, and the result names the failure by the number of rows
+            (
+                [decision(0, DOMAIN_MIN, 1, 1), decision(2, DOMAIN_MIN, 1, 2)],
+                [],
+                [ge(0, 1), ge(1, 1)],
+                (None, 2, -1),
+            ),
+            # the explanation of row 1 has [x1 >= 1], which its own call set: it was not true when the call read the
+            # bounds, and the result names row 1
+            (
+                [decision(0, DOMAIN_MIN, 1, 1), propagation(1, DOMAIN_MIN, 1, 1, 0, 1)],
+                [[ge(1, 1)]],
+                [ge(0, 1), ge(1, 1)],
+                (None, 1, -1),
+            ),
         ],
         ids=[
             "first_row",
@@ -197,6 +213,8 @@ class TestConflictAnalysis:
             "two_decisions_on_a_level",
             "level_0_and_root_dropped",
             "empty_clause",
+            "failure_with_a_literal_that_is_not_true",
+            "row_with_a_literal_of_its_own_call",
         ],
     )
     def test_analyze_conflict(
@@ -204,7 +222,7 @@ class TestConflictAnalysis:
         rows: list[Row],
         explanations: list[list[Given]],
         nogood: list[Given],
-        expected: tuple[list[tuple[int, int]], int, int],
+        expected: tuple[list[tuple[int, int]] | None, int, int],
     ) -> None:
         problem = Problem([(0, 9)] * 4)
         for explanation in [*explanations, nogood]:
@@ -279,7 +297,7 @@ class TestConflictAnalysis:
         assert clause_nb > 0
 
 
-def analyze(problem: Problem, rows: list[Row], failed_prop_idx: int) -> tuple[list[tuple[int, int]], int, int]:
+def analyze(problem: Problem, rows: list[Row], failed_prop_idx: int) -> tuple[list[tuple[int, int]] | None, int, int]:
     solver = LcgSolver(problem, log_level=LOG_LEVEL_ERROR)
     itrail, itrail_top, itrail_last = allocate_itrail(problem.domain_nb)
     itrail_sz = 0
@@ -317,6 +335,8 @@ def analyze(problem: Problem, rows: list[Row], failed_prop_idx: int) -> tuple[li
         solver.learned,
     )
     assert (solver.marks[:, MARK_ROW] == MARK_NONE).all()  # the analysis clears its marks
+    if lit_nb < 0:  # a wrong explanation: no clause
+        return None, level, assertion_level
     return [(var_side, value) for var_side, value in solver.learned[:lit_nb].tolist()], level, assertion_level
 
 

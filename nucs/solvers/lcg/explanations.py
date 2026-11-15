@@ -39,7 +39,7 @@ from numpy.typing import NDArray
 
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_INCONSISTENCY
 from nucs.problems.problem import INFO_ALGORITHM, OFFSETS_PARAM, OFFSETS_STATE, OFFSETS_VARIABLE
-from nucs.propagators.explanations import EXPLAIN_SIDE, EXPLAIN_VALUE, EXPLAIN_VAR_IDX, EXPLAIN_WIDTH
+from nucs.propagators.explanations import EXPLAIN_SIDE, EXPLAIN_VALUE, EXPLAIN_VAR_IDX
 from nucs.propagators.propagators import call_compute_domains, call_explain
 from nucs.solvers.lcg.implication_trail import (
     ITRAIL_PREV,
@@ -51,7 +51,7 @@ from nucs.solvers.lcg.implication_trail import (
     ITRAIL_VAR_SIDE,
     REASON_PROPAGATOR,
 )
-from nucs.solvers.lcg.literals import LIT_VALUE, LIT_VAR_SIDE, LIT_WIDTH, lit_is_true
+from nucs.solvers.lcg.literals import LIT_VALUE, LIT_VAR_SIDE, lit_is_true
 
 # The verdicts of the check of an explanation, from the best to the worst. The first two say that the explanation is
 # correct.
@@ -388,6 +388,8 @@ def check_explanations(
     failed_propagator: int,
     failed_pos: int,
     prop_domains: NDArray,
+    explanation: NDArray,
+    literals: NDArray,
 ) -> tuple[int, int]:
     """
     Checks the explanations of the rows that the propagators wrote from a row up, and of a failure: the debug mode
@@ -430,15 +432,18 @@ def check_explanations(
     :param prop_domains: a scratch buffer with one row for each variable of the largest propagator, such as the
                          domain_buffer of the solver
     :type prop_domains: NDArray
+    :param explanation: a scratch buffer with two rows for each variable of the largest propagator, for the
+                        explanations, such as the one of the conflict analysis of the solver
+    :type explanation: NDArray
+    :param literals: a scratch buffer with two rows for each variable of the largest propagator, for the literals of
+                     the explanations, such as the one of the conflict analysis of the solver
+    :type literals: NDArray
 
     :return: EXPLANATIONS_VALID and EXPLANATION_CONFIRMED when each explanation is correct; else the first row whose
              explanation is not proven correct, or the number of rows in use for the failure, and the verdict
     :rtype: Tuple[int, int]
     """
-    max_arity = len(prop_domains)
-    explanation = np.empty((max_arity << 1, EXPLAIN_WIDTH), dtype=np.int32)
-    literals = np.empty((max_arity << 1, LIT_WIDTH), dtype=np.int32)
-    box = np.empty((max_arity, 2), dtype=np.int32)
+    box = np.empty((len(prop_domains), 2), dtype=np.int32)
     for row in range(first_row, itrail_top[0]):
         if itrail[row, ITRAIL_REASON_KIND] != REASON_PROPAGATOR:
             continue

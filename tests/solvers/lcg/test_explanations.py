@@ -261,6 +261,8 @@ class TestExplanations:
                 -1,
                 -1,
                 solver.domain_buffer,
+                solver.explanation,
+                solver.explanation_lits,
             )
             == expected
         )

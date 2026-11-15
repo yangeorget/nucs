@@ -140,13 +140,18 @@ def mark_literal(
     marked_nb: int,
     var_side: int,
     value: int,
+    pos: int,
     level: int,
-) -> tuple[int, int]:
+) -> tuple[int, int, bool]:
     """
-    Adds a literal to the nogood of the analysis.
+    Adds a literal of an explanation to the nogood of the analysis.
 
     The literal is dropped when the row that made it true first has level 0 or REASON_ROOT: it holds for the rest of
     the search. Else it merges with the marked literal of the same bound: the stronger of the two stays marked.
+
+    The literal must be true at pos, and not at the root: explanation_literals already removes the literals that are
+    true at the root. Thus a literal with no first row, or with a first row at pos or above, comes from a wrong
+    explanation. To drop it would make the clause too strong, and it could remove solutions: the call refuses it.
 
     :param itrail: the implication trail
     :type itrail: NDArray
@@ -162,20 +167,25 @@ def mark_literal(
     :type var_side: int
     :param value: the value of the literal
     :type value: int
+    :param pos: the number of rows of the implication trail when the explained call read the bounds
+    :type pos: int
     :param level: the level of the conflict, -1 when it is not known yet
     :type level: int
 
-    :return: the new number of bounds on the stack, and how much the number of marked literals of the level changes
-    :rtype: Tuple[int, int]
+    :return: the new number of bounds on the stack; how much the number of marked literals of the level changes; false
+             iff the literal was not true at pos, and then nothing is marked
+    :rtype: Tuple[int, int, bool]
     """
     row = first_row(itrail, itrail_last, var_side, value)
-    if row < 0 or itrail[row, ITRAIL_CHOICEPOINT] == 0 or itrail[row, ITRAIL_REASON_KIND] == REASON_ROOT:
-        return marked_nb, 0
+    if row < 0 or row >= pos:
+        return marked_nb, 0, False
+    if itrail[row, ITRAIL_CHOICEPOINT] == 0 or itrail[row, ITRAIL_REASON_KIND] == REASON_ROOT:
+        return marked_nb, 0, True
     level_delta = 0
     old_row = marks[var_side, MARK_ROW]
     if old_row >= 0:
         if not is_stronger(var_side, value, marks[var_side, MARK_VALUE]):
-            return marked_nb, 0
+            return marked_nb, 0, True
         if itrail[old_row, ITRAIL_CHOICEPOINT] == level:
             level_delta = -1
     elif old_row == MARK_NONE:
@@ -185,7 +195,7 @@ def mark_literal(
     marks[var_side, MARK_VALUE] = value
     if itrail[row, ITRAIL_CHOICEPOINT] == level:
         level_delta += 1
-    return marked_nb, level_delta
+    return marked_nb, level_delta, True
 
 
 @njit(cache=True)
@@ -210,10 +220,12 @@ def explain_and_mark(
     marked: NDArray,
     marked_nb: int,
     level: int,
-) -> tuple[int, int]:
+) -> tuple[int, int, bool]:
     """
     Explains a literal that a propagator call set, or the failure of a call, and adds the literals of the explanation
     to the nogood of the analysis.
+
+    It stops at the first literal of the explanation that was not true at pos (see mark_literal).
 
     :param explain_addrs: the compiled explain address of each algorithm
     :type explain_addrs: NDArray
@@ -257,8 +269,9 @@ def explain_and_mark(
     :param level: the level of the conflict, -1 when it is not known yet
     :type level: int
 
-    :return: the new number of bounds on the stack, and how much the number of marked literals of the level changes
-    :rtype: Tuple[int, int]
+    :return: the new number of bounds on the stack; how much the number of marked literals of the level changes; false
+             iff a literal of the explanation was not true at pos
+    :rtype: Tuple[int, int, bool]
     """
     row_nb = explain_propagator(
         explain_addrs,
@@ -281,11 +294,21 @@ def explain_and_mark(
     lit_nb = explanation_literals(explanation, row_nb, propagator_variables, prop_var_start, initial_domains, literals)
     level_delta = 0
     for lit in range(lit_nb):
-        marked_nb, delta = mark_literal(
-            itrail, itrail_last, marks, marked, marked_nb, literals[lit, LIT_VAR_SIDE], literals[lit, LIT_VALUE], level
+        marked_nb, delta, is_true = mark_literal(
+            itrail,
+            itrail_last,
+            marks,
+            marked,
+            marked_nb,
+            literals[lit, LIT_VAR_SIDE],
+            literals[lit, LIT_VALUE],
+            pos,
+            level,
         )
+        if not is_true:
+            return marked_nb, level_delta, False
         level_delta += delta
-    return marked_nb, level_delta
+    return marked_nb, level_delta, True
 
 
 @njit(cache=True)
@@ -315,6 +338,10 @@ def analyze_conflict(
     The learned clause is the negation of the final nogood. When the analysis finds a UIP, the negation of the UIP is
     the first literal of the clause, and the assertion level is the highest level of the other literals, 0 when there
     is none. An empty clause means that no solution is left.
+
+    When an explanation gives a literal that was not true when its call read the bounds, the explanation is wrong, and
+    the analysis gives no clause: it returns -1 literals, and the row whose explanation is wrong, or the number of
+    rows in use for the explanation of the failure.
 
     :param explain_addrs: the compiled explain address of each algorithm
     :type explain_addrs: NDArray
@@ -354,13 +381,13 @@ def analyze_conflict(
                     for each literal
     :type learned: NDArray
 
-    :return: the number of literals of the learned clause; the level of the conflict, the highest level of the
-             literals of the nogood of the failure, 0 when there is none; the assertion level, -1 when the clause does
-             not assert a literal
+    :return: the number of literals of the learned clause, -1 when an explanation is wrong; the level of the conflict,
+             the highest level of the literals of the nogood of the failure, 0 when there is none, or the row whose
+             explanation is wrong; the assertion level, -1 when the clause does not assert a literal
     :rtype: Tuple[int, int, int]
     """
     # the nogood of the failure; its level is not known before all its literals are marked
-    marked_nb, _ = explain_and_mark(
+    marked_nb, _, is_true = explain_and_mark(
         explain_addrs,
         propagator_infos,
         offsets,
@@ -382,15 +409,19 @@ def analyze_conflict(
         0,
         -1,
     )
+    if not is_true:
+        return clear_marks(marks, marked, marked_nb, itrail_top[0])
     if marked_nb == 0:
         return 0, 0, -1
+    # the level of the conflict, and its marked literals that the walk has not reached yet
     level = 0
-    for idx in range(marked_nb):
-        level = max(level, itrail[marks[marked[idx], MARK_ROW], ITRAIL_CHOICEPOINT])
-    # the marked literals of the level that the walk has not reached yet
     level_lit_nb = 0
     for idx in range(marked_nb):
-        if itrail[marks[marked[idx], MARK_ROW], ITRAIL_CHOICEPOINT] == level:
+        lit_level = itrail[marks[marked[idx], MARK_ROW], ITRAIL_CHOICEPOINT]
+        if lit_level > level:
+            level = lit_level
+            level_lit_nb = 1
+        elif lit_level == level:
             level_lit_nb += 1
     # the decisions of the level that stay in the nogood, because they have no explanation
     kept_nb = 0
@@ -409,7 +440,7 @@ def analyze_conflict(
                 value = marks[var_side, MARK_VALUE]
                 marks[var_side, MARK_ROW] = MARK_DONE
                 # the analysis asks for the marked literal, which can be weaker than the literal of the row
-                marked_nb, level_delta = explain_and_mark(
+                marked_nb, level_delta, is_true = explain_and_mark(
                     explain_addrs,
                     propagator_infos,
                     offsets,
@@ -431,6 +462,8 @@ def analyze_conflict(
                     marked_nb,
                     level,
                 )
+                if not is_true:
+                    return clear_marks(marks, marked, marked_nb, row)
                 level_lit_nb += level_delta
             else:
                 kept_nb += 1
@@ -454,6 +487,28 @@ def analyze_conflict(
                 assertion_level = max(assertion_level, itrail[mark_row, ITRAIL_CHOICEPOINT])
         marks[var_side, MARK_ROW] = MARK_NONE
     return lit_nb, level, assertion_level
+
+
+@njit(cache=True, inline="always")
+def clear_marks(marks: NDArray, marked: NDArray, marked_nb: int, row: int) -> tuple[int, int, int]:
+    """
+    Clears the marks of an analysis that found a wrong explanation, and returns its result: no clause.
+
+    :param marks: for each bound, the row and the value of its marked literal, in the MARK_* columns
+    :type marks: NDArray
+    :param marked: the stack of the marked bounds
+    :type marked: NDArray
+    :param marked_nb: the number of bounds on the stack
+    :type marked_nb: int
+    :param row: the row whose explanation is wrong, or the number of rows in use for the explanation of the failure
+    :type row: int
+
+    :return: -1 literals, the row, and no assertion level
+    :rtype: Tuple[int, int, int]
+    """
+    for idx in range(marked_nb):
+        marks[marked[idx], MARK_ROW] = MARK_NONE
+    return -1, row, -1
 
 
 @njit(cache=True, inline="always")
@@ -522,19 +577,21 @@ def allocate_analysis(domain_nb: int, max_arity: int) -> tuple[NDArray, NDArray,
     return explanation, literals, marks, marked, learned
 
 
-def allocate_clause_log(domain_nb: int) -> tuple[NDArray, NDArray, NDArray]:
+def allocate_clause_log(domain_nb: int, debug: bool) -> tuple[NDArray, NDArray, NDArray]:
     """
     Allocates the log of the learned clauses of the debug mode.
 
     :param domain_nb: the number of variables of the problem
     :type domain_nb: int
+    :param debug: whether the solver runs in debug mode; without it, nothing writes the log, which gets no rows
+    :type debug: bool
 
     :return: the literals of the logged clauses; one row for each logged clause, in the CLAUSE_LOG_* columns; the
              number of clauses and the number of literals in the log
     :rtype: Tuple[NDArray, NDArray, NDArray]
     """
     # a learned clause has at most one literal for each bound
-    clause_log = np.empty((max(1 << 10, 2 * (domain_nb << 1)), LIT_WIDTH), dtype=np.int32)
-    clause_log_info = np.empty((1 << 8, CLAUSE_LOG_WIDTH), dtype=np.int64)
+    clause_log = np.empty((max(1 << 10, 2 * (domain_nb << 1)) if debug else 0, LIT_WIDTH), dtype=np.int32)
+    clause_log_info = np.empty((1 << 8 if debug else 0, CLAUSE_LOG_WIDTH), dtype=np.int64)
     clause_log_top = np.zeros(CLAUSE_LOG_TOP_WIDTH, dtype=np.int64)
     return clause_log, clause_log_info, clause_log_top
