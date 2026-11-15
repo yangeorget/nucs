@@ -21,13 +21,14 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import BB_BOUND, BB_VALUE, BB_VARIABLE, DOMAIN_MAX, DOMAIN_MIN, LOG_LEVEL_INFO
+from nucs.constants import BB_BOUND, BB_VALUE, BB_VARIABLE, DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_NONE, LOG_LEVEL_INFO
 from nucs.numba_helper import DomainHeuristicFunctions, VariableHeuristicFunctions, addresses_from_functions
 from nucs.problems.problem import INFO_ALGORITHM, PROBLEM_BOUND, PROBLEM_INCONSISTENT, PROBLEM_UNBOUND, Problem
 from nucs.propagators.propagators import ALG_DUMMY, EXPLAIN_FCTS, SIGN_EXPLAIN
 from nucs.solvers.choicepoints import (
     CHOICEPOINT_ITRAIL_MARK,
     CHOICEPOINT_UTRAIL_MARK,
+    tighten_objective,
 )
 from nucs.solvers.lcg.clause_store import (
     STORE_CLAUSE_NB,
@@ -346,6 +347,7 @@ class LcgSolver(TreeSearchSolver):
                 self.problem.propagator_parameters,
                 self.problem.initial_domains,
                 self.explain_addrs,
+                self.bb,
                 self.itrail,
                 self.itrail_top,
                 self.itrail_last,
@@ -745,6 +747,7 @@ def run_search_loop(
                 propagator_parameters,
                 initial_domains,
                 explain_addrs,
+                bb,
                 itrail,
                 itrail_top,
                 itrail_last,
@@ -1057,6 +1060,7 @@ def learn_and_backjump(
     propagator_parameters: NDArray,
     initial_domains: NDArray,
     explain_addrs: NDArray,
+    bb: NDArray,
     itrail: NDArray,
     itrail_top: NDArray,
     itrail_last: NDArray,
@@ -1089,9 +1093,9 @@ def learn_and_backjump(
     watches and asserts with REASON_CLAUSE (attach_clause). When the new clause fails at the assertion level, that is a
     new conflict, and the loop analyzes it.
 
-    The bound of the objective needs no work here. After a solution, its nogood is one literal, [obj >= best] when
-    minimizing, and one literal at its level is its own UIP: the learned clause is the bound itself, a unit clause that
-    asserts at level 0. Thus the bound holds after each backjump, as design/proposals/lcg.md 4.7 asks.
+    After the backjump, the bound of the objective is applied again, with REASON_ROOT: it holds for the rest of the
+    search, but the backjump undid it. When it fails at the assertion level, that is a new conflict, [obj >= best] when
+    minimizing, and the loop analyzes it.
 
     An analysis that meets a wrong explanation gives no clause. The debug mode stops on it; else the conflict becomes the
     nogood of the decisions on the path, whose negation is always valid and asserts the negation of the last decision.
@@ -1135,6 +1139,9 @@ def learn_and_backjump(
     :type initial_domains: NDArray
     :param explain_addrs: the compiled explain address of each algorithm, for the debug mode
     :type explain_addrs: NDArray
+    :param bb: the branch-and-bound bound as a Numpy array of variable, bound and value,
+               whose variable is -1 when not optimizing
+    :type bb: NDArray
     :param itrail: the implication trail
     :type itrail: NDArray
     :param itrail_top: the number of rows in use, as a one-cell array
@@ -1266,6 +1273,48 @@ def learn_and_backjump(
             assertion_level,
         )
         mark = choicepoints[assertion_level, CHOICEPOINT_UTRAIL_MARK]
+        optimized_variable = bb[BB_VARIABLE]
+        if optimized_variable >= 0:
+            events = tighten_objective(
+                state,
+                utrail_log,
+                utrail_top,
+                utrail_indices,
+                mark,
+                optimized_variable,
+                bb[BB_VALUE],
+                bb[BB_BOUND],
+            )
+            if events < 0:
+                # the level cannot hold a better solution: the bound fails there
+                pending_conflict[CONFLICT_KIND] = CONFLICT_LITERAL
+                pending_conflict[CONFLICT_DATA], pending_conflict[CONFLICT_VALUE] = objective_nogood(bb)
+                pending_conflict[CONFLICT_POS] = itrail_top[0]
+                continue
+            if events != EVENT_MASK_NONE:
+                itrail_top[0] = itrail_push_events(
+                    itrail,
+                    itrail_last,
+                    itrail_top[0],
+                    state,
+                    optimized_variable,
+                    events,
+                    assertion_level,
+                    REASON_ROOT,
+                    -1,
+                    -1,
+                    -1,
+                )
+                update_propagators(
+                    triggered_propagators,
+                    entailed,
+                    triggers,
+                    triggers_offsets,
+                    propagator_infos,
+                    optimized_variable,
+                    events,
+                    -1,
+                )
         if new_clause < 0:
             holds, utrail_sz, itrail_sz = assert_literal(
                 state,

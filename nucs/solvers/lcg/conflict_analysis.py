@@ -403,44 +403,32 @@ def explain_clause_and_mark(
 
 
 @njit(cache=True, inline="always")
-def mark_nogood(
-    initial_domains: NDArray,
+def mark_decisions(
     itrail: NDArray,
     itrail_last: NDArray,
-    conflict: NDArray,
+    pos: int,
     marks: NDArray,
     marked: NDArray,
 ) -> tuple[int, bool]:
     """
-    Marks the nogood of a conflict of kind CONFLICT_LITERAL or CONFLICT_DECISIONS.
+    Marks the decisions on the path, the nogood of a conflict of kind CONFLICT_DECISIONS: the rows with
+    REASON_DECISION, one for each level.
 
-    A literal that is true at the root is dropped. The decisions are the rows with REASON_DECISION: each level has one.
-
-    :param initial_domains: the domains of the problem before any propagation, the root values of the bounds
-    :type initial_domains: NDArray
     :param itrail: the implication trail
     :type itrail: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
-    :param conflict: the conflict, in the CONFLICT_* cells
-    :type conflict: NDArray
+    :param pos: the number of rows of the implication trail when the conflict occurred
+    :type pos: int
     :param marks: for each bound, the row and the value of its marked literal, in the MARK_* columns
     :type marks: NDArray
     :param marked: the stack of the marked bounds
     :type marked: NDArray
 
-    :return: the number of bounds on the stack, and false iff a literal was not true when the conflict occurred
+    :return: the number of bounds on the stack, and false iff a decision was not true at pos
     :rtype: Tuple[int, bool]
     """
-    pos = conflict[CONFLICT_POS]
     marked_nb = 0
-    if conflict[CONFLICT_KIND] == CONFLICT_LITERAL:
-        var_side = conflict[CONFLICT_DATA]
-        value = conflict[CONFLICT_VALUE]
-        if not is_stronger(var_side, value, initial_domains[var_side >> 1, var_side & 1]):
-            return 0, True
-        marked_nb, _, is_true = mark_literal(itrail, itrail_last, marks, marked, 0, var_side, value, pos, -1)
-        return marked_nb, is_true
     for row in range(pos):
         if itrail[row, ITRAIL_REASON_KIND] == REASON_DECISION:
             marked_nb, _, is_true = mark_literal(
@@ -579,8 +567,64 @@ def analyze_conflict(
             0,
             -1,
         )
+    elif conflict_kind == CONFLICT_DECISIONS:
+        marked_nb, is_true = mark_decisions(itrail, itrail_last, conflict[CONFLICT_POS], marks, marked)
     else:
-        marked_nb, is_true = mark_nogood(initial_domains, itrail, itrail_last, conflict, marks, marked)
+        # [obj >= best] after a solution: the nogood is the reason of the literal, not the literal itself, which would
+        # be its own UIP and would give the bound as a unit clause, and a jump back to the root after each solution.
+        # With its reason, the analysis learns why the objective was so large (design/proposals/lcg.md, 4.7).
+        marked_nb = 0
+        is_true = True
+        var_side = conflict[CONFLICT_DATA]
+        value = conflict[CONFLICT_VALUE]
+        if is_stronger(var_side, value, initial_domains[var_side >> 1, var_side & 1]):
+            row = first_row(itrail, itrail_last, var_side, value)
+            if row < 0 or row >= conflict[CONFLICT_POS]:
+                is_true = False
+            elif itrail[row, ITRAIL_CHOICEPOINT] == 0 or itrail[row, ITRAIL_REASON_KIND] == REASON_ROOT:
+                pass  # the literal holds for the rest of the search: no better solution is left
+            elif itrail[row, ITRAIL_REASON_KIND] == REASON_PROPAGATOR:
+                marked_nb, _, is_true = explain_and_mark(
+                    explain_addrs,
+                    propagator_infos,
+                    offsets,
+                    propagator_variables,
+                    propagator_parameters,
+                    initial_domains,
+                    itrail,
+                    itrail_last,
+                    itrail[row, ITRAIL_REASON_DATA],
+                    itrail[row, ITRAIL_REASON_POS],
+                    itrail[row, ITRAIL_REASON_VAR_IDX],
+                    var_side & 1,
+                    value,
+                    prop_domains,
+                    explanation,
+                    literals,
+                    marks,
+                    marked,
+                    0,
+                    -1,
+                )
+            elif itrail[row, ITRAIL_REASON_KIND] == REASON_CLAUSE:
+                marked_nb, _, is_true = explain_clause_and_mark(
+                    clause_lits,
+                    clause_start,
+                    initial_domains,
+                    itrail,
+                    itrail_last,
+                    itrail[row, ITRAIL_REASON_DATA],
+                    var_side,
+                    row,
+                    marks,
+                    marked,
+                    0,
+                    -1,
+                )
+            else:  # a decision has no reason: it is the nogood
+                marked_nb, _, is_true = mark_literal(
+                    itrail, itrail_last, marks, marked, 0, var_side, value, conflict[CONFLICT_POS], -1
+                )
     if not is_true:
         return clear_marks(marks, marked, marked_nb, itrail_top[0])
     if marked_nb == 0:
