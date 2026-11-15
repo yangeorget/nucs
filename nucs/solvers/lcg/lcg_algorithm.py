@@ -40,6 +40,7 @@ from nucs.problems.problem import (
 from nucs.propagators.propagators import call_compute_domains
 from nucs.solvers.buckets import STORAGE_OFFSET, buckets_pop
 from nucs.solvers.choicepoints import CHOICEPOINT_UTRAIL_MARK
+from nucs.solvers.lcg.clause_store import CLAUSES_ITRAIL_FULL, STORE_UNIT_NB, propagate_clauses
 from nucs.solvers.lcg.implication_trail import ITRAIL_STEP_ROW_NB, REASON_PROPAGATOR, itrail_push_events
 from nucs.solvers.propagation_steps import (
     count_no_change,
@@ -65,11 +66,14 @@ from nucs.statistics import (
 # still in the queue, and the next call of lcg_algorithm continues the propagation
 PROBLEM_ITRAIL_FULL = 3
 
-# The cells of failed_propagator: the propagator that failed, and the number of rows of the implication trail when its
-# call read the bounds. The failure is explained with the bounds at that position: a write-back of copies can fail
-# after it wrote rows (see update_domains_of_copies_with_reasons).
+# The cells of failed_propagator: the propagator that failed (-1 when a clause failed), the number of rows of the
+# implication trail when its call read the bounds, and the clause that failed (-1 when a propagator failed). The failure
+# is explained with the bounds at that position: a write-back of copies can fail after it wrote rows (see
+# update_domains_of_copies_with_reasons).
 FAILED_PROPAGATOR = 0
 FAILED_POS = 1
+FAILED_CLAUSE = 2
+FAILED_WIDTH = 3
 
 
 # compiled without Numba's reference-counting runtime, as bc_algorithm is, for the same reasons and with the same two
@@ -101,28 +105,38 @@ def lcg_algorithm(
     itrail_top: NDArray,
     itrail_last: NDArray,
     failed_propagator: NDArray,
+    clause_lits: NDArray,
+    clause_start: NDArray,
+    watch_head: NDArray,
+    watches: NDArray,
+    store_top: NDArray,
+    clause_head: NDArray,
 ) -> int:
     """
-    Propagates as bc_algorithm does, and records each bound change on the implication trail: the propagation loop
-    of LcgSolver.
+    Propagates as bc_algorithm does, propagates the learned clauses, and records each bound change on the implication
+    trail: the propagation loop of LcgSolver.
 
-    It is a copy of bc_algorithm with four changes (design/proposals/lcg.md, 4.1):
+    It is a copy of bc_algorithm with five changes (design/proposals/lcg.md, 4.1):
+
+    - before it pops a propagator, it propagates the learned clauses on the bounds that changed since the last time
+      (propagate_clauses): the clauses are cheap and often fail early, so they come first;
 
     - before the call of a propagator, it keeps the number of rows of the implication trail as the REASON_POS of
       the call;
     - in the write-back, each moved bound adds a row with REASON_PROPAGATOR, the propagator and this REASON_POS;
-    - when a propagator fails, it writes the propagator and the position of its call in failed_propagator, so that
+    - when a propagator or a clause fails, it writes it and the position of the failure in failed_propagator, so that
       the solver can ask for the explanation of the failure;
     - a propagator that has a variable more than once (INFO_COPIES) gets update_domains_of_copies_with_reasons, as
       bc_algorithm gives it update_domains_of_copies.
 
-    The search is the same as with bc_algorithm, and so are the counters: it counts its calls in ALG_BC_NB for this
-    reason.
+    Without learned clauses, the search is the same as with bc_algorithm, and so are the counters: it counts its calls
+    in ALG_BC_NB for this reason.
 
-    Each propagator call adds at most two rows for each of its variables. Before it pops a propagator, the loop makes
-    sure that these rows fit, and that the rows of the next step of the search fit too. When they do not, it returns
-    PROBLEM_ITRAIL_FULL and leaves the propagator in the queue: the solver grows the implication trail, and the next
-    call continues the propagation. The two calls count as one in ALG_BC_NB.
+    Each propagator call adds at most two rows for each of its variables, and each clause adds one row. Before each
+    row of a clause and before it pops a propagator, the loop makes sure that these rows fit, and that the rows of the
+    next step of the search fit too: ITRAIL_STEP_ROW_NB, and one row for each unit clause, which a backtrack applies
+    again. When they do not, it returns PROBLEM_ITRAIL_FULL: the solver grows the implication trail, and the next call
+    continues the propagation. The two calls count as one in ALG_BC_NB.
 
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
@@ -177,9 +191,22 @@ def lcg_algorithm(
     :type itrail_top: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
-    :param failed_propagator: a two-cell array that gets the propagator that failed and the position of its call
-                              (FAILED_PROPAGATOR, FAILED_POS), when the loop returns PROBLEM_INCONSISTENT
+    :param failed_propagator: an array that gets the propagator or the clause that failed, and the position of the
+                              failure, in the FAILED_* cells, when the loop returns PROBLEM_INCONSISTENT
     :type failed_propagator: NDArray
+    :param clause_lits: the literals of the learned clauses, see nucs.solvers.lcg.clause_store
+    :type clause_lits: NDArray
+    :param clause_start: the first literal of each learned clause
+    :type clause_start: NDArray
+    :param watch_head: the first watch of each bound, -1 when the list is empty
+    :type watch_head: NDArray
+    :param watches: the watches of the learned clauses
+    :type watches: NDArray
+    :param store_top: the numbers of clauses, of literals and of unit clauses of the store, in the STORE_* cells
+    :type store_top: NDArray
+    :param clause_head: the first row of the implication trail whose watches the clause propagation has not visited
+                        yet, as a one-cell array
+    :type clause_head: NDArray
 
     :return: PROBLEM_INCONSISTENT, PROBLEM_UNBOUND, PROBLEM_BOUND, or PROBLEM_ITRAIL_FULL when the implication
              trail must grow before the propagation can continue
@@ -197,12 +224,43 @@ def lcg_algorithm(
     entailed_idx = len(domains) << 1  # the entailment flags follow the domain bounds in state
     # the same for the implication trail
     itrail_sz = itrail_top[0]
-    # the rows that the next call can add, and those of the step of the search that follows the propagation
-    itrail_room = 2 * len(domain_buffer) + ITRAIL_STEP_ROW_NB
+    # the rows of the step of the search that follows the propagation: a backtrack also applies each unit clause again
+    itrail_reserve = ITRAIL_STEP_ROW_NB + store_top[STORE_UNIT_NB]
+    # the rows that the next call can add, and the reserve
+    itrail_room = 2 * len(domain_buffer) + itrail_reserve
     statistics[STATS_IDX_ALG_BC_NB] += 1
     membership_offset = STORAGE_OFFSET + len(propagator_infos)
     while True:
-        if itrail_sz + itrail_room > len(itrail):
+        clause_status, utrail_sz, itrail_sz = propagate_clauses(
+            state,
+            utrail_log,
+            utrail_indices,
+            mark,
+            utrail_sz,
+            itrail,
+            itrail_last,
+            itrail_sz,
+            itrail_reserve,
+            choicepoint,
+            clause_head,
+            clause_lits,
+            clause_start,
+            watch_head,
+            watches,
+            triggered_propagators,
+            entailed,
+            triggers,
+            triggers_offsets,
+            propagator_infos,
+        )
+        if clause_status >= 0:
+            failed_propagator[FAILED_PROPAGATOR] = -1
+            failed_propagator[FAILED_POS] = itrail_sz
+            failed_propagator[FAILED_CLAUSE] = clause_status
+            utrail_top[0] = utrail_sz
+            itrail_top[0] = itrail_sz
+            return PROBLEM_INCONSISTENT
+        if clause_status == CLAUSES_ITRAIL_FULL or itrail_sz + itrail_room > len(itrail):
             statistics[STATS_IDX_ALG_BC_NB] -= 1  # the next call continues this one
             utrail_top[0] = utrail_sz
             itrail_top[0] = itrail_sz
@@ -248,6 +306,7 @@ def lcg_algorithm(
             weights_bump(propagator_weights, prop_idx)
             failed_propagator[FAILED_PROPAGATOR] = prop_idx
             failed_propagator[FAILED_POS] = itrail_sz
+            failed_propagator[FAILED_CLAUSE] = -1
             utrail_top[0] = utrail_sz
             itrail_top[0] = itrail_sz
             return PROBLEM_INCONSISTENT
@@ -289,6 +348,7 @@ def lcg_algorithm(
                 weights_bump(propagator_weights, prop_idx)
                 failed_propagator[FAILED_PROPAGATOR] = prop_idx
                 failed_propagator[FAILED_POS] = reason_pos
+                failed_propagator[FAILED_CLAUSE] = -1
                 utrail_top[0] = utrail_sz
                 itrail_top[0] = itrail_sz
                 return PROBLEM_INCONSISTENT

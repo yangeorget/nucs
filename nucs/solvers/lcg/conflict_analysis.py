@@ -28,6 +28,9 @@ Three points are specific to bound literals and to NuCS:
 - a conflict can have no literal of the current level, for example when the objective bound fails at a lower level.
   The level of the conflict is then the highest level of the literals of the nogood.
 
+The nogood of a failed clause, and the explanation of a row that a clause set (REASON_CLAUSE), are the negations of
+the other literals of the clause: they need no explain function (explain_clause_and_mark).
+
 The marks are flat arrays: for each bound, the row and the value of its marked literal (marks), and a stack of the
 marked bounds (marked), which the analysis reads at the end and then clears. The walk follows the order of the
 implication trail, so the analysis needs no recursion.
@@ -54,6 +57,7 @@ from nucs.solvers.lcg.implication_trail import (
     ITRAIL_REASON_VAR_IDX,
     ITRAIL_VALUE,
     ITRAIL_VAR_SIDE,
+    REASON_CLAUSE,
     REASON_PROPAGATOR,
     REASON_ROOT,
 )
@@ -311,6 +315,76 @@ def explain_and_mark(
     return marked_nb, level_delta, True
 
 
+@njit(cache=True, inline="always")
+def explain_clause_and_mark(
+    clause_lits: NDArray,
+    clause_start: NDArray,
+    initial_domains: NDArray,
+    itrail: NDArray,
+    itrail_last: NDArray,
+    clause: int,
+    var_side: int,
+    pos: int,
+    marks: NDArray,
+    marked: NDArray,
+    marked_nb: int,
+    level: int,
+) -> tuple[int, int, bool]:
+    """
+    Explains a literal that a clause set, or the failure of a clause, and adds the literals of the explanation to the
+    nogood of the analysis: the negations of the other literals of the clause.
+
+    The negation of a literal that is false at the root is true at the root, so it is dropped, as explanation_literals
+    drops such a literal. It stops at the first literal that was not true at pos (see mark_literal).
+
+    :param clause_lits: the literals of the clauses, one row [LIT_VAR_SIDE, LIT_VALUE] for each
+    :type clause_lits: NDArray
+    :param clause_start: the first literal of each clause, and the number of literals after the last clause
+    :type clause_start: NDArray
+    :param initial_domains: the domains of the problem before any propagation, the root values of the bounds
+    :type initial_domains: NDArray
+    :param itrail: the implication trail
+    :type itrail: NDArray
+    :param itrail_last: the last row of each bound, -1 when the bound has its root value
+    :type itrail_last: NDArray
+    :param clause: the clause
+    :type clause: int
+    :param var_side: the bound that the clause set, -1 for a failure
+    :type var_side: int
+    :param pos: the row that the clause set, or the number of rows in use for a failure: the other literals were false
+                before it
+    :type pos: int
+    :param marks: for each bound, the row and the value of its marked literal, in the MARK_* columns
+    :type marks: NDArray
+    :param marked: the stack of the marked bounds
+    :type marked: NDArray
+    :param marked_nb: the number of bounds on the stack
+    :type marked_nb: int
+    :param level: the level of the conflict, -1 when it is not known yet
+    :type level: int
+
+    :return: the new number of bounds on the stack; how much the number of marked literals of the level changes; false
+             iff a literal of the explanation was not true at pos
+    :rtype: Tuple[int, int, bool]
+    """
+    level_delta = 0
+    for lit in range(clause_start[clause], clause_start[clause + 1]):
+        lit_var_side = clause_lits[lit, LIT_VAR_SIDE]
+        if lit_var_side == var_side:
+            continue
+        negation_var_side, negation_value = lit_negate(lit_var_side, clause_lits[lit, LIT_VALUE])
+        root_value = initial_domains[negation_var_side >> 1, negation_var_side & 1]
+        if not is_stronger(negation_var_side, negation_value, root_value):
+            continue
+        marked_nb, delta, is_true = mark_literal(
+            itrail, itrail_last, marks, marked, marked_nb, negation_var_side, negation_value, pos, level
+        )
+        if not is_true:
+            return marked_nb, level_delta, False
+        level_delta += delta
+    return marked_nb, level_delta, True
+
+
 @njit(cache=True)
 def analyze_conflict(
     explain_addrs: NDArray,
@@ -323,7 +397,10 @@ def analyze_conflict(
     itrail_top: NDArray,
     itrail_last: NDArray,
     failed_prop_idx: int,
+    failed_clause: int,
     failed_pos: int,
+    clause_lits: NDArray,
+    clause_start: NDArray,
     prop_domains: NDArray,
     explanation: NDArray,
     literals: NDArray,
@@ -332,7 +409,7 @@ def analyze_conflict(
     learned: NDArray,
 ) -> tuple[int, int, int]:
     """
-    Analyzes the failure of a propagator call, and returns the learned clause: the 1UIP analysis of
+    Analyzes the failure of a propagator call or of a clause, and returns the learned clause: the 1UIP analysis of
     design/proposals/lcg.md 4.5.
 
     The learned clause is the negation of the final nogood. When the analysis finds a UIP, the negation of the UIP is
@@ -362,10 +439,17 @@ def analyze_conflict(
     :type itrail_top: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
-    :param failed_prop_idx: the propagator that failed
+    :param failed_prop_idx: the propagator that failed, -1 when a clause failed
     :type failed_prop_idx: int
-    :param failed_pos: the number of rows of the implication trail when the call that failed read the bounds
+    :param failed_clause: the clause that failed, when no propagator failed
+    :type failed_clause: int
+    :param failed_pos: the number of rows of the implication trail when the call that failed read the bounds, or when
+                       the clause failed
     :type failed_pos: int
+    :param clause_lits: the literals of the learned clauses, one row [LIT_VAR_SIDE, LIT_VALUE] for each
+    :type clause_lits: NDArray
+    :param clause_start: the first literal of each learned clause
+    :type clause_start: NDArray
     :param prop_domains: a scratch buffer with one row for each variable of the largest propagator
     :type prop_domains: NDArray
     :param explanation: a scratch buffer with two rows for each variable of the largest propagator
@@ -387,28 +471,44 @@ def analyze_conflict(
     :rtype: Tuple[int, int, int]
     """
     # the nogood of the failure; its level is not known before all its literals are marked
-    marked_nb, _, is_true = explain_and_mark(
-        explain_addrs,
-        propagator_infos,
-        offsets,
-        propagator_variables,
-        propagator_parameters,
-        initial_domains,
-        itrail,
-        itrail_last,
-        failed_prop_idx,
-        failed_pos,
-        -1,
-        -1,
-        0,
-        prop_domains,
-        explanation,
-        literals,
-        marks,
-        marked,
-        0,
-        -1,
-    )
+    if failed_prop_idx >= 0:
+        marked_nb, _, is_true = explain_and_mark(
+            explain_addrs,
+            propagator_infos,
+            offsets,
+            propagator_variables,
+            propagator_parameters,
+            initial_domains,
+            itrail,
+            itrail_last,
+            failed_prop_idx,
+            failed_pos,
+            -1,
+            -1,
+            0,
+            prop_domains,
+            explanation,
+            literals,
+            marks,
+            marked,
+            0,
+            -1,
+        )
+    else:
+        marked_nb, _, is_true = explain_clause_and_mark(
+            clause_lits,
+            clause_start,
+            initial_domains,
+            itrail,
+            itrail_last,
+            failed_clause,
+            -1,
+            failed_pos,
+            marks,
+            marked,
+            0,
+            -1,
+        )
     if not is_true:
         return clear_marks(marks, marked, marked_nb, itrail_top[0])
     if marked_nb == 0:
@@ -457,6 +557,25 @@ def analyze_conflict(
                     prop_domains,
                     explanation,
                     literals,
+                    marks,
+                    marked,
+                    marked_nb,
+                    level,
+                )
+                if not is_true:
+                    return clear_marks(marks, marked, marked_nb, row)
+                level_lit_nb += level_delta
+            elif itrail[row, ITRAIL_REASON_KIND] == REASON_CLAUSE:
+                marks[var_side, MARK_ROW] = MARK_DONE
+                marked_nb, level_delta, is_true = explain_clause_and_mark(
+                    clause_lits,
+                    clause_start,
+                    initial_domains,
+                    itrail,
+                    itrail_last,
+                    itrail[row, ITRAIL_REASON_DATA],
+                    var_side,
+                    row,
                     marks,
                     marked,
                     marked_nb,
