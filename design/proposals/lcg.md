@@ -1074,10 +1074,55 @@ explanations, the analysis and the store already have their tests. (Until 2026-1
     with the mark at index `L`. An empty clause means that there is no (more) solution.
     *Check:* the solution counts and the optima are the same as with `BacktrackSolver`, with the JIT on and with the
     JIT off. The learned clauses are valid.
+    *Done on 2026-11-15:* `learn_and_backjump` (`nucs/solvers/lcg/lcg_solver.py`) analyzes a conflict, stores the
+    clause, jumps back to its assertion level (`backjump`), applies the bound of the objective again there, with
+    `REASON_ROOT`, and sets the asserting literal: with `REASON_ROOT` at level 0 for a unit clause, with
+    `REASON_CLAUSE` through `attach_clause` for a longer one. A conflict is a small array `[KIND, DATA, VALUE, POS]`:
+    a propagator, a clause, a literal, or the decisions of the path (`CONFLICT_*`, `analyze_conflict`). The check of
+    this step needs enumeration and optimization, and the parked alternatives that these used are gone. Thus the
+    enumeration and the optimization of step 11 are in this step:
+    - **Enumeration.** After a solution, the nogood is the set of the decisions of the path. Its negation blocks the
+      path and asserts the negation of the last decision one level up.
+    - **Optimization.** After a solution, the nogood is `[obj >= best]` (when minimizing), and the bound is applied
+      again after each backjump. The analysis starts from the *reason* of this literal, not from the literal: one
+      literal at its level is its own UIP, so the clause would be the bound itself, a unit clause, and the search
+      would jump back to the root after each solution, as `OPTIM_RESET` does. The first version did so: tsp gr17 made
+      147,988 choices instead of 46,836, in 9.4 times the time. `OPTIM_RESET` stays as it is: a return to the root
+      keeps the clauses, as a restart does.
+    - The restarts of step 11 were done at step 9: `_record_root` builds the implication trail again and applies the
+      unit clauses.
+    Other points:
+    - A dead end where no search can claim a variable blocks the path of its decisions.
+    - An analysis that meets a wrong explanation gives no clause: the debug mode stops; else the search learns the
+      nogood of the decisions, which is always valid.
+    - A conflict whose clause has no room in the store waits in `pending_conflict`, and the search grows the store and
+      continues it.
+    - A unit clause now asserts at level 0, where no backjump undoes it, so a backjump does not apply the unit clauses
+      again: `ITRAIL_STEP_ROW_NB` goes back to 2 (the bound of the objective and the asserting literal), and the
+      reserves no longer grow with the unit clauses.
+    - `decide` still parks the negation of the decision on its choice point; nothing reads it.
+    *Check:* the solutions (in any order) and the optima are those of `BacktrackSolver` on the tests of `LcgSolver`, on
+    100 random problems of several small constraints (enumeration, and minimization in both modes) against brute force,
+    and on queens 9, ais 9, langford (3, 10), magic_sequence 20 and golomb 8. Each solution that `optimize` yields
+    improves on the previous one. Each of four broken versions fails the tests, with an empty Numba cache: no bound of
+    the objective after a backjump, a nogood of the decisions without the last one, an objective nogood off by one, and
+    a pending conflict that is not resumed.
+    *Cost and tree:* against step 9 (median of 7 runs in alternate order, random padding of the environment; the
+    control `BacktrackSolver` moved by at most 0.2%): tsp gr17 5,373 / 5,266 ms (0.98; 48,034 choices instead of
+    46,836), langford (3, 12) 2,605 / 2,634 ms (1.01; the same 18,632 choices), golomb 9 (BC) 177 / 162 ms (0.92;
+    2,732 choices instead of 2,957). With the naive explanations, each backjump goes back one level only: 380 of 380
+    on langford (3, 9), 616 of 616 on ais 9, 82 of 82 on golomb 7. A naive explanation names the bounds of all the
+    variables of the propagator, and one of them always changed at the level just below. Thus the tree gets smaller
+    only through the clauses that the store propagates. The long backjumps of 1.11 need short explanations: gate 1
+    can show a smaller tree only on the instances where the propagation of the clauses prunes, and the exact
+    explanations of stage 2 are what makes the jumps longer.
 11. **Add enumeration, optimization and restarts** (4.7). Enumeration: the blocking nogoods. Optimization: the
     objective bound is applied again after each backjump. Restarts: `itrail` is reset, and `unit_lits` is applied
     again after each `_reset_to_root`.
     *Check:* the clause test of 7.2, with its three cases. The examples with restarts.
+    *Done with steps 9 and 10 (2026-11-15):* the restarts at step 9, the enumeration and the optimization at step 10,
+    because the check of step 10 needs them. The clause test of 7.2 runs its three cases since step 8, and the tests of
+    `LcgSolver` run a search with restarts (quasigroup, Luby, with dom/wdeg and last-conflict) since step 4.
 12. **Add the statistics.** The conflicts, the mean length of the learned clauses, the mean LBD, and, for each
     propagator, the number of rows that the analysis explains.
 13. **Make the mode available in FlatZinc.** An option of `fzn-nucs` selects `LcgSolver`. Run the differential tests

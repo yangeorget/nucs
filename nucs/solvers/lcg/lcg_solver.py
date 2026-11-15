@@ -135,16 +135,15 @@ class LcgSolver(TreeSearchSolver):
     Its propagation is always bound consistency, and no parameter selects another one: the conflict analysis needs a
     reason for each change of a bound, and a custom consistency algorithm gives none.
 
-    At this step (design/proposals/lcg.md, 7.0, step 9), it records each bound change on the path, with its choice
+    At this step (design/proposals/lcg.md, 7.0, step 10), it records each bound change on the path, with its choice
     point and its reason, on the implication trail (nucs.solvers.lcg.implication_trail), and each decision is one
-    literal on its own choice point (nucs.solvers.lcg.decisions). At each failure, it learns a clause by the 1UIP
-    analysis (nucs.solvers.lcg.conflict_analysis), and adds it to the store, which propagates the clauses
-    (nucs.solvers.lcg.clause_store). The search still backtracks in the classical way: it finds the solutions and the
-    optima of BacktrackSolver, and the clauses remove nodes from its tree (with an adaptive heuristic, such as
-    dom/wdeg, they can also change the order of the decisions). The debug mode keeps the learned
+    literal on its own choice point (nucs.solvers.lcg.decisions). At each conflict, it learns a clause by the 1UIP
+    analysis (nucs.solvers.lcg.conflict_analysis), adds it to the store, which propagates the clauses
+    (nucs.solvers.lcg.clause_store), and jumps back to the assertion level of the clause, where the clause sets its
+    asserting literal (learn_and_backjump). After a solution, the nogood of the solution is a conflict too: the bound of
+    the objective when it is armed, else the decisions of the path. It finds the solutions and the optima of
+    BacktrackSolver, with another tree, and the solutions can come in another order. The debug mode keeps the learned
     clauses (learned_clauses), so that the tests can check them.
-    Apart from the clauses, it is the search of BacktrackSolver, except that an EQ decision inside the domain is two
-    literals on two choice points.
     """
 
     def __init__(
@@ -550,24 +549,21 @@ def run_search_loop(
     """
     Searches for one solution, as the run_search_loop of BacktrackSolver does: the search loop of LcgSolver.
 
-    It is a copy of the run_search_loop of BacktrackSolver with five changes (design/proposals/lcg.md, 7.0, steps 5,
-    6 and 8), and a debug mode (steps 5, 7 and 8):
+    It is a copy of the run_search_loop of BacktrackSolver with four changes (design/proposals/lcg.md, 7.0, steps 5,
+    6, 8, 9 and 10), and a debug mode (steps 5, 7 and 8):
 
     - it calls lcg_algorithm directly, where that loop calls the consistency algorithm of the solver; lcg_algorithm
-      records the changes that the propagators make on the implication trail;
+      records the changes that the propagators make on the implication trail, and propagates the learned clauses;
     - each decision is one literal on one choice point (decide), where branch parks two alternatives for an EQ inside
       the domain: the second literal of such an EQ waits in pending_lit, and comes before the heuristics at the next
       node if the propagation left it open;
     - a decision writes the size of the implication trail on the choice point that it parks
       (CHOICEPOINT_ITRAIL_MARK), and adds its row with REASON_DECISION;
-    - it backtracks with the backtrack of LcgSolver, which also pops the implication trail;
-    - at each failure of a propagator or of a clause, it learns a clause by the 1UIP analysis (analyze_conflict), and
-      adds it to the store (step 9): lcg_algorithm propagates the stored clauses, but the search still backtracks in
-      the classical way. After the backtrack, the new clause gets its watches, and sets its literal when it is unit
-      (attach_clause); when the resumed choice point violates it, the search backtracks again. A clause with one
-      literal goes to unit_lits, which each backtrack and each return to the root apply; the empty clause ends the
-      search. An analysis that meets a wrong explanation gives no clause; the debug mode stops on it, as on an
-      explanation that is not proven correct.
+    - a conflict does not backtrack: the failure of a propagator or of a clause, or a dead end with no variable to
+      branch on (whose nogood is the decisions of the path), becomes the pending conflict, and learn_and_backjump
+      learns a clause, jumps back to its assertion level, and sets its asserting literal there. The empty clause ends
+      the search. A conflict whose clause has no room in the store stays pending, and the loop returns for the store
+      to grow.
 
     The choice point of a row is choicepoint_top[0] when the row is written. STATS_IDX_SOLVER_CHOICE_NB counts the
     decision literals, so an interior EQ counts two choices when its second literal opens a choice point.
