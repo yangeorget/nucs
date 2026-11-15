@@ -34,6 +34,19 @@ from nucs.solvers.choicepoints import (
     bounds_after_tightening,
     tighten_objective,
 )
+from nucs.solvers.lcg.conflict_analysis import (
+    CLAUSE_LOG_ASSERTION_LEVEL,
+    CLAUSE_LOG_LEVEL,
+    CLAUSE_LOG_LIT_NB,
+    CLAUSE_LOG_SOLUTION_NB,
+    CLAUSE_LOG_START,
+    CLAUSE_LOG_TOP_CLAUSE_NB,
+    CLAUSE_LOG_TOP_LIT_NB,
+    allocate_analysis,
+    allocate_clause_log,
+    analyze_conflict,
+    clause_log_add,
+)
 from nucs.solvers.lcg.decisions import (
     PENDING_LIT_VAR_SIDE,
     decide,
@@ -71,10 +84,11 @@ from nucs.statistics import (
 logger = logging.getLogger(__name__)
 
 # Why the search loop of LcgSolver returned, in addition to the SOLVER_* statuses of tree_search_solver.py. LcgSolver
-# handles these three itself, in _run_search_loop: TreeSearchSolver never sees them.
+# handles these four itself, in _run_search_loop: TreeSearchSolver never sees them.
 SOLVER_ITRAIL_FULL = 5  # the implication trail needs more room
 SOLVER_ITRAIL_INVALID = 6  # in debug mode, the implication trail does not agree with the state
 SOLVER_EXPLANATION_INVALID = 7  # in debug mode, an explanation is not proven correct
+SOLVER_CLAUSE_LOG_FULL = 8  # in debug mode, the log of the learned clauses needs more room
 
 
 class LcgSolver(TreeSearchSolver):
@@ -84,11 +98,12 @@ class LcgSolver(TreeSearchSolver):
     Its propagation is always bound consistency, and no parameter selects another one: the conflict analysis needs a
     reason for each change of a bound, and a custom consistency algorithm gives none.
 
-    At this step (design/proposals/lcg.md, 7.0, step 7), it records each bound change on the path, with its choice
+    At this step (design/proposals/lcg.md, 7.0, step 8), it records each bound change on the path, with its choice
     point and its reason, on the implication trail (nucs.solvers.lcg.implication_trail), and each decision is one
     literal on its own choice point (nucs.solvers.lcg.decisions). It can explain each change that a propagator made,
-    and each failure (nucs.solvers.lcg.explanations), but only the debug mode asks for the explanations. The search
-    does not use the implication trail yet.
+    and each failure (nucs.solvers.lcg.explanations). At each failure, it learns a clause by the 1UIP analysis
+    (nucs.solvers.lcg.conflict_analysis), in shadow mode: the search does not use the clause yet. The debug mode
+    keeps the learned clauses (learned_clauses), so that the tests can check them.
     It is the search of BacktrackSolver, except that an EQ decision inside the domain is two literals on two choice
     points: it finds the same solutions and the same optima, and when no decision is such an EQ, every counter is the
     same.
@@ -124,9 +139,10 @@ class LcgSolver(TreeSearchSolver):
                               BacktrackSolver, defaults to False
         :type last_conflict: bool
         :param debug: whether the search replays the implication trail from the root at each node and compares the
-                      result with the state, and checks the explanation of each change that a propagator makes and of
-                      each failure; an AssertionError tells the first row that does not agree, or the first explanation
-                      that is not proven correct. This is slow: it is for the tests. Defaults to False
+                      result with the state, checks the explanation of each change that a propagator makes and of
+                      each failure, and keeps the learned clauses; an AssertionError tells the first row that does not
+                      agree, or the first explanation that is not proven correct. This is slow: it is for the tests.
+                      Defaults to False
         :type debug: bool
         """
         # allocated before TreeSearchSolver.__init__, because it calls _record_root
@@ -145,10 +161,40 @@ class LcgSolver(TreeSearchSolver):
         self.explain_addrs = addresses_from_functions(
             EXPLAIN_FCTS, SIGN_EXPLAIN, np.unique(self.problem.propagator_infos[:, INFO_ALGORITHM]), ALG_DUMMY
         )
+        # the buffers of the conflict analysis, which runs at each failure
+        self.explanation, self.explanation_lits, self.marks, self.marked, self.learned = allocate_analysis(
+            problem.domain_nb, len(self.domain_buffer)
+        )
+        # the learned clauses, which only the debug mode logs
+        self.clause_log, self.clause_log_info, self.clause_log_top = allocate_clause_log(problem.domain_nb)
         logger.info(f"The implication trail starts at {len(self.itrail)} rows and grows when it runs out")
         logger.info(
             f"LcgSolver checks the implication trail and the explanations at each node: {'yes' if debug else 'no'}"
         )
+
+    def learned_clauses(self) -> list[tuple[list[tuple[int, int]], int, int, int]]:
+        """
+        Returns the clauses that the conflict analysis learned, in the order of the failures. Only the debug mode
+        keeps them: without it, the list is empty.
+
+        :return: for each clause, its literals as (var_side, value) pairs with the asserting literal first, the level of
+                 the conflict, the assertion level (-1 when the clause does not assert a literal), and the number of
+                 solutions that the search had found when it learned the clause
+        :rtype: List[Tuple[List[Tuple[int, int]], int, int, int]]
+        """
+        clauses = []
+        for info in self.clause_log_info[: self.clause_log_top[CLAUSE_LOG_TOP_CLAUSE_NB]].tolist():
+            start = info[CLAUSE_LOG_START]
+            literals = self.clause_log[start : start + info[CLAUSE_LOG_LIT_NB]].tolist()
+            clauses.append(
+                (
+                    [(var_side, value) for var_side, value in literals],
+                    info[CLAUSE_LOG_LEVEL],
+                    info[CLAUSE_LOG_ASSERTION_LEVEL],
+                    info[CLAUSE_LOG_SOLUTION_NB],
+                )
+            )
+        return clauses
 
     def _record_root(self) -> None:
         """
@@ -239,10 +285,24 @@ class LcgSolver(TreeSearchSolver):
                 self.explain_addrs,
                 self.failed_propagator,
                 self.explanation_report,
+                self.explanation,
+                self.explanation_lits,
+                self.marks,
+                self.marked,
+                self.learned,
+                self.clause_log,
+                self.clause_log_info,
+                self.clause_log_top,
             )
             if status == SOLVER_ITRAIL_FULL:
                 self.itrail = double_rows(self.itrail)
                 logger.info(f"The implication trail grew to {len(self.itrail)} rows")
+            elif status == SOLVER_CLAUSE_LOG_FULL:
+                # grow the part that is full; a clause has at most one literal for each bound
+                if self.clause_log_top[CLAUSE_LOG_TOP_CLAUSE_NB] == len(self.clause_log_info):
+                    self.clause_log_info = double_rows(self.clause_log_info)
+                if self.clause_log_top[CLAUSE_LOG_TOP_LIT_NB] + len(self.learned) > len(self.clause_log):
+                    self.clause_log = double_rows(self.clause_log)
             elif status == SOLVER_ITRAIL_INVALID:
                 row = itrail_check(
                     self.state,
@@ -314,12 +374,20 @@ def run_search_loop(
     explain_addrs: NDArray,
     failed_propagator: NDArray,
     explanation_report: NDArray,
+    explanation: NDArray,
+    explanation_lits: NDArray,
+    marks: NDArray,
+    marked: NDArray,
+    learned: NDArray,
+    clause_log: NDArray,
+    clause_log_info: NDArray,
+    clause_log_top: NDArray,
 ) -> tuple[int, NDArray | None]:
     """
     Searches for one solution, as the run_search_loop of BacktrackSolver does: the search loop of LcgSolver.
 
-    It is a copy of the run_search_loop of BacktrackSolver with four changes (design/proposals/lcg.md, 7.0, steps 5
-    and 6), and a debug mode (steps 5 and 7):
+    It is a copy of the run_search_loop of BacktrackSolver with five changes (design/proposals/lcg.md, 7.0, steps 5,
+    6 and 8), and a debug mode (steps 5, 7 and 8):
 
     - it calls lcg_algorithm directly, where that loop calls the consistency algorithm of the solver; lcg_algorithm
       records the changes that the propagators make on the implication trail;
@@ -328,7 +396,9 @@ def run_search_loop(
       node if the propagation left it open;
     - a decision writes the size of the implication trail on the choice point that it parks
       (CHOICEPOINT_ITRAIL_MARK), and adds its row with REASON_DECISION;
-    - it backtracks with the backtrack of LcgSolver, which also pops the implication trail.
+    - it backtracks with the backtrack of LcgSolver, which also pops the implication trail;
+    - at each failure of a propagator, it learns a clause by the 1UIP analysis (analyze_conflict), in shadow mode: the
+      search does not use the clause, and the debug mode logs it.
 
     The choice point of a row is choicepoint_top[0] when the row is written. STATS_IDX_SOLVER_CHOICE_NB counts the
     decision literals, so an interior EQ counts two choices when its second literal opens a choice point.
@@ -445,6 +515,22 @@ def run_search_loop(
     :param explanation_report: a two-cell array that gets, in debug mode, the row of the first explanation that is
                                not proven correct (the number of rows in use for a failure) and its verdict
     :type explanation_report: NDArray
+    :param explanation: a scratch buffer of the conflict analysis, for the explanations
+    :type explanation: NDArray
+    :param explanation_lits: a scratch buffer of the conflict analysis, for the literals of the explanations
+    :type explanation_lits: NDArray
+    :param marks: the marks of the conflict analysis, see MARK_*
+    :type marks: NDArray
+    :param marked: a scratch buffer of the conflict analysis, for the stack of the marked bounds
+    :type marked: NDArray
+    :param learned: a buffer that gets the clause that the conflict analysis learns
+    :type learned: NDArray
+    :param clause_log: the literals of the learned clauses that the debug mode logs
+    :type clause_log: NDArray
+    :param clause_log_info: one row for each logged clause, see CLAUSE_LOG_*
+    :type clause_log_info: NDArray
+    :param clause_log_top: the number of clauses and the number of literals in the log, see CLAUSE_LOG_TOP_*
+    :type clause_log_top: NDArray
 
     :return: why the loop returned, and the solution when it found one
     :rtype: Tuple[int, Optional[NDArray]]
@@ -462,6 +548,12 @@ def run_search_loop(
             state, initial_domains, itrail, itrail_top, itrail_last, choicepoints, choicepoint_top
         ):
             return SOLVER_ITRAIL_INVALID, None
+        # the room of the log for the clause of a failure of this propagation, before the propagation starts
+        if debug and (
+            clause_log_top[CLAUSE_LOG_TOP_CLAUSE_NB] == len(clause_log_info)
+            or clause_log_top[CLAUSE_LOG_TOP_LIT_NB] + len(learned) > len(clause_log)
+        ):
+            return SOLVER_CLAUSE_LOG_FULL, None
         first_row = itrail_top[0]
         problem_status = lcg_algorithm(
             statistics,
@@ -514,6 +606,39 @@ def run_search_loop(
                 return SOLVER_EXPLANATION_INVALID, None
         if problem_status == PROBLEM_ITRAIL_FULL:
             return SOLVER_ITRAIL_FULL, None
+        if problem_status == PROBLEM_INCONSISTENT:
+            # the analysis runs in shadow mode (step 8 of design/proposals/lcg.md 7.0): the search backtracks as
+            # before, and does not use the clause
+            lit_nb, level, assertion_level = analyze_conflict(
+                explain_addrs,
+                propagator_infos,
+                offsets,
+                propagator_variables,
+                propagator_parameters,
+                initial_domains,
+                itrail,
+                itrail_top,
+                itrail_last,
+                failed_propagator[FAILED_PROPAGATOR],
+                failed_propagator[FAILED_POS],
+                domain_buffer,
+                explanation,
+                explanation_lits,
+                marks,
+                marked,
+                learned,
+            )
+            if debug:
+                clause_log_add(
+                    clause_log,
+                    clause_log_info,
+                    clause_log_top,
+                    learned,
+                    lit_nb,
+                    level,
+                    assertion_level,
+                    statistics[STATS_IDX_SOLUTION_NB],
+                )
         if debug and not is_itrail_valid(
             state, initial_domains, itrail, itrail_top, itrail_last, choicepoints, choicepoint_top
         ):
