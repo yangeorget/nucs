@@ -35,7 +35,7 @@ import numpy as np
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
-from nucs.constants import DOMAIN_MIN
+from nucs.solvers.choicepoints import bounds_after_tightening
 from nucs.solvers.lcg.conflict_analysis import first_row
 from nucs.solvers.lcg.implication_trail import ITRAIL_VAR_SIDE, REASON_CLAUSE, REASON_ROOT, itrail_push_events
 from nucs.solvers.lcg.literals import LIT_VALUE, LIT_VAR_SIDE, LIT_WIDTH, lit_is_false, lit_is_true, lit_negate
@@ -169,12 +169,7 @@ def assert_literal(
         return False, utrail_sz, itrail_sz
     variable = var_side >> 1
     cell_idx = variable << 1
-    new_min = state[cell_idx]
-    new_max = state[cell_idx | 1]
-    if (var_side & 1) == DOMAIN_MIN:
-        new_min = max(new_min, value)
-    else:
-        new_max = min(new_max, value)
+    new_min, new_max = bounds_after_tightening(state[cell_idx], state[cell_idx | 1], var_side & 1, value)
     events, utrail_sz = tighten_at(state, utrail_log, utrail_indices, mark, utrail_sz, variable, new_min, new_max)
     if events:
         itrail_sz = itrail_push_events(
@@ -273,10 +268,8 @@ def propagate_clauses(
         watch = watch_head[bound]
         while watch >= 0:
             next_watch = watches[watch, WATCH_NEXT]
-            # the watched literal is on the other side of the bound: [x >= v] is false when x.max < v, and [x <= v] is
-            # false when x.min > v
-            value = watches[watch, WATCH_VALUE]
-            if (state[bound] >= value) if (bound & 1) != DOMAIN_MIN else (state[bound] <= value):
+            # the watched literal is about the other bound of the variable: [x >= v] is in the list of x.max
+            if not lit_is_false(state, bound ^ 1, watches[watch, WATCH_VALUE]):
                 previous = watch
                 watch = next_watch
                 continue

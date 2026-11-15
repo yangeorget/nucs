@@ -1020,8 +1020,14 @@ explanations, the analysis and the store already have their tests. (Until 2026-1
    `REASON_CLAUSE` row by the negations of the other literals of the clause (`explain_clause_and_mark`). The search
    still backtracks in the classical way, so the solutions and the optima are those of `BacktrackSolver`, and the
    clauses remove nodes: on ais 9 (enumeration), 609 choices instead of 972; on golomb 8 (`OPTIM_RESET`), 582
-   instead of 633. With no reset to the root, the naive clauses seldom apply again: queens 9, langford (3, 10),
-   magic_sequence 20 and golomb 8 (`OPTIM_PRUNE`) keep the choices of `BacktrackSolver`. Points different from 3.5,
+   instead of 633. With no reset to the root, the clauses seldom apply again: queens 9, langford (3, 10),
+   magic_sequence 20 and golomb 8 (`OPTIM_PRUNE`) keep the choices of `BacktrackSolver`. Two causes: the naive clauses
+   are long, and the classical backtrack loses implications. A clause asserts its literal at the current level `k`,
+   while its other literals can be false since a lower level `j`. After a backtrack to a level between `j` and `k`,
+   the clause is unit again, but no row comes on the bound of its false watch, so no watch fires (the "missed lower
+   implications" of chronological backtracking). This loses pruning, never a solution: when the last free literal
+   becomes false, its watch fires and finds the conflict. Step 10 asserts at the assertion level, and the case goes
+   away. Points different from 3.5,
    4.4 and 4.7:
    - **No separate clause queue.** The implication trail is the queue: each row is a bound that changed, and
      `clause_head` is the first row whose watches the propagation has not visited, as the propagation head of a SAT

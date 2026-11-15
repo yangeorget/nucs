@@ -132,9 +132,11 @@ class TestLcgSolver:
     # below and at 15, the room of a call on 6 queens: 2 x 6, and the 3 rows of ITRAIL_STEP_ROW_NB
     @pytest.mark.parametrize("row_nb", [1, 14, 15])
     def test_find_all_the_implication_trail_grows_rather_than_overruns(self, row_nb: int) -> None:
-        # a propagation that stops for room continues where it stopped: the counters are the same as without growth
+        # a propagation that stops for room continues where it stopped: the counters are the same as without growth,
+        # and the solutions are those of BacktrackSolver
         expected_solver = LcgSolver(QueensProblem(6), debug=True)
         expected_solutions = [solution.tolist() for solution in expected_solver.find_all()]
+        assert expected_solutions == [solution.tolist() for solution in BacktrackSolver(QueensProblem(6)).find_all()]
         solver = LcgSolver(QueensProblem(6), debug=True)
         solver.itrail = solver.itrail[:row_nb].copy()
         assert [solution.tolist() for solution in solver.find_all()] == expected_solutions
