@@ -44,6 +44,7 @@ from nucs.solvers.lcg.lcg_solver import LcgSolver
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
 from nucs.solvers.searches import Search
 from nucs.solvers.solver import OPTIM_PRUNE, OPTIM_RESET
+from tests.marks import SLOW_WITHOUT_JIT
 from tests.solvers.backtrack.test_bc_algorithm import random_problem_with_copies
 
 # A row of a hand-built implication trail: (var_side, value, choicepoint, reason_kind, reason_data, reason_pos,
@@ -74,7 +75,6 @@ def get_triggers_given(n: int, variable: int, parameters: NDArray) -> int:
     return EVENT_MASK_MIN_MAX
 
 
-@njit(cache=True)
 def get_complexity_given(n: int, parameters: NDArray) -> int:
     return n
 
@@ -230,11 +230,21 @@ class TestConflictAnalysis:
         "run",
         [
             lambda: run_find_all(QueensProblem(6)),
-            lambda: run_first_solution_with_restarts(QueensProblem(10)),
+            # the cases below run the same analysis; without the JIT, the brute force of their solutions takes 5 s each
+            pytest.param(lambda: run_first_solution_with_restarts(QueensProblem(10)), marks=SLOW_WITHOUT_JIT),
             # from the largest values: 28 improving solutions, and more failures than the default search
-            lambda: run_optimize(OPTIM_PRUNE, [Search(dom_heuristic=DOM_HEURISTIC_MAX_VALUE)]),
-            lambda: run_optimize(OPTIM_RESET, [Search(dom_heuristic=DOM_HEURISTIC_MAX_VALUE)]),
-            lambda: run_optimize(OPTIM_PRUNE, [Search(dom_heuristic=DOM_HEURISTIC_MID_VALUE)]),
+            pytest.param(
+                lambda: run_optimize(OPTIM_PRUNE, [Search(dom_heuristic=DOM_HEURISTIC_MAX_VALUE)]),
+                marks=SLOW_WITHOUT_JIT,
+            ),
+            pytest.param(
+                lambda: run_optimize(OPTIM_RESET, [Search(dom_heuristic=DOM_HEURISTIC_MAX_VALUE)]),
+                marks=SLOW_WITHOUT_JIT,
+            ),
+            pytest.param(
+                lambda: run_optimize(OPTIM_PRUNE, [Search(dom_heuristic=DOM_HEURISTIC_MID_VALUE)]),
+                marks=SLOW_WITHOUT_JIT,
+            ),
         ],
         ids=["find_all", "first_solution_restarts", "optimize_prune", "optimize_reset", "optimize_interior_eq"],
     )

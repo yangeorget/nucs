@@ -972,6 +972,40 @@ trail, the explanations, the analysis and the store already have their tests.
    *Check:* the hand-built trail of 1.11 gives `[v <= 0]` at level 0. On small models, each clause that the shadow
    analysis learns is valid against the solutions that brute force finds. In shadow mode, a clause can be checked
    while it has no effect on the search, so an error in the analysis shows before it can remove a solution.
+   *Done on 2026-11-15:* `nucs/solvers/lcg/conflict_analysis.py` holds `analyze_conflict`, with `first_row` (the
+   first-row lookup), `mark_literal` (the merge, and the drop of the literals whose first row has level 0 or
+   `REASON_ROOT`) and `explain_and_mark`. `run_search_loop` calls it after each failure of a propagator, and the search
+   does not use the clause. `LcgSolver(debug=True)` logs the clauses, with the number of solutions found when each
+   one was learned (`learned_clauses`). Four points are different from 4.5 and from this step:
+   - No stack of literals to explain, and no recursion. The marks are flat arrays (`MARK_ROW` and `MARK_VALUE` for
+     each bound), and the walk follows the implication trail down, so the order of the trail is the order of the
+     work. The only stack is the list of the marked bounds, which the analysis reads at the end and then clears.
+   - Until step 10, a backtrack writes the parked alternative as a `REASON_DECISION` row on a level that already has
+     a decision. Such a row has no explanation, so the analysis keeps its literal. The clause then has more than one
+     literal of the level of the conflict: it is valid, but it asserts nothing (assertion level -1). On queens 8
+     (enumeration), 176 of the 304 clauses assert a literal; on random problems with domains of 4 values, 15 of 550,
+     because most conflicts come just after an alternative. Step 10 removes the alternatives, and this case with them.
+   - An alternative at choice point 0 is a row of level 0, so the analysis drops it as a root fact. The clause is
+     then valid for the solutions that the search has not found yet, which is the rule of the clause test of 7.2.
+   - The analysis asks `explain` for the marked literal, which can be weaker than the literal of the row (4.3).
+   *Check:* the hand-built trail of 1.11 gives `[v <= 0]` at level 0, and the search of 1.11 learns it as its first
+   clause (at level 5, because the search splits `y` four times). Hand-built trails check each rule. On queens 6
+   (enumeration), queens 10 (first solution, with dom/wdeg, last-conflict and restarts), golomb 5 (optimization in
+   both modes, and with interior `EQ` decisions) and 100 random problems with copies, each clause keeps the solutions
+   that it must keep. Each of six broken analyses (no first-row lookup, no merge test, `REASON_ROOT` kept, a UIP
+   despite a kept decision, explanations cut to one literal, the UIP not negated) fails these tests. Check such a
+   break with an empty Numba cache: `run_search_loop` is cached on the date of `lcg_solver.py`, so a change to
+   `conflict_analysis.py` alone does not reach it, and the solver-level tests then test the old analysis. The
+   counters of `BacktrackSolver`, `LcgSolver` and `LcgSolver(debug=True)` do not change.
+   *Cost:* the analysis makes `LcgSolver` 3.5 to 4.1 times slower than at step 7, with the same trees (median of 7
+   runs in alternate order with a random padding of the environment; the control `BacktrackSolver` moved by 0.1%):
+   tsp gr17 302 / 1,225 ms, langford (3, 12) 267 / 933 ms, golomb 9 (BC) 43 / 151 ms. The count of the work, without
+   the JIT, on langford (3, 9): a conflict asks for 51 explanations of rows of 11 variables on average, so it makes
+   1,126 calls of `bound_at` (847 chain steps) and 1,040 first-row lookups (1,838 chain steps). The chains are short
+   (1 to 2 steps for each lookup): the cost is the number of literals of the naive explanations, not the length of the
+   chains. The scratch copy of 4.3 would remove only the `bound_at` part, and the exact explanations of stage 2 come
+   after gate 1. Gate 1 (step 14) asks for at least half of the current nodes per second with the naive explanations,
+   so measure the analysis again after step 10, which changes the trees, before that gate.
 9. **Add the clause store** (3.5, 4.4). The arrays `clause_lits`, `clause_start`, `clause_info`, `watch_head`,
    `watches` and `unit_lits`. The status `SOLVER_CLAUSES_FULL`. The clause queue, which `lcg_algorithm` empties
    before it pops the next propagator. The `REASON_CLAUSE` rows, and the explanation of a row that a clause set.
