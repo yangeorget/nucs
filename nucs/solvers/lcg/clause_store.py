@@ -412,13 +412,14 @@ def attach_clause(
     propagator_infos: NDArray,
 ) -> bool:
     """
-    Links the watches of a clause that store_clause added, at the choice point where the search resumes, and sets
-    its literal when the clause is unit there.
+    Links the watches of a clause that store_clause added, at the level where the search continues, and sets its
+    literal when the clause is unit there.
 
     The two watched literals are the literals that are not false, or, when fewer than two are not false, the false
-    literals that became false last: when the search backtracks, these become free first. When exactly one literal is
-    not false, the clause sets it, with REASON_CLAUSE. When all the literals are false, the choice point violates the
-    clause: nothing is linked, and the search must backtrack again before it calls this again.
+    literals that became false last: when the search backjumps, these become free first. When exactly one literal is
+    not false, the clause sets it, with REASON_CLAUSE. When all the literals are false, the level violates the clause:
+    the watches are linked all the same, and the call returns false, so that the caller analyzes the clause as a
+    conflict.
 
     :param clause: the clause
     :type clause: int
@@ -483,8 +484,6 @@ def attach_clause(
             first, first_rank = lit, rank
         elif rank > second_rank:
             second, second_rank = lit, rank
-    if free_nb == 0:
-        return False
     # the two best literals go to the first two positions; the first swap can move the second best literal
     swap_lits(clause_lits, start, first)
     swap_lits(clause_lits, start + 1, first if second == start else second)
@@ -496,6 +495,8 @@ def attach_clause(
             clause_lits[start + slot, LIT_VAR_SIDE],
             clause_lits[start + slot, LIT_VALUE],
         )
+    if free_nb == 0:
+        return False
     if free_nb == 1:
         _, utrail_sz, itrail_sz = assert_literal(
             state,

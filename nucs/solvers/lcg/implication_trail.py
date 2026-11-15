@@ -49,13 +49,13 @@ ITRAIL_REASON_VAR_IDX = 7
 ITRAIL_WIDTH = 8
 
 # The kinds of reasons.
-REASON_DECISION = 0  # a decision of the search, or a parked alternative that a backtrack applies
+REASON_DECISION = 0  # a decision of the search
 REASON_PROPAGATOR = 1  # a propagator made the change
 REASON_CLAUSE = 2  # a learned clause made the change (from step 9)
 REASON_ROOT = 3  # a fact that holds for the rest of the search, such as the bound of the best objective
 
-# The rows that a step of the search can write outside the propagation: a decision moves at most two bounds, and a
-# backjump moves one bound for the objective and one bound for the asserting literal of the learned clause.
+# The rows that a step of the search can write outside the propagation: a decision moves one bound, and a backjump
+# moves one bound for the asserting literal of the learned clause and one bound for the objective.
 ITRAIL_STEP_ROW_NB = 2
 
 # What the debug replay check returns when the implication trail agrees with state.

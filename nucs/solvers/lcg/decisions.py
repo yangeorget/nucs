@@ -25,8 +25,10 @@ there, and take_pending_lit reads it. If the propagation makes it true (x is fix
 below v), no choice point opens for it.
 
 The order of the two literals keeps the order of the values of BacktrackSolver: v first, then the values below v,
-then the values above v. Each choice point parks the negation of its literal, so a backtrack to the second one
-applies [x <= v - 1], and a backtrack to the first one applies [x >= v + 1].
+then the values above v (design/proposals/lcg.md, 4.2): a conflict under the second level, with the decision
+[x >= v] as UIP, gives a clause that asserts [x <= v - 1] at the first level, and the values above v come when a later
+conflict refutes [x <= v] itself. Each choice point still parks the negation of its literal, but since step 10 of
+design/proposals/lcg.md 7.0 nothing reads it.
 """
 
 from numba import njit  # type: ignore
@@ -117,7 +119,7 @@ def decide(
     value: int,
 ) -> int:
     """
-    Applies a decision literal on a new choice point, and parks its negation for the search to resume.
+    Applies a decision literal on a new choice point, and parks its negation, which nothing reads since step 10.
 
     As in branch, the choice point records the undo trail position and the alternative, and the choice point above it
     gets the same mark, because it is where the search is about to work.

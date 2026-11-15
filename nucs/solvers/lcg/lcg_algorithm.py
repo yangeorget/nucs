@@ -133,7 +133,8 @@ def lcg_algorithm(
 
     Each propagator call adds at most two rows for each of its variables, and each clause adds one row. Before each
     row of a clause and before it pops a propagator, the loop makes sure that these rows fit, and that the rows of the
-    next step of the search fit too (ITRAIL_STEP_ROW_NB). When they do not, it returns PROBLEM_ITRAIL_FULL: the solver grows the implication trail, and the next call
+    next step of the search fit too (ITRAIL_STEP_ROW_NB). When they do not, it returns PROBLEM_ITRAIL_FULL: the solver
+    grows the implication trail, and the next call
     continues the propagation. The two calls count as one in ALG_BC_NB.
 
     :param statistics: a Numpy array of statistics

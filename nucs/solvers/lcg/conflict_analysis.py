@@ -469,8 +469,8 @@ def analyze_conflict(
     learned: NDArray,
 ) -> tuple[int, int, int]:
     """
-    Analyzes a conflict, and returns the learned clause: the 1UIP analysis of design/proposals/lcg.md 4.5. The conflict is
-    the failure of a propagator call or of a clause, a literal that must not hold, or the decisions of the path.
+    Analyzes a conflict, and returns the learned clause: the 1UIP analysis of design/proposals/lcg.md 4.5. The conflict
+    is the failure of a propagator call or of a clause, a literal that must not hold, or the decisions of the path.
 
     The learned clause is the negation of the final nogood. When the analysis finds a UIP, the negation of the UIP is
     the first literal of the clause, and the assertion level is the highest level of the other literals, 0 when there

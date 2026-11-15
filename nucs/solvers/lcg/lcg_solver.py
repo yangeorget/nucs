@@ -28,6 +28,7 @@ from nucs.propagators.propagators import ALG_DUMMY, EXPLAIN_FCTS, SIGN_EXPLAIN
 from nucs.solvers.choicepoints import (
     CHOICEPOINT_ITRAIL_MARK,
     CHOICEPOINT_UTRAIL_MARK,
+    strictly_better,
     tighten_objective,
 )
 from nucs.solvers.lcg.clause_store import (
@@ -115,17 +116,21 @@ from nucs.statistics import (
 logger = logging.getLogger(__name__)
 
 # Why the search loop of LcgSolver returned, in addition to the SOLVER_* statuses of tree_search_solver.py. LcgSolver
-# handles these four itself, in _run_search_loop: TreeSearchSolver never sees them.
+# handles these five itself, in _run_search_loop: TreeSearchSolver never sees them.
 SOLVER_ITRAIL_FULL = 5  # the implication trail needs more room
 SOLVER_ITRAIL_INVALID = 6  # in debug mode, the implication trail does not agree with the state
 SOLVER_EXPLANATION_INVALID = 7  # in debug mode, an explanation is not proven correct
 SOLVER_CLAUSES_FULL = 8  # the store of the learned clauses, or in debug mode their log, needs more room
+SOLVER_NO_UIP = 9  # a nogood of the decisions has no UIP, see LEARN_NO_UIP
 
 # What learn_and_backjump returns.
 LEARN_DONE = 0  # the search continues at the assertion level
 LEARN_NO_SOLUTION = 1  # the learned clause is empty, or false at level 0: no solution is left
 LEARN_ROOM = 2  # the store or the log has no room for the clause: the conflict is still pending
-LEARN_EXPLANATION_INVALID = 3  # an explanation is wrong (in debug mode), or a nogood of the decisions has no UIP
+LEARN_EXPLANATION_INVALID = 3  # in debug mode, an explanation is wrong
+LEARN_NO_UIP = 4  # a nogood of the decisions has no UIP: a level has two decisions, which the search never makes
+
+NO_UIP_MESSAGE = "A nogood of the decisions has no UIP: a level of the implication trail has two decisions"
 
 
 class LcgSolver(TreeSearchSolver):
@@ -279,6 +284,7 @@ class LcgSolver(TreeSearchSolver):
         self.store_top.fill(0)
         self.watch_head.fill(-1)
         self.clause_log_top.fill(0)
+        self.pending_conflict[CONFLICT_KIND] = CONFLICT_NONE
 
     def _record_root(self) -> None:
         """
@@ -286,6 +292,8 @@ class LcgSolver(TreeSearchSolver):
         applies the unit clauses there, before the propagation of the root (design/proposals/lcg.md, 4.7).
         """
         self.pending_lit[PENDING_LIT_VAR_SIDE] = -1
+        # a conflict that an exception left pending is about the implication trail that the root replaces
+        self.pending_conflict[CONFLICT_KIND] = CONFLICT_NONE
         itrail_root(self.state, self.problem.initial_domains, self.itrail, self.itrail_top, self.itrail_last)
         self.clause_head[0] = 0
         unit_nb = int(self.store_top[STORE_UNIT_NB])
@@ -375,6 +383,8 @@ class LcgSolver(TreeSearchSolver):
                 self._grow_clause_store()
             elif status == LEARN_EXPLANATION_INVALID:
                 raise AssertionError(f"The explanation of row {self.explanation_report[0]} is not true")
+            elif status == LEARN_NO_UIP:
+                raise AssertionError(NO_UIP_MESSAGE)
             else:
                 return status == LEARN_DONE
 
@@ -457,6 +467,8 @@ class LcgSolver(TreeSearchSolver):
                 logger.info(f"The implication trail grew to {len(self.itrail)} rows")
             elif status == SOLVER_CLAUSES_FULL:
                 self._grow_clause_store()
+            elif status == SOLVER_NO_UIP:
+                raise AssertionError(NO_UIP_MESSAGE)
             elif status == SOLVER_ITRAIL_INVALID:
                 row = itrail_check(
                     self.state,
@@ -774,6 +786,8 @@ def run_search_loop(
                 return SOLVER_RUNNING, None
             if status == LEARN_EXPLANATION_INVALID:
                 return SOLVER_EXPLANATION_INVALID, None
+            if status == LEARN_NO_UIP:
+                return SOLVER_NO_UIP, None
         status = stop_status(
             interruption, search_control, utrail_log, utrail_top, utrail_headroom, choicepoint_top, max_choicepoint
         )
@@ -880,7 +894,8 @@ def run_search_loop(
                     var_heuristic_params_shapes,
                 )
         # either the problem is inconsistent, or no search can claim a variable although variables remain unbound -- a
-        # choice point whose domains admit no assignment. Both are conflicts: the search learns a clause, and jumps back.
+        # choice point whose domains admit no assignment. Both are conflicts: the search learns a clause and jumps
+        # back.
         if variable == -1:
             record_failure(search_control)
             if problem_status == PROBLEM_INCONSISTENT:
@@ -974,8 +989,7 @@ def objective_nogood(bb: NDArray) -> tuple[int, int]:
     :rtype: Tuple[int, int]
     """
     bound = bb[BB_BOUND]
-    better = bb[BB_VALUE] + 1 if bound == DOMAIN_MIN else bb[BB_VALUE] - 1
-    return lit_negate((bb[BB_VARIABLE] << 1) | bound, better)
+    return lit_negate((bb[BB_VARIABLE] << 1) | bound, strictly_better(bb[BB_VALUE], bound))
 
 
 @njit(cache=True, inline="always")
@@ -1089,12 +1103,14 @@ def learn_and_backjump(
     watches and asserts with REASON_CLAUSE (attach_clause). When the new clause fails at the assertion level, that is a
     new conflict, and the loop analyzes it.
 
-    After the backjump, the bound of the objective is applied again, with REASON_ROOT: it holds for the rest of the
-    search, but the backjump undid it. When it fails at the assertion level, that is a new conflict, [obj >= best] when
-    minimizing, and the loop analyzes it.
+    The clause gets its watches before the bound of the objective is applied again, so that a stored clause never stays
+    without watches. Then the bound is applied again, with REASON_ROOT: it holds for the rest of the search, but the
+    backjump undid it. When it fails at the assertion level, that is a new conflict, [obj >= best] when minimizing, and
+    the loop analyzes it.
 
-    An analysis that meets a wrong explanation gives no clause. The debug mode stops on it; else the conflict becomes the
-    nogood of the decisions on the path, whose negation is always valid and asserts the negation of the last decision.
+    An analysis that meets a wrong explanation gives no clause. The debug mode stops on it; else the conflict becomes
+    the nogood of the decisions on the path, whose negation is always valid and asserts the negation of the last
+    decision.
 
     The store must have room for the clause, and in debug mode the log too: when one has not, the conflict stays
     pending, and the caller grows the store and calls again.
@@ -1230,7 +1246,7 @@ def learn_and_backjump(
             return LEARN_EXPLANATION_INVALID
         if lit_nb < 0 or (lit_nb > 0 and assertion_level < 0):
             if pending_conflict[CONFLICT_KIND] == CONFLICT_DECISIONS:
-                return LEARN_EXPLANATION_INVALID  # each level has one decision: their nogood always has a UIP
+                return LEARN_NO_UIP  # each level has one decision: their nogood always has a UIP
             pending_conflict[CONFLICT_KIND] = CONFLICT_DECISIONS
             pending_conflict[CONFLICT_POS] = itrail_top[0]
             continue
@@ -1269,48 +1285,6 @@ def learn_and_backjump(
             assertion_level,
         )
         mark = choicepoints[assertion_level, CHOICEPOINT_UTRAIL_MARK]
-        optimized_variable = bb[BB_VARIABLE]
-        if optimized_variable >= 0:
-            events = tighten_objective(
-                state,
-                utrail_log,
-                utrail_top,
-                utrail_indices,
-                mark,
-                optimized_variable,
-                bb[BB_VALUE],
-                bb[BB_BOUND],
-            )
-            if events < 0:
-                # the level cannot hold a better solution: the bound fails there
-                pending_conflict[CONFLICT_KIND] = CONFLICT_LITERAL
-                pending_conflict[CONFLICT_DATA], pending_conflict[CONFLICT_VALUE] = objective_nogood(bb)
-                pending_conflict[CONFLICT_POS] = itrail_top[0]
-                continue
-            if events != EVENT_MASK_NONE:
-                itrail_top[0] = itrail_push_events(
-                    itrail,
-                    itrail_last,
-                    itrail_top[0],
-                    state,
-                    optimized_variable,
-                    events,
-                    assertion_level,
-                    REASON_ROOT,
-                    -1,
-                    -1,
-                    -1,
-                )
-                update_propagators(
-                    triggered_propagators,
-                    entailed,
-                    triggers,
-                    triggers_offsets,
-                    propagator_infos,
-                    optimized_variable,
-                    events,
-                    -1,
-                )
         if new_clause < 0:
             holds, utrail_sz, itrail_sz = assert_literal(
                 state,
@@ -1361,4 +1335,46 @@ def learn_and_backjump(
             pending_conflict[CONFLICT_DATA] = new_clause
             pending_conflict[CONFLICT_POS] = itrail_top[0]
             continue
+        optimized_variable = bb[BB_VARIABLE]
+        if optimized_variable >= 0:
+            events = tighten_objective(
+                state,
+                utrail_log,
+                utrail_top,
+                utrail_indices,
+                mark,
+                optimized_variable,
+                bb[BB_VALUE],
+                bb[BB_BOUND],
+            )
+            if events < 0:
+                # the level cannot hold a better solution: the bound fails there
+                pending_conflict[CONFLICT_KIND] = CONFLICT_LITERAL
+                pending_conflict[CONFLICT_DATA], pending_conflict[CONFLICT_VALUE] = objective_nogood(bb)
+                pending_conflict[CONFLICT_POS] = itrail_top[0]
+                continue
+            if events != EVENT_MASK_NONE:
+                itrail_top[0] = itrail_push_events(
+                    itrail,
+                    itrail_last,
+                    itrail_top[0],
+                    state,
+                    optimized_variable,
+                    events,
+                    assertion_level,
+                    REASON_ROOT,
+                    -1,
+                    -1,
+                    -1,
+                )
+                update_propagators(
+                    triggered_propagators,
+                    entailed,
+                    triggers,
+                    triggers_offsets,
+                    propagator_infos,
+                    optimized_variable,
+                    events,
+                    -1,
+                )
         return LEARN_DONE

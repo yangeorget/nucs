@@ -78,14 +78,17 @@ class TestClauseStore:
         assert attached
         assert watched(solver, clause) == [le(0, 3), ge(2, 5)]
 
-    def test_attach_clause_refuses_a_clause_whose_literals_are_all_false(self) -> None:
+    def test_attach_clause_reports_a_clause_whose_literals_are_all_false(self) -> None:
+        # the level violates the clause: the call returns false, and the clause still gets its watches, on the two
+        # literals that became false last ([x1 <= 3] at row 1, then [x0 >= 5] at row 0), so that it never stays unwatched
         solver = new_solver(2)
         set_bound(solver, le(0, 4), 1)
         set_bound(solver, ge(1, 4), 1)
-        _, attached = add_clause(solver, [ge(0, 5), le(1, 3)])
+        clause, attached = add_clause(solver, [ge(0, 5), le(1, 3)])
         assert not attached
-        assert watches_of(solver, le(0, 0)[0]) == []
-        assert watches_of(solver, ge(1, 0)[0]) == []
+        assert watched(solver, clause) == [le(1, 3), ge(0, 5)]
+        assert watches_of(solver, ge(1, 0)[0]) == [clause << 1]
+        assert watches_of(solver, le(0, 0)[0]) == [(clause << 1) | 1]
 
     def test_propagate_clauses_sets_the_last_literal(self) -> None:
         solver = new_solver(2)
