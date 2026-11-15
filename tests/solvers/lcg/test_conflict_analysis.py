@@ -32,8 +32,10 @@ from nucs.problems.problem import Problem
 from nucs.propagators.explanations import EXPLAIN_SIDE, EXPLAIN_VALUE, EXPLAIN_VAR_IDX
 from nucs.propagators.propagators import ALG_LEQ_C, ALG_LEQ_C_IMP, ALG_LINEAR_LEQ_C, register_propagator
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
+from nucs.solvers.lcg.clause_store import store_clause
 from nucs.solvers.lcg.conflict_analysis import MARK_NONE, MARK_ROW, analyze_conflict
 from nucs.solvers.lcg.implication_trail import (
+    REASON_CLAUSE,
     REASON_DECISION,
     REASON_PROPAGATOR,
     REASON_ROOT,
@@ -105,6 +107,14 @@ def propagation(variable: int, side: int, value: int, choicepoint: int, prop_idx
 
 def le_clause(variable: int, value: int) -> tuple[int, int]:
     return (variable << 1) | DOMAIN_MAX, value
+
+
+def ge_clause(variable: int, value: int) -> tuple[int, int]:
+    return (variable << 1) | DOMAIN_MIN, value
+
+
+def clause_row(variable: int, side: int, value: int, choicepoint: int, clause: int) -> Row:
+    return (variable << 1) | side, value, choicepoint, REASON_CLAUSE, clause, -1, -1
 
 
 class TestConflictAnalysis:
@@ -229,6 +239,51 @@ class TestConflictAnalysis:
             problem.add_propagator(ALG_GIVEN, range(4), [cell for literal in explanation for cell in literal])
         assert analyze(problem, rows, len(explanations)) == expected
 
+    @pytest.mark.parametrize(
+        "rows, clauses, nogood, failed_clause, expected",
+        [
+            # the clause [x0 <= 0] or [x1 <= 0] fails: its nogood is the negation of its literals, [x0 >= 1] and
+            # [x1 >= 1], and the analysis gives the clause again, asserting at level 1
+            (
+                [decision(0, DOMAIN_MIN, 1, 1), decision(1, DOMAIN_MIN, 1, 2)],
+                [[le_clause(0, 0), le_clause(1, 0)]],
+                None,
+                0,
+                ([le_clause(1, 0), le_clause(0, 0)], 2, 1),
+            ),
+            # row 2 is [x2 >= 1], which the clause [x0 <= 0] or [x2 >= 1] set: its explanation is [x0 >= 1], the
+            # negation of the other literal, at level 1; [x1 >= 1] is the UIP, and the clause asserts at level 1
+            (
+                [decision(0, DOMAIN_MIN, 1, 1), decision(1, DOMAIN_MIN, 1, 2), clause_row(2, DOMAIN_MIN, 1, 2, 0)],
+                [[le_clause(0, 0), ge_clause(2, 1)]],
+                [ge(2, 1), ge(1, 1)],
+                -1,
+                ([le_clause(1, 0), le_clause(0, 0)], 2, 1),
+            ),
+            # the same, with a third literal [x0 >= 10] that is false at the root: its negation [x0 <= 9] is true at
+            # the root, and the explanation drops it
+            (
+                [decision(0, DOMAIN_MIN, 1, 1), decision(1, DOMAIN_MIN, 1, 2), clause_row(2, DOMAIN_MIN, 1, 2, 0)],
+                [[le_clause(0, 0), ge_clause(2, 1), ge_clause(0, 10)]],
+                [ge(2, 1), ge(1, 1)],
+                -1,
+                ([le_clause(1, 0), le_clause(0, 0)], 2, 1),
+            ),
+        ],
+        ids=["failed_clause", "clause_row", "clause_row_with_a_literal_false_at_the_root"],
+    )
+    def test_analyze_conflict_with_clauses(
+        self,
+        rows: list[Row],
+        clauses: list[list[tuple[int, int]]],
+        nogood: list[Given] | None,
+        failed_clause: int,
+        expected: tuple[list[tuple[int, int]] | None, int, int],
+    ) -> None:
+        problem = Problem([(0, 9)] * 4)
+        problem.add_propagator(ALG_GIVEN, range(4), [cell for literal in nogood or [] for cell in literal])
+        assert analyze(problem, rows, -1 if nogood is None else 0, clauses, failed_clause) == expected
+
     def test_run_search_loop_learns_the_clause_of_the_worked_example(self) -> None:
         # the search of design/proposals/lcg.md 1.11, except that the search splits y until it is fixed: [y <= 4],
         # [y <= 2], [y <= 1] and [y <= 0] on levels 1 to 4, then [w >= 1] on level 5. The first failure gives [v <= 0],
@@ -297,8 +352,18 @@ class TestConflictAnalysis:
         assert clause_nb > 0
 
 
-def analyze(problem: Problem, rows: list[Row], failed_prop_idx: int) -> tuple[list[tuple[int, int]] | None, int, int]:
+def analyze(
+    problem: Problem,
+    rows: list[Row],
+    failed_prop_idx: int,
+    clauses: list[list[tuple[int, int]]] | None = None,
+    failed_clause: int = -1,
+) -> tuple[list[tuple[int, int]] | None, int, int]:
     solver = LcgSolver(problem, log_level=LOG_LEVEL_ERROR)
+    for clause in clauses or []:
+        store_clause(
+            solver.clause_lits, solver.clause_start, solver.store_top, np.array(clause, dtype=np.int32), len(clause)
+        )
     itrail, itrail_top, itrail_last = allocate_itrail(problem.domain_nb)
     itrail_sz = 0
     for var_side, value, choicepoint, reason_kind, reason_data, reason_pos, reason_var_idx in rows:
@@ -326,7 +391,10 @@ def analyze(problem: Problem, rows: list[Row], failed_prop_idx: int) -> tuple[li
         itrail_top,
         itrail_last,
         failed_prop_idx,
+        failed_clause,
         itrail_sz,
+        solver.clause_lits,
+        solver.clause_start,
         solver.domain_buffer,
         solver.explanation,
         solver.explanation_lits,

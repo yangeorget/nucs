@@ -830,9 +830,12 @@ time shows the need.
 The steps below divide the stages of 7.1 into commits or PRs. Each step has a check that must pass before the next
 step starts. `BacktrackSolver` does not change at any step.
 
-Steps 4 to 9 do not change the search. While the tree stays the same, the best test of a new mode is that it gives
-*the same* counters as the old mode. Step 10 is the first step that changes the tree. At that step, the implication
-trail, the explanations, the analysis and the store already have their tests.
+Steps 4 to 8 do not change the search. While the tree stays the same, the best test of a new mode is that it gives
+*the same* counters as the old mode. Step 9 is the first step that changes the tree: it propagates the learned
+clauses, which remove nodes, but the search still backtracks in the classical way, so the answers stay those of
+`BacktrackSolver`. Step 10 changes the search itself, with the backjumps. At that step, the implication trail, the
+explanations, the analysis and the store already have their tests. (Until 2026-11-15, this paragraph said steps 4 to
+9; step 9 asked for the clauses to be propagated, and the decision of that date kept step 9.)
 
 #### Phase 0 — Preparation
 
@@ -1011,6 +1014,62 @@ trail, the explanations, the analysis and the store already have their tests.
    before it pops the next propagator. The `REASON_CLAUSE` rows, and the explanation of a row that a clause set.
    *Check:* unit tests on clauses that the test adds by hand. In shadow mode, the learned clauses are stored and
    propagated, but the search still backtracks in the classical way.
+   *Done on 2026-11-15:* `nucs/solvers/lcg/clause_store.py` holds the store, `propagate_clauses`, `attach_clause`
+   and `apply_units`. `lcg_algorithm` propagates the clauses before it pops each propagator. A clause that fails is a
+   conflict: `failed_propagator` gets a third cell, `FAILED_CLAUSE`. The analysis explains a failed clause and a
+   `REASON_CLAUSE` row by the negations of the other literals of the clause (`explain_clause_and_mark`). The search
+   still backtracks in the classical way, so the solutions and the optima are those of `BacktrackSolver`, and the
+   clauses remove nodes: on ais 9 (enumeration), 609 choices instead of 972; on golomb 8 (`OPTIM_RESET`), 582
+   instead of 633. With no reset to the root, the clauses seldom apply again: queens 9, langford (3, 10),
+   magic_sequence 20 and golomb 8 (`OPTIM_PRUNE`) keep the choices of `BacktrackSolver`. Two causes: the naive clauses
+   are long, and the classical backtrack loses implications. A clause asserts its literal at the current level `k`,
+   while its other literals can be false since a lower level `j`. After a backtrack to a level between `j` and `k`,
+   the clause is unit again, but no row comes on the bound of its false watch, so no watch fires (the "missed lower
+   implications" of chronological backtracking). This loses pruning, never a solution: when the last free literal
+   becomes false, its watch fires and finds the conflict. Step 10 asserts at the assertion level, and the case goes
+   away. Points different from 3.5,
+   4.4 and 4.7:
+   - **No separate clause queue.** The implication trail is the queue: each row is a bound that changed, and
+     `clause_head` is the first row whose watches the propagation has not visited, as the propagation head of a SAT
+     solver. Thus the rows of the decisions, of a backtrack and of the root are in the queue with no extra work. A
+     backtrack moves the head down to the top of the trail.
+   - **A watch is `[VALUE, NEXT]`.** Clause `c` owns the watches `2c` and `2c + 1`, which watch its literals 0 and
+     1, so a watch needs no `CLAUSE` column: the clause is `watch >> 1`.
+   - **No `clause_info` yet.** The LBD, the activity bucket and the deleted flag serve steps 12 and 21; each comes
+     with its step.
+   - **A new clause gets its watches after the backtrack** (`attach_clause`), at the choice point where the search
+     resumes, not at the conflict. There it watches two literals that are not false, or the false ones that became
+     false last, and it sets its literal when it is unit. When all its literals are false there, the choice point
+     violates the clause, and the search backtracks again: it can happen when the conflict was below the current
+     level.
+   - **The unit clauses are applied again at each choice point that a backtrack resumes**, with `REASON_ROOT`, as the
+     objective bound is, and at each reset to the root (4.7). A choice point where one is false is popped. Thus a
+     backtrack writes up to `ITRAIL_STEP_ROW_NB` = 3 rows (the alternative, the objective, and the literal of the new
+     clause or the new unit clause) and one row for each older unit clause; the reserve of the implication trail
+     and the headroom of the undo trail grow with the number of unit clauses.
+   - **The empty clause ends the search**: no solution is left.
+   - **A new search empties the store** (the hook `_start_search` of `TreeSearchSolver`). A clause is valid only in
+     the search that learned it: during an enumeration it can remove the solutions found before it, and during an
+     optimization the solutions that are not better than the best one.
+   *Check:* `tests/solvers/lcg/test_clause_store.py` tests the watches, the propagation, the stop and restart on a
+   full implication trail, the reset that applies the unit clauses, and a new search; three hand-built trails of
+   `test_conflict_analysis.py` test the explanation of the clauses. Each of six broken versions fails the tests, with
+   an empty Numba cache: asserting with two free literals, asserting the negation, an empty explanation of a clause
+   row, a store kept between searches, no move of the head on a backtrack, and no unit clause at the root. The
+   brute-force tests have little power against a clause that is too strong: with naive explanations, a clause names
+   the bounds of most variables, and few solutions satisfy the rest of the nogood. An empty explanation of each
+   clause row gave no invalid clause on ais 7 and 8, queens 7, and 300 random problems; only the hand-built trails
+   catch it. `BacktrackSolver` keeps all its counters.
+   *Cost:* against step 8, with the same protocol (median of 7 runs in alternate order, random padding of the
+   environment; the control `BacktrackSolver` moved by at most 0.8%): tsp gr17 1,256 / 5,505 ms (4.38 times, with
+   46,836 choices instead of 45,563: last-conflict is adaptive, and the clauses change the order of its decisions),
+   langford (3, 12) 955 / 2,650 ms (2.78 times, the same 18,632 choices), golomb 9 (BC) 154 / 180 ms (1.16 times,
+   2,957 choices instead of 3,331). The cause is the size of the store: each conflict adds a clause of about 53
+   literals (the naive explanations name almost every bound), and no clause is deleted. After langford, the store
+   holds 18,630 clauses on 72 bounds, so each list has about 500 watches on average, and each row of the trail walks
+   the whole list of its bound. The two unit clauses cost nothing. The reduction of 6.4 (step 21) and the exact
+   explanations of stage 2, which give shorter clauses, are the answers; the measurement shows the need of 6.4
+   before gate 1.
 10. **Add the backjumps** (4.6). This step changes the search. The learned clause replaces the parked alternatives,
     with the mark at index `L`. An empty clause means that there is no (more) solution.
     *Check:* the solution counts and the optima are the same as with `BacktrackSolver`, with the JIT on and with the

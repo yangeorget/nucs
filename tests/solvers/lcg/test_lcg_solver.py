@@ -91,21 +91,21 @@ class TestLcgSolver:
         ],
         ids=["find_all", "two_searches", "find_best_prune", "find_best_reset", "restarts_last_conflict"],
     )
-    def test_same_counters_as_backtrack_solver(
+    def test_same_answers_as_backtrack_solver(
         self, run: Callable[[Callable[..., TreeSearchSolver]], tuple[TreeSearchSolver, list]]
     ) -> None:
-        # steps 4 to 6 of design/proposals/lcg.md 7.0: with no EQ decision inside a domain, LcgSolver searches as
-        # BacktrackSolver does, so every counter, the weights of the propagators and the solutions are the same; only
-        # the elapsed time can differ. The debug
-        # mode replays the implication trail at each node: restarts, the objective at the root and the pruning of
-        # OPTIM_PRUNE all write it.
+        # with no EQ decision inside a domain, LcgSolver searches as BacktrackSolver does (steps 4 to 6 of
+        # design/proposals/lcg.md 7.0), and from step 9 it also propagates the clauses that it learns: the solutions are
+        # the same and come in the same order, and on these runs the clauses only remove choices (after a reset to the
+        # root, OPTIM_RESET and the restarts meet the clauses again). The debug mode replays the implication trail at
+        # each node: restarts, the objective at the root and the pruning of OPTIM_PRUNE all write it.
         backtrack_solver, backtrack_solutions = run(BacktrackSolver)
         lcg_solver, lcg_solutions = run(partial(LcgSolver, debug=True))
         assert lcg_solutions == backtrack_solutions
-        backtrack_solver.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] = 0
-        lcg_solver.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] = 0
-        assert lcg_solver.statistics.tolist() == backtrack_solver.statistics.tolist()
-        assert lcg_solver.propagator_weights.tolist() == backtrack_solver.propagator_weights.tolist()
+        assert lcg_solver.statistics[STATS_IDX_SOLUTION_NB] == backtrack_solver.statistics[STATS_IDX_SOLUTION_NB]
+        assert (
+            lcg_solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] <= backtrack_solver.statistics[STATS_IDX_SOLVER_CHOICE_NB]
+        )
 
     def test_run_search_loop_records_the_decisions_and_the_propagations(self) -> None:
         problem = Problem([(0, 1), (0, 1)])
@@ -129,18 +129,21 @@ class TestLcgSolver:
         assert solver.itrail[0].tolist() == [0 << 1 | DOMAIN_MIN, 1, -1, 0, REASON_DECISION, -1, -1, -1]
         assert solver.itrail_last.tolist() == [0, -1, -1, -1]
 
-    @pytest.mark.parametrize("row_nb", [1, 13, 14])  # below and at 14, the room of a call on 6 queens: 2 x 6 + 2
+    # below and at 15, the room of a call on 6 queens: 2 x 6, and the 3 rows of ITRAIL_STEP_ROW_NB
+    @pytest.mark.parametrize("row_nb", [1, 14, 15])
     def test_find_all_the_implication_trail_grows_rather_than_overruns(self, row_nb: int) -> None:
-        # a propagation that stops for room continues where it stopped: the counters are the same as without growth
-        backtrack_solver = BacktrackSolver(QueensProblem(6))
-        backtrack_solutions = [solution.tolist() for solution in backtrack_solver.find_all()]
+        # a propagation that stops for room continues where it stopped: the counters are the same as without growth,
+        # and the solutions are those of BacktrackSolver
+        expected_solver = LcgSolver(QueensProblem(6), debug=True)
+        expected_solutions = [solution.tolist() for solution in expected_solver.find_all()]
+        assert expected_solutions == [solution.tolist() for solution in BacktrackSolver(QueensProblem(6)).find_all()]
         solver = LcgSolver(QueensProblem(6), debug=True)
         solver.itrail = solver.itrail[:row_nb].copy()
-        assert [solution.tolist() for solution in solver.find_all()] == backtrack_solutions
+        assert [solution.tolist() for solution in solver.find_all()] == expected_solutions
         assert len(solver.itrail) > row_nb  # it did have to grow
-        backtrack_solver.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] = 0
+        expected_solver.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] = 0
         solver.statistics[STATS_IDX_SOLVER_ELAPSED_TIME] = 0
-        assert solver.statistics.tolist() == backtrack_solver.statistics.tolist()
+        assert solver.statistics.tolist() == expected_solver.statistics.tolist()
 
     def test_find_all_the_itrail_marks_grow_with_the_stack(self) -> None:
         # the marks of the implication trail are a column of the stack: a stack that grows keeps them

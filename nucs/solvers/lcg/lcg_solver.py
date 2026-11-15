@@ -34,6 +34,17 @@ from nucs.solvers.choicepoints import (
     bounds_after_tightening,
     tighten_objective,
 )
+from nucs.solvers.lcg.clause_store import (
+    STORE_CLAUSE_NB,
+    STORE_LIT_NB,
+    STORE_UNIT_NB,
+    allocate_clause_store,
+    apply_units,
+    attach_clause,
+    store_clause,
+    store_has_room,
+    store_unit,
+)
 from nucs.solvers.lcg.conflict_analysis import (
     CLAUSE_LOG_ASSERTION_LEVEL,
     CLAUSE_LOG_LEVEL,
@@ -69,12 +80,20 @@ from nucs.solvers.lcg.implication_trail import (
     itrail_push_events,
     itrail_root,
 )
-from nucs.solvers.lcg.lcg_algorithm import FAILED_POS, FAILED_PROPAGATOR, PROBLEM_ITRAIL_FULL, lcg_algorithm
+from nucs.solvers.lcg.lcg_algorithm import (
+    FAILED_CLAUSE,
+    FAILED_POS,
+    FAILED_PROPAGATOR,
+    FAILED_WIDTH,
+    PROBLEM_ITRAIL_FULL,
+    lcg_algorithm,
+)
+from nucs.solvers.lcg.literals import LIT_VALUE, LIT_VAR_SIDE
 from nucs.solvers.propagation_steps import update_propagators
 from nucs.solvers.restart_policies import RESTART_POLICY_NEVER, RestartPolicy
 from nucs.solvers.search_steps import record_decision, record_failure, select_variable, stop_status
 from nucs.solvers.searches import SEARCHES_DEFAULT, Search
-from nucs.solvers.state import tighten_at, utrail_undo
+from nucs.solvers.state import TIGHTENING_UTRAIL_ENTRY_NB, tighten_at, utrail_undo
 from nucs.solvers.tree_search_solver import (
     SOLVER_RUNNING,
     TreeSearchSolver,
@@ -89,11 +108,12 @@ from nucs.statistics import (
 logger = logging.getLogger(__name__)
 
 # Why the search loop of LcgSolver returned, in addition to the SOLVER_* statuses of tree_search_solver.py. LcgSolver
-# handles these four itself, in _run_search_loop: TreeSearchSolver never sees them.
+# handles these five itself, in _run_search_loop: TreeSearchSolver never sees them.
 SOLVER_ITRAIL_FULL = 5  # the implication trail needs more room
 SOLVER_ITRAIL_INVALID = 6  # in debug mode, the implication trail does not agree with the state
 SOLVER_EXPLANATION_INVALID = 7  # in debug mode, an explanation is not proven correct
 SOLVER_CLAUSE_LOG_FULL = 8  # in debug mode, the log of the learned clauses needs more room
+SOLVER_CLAUSES_FULL = 9  # the store of the learned clauses needs more room
 
 
 class LcgSolver(TreeSearchSolver):
@@ -103,15 +123,16 @@ class LcgSolver(TreeSearchSolver):
     Its propagation is always bound consistency, and no parameter selects another one: the conflict analysis needs a
     reason for each change of a bound, and a custom consistency algorithm gives none.
 
-    At this step (design/proposals/lcg.md, 7.0, step 8), it records each bound change on the path, with its choice
+    At this step (design/proposals/lcg.md, 7.0, step 9), it records each bound change on the path, with its choice
     point and its reason, on the implication trail (nucs.solvers.lcg.implication_trail), and each decision is one
-    literal on its own choice point (nucs.solvers.lcg.decisions). It can explain each change that a propagator made,
-    and each failure (nucs.solvers.lcg.explanations). At each failure, it learns a clause by the 1UIP analysis
-    (nucs.solvers.lcg.conflict_analysis), in shadow mode: the search does not use the clause yet. The debug mode
-    keeps the learned clauses (learned_clauses), so that the tests can check them.
-    It is the search of BacktrackSolver, except that an EQ decision inside the domain is two literals on two choice
-    points: it finds the same solutions and the same optima, and when no decision is such an EQ, every counter is the
-    same.
+    literal on its own choice point (nucs.solvers.lcg.decisions). At each failure, it learns a clause by the 1UIP
+    analysis (nucs.solvers.lcg.conflict_analysis), and adds it to the store, which propagates the clauses
+    (nucs.solvers.lcg.clause_store). The search still backtracks in the classical way: it finds the solutions and the
+    optima of BacktrackSolver, and the clauses remove nodes from its tree (with an adaptive heuristic, such as
+    dom/wdeg, they can also change the order of the decisions). The debug mode keeps the learned
+    clauses (learned_clauses), so that the tests can check them.
+    Apart from the clauses, it is the search of BacktrackSolver, except that an EQ decision inside the domain is two
+    literals on two choice points.
     """
 
     def __init__(
@@ -156,7 +177,19 @@ class LcgSolver(TreeSearchSolver):
         self.pending_lit = np.full(2, -1, dtype=np.int32)
         # the propagator that failed last and the position of its call, which lcg_algorithm writes; the conflict is
         # explained with them
-        self.failed_propagator = np.full(2, -1, dtype=np.int32)
+        self.failed_propagator = np.full(FAILED_WIDTH, -1, dtype=np.int32)
+        # the store of the learned clauses, and the first row whose watches the clause propagation has not visited
+        (
+            self.clause_lits,
+            self.clause_start,
+            self.watch_head,
+            self.watches,
+            self.unit_lits,
+            self.store_top,
+            self.clause_head,
+        ) = allocate_clause_store(problem.domain_nb)
+        # 1 when a unit clause is false at the root, which then holds no solution
+        self.root_failed = np.zeros(1, dtype=np.int32)
         # in debug mode, the row of the first explanation that is not proven correct, and its verdict
         self.explanation_report = np.full(2, -1, dtype=np.int64)
         self.debug = debug
@@ -176,6 +209,21 @@ class LcgSolver(TreeSearchSolver):
         logger.info(
             f"LcgSolver checks the implication trail and the explanations at each node: {'yes' if debug else 'no'}"
         )
+
+    def _grow_clause_store(self) -> None:
+        """
+        Doubles each array of the store of the learned clauses that has no room for one more clause.
+        """
+        clause_nb = int(self.store_top[STORE_CLAUSE_NB])
+        if self.store_top[STORE_LIT_NB] + len(self.learned) > len(self.clause_lits):
+            self.clause_lits = double_rows(self.clause_lits)
+        if clause_nb + 2 > len(self.clause_start):
+            self.clause_start = double_rows(self.clause_start)
+        if (clause_nb + 1) << 1 > len(self.watches):
+            self.watches = double_rows(self.watches)
+        if self.store_top[STORE_UNIT_NB] + 1 > len(self.unit_lits):
+            self.unit_lits = double_rows(self.unit_lits)
+        logger.info(f"The store of the learned clauses grew, at {clause_nb} clauses")
 
     def learned_clauses(self) -> list[tuple[list[tuple[int, int]], int, int, int]]:
         """
@@ -201,12 +249,46 @@ class LcgSolver(TreeSearchSolver):
             )
         return clauses
 
+    def _start_search(self) -> None:
+        """
+        Empties the store of the learned clauses, and the log of the debug mode, before a new search.
+
+        A clause is valid only inside the search that learned it: during an enumeration, it can remove the solutions
+        found before it; during an optimization, the solutions that are not better than the best one.
+        """
+        self.store_top.fill(0)
+        self.watch_head.fill(-1)
+        self.clause_log_top.fill(0)
+
     def _record_root(self) -> None:
         """
-        Builds the implication trail again for the root that the solver has just set, with no pending literal.
+        Builds the implication trail again for the root that the solver has just set, with no pending literal, and
+        applies the unit clauses there, before the propagation of the root (design/proposals/lcg.md, 4.7).
         """
         self.pending_lit[PENDING_LIT_VAR_SIDE] = -1
         itrail_root(self.state, self.problem.initial_domains, self.itrail, self.itrail_top, self.itrail_last)
+        self.clause_head[0] = 0
+        unit_nb = int(self.store_top[STORE_UNIT_NB])
+        while self.itrail_top[0] + unit_nb > len(self.itrail):
+            self.itrail = double_rows(self.itrail)
+        self.root_failed[0] = not apply_units(
+            self.state,
+            self.utrail_log,
+            self.utrail_top,
+            self.utrail_indices,
+            0,
+            self.unit_lits,
+            unit_nb,
+            self.itrail,
+            self.itrail_top,
+            self.itrail_last,
+            0,
+            self.triggered_propagators,
+            self.entailed,
+            self.problem.triggers,
+            self.problem.triggers_offsets,
+            self.problem.propagator_infos,
+        )
 
     def _backtrack(self) -> bool:
         """
@@ -233,14 +315,18 @@ class LcgSolver(TreeSearchSolver):
             self.itrail_top,
             self.itrail_last,
             self.pending_lit,
+            self.unit_lits,
+            self.store_top,
+            self.clause_head,
         )
 
     def _run_search_loop(self) -> tuple[int, NDArray | None]:
         """
         Runs the compiled search loop of LcgSolver until it returns, by forwarding the solver state to it.
 
-        It grows the implication trail (SOLVER_ITRAIL_FULL) and, in debug mode, the log of the learned clauses
-        (SOLVER_CLAUSE_LOG_FULL) itself when the loop asks for it, and calls the loop again.
+        It grows the implication trail (SOLVER_ITRAIL_FULL), the store of the learned clauses (SOLVER_CLAUSES_FULL)
+        and, in debug mode, the log of the learned clauses (SOLVER_CLAUSE_LOG_FULL) itself when the loop asks for it,
+        and calls the loop again.
 
         :return: why the loop returned, and the solution when it found one
         :rtype: Tuple[int, Optional[NDArray]]
@@ -299,10 +385,20 @@ class LcgSolver(TreeSearchSolver):
                 self.clause_log,
                 self.clause_log_info,
                 self.clause_log_top,
+                self.clause_lits,
+                self.clause_start,
+                self.watch_head,
+                self.watches,
+                self.unit_lits,
+                self.store_top,
+                self.clause_head,
+                self.root_failed,
             )
             if status == SOLVER_ITRAIL_FULL:
                 self.itrail = double_rows(self.itrail)
                 logger.info(f"The implication trail grew to {len(self.itrail)} rows")
+            elif status == SOLVER_CLAUSES_FULL:
+                self._grow_clause_store()
             elif status == SOLVER_CLAUSE_LOG_FULL:
                 # grow the part that is full; a clause has at most one literal for each bound
                 if self.clause_log_top[CLAUSE_LOG_TOP_CLAUSE_NB] == len(self.clause_log_info):
@@ -388,6 +484,14 @@ def run_search_loop(
     clause_log: NDArray,
     clause_log_info: NDArray,
     clause_log_top: NDArray,
+    clause_lits: NDArray,
+    clause_start: NDArray,
+    watch_head: NDArray,
+    watches: NDArray,
+    unit_lits: NDArray,
+    store_top: NDArray,
+    clause_head: NDArray,
+    root_failed: NDArray,
 ) -> tuple[int, NDArray | None]:
     """
     Searches for one solution, as the run_search_loop of BacktrackSolver does: the search loop of LcgSolver.
@@ -403,9 +507,13 @@ def run_search_loop(
     - a decision writes the size of the implication trail on the choice point that it parks
       (CHOICEPOINT_ITRAIL_MARK), and adds its row with REASON_DECISION;
     - it backtracks with the backtrack of LcgSolver, which also pops the implication trail;
-    - at each failure of a propagator, it learns a clause by the 1UIP analysis (analyze_conflict), in shadow mode: the
-      search does not use the clause, and the debug mode logs it. An analysis that meets a wrong explanation gives no
-      clause; the debug mode stops on it, as on an explanation that is not proven correct.
+    - at each failure of a propagator or of a clause, it learns a clause by the 1UIP analysis (analyze_conflict), and
+      adds it to the store (step 9): lcg_algorithm propagates the stored clauses, but the search still backtracks in
+      the classical way. After the backtrack, the new clause gets its watches, and sets its literal when it is unit
+      (attach_clause); when the resumed choice point violates it, the search backtracks again. A clause with one
+      literal goes to unit_lits, which each backtrack and each return to the root apply; the empty clause ends the
+      search. An analysis that meets a wrong explanation gives no clause; the debug mode stops on it, as on an
+      explanation that is not proven correct.
 
     The choice point of a row is choicepoint_top[0] when the row is written. STATS_IDX_SOLVER_CHOICE_NB counts the
     decision literals, so an interior EQ counts two choices when its second literal opens a choice point.
@@ -538,17 +646,40 @@ def run_search_loop(
     :type clause_log_info: NDArray
     :param clause_log_top: the number of clauses and the number of literals in the log, see CLAUSE_LOG_TOP_*
     :type clause_log_top: NDArray
+    :param clause_lits: the literals of the learned clauses, see nucs.solvers.lcg.clause_store
+    :type clause_lits: NDArray
+    :param clause_start: the first literal of each learned clause
+    :type clause_start: NDArray
+    :param watch_head: the first watch of each bound, -1 when the list is empty
+    :type watch_head: NDArray
+    :param watches: the watches of the learned clauses
+    :type watches: NDArray
+    :param unit_lits: the learned clauses with one literal
+    :type unit_lits: NDArray
+    :param store_top: the numbers of clauses, of literals and of unit clauses of the store, see STORE_*
+    :type store_top: NDArray
+    :param clause_head: the first row of the implication trail whose watches the clause propagation has not visited
+                        yet, as a one-cell array
+    :type clause_head: NDArray
+    :param root_failed: 1 when a unit clause is false at the root, as a one-cell array
+    :type root_failed: NDArray
 
     :return: why the loop returned, and the solution when it found one
     :rtype: Tuple[int, Optional[NDArray]]
     """
     max_choicepoint = len(choicepoints) - 2  # a decision pushes one choice point and marks a second
+    if root_failed[0]:
+        return SOLVER_RUNNING, None  # a unit clause is false at the root: no solution is left
     while True:
+        # a backtrack also applies the asserting literal of a new clause and each unit clause, at its own mark
+        headroom = utrail_headroom + (store_top[STORE_UNIT_NB] + 1) * TIGHTENING_UTRAIL_ENTRY_NB
         status = stop_status(
-            interruption, search_control, utrail_log, utrail_top, utrail_headroom, choicepoint_top, max_choicepoint
+            interruption, search_control, utrail_log, utrail_top, headroom, choicepoint_top, max_choicepoint
         )
         if status != SOLVER_RUNNING:
             return status, None
+        if not store_has_room(clause_lits, clause_start, watches, unit_lits, store_top, len(learned)):
+            return SOLVER_CLAUSES_FULL, None
         # no test of the room of the implication trail here: lcg_algorithm makes sure, before each propagator call,
         # that the rows of the call and those of the next decision or backtrack fit
         if debug and not is_itrail_valid(
@@ -587,6 +718,12 @@ def run_search_loop(
             itrail_top,
             itrail_last,
             failed_propagator,
+            clause_lits,
+            clause_start,
+            watch_head,
+            watches,
+            store_top,
+            clause_head,
         )
         # the rows of a propagation that stops for a full implication trail are checked before the return: the next
         # call checks only its own rows
@@ -615,9 +752,11 @@ def run_search_loop(
                 return SOLVER_EXPLANATION_INVALID, None
         if problem_status == PROBLEM_ITRAIL_FULL:
             return SOLVER_ITRAIL_FULL, None
+        # the clause that the failure of this propagation teaches, -1 when there is none or when it has one literal
+        new_clause = -1
         if problem_status == PROBLEM_INCONSISTENT:
-            # the analysis runs in shadow mode (step 8 of design/proposals/lcg.md 7.0): the search backtracks as
-            # before, and does not use the clause
+            # the search backtracks as before (steps 8 and 9 of design/proposals/lcg.md 7.0), and the store propagates
+            # the clause from the choice point where the search resumes
             lit_nb, level, assertion_level = analyze_conflict(
                 explain_addrs,
                 propagator_infos,
@@ -629,7 +768,10 @@ def run_search_loop(
                 itrail_top,
                 itrail_last,
                 failed_propagator[FAILED_PROPAGATOR],
+                failed_propagator[FAILED_CLAUSE],
                 failed_propagator[FAILED_POS],
+                clause_lits,
+                clause_start,
                 domain_buffer,
                 explanation,
                 explanation_lits,
@@ -653,6 +795,12 @@ def run_search_loop(
                     assertion_level,
                     statistics[STATS_IDX_SOLUTION_NB],
                 )
+            if lit_nb == 0:
+                return SOLVER_RUNNING, None  # the empty clause: no solution is left
+            if lit_nb == 1:
+                store_unit(unit_lits, store_top, learned[0, LIT_VAR_SIDE], learned[0, LIT_VALUE])
+            elif lit_nb > 1:
+                new_clause = store_clause(clause_lits, clause_start, store_top, learned, lit_nb)
         if debug and not is_itrail_valid(
             state, initial_domains, itrail, itrail_top, itrail_last, choicepoints, choicepoint_top
         ):
@@ -692,26 +840,54 @@ def run_search_loop(
         # unbound -- a choice point whose domains admit no assignment. Both are dead ends: backtrack.
         if variable == -1:
             record_failure(search_control)
-            if not backtrack(
-                statistics,
-                state,
-                utrail_log,
-                utrail_top,
-                utrail_indices,
-                choicepoints,
-                choicepoint_top,
-                entailed,
-                triggered_propagators,
-                triggers,
-                triggers_offsets,
-                propagator_infos,
-                bb,
-                itrail,
-                itrail_top,
-                itrail_last,
-                pending_lit,
-            ):
-                return SOLVER_RUNNING, None
+            while True:
+                if not backtrack(
+                    statistics,
+                    state,
+                    utrail_log,
+                    utrail_top,
+                    utrail_indices,
+                    choicepoints,
+                    choicepoint_top,
+                    entailed,
+                    triggered_propagators,
+                    triggers,
+                    triggers_offsets,
+                    propagator_infos,
+                    bb,
+                    itrail,
+                    itrail_top,
+                    itrail_last,
+                    pending_lit,
+                    unit_lits,
+                    store_top,
+                    clause_head,
+                ):
+                    return SOLVER_RUNNING, None
+                # the new clause gets its watches at the choice point where the search resumes; when all its literals
+                # are false there, the choice point holds no solution, and the search backtracks again
+                if new_clause < 0 or attach_clause(
+                    new_clause,
+                    clause_lits,
+                    clause_start,
+                    watch_head,
+                    watches,
+                    state,
+                    utrail_log,
+                    utrail_top,
+                    utrail_indices,
+                    choicepoints[choicepoint_top[0], CHOICEPOINT_UTRAIL_MARK],
+                    itrail,
+                    itrail_top,
+                    itrail_last,
+                    choicepoint_top[0],
+                    triggered_propagators,
+                    entailed,
+                    triggers,
+                    triggers_offsets,
+                    propagator_infos,
+                ):
+                    break
             continue
         if var_side < 0:
             # the heuristic only says where to split; decision_literal maps the split to the literal to apply now, and
@@ -798,16 +974,21 @@ def backtrack(
     itrail_top: NDArray,
     itrail_last: NDArray,
     pending_lit: NDArray,
+    unit_lits: NDArray,
+    store_top: NDArray,
+    clause_head: NDArray,
 ) -> bool:
     """
     Backtracks to the deepest choice point that can still hold a solution, as the backtrack of BacktrackSolver
     (nucs.solvers.choicepoints) does, and keeps the implication trail in step.
 
-    It is a copy of that backtrack with three changes: it drops the pending literal of an interior EQ, which belongs to
+    It is a copy of that backtrack with four changes: it drops the pending literal of an interior EQ, which belongs to
     the choice point that the backtrack leaves; popping a choice point also pops the implication trail down to the mark
-    of that choice point; and the parked alternative and the objective bound add their rows, at the choice point that
-    the search resumes. The alternative gets REASON_DECISION: at this step it is a decision of the search, as in
-    BacktrackSolver. The objective bound gets REASON_ROOT: it holds for the rest of the search.
+    of that choice point, and moves the head of the clause propagation down with it; the parked alternative and the
+    objective bound add their rows, at the choice point that the search resumes; and it applies the unit clauses
+    there. The alternative gets REASON_DECISION: at this step it is a decision of the search, as in BacktrackSolver.
+    The objective bound and the unit clauses get REASON_ROOT: they hold for the rest of the search. A choice point
+    where a unit clause is false holds no solution: the backtrack pops it, as one where the objective bound fails.
 
     :param statistics: the statistics array
     :type statistics: NDArray
@@ -845,6 +1026,13 @@ def backtrack(
     :type itrail_last: NDArray
     :param pending_lit: the second literal of an interior EQ, see PENDING_LIT_*
     :type pending_lit: NDArray
+    :param unit_lits: the learned clauses with one literal
+    :type unit_lits: NDArray
+    :param store_top: the numbers of clauses, of literals and of unit clauses of the store, see STORE_*
+    :type store_top: NDArray
+    :param clause_head: the first row of the implication trail whose watches the clause propagation has not visited
+                        yet, as a one-cell array
+    :type clause_head: NDArray
 
     :return: true iff it is possible to backtrack
     :rtype: bool
@@ -859,6 +1047,7 @@ def backtrack(
         utrail_undo(state, utrail_log, utrail_indices, utrail_top, mark)
         # the rows that this choice point wrote before it branched stay: the rows of the choice points above it go
         itrail_pop(itrail, itrail_top, itrail_last, choicepoints[choicepoint, CHOICEPOINT_ITRAIL_MARK])
+        clause_head[0] = min(clause_head[0], itrail_top[0])
         variable = choicepoints[choicepoint, CHOICEPOINT_VARIABLE]
         cell_idx = variable << 1
         new_min, new_max = bounds_after_tightening(
@@ -885,43 +1074,62 @@ def backtrack(
                 events,
                 -1,
             )
-        if optimized_variable < 0:
-            return True
-        events = tighten_objective(
+        if optimized_variable >= 0:
+            events = tighten_objective(
+                state,
+                utrail_log,
+                utrail_top,
+                utrail_indices,
+                mark,
+                optimized_variable,
+                bb[BB_VALUE],
+                bb[BB_BOUND],
+            )
+            if events < 0:  # the choice point cannot hold an improving solution, keep popping
+                continue
+            if events != EVENT_MASK_NONE:
+                itrail_top[0] = itrail_push_events(
+                    itrail,
+                    itrail_last,
+                    itrail_top[0],
+                    state,
+                    optimized_variable,
+                    events,
+                    choicepoint,
+                    REASON_ROOT,
+                    -1,
+                    -1,
+                    -1,
+                )
+                update_propagators(
+                    triggered_propagators,
+                    entailed,
+                    triggers,
+                    triggers_offsets,
+                    propagator_infos,
+                    optimized_variable,
+                    events,
+                    -1,
+                )
+        # the unit clauses hold for the rest of the search, as the objective bound does
+        if not apply_units(
             state,
             utrail_log,
             utrail_top,
             utrail_indices,
             mark,
-            optimized_variable,
-            bb[BB_VALUE],
-            bb[BB_BOUND],
-        )
-        if events < 0:  # the choice point cannot hold an improving solution, keep popping
-            continue
-        if events != EVENT_MASK_NONE:
-            itrail_top[0] = itrail_push_events(
-                itrail,
-                itrail_last,
-                itrail_top[0],
-                state,
-                optimized_variable,
-                events,
-                choicepoint,
-                REASON_ROOT,
-                -1,
-                -1,
-                -1,
-            )
-            update_propagators(
-                triggered_propagators,
-                entailed,
-                triggers,
-                triggers_offsets,
-                propagator_infos,
-                optimized_variable,
-                events,
-                -1,
-            )
+            unit_lits,
+            store_top[STORE_UNIT_NB],
+            itrail,
+            itrail_top,
+            itrail_last,
+            choicepoint,
+            triggered_propagators,
+            entailed,
+            triggers,
+            triggers_offsets,
+            propagator_infos,
+        ):
+            continue  # a unit clause is false at the choice point, keep popping
         return True
     return False

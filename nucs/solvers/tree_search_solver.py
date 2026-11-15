@@ -258,6 +258,7 @@ class TreeSearchSolver(Solver):
             # takes the next one (see _next_solution)
             self.restart_limits = self.restart_policy.limits()
             self.search_control[SEARCH_CONTROL_RESTART_LIMIT] = next(self.restart_limits)
+            self._start_search()
             # a previous search may have left the root tightened by its objective, or wiped out: start from the
             # initial domains, keeping what the propagator weights learned
             self._reset_to_root()
@@ -365,6 +366,15 @@ class TreeSearchSolver(Solver):
             return False
         self._record_root()
         return True
+
+    def _start_search(self) -> None:
+        """
+        A hook that the solver calls at the start of each search: an enumeration, an optimization, or a search for one
+        solution, before it sets the root.
+
+        A subclass that keeps what one search learned, and that is valid only in that search, forgets it here. The
+        default does nothing.
+        """
 
     def _record_root(self) -> None:
         """
