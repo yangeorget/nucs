@@ -33,7 +33,13 @@ from nucs.propagators.explanations import EXPLAIN_SIDE, EXPLAIN_VALUE, EXPLAIN_V
 from nucs.propagators.propagators import ALG_LEQ_C, ALG_LEQ_C_IMP, ALG_LINEAR_LEQ_C, register_propagator
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.lcg.clause_store import store_clause
-from nucs.solvers.lcg.conflict_analysis import MARK_NONE, MARK_ROW, analyze_conflict
+from nucs.solvers.lcg.conflict_analysis import (
+    CONFLICT_CLAUSE,
+    CONFLICT_PROPAGATOR,
+    MARK_NONE,
+    MARK_ROW,
+    analyze_conflict,
+)
 from nucs.solvers.lcg.implication_trail import (
     REASON_CLAUSE,
     REASON_DECISION,
@@ -296,8 +302,14 @@ class TestConflictAnalysis:
             Search(decision_variables=[v, x, u]),
         ]
         solver = LcgSolver(problem, searches=searches, debug=True, log_level=LOG_LEVEL_ERROR)
-        assert next(solver.solve(), None) is not None
+        solution = next(solver.solve(), None)
+        assert solution is not None
         assert solver.learned_clauses()[0] == ([le_clause(v, 0)], 5, 0, 0)
+        # from step 10, the search jumps back to level 0, past the four decisions on y, and sets v = 0 there: the unit
+        # clause is a row of level 0, and C5 then sets w = 0
+        level_0 = [row[:2] for row in solver.itrail[: solver.itrail_top[0]].tolist() if row[3] == 0]
+        assert list(le_clause(v, 0)) in level_0
+        assert solution[v] == solution[w] == 0
 
     @pytest.mark.parametrize(
         "run",
@@ -390,9 +402,12 @@ def analyze(
         itrail,
         itrail_top,
         itrail_last,
-        failed_prop_idx,
-        failed_clause,
-        itrail_sz,
+        np.array(
+            [CONFLICT_PROPAGATOR, failed_prop_idx, 0, itrail_sz]
+            if failed_prop_idx >= 0
+            else [CONFLICT_CLAUSE, failed_clause, 0, itrail_sz],
+            dtype=np.int64,
+        ),
         solver.clause_lits,
         solver.clause_start,
         solver.domain_buffer,

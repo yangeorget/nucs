@@ -55,10 +55,8 @@ REASON_CLAUSE = 2  # a learned clause made the change (from step 9)
 REASON_ROOT = 3  # a fact that holds for the rest of the search, such as the bound of the best objective
 
 # The rows that a step of the search can write outside the propagation: a decision moves at most two bounds, and a
-# backtrack moves one bound for the parked alternative, one bound for the objective, and one bound for the asserting
-# literal of a new learned clause or for a new unit clause. A backtrack also applies the older unit clauses again: the
-# loops count one more row for each of them.
-ITRAIL_STEP_ROW_NB = 3
+# backjump moves one bound for the objective and one bound for the asserting literal of the learned clause.
+ITRAIL_STEP_ROW_NB = 2
 
 # What the debug replay check returns when the implication trail agrees with state.
 ITRAIL_VALID = -1

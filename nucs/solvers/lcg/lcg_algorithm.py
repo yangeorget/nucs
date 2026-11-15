@@ -40,7 +40,7 @@ from nucs.problems.problem import (
 from nucs.propagators.propagators import call_compute_domains
 from nucs.solvers.buckets import STORAGE_OFFSET, buckets_pop
 from nucs.solvers.choicepoints import CHOICEPOINT_UTRAIL_MARK
-from nucs.solvers.lcg.clause_store import CLAUSES_ITRAIL_FULL, STORE_UNIT_NB, propagate_clauses
+from nucs.solvers.lcg.clause_store import CLAUSES_ITRAIL_FULL, propagate_clauses
 from nucs.solvers.lcg.implication_trail import ITRAIL_STEP_ROW_NB, REASON_PROPAGATOR, itrail_push_events
 from nucs.solvers.propagation_steps import (
     count_no_change,
@@ -109,7 +109,6 @@ def lcg_algorithm(
     clause_start: NDArray,
     watch_head: NDArray,
     watches: NDArray,
-    store_top: NDArray,
     clause_head: NDArray,
 ) -> int:
     """
@@ -134,8 +133,7 @@ def lcg_algorithm(
 
     Each propagator call adds at most two rows for each of its variables, and each clause adds one row. Before each
     row of a clause and before it pops a propagator, the loop makes sure that these rows fit, and that the rows of the
-    next step of the search fit too: ITRAIL_STEP_ROW_NB, and one row for each unit clause, which a backtrack applies
-    again. When they do not, it returns PROBLEM_ITRAIL_FULL: the solver grows the implication trail, and the next call
+    next step of the search fit too (ITRAIL_STEP_ROW_NB). When they do not, it returns PROBLEM_ITRAIL_FULL: the solver grows the implication trail, and the next call
     continues the propagation. The two calls count as one in ALG_BC_NB.
 
     :param statistics: a Numpy array of statistics
@@ -202,8 +200,6 @@ def lcg_algorithm(
     :type watch_head: NDArray
     :param watches: the watches of the learned clauses
     :type watches: NDArray
-    :param store_top: the numbers of clauses, of literals and of unit clauses of the store, in the STORE_* cells
-    :type store_top: NDArray
     :param clause_head: the first row of the implication trail whose watches the clause propagation has not visited
                         yet, as a one-cell array
     :type clause_head: NDArray
@@ -224,8 +220,8 @@ def lcg_algorithm(
     entailed_idx = len(domains) << 1  # the entailment flags follow the domain bounds in state
     # the same for the implication trail
     itrail_sz = itrail_top[0]
-    # the rows of the step of the search that follows the propagation: a backtrack also applies each unit clause again
-    itrail_reserve = ITRAIL_STEP_ROW_NB + store_top[STORE_UNIT_NB]
+    # the rows of the step of the search that follows the propagation
+    itrail_reserve = ITRAIL_STEP_ROW_NB
     # the rows that the next call can add, and the reserve
     itrail_room = 2 * len(domain_buffer) + itrail_reserve
     statistics[STATS_IDX_ALG_BC_NB] += 1

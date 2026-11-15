@@ -27,8 +27,9 @@ The queue of the bounds whose watches must be visited is the implication trail i
 changed, and clause_head is the first row whose watches the propagation has not visited yet. This is the propagation
 head of a SAT solver. A backtrack moves the head down to the top of the implication trail.
 
-A learned clause with one literal has no second watch, and nothing would wake it. The store keeps such a clause in
-unit_lits, and the search applies it again at each choice point that it resumes, and at each return to the root.
+A learned clause with one literal has no second watch, and nothing would wake it. It asserts at level 0, where no
+backjump undoes it, but a return to the root (a restart, OPTIM_RESET) undoes it too. Thus the store keeps such a clause
+in unit_lits, and the search applies it again at each return to the root (design/proposals/lcg.md, 4.7).
 """
 
 import numpy as np
@@ -541,8 +542,8 @@ def apply_units(
     propagator_infos: NDArray,
 ) -> bool:
     """
-    Applies the unit clauses at the choice point where the search resumes, or at the root, with REASON_ROOT: they
-    hold for the rest of the search.
+    Applies the unit clauses at the root, after a return to the root, with REASON_ROOT: they hold for the rest of the
+    search.
 
     :param state: all the backtrackable state
     :type state: NDArray
