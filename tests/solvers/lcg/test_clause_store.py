@@ -145,7 +145,7 @@ class TestClauseStore:
         assert solver._run_search_loop()[1] is not None  # a solution, with the choice points that led to it
         assert solver.clause_head[0] == solver.itrail_top[0]
         assert solver._backtrack()
-        assert solver.clause_head[0] < solver.itrail_top[0]  # the row of the parked alternative
+        assert solver.clause_head[0] < solver.itrail_top[0]  # the row of the asserted literal
 
     def test_reset_to_root_applies_the_unit_clauses(self) -> None:
         # design/proposals/lcg.md 4.7: a restart must not forget the unit clauses

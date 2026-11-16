@@ -65,6 +65,7 @@ from nucs.solvers.lcg.conflict_analysis import (
     allocate_clause_log,
     analyze_conflict,
     clause_log_add,
+    set_conflict,
 )
 from nucs.solvers.lcg.decisions import (
     PENDING_LIT_VAR_SIDE,
@@ -89,10 +90,6 @@ from nucs.solvers.lcg.implication_trail import (
     itrail_root,
 )
 from nucs.solvers.lcg.lcg_algorithm import (
-    FAILED_CLAUSE,
-    FAILED_POS,
-    FAILED_PROPAGATOR,
-    FAILED_WIDTH,
     PROBLEM_ITRAIL_FULL,
     lcg_algorithm,
 )
@@ -191,9 +188,6 @@ class LcgSolver(TreeSearchSolver):
         self.itrail, self.itrail_top, self.itrail_last = allocate_itrail(problem.domain_nb)
         # the second literal of an interior EQ, while the first one propagates (see nucs.solvers.lcg.decisions)
         self.pending_lit = np.full(2, -1, dtype=np.int32)
-        # the propagator that failed last and the position of its call, which lcg_algorithm writes; the conflict is
-        # explained with them
-        self.failed_propagator = np.full(FAILED_WIDTH, -1, dtype=np.int32)
         # the store of the learned clauses, and the first row whose watches the clause propagation has not visited
         (
             self.clause_lits,
@@ -442,7 +436,6 @@ class LcgSolver(TreeSearchSolver):
                 self.problem.initial_domains,
                 self.debug,
                 self.explain_addrs,
-                self.failed_propagator,
                 self.explanation_report,
                 self.explanation,
                 self.explanation_lits,
@@ -485,7 +478,7 @@ class LcgSolver(TreeSearchSolver):
             elif status == SOLVER_EXPLANATION_INVALID:
                 row, verdict = (int(cell) for cell in self.explanation_report)
                 what = (
-                    f"the failure of propagator {self.failed_propagator[FAILED_PROPAGATOR]}"
+                    f"the failure of propagator {self.pending_conflict[CONFLICT_DATA]}"
                     if row == self.itrail_top[0]
                     else f"row {row} of {self.itrail_top[0]}"
                 )
@@ -538,7 +531,6 @@ def run_search_loop(
     initial_domains: NDArray,
     debug: bool,
     explain_addrs: NDArray,
-    failed_propagator: NDArray,
     explanation_report: NDArray,
     explanation: NDArray,
     explanation_lits: NDArray,
@@ -591,9 +583,9 @@ def run_search_loop(
     cannot carry that reason: None means both "the search is over" and "grow an array and call me again".
 
     Expects the propagation queue to already hold the propagators that need to run: the callers enqueue
-    all the propagators (buckets_init) before the first call, and rely on backtrack to schedule the
-    propagators affected by a parked alternative, or by the objective bound it re-applies, between subsequent
-    calls.
+    all the propagators (buckets_init) before the first call, and rely on learn_and_backjump to schedule the
+    propagators affected by the literal that it asserts, or by the objective bound that it applies again, between
+    subsequent calls.
 
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
@@ -686,9 +678,6 @@ def run_search_loop(
     :type debug: bool
     :param explain_addrs: the compiled explain address of each algorithm, for the debug mode
     :type explain_addrs: NDArray
-    :param failed_propagator: a two-cell array that gets the propagator that failed and the position of its call,
-                              from lcg_algorithm
-    :type failed_propagator: NDArray
     :param explanation_report: a two-cell array that gets, in debug mode, the row of the first explanation that is
                                not proven correct (the number of rows in use for a failure) and its verdict
     :type explanation_report: NDArray
@@ -725,7 +714,8 @@ def run_search_loop(
     :type clause_head: NDArray
     :param root_failed: 1 when a unit clause is false at the root, as a one-cell array
     :type root_failed: NDArray
-    :param pending_conflict: the conflict that waits for its analysis while the store grows, see CONFLICT_*
+    :param pending_conflict: the conflict to analyze, see CONFLICT_*: lcg_algorithm writes the conflict of a failure,
+                             and a conflict waits across a return only while the store grows
     :type pending_conflict: NDArray
 
     :return: why the loop returned, and the solution when it found one
@@ -824,7 +814,7 @@ def run_search_loop(
             itrail,
             itrail_top,
             itrail_last,
-            failed_propagator,
+            pending_conflict,
             clause_lits,
             clause_start,
             watch_head,
@@ -846,8 +836,8 @@ def run_search_loop(
                 itrail_top,
                 itrail_last,
                 first_row,
-                failed_propagator[FAILED_PROPAGATOR] if problem_status == PROBLEM_INCONSISTENT else -1,
-                failed_propagator[FAILED_POS],
+                pending_conflict[CONFLICT_DATA] if pending_conflict[CONFLICT_KIND] == CONFLICT_PROPAGATOR else -1,
+                pending_conflict[CONFLICT_POS],
                 domain_buffer,
                 explanation,
                 explanation_lits,
@@ -898,17 +888,9 @@ def run_search_loop(
         # back.
         if variable == -1:
             record_failure(search_control)
-            if problem_status == PROBLEM_INCONSISTENT:
-                if failed_propagator[FAILED_PROPAGATOR] >= 0:
-                    pending_conflict[CONFLICT_KIND] = CONFLICT_PROPAGATOR
-                    pending_conflict[CONFLICT_DATA] = failed_propagator[FAILED_PROPAGATOR]
-                else:
-                    pending_conflict[CONFLICT_KIND] = CONFLICT_CLAUSE
-                    pending_conflict[CONFLICT_DATA] = failed_propagator[FAILED_CLAUSE]
-                pending_conflict[CONFLICT_POS] = failed_propagator[FAILED_POS]
-            else:
-                pending_conflict[CONFLICT_KIND] = CONFLICT_DECISIONS
-                pending_conflict[CONFLICT_POS] = itrail_top[0]
+            # lcg_algorithm has written the conflict of a failure
+            if problem_status != PROBLEM_INCONSISTENT:
+                set_conflict(pending_conflict, CONFLICT_DECISIONS, -1, 0, itrail_top[0])
             continue  # the top of the loop analyzes the pending conflict
         if var_side < 0:
             # the heuristic only says where to split; decision_literal maps the split to the literal to apply now, and
@@ -923,13 +905,13 @@ def run_search_loop(
             var_side, value = decision_literal(
                 domains[variable, DOMAIN_MIN], domains[variable, DOMAIN_MAX], variable, kind, split_value, pending_lit
             )
-        parked = choicepoint_top[0]
+        level = choicepoint_top[0]
         events = decide(state, utrail_log, utrail_top, utrail_indices, choicepoints, choicepoint_top, var_side, value)
         choicepoint = choicepoint_top[0]
-        # the parked choice point branched at this row of the implication trail; the row of the decision is at the new
-        # choice point
+        # the level ends at this row of the implication trail, where a backjump to it restores to; the row of the
+        # decision is at the new choice point
         itrail_sz = itrail_top[0]
-        choicepoints[parked, CHOICEPOINT_ITRAIL_MARK] = itrail_sz
+        choicepoints[level, CHOICEPOINT_ITRAIL_MARK] = itrail_sz
         itrail_top[0] = itrail_push_events(
             itrail, itrail_last, itrail_sz, state, variable, events, choicepoint, REASON_DECISION, -1, -1, -1
         )
@@ -1247,8 +1229,7 @@ def learn_and_backjump(
         if lit_nb < 0 or (lit_nb > 0 and assertion_level < 0):
             if pending_conflict[CONFLICT_KIND] == CONFLICT_DECISIONS:
                 return LEARN_NO_UIP  # each level has one decision: their nogood always has a UIP
-            pending_conflict[CONFLICT_KIND] = CONFLICT_DECISIONS
-            pending_conflict[CONFLICT_POS] = itrail_top[0]
+            set_conflict(pending_conflict, CONFLICT_DECISIONS, -1, 0, itrail_top[0])
             continue
         if debug:
             clause_log_add(
@@ -1331,9 +1312,7 @@ def learn_and_backjump(
             triggers_offsets,
             propagator_infos,
         ):
-            pending_conflict[CONFLICT_KIND] = CONFLICT_CLAUSE
-            pending_conflict[CONFLICT_DATA] = new_clause
-            pending_conflict[CONFLICT_POS] = itrail_top[0]
+            set_conflict(pending_conflict, CONFLICT_CLAUSE, new_clause, 0, itrail_top[0])
             continue
         optimized_variable = bb[BB_VARIABLE]
         if optimized_variable >= 0:
@@ -1349,9 +1328,8 @@ def learn_and_backjump(
             )
             if events < 0:
                 # the level cannot hold a better solution: the bound fails there
-                pending_conflict[CONFLICT_KIND] = CONFLICT_LITERAL
-                pending_conflict[CONFLICT_DATA], pending_conflict[CONFLICT_VALUE] = objective_nogood(bb)
-                pending_conflict[CONFLICT_POS] = itrail_top[0]
+                var_side, value = objective_nogood(bb)
+                set_conflict(pending_conflict, CONFLICT_LITERAL, var_side, value, itrail_top[0])
                 continue
             if events != EVENT_MASK_NONE:
                 itrail_top[0] = itrail_push_events(

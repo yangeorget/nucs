@@ -41,6 +41,7 @@ from nucs.propagators.propagators import call_compute_domains
 from nucs.solvers.buckets import STORAGE_OFFSET, buckets_pop
 from nucs.solvers.choicepoints import CHOICEPOINT_UTRAIL_MARK
 from nucs.solvers.lcg.clause_store import CLAUSES_ITRAIL_FULL, propagate_clauses
+from nucs.solvers.lcg.conflict_analysis import CONFLICT_CLAUSE, CONFLICT_PROPAGATOR, set_conflict
 from nucs.solvers.lcg.implication_trail import ITRAIL_STEP_ROW_NB, REASON_PROPAGATOR, itrail_push_events
 from nucs.solvers.propagation_steps import (
     count_no_change,
@@ -65,15 +66,6 @@ from nucs.statistics import (
 # returned by lcg_algorithm when the implication trail has no room for the next propagator call; the propagator is
 # still in the queue, and the next call of lcg_algorithm continues the propagation
 PROBLEM_ITRAIL_FULL = 3
-
-# The cells of failed_propagator: the propagator that failed (-1 when a clause failed), the number of rows of the
-# implication trail when its call read the bounds, and the clause that failed (-1 when a propagator failed). The failure
-# is explained with the bounds at that position: a write-back of copies can fail after it wrote rows (see
-# update_domains_of_copies_with_reasons).
-FAILED_PROPAGATOR = 0
-FAILED_POS = 1
-FAILED_CLAUSE = 2
-FAILED_WIDTH = 3
 
 
 # compiled without Numba's reference-counting runtime, as bc_algorithm is, for the same reasons and with the same two
@@ -104,7 +96,7 @@ def lcg_algorithm(
     itrail: NDArray,
     itrail_top: NDArray,
     itrail_last: NDArray,
-    failed_propagator: NDArray,
+    conflict: NDArray,
     clause_lits: NDArray,
     clause_start: NDArray,
     watch_head: NDArray,
@@ -123,8 +115,10 @@ def lcg_algorithm(
     - before the call of a propagator, it keeps the number of rows of the implication trail as the REASON_POS of
       the call;
     - in the write-back, each moved bound adds a row with REASON_PROPAGATOR, the propagator and this REASON_POS;
-    - when a propagator or a clause fails, it writes it and the position of the failure in failed_propagator, so that
-      the solver can ask for the explanation of the failure;
+    - when a propagator or a clause fails, it writes the conflict for the analysis: the propagator or the clause, and
+      the number of rows of the implication trail when the propagator read the bounds. The failure is explained with
+      the bounds at that position: a write-back of copies can fail after it wrote rows (see
+      update_domains_of_copies_with_reasons);
     - a propagator that has a variable more than once (INFO_COPIES) gets update_domains_of_copies_with_reasons, as
       bc_algorithm gives it update_domains_of_copies.
 
@@ -190,9 +184,9 @@ def lcg_algorithm(
     :type itrail_top: NDArray
     :param itrail_last: the last row of each bound, -1 when the bound has its root value
     :type itrail_last: NDArray
-    :param failed_propagator: an array that gets the propagator or the clause that failed, and the position of the
-                              failure, in the FAILED_* cells, when the loop returns PROBLEM_INCONSISTENT
-    :type failed_propagator: NDArray
+    :param conflict: an array that gets the conflict, in the CONFLICT_* cells, when the loop returns
+                     PROBLEM_INCONSISTENT
+    :type conflict: NDArray
     :param clause_lits: the literals of the learned clauses, see nucs.solvers.lcg.clause_store
     :type clause_lits: NDArray
     :param clause_start: the first literal of each learned clause
@@ -251,9 +245,7 @@ def lcg_algorithm(
             propagator_infos,
         )
         if clause_status >= 0:
-            failed_propagator[FAILED_PROPAGATOR] = -1
-            failed_propagator[FAILED_POS] = itrail_sz
-            failed_propagator[FAILED_CLAUSE] = clause_status
+            set_conflict(conflict, CONFLICT_CLAUSE, clause_status, 0, itrail_sz)
             utrail_top[0] = utrail_sz
             itrail_top[0] = itrail_sz
             return PROBLEM_INCONSISTENT
@@ -301,9 +293,7 @@ def lcg_algorithm(
         if status == PROP_INCONSISTENCY:
             statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
             weights_bump(propagator_weights, prop_idx)
-            failed_propagator[FAILED_PROPAGATOR] = prop_idx
-            failed_propagator[FAILED_POS] = itrail_sz
-            failed_propagator[FAILED_CLAUSE] = -1
+            set_conflict(conflict, CONFLICT_PROPAGATOR, prop_idx, 0, itrail_sz)
             utrail_top[0] = utrail_sz
             itrail_top[0] = itrail_sz
             return PROBLEM_INCONSISTENT
@@ -343,9 +333,7 @@ def lcg_algorithm(
             if not consistent:
                 statistics[STATS_IDX_PROPAGATOR_INCONSISTENCY_NB] += 1
                 weights_bump(propagator_weights, prop_idx)
-                failed_propagator[FAILED_PROPAGATOR] = prop_idx
-                failed_propagator[FAILED_POS] = reason_pos
-                failed_propagator[FAILED_CLAUSE] = -1
+                set_conflict(conflict, CONFLICT_PROPAGATOR, prop_idx, 0, reason_pos)
                 utrail_top[0] = utrail_sz
                 itrail_top[0] = itrail_sz
                 return PROBLEM_INCONSISTENT

@@ -24,10 +24,7 @@ from nucs.constants import (
     EVENT_MASK_MIN,
 )
 from nucs.solvers.choicepoints import (
-    CHOICEPOINT_BOUND,
     CHOICEPOINT_UTRAIL_MARK,
-    CHOICEPOINT_VALUE,
-    CHOICEPOINT_VARIABLE,
     CHOICEPOINT_WIDTH,
 )
 from nucs.solvers.lcg.decisions import (
@@ -78,28 +75,26 @@ class TestDecisions:
         assert pending_lit[PENDING_LIT_VALUE] == 4
 
     @pytest.mark.parametrize(
-        "side,value,expected_x1_domain,expected_unbound_nb,expected_events,expected_alternative",
+        "side,value,expected_x1_domain,expected_unbound_nb,expected_events",
         [
-            (DOMAIN_MAX, 4, [0, 4], 2, EVENT_MASK_MAX, [DOMAIN_MIN, 5]),  # [x1 <= 4] parks [x1 >= 5]
-            (DOMAIN_MIN, 4, [4, 9], 2, EVENT_MASK_MIN, [DOMAIN_MAX, 3]),  # [x1 >= 4] parks [x1 <= 3]
+            (DOMAIN_MAX, 4, [0, 4], 2, EVENT_MASK_MAX),  # [x1 <= 4] moves the max
+            (DOMAIN_MIN, 4, [4, 9], 2, EVENT_MASK_MIN),  # [x1 >= 4] moves the min
             (
                 DOMAIN_MAX,
                 0,
                 [0, 0],
                 1,
                 EVENT_MASK_MAX | EVENT_MASK_GROUND,
-                [DOMAIN_MIN, 1],
             ),  # a literal that grounds x1
         ],
     )
-    def test_decide_applies_the_literal_and_parks_its_negation(
+    def test_decide_applies_the_literal_and_records_the_mark(
         self,
         side: int,
         value: int,
         expected_x1_domain: list[int],
         expected_unbound_nb: int,
         expected_events: int,
-        expected_alternative: list[int],
     ) -> None:
         state = np.array([0, 9, 0, 9, 2], dtype=np.int32)  # x0 and x1 in [0, 9], then the count of unbound variables
         utrail_log = np.zeros((8, 2), dtype=np.int32)
@@ -113,6 +108,6 @@ class TestDecisions:
         assert events == expected_events
         assert state.tolist() == [0, 9, *expected_x1_domain, expected_unbound_nb]
         assert choicepoint_top.tolist() == [2]
-        parked = choicepoints[1, [CHOICEPOINT_UTRAIL_MARK, CHOICEPOINT_VARIABLE, CHOICEPOINT_BOUND, CHOICEPOINT_VALUE]]
-        assert parked.tolist() == [3, 1, *expected_alternative]
+        # the choice point gets the mark of the undo trail and parks no alternative
+        assert choicepoints[1].tolist() == [3, 0, 0, 0, 0]
         assert choicepoints[2, CHOICEPOINT_UTRAIL_MARK] == 3  # the choice point where the search works now

@@ -104,6 +104,28 @@ CLAUSE_LOG_TOP_WIDTH = 2
 
 
 @njit(cache=True, inline="always")
+def set_conflict(conflict: NDArray, kind: int, data: int, value: int, pos: int) -> None:
+    """
+    Writes a conflict in the CONFLICT_* cells, for the analysis.
+
+    :param conflict: the conflict
+    :type conflict: NDArray
+    :param kind: the kind of the conflict, one of CONFLICT_*
+    :type kind: int
+    :param data: the propagator, the clause, or the bound of the literal; -1 for a conflict of the decisions
+    :type data: int
+    :param value: the value of the literal, 0 for the other kinds
+    :type value: int
+    :param pos: the number of rows of the implication trail when the conflict occurred
+    :type pos: int
+    """
+    conflict[CONFLICT_KIND] = kind
+    conflict[CONFLICT_DATA] = data
+    conflict[CONFLICT_VALUE] = value
+    conflict[CONFLICT_POS] = pos
+
+
+@njit(cache=True, inline="always")
 def is_stronger(var_side: int, value: int, other_value: int) -> bool:
     """
     Returns whether a literal is strictly stronger than another literal on the same bound.
