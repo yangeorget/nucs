@@ -120,7 +120,7 @@ def compute_domains_value_precede_chain(domains: NDArray, parameters: NDArray, p
     k = parameters[0]
     base = parameters[1]
     table_start = 2 + k
-    table_size = len(parameters) - table_start
+    table_sz = len(parameters) - table_start
     changed = False
     fixed = True  # whether every position so far is fixed
     r = -1
@@ -131,14 +131,14 @@ def compute_domains_value_precede_chain(domains: NDArray, parameters: NDArray, p
         new_lo = lo
         while new_lo <= hi:
             j = new_lo - base
-            if 0 <= j < table_size and parameters[table_start + j] >= forbidden:
+            if 0 <= j < table_sz and parameters[table_start + j] >= forbidden:
                 new_lo += 1
             else:
                 break
         new_hi = hi
         while new_hi >= new_lo:
             j = new_hi - base
-            if 0 <= j < table_size and parameters[table_start + j] >= forbidden:
+            if 0 <= j < table_sz and parameters[table_start + j] >= forbidden:
                 new_hi -= 1
             else:
                 break

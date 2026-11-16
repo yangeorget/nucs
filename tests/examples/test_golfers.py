@@ -13,19 +13,19 @@
 import pytest
 
 from nucs.examples.social_golfers.social_golfers_problem import SocialGolfersProblem
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 
 class TestGolfers:
     @pytest.mark.parametrize(
-        "group_nb, group_size, week_nb, symmetry_breaking, solution_nb",
+        "group_nb, group_sz, week_nb, symmetry_breaking, solution_nb",
         [(2, 2, 3, True, 1), (3, 2, 5, True, 2), (3, 3, 4, True, 12)],
     )
     def test_solve_all(
-        self, group_nb: int, group_size: int, week_nb: bool, symmetry_breaking: bool, solution_nb: int
+        self, group_nb: int, group_sz: int, week_nb: bool, symmetry_breaking: bool, solution_nb: int
     ) -> None:
-        problem = SocialGolfersProblem(group_nb, group_size, week_nb, symmetry_breaking)
+        problem = SocialGolfersProblem(group_nb, group_sz, week_nb, symmetry_breaking)
         solver = BacktrackSolver(problem)
         solver.solve_all()
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == solution_nb

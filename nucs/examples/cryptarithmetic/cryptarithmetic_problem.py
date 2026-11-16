@@ -18,13 +18,6 @@ from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_LINEAR_EQ_C
 
 
-def starts_word(letter: str, words: list[str]) -> bool:
-    for word in words:
-        if word.startswith(letter):
-            return True
-    return False
-
-
 class CryptarithmeticProblem(Problem):
     """
     A general cryptarithmetic problem where letters represent unique values.
@@ -63,3 +56,10 @@ class CryptarithmeticProblem(Problem):
 
     def solution_as_printable(self, solution: NDArray) -> Any:
         return {letter: int(solution[i]) for i, letter in enumerate(self.letters)}
+
+
+def starts_word(letter: str, words: list[str]) -> bool:
+    for word in words:
+        if word.startswith(letter):
+            return True
+    return False

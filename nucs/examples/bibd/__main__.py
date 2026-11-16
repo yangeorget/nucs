@@ -13,7 +13,7 @@
 
 from nucs.examples.bibd.bibd_problem import BIBDProblem
 from nucs.examples.default_argument_parser import DefaultArgumentParser, run_solver, solver_kwargs_from_args
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 
 # Run with the following command (the second run is much faster because the code has been compiled):
 # NUMBA_CACHE_DIR=.numba/cache python -m nucs.examples.bibd -v 8 -b 14 -r 7 -k 4 -l 3 --find-all

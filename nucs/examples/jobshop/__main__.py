@@ -19,7 +19,7 @@ from nucs.examples.default_argument_parser import (
     timeout_from_args,
 )
 from nucs.examples.jobshop.jobshop_problem import JobShopProblem
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.solver import OPTIM_PRUNE
 
 # Run with the following command (the second run is much faster because the code has been compiled):

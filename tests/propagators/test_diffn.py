@@ -21,27 +21,6 @@ from nucs.propagators.diffn_propagator import compute_domains_diffn
 from tests.propagators.propagator_test import PropagatorTest
 
 
-def _feasible_placements(bounds: list[tuple[int, int]], dx: list[int], dy: list[int]) -> list[tuple[int, ...]]:
-    """Brute-force every placement of the rectangles (within bounds) with no pairwise overlap."""
-    n = len(dx)
-    ranges = [range(lo, hi + 1) for lo, hi in bounds]
-    feasible = []
-    for coords in itertools.product(*ranges):
-        x = coords[:n]
-        y = coords[n:]
-        ok = True
-        for i in range(n):
-            for j in range(i + 1, n):
-                if not (x[i] + dx[i] <= x[j] or x[j] + dx[j] <= x[i] or y[i] + dy[i] <= y[j] or y[j] + dy[j] <= y[i]):
-                    ok = False
-                    break
-            if not ok:
-                break
-        if ok:
-            feasible.append(coords)
-    return feasible
-
-
 class TestDiffn(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
@@ -92,3 +71,24 @@ class TestDiffn(PropagatorTest):
                 bc_max = max(coord[v] for coord in feasible)
                 assert domains[v, DOMAIN_MIN] <= bc_min, f"over-pruned MIN of {v}: {bounds} {dx} {dy}"
                 assert domains[v, DOMAIN_MAX] >= bc_max, f"over-pruned MAX of {v}: {bounds} {dx} {dy}"
+
+
+def _feasible_placements(bounds: list[tuple[int, int]], dx: list[int], dy: list[int]) -> list[tuple[int, ...]]:
+    """Brute-force every placement of the rectangles (within bounds) with no pairwise overlap."""
+    n = len(dx)
+    ranges = [range(lo, hi + 1) for lo, hi in bounds]
+    feasible = []
+    for coords in itertools.product(*ranges):
+        x = coords[:n]
+        y = coords[n:]
+        ok = True
+        for i in range(n):
+            for j in range(i + 1, n):
+                if not (x[i] + dx[i] <= x[j] or x[j] + dx[j] <= x[i] or y[i] + dy[i] <= y[j] or y[j] + dy[j] <= y[i]):
+                    ok = False
+                    break
+            if not ok:
+                break
+        if ok:
+            feasible.append(coords)
+    return feasible

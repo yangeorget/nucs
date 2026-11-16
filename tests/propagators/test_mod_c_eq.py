@@ -19,12 +19,6 @@ from nucs.propagators.mod_c_eq_propagator import compute_domains_mod_c_eq
 from tests.propagators.propagator_test import PropagatorTest
 
 
-def trunc_mod(x: int, m: int) -> int:
-    """The truncated remainder x mod m (sign of the dividend), independent of the sign of m."""
-    am = abs(m)
-    return x % am if x >= 0 else -((-x) % am)
-
-
 class TestModCEq(PropagatorTest):
     @pytest.mark.parametrize(
         "domains,parameters,consistency_result,expected_domains",
@@ -80,3 +74,9 @@ class TestModCEq(PropagatorTest):
                         assert domains[1, DOMAIN_MIN] == min(zs) and domains[1, DOMAIN_MAX] == max(zs), (
                             f"z for {xl}..{xu} m={m}"
                         )
+
+
+def trunc_mod(x: int, m: int) -> int:
+    """The truncated remainder x mod m (sign of the dividend), independent of the sign of m."""
+    am = abs(m)
+    return x % am if x >= 0 else -((-x) % am)

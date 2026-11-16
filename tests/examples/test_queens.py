@@ -14,7 +14,7 @@ import pytest
 
 from nucs.examples.queens.queens_problem import QueensDualProblem, QueensProblem
 from nucs.heuristics.heuristics import VAR_HEURISTIC_FIRST_NOT_INSTANTIATED
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 from nucs.statistics import STATS_IDX_SOLUTION_NB
 from tests.marks import SLOW_WITHOUT_JIT

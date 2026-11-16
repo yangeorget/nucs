@@ -14,7 +14,7 @@
 import pytest
 
 from nucs.problems.circuit_problem import CircuitProblem
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_IDX_ALG_BC_NB, STATS_IDX_SOLUTION_NB, STATS_IDX_SOLVER_CHOICE_NB
 
 

@@ -17,7 +17,7 @@ from collections.abc import Callable
 import pytest
 
 from nucs.examples import default_argument_parser
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 
 
 @pytest.fixture

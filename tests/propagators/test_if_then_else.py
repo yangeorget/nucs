@@ -21,25 +21,6 @@ from nucs.propagators.if_then_else_propagator import compute_domains_if_then_els
 from tests.propagators.propagator_test import PropagatorTest
 
 
-def _feasible(bounds: list[tuple[int, int]]) -> list[tuple[int, ...]]:
-    """Brute-force every ground assignment of (conditions, values, y) satisfying the if-then-else."""
-    b = (len(bounds) - 1) // 2
-    ranges = [range(lo, hi + 1) for lo, hi in bounds]
-    feasible = []
-    for a in itertools.product(*ranges):
-        c = a[:b]
-        x = a[b : 2 * b]
-        y = a[2 * b]
-        k = -1
-        for i in range(b):
-            if c[i] == 1:
-                k = i
-                break
-        if k == -1 or y == x[k]:  # no branch taken -> y free; else y must equal the taken branch's value
-            feasible.append(a)
-    return feasible
-
-
 class TestIfThenElse(PropagatorTest):
     @pytest.mark.parametrize(
         # layout: [c0, c1, x0, x1, y]
@@ -109,3 +90,22 @@ class TestIfThenElse(PropagatorTest):
             for v in range(2 * b + 1):
                 expected = [min(a[v] for a in feasible), max(a[v] for a in feasible)]
                 assert domains[v].tolist() == expected, f"var {v} of {bounds}: {domains[v].tolist()} != {expected}"
+
+
+def _feasible(bounds: list[tuple[int, int]]) -> list[tuple[int, ...]]:
+    """Brute-force every ground assignment of (conditions, values, y) satisfying the if-then-else."""
+    b = (len(bounds) - 1) // 2
+    ranges = [range(lo, hi + 1) for lo, hi in bounds]
+    feasible = []
+    for a in itertools.product(*ranges):
+        c = a[:b]
+        x = a[b : 2 * b]
+        y = a[2 * b]
+        k = -1
+        for i in range(b):
+            if c[i] == 1:
+                k = i
+                break
+        if k == -1 or y == x[k]:  # no branch taken -> y free; else y must equal the taken branch's value
+            feasible.append(a)
+    return feasible

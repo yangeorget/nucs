@@ -13,7 +13,7 @@
 from nucs.examples.default_argument_parser import DefaultArgumentParser, run_optimizer, solver_kwargs_from_args
 from nucs.examples.employee_scheduling.employee_scheduling_problem import EmployeeSchedulingProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 
 # Run with the following command (the second run is much faster because the code has been compiled):

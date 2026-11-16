@@ -23,47 +23,6 @@ from nucs.solvers import interrupter as interrupter_module
 from nucs.solvers.interrupter import INTERRUPTION_DEADLINE, Interrupter
 
 
-@contextmanager
-def call_before_bytecode(code: CodeType, position: int, callback: Callable[[], None]) -> Iterator[list[int]]:
-    """
-    Traces the frames of a code object and calls a function before one of its bytecodes, as a signal handler can run.
-
-    :param code: the code object whose frames are traced
-    :type code: CodeType
-    :param position: the index of the bytecode before which the function is called, -1 for no call
-    :type position: int
-    :param callback: the function to call
-    :type callback: Callable[[], None]
-
-    :return: a one-cell list that holds the number of bytecodes the traced frames ran, once the block is over
-    :rtype: Iterator[list[int]]
-    """
-    opcode_nb = [0]
-
-    def trace_opcodes(frame: FrameType, event: str, _arg: object) -> Callable | None:
-        frame.f_trace_opcodes = True  # ignored when set at the call event, from Python 3.14
-        if event == "opcode":
-            if opcode_nb[0] == position:
-                callback()
-            opcode_nb[0] += 1
-        return trace_opcodes
-
-    def trace_calls(frame: FrameType, _event: str, _arg: object) -> Callable | None:
-        return trace_opcodes if frame.f_code is code else None
-
-    # Python 3.12 turns on opcode events only at a settrace that follows the first f_trace_opcodes of the process:
-    # without this, the first traced frame gets none
-    frame = sys._getframe()
-    frame.f_trace_opcodes = True
-    frame.f_trace_opcodes = False
-    previous_trace = sys.gettrace()
-    sys.settrace(trace_calls)
-    try:
-        yield opcode_nb
-    finally:
-        sys.settrace(previous_trace)
-
-
 class TestInterrupter:
     def test_disarm_before_the_timeout_cancels_the_deadline(self) -> None:
         """A deadline disarmed before it expires never writes its cell, so it cannot stop a later search."""
@@ -125,3 +84,44 @@ class TestInterrupter:
         expected = [False, False] if position < 0 else [True, False]
         assert interrupter.cells.tolist() == expected, f"interrupt() at bytecode {position} of disarm"
         return opcode_nb[0]
+
+
+@contextmanager
+def call_before_bytecode(code: CodeType, position: int, callback: Callable[[], None]) -> Iterator[list[int]]:
+    """
+    Traces the frames of a code object and calls a function before one of its bytecodes, as a signal handler can run.
+
+    :param code: the code object whose frames are traced
+    :type code: CodeType
+    :param position: the index of the bytecode before which the function is called, -1 for no call
+    :type position: int
+    :param callback: the function to call
+    :type callback: Callable[[], None]
+
+    :return: a one-cell list that holds the number of bytecodes the traced frames ran, once the block is over
+    :rtype: Iterator[list[int]]
+    """
+    opcode_nb = [0]
+
+    def trace_opcodes(frame: FrameType, event: str, _arg: object) -> Callable | None:
+        frame.f_trace_opcodes = True  # ignored when set at the call event, from Python 3.14
+        if event == "opcode":
+            if opcode_nb[0] == position:
+                callback()
+            opcode_nb[0] += 1
+        return trace_opcodes
+
+    def trace_calls(frame: FrameType, _event: str, _arg: object) -> Callable | None:
+        return trace_opcodes if frame.f_code is code else None
+
+    # Python 3.12 turns on opcode events only at a settrace that follows the first f_trace_opcodes of the process:
+    # without this, the first traced frame gets none
+    frame = sys._getframe()
+    frame.f_trace_opcodes = True
+    frame.f_trace_opcodes = False
+    previous_trace = sys.gettrace()
+    sys.settrace(trace_calls)
+    try:
+        yield opcode_nb
+    finally:
+        sys.settrace(previous_trace)

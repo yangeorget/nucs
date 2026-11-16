@@ -18,7 +18,7 @@ from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_VALUE_PRECEDE
 from nucs.propagators.value_precede_propagator import compute_domains_value_precede
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from tests.propagators.propagator_test import PropagatorTest
 
 

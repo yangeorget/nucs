@@ -25,7 +25,8 @@ from nucs.constants import (
     PROP_FLAG_REPORTS_CHANGES,
     PROP_INCONSISTENCY,
 )
-from nucs.propagators.propagators import ALGORITHM_FLAGS, COMPUTE_DOMAINS_FCTS, GET_STATE_FCTS
+from nucs.propagators.explanations import EXPLAIN_SIDE, EXPLAIN_VALUE, EXPLAIN_VAR_IDX, explain_naive
+from nucs.propagators.propagators import ALGORITHM_FLAGS, COMPUTE_DOMAINS_FCTS, EXPLAIN_FCTS, GET_STATE_FCTS
 
 
 class PropagatorTest:
@@ -43,7 +44,7 @@ class PropagatorTest:
         parameters_arr = np.array(parameters, dtype=np.int32)
         # a fresh, zeroed state block, correctly sized by the propagator's own get_state_fct -- (0, 0), and
         # so an empty array, for every propagator that doesn't declare one
-        trailed_nb, hint_nb = _get_state_size(compute_domains_fct, domains_arr, parameters)
+        trailed_nb, hint_nb = _get_state_sz(compute_domains_fct, domains_arr, parameters)
         prop_state_arr = np.zeros(trailed_nb + hint_nb, dtype=np.int32)
         report_idx = trailed_nb if _reports_changes(compute_domains_fct) else -1
         status = self._call(compute_domains_fct, domains_arr, parameters_arr, prop_state_arr, report_idx)
@@ -132,7 +133,7 @@ class PropagatorTest:
         :param label: what names the chain in a failure, typically its seed, so that it can be replayed
         :type label: str
         """
-        trailed_nb, hint_nb = _get_state_size(compute_domains_fct, domains, parameters)
+        trailed_nb, hint_nb = _get_state_sz(compute_domains_fct, domains, parameters)
         report_idx = trailed_nb if _reports_changes(compute_domains_fct) else -1
         parameters_arr = np.array(parameters, dtype=np.int32)
         warm_state = np.zeros(trailed_nb + hint_nb, dtype=np.int32)
@@ -174,13 +175,13 @@ class PropagatorTest:
                 if step(node_domains) != PROP_CONSISTENCY:
                     return
             return
-        trailed_mark = warm_state[:trailed_nb].copy()  # the choice point: the trail holds this and the bounds
+        trailed_mark = warm_state[:trailed_nb].copy()  # the choice point: the undo trail holds this and the bounds
         domains_mark = node_domains.copy()
         for _ in range(6):  # descend, permuting the live array as it goes
             narrow(node_domains)
             if step(node_domains) != PROP_CONSISTENCY:
                 break
-        warm_state[:trailed_nb] = trailed_mark  # backtrack: exactly what the trail undoes, and no more
+        warm_state[:trailed_nb] = trailed_mark  # backtrack: exactly what the undo trail undoes, and no more
         node_domains = domains_mark.copy()
         for _ in range(6):  # and away down a different branch
             narrow(node_domains)
@@ -203,6 +204,11 @@ class PropagatorTest:
         idempotent, a second call with the same state block must narrow nothing, since the engine never wakes
         it on its own changes; otherwise it is run to its fixpoint, as the engine would. The change report is
         checked on every call.
+
+        The explain function of the propagator is checked on every call too (design/proposals/lcg.md, 7.2): see
+        _assert_explanations. On the box of the test, the explanation box of the first call is the box itself, so
+        the explanations are checked again on a sub-box: there, the solutions of the box that are not in the sub-box
+        show an explanation that is too short.
 
         A propagator that relies on another constraint being posted alongside (element_l_eq_alldifferent on an
         alldifferent, say) is held to the conjunction: only the points satisfying the assumption count, and a box
@@ -229,20 +235,30 @@ class PropagatorTest:
         solutions = [point for point in points if is_solution(point)]
         domains = np.array(bounds, dtype=np.int32)
         parameters_arr = np.array(parameters, dtype=np.int32)
-        trailed_nb, hint_nb = _get_state_size(compute_domains_fct, domains, parameters)
+        trailed_nb, hint_nb = _get_state_sz(compute_domains_fct, domains, parameters)
         state = np.zeros(trailed_nb + hint_nb, dtype=np.int32)
         report_idx = trailed_nb if _reports_changes(compute_domains_fct) else -1
         status = self._call(compute_domains_fct, domains, parameters_arr, state, report_idx)
+        explain_fct = _get_explain_fct(compute_domains_fct)
+        box = np.array(bounds, dtype=np.int32)
+        _assert_explanations(explain_fct, parameters_arr, box, box, domains, status, solutions)
         idempotent = _is_idempotent(compute_domains_fct)
         if not idempotent:
             while status == PROP_CONSISTENCY:
                 previous = domains.copy()
                 status = self._call(compute_domains_fct, domains, parameters_arr, state, report_idx)
+                _assert_explanations(explain_fct, parameters_arr, box, previous, domains, status, solutions)
                 if np.array_equal(previous, domains):
                     break
+        self._assert_explanations_on_a_sub_box(compute_domains_fct, bounds, parameters_arr, solutions)
         if status == PROP_INCONSISTENCY:
             assert not solutions, f"declared inconsistent but {solutions[0]} is a solution: {bounds} {parameters}"
             return
+        # a propagator only narrows: a widening gives back values that another propagator removed, and a row of the
+        # implication trail of LCG that loosens its bound
+        assert np.all(domains[:, DOMAIN_MIN] >= box[:, DOMAIN_MIN]) and np.all(
+            domains[:, DOMAIN_MAX] <= box[:, DOMAIN_MAX]
+        ), f"widened a domain: {bounds} {parameters} -> {domains.tolist()}"
         assert np.all(domains[:, DOMAIN_MIN] <= domains[:, DOMAIN_MAX]), (
             f"left a domain empty without failing: {bounds} {parameters} -> {domains.tolist()}"
         )
@@ -262,6 +278,49 @@ class PropagatorTest:
             assert status != PROP_INCONSISTENCY and np.array_equal(domains, fixpoint), (
                 f"not idempotent: {bounds} {parameters} -> {fixpoint.tolist()} -> {domains.tolist()}"
             )
+
+    def _assert_explanations_on_a_sub_box(
+        self,
+        compute_domains_fct: Callable,
+        bounds: list[tuple[int, int]],
+        parameters: np.ndarray,
+        solutions: list[tuple[int, ...]],
+    ) -> None:
+        """
+        Calls a propagator on a sub-box of the box of a brute-force test, from a fresh state block and to its fixpoint
+        when it is not idempotent, and checks the explanations of each call against the solutions of the box.
+
+        The sub-box takes one value off each domain that has two values or more: the minimum for an even index, the
+        maximum for an odd index.
+
+        :param compute_domains_fct: the compute_domains function under test
+        :type compute_domains_fct: Callable
+        :param bounds: the box of the test, the root bounds of the explanations
+        :type bounds: list[tuple[int, int]]
+        :param parameters: the propagator parameters
+        :type parameters: np.ndarray
+        :param solutions: the solutions inside the box of the test
+        :type solutions: list[tuple[int, ...]]
+        """
+        root = np.array(bounds, dtype=np.int32)
+        domains = root.copy()
+        for i in range(len(domains)):
+            if domains[i, DOMAIN_MIN] < domains[i, DOMAIN_MAX]:
+                if i & 1:
+                    domains[i, DOMAIN_MAX] -= 1
+                else:
+                    domains[i, DOMAIN_MIN] += 1
+        trailed_nb, hint_nb = _get_state_sz(compute_domains_fct, domains, parameters.tolist())
+        state = np.zeros(trailed_nb + hint_nb, dtype=np.int32)
+        report_idx = trailed_nb if _reports_changes(compute_domains_fct) else -1
+        explain_fct = _get_explain_fct(compute_domains_fct)
+        idempotent = _is_idempotent(compute_domains_fct)
+        while True:
+            previous = domains.copy()
+            status = self._call(compute_domains_fct, domains, parameters, state, report_idx)
+            _assert_explanations(explain_fct, parameters, root, previous, domains, status, solutions)
+            if idempotent or status != PROP_CONSISTENCY or np.array_equal(previous, domains):
+                return
 
 
 def random_bounds(rng: random.Random, k: int, lo: int, hi: int) -> list[tuple[int, int]]:
@@ -287,6 +346,80 @@ def random_bounds(rng: random.Random, k: int, lo: int, hi: int) -> list[tuple[in
     return bounds
 
 
+def _assert_explanations(
+    explain_fct: Callable,
+    parameters: np.ndarray,
+    root: np.ndarray,
+    before: np.ndarray,
+    after: np.ndarray,
+    status: int,
+    solutions: list[tuple[int, ...]],
+) -> None:
+    """
+    Holds the explanations of one propagator call to what enumerating the box says: the brute-force explanation test
+    of design/proposals/lcg.md, 7.2.
+
+    For each literal that the call set, and for the weakest literal that it made true on the same bound, the
+    explanation must hold in the box that the call read, and each solution inside the root box cut by the explanation
+    must satisfy the literal. For a failure, no solution may be inside that box.
+
+    :param explain_fct: the explain function of the propagator
+    :type explain_fct: Callable
+    :param parameters: the propagator parameters
+    :type parameters: np.ndarray
+    :param root: the box of the brute-force test, the root bounds
+    :type root: np.ndarray
+    :param before: the bounds that the call read
+    :type before: np.ndarray
+    :param after: the bounds that the call wrote
+    :type after: np.ndarray
+    :param status: what the call returned
+    :type status: int
+    :param solutions: the solutions inside the root box
+    :type solutions: list[tuple[int, ...]]
+    """
+    out = np.zeros((2 * len(before), 3), dtype=np.int32)
+    literals: list[tuple[int, int, int]] = []
+    if status == PROP_INCONSISTENCY:
+        literals.append((-1, DOMAIN_MIN, 0))
+    else:
+        for i in range(len(before)):
+            if after[i, DOMAIN_MIN] > before[i, DOMAIN_MIN]:
+                literals.append((i, DOMAIN_MIN, int(after[i, DOMAIN_MIN])))
+                literals.append((i, DOMAIN_MIN, int(before[i, DOMAIN_MIN]) + 1))
+            if after[i, DOMAIN_MAX] < before[i, DOMAIN_MAX]:
+                literals.append((i, DOMAIN_MAX, int(after[i, DOMAIN_MAX])))
+                literals.append((i, DOMAIN_MAX, int(before[i, DOMAIN_MAX]) - 1))
+    for var_idx, side, value in literals:
+        row_nb = explain_fct(before.copy(), parameters, var_idx, side, value, out)
+        box = root.copy()
+        for idx, lit_side, lit_value in out[:row_nb, [EXPLAIN_VAR_IDX, EXPLAIN_SIDE, EXPLAIN_VALUE]].tolist():
+            if lit_side == DOMAIN_MIN:
+                assert before[idx, DOMAIN_MIN] >= lit_value, f"[x{idx} >= {lit_value}] is not true in {before.tolist()}"
+                box[idx, DOMAIN_MIN] = max(box[idx, DOMAIN_MIN], lit_value)
+            else:
+                assert before[idx, DOMAIN_MAX] <= lit_value, f"[x{idx} <= {lit_value}] is not true in {before.tolist()}"
+                box[idx, DOMAIN_MAX] = min(box[idx, DOMAIN_MAX], lit_value)
+        for solution in solutions:
+            if all(box[i, DOMAIN_MIN] <= v <= box[i, DOMAIN_MAX] for i, v in enumerate(solution)):
+                assert var_idx >= 0, f"the explanation {box.tolist()} of a failure holds the solution {solution}"
+                assert (solution[var_idx] >= value) if side == DOMAIN_MIN else (solution[var_idx] <= value), (
+                    f"the explanation {box.tolist()} of [x{var_idx} {'>=' if side == DOMAIN_MIN else '<='} {value}] "
+                    f"holds the solution {solution}"
+                )
+
+
+def _get_explain_fct(compute_domains_fct: Callable) -> Callable:
+    """
+    Returns the explain function of the propagator implemented by a compute_domains function, by the same
+    by-identity lookup as _is_idempotent; unknown functions (a test-local one, say) get explain_naive.
+    """
+    for algorithm, fct in enumerate(COMPUTE_DOMAINS_FCTS):
+        if fct is compute_domains_fct:
+            return EXPLAIN_FCTS[algorithm]
+    return explain_naive
+
+
 def _is_idempotent(compute_domains_fct: Callable) -> bool:
     """
     Returns whether the propagator implemented by a compute_domains function reaches its own fixpoint in one
@@ -309,7 +442,7 @@ def _reports_changes(compute_domains_fct: Callable) -> bool:
     return False
 
 
-def _get_state_size(compute_domains_fct: Callable, domains_arr: np.ndarray, parameters: list[int]) -> tuple[int, int]:
+def _get_state_sz(compute_domains_fct: Callable, domains_arr: np.ndarray, parameters: list[int]) -> tuple[int, int]:
     """
     Returns the (trailed_nb, hint_nb) size of a compute_domains function's state block, by the same
     by-identity lookup as _is_idempotent; unknown functions (a test-local one, say) get none.

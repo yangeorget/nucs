@@ -16,7 +16,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
-from nucs.heuristics.max_regret_var_heuristic import regret
+from nucs.heuristics.variable.max_regret_var_heuristic import regret
 
 
 @njit(cache=True)

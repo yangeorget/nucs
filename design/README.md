@@ -9,7 +9,7 @@ These documents describe `main`. When the code changes, they change with it.
 
 | document | subject |
 |---|---|
-| [choice-points.md](choice-points.md) | how the solver saves and restores the search state: the trail, the write barrier, the stack of choice points |
+| [choicepoints.md](choicepoints.md) | how the solver saves and restores the search state: the undo trail, the write barrier, the stack of choice points |
 | [benchmarking.md](benchmarking.md) | how to measure a change to the speed or to the pruning, and how to know that the number is correct |
 
 ## Proposals

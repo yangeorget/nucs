@@ -56,8 +56,8 @@ Rules for `compute_domains_<name>`:
 ### Decide idempotence (every propagator)
 
 A `compute_domains` is idempotent when a second consecutive call changes nothing. The engine never wakes a
-propagator on its own prunes (the `other_prop_idx == prop_idx` skip in `nucs/solvers/bc_algorithm.py`), so if one
-pass can leave filtering undone — pairwise or cascading rules, where tightening one variable reopens one already
+propagator on its own prunes (the `other_prop_idx == prop_idx` skip in `nucs/solvers/backtrack/bc_algorithm.py`), so if
+one pass can leave filtering undone — pairwise or cascading rules, where tightening one variable reopens one already
 visited — register with `idempotent=False`. The engine then requeues the propagator after every call that changed a
 domain, letting cheaper propagators run in between. Examples: `cumulative`, `diffn`, `disjunctive`, `linear_eq_c`,
 `regular`.

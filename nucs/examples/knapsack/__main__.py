@@ -15,7 +15,7 @@ import json
 from nucs.examples.default_argument_parser import DefaultArgumentParser, run_optimizer, solver_kwargs_from_args
 from nucs.examples.knapsack.knapsack_problem import KnapsackProblem
 from nucs.heuristics.heuristics import DOM_HEURISTIC_MAX_VALUE
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.searches import Search
 
 # Run with the following command (the second run is much faster because the code has been compiled):

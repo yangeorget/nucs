@@ -13,7 +13,7 @@
 import pytest
 
 from nucs.problems.latin_square_problem import LatinSquareProblem, LatinSquareRCProblem
-from nucs.solvers.backtrack_solver import BacktrackSolver
+from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.statistics import STATS_IDX_SOLUTION_NB
 
 

@@ -140,6 +140,10 @@ def filter_domains_inverse(
         lo = prev[j, DOMAIN_MIN] - prev_offset
         hi = prev[j, DOMAIN_MAX] - prev_offset
         if lo == hi:  # prev[j] is fixed, propagate it to next
+            # next[i] must then take the label of j: it fails when the label is outside its domain, rather than
+            # widening the domain to it
+            if label < next[lo, DOMAIN_MIN] or label > next[lo, DOMAIN_MAX]:
+                return False
             if next[lo, DOMAIN_MIN] != label or next[lo, DOMAIN_MAX] != label:
                 next[lo] = label
                 prop_state[0] = 1

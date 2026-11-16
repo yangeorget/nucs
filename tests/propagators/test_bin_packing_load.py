@@ -25,25 +25,6 @@ from nucs.propagators.bin_packing_load_propagator import (
 from tests.propagators.propagator_test import PropagatorTest
 
 
-def _pair(a: int, b: int) -> tuple[int, int]:
-    return (a, b) if a <= b else (b, a)
-
-
-def _brute_solutions(
-    weights: list[int], load_doms: list[tuple[int, int]], bin_doms: list[tuple[int, int]]
-) -> list[list[int]]:
-    """Enumerates every assignment of the bins (offset 1) whose resulting loads fit the load domains."""
-    bin_nb = len(load_doms)
-    solutions = []
-    for assignment in itertools.product(*[range(lo, hi + 1) for lo, hi in bin_doms]):
-        loads = [0] * bin_nb
-        for i, b in enumerate(assignment):
-            loads[b - 1] += weights[i]
-        if all(load_doms[j][0] <= loads[j] <= load_doms[j][1] for j in range(bin_nb)):
-            solutions.append(loads + list(assignment))
-    return solutions
-
-
 class TestBinPackingLoad(PropagatorTest):
     # domains = [load_bin1, load_bin2, ...loads..., bin_item0, bin_item1, ...]; parameters = [bin_offset=1, w...]
     @pytest.mark.parametrize(
@@ -142,3 +123,22 @@ class TestBinPackingLoad(PropagatorTest):
                         bin_doms,
                         var,
                     )
+
+
+def _pair(a: int, b: int) -> tuple[int, int]:
+    return (a, b) if a <= b else (b, a)
+
+
+def _brute_solutions(
+    weights: list[int], load_doms: list[tuple[int, int]], bin_doms: list[tuple[int, int]]
+) -> list[list[int]]:
+    """Enumerates every assignment of the bins (offset 1) whose resulting loads fit the load domains."""
+    bin_nb = len(load_doms)
+    solutions = []
+    for assignment in itertools.product(*[range(lo, hi + 1) for lo, hi in bin_doms]):
+        loads = [0] * bin_nb
+        for i, b in enumerate(assignment):
+            loads[b - 1] += weights[i]
+        if all(load_doms[j][0] <= loads[j] <= load_doms[j][1] for j in range(bin_nb)):
+            solutions.append(loads + list(assignment))
+    return solutions
