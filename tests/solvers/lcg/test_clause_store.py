@@ -16,6 +16,7 @@ from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, LOG_LEVEL_ERROR
 from nucs.examples.all_interval_series.all_interval_series_problem import AllIntervalSeriesProblem
 from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.problems.problem import Problem
+from nucs.propagators.propagators import ALG_LINEAR_LEQ_C
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.lcg.clause_store import (
     CLAUSES_ITRAIL_FULL,
@@ -163,6 +164,19 @@ class TestClauseStore:
         assert solver.root_failed[0] == 1
         assert solver._run_search_loop()[1] is None  # no solution is left
 
+    def test_a_clause_that_the_propagation_makes_false_is_a_clause_conflict(self) -> None:
+        # with x0 = 1, one call of 2 x0 - x1 - x2 <= 0 sets x1 and x2 to 1: the two literals of [x1 <= 0] or [x2 <= 0]
+        # become false together, and the clause fails in lcg_algorithm, not at the visit of one false literal. The
+        # debug mode checks the explanation of each failure of a propagator: a clause conflict reported as the
+        # failure of propagator 0 stops the search there
+        problem = Problem([(0, 1)] * 3)
+        problem.add_propagator(ALG_LINEAR_LEQ_C, [0, 1, 2], [2, -1, -1, 0])
+        solver = LcgSolverWithClause(problem, debug=True, log_level=LOG_LEVEL_ERROR)
+        solutions = sorted(tuple(solution.tolist()) for solution in solver.find_all())
+        assert solutions == [(0, 0, 0), (0, 0, 1), (0, 1, 0)]
+        # the clause fails at the root once the search has learned [x0 >= 1]: the empty clause ends the search
+        assert solver.learned_clauses()[-1] == ([], 0, -1, 3)
+
     def test_a_new_search_empties_the_store(self) -> None:
         # the clauses of an enumeration remove the solutions that it found: the next search must not keep them
         problem = AllIntervalSeriesProblem(7, True)
@@ -175,6 +189,13 @@ class TestClauseStore:
         assert first == second == solutions
         assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == 2 * first_choice_nb
         assert solver.statistics[STATS_IDX_SOLUTION_NB] == 2 * len(solutions)
+
+
+class LcgSolverWithClause(LcgSolver):
+    # a new search empties the store: the clause [x1 <= 0] or [x2 <= 0] is added after that
+    def _start_search(self) -> None:
+        super()._start_search()
+        add_clause(self, [le(1, 0), le(2, 0)])
 
 
 def new_solver(variable_nb: int) -> LcgSolver:
