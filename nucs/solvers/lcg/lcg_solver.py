@@ -59,7 +59,6 @@ from nucs.solvers.lcg.conflict_analysis import (
     CONFLICT_NONE,
     CONFLICT_POS,
     CONFLICT_PROPAGATOR,
-    CONFLICT_VALUE,
     CONFLICT_WIDTH,
     allocate_analysis,
     allocate_clause_log,
@@ -324,11 +323,10 @@ class LcgSolver(TreeSearchSolver):
         :rtype: bool
         """
         if self.bb[BB_VARIABLE] >= 0:
-            self.pending_conflict[CONFLICT_KIND] = CONFLICT_LITERAL
-            self.pending_conflict[CONFLICT_DATA], self.pending_conflict[CONFLICT_VALUE] = objective_nogood(self.bb)
+            var_side, value = objective_nogood(self.bb)
+            set_conflict(self.pending_conflict, CONFLICT_LITERAL, var_side, value, self.itrail_top[0])
         else:
-            self.pending_conflict[CONFLICT_KIND] = CONFLICT_DECISIONS
-        self.pending_conflict[CONFLICT_POS] = self.itrail_top[0]
+            set_conflict(self.pending_conflict, CONFLICT_DECISIONS, -1, 0, self.itrail_top[0])
         while True:
             status = learn_and_backjump(
                 self.statistics,
@@ -714,8 +712,9 @@ def run_search_loop(
     :type clause_head: NDArray
     :param root_failed: 1 when a unit clause is false at the root, as a one-cell array
     :type root_failed: NDArray
-    :param pending_conflict: the conflict to analyze, see CONFLICT_*: lcg_algorithm writes the conflict of a failure,
-                             and a conflict waits across a return only while the store grows
+    :param pending_conflict: the conflict to analyze, see CONFLICT_*: lcg_algorithm writes the conflict of a failure.
+                             A conflict waits across a return while the store grows; it also stays after a return
+                             of a debug check, which stops the search, and _record_root clears it
     :type pending_conflict: NDArray
 
     :return: why the loop returned, and the solution when it found one

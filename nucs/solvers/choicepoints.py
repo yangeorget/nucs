@@ -34,6 +34,8 @@ from nucs.statistics import STATS_IDX_SOLVER_BACKTRACK_NB
 # One row per choice point, holding what *describes* it rather than what it changed: the positions of the two
 # trails at its decision point, and the single-bound tightening to apply when the search resumes it.
 # None of it is trailed -- trailing the decision would erase the very thing backtrack is about to apply.
+# LcgSolver writes only the two marks: its learned clauses, not a parked alternative, give the next branch, so the
+# three columns of the alternative are not written on its choice points.
 CHOICEPOINT_UTRAIL_MARK = 0  # the undo trail size when the choice point branched, the point utrail_undo restores to
 CHOICEPOINT_VARIABLE = 1  # the variable of the parked alternative
 CHOICEPOINT_BOUND = 2  # the side of its domain the alternative tightens

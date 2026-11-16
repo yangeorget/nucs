@@ -937,8 +937,9 @@ explanations, the analysis and the store already have their tests. (Until 2026-1
    `check_explanations`. Four points are different from 4.3 and 7.3:
    - `explain_naive` writes the two bounds of each variable, and `explanation_literals` removes the literals that are
      true at the root, for each explain function. Thus `SIGN_EXPLAIN` needs no root domains.
-   - `lcg_algorithm` writes the propagator that failed into `failed_propagator` (4.1), so that the debug mode can
-     check the explanation of each failure. The step adds no other work to the propagation loop.
+   - `lcg_algorithm` writes the propagator that failed into `failed_propagator` (4.1; `pending_conflict` since the
+     simplification after step 10), so that the debug mode can check the explanation of each failure. The step adds
+     no other work to the propagation loop.
    - A propagator can have a variable twice: in magic_sequence, `count_eq` has `x[i]` in its list and as its
      count. The two copies are one variable, so the check intersects the copies after each call and enumerates only
      the tuples in which the copies are equal. Without this, the debug mode reported a correct explanation as
@@ -953,8 +954,8 @@ explanations, the analysis and the store already have their tests. (Until 2026-1
      intersection (`update_domains_of_copies`; in `lcg_algorithm`, `update_domains_of_copies_with_reasons`, which
      writes the rows),
      and a variable wakes the propagator on the watchers of all its copies. A write-back of copies can fail after
-     it wrote rows, so `failed_propagator` also holds the position of the call (`FAILED_POS`), and the failure is
-     explained with the bounds at that position.
+     it wrote rows, so `failed_propagator` also holds the position of the call (`FAILED_POS`, now `CONFLICT_POS`),
+     and the failure is explained with the bounds at that position.
    - The debug mode checks two literals for each row: the literal of the row, and the weakest literal that the row
      sets (the analysis can ask for it). It stops the search at an explanation that is wrong or not true at
      `REASON_POS`, and also at a suspicious one: in the tests, a suspicious explanation must be looked at.
@@ -1016,9 +1017,9 @@ explanations, the analysis and the store already have their tests. (Until 2026-1
    propagated, but the search still backtracks in the classical way.
    *Done on 2026-11-15:* `nucs/solvers/lcg/clause_store.py` holds the store, `propagate_clauses`, `attach_clause`
    and `apply_units`. `lcg_algorithm` propagates the clauses before it pops each propagator. A clause that fails is a
-   conflict: `failed_propagator` gets a third cell, `FAILED_CLAUSE`. The analysis explains a failed clause and a
-   `REASON_CLAUSE` row by the negations of the other literals of the clause (`explain_clause_and_mark`). The search
-   still backtracks in the classical way, so the solutions and the optima are those of `BacktrackSolver`, and the
+   conflict: `failed_propagator` gets a third cell, `FAILED_CLAUSE` (now a conflict of kind `CONFLICT_CLAUSE`). The
+   analysis explains a failed clause and a `REASON_CLAUSE` row by the negations of the other literals of the clause
+   (`explain_clause_and_mark`). The search still backtracks in the classical way, so the solutions and the optima are those of `BacktrackSolver`, and the
    clauses remove nodes: on ais 9 (enumeration), 609 choices instead of 972; on golomb 8 (`OPTIM_RESET`), 582
    instead of 633. With no reset to the root, the clauses seldom apply again: queens 9, langford (3, 10),
    magic_sequence 20 and golomb 8 (`OPTIM_PRUNE`) keep the choices of `BacktrackSolver`. Two causes: the naive clauses
@@ -1100,7 +1101,8 @@ explanations, the analysis and the store already have their tests. (Until 2026-1
     - A unit clause now asserts at level 0, where no backjump undoes it, so a backjump does not apply the unit clauses
       again: `ITRAIL_STEP_ROW_NB` goes back to 2 (the bound of the objective and the asserting literal), and the
       reserves no longer grow with the unit clauses.
-    - `decide` still parks the negation of the decision on its choice point; nothing reads it.
+    - `decide` still parks the negation of the decision on its choice point; nothing reads it. (Removed by the
+      simplification below.)
     *Check:* the solutions (in any order) and the optima are those of `BacktrackSolver` on the tests of `LcgSolver`, on
     100 random problems of several small constraints (enumeration, and minimization in both modes) against brute force,
     and on queens 9, ais 9, langford (3, 10), magic_sequence 20 and golomb 8. Each solution that `optimize` yields
