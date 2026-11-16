@@ -17,6 +17,9 @@ Use ASD-STE100 Simplified Technical English for all the text that you write. Thi
 
 Each convention lives in a skill under `.claude/skills/`, loaded on demand — invoke it at the moment below:
 
+- Writing, editing or refactoring any Python file under `nucs/`, `tests/` or `scripts/`, or choosing a name:
+  `write-python-code`.
+- Writing or editing an `@njit` function, or making the solver faster: `write-numba-friendly-python-code`.
 - After editing any Python file under `nucs/`, `tests/` or `scripts/`: `check-style`. It must pass before committing.
 - Running or debugging tests, with or without the JIT: `run-tests`.
 - Creating a Python file: `add-header`, since every one starts with the `header.txt` banner.
