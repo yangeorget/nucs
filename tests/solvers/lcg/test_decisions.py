@@ -24,7 +24,10 @@ from nucs.constants import (
     EVENT_MASK_MIN,
 )
 from nucs.solvers.choicepoints import (
+    CHOICEPOINT_BOUND,
     CHOICEPOINT_UTRAIL_MARK,
+    CHOICEPOINT_VALUE,
+    CHOICEPOINT_VARIABLE,
     CHOICEPOINT_WIDTH,
 )
 from nucs.solvers.lcg.decisions import (
@@ -100,7 +103,7 @@ class TestDecisions:
         utrail_log = np.zeros((8, 2), dtype=np.int32)
         utrail_top = np.array([3], dtype=np.int32)  # the undo trail already holds 3 entries: the mark is 3
         utrail_indices = np.full(len(state), -1, dtype=np.int32)
-        choicepoints = np.zeros((4, CHOICEPOINT_WIDTH), dtype=np.int32)
+        choicepoints = np.full((4, CHOICEPOINT_WIDTH), -1, dtype=np.int32)  # -1 shows the cells that decide leaves
         choicepoint_top = np.array([1], dtype=np.int32)
         events = decide(
             state, utrail_log, utrail_top, utrail_indices, choicepoints, choicepoint_top, 1 << 1 | side, value
@@ -109,5 +112,6 @@ class TestDecisions:
         assert state.tolist() == [0, 9, *expected_x1_domain, expected_unbound_nb]
         assert choicepoint_top.tolist() == [2]
         # the choice point gets the mark of the undo trail and parks no alternative
-        assert choicepoints[1].tolist() == [3, 0, 0, 0, 0]
+        assert choicepoints[1, CHOICEPOINT_UTRAIL_MARK] == 3
+        assert choicepoints[1, [CHOICEPOINT_VARIABLE, CHOICEPOINT_BOUND, CHOICEPOINT_VALUE]].tolist() == [-1, -1, -1]
         assert choicepoints[2, CHOICEPOINT_UTRAIL_MARK] == 3  # the choice point where the search works now
