@@ -32,10 +32,7 @@ from nucs.problems.problem import Problem
 from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_LEQ_C, ALG_LINEAR_LEQ_C, ALG_NEQ
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.choicepoints import (
-    CHOICEPOINT_BOUND,
     CHOICEPOINT_ITRAIL_MARK,
-    CHOICEPOINT_VALUE,
-    CHOICEPOINT_VARIABLE,
 )
 from nucs.solvers.lcg.implication_trail import REASON_DECISION, REASON_PROPAGATOR, REASON_ROOT
 from nucs.solvers.lcg.lcg_solver import LcgSolver
@@ -188,11 +185,8 @@ class TestLcgSolver:
             [0 << 1 | DOMAIN_MAX, 1, -1, 1, REASON_DECISION, -1, -1, -1],
             [0 << 1 | DOMAIN_MIN, 1, -1, 2, REASON_DECISION, -1, -1, -1],
         ]
-        # each choice point parks the negation of its literal, and the row of the implication trail where it branched
-        parked = solver.choicepoints[
-            :2, [CHOICEPOINT_VARIABLE, CHOICEPOINT_BOUND, CHOICEPOINT_VALUE, CHOICEPOINT_ITRAIL_MARK]
-        ]
-        assert parked.tolist() == [[0, DOMAIN_MIN, 2, 0], [0, DOMAIN_MAX, 0, 1]]
+        # each choice point holds the row of the implication trail where its level ends
+        assert solver.choicepoints[:2, CHOICEPOINT_ITRAIL_MARK].tolist() == [0, 1]
         assert solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] == 2
         # the values come in the order of BacktrackSolver: the middle, then below it, then above it
         solutions = [solution.tolist() for solution in LcgSolver(problem, searches=searches, debug=True).solve()]

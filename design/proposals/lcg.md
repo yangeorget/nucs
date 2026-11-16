@@ -1116,6 +1116,9 @@ explanations, the analysis and the store already have their tests. (Until 2026-1
     only through the clauses that the store propagates. The long backjumps of 1.11 need short explanations: gate 1
     can show a smaller tree only on the instances where the propagation of the clauses prunes, and the exact
     explanations of stage 2 are what makes the jumps longer.
+    *Simplified on 2026-11-16:* `decide` parks no alternative: an LCG choice point holds only the marks of the two
+    trails. `lcg_algorithm` writes the conflict of a failure into `pending_conflict` (`set_conflict`), so
+    `failed_propagator` and its `FAILED_*` cells are gone.
 11. **Add enumeration, optimization and restarts** (4.7). Enumeration: the blocking nogoods. Optimization: the
     objective bound is applied again after each backjump. Restarts: `itrail` is reset, and `unit_lits` is applied
     again after each `_reset_to_root`.

@@ -27,16 +27,16 @@ below v), no choice point opens for it.
 The order of the two literals keeps the order of the values of BacktrackSolver: v first, then the values below v,
 then the values above v (design/proposals/lcg.md, 4.2): a conflict under the second level, with the decision
 [x >= v] as UIP, gives a clause that asserts [x <= v - 1] at the first level, and the values above v come when a later
-conflict refutes [x <= v] itself. Each choice point still parks the negation of its literal, but since step 10 of
-design/proposals/lcg.md 7.0 nothing reads it.
+conflict refutes [x <= v] itself. A choice point holds only the marks of the two trails: since step 10 of
+design/proposals/lcg.md 7.0, the learned clause, not a parked alternative, gives the next branch.
 """
 
 from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import DECISION_EQ, DECISION_LE, DOMAIN_MAX, DOMAIN_MIN
-from nucs.solvers.choicepoints import CHOICEPOINT_UTRAIL_MARK, bounds_after_tightening, park_alternative
-from nucs.solvers.lcg.literals import lit_is_unassigned, lit_negate
+from nucs.solvers.choicepoints import CHOICEPOINT_UTRAIL_MARK, bounds_after_tightening
+from nucs.solvers.lcg.literals import lit_is_unassigned
 from nucs.solvers.state import tighten_at
 
 # The cells of pending_lit, the second literal of an interior EQ: its var_side, -1 when there is none, and its value.
@@ -119,10 +119,11 @@ def decide(
     value: int,
 ) -> int:
     """
-    Applies a decision literal on a new choice point, and parks its negation, which nothing reads since step 10.
+    Applies a decision literal on a new choice point.
 
-    As in branch, the choice point records the undo trail position and the alternative, and the choice point above it
-    gets the same mark, because it is where the search is about to work.
+    The choice point records the undo trail position, where a backjump to its level restores to, and the choice point
+    above it gets the same mark, because it is where the search is about to work. Unlike branch, it parks no
+    alternative: the learned clause gives the next branch.
 
     :param state: all the backtrackable state
     :type state: NDArray
@@ -147,8 +148,7 @@ def decide(
     choicepoint = choicepoint_top[0]
     mark = utrail_top[0]
     variable = var_side >> 1
-    negation_var_side, negation_value = lit_negate(var_side, value)
-    park_alternative(choicepoints, choicepoint, mark, variable, negation_var_side & 1, negation_value)
+    choicepoints[choicepoint, CHOICEPOINT_UTRAIL_MARK] = mark
     choicepoints[choicepoint + 1, CHOICEPOINT_UTRAIL_MARK] = mark
     choicepoint_top[0] = choicepoint + 1
     cell_idx = variable << 1
