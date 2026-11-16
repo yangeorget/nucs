@@ -19,7 +19,7 @@ from nucs.solvers.lcg.lcg_algorithm import lcg_algorithm
 from tests.solvers.backtrack.test_bc_algorithm import assert_compiled_without_refcounts
 
 # the signature of the consistency algorithms, followed by the implication trail (itrail, itrail_top and itrail_last),
-# failed_propagator, and the store of the learned clauses (clause_lits, clause_start, watch_head, watches, store_top and
+# failed_propagator, and the store of the learned clauses (clause_lits, clause_start, watch_head, watches and
 # clause_head)
 SIGN_LCG_ALGORITHM = int64(
     *SIGN_CONSISTENCY_ALG.args,
@@ -31,7 +31,6 @@ SIGN_LCG_ALGORITHM = int64(
     int32[::1],
     int32[::1],
     int32[:, ::1],
-    int64[::1],
     int64[::1],
 )
 

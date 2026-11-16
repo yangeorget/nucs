@@ -247,6 +247,22 @@ def branch(
 
 
 @njit(cache=True, inline="always")
+def strictly_better(value: int, bound: int) -> int:
+    """
+    Returns the bound that a solution must reach to be strictly better than a value of the objective.
+
+    :param value: the best value of the objective so far
+    :type value: int
+    :param bound: the side of the domain of the objective that the bound tightens: DOMAIN_MAX when minimizing
+    :type bound: int
+
+    :return: value - 1 when minimizing, value + 1 when maximizing
+    :rtype: int
+    """
+    return value + 1 if bound == DOMAIN_MIN else value - 1
+
+
+@njit(cache=True, inline="always")
 def tighten_objective(
     state: NDArray,
     utrail_log: NDArray,
@@ -291,8 +307,7 @@ def tighten_objective(
     :rtype: int
     """
     cell_idx = variable << 1
-    # strictly better than the best value so far
-    better = value + 1 if bound == DOMAIN_MIN else value - 1
+    better = strictly_better(value, bound)
     new_min, new_max = bounds_after_tightening(state[cell_idx], state[cell_idx | 1], bound, better)
     if new_min > new_max:
         return -1

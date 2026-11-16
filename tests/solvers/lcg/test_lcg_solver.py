@@ -22,13 +22,14 @@ from nucs.examples.golomb.golomb_problem import GolombProblem
 from nucs.examples.quasigroup.quasigroup_problem import QuasigroupProblem
 from nucs.examples.queens.queens_problem import QueensProblem
 from nucs.heuristics.heuristics import (
+    DOM_HEURISTIC_MAX_VALUE,
     DOM_HEURISTIC_MID_VALUE,
     DOM_HEURISTIC_SPLIT_LOW,
     VAR_HEURISTIC_DOM_WDEG,
     VAR_HEURISTIC_SMALLEST_DOMAIN,
 )
 from nucs.problems.problem import Problem
-from nucs.propagators.propagators import ALG_ALLDIFFERENT
+from nucs.propagators.propagators import ALG_ALLDIFFERENT, ALG_LEQ_C, ALG_LINEAR_LEQ_C, ALG_NEQ
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.choicepoints import (
     CHOICEPOINT_BOUND,
@@ -36,7 +37,7 @@ from nucs.solvers.choicepoints import (
     CHOICEPOINT_VALUE,
     CHOICEPOINT_VARIABLE,
 )
-from nucs.solvers.lcg.implication_trail import REASON_DECISION, REASON_PROPAGATOR
+from nucs.solvers.lcg.implication_trail import REASON_DECISION, REASON_PROPAGATOR, REASON_ROOT
 from nucs.solvers.lcg.lcg_solver import LcgSolver
 from nucs.solvers.restart_policies import RESTART_LUBY, RestartPolicy
 from nucs.solvers.searches import Search
@@ -48,6 +49,7 @@ from nucs.statistics import (
     STATS_IDX_SOLVER_ELAPSED_TIME,
     STATS_IDX_SOLVER_RESTART_NB,
 )
+from tests.propagators.propagator_test import random_bounds
 from tests.solvers.backtrack.test_bc_algorithm import random_problem_with_copies
 
 
@@ -94,18 +96,13 @@ class TestLcgSolver:
     def test_same_answers_as_backtrack_solver(
         self, run: Callable[[Callable[..., TreeSearchSolver]], tuple[TreeSearchSolver, list]]
     ) -> None:
-        # with no EQ decision inside a domain, LcgSolver searches as BacktrackSolver does (steps 4 to 6 of
-        # design/proposals/lcg.md 7.0), and from step 9 it also propagates the clauses that it learns: the solutions are
-        # the same and come in the same order, and on these runs the clauses only remove choices (after a reset to the
-        # root, OPTIM_RESET and the restarts meet the clauses again). The debug mode replays the implication trail at
-        # each node: restarts, the objective at the root and the pruning of OPTIM_PRUNE all write it.
-        backtrack_solver, backtrack_solutions = run(BacktrackSolver)
-        lcg_solver, lcg_solutions = run(partial(LcgSolver, debug=True))
-        assert lcg_solutions == backtrack_solutions
-        assert lcg_solver.statistics[STATS_IDX_SOLUTION_NB] == backtrack_solver.statistics[STATS_IDX_SOLUTION_NB]
-        assert (
-            lcg_solver.statistics[STATS_IDX_SOLVER_CHOICE_NB] <= backtrack_solver.statistics[STATS_IDX_SOLVER_CHOICE_NB]
-        )
+        # from step 10 of design/proposals/lcg.md 7.0, LcgSolver learns a clause at each conflict and jumps back: its
+        # tree is not the tree of BacktrackSolver, but the solutions and the optima are the same (the order of the
+        # solutions can change). The debug mode replays the implication trail and checks the explanations at each node:
+        # restarts, the objective at the root and the objective after each backjump all write rows.
+        _, backtrack_solutions = run(BacktrackSolver)
+        _, lcg_solutions = run(partial(LcgSolver, debug=True))
+        assert sorted(lcg_solutions) == sorted(backtrack_solutions)
 
     def test_run_search_loop_records_the_decisions_and_the_propagations(self) -> None:
         problem = Problem([(0, 1), (0, 1)])
@@ -124,13 +121,15 @@ class TestLcgSolver:
         ]
         assert solver.choicepoints[0, CHOICEPOINT_ITRAIL_MARK] == 0
         assert solver._backtrack()
-        # back at choice point 0: the rows of choice point 1 are gone, and the parked alternative [x0 >= 1] is the new row
+        # the nogood of the decisions, [x0 <= 0], gives the unit clause [x0 >= 1]: the search jumps back to level 0, and
+        # the clause sets [x0 >= 1] there, for the rest of the search
+        assert solver.choicepoint_top.tolist() == [0]
         assert solver.itrail_top.tolist() == [1]
-        assert solver.itrail[0].tolist() == [0 << 1 | DOMAIN_MIN, 1, -1, 0, REASON_DECISION, -1, -1, -1]
+        assert solver.itrail[0].tolist() == [0 << 1 | DOMAIN_MIN, 1, -1, 0, REASON_ROOT, -1, -1, -1]
         assert solver.itrail_last.tolist() == [0, -1, -1, -1]
 
-    # below and at 15, the room of a call on 6 queens: 2 x 6, and the 3 rows of ITRAIL_STEP_ROW_NB
-    @pytest.mark.parametrize("row_nb", [1, 14, 15])
+    # below and at 14, the room of a call on 6 queens: 2 x 6, and the 2 rows of ITRAIL_STEP_ROW_NB
+    @pytest.mark.parametrize("row_nb", [1, 13, 14])
     def test_find_all_the_implication_trail_grows_rather_than_overruns(self, row_nb: int) -> None:
         # a propagation that stops for room continues where it stopped: the counters are the same as without growth,
         # and the solutions are those of BacktrackSolver
@@ -168,7 +167,7 @@ class TestLcgSolver:
         # tree changes, but not the solutions, nor the optimum
         backtrack_solver, backtrack_solutions = run(BacktrackSolver)
         lcg_solver, lcg_solutions = run(partial(LcgSolver, debug=True))
-        assert lcg_solutions == backtrack_solutions
+        assert sorted(lcg_solutions) == sorted(backtrack_solutions)
         assert lcg_solver.statistics[STATS_IDX_SOLUTION_NB] == backtrack_solver.statistics[STATS_IDX_SOLUTION_NB]
         # the case must exercise the second literals: a tree of binary choices has more choices than a ternary one
         assert (
@@ -232,6 +231,58 @@ class TestLcgSolver:
             found = sorted(tuple(solution.tolist()) for solution in LcgSolver(problem, debug=True).find_all())
             assert found == expected, f"{bounds} {problem.propagators}"
 
+    @pytest.mark.parametrize("mode", [None, OPTIM_PRUNE, OPTIM_RESET])
+    def test_random_problems_against_brute_force(self, mode: str | None) -> None:
+        # from step 10, the search depends on the clauses: a clause that removes a solution changes the answer. Small
+        # random problems of several small constraints give short clauses, which apply again: enumerate their solutions,
+        # or minimize x0 in both modes, and compare with brute force
+        rng = random.Random(20261115)
+        for _ in range(100):
+            problem, bounds, is_solution = random_small_problem(rng)
+            expected = sorted(
+                point for point in itertools.product(*[range(lo, hi + 1) for lo, hi in bounds]) if is_solution(point)
+            )
+            solver = LcgSolver(problem, debug=True)
+            if mode is None:
+                found = sorted(tuple(solution.tolist()) for solution in solver.find_all())
+                assert found == expected, f"{bounds} {problem.propagators}"
+            else:
+                solution = solver.find_best(0, DOMAIN_MIN, mode=mode)
+                assert (solution is None) == (not expected), f"{bounds} {problem.propagators}"
+                if solution is not None:
+                    assert solution[0] == min(point[0] for point in expected), f"{bounds} {problem.propagators}"
+                    assert tuple(solution.tolist()) in expected
+
+    @pytest.mark.parametrize("mode", [OPTIM_PRUNE, OPTIM_RESET])
+    def test_optimize_yields_only_improving_solutions(self, mode: str) -> None:
+        # minimize y, with x1 <= y and x2 <= y, from the largest values of x1 and x2. The first solution has y = 3, and
+        # its clause forbids only x1 = 3: the bound y <= 2, which the search applies again after each backjump, is what
+        # forbids the solution x1 = 2, x2 = 3, y = 3 that follows
+        problem = Problem([(0, 3), (0, 3), (0, 3)])
+        x1, x2, y = range(3)
+        problem.add_propagator(ALG_LEQ_C, [x1, y], [0])
+        problem.add_propagator(ALG_LEQ_C, [x2, y], [0])
+        searches = [
+            Search(decision_variables=[x1, x2], dom_heuristic=DOM_HEURISTIC_MAX_VALUE),
+            Search(decision_variables=[y]),
+        ]
+        solver = LcgSolver(problem, searches=searches, debug=True)
+        objectives = [int(solution[y]) for solution in solver.optimize(y, DOMAIN_MIN, mode)]
+        assert objectives == sorted(set(objectives), reverse=True)  # each one improves on the previous one
+        assert objectives[-1] == 0
+
+    def test_find_all_the_clause_store_grows(self) -> None:
+        # a conflict whose clause has no room waits in pending_conflict while the store grows: the answers are the same
+        expected = sorted(tuple(solution.tolist()) for solution in BacktrackSolver(QueensProblem(7)).find_all())
+        solver = LcgSolver(QueensProblem(7), debug=True)
+        solver.clause_lits = solver.clause_lits[: len(solver.learned) + 1].copy()
+        solver.clause_start = solver.clause_start[:3].copy()
+        solver.watches = solver.watches[:4].copy()
+        solver.unit_lits = solver.unit_lits[:1].copy()
+        solver.clause_log_info = solver.clause_log_info[:2].copy()
+        assert sorted(tuple(solution.tolist()) for solution in solver.find_all()) == expected
+        assert len(solver.clause_start) > 3 and len(solver.clause_log_info) > 2  # they did have to grow
+
     def test_debug_mode_finds_an_implication_trail_that_does_not_agree_with_the_state(self) -> None:
         solver = LcgSolver(QueensProblem(4), debug=True)
         solver.itrail_last[0] = 0  # the implication trail is empty, so no chain can end at a row
@@ -256,3 +307,37 @@ def run_golomb_mid_value_find_best(solver_class: Callable[..., TreeSearchSolver]
     solver = solver_class(problem, searches=[Search(dom_heuristic=DOM_HEURISTIC_MID_VALUE)])
     solution = solver.find_best(problem.length_idx, DOMAIN_MIN)
     return solver, [None if solution is None else solution[problem.length_idx]]
+
+
+def random_small_problem(
+    rng: random.Random,
+) -> tuple[Problem, list[tuple[int, int]], Callable[[tuple[int, ...]], bool]]:
+    # five variables in small boxes, and four to seven constraints on two or three of them
+    variable_nb = 5
+    bounds = random_bounds(rng, variable_nb, 0, 3)
+    problem = Problem(bounds)
+    checks: list[Callable[[tuple[int, ...]], bool]] = []
+    for _ in range(rng.randint(4, 7)):
+        kind = rng.randrange(4)
+        if kind == 0:
+            x, y = rng.sample(range(variable_nb), 2)
+            problem.add_propagator(ALG_NEQ, [x, y])
+            checks.append(lambda point, x=x, y=y: point[x] != point[y])  # type: ignore[misc]
+        elif kind == 1:
+            x, y = rng.sample(range(variable_nb), 2)
+            c = rng.randint(-2, 2)
+            problem.add_propagator(ALG_LEQ_C, [x, y], [c])
+            checks.append(lambda point, x=x, y=y, c=c: point[x] <= point[y] + c)  # type: ignore[misc]
+        elif kind == 2:
+            variables = rng.sample(range(variable_nb), 3)
+            problem.add_propagator(ALG_ALLDIFFERENT, variables)
+            checks.append(lambda point, vs=variables: len({point[v] for v in vs}) == 3)  # type: ignore[misc]
+        else:
+            variables = rng.sample(range(variable_nb), rng.randint(2, 3))
+            coefficients = [rng.choice([-2, -1, 1, 2]) for _ in variables]
+            c = rng.randint(-2, 5)
+            problem.add_propagator(ALG_LINEAR_LEQ_C, variables, coefficients + [c])
+            checks.append(
+                lambda point, vs=variables, a=coefficients, c=c: sum(ai * point[v] for ai, v in zip(a, vs)) <= c  # type: ignore[misc]
+            )
+    return problem, bounds, lambda point: all(check(point) for check in checks)
