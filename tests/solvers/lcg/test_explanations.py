@@ -39,6 +39,7 @@ from nucs.solvers.lcg.explanations import (
     EXPLANATION_CONFIRMED,
     EXPLANATION_ENUMERATED,
     EXPLANATION_NO_PROPAGATOR,
+    EXPLANATION_NOT_TRUE,
     EXPLANATION_OTHER_VARIABLE,
     EXPLANATION_SUSPICIOUS,
     EXPLANATION_WRONG,
@@ -212,9 +213,15 @@ class TestExplanations:
     @pytest.mark.parametrize(
         "explain_fct,message",
         [
-            (explain_nothing, r"The explanation of row \d+ of \d+ is wrong"),
-            (explain_failures_with_nothing, r"The explanation of the failure of propagator \d+ is wrong"),
-            (explain_with_a_later_literal, r"The explanation of row \d+ of \d+ is not true"),
+            (explain_nothing, rf"The explanation of row \d+ of \d+ has the verdict {EXPLANATION_WRONG} "),
+            (
+                explain_failures_with_nothing,
+                rf"The explanation of the failure of propagator \d+ has the verdict {EXPLANATION_WRONG} ",
+            ),
+            (
+                explain_with_a_later_literal,
+                rf"The explanation of row \d+ of \d+ has the verdict {EXPLANATION_NOT_TRUE} ",
+            ),
         ],
     )
     def test_debug_mode_finds_a_wrong_explanation(self, explain_fct: Callable, message: str) -> None:

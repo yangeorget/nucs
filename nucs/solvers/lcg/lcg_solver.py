@@ -74,7 +74,6 @@ from nucs.solvers.lcg.decisions import (
 )
 from nucs.solvers.lcg.explanations import (
     EXPLANATION_NOT_TRUE,
-    EXPLANATION_VERDICTS,
     EXPLANATIONS_VALID,
     check_explanations,
 )
@@ -480,7 +479,10 @@ class LcgSolver(TreeSearchSolver):
                     if row == self.itrail_top[0]
                     else f"row {row} of {self.itrail_top[0]}"
                 )
-                raise AssertionError(f"The explanation of {what} is {EXPLANATION_VERDICTS[verdict]}")
+                raise AssertionError(
+                    f"The explanation of {what} has the verdict {verdict}"
+                    " (EXPLANATION_* in nucs/solvers/lcg/explanations.py)"
+                )
             else:
                 return status, solution
 

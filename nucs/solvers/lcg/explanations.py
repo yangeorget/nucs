@@ -64,15 +64,6 @@ EXPLANATION_WRONG = 3  # a tuple of the box satisfies the constraint and not the
 EXPLANATION_NOT_TRUE = 4  # a literal of the explanation was not true when the propagator read the bounds
 EXPLANATION_OTHER_VARIABLE = 5  # the index of the row (ITRAIL_REASON_VAR_IDX) does not name the variable of the row
 EXPLANATION_NO_PROPAGATOR = 6  # the propagator of the row (ITRAIL_REASON_DATA) does not exist
-EXPLANATION_VERDICTS = [
-    "confirmed",
-    "enumerated",
-    "suspicious",
-    "wrong",
-    "not true",
-    "on another variable",
-    "on no propagator",
-]
 
 # The largest box that the check enumerates.
 EXPLANATION_ENUMERATION_LIMIT = 1 << 16
