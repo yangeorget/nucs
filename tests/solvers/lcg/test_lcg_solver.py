@@ -45,6 +45,13 @@ from nucs.statistics import (
     STATS_IDX_SOLVER_CHOICE_NB,
     STATS_IDX_SOLVER_ELAPSED_TIME,
     STATS_IDX_SOLVER_RESTART_NB,
+    STATS_LBL_SOLUTION_NB,
+    STATS_LCG_LBL_BACKJUMP_LEVEL_NB,
+    STATS_LCG_LBL_CLAUSE_EXPLANATION_NB,
+    STATS_LCG_LBL_CONFLICT_NB,
+    STATS_LCG_LBL_LEARNED_LBD_SUM,
+    STATS_LCG_LBL_LEARNED_LIT_NB,
+    STATS_LCG_LBL_PROPAGATOR_EXPLANATION_NB,
 )
 from tests.propagators.propagator_test import random_bounds
 from tests.solvers.backtrack.test_bc_algorithm import random_problem_with_copies
@@ -142,12 +149,15 @@ class TestLcgSolver:
         assert solver.statistics.tolist() == expected_solver.statistics.tolist()
 
     def test_find_all_the_itrail_marks_grow_with_the_stack(self) -> None:
-        # the marks of the implication trail are a column of the stack: a stack that grows keeps them
+        # the marks of the implication trail are a column of the stack: a stack that grows keeps them; the stamps of
+        # the levels, one for each choice point, grow with it
         backtrack_solutions = [solution.tolist() for solution in BacktrackSolver(QueensProblem(7)).find_all()]
         solver = LcgSolver(QueensProblem(7), debug=True)
         solver.choicepoints = solver.choicepoints[:4].copy()
+        solver.level_stamps = solver.level_stamps[:4].copy()
         assert [solution.tolist() for solution in solver.find_all()] == backtrack_solutions
         assert len(solver.choicepoints) > 4  # it did have to grow
+        assert len(solver.level_stamps) == len(solver.choicepoints)
 
     @pytest.mark.parametrize(
         "run",
@@ -276,6 +286,30 @@ class TestLcgSolver:
         solver.clause_log_info = solver.clause_log_info[:2].copy()
         assert sorted(tuple(solution.tolist()) for solution in solver.find_all()) == expected
         assert len(solver.clause_start) > 3 and len(solver.clause_log_info) > 2  # they did have to grow
+
+    def test_statistics_count_the_learned_clauses(self) -> None:
+        # the counters of the learning agree with the clauses that the debug mode logs; queens 6 learns 36 clauses,
+        # and its clauses have fewer levels than literals (an LBD sum of 70 for 162 literals)
+        solver = LcgSolver(QueensProblem(6), debug=True)
+        assert len(list(solver.find_all())) == 4
+        statistics = solver.get_statistics_as_dictionary()
+        clauses = solver.learned_clauses()
+        literal_nb = sum(len(literals) for literals, _, _, _ in clauses)
+        asserting_clause_nb = sum(1 for _, _, assertion_level, _ in clauses if assertion_level >= 0)
+        assert statistics[STATS_LBL_SOLUTION_NB] == 4  # the statistics of TreeSearchSolver are still there
+        assert statistics[STATS_LCG_LBL_CONFLICT_NB] == len(clauses) == 36
+        assert statistics[STATS_LCG_LBL_LEARNED_LIT_NB] == literal_nb
+        # an asserting clause has at least one level, and at most one for each literal
+        assert asserting_clause_nb <= statistics[STATS_LCG_LBL_LEARNED_LBD_SUM] < literal_nb
+        # a backjump leaves at least the levels from the conflict down to the assertion level
+        assert statistics[STATS_LCG_LBL_BACKJUMP_LEVEL_NB] >= sum(
+            level - assertion_level for _, level, assertion_level, _ in clauses if assertion_level >= 0
+        )
+        assert statistics[STATS_LCG_LBL_CLAUSE_EXPLANATION_NB] > 0
+        # the problem has only alldifferent propagators
+        explanation_nb = statistics[STATS_LCG_LBL_PROPAGATOR_EXPLANATION_NB]
+        assert explanation_nb > 0
+        assert statistics[f"{STATS_LCG_LBL_PROPAGATOR_EXPLANATION_NB}_ALLDIFFERENT"] == explanation_nb
 
     def test_debug_mode_finds_an_implication_trail_that_does_not_agree_with_the_state(self) -> None:
         solver = LcgSolver(QueensProblem(4), debug=True)

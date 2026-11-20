@@ -136,7 +136,7 @@ class TestConflictAnalysis:
             ((x << 1) | DOMAIN_MIN, 2, 2, REASON_PROPAGATOR, 1, 3, 2),  # C6 on [v, k, x]
             ((u << 1) | DOMAIN_MIN, 3, 2, REASON_PROPAGATOR, 2, 4, 2),  # C7 on [v, k, u]
         ]
-        assert analyze(problem, rows, 3) == ([le_clause(v, 0)], 2, 0)
+        assert analyze(problem, rows, 3) == ([le_clause(v, 0)], 2, 0, 1)
 
     @pytest.mark.parametrize(
         "rows, explanations, nogood, expected",
@@ -147,20 +147,20 @@ class TestConflictAnalysis:
                 [decision(0, DOMAIN_MIN, 2, 1), decision(1, DOMAIN_MIN, 1, 2), propagation(0, DOMAIN_MIN, 4, 2, 0, 2)],
                 [[ge(1, 1)]],
                 [ge(0, 2), ge(1, 1)],
-                ([le_clause(1, 0), le_clause(0, 1)], 2, 1),
+                ([le_clause(1, 0), le_clause(0, 1)], 2, 1, 2),
             ),
             # [x0 >= 2] and [x0 >= 3] merge into [x0 >= 3], in both orders: one literal of level 2, the UIP
             (
                 [decision(0, DOMAIN_MIN, 2, 1), decision(1, DOMAIN_MIN, 1, 2), propagation(0, DOMAIN_MIN, 3, 2, 0, 2)],
                 [[ge(1, 1)]],
                 [ge(0, 2), ge(0, 3)],
-                ([le_clause(0, 2)], 2, 0),
+                ([le_clause(0, 2)], 2, 0, 1),
             ),
             (
                 [decision(0, DOMAIN_MIN, 2, 1), decision(1, DOMAIN_MIN, 1, 2), propagation(0, DOMAIN_MIN, 3, 2, 0, 2)],
                 [[ge(1, 1)]],
                 [ge(0, 3), ge(0, 2)],
-                ([le_clause(0, 2)], 2, 0),
+                ([le_clause(0, 2)], 2, 0, 1),
             ),
             # the explanations of two rows of level 2 meet at the decision of level 2, and bring a literal of level 1
             (
@@ -172,14 +172,25 @@ class TestConflictAnalysis:
                 ],
                 [[ge(0, 1), ge(1, 1)], [ge(1, 1)]],
                 [ge(2, 1), ge(3, 1)],
-                ([le_clause(1, 0), le_clause(0, 0)], 2, 1),
+                ([le_clause(1, 0), le_clause(0, 0)], 2, 1, 2),
+            ),
+            # two literals of level 1, a decision and a row that it explains, stay in the clause: 3 literals on 2 levels
+            (
+                [
+                    decision(0, DOMAIN_MIN, 1, 1),
+                    propagation(2, DOMAIN_MIN, 1, 1, 0, 1),
+                    decision(1, DOMAIN_MIN, 1, 2),
+                ],
+                [[ge(0, 1)]],
+                [ge(0, 1), ge(2, 1), ge(1, 1)],
+                ([le_clause(1, 0), le_clause(0, 0), le_clause(2, 0)], 2, 1, 2),
             ),
             # no literal of the nogood is at the current level 2: the conflict is at level 1
             (
                 [decision(0, DOMAIN_MIN, 1, 1), decision(1, DOMAIN_MIN, 1, 2)],
                 [],
                 [ge(0, 1)],
-                ([le_clause(0, 0)], 1, 0),
+                ([le_clause(0, 0)], 1, 0, 1),
             ),
             # a level with two decisions, as after a backtrack to it: they have no explanation and both stay, so the
             # clause does not assert a literal
@@ -187,21 +198,21 @@ class TestConflictAnalysis:
                 [decision(0, DOMAIN_MIN, 1, 1), decision(1, DOMAIN_MIN, 1, 1)],
                 [],
                 [ge(0, 1), ge(1, 1)],
-                ([le_clause(0, 0), le_clause(1, 0)], 1, -1),
+                ([le_clause(0, 0), le_clause(1, 0)], 1, -1, 0),
             ),
             # a literal of level 0 and a literal with REASON_ROOT hold for the rest of the search: they are dropped
             (
                 [decision(0, DOMAIN_MIN, 1, 0), root(2, DOMAIN_MIN, 5, 1), decision(1, DOMAIN_MIN, 1, 1)],
                 [],
                 [ge(0, 1), ge(2, 5), ge(1, 1)],
-                ([le_clause(1, 0)], 1, 0),
+                ([le_clause(1, 0)], 1, 0, 1),
             ),
             # all the literals hold at level 0: the clause is empty, and no solution is left
             (
                 [decision(0, DOMAIN_MIN, 1, 0)],
                 [],
                 [ge(0, 1)],
-                ([], 0, -1),
+                ([], 0, -1, 0),
             ),
             # the nogood of the failure has [x1 >= 1], which no row made true: the explanation is wrong, there is no
             # clause, and the result names the failure by the number of rows
@@ -209,7 +220,7 @@ class TestConflictAnalysis:
                 [decision(0, DOMAIN_MIN, 1, 1), decision(2, DOMAIN_MIN, 1, 2)],
                 [],
                 [ge(0, 1), ge(1, 1)],
-                (None, 2, -1),
+                (None, 2, -1, 0),
             ),
             # the explanation of row 1 has [x1 >= 1], which its own call set: it was not true when the call read the
             # bounds, and the result names row 1
@@ -217,7 +228,7 @@ class TestConflictAnalysis:
                 [decision(0, DOMAIN_MIN, 1, 1), propagation(1, DOMAIN_MIN, 1, 1, 0, 1)],
                 [[ge(1, 1)]],
                 [ge(0, 1), ge(1, 1)],
-                (None, 1, -1),
+                (None, 1, -1, 0),
             ),
         ],
         ids=[
@@ -225,6 +236,7 @@ class TestConflictAnalysis:
             "merge_stronger_last",
             "merge_stronger_first",
             "lower_level_literal",
+            "two_literals_of_a_lower_level",
             "no_literal_of_the_current_level",
             "two_decisions_on_a_level",
             "level_0_and_root_dropped",
@@ -238,7 +250,7 @@ class TestConflictAnalysis:
         rows: list[Row],
         explanations: list[list[Given]],
         nogood: list[Given],
-        expected: tuple[list[tuple[int, int]] | None, int, int],
+        expected: tuple[list[tuple[int, int]] | None, int, int, int],
     ) -> None:
         problem = Problem([(0, 9)] * 4)
         for explanation in [*explanations, nogood]:
@@ -255,7 +267,7 @@ class TestConflictAnalysis:
                 [[le_clause(0, 0), le_clause(1, 0)]],
                 None,
                 0,
-                ([le_clause(1, 0), le_clause(0, 0)], 2, 1),
+                ([le_clause(1, 0), le_clause(0, 0)], 2, 1, 2),
             ),
             # row 2 is [x2 >= 1], which the clause [x0 <= 0] or [x2 >= 1] set: its explanation is [x0 >= 1], the
             # negation of the other literal, at level 1; [x1 >= 1] is the UIP, and the clause asserts at level 1
@@ -264,7 +276,7 @@ class TestConflictAnalysis:
                 [[le_clause(0, 0), ge_clause(2, 1)]],
                 [ge(2, 1), ge(1, 1)],
                 -1,
-                ([le_clause(1, 0), le_clause(0, 0)], 2, 1),
+                ([le_clause(1, 0), le_clause(0, 0)], 2, 1, 2),
             ),
             # the same, with a third literal [x0 >= 10] that is false at the root: its negation [x0 <= 9] is true at
             # the root, and the explanation drops it
@@ -273,7 +285,7 @@ class TestConflictAnalysis:
                 [[le_clause(0, 0), ge_clause(2, 1), ge_clause(0, 10)]],
                 [ge(2, 1), ge(1, 1)],
                 -1,
-                ([le_clause(1, 0), le_clause(0, 0)], 2, 1),
+                ([le_clause(1, 0), le_clause(0, 0)], 2, 1, 2),
             ),
         ],
         ids=["failed_clause", "clause_row", "clause_row_with_a_literal_false_at_the_root"],
@@ -284,7 +296,7 @@ class TestConflictAnalysis:
         clauses: list[list[tuple[int, int]]],
         nogood: list[Given] | None,
         failed_clause: int,
-        expected: tuple[list[tuple[int, int]] | None, int, int],
+        expected: tuple[list[tuple[int, int]] | None, int, int, int],
     ) -> None:
         problem = Problem([(0, 9)] * 4)
         problem.add_propagator(ALG_GIVEN, range(4), [cell for literal in nogood or [] for cell in literal])
@@ -370,7 +382,7 @@ def analyze(
     failed_prop_idx: int,
     clauses: list[list[tuple[int, int]]] | None = None,
     failed_clause: int = -1,
-) -> tuple[list[tuple[int, int]] | None, int, int]:
+) -> tuple[list[tuple[int, int]] | None, int, int, int]:
     solver = LcgSolver(problem, log_level=LOG_LEVEL_ERROR)
     for clause in clauses or []:
         store_clause(
@@ -392,7 +404,8 @@ def analyze(
             reason_var_idx,
         )
     itrail_top[0] = itrail_sz
-    lit_nb, level, assertion_level = analyze_conflict(
+    lit_nb, level, assertion_level, lbd = analyze_conflict(
+        solver.lcg_statistics,
         solver.explain_addrs,
         problem.propagator_infos,
         problem.offsets,
@@ -416,11 +429,13 @@ def analyze(
         solver.marks,
         solver.marked,
         solver.learned,
+        solver.level_stamps,
+        1,
     )
     assert (solver.marks[:, MARK_ROW] == MARK_NONE).all()  # the analysis clears its marks
     if lit_nb < 0:  # a wrong explanation: no clause
-        return None, level, assertion_level
-    return [(var_side, value) for var_side, value in solver.learned[:lit_nb].tolist()], level, assertion_level
+        return None, level, assertion_level, lbd
+    return [(var_side, value) for var_side, value in solver.learned[:lit_nb].tolist()], level, assertion_level, lbd
 
 
 def worked_example_problem() -> tuple[Problem, tuple[int, int, int, int, int]]:
