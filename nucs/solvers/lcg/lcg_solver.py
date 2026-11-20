@@ -226,7 +226,7 @@ class LcgSolver(TreeSearchSolver):
             problem.domain_nb, len(self.domain_buffer)
         )
         # the counters of the learning, and the stamps that count the distinct levels of a learned clause (its LBD):
-        # a level is a choice point, so the stamps grow with the stack of the choice points (see _run_search_loop)
+        # a level is a choice point, so the stamps grow with the stack of the choice points (see _grow_choicepoints)
         self.lcg_statistics = lcg_statistics_init(get_algorithm_nb())
         self.level_stamps = np.zeros(len(self.choicepoints), dtype=np.int64)
         # the learned clauses, which only the debug mode logs: without it, the log has no rows
@@ -257,6 +257,15 @@ class LcgSolver(TreeSearchSolver):
         if self.store_top[STORE_UNIT_NB] + 1 > len(self.unit_lits):
             self.unit_lits = double_rows(self.unit_lits)
         logger.info(f"The store of the learned clauses grew, at {clause_nb} clauses")
+
+    def _grow_choicepoints(self) -> None:
+        """
+        Doubles the stack of the choice points, and makes the stamps of the levels as long.
+
+        The new stamps are all zero, the last stamp too: no cell holds a stamp that a later analysis gives.
+        """
+        super()._grow_choicepoints()
+        self.level_stamps = np.zeros(len(self.choicepoints), dtype=np.int64)
 
     def get_statistics_as_dictionary(self) -> dict[str, int]:
         """
@@ -418,9 +427,6 @@ class LcgSolver(TreeSearchSolver):
         :return: why the loop returned, and the solution when it found one
         :rtype: Tuple[int, Optional[NDArray]]
         """
-        if len(self.level_stamps) < len(self.choicepoints):
-            # the stack of the choice points grew (SOLVER_CHOICEPOINTS_FULL): a stamp is never 0, so new cells are free
-            self.level_stamps = np.zeros(len(self.choicepoints), dtype=np.int64)
         while True:
             status, solution = run_search_loop(
                 self.statistics,
@@ -1271,8 +1277,6 @@ def learn_and_backjump(
             marked,
             learned,
             level_stamps,
-            # a new stamp for each clause: only an asserting clause stamps levels, and each one is counted below
-            lcg_statistics[STATS_LCG_IDX_CONFLICT_NB] + 1,
         )
         if lit_nb < 0 and debug:
             # an explanation gave a literal that was not true when its call read the bounds; level is its row

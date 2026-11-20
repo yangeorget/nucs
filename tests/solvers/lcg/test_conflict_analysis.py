@@ -430,7 +430,6 @@ def analyze(
         solver.marked,
         solver.learned,
         solver.level_stamps,
-        1,
     )
     assert (solver.marks[:, MARK_ROW] == MARK_NONE).all()  # the analysis clears its marks
     if lit_nb < 0:  # a wrong explanation: no clause

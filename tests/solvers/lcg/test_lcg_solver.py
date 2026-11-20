@@ -289,7 +289,8 @@ class TestLcgSolver:
 
     def test_statistics_count_the_learned_clauses(self) -> None:
         # the counters of the learning agree with the clauses that the debug mode logs; queens 6 learns 36 clauses,
-        # and its clauses have fewer levels than literals (an LBD sum of 70 for 162 literals)
+        # and its clauses have fewer levels than literals (an LBD sum of 70 for 162 literals); its search is the
+        # same at each run, so the counters are exact
         solver = LcgSolver(QueensProblem(6), debug=True)
         assert len(list(solver.find_all())) == 4
         statistics = solver.get_statistics_as_dictionary()
@@ -298,12 +299,14 @@ class TestLcgSolver:
         asserting_clause_nb = sum(1 for _, _, assertion_level, _ in clauses if assertion_level >= 0)
         assert statistics[STATS_LBL_SOLUTION_NB] == 4  # the statistics of TreeSearchSolver are still there
         assert statistics[STATS_LCG_LBL_CONFLICT_NB] == len(clauses) == 36
-        assert statistics[STATS_LCG_LBL_LEARNED_LIT_NB] == literal_nb
+        assert statistics[STATS_LCG_LBL_LEARNED_LIT_NB] == literal_nb == 162
         # an asserting clause has at least one level, and at most one for each literal
-        assert asserting_clause_nb <= statistics[STATS_LCG_LBL_LEARNED_LBD_SUM] < literal_nb
-        # a backjump leaves at least the levels from the conflict down to the assertion level
-        assert statistics[STATS_LCG_LBL_BACKJUMP_LEVEL_NB] >= sum(
-            level - assertion_level for _, level, assertion_level, _ in clauses if assertion_level >= 0
+        assert asserting_clause_nb <= statistics[STATS_LCG_LBL_LEARNED_LBD_SUM] == 70 < literal_nb
+        # each conflict is at the level of the search, and the backjump goes from there to the assertion level
+        assert (
+            statistics[STATS_LCG_LBL_BACKJUMP_LEVEL_NB]
+            == 35
+            == sum(level - assertion_level for _, level, assertion_level, _ in clauses if assertion_level >= 0)
         )
         assert statistics[STATS_LCG_LBL_CLAUSE_EXPLANATION_NB] > 0
         # the problem has only alldifferent propagators

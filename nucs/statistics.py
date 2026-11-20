@@ -59,11 +59,16 @@ STATS_LBL_SOLVER_RESTART_NB = "SOLVER_RESTART_NB"
 # The statistics of the learning of LcgSolver, in an array of their own, so that the array of BacktrackSolver and its
 # propagation loop do not change. The global counters come first, then one cell for each registered algorithm, at
 # STATS_LCG_MAX + algorithm: the explanations that the conflict analysis asked of the propagators of the algorithm.
+# The explanation counters measure the work of the analysis: they include the explanations of an analysis that gives
+# no asserting clause and starts again on the decisions of the path.
 # The means are not counters: the mean length of the learned clauses is STATS_LCG_IDX_LEARNED_LIT_NB divided by
 # STATS_LCG_IDX_CONFLICT_NB, and the mean LBD is STATS_LCG_IDX_LEARNED_LBD_SUM divided by STATS_LCG_IDX_CONFLICT_NB.
+# The empty clause, at most one at the end of a search, counts as a conflict with no literal and an LBD of 0.
 STATS_LCG_MAX = 5
 (
-    STATS_LCG_IDX_BACKJUMP_LEVEL_NB,  # the levels that the backjumps removed, 1 for each jump to the previous level
+    # the levels that the backjumps removed, from the level of the search, not of the conflict: chronological
+    # backtracking would remove 1 for each conflict
+    STATS_LCG_IDX_BACKJUMP_LEVEL_NB,
     STATS_LCG_IDX_CLAUSE_EXPLANATION_NB,  # the explanations that the conflict analysis asked of the learned clauses
     STATS_LCG_IDX_CONFLICT_NB,  # the conflicts that the analysis turned into a clause, the nogoods of solutions included
     STATS_LCG_IDX_LEARNED_LBD_SUM,  # the sum of the LBDs of the learned clauses

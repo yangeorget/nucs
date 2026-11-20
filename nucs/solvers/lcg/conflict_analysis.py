@@ -104,6 +104,10 @@ CLAUSE_LOG_TOP_CLAUSE_NB = 0  # the number of clauses in the log
 CLAUSE_LOG_TOP_LIT_NB = 1  # the number of literals in the log
 CLAUSE_LOG_TOP_WIDTH = 2
 
+# The cell of level_stamps that holds the last stamp. A clause has no literal of level 0 (see mark_literal), so the
+# cell of level 0 is free.
+LEVEL_STAMPS_LAST = 0
+
 
 @njit(cache=True, inline="always")
 def set_conflict(conflict: NDArray, kind: int, data: int, value: int, pos: int) -> None:
@@ -501,7 +505,6 @@ def analyze_conflict(
     marked: NDArray,
     learned: NDArray,
     level_stamps: NDArray,
-    stamp: int,
 ) -> tuple[int, int, int, int]:
     """
     Analyzes a conflict, and returns the learned clause: the 1UIP analysis of design/proposals/lcg.md 4.5. The conflict
@@ -558,11 +561,10 @@ def analyze_conflict(
     :param learned: a buffer with one row for each bound; it gets the learned clause, one row [LIT_VAR_SIDE, LIT_VALUE]
                     for each literal
     :type learned: NDArray
-    :param level_stamps: one cell for each level; the analysis writes stamp in the cells of the levels of an
-                         asserting clause, to count them
+    :param level_stamps: one cell for each level, zero or a stamp, with the last stamp at LEVEL_STAMPS_LAST; the
+                         analysis writes a new stamp in the cells of the levels of an asserting clause, to count
+                         them
     :type level_stamps: NDArray
-    :param stamp: a value that no cell of level_stamps holds
-    :type stamp: int
 
     :return: the number of literals of the learned clause, -1 when an explanation is wrong; the level of the conflict,
              the highest level of the literals of the nogood of the failure, 0 when there is none, or the row whose
@@ -760,6 +762,8 @@ def analyze_conflict(
         learned[0, LIT_VAR_SIDE], learned[0, LIT_VALUE] = lit_negate(uip, marks[uip, MARK_VALUE])
         lit_nb = 1
         assertion_level = 0
+        stamp = level_stamps[LEVEL_STAMPS_LAST] + 1
+        level_stamps[LEVEL_STAMPS_LAST] = stamp
         level_stamps[level] = stamp
         lbd = 1
     for idx in range(marked_nb):
