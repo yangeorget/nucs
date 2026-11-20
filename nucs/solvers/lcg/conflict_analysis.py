@@ -46,6 +46,7 @@ from numba import njit  # type: ignore
 from numpy.typing import NDArray
 
 from nucs.constants import DOMAIN_MIN
+from nucs.problems.problem import INFO_ALGORITHM
 from nucs.propagators.explanations import EXPLAIN_WIDTH
 from nucs.solvers.lcg.explanations import explain_propagator, explanation_literals, prop_variable_range
 from nucs.solvers.lcg.implication_trail import (
@@ -63,6 +64,7 @@ from nucs.solvers.lcg.implication_trail import (
     REASON_ROOT,
 )
 from nucs.solvers.lcg.literals import LIT_VALUE, LIT_VAR_SIDE, LIT_WIDTH, lit_negate
+from nucs.statistics import STATS_LCG_IDX_CLAUSE_EXPLANATION_NB, STATS_LCG_MAX
 
 # The cells of a conflict, the start of the analysis: what failed, and the number of rows of the implication trail when
 # it failed. The nogood of a conflict of kind CONFLICT_LITERAL is the literal (DATA, VALUE); the nogood of a conflict of
@@ -101,6 +103,10 @@ CLAUSE_LOG_WIDTH = 5
 CLAUSE_LOG_TOP_CLAUSE_NB = 0  # the number of clauses in the log
 CLAUSE_LOG_TOP_LIT_NB = 1  # the number of literals in the log
 CLAUSE_LOG_TOP_WIDTH = 2
+
+# The cell of level_stamps that holds the last stamp. A clause has no literal of level 0 (see mark_literal), so the
+# cell of level 0 is free.
+LEVEL_STAMPS_LAST = 0
 
 
 @njit(cache=True, inline="always")
@@ -243,6 +249,7 @@ def mark_literal(
 
 @njit(cache=True)
 def explain_and_mark(
+    lcg_statistics: NDArray,
     explain_addrs: NDArray,
     propagator_infos: NDArray,
     offsets: NDArray,
@@ -270,6 +277,8 @@ def explain_and_mark(
 
     It stops at the first literal of the explanation that was not true at pos (see mark_literal).
 
+    :param lcg_statistics: the statistics array of the learning, see STATS_LCG_*
+    :type lcg_statistics: NDArray
     :param explain_addrs: the compiled explain address of each algorithm
     :type explain_addrs: NDArray
     :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
@@ -316,6 +325,7 @@ def explain_and_mark(
              iff a literal of the explanation was not true at pos
     :rtype: Tuple[int, int, bool]
     """
+    lcg_statistics[STATS_LCG_MAX + propagator_infos[prop_idx, INFO_ALGORITHM]] += 1
     row_nb = explain_propagator(
         explain_addrs,
         propagator_infos,
@@ -356,6 +366,7 @@ def explain_and_mark(
 
 @njit(cache=True, inline="always")
 def explain_clause_and_mark(
+    lcg_statistics: NDArray,
     clause_lits: NDArray,
     clause_start: NDArray,
     initial_domains: NDArray,
@@ -376,6 +387,8 @@ def explain_clause_and_mark(
     The negation of a literal that is false at the root is true at the root, so it is dropped, as explanation_literals
     drops such a literal. It stops at the first literal that was not true at pos (see mark_literal).
 
+    :param lcg_statistics: the statistics array of the learning, see STATS_LCG_*
+    :type lcg_statistics: NDArray
     :param clause_lits: the literals of the clauses, one row [LIT_VAR_SIDE, LIT_VALUE] for each
     :type clause_lits: NDArray
     :param clause_start: the first literal of each clause, and the number of literals after the last clause
@@ -406,6 +419,7 @@ def explain_clause_and_mark(
              iff a literal of the explanation was not true at pos
     :rtype: Tuple[int, int, bool]
     """
+    lcg_statistics[STATS_LCG_IDX_CLAUSE_EXPLANATION_NB] += 1
     level_delta = 0
     for lit in range(clause_start[clause], clause_start[clause + 1]):
         lit_var_side = clause_lits[lit, LIT_VAR_SIDE]
@@ -471,6 +485,7 @@ def mark_decisions(
 
 @njit(cache=True)
 def analyze_conflict(
+    lcg_statistics: NDArray,
     explain_addrs: NDArray,
     propagator_infos: NDArray,
     offsets: NDArray,
@@ -489,7 +504,8 @@ def analyze_conflict(
     marks: NDArray,
     marked: NDArray,
     learned: NDArray,
-) -> tuple[int, int, int]:
+    level_stamps: NDArray,
+) -> tuple[int, int, int, int]:
     """
     Analyzes a conflict, and returns the learned clause: the 1UIP analysis of design/proposals/lcg.md 4.5. The conflict
     is the failure of a propagator call or of a clause, a literal that must not hold, or the decisions of the path.
@@ -502,6 +518,8 @@ def analyze_conflict(
     the analysis gives no clause: it returns -1 literals, and the row whose explanation is wrong, or the number of
     rows in use for the explanation of the failure.
 
+    :param lcg_statistics: the statistics array of the learning, see STATS_LCG_*
+    :type lcg_statistics: NDArray
     :param explain_addrs: the compiled explain address of each algorithm
     :type explain_addrs: NDArray
     :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
@@ -543,16 +561,22 @@ def analyze_conflict(
     :param learned: a buffer with one row for each bound; it gets the learned clause, one row [LIT_VAR_SIDE, LIT_VALUE]
                     for each literal
     :type learned: NDArray
+    :param level_stamps: one cell for each level, zero or a stamp, with the last stamp at LEVEL_STAMPS_LAST; the
+                         analysis writes a new stamp in the cells of the levels of an asserting clause, to count
+                         them
+    :type level_stamps: NDArray
 
     :return: the number of literals of the learned clause, -1 when an explanation is wrong; the level of the conflict,
              the highest level of the literals of the nogood of the failure, 0 when there is none, or the row whose
-             explanation is wrong; the assertion level, -1 when the clause does not assert a literal
-    :rtype: Tuple[int, int, int]
+             explanation is wrong; the assertion level, -1 when the clause does not assert a literal; the LBD of
+             the clause, its number of distinct levels, 0 when it does not assert a literal
+    :rtype: Tuple[int, int, int, int]
     """
     # the nogood of the failure; its level is not known before all its literals are marked
     conflict_kind = conflict[CONFLICT_KIND]
     if conflict_kind == CONFLICT_PROPAGATOR:
         marked_nb, _, is_true = explain_and_mark(
+            lcg_statistics,
             explain_addrs,
             propagator_infos,
             offsets,
@@ -576,6 +600,7 @@ def analyze_conflict(
         )
     elif conflict_kind == CONFLICT_CLAUSE:
         marked_nb, _, is_true = explain_clause_and_mark(
+            lcg_statistics,
             clause_lits,
             clause_start,
             initial_domains,
@@ -607,6 +632,7 @@ def analyze_conflict(
                 pass  # the literal holds for the rest of the search: no better solution is left
             elif itrail[row, ITRAIL_REASON_KIND] == REASON_PROPAGATOR:
                 marked_nb, _, is_true = explain_and_mark(
+                    lcg_statistics,
                     explain_addrs,
                     propagator_infos,
                     offsets,
@@ -630,6 +656,7 @@ def analyze_conflict(
                 )
             elif itrail[row, ITRAIL_REASON_KIND] == REASON_CLAUSE:
                 marked_nb, _, is_true = explain_clause_and_mark(
+                    lcg_statistics,
                     clause_lits,
                     clause_start,
                     initial_domains,
@@ -650,7 +677,7 @@ def analyze_conflict(
     if not is_true:
         return clear_marks(marks, marked, marked_nb, itrail_top[0])
     if marked_nb == 0:
-        return 0, 0, -1
+        return 0, 0, -1, 0
     # the level of the conflict, and its marked literals that the walk has not reached yet
     level = 0
     level_lit_nb = 0
@@ -679,6 +706,7 @@ def analyze_conflict(
                 marks[var_side, MARK_ROW] = MARK_DONE
                 # the analysis asks for the marked literal, which can be weaker than the literal of the row
                 marked_nb, level_delta, is_true = explain_and_mark(
+                    lcg_statistics,
                     explain_addrs,
                     propagator_infos,
                     offsets,
@@ -706,6 +734,7 @@ def analyze_conflict(
             elif itrail[row, ITRAIL_REASON_KIND] == REASON_CLAUSE:
                 marks[var_side, MARK_ROW] = MARK_DONE
                 marked_nb, level_delta, is_true = explain_clause_and_mark(
+                    lcg_statistics,
                     clause_lits,
                     clause_start,
                     initial_domains,
@@ -728,10 +757,15 @@ def analyze_conflict(
     # the learned clause, with the asserting literal first when there is a UIP
     lit_nb = 0
     assertion_level = -1
+    lbd = 0
     if uip >= 0:
         learned[0, LIT_VAR_SIDE], learned[0, LIT_VALUE] = lit_negate(uip, marks[uip, MARK_VALUE])
         lit_nb = 1
         assertion_level = 0
+        stamp = level_stamps[LEVEL_STAMPS_LAST] + 1
+        level_stamps[LEVEL_STAMPS_LAST] = stamp
+        level_stamps[level] = stamp
+        lbd = 1
     for idx in range(marked_nb):
         var_side = marked[idx]
         mark_row = marks[var_side, MARK_ROW]
@@ -741,13 +775,17 @@ def analyze_conflict(
             )
             lit_nb += 1
             if uip >= 0:
-                assertion_level = max(assertion_level, itrail[mark_row, ITRAIL_CHOICEPOINT])
+                lit_level = itrail[mark_row, ITRAIL_CHOICEPOINT]
+                assertion_level = max(assertion_level, lit_level)
+                if level_stamps[lit_level] != stamp:
+                    level_stamps[lit_level] = stamp
+                    lbd += 1
         marks[var_side, MARK_ROW] = MARK_NONE
-    return lit_nb, level, assertion_level
+    return lit_nb, level, assertion_level, lbd
 
 
 @njit(cache=True, inline="always")
-def clear_marks(marks: NDArray, marked: NDArray, marked_nb: int, row: int) -> tuple[int, int, int]:
+def clear_marks(marks: NDArray, marked: NDArray, marked_nb: int, row: int) -> tuple[int, int, int, int]:
     """
     Clears the marks of an analysis that found a wrong explanation, and returns its result: no clause.
 
@@ -760,12 +798,12 @@ def clear_marks(marks: NDArray, marked: NDArray, marked_nb: int, row: int) -> tu
     :param row: the row whose explanation is wrong, or the number of rows in use for the explanation of the failure
     :type row: int
 
-    :return: -1 literals, the row, and no assertion level
-    :rtype: Tuple[int, int, int]
+    :return: -1 literals, the row, no assertion level, and no LBD
+    :rtype: Tuple[int, int, int, int]
     """
     for idx in range(marked_nb):
         marks[marked[idx], MARK_ROW] = MARK_NONE
-    return -1, row, -1
+    return -1, row, -1, 0
 
 
 @njit(cache=True, inline="always")

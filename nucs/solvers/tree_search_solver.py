@@ -290,8 +290,7 @@ class TreeSearchSolver(Solver):
                 self.utrail_log = double_rows(self.utrail_log)
                 logger.info(f"The undo trail grew to {len(self.utrail_log)} entries")
             elif status == SOLVER_CHOICEPOINTS_FULL:
-                self.choicepoints = double_rows(self.choicepoints)
-                logger.info(f"The stack of choice points grew to a maximal height of {len(self.choicepoints)}")
+                self._grow_choicepoints()
             elif status == SOLVER_RESTART:
                 logger.debug("Restarting")
                 self.statistics[STATS_IDX_SOLVER_RESTART_NB] += 1
@@ -310,6 +309,14 @@ class TreeSearchSolver(Solver):
                 return None
             else:
                 raise AssertionError(f"Unknown solver status {status}")
+
+    def _grow_choicepoints(self) -> None:
+        """
+        Doubles the stack of the choice points. A subclass that keeps an array with one cell for each choice point
+        makes it grow here.
+        """
+        self.choicepoints = double_rows(self.choicepoints)
+        logger.info(f"The stack of choice points grew to a maximal height of {len(self.choicepoints)}")
 
     def _reset_to_root(self) -> None:
         """

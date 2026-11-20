@@ -56,6 +56,32 @@ STATS_LBL_SOLVER_CHOICE_NB = "SOLVER_CHOICE_NB"
 STATS_LBL_SOLVER_ELAPSED_TIME = "SOLVER_ELAPSED_TIME_MS"
 STATS_LBL_SOLVER_RESTART_NB = "SOLVER_RESTART_NB"
 
+# The statistics of the learning of LcgSolver, in an array of their own, so that the array of BacktrackSolver and its
+# propagation loop do not change. The global counters come first, then one cell for each registered algorithm, at
+# STATS_LCG_MAX + algorithm: the explanations that the conflict analysis asked of the propagators of the algorithm.
+# The explanation counters measure the work of the analysis: they include the explanations of an analysis that gives
+# no asserting clause and starts again on the decisions of the path.
+# The means are not counters: the mean length of the learned clauses is STATS_LCG_IDX_LEARNED_LIT_NB divided by
+# STATS_LCG_IDX_CONFLICT_NB, and the mean LBD is STATS_LCG_IDX_LEARNED_LBD_SUM divided by STATS_LCG_IDX_CONFLICT_NB.
+# The empty clause, at most one at the end of a search, counts as a conflict with no literal and an LBD of 0.
+STATS_LCG_MAX = 5
+(
+    # the levels that the backjumps removed, from the level of the search, not of the conflict: chronological
+    # backtracking would remove 1 for each conflict
+    STATS_LCG_IDX_BACKJUMP_LEVEL_NB,
+    STATS_LCG_IDX_CLAUSE_EXPLANATION_NB,  # the explanations that the conflict analysis asked of the learned clauses
+    STATS_LCG_IDX_CONFLICT_NB,  # the conflicts that the analysis turned into a clause, the nogoods of solutions included
+    STATS_LCG_IDX_LEARNED_LBD_SUM,  # the sum of the LBDs of the learned clauses
+    STATS_LCG_IDX_LEARNED_LIT_NB,  # the literals of the learned clauses
+) = tuple(range(STATS_LCG_MAX))
+
+STATS_LCG_LBL_BACKJUMP_LEVEL_NB = "LCG_BACKJUMP_LEVEL_NB"
+STATS_LCG_LBL_CLAUSE_EXPLANATION_NB = "LCG_CLAUSE_EXPLANATION_NB"
+STATS_LCG_LBL_CONFLICT_NB = "LCG_CONFLICT_NB"
+STATS_LCG_LBL_LEARNED_LBD_SUM = "LCG_LEARNED_LBD_SUM"
+STATS_LCG_LBL_LEARNED_LIT_NB = "LCG_LEARNED_LIT_NB"
+STATS_LCG_LBL_PROPAGATOR_EXPLANATION_NB = "LCG_PROPAGATOR_EXPLANATION_NB"
+
 
 def statistics_init(algorithm_nb: int) -> NDArray:
     """
@@ -112,4 +138,49 @@ def statistics_as_dictionary(statistics: NDArray, algorithm_names: Sequence[str]
             dictionary[f"{STATS_LBL_PROPAGATOR_FILTER_NO_CHANGE_NB}_{name}"] = int(
                 statistics[base + STATS_ALG_IDX_FILTER_NO_CHANGE_NB]
             )
+    return dictionary
+
+
+def lcg_statistics_init(algorithm_nb: int) -> NDArray:
+    """
+    Allocates the statistics array of the learning of LcgSolver: the global counters, then one per registered
+    algorithm.
+
+    :param algorithm_nb: the number of registered propagator algorithms
+    :type algorithm_nb: int
+
+    :return: the statistics array of the learning, zeroed
+    :rtype: NDArray
+    """
+    return np.zeros(STATS_LCG_MAX + algorithm_nb, dtype=np.int64)
+
+
+def lcg_statistics_as_dictionary(lcg_statistics: NDArray, algorithm_names: Sequence[str]) -> dict[str, int]:
+    """
+    Returns the statistics of the learning as a dictionary, labelled and with the per-algorithm tail broken out.
+
+    The explanations of the propagators are given in total, then for each algorithm that the analysis asked at least
+    once, with the name of the algorithm as a suffix. An algorithm with many explanations is the first candidate for an
+    exact explain function (design/proposals/lcg.md, Part 5).
+
+    :param lcg_statistics: the statistics array of the learning
+    :type lcg_statistics: NDArray
+    :param algorithm_names: the display name of each registered algorithm, indexed by algorithm
+    :type algorithm_names: Sequence[str]
+
+    :return: a dictionary mapping statistic labels to values
+    :rtype: Dict[str, int]
+    """
+    dictionary = {
+        STATS_LCG_LBL_BACKJUMP_LEVEL_NB: int(lcg_statistics[STATS_LCG_IDX_BACKJUMP_LEVEL_NB]),
+        STATS_LCG_LBL_CLAUSE_EXPLANATION_NB: int(lcg_statistics[STATS_LCG_IDX_CLAUSE_EXPLANATION_NB]),
+        STATS_LCG_LBL_CONFLICT_NB: int(lcg_statistics[STATS_LCG_IDX_CONFLICT_NB]),
+        STATS_LCG_LBL_LEARNED_LBD_SUM: int(lcg_statistics[STATS_LCG_IDX_LEARNED_LBD_SUM]),
+        STATS_LCG_LBL_LEARNED_LIT_NB: int(lcg_statistics[STATS_LCG_IDX_LEARNED_LIT_NB]),
+        STATS_LCG_LBL_PROPAGATOR_EXPLANATION_NB: int(lcg_statistics[STATS_LCG_MAX:].sum()),
+    }
+    for algorithm, name in enumerate(algorithm_names):
+        explanation_nb = int(lcg_statistics[STATS_LCG_MAX + algorithm])
+        if explanation_nb:
+            dictionary[f"{STATS_LCG_LBL_PROPAGATOR_EXPLANATION_NB}_{name}"] = explanation_nb
     return dictionary

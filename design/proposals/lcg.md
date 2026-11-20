@@ -1130,6 +1130,39 @@ explanations, the analysis and the store already have their tests. (Until 2026-1
     `LcgSolver` run a search with restarts (quasigroup, Luby, with dom/wdeg and last-conflict) since step 4.
 12. **Add the statistics.** The conflicts, the mean length of the learned clauses, the mean LBD, and, for each
     propagator, the number of rows that the analysis explains.
+    *Done on 2026-11-20:* the counters are in an array of their own, `LcgSolver.lcg_statistics` (`STATS_LCG_*` in
+    `nucs/statistics.py`), so that the array of `BacktrackSolver` and its propagation loop do not change.
+    `get_statistics_as_dictionary` adds them to those of `TreeSearchSolver`:
+    - `LCG_CONFLICT_NB`: the conflicts that the analysis turned into a clause, the nogoods of the solutions included;
+    - `LCG_LEARNED_LIT_NB` and `LCG_LEARNED_LBD_SUM`: totals, not means, because the dictionary holds integers. The
+      means are these totals divided by `LCG_CONFLICT_NB`;
+    - `LCG_BACKJUMP_LEVEL_NB`: the levels that the backjumps removed, from the level of the search: chronological
+      backtracking would remove 1 for each conflict. The design did not ask for it; it measures the finding of
+      step 10;
+    - `LCG_PROPAGATOR_EXPLANATION_NB`, then `LCG_PROPAGATOR_EXPLANATION_NB_<ALGORITHM>`: the explanations that the
+      analysis asked of the propagators, by algorithm and not by propagator, as the filtering counters do;
+      `LCG_CLAUSE_EXPLANATION_NB`: those that it asked of the learned clauses. They measure the work of the
+      analysis, so they include an analysis that gives no asserting clause and starts again on the decisions.
+    The analysis computes the LBD when it builds an asserting clause, with one stamp for each level
+    (`level_stamps`). The cell of level 0 holds the last stamp, because no clause has a literal of level 0, and
+    `_grow_choicepoints` makes the stamps grow with the stack of the choice points. The empty clause counts as a
+    conflict with an LBD of 0. The user documentation of these labels comes with step 25.
+    *Check:* the LBD of each case of the analysis tests, with a new case of 3 literals on 2 levels; on queens 6, the
+    counters against the log of the debug mode, with exact values. A broken LBD (one level for each literal), a
+    stamp that does not change, and stamps that do not grow with the stack fail the tests.
+    *Cost and tree:* against #225 (median of 5 runs in alternate order, random padding of the environment): tsp gr17
+    1.012, langford (3, 12) 1.006, golomb 10 (BC) 1.003, with the same choices; the control `BacktrackSolver` 0.997 to
+    1.000. All under the 5% floor.
+    *What they show:* with the naive explanations, the learned clauses are long and the jumps are short:
+
+    | instance | choices | conflicts | mean length | mean LBD | mean jump | explanations, most asked first |
+    |---|---|---|---|---|---|---|
+    | tsp gr17 | 48,034 | 47,174 | 58.4 | 13.05 | 1.02 | `element_eq` 1.47M, `sum_eq` 834k, `circuit_chains` 280k |
+    | langford (3, 12) | 18,632 | 18,633 | 52.5 | 4.64 | 1.00 | `add_c_eq` 727k, `alldifferent` 418k |
+    | golomb 10 (BC) | 16,816 | 16,749 | 76.9 | 4.85 | 1.00 | `sum_eq` 1.54M, `alldifferent` 277k |
+
+    The analysis explains about one row of a clause for each conflict. The algorithms with the most explanations are
+    the first candidates for the exact explanations of stage 2 (step 15).
 13. **Make the mode available in FlatZinc.** An option of `fzn-nucs` selects `LcgSolver`. Run the differential tests
     against Gecode and Chuffed on small random instances (7.2).
 14. **Gate 1** (7.1).
