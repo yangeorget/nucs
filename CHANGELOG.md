@@ -124,6 +124,10 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Fixed
 
+- **A model with no variable stopped with a Numba typing error.** `Problem.initial_domains` had the shape `(0,)`
+  instead of `(0, 2)`. A FlatZinc model has no variable when the compilation fixes them all, for example
+  `[-3, 1, 1, 1][x2] = x1` with x2 in -3..1. Now the one solution, which is empty, is found. The differential tests of
+  the LCG work found it in 1 of 5,000 random models.
 - **`value_precede` could accept a solution where t comes first.** The propagator declared the constraint entailed
   when it found s fixed, although a position before it could still be t: an interval domain cannot remove a value
   inside it. The propagator was then never called again. For example, `value_precede(0, 3, [x3, x2, x1, x4])` over
