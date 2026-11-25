@@ -188,6 +188,10 @@ class TestRunner:
         assert out.count("----------") == 3
         assert out.strip().endswith("==========")
 
+    def test_solve_fzn_no_variable(self) -> None:
+        # the compilation can fix all the variables: the FlatZinc then has none, and its one solution is empty
+        assert solve_fzn("solve satisfy;", all_solutions=True) == "----------\n==========\n"
+
     def test_solve_fzn_unsatisfiable(self) -> None:
         out = solve_fzn("var 1..2: x :: output_var;\nconstraint int_eq(x, 5);\nsolve satisfy;")
         assert out.strip() == "=====UNSATISFIABLE====="
