@@ -24,7 +24,13 @@ from numpy.typing import NDArray
 from nucs.constants import BB_BOUND, BB_VALUE, BB_VARIABLE, DOMAIN_MAX, DOMAIN_MIN, EVENT_MASK_NONE, LOG_LEVEL_INFO
 from nucs.numba_helper import DomainHeuristicFunctions, VariableHeuristicFunctions, addresses_from_functions
 from nucs.problems.problem import INFO_ALGORITHM, PROBLEM_BOUND, PROBLEM_INCONSISTENT, PROBLEM_UNBOUND, Problem
-from nucs.propagators.propagators import ALG_DUMMY, EXPLAIN_FCTS, SIGN_EXPLAIN
+from nucs.propagators.propagators import (
+    ALG_DUMMY,
+    EXPLAIN_FCTS,
+    SIGN_EXPLAIN,
+    get_algorithm_names,
+    get_algorithm_nb,
+)
 from nucs.solvers.choicepoints import (
     CHOICEPOINT_ITRAIL_MARK,
     CHOICEPOINT_UTRAIL_MARK,
@@ -106,6 +112,12 @@ from nucs.solvers.tree_search_solver import (
 from nucs.statistics import (
     STATS_IDX_SOLUTION_NB,
     STATS_IDX_SOLVER_BACKTRACK_NB,
+    STATS_LCG_IDX_BACKJUMP_LEVEL_NB,
+    STATS_LCG_IDX_CONFLICT_NB,
+    STATS_LCG_IDX_LEARNED_LBD_SUM,
+    STATS_LCG_IDX_LEARNED_LIT_NB,
+    lcg_statistics_as_dictionary,
+    lcg_statistics_init,
 )
 
 logger = logging.getLogger(__name__)
@@ -213,6 +225,10 @@ class LcgSolver(TreeSearchSolver):
         self.explanation, self.explanation_lits, self.marks, self.marked, self.learned = allocate_analysis(
             problem.domain_nb, len(self.domain_buffer)
         )
+        # the counters of the learning, and the stamps that count the distinct levels of a learned clause (its LBD):
+        # a level is a choice point, so the stamps grow with the stack of the choice points (see _grow_choicepoints)
+        self.lcg_statistics = lcg_statistics_init(get_algorithm_nb())
+        self.level_stamps = np.zeros(len(self.choicepoints), dtype=np.int64)
         # the learned clauses, which only the debug mode logs: without it, the log has no rows
         self.clause_log, self.clause_log_info, self.clause_log_top = allocate_clause_log(problem.domain_nb, debug)
         logger.info(f"The implication trail starts at {len(self.itrail)} rows and grows when it runs out")
@@ -241,6 +257,26 @@ class LcgSolver(TreeSearchSolver):
         if self.store_top[STORE_UNIT_NB] + 1 > len(self.unit_lits):
             self.unit_lits = double_rows(self.unit_lits)
         logger.info(f"The store of the learned clauses grew, at {clause_nb} clauses")
+
+    def _grow_choicepoints(self) -> None:
+        """
+        Doubles the stack of the choice points, and makes the stamps of the levels as long.
+
+        The new stamps are all zero, the last stamp too: no cell holds a stamp that a later analysis gives.
+        """
+        super()._grow_choicepoints()
+        self.level_stamps = np.zeros(len(self.choicepoints), dtype=np.int64)
+
+    def get_statistics_as_dictionary(self) -> dict[str, int]:
+        """
+        Returns the statistics as a dictionary: those of TreeSearchSolver, then those of the learning.
+
+        :return: a dictionary mapping statistic labels to values
+        :rtype: Dict[str, int]
+        """
+        return super().get_statistics_as_dictionary() | lcg_statistics_as_dictionary(
+            self.lcg_statistics, get_algorithm_names()
+        )
 
     def learned_clauses(self) -> list[tuple[list[tuple[int, int]], int, int, int]]:
         """
@@ -329,6 +365,7 @@ class LcgSolver(TreeSearchSolver):
         while True:
             status = learn_and_backjump(
                 self.statistics,
+                self.lcg_statistics,
                 self.state,
                 self.utrail_log,
                 self.utrail_top,
@@ -363,6 +400,7 @@ class LcgSolver(TreeSearchSolver):
                 self.marks,
                 self.marked,
                 self.learned,
+                self.level_stamps,
                 self.debug,
                 self.clause_log,
                 self.clause_log_info,
@@ -392,6 +430,7 @@ class LcgSolver(TreeSearchSolver):
         while True:
             status, solution = run_search_loop(
                 self.statistics,
+                self.lcg_statistics,
                 self.problem.propagator_infos,
                 self.problem.offsets,
                 self.problem.propagator_variables,
@@ -439,6 +478,7 @@ class LcgSolver(TreeSearchSolver):
                 self.marks,
                 self.marked,
                 self.learned,
+                self.level_stamps,
                 self.clause_log,
                 self.clause_log_info,
                 self.clause_log_top,
@@ -490,6 +530,7 @@ class LcgSolver(TreeSearchSolver):
 @njit(cache=True, nogil=True)
 def run_search_loop(
     statistics: NDArray,
+    lcg_statistics: NDArray,
     propagator_infos: NDArray,
     offsets: NDArray,
     propagator_variables: NDArray,
@@ -537,6 +578,7 @@ def run_search_loop(
     marks: NDArray,
     marked: NDArray,
     learned: NDArray,
+    level_stamps: NDArray,
     clause_log: NDArray,
     clause_log_info: NDArray,
     clause_log_top: NDArray,
@@ -589,6 +631,8 @@ def run_search_loop(
 
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
+    :param lcg_statistics: the statistics array of the learning, see STATS_LCG_*
+    :type lcg_statistics: NDArray
     :param propagator_infos: the algorithm, the queue bucket and the copies flag of each propagator, in the INFO_*
                              columns
     :type propagator_infos: NDArray
@@ -691,6 +735,8 @@ def run_search_loop(
     :type marked: NDArray
     :param learned: a buffer that gets the clause that the conflict analysis learns
     :type learned: NDArray
+    :param level_stamps: one cell for each choice point, for the LBD of the learned clauses
+    :type level_stamps: NDArray
     :param clause_log: the literals of the learned clauses that the debug mode logs
     :type clause_log: NDArray
     :param clause_log_info: one row for each logged clause, see CLAUSE_LOG_*
@@ -730,6 +776,7 @@ def run_search_loop(
         if pending_conflict[CONFLICT_KIND] != CONFLICT_NONE:
             status = learn_and_backjump(
                 statistics,
+                lcg_statistics,
                 state,
                 utrail_log,
                 utrail_top,
@@ -764,6 +811,7 @@ def run_search_loop(
                 marks,
                 marked,
                 learned,
+                level_stamps,
                 debug,
                 clause_log,
                 clause_log_info,
@@ -1037,6 +1085,7 @@ def backjump(
 @njit(cache=True)
 def learn_and_backjump(
     statistics: NDArray,
+    lcg_statistics: NDArray,
     state: NDArray,
     utrail_log: NDArray,
     utrail_top: NDArray,
@@ -1071,6 +1120,7 @@ def learn_and_backjump(
     marks: NDArray,
     marked: NDArray,
     learned: NDArray,
+    level_stamps: NDArray,
     debug: bool,
     clause_log: NDArray,
     clause_log_info: NDArray,
@@ -1100,6 +1150,8 @@ def learn_and_backjump(
 
     :param statistics: a Numpy array of statistics
     :type statistics: NDArray
+    :param lcg_statistics: the statistics array of the learning, see STATS_LCG_*
+    :type lcg_statistics: NDArray
     :param state: all the backtrackable state: the domain bounds followed by the unbound-variable count
     :type state: NDArray
     :param utrail_log: the undo log of (cell index, old value) pairs
@@ -1173,6 +1225,8 @@ def learn_and_backjump(
     :type marked: NDArray
     :param learned: a buffer that gets the clause that the conflict analysis learns
     :type learned: NDArray
+    :param level_stamps: one cell for each choice point, for the LBD of the learned clauses
+    :type level_stamps: NDArray
     :param debug: whether to replay the implication trail and compare it with the state at each node, and to check
                   the explanation of each row that the propagation writes and of each failure
     :type debug: bool
@@ -1202,7 +1256,8 @@ def learn_and_backjump(
             )
         ):
             return LEARN_ROOM
-        lit_nb, level, assertion_level = analyze_conflict(
+        lit_nb, level, assertion_level, lbd = analyze_conflict(
+            lcg_statistics,
             explain_addrs,
             propagator_infos,
             offsets,
@@ -1221,6 +1276,7 @@ def learn_and_backjump(
             marks,
             marked,
             learned,
+            level_stamps,
         )
         if lit_nb < 0 and debug:
             # an explanation gave a literal that was not true when its call read the bounds; level is its row
@@ -1243,6 +1299,9 @@ def learn_and_backjump(
                 assertion_level,
                 statistics[STATS_IDX_SOLUTION_NB],
             )
+        lcg_statistics[STATS_LCG_IDX_CONFLICT_NB] += 1
+        lcg_statistics[STATS_LCG_IDX_LEARNED_LIT_NB] += lit_nb
+        lcg_statistics[STATS_LCG_IDX_LEARNED_LBD_SUM] += lbd
         pending_conflict[CONFLICT_KIND] = CONFLICT_NONE
         if lit_nb == 0:
             return LEARN_NO_SOLUTION  # the empty clause: no solution is left
@@ -1251,6 +1310,7 @@ def learn_and_backjump(
             store_unit(unit_lits, store_top, learned[0, LIT_VAR_SIDE], learned[0, LIT_VALUE])
         else:
             new_clause = store_clause(clause_lits, clause_start, store_top, learned, lit_nb)
+        lcg_statistics[STATS_LCG_IDX_BACKJUMP_LEVEL_NB] += choicepoint_top[0] - assertion_level
         backjump(
             statistics,
             state,
