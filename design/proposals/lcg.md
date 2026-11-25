@@ -1170,18 +1170,19 @@ explanations, the analysis and the store already have their tests. (Until 2026-1
     not change. `tests/fzn/test_differential.py` makes small random MiniZinc models: 4 or 5 variables with one small
     domain, 2 to 4 constraints of 11 kinds (linear, reified, arithmetic, `all_different`, `element`, the counts,
     `table`, `lex_lesseq`/`increasing`/`value_precede`, `disjunctive`/`cumulative`, `regular`, and `circuit`,
-    `subcircuit` or `inverse` on variables of their own), a random search annotation (7 kinds, one with Luby
-    restarts) and, in one case of three, a linear objective. For each model, NuCS with and without `--lcg` must give
-    the set of solutions, or the optimum, of each reference solver; the NuCS output goes through the output model of
-    MiniZinc, so the variables that the compilation fixed count. `LcgSolver` in debug mode must also give the solution
-    count, or the optimum, of `BacktrackSolver` on the same FlatZinc: this count is on all the variables, so a
-    solution found twice is an error. The reference solvers get the model without its restart annotation (Gecode does
-    not end an enumeration that restarts). When they disagree, or when none of them accepts the model, the seed is
-    skipped: Chuffed 0.13.2 is wrong on some models, most of them with a `div` or a `mod`, and rejects a `div` or a
-    `mod` on a variable whose sign is not fixed; the Gecode of the MiniZinc 2.10.1 bundle of the CI rejected two
-    models that Gecode 6.4.0 solves. With `s = t`, Gecode accepts t in `value_precede` and the decomposition of
-    MiniZinc does not, so the models use two values. The test runs 40 seeds (8 without the JIT); a wider sweep calls
-    `_assert_agrees_with_the_references` on more seeds.
+    `subcircuit` or `inverse` on variables of their own), a random search annotation (7 kinds, one with Luby restarts)
+    and, in one case of three, a linear objective. For each model, NuCS with and without `--lcg` must give the set of
+    solutions, or the optimum, of each reference solver; the NuCS output goes through the output model of MiniZinc, so
+    the variables that the compilation fixed count. `LcgSolver` in debug mode must also give the solution count, or the
+    optimum, of `BacktrackSolver` on the same FlatZinc: this count is on all the variables, so a solution found twice is
+    an error. The reference solvers get the model without its restart annotation (Gecode does not end an enumeration
+    that restarts). When they disagree, or when no answer can be trusted (no solver accepts the model, or Chuffed alone
+    does), the seed is skipped, before NuCS runs: Chuffed 0.13.2 is wrong on some models, most of them with a `div` or a
+    `mod`, and rejects a `div` or a `mod` on a variable whose sign is not fixed; the Gecode of the MiniZinc 2.10.1
+    bundle of the CI rejected two models that Gecode 6.4.0 solves. With `s = t`, Gecode accepts t in `value_precede` and
+    the decomposition of MiniZinc does not, so the models use two values. The test runs 40 seeds (8 without the JIT); a
+    wider sweep calls `_assert_agrees_with_the_references` on more seeds. Each NuCS run has a budget of 60 s, so a
+    search that does not end fails its seed.
     *Results:* on 5,000 seeds, **no wrong answer of `LcgSolver`**, with the debug mode on each seed; 30 seeds skipped
     (Chuffed). The sweeps found two bugs of NuCS, both on `main` and in both solvers, and fixed there: `value_precede`
     declared entailment while a position before the fixed s could still be t (#227, 7 of 2,000 seeds; one seed showed
