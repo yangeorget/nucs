@@ -149,7 +149,7 @@ class Problem:
         # the compiled form of the domains the model was built with. domains stays the list the model API
         # appends to; this is what a search resets to, and it has to survive the search that overwrites the
         # solver's own domains -- those are a view of state. int32 because that is what it is copied into.
-        self.initial_domains = np.array(self.domains, dtype=np.int32)
+        self.initial_domains = np.array(self.domains, dtype=np.int32).reshape(-1, 2)  # (0, 2) with no variable
         self.init_propagator_infos()
         # Built here, beside propagator_infos[:, INFO_ALGORITHM] that indexes it, so the two are fixed at the same
         # instant and the flags cover every algorithm this problem can name -- including one registered after

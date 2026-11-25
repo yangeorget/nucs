@@ -51,3 +51,7 @@ class TestProblem:
         assert problem.unbound_variable_nb == 2
         assert len(BacktrackSolver(problem).find_all()) == 2
         assert problem.unbound_variable_nb == 2
+
+    def test_init_no_variable_one_empty_solution(self) -> None:
+        # a FlatZinc model can have no variable when the compilation fixes them all; its one solution is empty
+        assert [solution.tolist() for solution in BacktrackSolver(Problem([])).find_all()] == [[]]

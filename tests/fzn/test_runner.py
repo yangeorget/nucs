@@ -206,6 +206,11 @@ class TestRunner:
         assert out.strip().endswith("==========")
 
     @pytest.mark.parametrize("lcg", [False, True])
+    def test_solve_fzn_no_variable(self, lcg: bool) -> None:
+        # the compilation can fix all the variables: the FlatZinc then has none, and its one solution is empty
+        assert solve_fzn("solve satisfy;", all_solutions=True, lcg=lcg) == "----------\n==========\n"
+
+    @pytest.mark.parametrize("lcg", [False, True])
     def test_solve_fzn_unsatisfiable(self, lcg: bool) -> None:
         out = solve_fzn("var 1..2: x :: output_var;\nconstraint int_eq(x, 5);\nsolve satisfy;", lcg=lcg)
         assert out.strip() == "=====UNSATISFIABLE====="
