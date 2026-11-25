@@ -1176,9 +1176,10 @@ explanations, the analysis and the store already have their tests. (Until 2026-1
     MiniZinc, so the variables that the compilation fixed count. `LcgSolver` in debug mode must also give the solution
     count, or the optimum, of `BacktrackSolver` on the same FlatZinc: this count is on all the variables, so a
     solution found twice is an error. The reference solvers get the model without its restart annotation (Gecode does
-    not end an enumeration that restarts). When they disagree, the seed is skipped: Chuffed 0.13.2 is wrong on some
-    models, most of them with a `div` or a `mod`, and rejects a `div` or a `mod` on a variable whose sign is not
-    fixed. With `s = t`, Gecode accepts t in `value_precede` and the decomposition of MiniZinc does not, so the models
+    not end an enumeration that restarts). When they disagree, or when none of them accepts the model, the seed is
+    skipped: Chuffed 0.13.2 is wrong on some models, most of them with a `div` or a `mod`, and rejects a `div` or a
+    `mod` on a variable whose sign is not fixed; the Gecode of the MiniZinc 2.10.1 bundle of the CI rejected two
+    models that Gecode 6.4.0 solves. With `s = t`, Gecode accepts t in `value_precede` and the decomposition of MiniZinc does not, so the models
     use two values. The test runs 40 seeds (8 without the JIT); a wider sweep calls
     `_assert_agrees_with_the_references` on more seeds.
     *Results:* on 5,000 seeds, **no wrong answer of `LcgSolver`**, with the debug mode on each seed; 30 seeds skipped

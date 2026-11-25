@@ -114,13 +114,18 @@ def _assert_agrees_with_the_references(seed: int, reference_solvers: list[str]) 
         nucs_answers = {
             name: _nucs_answer(fzn, ozn_path, objective, lcg) for name, lcg in (("nucs", False), ("nucs --lcg", True))
         }
-    reference_streams = {solver: _reference_stream(model, solver, objective is None) for solver in reference_solvers}
+    runs = {solver: _reference_run(model, solver, objective is None) for solver in reference_solvers}
+    rejected = {solver: run.stderr.strip() for solver, run in runs.items() if run.stdout.strip() == "=====ERROR====="}
+    if len(rejected) == len(runs):
+        # Chuffed rejects a div or a mod on a variable whose sign is not fixed, and so did the Gecode of the MiniZinc
+        # 2.10.1 bundle of the CI on two seeds that Gecode 6.4.0 solves: with no answer, the seed shows nothing
+        pytest.skip(f"no reference solver accepts the model of seed {seed}: {rejected}")
     reference_answers = {
-        solver: _answer(stream, objective) for solver, stream in reference_streams.items() if stream is not None
+        solver: _answer(run.stdout, objective) for solver, run in runs.items() if solver not in rejected
     }
-    assert reference_answers, f"no reference solver accepts the model of seed {seed}:\n{model}"
     if len(set(reference_answers.values())) > 1:
-        # Chuffed 0.13.2 is wrong on some models, most with a div or a mod: with no answer to trust, the seed shows nothing
+        # Chuffed 0.13.2 is wrong on some models, most with a div or a mod: with no answer to trust, the seed shows
+        # nothing
         pytest.skip(f"the reference solvers disagree on seed {seed}")
     reference, expected = next(iter(reference_answers.items()))
     for name, answer in nucs_answers.items():
@@ -215,7 +220,7 @@ def _nucs_answer(fzn: str, ozn_path: str, objective: dict[str, int] | None, lcg:
     return _answer(result.stdout, objective)
 
 
-def _reference_stream(model: str, solver: str, all_solutions: bool) -> str | None:
+def _reference_run(model: str, solver: str, all_solutions: bool) -> subprocess.CompletedProcess[str]:
     """
     Solves a MiniZinc model, without its restart annotation, with a reference solver.
 
@@ -226,9 +231,9 @@ def _reference_stream(model: str, solver: str, all_solutions: bool) -> str | Non
     :param all_solutions: whether to print all the solutions
     :type all_solutions: bool
 
-    :return: the solution stream, or None when the solver does not accept the model (Chuffed does not accept a div or
-        a mod on a variable whose sign is not fixed)
-    :rtype: Optional[str]
+    :return: the run, whose stdout is the solution stream, or "=====ERROR=====" when the solver does not accept the
+        model
+    :rtype: subprocess.CompletedProcess[str]
     """
     assert MINIZINC is not None
     with tempfile.TemporaryDirectory() as tmp:
@@ -243,10 +248,8 @@ def _reference_stream(model: str, solver: str, all_solutions: bool) -> str | Non
             check=False,
             env=os.environ,
         )
-    if result.stdout.strip() == "=====ERROR=====":
-        return None
-    assert result.returncode == 0, result.stderr
-    return result.stdout
+    assert result.returncode == 0 or result.stdout.strip() == "=====ERROR=====", result.stderr
+    return result
 
 
 def _answer(stream: str, objective: dict[str, int] | None) -> Answer:
