@@ -34,7 +34,7 @@ from collections.abc import Callable
 
 import pytest
 
-from nucs.constants import DOMAIN_MIN
+from nucs.constants import DOMAIN_MAX, DOMAIN_MIN
 from nucs.fzn.model import build_model
 from nucs.fzn.parser import parse
 from nucs.fzn.search_annotations import search_heuristics, search_options
@@ -48,7 +48,11 @@ from tests.marks import SLOW_WITHOUT_JIT
 
 pytestmark = pytest.mark.skipif(MINIZINC is None, reason="minizinc is not installed")
 
-REFERENCE_SOLVERS = ("org.gecode.gecode", "org.chuffed.chuffed")
+CHUFFED = "org.chuffed.chuffed"
+REFERENCE_SOLVERS = ("org.gecode.gecode", CHUFFED)
+# the budget of each NuCS run, as the timeouts of the MiniZinc runs: a search that does not end fails the seed, and does
+# not stop the suite
+NUCS_TIME_LIMIT_MS = 60_000
 
 # A solution: the value of each output variable, sorted by name. An answer: the set of the solutions of a satisfaction
 # model, or the optimum of an optimization model (None when the model has no solution).
@@ -108,26 +112,26 @@ def _assert_agrees_with_the_references(seed: int, reference_solvers: list[str]) 
     :type reference_solvers: list[str]
     """
     model, objective = _random_model(seed)
+    # the references first: with no answer to trust, the seed shows nothing, and NuCS must not fail it
+    runs = {solver: _reference_run(model, solver, objective is None) for solver in reference_solvers}
+    rejected = {solver: run.stderr.strip() for solver, run in runs.items() if run.stdout.strip() == "=====ERROR====="}
+    reference_answers = {
+        solver: _answer(run.stdout, objective) for solver, run in runs.items() if solver not in rejected
+    }
+    if set(reference_answers) <= {CHUFFED}:
+        # Chuffed 0.13.2 rejects a div or a mod on a variable whose sign is not fixed, and is wrong on some models, most
+        # with a div or a mod; the Gecode of the MiniZinc 2.10.1 bundle of the CI rejected two seeds that Gecode 6.4.0
+        # solves
+        pytest.skip(f"no reference answer to trust on seed {seed}: {rejected}")
+    if len(set(reference_answers.values())) > 1:
+        pytest.skip(f"the reference solvers disagree on seed {seed}")
+    reference, expected = next(iter(reference_answers.items()))
     with tempfile.TemporaryDirectory() as tmp:
         ozn_path = os.path.join(tmp, "model.ozn")
         fzn = compile_to_fzn(model, ozn_path)
         nucs_answers = {
             name: _nucs_answer(fzn, ozn_path, objective, lcg) for name, lcg in (("nucs", False), ("nucs --lcg", True))
         }
-    runs = {solver: _reference_run(model, solver, objective is None) for solver in reference_solvers}
-    rejected = {solver: run.stderr.strip() for solver, run in runs.items() if run.stdout.strip() == "=====ERROR====="}
-    if len(rejected) == len(runs):
-        # Chuffed rejects a div or a mod on a variable whose sign is not fixed, and so did the Gecode of the MiniZinc
-        # 2.10.1 bundle of the CI on two seeds that Gecode 6.4.0 solves: with no answer, the seed shows nothing
-        pytest.skip(f"no reference solver accepts the model of seed {seed}: {rejected}")
-    reference_answers = {
-        solver: _answer(run.stdout, objective) for solver, run in runs.items() if solver not in rejected
-    }
-    if len(set(reference_answers.values())) > 1:
-        # Chuffed 0.13.2 is wrong on some models, most with a div or a mod: with no answer to trust, the seed shows
-        # nothing
-        pytest.skip(f"the reference solvers disagree on seed {seed}")
-    reference, expected = next(iter(reference_answers.items()))
     for name, answer in nucs_answers.items():
         assert answer == expected, f"{name} differs from {reference} on seed {seed}:\n{model}"
     _assert_debug_lcg_agrees_with_backtrack(fzn, seed, model)
@@ -189,9 +193,12 @@ def _solve_directly(fzn: str, lcg: bool) -> int | None:
     if model.solve.kind != "satisfy":
         assert model.solve.objective is not None
         variable = model.var_index_of(model.solve.objective)
-        best = solver.find_best(variable, DOMAIN_MIN, OPTIM_PRUNE)
+        bound = DOMAIN_MIN if model.solve.kind == "minimize" else DOMAIN_MAX
+        best = solver.find_best(variable, bound, OPTIM_PRUNE, timeout=NUCS_TIME_LIMIT_MS / 1000)
+        assert not solver.interrupted, "the search did not end"
         return None if best is None else int(best[variable])
-    solver.solve_all()
+    solver.solve_all(timeout=NUCS_TIME_LIMIT_MS / 1000)
+    assert not solver.interrupted, "the search did not end"
     return int(solver.statistics[STATS_IDX_SOLUTION_NB])
 
 
@@ -213,7 +220,7 @@ def _nucs_answer(fzn: str, ozn_path: str, objective: dict[str, int] | None, lcg:
     :rtype: Answer
     """
     assert MINIZINC is not None
-    stream = solve_fzn(fzn, all_solutions=objective is None, lcg=lcg)
+    stream = solve_fzn(fzn, all_solutions=objective is None, time_limit_ms=NUCS_TIME_LIMIT_MS, lcg=lcg)
     result = subprocess.run(
         [MINIZINC, "--ozn-file", ozn_path], input=stream, capture_output=True, text=True, timeout=60, check=True
     )
