@@ -64,7 +64,8 @@ def compute_domains_value_precede(domains: NDArray, parameters: NDArray, prop_st
 
     The value t is forbidden in the prefix up to and including the first position whose domain still allows
     s (no s can occur strictly before it). Interior occurrences of t cannot be removed from NuCS interval
-    domains, but such a violation is detected as soon as the variable is fixed to t.
+    domains, but such a violation is detected as soon as the variable is fixed to t. For the same reason, a fixed s
+    entails the constraint only when no position before it can still be t.
 
     :param domains: the domains of the variables (the array x)
     :type domains: NDArray
@@ -79,6 +80,7 @@ def compute_domains_value_precede(domains: NDArray, parameters: NDArray, prop_st
     n = len(domains)
     s = parameters[0]
     t = parameters[1]
+    t_in_prefix = False  # a position before i can still be t, inside its domain
     for i in range(n):
         lo = domains[i, DOMAIN_MIN]
         hi = domains[i, DOMAIN_MAX]
@@ -93,7 +95,8 @@ def compute_domains_value_precede(domains: NDArray, parameters: NDArray, prop_st
             domains[i, DOMAIN_MAX] = hi
         # the first position that can still hold s ends the forbidden prefix
         if lo <= s <= hi:
-            if lo == s and hi == s:  # s is fixed here, so it precedes every later t
+            if lo == s and hi == s and not t_in_prefix:  # s is fixed here, so it precedes every later t
                 return PROP_ENTAILMENT
             return PROP_CONSISTENCY
+        t_in_prefix = t_in_prefix or lo < t < hi
     return PROP_CONSISTENCY
