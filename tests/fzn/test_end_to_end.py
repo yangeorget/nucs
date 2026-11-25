@@ -24,11 +24,7 @@ These tests are skipped unless ``minizinc`` is on PATH (or pointed to by the ``M
 """
 
 import io
-import os
 import re
-import shutil
-import subprocess
-import tempfile
 
 import pytest
 
@@ -43,9 +39,7 @@ from nucs.fzn.runner import run
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
 from nucs.solvers.backtrack.consistency_algorithms import register_consistency_algorithm
 from nucs.statistics import STATS_IDX_SOLUTION_NB
-
-SHARE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "nucs", "fzn", "share")
-MINIZINC = os.environ.get("MINIZINC") or shutil.which("minizinc")
+from tests.fzn.fzn_test import MINIZINC, compile_to_fzn
 
 pytestmark = pytest.mark.skipif(MINIZINC is None, reason="minizinc is not installed")
 
@@ -106,29 +100,9 @@ class TestEndToEnd:
         assert _pipeline_solution_count(model) == _native_solution_count(LangfordProblem(k, n))
 
 
-def _compile_to_fzn(model: str) -> str:
-    """Compiles a full MiniZinc model (with its own solve item) to FlatZinc with the NuCS solver."""
-    with tempfile.TemporaryDirectory() as tmp:
-        model_path = os.path.join(tmp, "model.mzn")
-        with open(model_path, "w") as f:
-            f.write(model)
-        env = dict(os.environ, MZN_SOLVER_PATH=SHARE_DIR)
-        assert MINIZINC
-        result = subprocess.run(
-            [MINIZINC, "-c", "--solver", "nucs", model_path, "--output-fzn-to-stdout"],
-            capture_output=True,
-            text=True,
-            env=env,
-            timeout=120,
-            check=False,
-        )
-    assert result.returncode == 0, result.stderr
-    return result.stdout
-
-
 def _pipeline_solution_count(model: str) -> int:
     """Returns the number of solutions found by the MiniZinc -> FlatZinc -> NuCS pipeline."""
-    fzn = _compile_to_fzn(model)
+    fzn = compile_to_fzn(model)
     out = io.StringIO()
     run(build_model(parse(fzn)), out, all_solutions=True)
     return out.getvalue().count("----------")
@@ -136,7 +110,7 @@ def _pipeline_solution_count(model: str) -> int:
 
 def _pipeline_optimum(model: str) -> int:
     """Returns the objective of the optimal solution found by the pipeline."""
-    fzn = _compile_to_fzn(model)
+    fzn = compile_to_fzn(model)
     out = io.StringIO()
     run(build_model(parse(fzn)), out, output_objective=True)
     matches = re.findall(r"objective = (-?\d+);", out.getvalue())

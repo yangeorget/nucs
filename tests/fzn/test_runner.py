@@ -27,11 +27,13 @@ from tests.fzn.fzn_test import solve_fzn
 
 
 class TestRunner:
-    def test_solve_fzn_minimize(self) -> None:
+    @pytest.mark.parametrize("lcg", [False, True])
+    def test_solve_fzn_minimize(self, lcg: bool) -> None:
         out = solve_fzn(
             "var 0..10: x :: output_var;\nvar 0..10: y :: output_var;\n"
             "constraint int_plus(x, y, 10);\nconstraint int_le(y, x);\n"
-            "solve minimize x;"
+            "solve minimize x;",
+            lcg=lcg,
         )
         assert "x = 5;" in out
         assert out.strip().endswith("==========")
@@ -161,6 +163,19 @@ class TestRunner:
         assert "=====UNSATISFIABLE=====" in out.getvalue()
         assert "SOLVER_RESTART_NB=0" not in out.getvalue()
 
+    def test_run_lcg_learns_and_prints_the_statistics_of_the_learning(self) -> None:
+        # 4 pigeons in 3 holes: each failure of the proof is a conflict, and the statistics tell it
+        text = (
+            "array [1..4] of var 0..2: x;\n"
+            + "".join(f"constraint int_ne(x[{i}], x[{j}]);\n" for i in range(1, 5) for j in range(i + 1, 5))
+            + "solve satisfy;\n"
+        )
+        out = io.StringIO()
+        run(build_model(parse(text)), out, statistics=True, lcg=True)
+        assert "=====UNSATISFIABLE=====" in out.getvalue()
+        assert "%%%mzn-stat: LCG_CONFLICT_NB=" in out.getvalue()
+        assert "%%%mzn-stat: LCG_CONFLICT_NB=0\n" not in out.getvalue()
+
     @pytest.mark.parametrize("free_search", [False, True])
     def test_run_free_search_finds_the_optimum(self, free_search: bool) -> None:
         # the free search ignores the annotation's order and values, and must still prove the optimum
@@ -180,14 +195,17 @@ class TestRunner:
         )
         assert "==========" in out.getvalue()  # the optimum is proven
 
-    def test_solve_fzn_all_solutions_terminator(self) -> None:
+    @pytest.mark.parametrize("lcg", [False, True])
+    def test_solve_fzn_all_solutions_terminator(self, lcg: bool) -> None:
         out = solve_fzn(
             "var 1..3: x :: output_var;\nvar 1..3: y :: output_var;\nconstraint int_lt(x, y);\nsolve satisfy;",
             all_solutions=True,
+            lcg=lcg,
         )
         assert out.count("----------") == 3
         assert out.strip().endswith("==========")
 
-    def test_solve_fzn_unsatisfiable(self) -> None:
-        out = solve_fzn("var 1..2: x :: output_var;\nconstraint int_eq(x, 5);\nsolve satisfy;")
+    @pytest.mark.parametrize("lcg", [False, True])
+    def test_solve_fzn_unsatisfiable(self, lcg: bool) -> None:
+        out = solve_fzn("var 1..2: x :: output_var;\nconstraint int_eq(x, 5);\nsolve satisfy;", lcg=lcg)
         assert out.strip() == "=====UNSATISFIABLE====="

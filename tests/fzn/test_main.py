@@ -55,3 +55,7 @@ class TestMain:
         assert build_arg_parser().parse_args(["--last-conflict", "model.fzn"]).last_conflict is True
         assert build_arg_parser().parse_args(["--no-last-conflict", "model.fzn"]).last_conflict is False
         assert build_arg_parser().parse_args(["model.fzn"]).last_conflict is None  # the mode's default
+
+    def test_main_lcg_flag(self) -> None:
+        assert build_arg_parser().parse_args(["--lcg", "model.fzn"]).lcg is True
+        assert build_arg_parser().parse_args(["model.fzn"]).lcg is False

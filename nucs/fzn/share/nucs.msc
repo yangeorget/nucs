@@ -10,7 +10,8 @@
   "extraFlags": [
     ["--last-conflict", "branch first on the variable of the last refuted decision (default with -f)", "bool", "false"],
     ["--no-last-conflict", "do not use last-conflict, even with -f", "bool", "false"],
-    ["--restart", "restart policy POLICY[,SCALE[,BASE]], e.g. luby,500 (default luby,500 with -f)", "string", ""]
+    ["--restart", "restart policy POLICY[,SCALE[,BASE]], e.g. luby,500 (default luby,500 with -f)", "string", ""],
+    ["--lcg", "learn a clause from each failure (lazy clause generation) and backjump", "bool", "false"]
   ],
   "supportsMzn": false,
   "supportsFzn": true,
