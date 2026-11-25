@@ -94,6 +94,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="ignore how the search annotations branch: dom/wdeg on the annotated variables, then on the others, "
         "with last-conflict and Luby restarts unless told otherwise",
     )
+    parser.add_argument(
+        "--lcg",
+        action="store_true",
+        help="learn a clause from each failure (lazy clause generation) and backjump",
+    )
     # Accepted and ignored for compatibility with the FlatZinc solver interface.
     parser.add_argument("-p", "--parallel", type=int, default=None, help=argparse.SUPPRESS)
     parser.add_argument("-r", "--random-seed", type=int, default=None, help=argparse.SUPPRESS)
@@ -156,6 +161,7 @@ def main(argv: list[str] | None = None) -> int:
             last_conflict=args.last_conflict,
             free_search=args.free_search,
             restart=args.restart,
+            lcg=args.lcg,
         )
     except FznError as e:
         sys.stderr.write(f"fzn-nucs: {e}\n")

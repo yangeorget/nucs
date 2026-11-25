@@ -11,7 +11,8 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 """
-Drives a built :class:`FznModel` through a :class:`BacktrackSolver` and streams the solutions.
+Drives a built :class:`FznModel` through a :class:`BacktrackSolver`, or an :class:`LcgSolver` on request, and streams
+the solutions.
 """
 
 import logging
@@ -28,6 +29,7 @@ from nucs.fzn.model import FznModel
 from nucs.fzn.output import print_search_complete, print_solution, print_unknown, print_unsatisfiable
 from nucs.fzn.search_annotations import free_search_heuristics, search_heuristics, search_options
 from nucs.solvers.backtrack.backtrack_solver import BacktrackSolver
+from nucs.solvers.lcg.lcg_solver import LcgSolver
 from nucs.solvers.restart_policies import RestartPolicy
 from nucs.solvers.solver import OPTIM_PRUNE
 from nucs.solvers.tree_search_solver import TreeSearchSolver
@@ -49,6 +51,7 @@ def run(
     last_conflict: bool | None = None,
     free_search: bool = False,
     restart: RestartPolicy | None = None,
+    lcg: bool = False,
 ) -> None:
     """
     Solves the model and writes the FlatZinc solution stream.
@@ -86,6 +89,9 @@ def run(
     :type free_search: bool
     :param restart: the restart policy, or None for the mode's default (see search_options)
     :type restart: Optional[RestartPolicy]
+    :param lcg: whether an LcgSolver, which learns a clause from each failure, solves the model instead of a
+        BacktrackSolver
+    :type lcg: bool
     """
     # Resolve the objective before constructing the solver, since the solver snapshots the domains on init.
     objective_var = None
@@ -94,7 +100,7 @@ def run(
             raise FznUnsupportedError("an optimization objective is required")
         objective_var = model.var_index_of(model.solve.objective)
     last_conflict, restart_policy = search_options(model, free_search, last_conflict, restart)
-    solver = BacktrackSolver(
+    solver = (LcgSolver if lcg else BacktrackSolver)(
         model.problem,
         searches=free_search_heuristics(model) if free_search else search_heuristics(model),
         log_level="ERROR",

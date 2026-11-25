@@ -1,6 +1,6 @@
 # Lazy clause generation in NuCS — design
 
-> **Status:** proposed, 2026-10-05. The implementation started on 2026-11-03: Phase 0 and steps 3 to 6 of 7.0 are done.
+> **Status:** proposed, 2026-10-05. The implementation started on 2026-11-03: Phase 0 and steps 3 to 13 of 7.0 are done.
 
 This document is the design of lazy clause generation (LCG) for NuCS. It is written for a reader who knows
 classical constraint programming (propagation, search, Gecode and Choco internals) but not LCG or SAT solving.
@@ -1165,6 +1165,31 @@ explanations, the analysis and the store already have their tests. (Until 2026-1
     the first candidates for the exact explanations of stage 2 (step 15).
 13. **Make the mode available in FlatZinc.** An option of `fzn-nucs` selects `LcgSolver`. Run the differential tests
     against Gecode and Chuffed on small random instances (7.2).
+    *Done on 2026-11-25:* `fzn-nucs --lcg` (declared in `nucs.msc`, so `minizinc --solver nucs --lcg` works) and the
+    parameter `lcg` of `nucs.fzn.runner.run` select `LcgSolver`; the annotated search, `-f` and the restart options do
+    not change. `tests/fzn/test_differential.py` makes small random MiniZinc models: 4 or 5 variables with one small
+    domain, 2 to 4 constraints of 11 kinds (linear, reified, arithmetic, `all_different`, `element`, the counts,
+    `table`, `lex_lesseq`/`increasing`/`value_precede`, `disjunctive`/`cumulative`, `regular`, and `circuit`,
+    `subcircuit` or `inverse` on variables of their own), a random search annotation (7 kinds, one with Luby
+    restarts) and, in one case of three, a linear objective. For each model, NuCS with and without `--lcg` must give
+    the set of solutions, or the optimum, of each reference solver; the NuCS output goes through the output model of
+    MiniZinc, so the variables that the compilation fixed count. `LcgSolver` in debug mode must also give the solution
+    count, or the optimum, of `BacktrackSolver` on the same FlatZinc: this count is on all the variables, so a
+    solution found twice is an error. The reference solvers get the model without its restart annotation (Gecode does
+    not end an enumeration that restarts). When they disagree, or when none of them accepts the model, the seed is
+    skipped: Chuffed 0.13.2 is wrong on some models, most of them with a `div` or a `mod`, and rejects a `div` or a
+    `mod` on a variable whose sign is not fixed; the Gecode of the MiniZinc 2.10.1 bundle of the CI rejected two
+    models that Gecode 6.4.0 solves. With `s = t`, Gecode accepts t in `value_precede` and the decomposition of
+    MiniZinc does not, so the models use two values. The test runs 40 seeds (8 without the JIT); a wider sweep calls
+    `_assert_agrees_with_the_references` on more seeds.
+    *Results:* on 5,000 seeds, **no wrong answer of `LcgSolver`**, with the debug mode on each seed; 30 seeds skipped
+    (Chuffed). The sweeps found two bugs of NuCS, both on `main` and in both solvers, and fixed there: `value_precede`
+    declared entailment while a position before the fixed s could still be t (#227, 7 of 2,000 seeds; one seed showed
+    it with LCG only, because the LCG tree reaches the wrong entailment another way), and a FlatZinc model with no
+    variable stopped with a Numba typing error (#228, 1 of 5,000). They come to `lcg` with the next merge of `main`.
+    *Check:* a too-strong clause (the last literal of each learned clause dropped) fails seed 36 of the test and 49 of
+    400 seeds of a sweep; the debug mode alone does not find it, because it checks the explanations and the trail, not
+    the clauses.
 14. **Gate 1** (7.1).
 
 #### Phase 3 — Exact explanations (stage 2)

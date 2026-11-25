@@ -15,6 +15,11 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
   `LcgSolver` (lazy clause generation) uses it. The default, `explain_naive`
   (`nucs.propagators.explanations`), is correct for each sound propagator, so a propagator that is registered with
   no explain function does not change.
+- **An option `--lcg` of `fzn-nucs`, and a parameter `lcg` of `nucs.fzn.runner.run`.** `LcgSolver`, which learns a
+  clause from each failure and backjumps, solves the model instead of `BacktrackSolver`. The search of the model, `-f`
+  and the restart options do not change. The solver configuration declares `--lcg` to MiniZinc
+  (`minizinc --solver nucs --lcg model.mzn`). The mode is under construction: its explanations are naive, so it is
+  slower than the default.
 - **Three options for the examples: `--last-conflict`, `--restart` and `--time-limit`.**
   - `--last-conflict` / `--no-last-conflict` turns last-conflict reasoning on or off. Without it, each example keeps
     its own default: on for `alphanumeric`, `cryptarithmetic`, `employee_scheduling`, `magic_sequence`,
