@@ -85,6 +85,8 @@ def compute_domains_neq_imp(domains: NDArray, parameters: NDArray, prop_state: N
         return PROP_ENTAILMENT
     if b[DOMAIN_MIN] == 1:  # b is true: enforce x != y (only prunes when one side is fixed)
         if x[DOMAIN_MIN] == x[DOMAIN_MAX]:
+            if y[DOMAIN_MIN] == y[DOMAIN_MAX] == x[DOMAIN_MIN]:  # stepping a bound past an int32 limit overflows
+                return PROP_INCONSISTENCY
             if y[DOMAIN_MIN] == x[DOMAIN_MIN]:
                 y[DOMAIN_MIN] += 1
             if y[DOMAIN_MAX] == x[DOMAIN_MAX]:

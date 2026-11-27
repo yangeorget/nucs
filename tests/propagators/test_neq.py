@@ -11,11 +11,15 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 
+import numpy as np
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.neq_propagator import compute_domains_neq
 from tests.propagators.propagator_test import PropagatorTest
+
+INT32_MAX = np.iinfo(np.int32).max
+INT32_MIN = np.iinfo(np.int32).min
 
 
 class TestNeq(PropagatorTest):
@@ -34,6 +38,9 @@ class TestNeq(PropagatorTest):
             ([(5, 5), (0, 10)], [], PROP_CONSISTENCY, [[5, 5], [0, 10]]),
             # both bound to the same value -> inconsistency
             ([(4, 4), (4, 4)], [], PROP_INCONSISTENCY, None),
+            # both bound to the same int32 limit -> inconsistency
+            ([(INT32_MAX, INT32_MAX), (INT32_MAX, INT32_MAX)], [], PROP_INCONSISTENCY, None),
+            ([(INT32_MIN, INT32_MIN), (INT32_MIN, INT32_MIN)], [], PROP_INCONSISTENCY, None),
             # both bound to different values -> entailment
             ([(4, 4), (7, 7)], [], PROP_ENTAILMENT, [[4, 4], [7, 7]]),
             # neither bound, overlapping ranges -> no change, consistent

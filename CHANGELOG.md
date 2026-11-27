@@ -124,6 +124,12 @@ documented in [the docs](https://nucs.readthedocs.io/) changed shape.
 
 ### Fixed
 
+- **`x != y` and `x != c` could accept two equal values at an int32 limit.** When the propagator removed the value
+  from a domain that held only this value, it stepped a bound past the int32 limit, and the bound wrapped around.
+  For example, with x and y both fixed to 2147483647, `neq` gave the solution [2147483647, 2147483647]. With both
+  fixed to -2147483648, `neq_imp` changed the domain of y to -2147483647..2147483647. Now a domain that holds only
+  the removed value is an inconsistency. The fix is in `neq`, `neq_imp`, `neq_reif`, `eq_reif`, `neq_c_imp` and
+  `neq_c_reif`.
 - **A model with no variable stopped with a Numba typing error.** `Problem.initial_domains` had the shape `(0,)`
   instead of `(0, 2)`. A FlatZinc model has no variable when the compilation fixes them all, for example
   `[-3, 1, 1, 1][x2] = x1` with x2 in -3..1. Now the one solution, which is empty, is found. The differential tests of

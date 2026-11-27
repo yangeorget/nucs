@@ -79,6 +79,8 @@ def compute_domains_neq(domains: NDArray, parameters: NDArray, prop_state: NDArr
     # Bound consistency can only filter when a variable is bound: the forbidden value is then
     # removed from the other domain, but solely when it sits on one of its bounds (no holes).
     if x[DOMAIN_MIN] == x[DOMAIN_MAX]:
+        if y[DOMAIN_MIN] == y[DOMAIN_MAX] == x[DOMAIN_MIN]:  # stepping a bound past an int32 limit overflows
+            return PROP_INCONSISTENCY
         if y[DOMAIN_MIN] == x[DOMAIN_MIN]:
             y[DOMAIN_MIN] += 1
         elif y[DOMAIN_MAX] == x[DOMAIN_MIN]:
