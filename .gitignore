@@ -15,6 +15,7 @@ papers
 profile.pstats
 specs
 tmp
+uv.lock
 venv*
 .direnv
 
