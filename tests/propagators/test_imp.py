@@ -26,6 +26,9 @@ from nucs.propagators.neq_c_imp_propagator import compute_domains_neq_c_imp
 from nucs.propagators.neq_imp_propagator import compute_domains_neq_imp
 from tests.propagators.propagator_test import PropagatorTest
 
+INT32_MAX = np.iinfo(np.int32).max
+INT32_MIN = np.iinfo(np.int32).min
+
 
 # reference semantics of the half-reified constraint r -> C, C over the operands (after the boolean r)
 def _pred_eq_c(r: int, ops: list[int], params: list[int]) -> bool:
@@ -122,12 +125,30 @@ class TestImp(PropagatorTest):
             (compute_domains_neq_imp, [(1, 1), (5, 5), (3, 5)], [], PROP_ENTAILMENT, [[1, 1], [5, 5], [3, 4]]),
             # r free, x=y forced -> r=0
             (compute_domains_neq_imp, [(0, 1), (5, 5), (5, 5)], [], PROP_ENTAILMENT, [[0, 0], [5, 5], [5, 5]]),
+            # r=1, x and y fixed to the same int32 limit -> inconsistency
+            (
+                compute_domains_neq_imp,
+                [(1, 1), (INT32_MAX, INT32_MAX), (INT32_MAX, INT32_MAX)],
+                [],
+                PROP_INCONSISTENCY,
+                None,
+            ),
+            (
+                compute_domains_neq_imp,
+                [(1, 1), (INT32_MIN, INT32_MIN), (INT32_MIN, INT32_MIN)],
+                [],
+                PROP_INCONSISTENCY,
+                None,
+            ),
             # r=1 steps x off c sitting on its lower bound
             (compute_domains_neq_c_imp, [(1, 1), (4, 9)], [4], PROP_ENTAILMENT, [[1, 1], [5, 9]]),
             # r=1, c strictly inside x -> no pruning (a hole cannot be represented)
             (compute_domains_neq_c_imp, [(1, 1), (0, 9)], [4], PROP_CONSISTENCY, [[1, 1], [0, 9]]),
             # r=1, x=c -> inconsistency
             (compute_domains_neq_c_imp, [(1, 1), (4, 4)], [4], PROP_INCONSISTENCY, None),
+            # r=1, x=c at an int32 limit -> inconsistency
+            (compute_domains_neq_c_imp, [(1, 1), (INT32_MAX, INT32_MAX)], [INT32_MAX], PROP_INCONSISTENCY, None),
+            (compute_domains_neq_c_imp, [(1, 1), (INT32_MIN, INT32_MIN)], [INT32_MIN], PROP_INCONSISTENCY, None),
             # r free, x=c forced -> r=0
             (compute_domains_neq_c_imp, [(0, 1), (4, 4)], [4], PROP_ENTAILMENT, [[0, 0], [4, 4]]),
             # r free, c outside x -> entailed, r untouched (unlike full reif, r is NOT forced true)

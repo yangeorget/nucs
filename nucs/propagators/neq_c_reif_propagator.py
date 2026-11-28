@@ -81,6 +81,8 @@ def compute_domains_neq_c_reif(domains: NDArray, parameters: NDArray, prop_state
         x[:] = c
         return PROP_ENTAILMENT
     elif b[DOMAIN_MIN] == 1:  # b is true: x != c (bounds can only drop c when it sits on a bound)
+        if x[DOMAIN_MIN] == x[DOMAIN_MAX] == c:  # stepping a bound past an int32 limit overflows
+            return PROP_INCONSISTENCY
         if x[DOMAIN_MIN] == c:
             x[DOMAIN_MIN] = c + 1
             if x[DOMAIN_MIN] > x[DOMAIN_MAX]:

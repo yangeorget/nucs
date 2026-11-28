@@ -11,11 +11,15 @@
 # Copyright 2024-2026 - Yan Georget
 ###############################################################################
 
+import numpy as np
 import pytest
 
 from nucs.constants import PROP_CONSISTENCY, PROP_ENTAILMENT, PROP_INCONSISTENCY
 from nucs.propagators.neq_reif_propagator import compute_domains_neq_reif
 from tests.propagators.propagator_test import PropagatorTest
+
+INT32_MAX = np.iinfo(np.int32).max
+INT32_MIN = np.iinfo(np.int32).min
 
 
 class TestNeqReif(PropagatorTest):
@@ -30,6 +34,9 @@ class TestNeqReif(PropagatorTest):
             ([(1, 1), (3, 4), (5, 6)], [], PROP_ENTAILMENT, [[1, 1], [3, 4], [5, 6]]),
             # b is 1, x and y both fixed same -> inconsistency
             ([(1, 1), (4, 4), (4, 4)], [], PROP_INCONSISTENCY, None),
+            # b is 1, x and y both fixed to the same int32 limit -> inconsistency
+            ([(1, 1), (INT32_MAX, INT32_MAX), (INT32_MAX, INT32_MAX)], [], PROP_INCONSISTENCY, None),
+            ([(1, 1), (INT32_MIN, INT32_MIN), (INT32_MIN, INT32_MIN)], [], PROP_INCONSISTENCY, None),
             # b is 0, so x = y: intersection
             ([(0, 0), (3, 5), (4, 6)], [], PROP_CONSISTENCY, [[0, 0], [4, 5], [4, 5]]),
             # b is 0, x = y already fixed -> entailment

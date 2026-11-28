@@ -81,6 +81,8 @@ def compute_domains_neq_reif(domains: NDArray, parameters: NDArray, prop_state: 
             return PROP_ENTAILMENT
         # If x is fixed, remove that value from y
         if x[DOMAIN_MIN] == x[DOMAIN_MAX]:
+            if y[DOMAIN_MIN] == y[DOMAIN_MAX] == x[DOMAIN_MIN]:  # stepping a bound past an int32 limit overflows
+                return PROP_INCONSISTENCY
             if y[DOMAIN_MIN] == x[DOMAIN_MIN]:
                 y[DOMAIN_MIN] += 1
                 if y[DOMAIN_MIN] > y[DOMAIN_MAX]:

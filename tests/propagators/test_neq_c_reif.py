@@ -18,6 +18,9 @@ from nucs.constants import DOMAIN_MAX, DOMAIN_MIN, PROP_CONSISTENCY, PROP_ENTAIL
 from nucs.propagators.neq_c_reif_propagator import compute_domains_neq_c_reif
 from tests.propagators.propagator_test import PropagatorTest
 
+INT32_MAX = np.iinfo(np.int32).max
+INT32_MIN = np.iinfo(np.int32).min
+
 
 class TestNeqCReif(PropagatorTest):
     @pytest.mark.parametrize("c", [-1, 0, 1, 2, 3])
@@ -56,6 +59,9 @@ class TestNeqCReif(PropagatorTest):
             ([(1, 1), (2, 9)], [2], PROP_ENTAILMENT, [[1, 1], [3, 9]]),
             # b=1, c interior: bounds cannot remove it
             ([(1, 1), (0, 9)], [4], PROP_CONSISTENCY, [[1, 1], [0, 9]]),
+            # b=1, x fixed to c at an int32 limit -> inconsistent
+            ([(1, 1), (INT32_MAX, INT32_MAX)], [INT32_MAX], PROP_INCONSISTENCY, None),
+            ([(1, 1), (INT32_MIN, INT32_MIN)], [INT32_MIN], PROP_INCONSISTENCY, None),
             # b=0 (x == c): fix x to c
             ([(0, 0), (0, 9)], [4], PROP_ENTAILMENT, [[0, 0], [4, 4]]),
             # b=0 but c not in x -> inconsistent
