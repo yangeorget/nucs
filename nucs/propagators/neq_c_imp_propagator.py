@@ -86,14 +86,12 @@ def compute_domains_neq_c_imp(domains: NDArray, parameters: NDArray, prop_state:
     if x[DOMAIN_MIN] > c or x[DOMAIN_MAX] < c:  # x != c is entailed -> the implication holds for any b
         return PROP_ENTAILMENT
     if b[DOMAIN_MIN] == 1:  # b is true: x != c (bounds can only drop c when it sits on a bound)
-        if x[DOMAIN_MIN] == x[DOMAIN_MAX] == c:  # stepping a bound past an int32 limit overflows
-            return PROP_INCONSISTENCY
         if x[DOMAIN_MIN] == c:
+            if x[DOMAIN_MAX] == c:  # x = c: stepping a bound past an int32 limit overflows
+                return PROP_INCONSISTENCY
             x[DOMAIN_MIN] = c + 1
-        if x[DOMAIN_MAX] == c:
+        elif x[DOMAIN_MAX] == c:
             x[DOMAIN_MAX] = c - 1
-        if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
-            return PROP_INCONSISTENCY
         if x[DOMAIN_MIN] > c or x[DOMAIN_MAX] < c:
             return PROP_ENTAILMENT
         return PROP_CONSISTENCY
