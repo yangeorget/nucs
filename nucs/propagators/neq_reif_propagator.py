@@ -81,26 +81,18 @@ def compute_domains_neq_reif(domains: NDArray, parameters: NDArray, prop_state: 
             return PROP_ENTAILMENT
         # If x is fixed, remove that value from y
         if x[DOMAIN_MIN] == x[DOMAIN_MAX]:
-            if y[DOMAIN_MIN] == y[DOMAIN_MAX] == x[DOMAIN_MIN]:  # stepping a bound past an int32 limit overflows
-                return PROP_INCONSISTENCY
             if y[DOMAIN_MIN] == x[DOMAIN_MIN]:
+                if y[DOMAIN_MIN] == y[DOMAIN_MAX]:  # x = y: stepping a bound past an int32 limit overflows
+                    return PROP_INCONSISTENCY
                 y[DOMAIN_MIN] += 1
-                if y[DOMAIN_MIN] > y[DOMAIN_MAX]:
-                    return PROP_INCONSISTENCY
-            if y[DOMAIN_MAX] == x[DOMAIN_MAX]:
+            elif y[DOMAIN_MAX] == x[DOMAIN_MAX]:
                 y[DOMAIN_MAX] -= 1
-                if y[DOMAIN_MIN] > y[DOMAIN_MAX]:
-                    return PROP_INCONSISTENCY
-        # If y is fixed, remove that value from x
+        # If y is fixed, remove that value from x (when a bound of x is y, x is not fixed: the step cannot empty x)
         if y[DOMAIN_MIN] == y[DOMAIN_MAX]:
             if x[DOMAIN_MIN] == y[DOMAIN_MIN]:
                 x[DOMAIN_MIN] += 1
-                if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
-                    return PROP_INCONSISTENCY
-            if x[DOMAIN_MAX] == y[DOMAIN_MAX]:
+            elif x[DOMAIN_MAX] == y[DOMAIN_MAX]:
                 x[DOMAIN_MAX] -= 1
-                if x[DOMAIN_MIN] > x[DOMAIN_MAX]:
-                    return PROP_INCONSISTENCY
         return PROP_CONSISTENCY
     # If b is fixed to 0, then x = y
     if b[DOMAIN_MAX] == 0:
